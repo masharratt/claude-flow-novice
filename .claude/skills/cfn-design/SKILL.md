@@ -47,6 +47,17 @@ From the orchestrator you also receive:
 
 The API contract (Phase 5) never drops by tier. Like `cfn-ux`'s affordance map, it is a correctness floor inside a phase that otherwise scales.
 
+### Tier x phase inclusion (single source; the directive prose above is rationale)
+
+| Phase | mvp (light) | beta (full) | enterprise (full + i18n) |
+|---|---|---|---|
+| 1 Reuse audit | yes | yes | yes |
+| 2 Layout + visual spec | functional layout, tokens, per-breakpoint table | full | full |
+| 3 Accessibility | operable floor: keyboard + visible labels + no focus trap | full WCAG AA (computed contrast, ARIA, keyboard, SR labels) | full WCAG AA + `accessibility-advocate-persona` audit |
+| 4 i18n / localization / tz | no | no (unless `i18n` in extras) | yes |
+| 5 API contract | full depth (never drops) | full depth | full depth |
+| 6 Content & microcopy | labels + error copy + empty copy | + confirm/undo copy + tone guide | + every string a catalog key (feeds Phase 4) |
+
 ## Protocol
 
 ### Phase 1: Design-System Reuse Audit (gap G15, DRY)
@@ -80,18 +91,29 @@ Per screen, name:
 - **Spacing:** section gaps and control padding, referenced as spacing tokens (`space.4`, not `16px`).
 - **Visual hierarchy:** what is primary (the main action), secondary, and tertiary. Size, weight, and color tokens that express the hierarchy.
 - **Design tokens:** the color, type, and spacing tokens used, each by name from the token source in Phase 1. Hardcoded hex / px is a Phase 1 violation surfaced here.
-- **Responsive breakpoints:** how the layout reflows at each breakpoint (mobile / tablet / desktop). Name what stacks, hides, or reflows. Reference breakpoint tokens.
-- **Touch / pointer:** on touch viewports, interactive targets meet the minimum hit size (44x44 CSS px). No affordance is hover-only — anything revealed on hover has a tap/focus equivalent. Name any gesture (swipe to delete) and its non-gesture fallback. cfn-ux named the affordance; here you make it operable by finger.
+- **Responsive + touch (per-breakpoint forcing table):** emit this table per screen:
+
+  ```
+  | Breakpoint (token) | Layout change | Hidden/collapsed | Touch: targets <44px? | Hover-only affordances (fallback) |
+  ```
+
+  Rule: one row per breakpoint token defined in the system's token file (list the tokens from Phase 1). "No change" is written explicitly; an absent row fails the phase. Touch column: interactive targets meet the minimum hit size (44x44 CSS px); name any that do not and the fix. Hover column: no affordance is hover-only; anything revealed on hover names its tap/focus fallback, and any gesture (swipe to delete) names its non-gesture fallback. cfn-ux named the affordance; here you make it operable by finger.
 
 The six UX states (loading / empty / error / success / partial / disabled) each need a visual treatment, not just a control treatment: the skeleton shape for loading, the empty illustration / copy slot, the error banner styling, the disabled token. `cfn-ux` named what renders in each state; you name how it looks.
 
 ### Phase 3: Accessibility (gap, scales by tier)
 
-`cfn-ux` handed you interaction-level a11y hooks (keyboard, focus order, ARIA roles per control). Here you turn them into concrete WCAG obligations. Depth scales by tier:
+`cfn-ux` handed you interaction-level a11y hooks as the UX section 5 handoff table (`| Control/field | Keyboard keys (non-standard only) | Focus position (n of N in flow) | ARIA attrs required |`). Consumer matches that table byte-for-byte; unmatched values route back as producer defects. Here you turn the hooks into concrete WCAG obligations. Depth scales by tier:
 
 - **`light` (mvp):** the operable floor only. Every affordance reachable and operable by keyboard. Every input has a visible, associated label. Focus is never trapped. That is the whole MVP a11y bar. No contrast math, no full ARIA matrix.
 - **`full` (beta / enterprise):** full WCAG AA:
-  - **Contrast:** every text / background pair meets AA (4.5:1 body, 3:1 large text / UI components). State the ratio against the chosen tokens.
+  - **Contrast (computed, never estimated):** every text / background token pair meets AA (4.5:1 body, 3:1 large text / UI components). Procedure per pair: (1) read the actual hex values from the token file found in Phase 1 (cite file:line); (2) compute the ratio with this node one-liner:
+
+    ```bash
+    node -e "const l=h=>{const c=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};const[a,b]=process.argv.slice(1).map(l);console.log(((Math.max(a,b)+.05)/(Math.min(a,b)+.05)).toFixed(2))" "#RRGGBB" "#RRGGBB"
+    ```
+
+    (3) record `pair | hexes | ratio | AA pass/fail`. A ratio with no hex values shown is invalid. Token file unreadable -> mark the pair [OPEN], never estimate.
   - **Focus order:** the tab sequence through each flow follows the visual / logical order from `cfn-ux`. Visible focus indicator on every interactive element.
   - **ARIA roles + labels:** the roles the control type implies, made concrete (combobox: `role=combobox` + `aria-expanded` + `aria-controls`; error state: `aria-invalid` + `aria-describedby` pointing at the message id).
   - **Keyboard nav:** named keys for non-standard controls (combobox arrow / enter / escape; stepper arrow up/down).
@@ -149,6 +171,14 @@ export const BookingError = z.object({
 - **Tone:** state the voice (plain / formal / playful) once; it applies to all of the above. At `light` (mvp), labels + error copy + empty copy are required; full tone guide is `full`+.
 - **Localization handoff:** every string named here is a catalog key when Phase 4 (i18n) runs. No hardcoded strings survive into components.
 
+Pinned output format (one row per string):
+
+| String key | Context (state/action) | Copy | Next step |
+|---|---|---|---|
+| booking.submit.label | primary action button | Book course | - |
+| booking.error.course_full | API error COURSE_FULL on submit | That date is full. | Pick another date or join the waitlist. |
+| booking.empty.no_courses | empty state, zero active courses | No courses are open for booking yet. | Check back soon or ask your studio to publish one. |
+
 ## Output
 
 Write to: `planning/DESIGN_<slug>.md`
@@ -172,11 +202,12 @@ Template:
 - Layout structure / grid
 - Spacing tokens / hierarchy
 - Tokens used (color / type / spacing, by name)
-- Responsive breakpoints
+- Per-breakpoint forcing table: | Breakpoint (token) | Layout change | Hidden/collapsed | Touch: targets <44px? | Hover-only affordances (fallback) |
+  (one row per breakpoint token from the token file; "No change" written explicitly)
 - Per-state visual treatment (loading/empty/error/success/partial/disabled)
 
 ## 3. Accessibility
-- (light) keyboard + labels   OR   (full) WCAG AA: contrast / focus / ARIA / keyboard / SR labels
+- (light) keyboard + labels   OR   (full) WCAG AA: computed contrast (pair | hexes | ratio | AA pass/fail, hexes cited from token file) / focus / ARIA / keyboard / SR labels
 
 ## 4. i18n / Localization / Timezones  (only if in extras)
 - String externalization / date-number-tz formatting / RTL + expansion
@@ -189,6 +220,7 @@ Template:
 - Error shape / deprecation / backward-compat
 
 ## 6. Content & Microcopy
+| String key | Context (state/action) | Copy | Next step |
 - Labels + button verbs / error message copy (what + next step) / empty-state copy / confirm + undo copy / tone
 
 ## Open Items
@@ -220,12 +252,18 @@ Reuse 7 / extend 1 / new 0. Zero new components: the design system already cover
 - **Spacing:** `space.6` between field groups, `space.2` label-to-control, `space.8` above the Submit row.
 - **Hierarchy:** Submit is primary (`color.brand.500`, `type.button.lg`); field labels `type.label.md` `color.text.secondary`; the course select is visually emphasized (it gates the rest) with a subtle `color.surface.raised` background.
 - **Tokens:** color `brand.500` / `text.secondary` / `surface.raised` / `border.default`; type `button.lg` / `label.md` / `body.md`; spacing `2/6/8`. No hex, no px literals.
-- **Responsive:** desktop/tablet single column 640px; mobile (`<bp.sm`) full-bleed, `space.4` gaps, Submit becomes sticky-bottom.
+- **Responsive + touch (per-breakpoint forcing table; breakpoint tokens `bp.sm`/`bp.md`/`bp.lg` from `src/ui/tokens/breakpoint.ts`):**
+
+| Breakpoint (token) | Layout change | Hidden/collapsed | Touch: targets <44px? | Hover-only affordances (fallback) |
+|---|---|---|---|---|
+| bp.sm (mobile) | full-bleed single column, `space.4` gaps, Submit sticky-bottom | none | no (stepper +/- buttons enlarged to 44px) | none |
+| bp.md (tablet) | single column 640px, centered | none | no | none |
+| bp.lg (desktop) | No change (same 640px centered column) | none | n/a (pointer) | combobox option hover-highlight (also shown on keyboard focus) |
 - **State visuals:** loading = skeleton rows in `color.surface.muted`; empty (no active courses) = empty-state card + disabled Submit; error = `color.danger.bg` banner above the form + Retry; disabled Submit = `color.action.disabled` + `cursor:not-allowed`.
 
 **3. Accessibility (full / beta)**
 
-- Contrast: `brand.500` on white = 4.6:1 (AA pass); `text.secondary` on `surface.raised` = 4.8:1.
+- Contrast (hexes read from `src/ui/tokens/color.ts:12,27,31`, ratios computed with the Phase 3 one-liner): `brand.500` (#6164EC) on white (#FFFFFF) = 4.62:1, AA pass (body); `text.secondary` (#656F84) on `surface.raised` (#F9FAFB) = 4.83:1, AA pass.
 - Focus order: course → instructor → date → skill_level → seats → add_ons → reminder → notes → Submit (matches visual order from `cfn-ux`). Visible focus ring `color.focus` on every control.
 - ARIA: course/instructor `role=combobox` + `aria-expanded`; invalid field `aria-invalid` + `aria-describedby="<field>-err"`; submit error banner `role=alert`; loading skeleton `aria-busy=true`.
 - Keyboard: combobox arrow/enter/escape; stepper arrow-up/down; Submit reachable via Tab, fires on Enter.

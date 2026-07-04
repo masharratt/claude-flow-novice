@@ -10,7 +10,7 @@ status: production
 
 **Purpose:** Convert pseudocode operations into a concrete component design with interface contracts. Catches integration mismatches, missing shared types, and DRY violations BEFORE the implementer wires them wrong.
 
-**Phase:** Architecture. DAG level 4 in the canonical `cfn-megaplan` pipeline (after `cfn-data`, in parallel with `cfn-ux`); hands storage detail to `cfn-data`, ops/deployment to `cfn-ops`, and the route/navigation map to `cfn-ux`. Also SPARC step 3 of 3 in the lighter `cfn-spa-plan` sub-pipeline.
+**Phase:** Architecture. DAG level 5 in the canonical `cfn-megaplan` pipeline (after `cfn-data` at level 4, in parallel with `cfn-ux`); megaplan's dependency table is authoritative for scheduling. Hands storage detail to `cfn-data`, ops/deployment to `cfn-ops`, and the route/navigation map to `cfn-ux`. Also SPARC step 3 of 3 in the lighter `cfn-spa-plan` sub-pipeline.
 
 ## When to Use
 
@@ -29,6 +29,17 @@ Required:
 Refuse to run if either missing or in `draft` status with unresolved gaps.
 
 ## Protocol
+
+### Step -1: Resolve mode (before any step)
+
+Resolve which steps this run owns BEFORE executing any of them. Under megaplan, dedicated phases own the detail; arch emits "deferred to <phase>" for the skipped parts instead of duplicating them.
+
+| Context | Steps you SKIP (emit "deferred to <phase>" only) |
+|---|---|
+| megaplan + db flag | Step 5 entirely (cfn-data owns schema/index/RLS/migration) |
+| megaplan + frontend flag | Step 3 route-map behavior detail (keep route list; cfn-ux owns journeys) |
+| megaplan, tier beta+ | Step 6 observability / Step 8 rollout mitigation design (cfn-ops) |
+| standalone / cfn-spa-plan | nothing - run all steps |
 
 ### Step 0: DRY Audit (MANDATORY)
 
@@ -77,6 +88,13 @@ Group operations into components/modules. Each component has:
 - **Owns data** (which entities/tables)
 - **Does NOT own** (explicit non-responsibilities to prevent scope creep)
 
+Grouping procedure (mechanical, apply in order):
+1. One component per persisted entity: owns its table + all ops whose primary write target is that table.
+2. One component per external system (mailer, payment, queue adapter).
+3. An op writing 2+ entities' tables = a workflow component named after the task, which CALLS the entity components, never duplicates them.
+4. Read-only cross-entity queries live with the entity they return.
+5. A component owning >7 operations must be split; state the split axis.
+
 ### Step 2: Interface Contracts
 
 For every boundary between components (or with external services), define a typed contract. Use TypeScript interfaces or Zod schemas. No loose objects.
@@ -106,7 +124,7 @@ Rules:
 - Error shapes are typed, not strings
 - Shared contracts live in a single source-of-truth file. State the path.
 
-### Step 3: Data Flow Diagram
+### Step 3: Data Flow Diagram (route-map behavior detail SKIPPED under megaplan+frontend - see Step -1; keep the route list)
 
 ASCII or mermaid. Show how data moves between components for the primary happy path AND at least one failure path.
 
@@ -139,7 +157,7 @@ For every external system (DB, third-party API, queue, cache):
 - **Circuit breaker** (threshold, recovery)
 - **Failure mode** (cross-reference PSEUDO Step 5)
 
-### Step 5: Storage & Schema
+### Step 5: Storage & Schema (SKIP under megaplan+db - see Step -1)
 
 For every entity that persists:
 - **Table/collection name** (with schema qualification, e.g. `public.users`)
@@ -148,11 +166,11 @@ For every entity that persists:
 - **RLS policy** (REQUIRED for new tables — see global CLAUDE.md)
 - **Migration filename** (NNNN_descriptive_name.sql)
 
-### Step 6: Cross-Cutting Concerns
+### Step 6: Cross-Cutting Concerns (observability deferred to cfn-ops under megaplan beta+ - see Step -1)
 
 Address each explicitly:
 - **AuthN:** how identity is established (cross-reference NFRs in SPEC)
-- **AuthZ:** permission checks per operation (table: operation x role)
+- **AuthZ matrix (REQUIRED table - cfn-ux 3d consumes this verbatim):** `| Operation | <role-1> | <role-2> | ... |` with cells from {allow, deny-role, deny-state}. Roles enumerated from SPEC; every PSEUDO operation gets a row. No blank cells. Consumer (cfn-ux 3d) matches this table byte-for-byte; unmatched values route back as producer defects.
 - **Observability:** log events, metrics, traces emitted
 - **Rate limiting:** per-endpoint limits
 - **Caching:** what is cached, where, TTL, invalidation trigger
@@ -170,7 +188,7 @@ Component: UserRepo
 
 This is a mini blast-radius analysis — `cfn-plan-review` will do a deeper one post-plan.
 
-### Step 8: Deployment & Rollout
+### Step 8: Deployment & Rollout (rollout mitigation design deferred to cfn-ops under megaplan beta+ - see Step -1)
 
 - New env vars / secrets needed (and where set)
 - Feature flag (yes/no, name, default)
@@ -203,7 +221,7 @@ When the orchestrator passes the `error_taxonomy` extra, define a single cross-s
 
 Skip for `mvp` (light arch drops this extra).
 
-### Under cfn-megaplan: division of labor
+### Under cfn-megaplan: division of labor (rationale only - Step -1 is the operative skip table)
 
 When run inside `cfn-megaplan`, defer detail to the dedicated phases to avoid duplication (DRY):
 - **Storage (Step 5)** → hand to `cfn-data` when the `db` flag is set; arch keeps only the component-level data ownership, cfn-data owns schema/index/RLS/migration detail.
@@ -260,6 +278,43 @@ interface ...
 - Env vars, feature flag, compatibility, rollback
 ```
 
+### Output example: course booking (excerpt, continues the shared cfn-data / cfn-ux / cfn-design example)
+
+Components (grouping procedure applied):
+- `booking` (entity, rule 1): owns `public.enrollments` + createBooking / cancelBooking (primary write target: enrollments).
+- `course` (entity, rules 1 + 4): owns `public.courses` + the read-only course/capacity queries.
+- `book-course` (workflow, rule 3): createBooking writes enrollments AND decrements course seat availability (2+ entity tables), so it is a workflow component named after the task; it CALLS `booking` and `course`, it duplicates neither.
+
+One contract (Step 2):
+```typescript
+// Component boundary: BookingController -> book-course workflow
+interface BookCourseRequest {
+  courseId: string;     // uuid, FK public.courses
+  sessionDate: string;  // ISO 8601 date
+  seats: number;        // 1-8
+}
+interface BookCourseError {
+  code: 'COURSE_FULL' | 'INVALID_DATE' | 'FORBIDDEN' | 'INTERNAL';
+  message: string;
+}
+```
+
+State machine (Step 9):
+```
+Entity: booking
+States: draft -> pending -> confirmed -> cancelled | completed
+Transition: pending -> confirmed  trigger: payment_ok  guard: seat still available
+Illegal: completed -> pending (reject), cancelled -> confirmed (reject)
+```
+
+AuthZ matrix excerpt (Step 6; cfn-ux 3d consumes verbatim):
+
+| Operation | member | staff | admin |
+|---|---|---|---|
+| createBooking | allow | allow | allow |
+| cancelBooking | deny-state | allow | allow |
+| deleteCourse | deny-role | deny-role | allow |
+
 ## Handoff
 
 This artifact + SPEC + PSEUDO form the complete SPA bundle. Hand off to `/write-plan` which converts SPA into implementation roadmap + agent dispatch.
@@ -296,7 +351,7 @@ Write `planning/AUDIT_ARCH_<slug>.md`: findings table (`file:line | concern | ru
 
 ## Related
 
-- Canonical orchestrator: `cfn-megaplan` (runs arch at DAG level 4; hands storage→`cfn-data`, ops→`cfn-ops`, route-map→`cfn-ux`)
+- Canonical orchestrator: `cfn-megaplan` (runs arch at DAG level 5; its dependency table is authoritative for scheduling; hands storage→`cfn-data`, ops→`cfn-ops`, route-map→`cfn-ux`)
 - Previous phases: `cfn-spec`, `cfn-pseudo`; parallel: `cfn-ux`; upstream data: `cfn-data`
 - Lighter orchestrator: `cfn-spa-plan`
 - Downstream: `/write-plan` consumes ARCH + SPEC + PSEUDO

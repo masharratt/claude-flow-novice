@@ -59,6 +59,23 @@ Entity lifecycle documentation for stateful CFN systems.
 | po_decision | loop3 | PO returns ITERATE |
 | po_decision | aborted | PO returns ABORT |
 
+PO decision enum is closed: `PROCEED | ITERATE | ABORT` only (type guard `lib/orchestrator/src/types.ts:170`). `DEFER_AND_PROCEED` removed 2026-07-03; deferral = PROCEED + backlog items in `scope_changes`. Task Mode adds two pre-loop3 guards: Step 0 (parse `planning/VERIFY_<slug>.md` manifest if present; completion requires every `acs[].check` pass) and Step 3.0 (typecheck; any compile error fails the gate regardless of pass rate; 0/0 tests never passes via `gate-check.sh` exit 2).
+
+---
+
+## Spec Artifact Status (cfn-spec / cfn-megaplan)
+
+**Entity:** `planning/SPEC_<slug>.md` `Status:` field.
+
+**States:** `draft | locked`
+
+| From | To | Trigger |
+|------|----|---------|
+| (none) | draft | cfn-spec writes artifact |
+| draft | locked | megaplan orchestrator: Bar A (verifiable-done) passes |
+
+Downstream phases may consume `draft`; `locked` means acceptance criteria are frozen and carry executable checks. Open questions accepted as deferred are rewritten `[OPEN]` to `[PARKED: <default>]` while still `draft`; cfn-pseudo refuses on `[OPEN]` only.
+
 ---
 
 ## Dependency Scheduling

@@ -1,7 +1,7 @@
 ---
 name: technical-advisor
 description: "MUST BE USED for technical architecture review, risk assessment, quality attribute trade-off analysis. Use PROACTIVELY for architecture evaluation, security threat modeling, failure mode analysis, technical decision review. Keywords - ATAM, STRIDE, FMEA, architecture review, threat model, failure analysis, trade-offs, risk assessment"
-model: opus
+model: sonnet
 color: steel
 type: specialist
 acl_level: 4

@@ -33,7 +33,7 @@ Required:
 - `planning/SPEC_<slug>.md` — the screens, tasks, and acceptance criteria.
 
 Optional but authoritative when present:
-- `planning/DATA_<slug>.md` — the data phase. Gives the field bindings: which fields are FK / enum / lookup / boolean / date / free-text / numeric / multi-select. This is the source of truth for control derivation. If it exists, you do not guess bindings — you read them.
+- `planning/DATA_<slug>.md` — the data phase. Gives the field bindings: which fields are FK / enum / lookup / boolean / date / timestamp / free-text / numeric / multi-FK. This is the source of truth for control derivation. If it exists, you do not guess bindings — you read them.
 
 If `DATA_<slug>.md` is absent (no `db` flag), infer bindings from SPEC and mark each inferred binding `[OPEN]` for user confirmation. Never silently assume a field is free-text.
 
@@ -54,17 +54,41 @@ From the orchestrator you also receive:
 
 ### Phase 1: Field → Control Derivation (the deterministic core)
 
-This is the payload that kills the dropdown bug. For EVERY field in the data model, read its binding from `DATA_<slug>.md` and emit a row. The control is not a choice — it falls out of the binding via this map:
+This is the payload that kills the dropdown bug. For EVERY field in the data model, read its binding from `DATA_<slug>.md` and emit a row. The control is not a choice — it falls out of the binding via this map.
 
-| Field binding | Control | Validation |
+**Input contract (DATA section 2, 8 columns, pinned):**
+
+```
+| Field | Type | Binding kind | Source table/enum | Required | Options/rows (count or est.) | Range/length | UI access |
+| course_id | uuid | FK | public.courses | yes | 12 rows | - | editable |
+| status | text | enum | enrollment_status | yes | 4 values | - | readonly |
+| notes | text | free-text | - | no | - | <=500 chars | editable |
+```
+
+Consumer matches this table byte-for-byte; unmatched values route back as producer defects.
+
+Derivation map (one row per token of the closed nine-token vocabulary):
+
+| Binding kind (token from DATA) | Control | Validation |
 |---|---|---|
-| FK / lookup table | select / combobox (combobox with search if >20 rows) | value ∈ table |
-| enum | select, or radio group if ≤4 options | value ∈ enum |
-| boolean | toggle / checkbox | — |
-| date / timestamp | date picker | range / min-max |
-| free text | input (short) / textarea (long) | length, pattern |
-| numeric range | stepper / slider | min / max, step |
-| multi-select FK | tag / chip multiselect | each value ∈ table |
+| FK | select / combobox (combobox with search if >20 rows) | value ∈ table |
+| enum | select, or radio group if <=4 options | value ∈ enum |
+| lookup | select | value ∈ table |
+| boolean | toggle / checkbox | - |
+| date | date picker | range / min-max |
+| timestamp | datetime picker | range / min-max |
+| free-text | input (short) / textarea (long) | length, pattern |
+| numeric | stepper / slider / number input | min / max, step |
+| multi-FK | tag / chip multiselect | each value ∈ table |
+
+The Binding kind cell in DATA is matched byte-for-byte against this column. An unmatched token is a cfn-data defect; route back, do not interpret.
+
+Tie-breakers (mechanical, no judgment call):
+- free-text: length <=120 chars OR single-token (name, title) -> input; >120 chars, no limit, or multi-sentence -> textarea; no limit stated -> [OPEN].
+- numeric: bounded AND <=20 discrete steps -> stepper; bounded, continuous, exact value not critical -> slider; unbounded or precision matters -> number input with min/max.
+- boolean: takes effect immediately on change (setting, filter) -> toggle; submitted with the form (consent, opt-in) -> checkbox.
+- date -> date picker; timestamp -> datetime picker; time-only -> time input.
+- enum: <=4 options -> radio group; 5-20 -> select; >20 -> combobox+search (same thresholds as FK).
 
 Rules:
 - **A field bound to an FK or lookup table is NEVER a free-text input.** It is a select or searchable combobox sourced from that table. This is the single rule the bug violates.
@@ -116,6 +140,12 @@ A screen that only specifies the success state fails this phase. Loading, empty,
 - What is disabled and the exact condition (e.g. "Submit disabled until course selected and date in range").
 - The error path: what the user sees and can do when the action fails. A flow with no error path fails this phase.
 
+Emit each flow as a row of the task-flow table (pinned shape, used in 3a and 3b):
+
+```
+| Task | Entry | Action | Result | Error path | Disabled-when |
+```
+
 Cover the primary flow for every task. Under `full`, also map secondary flows (edit, delete, cancel) and the recovery flow (what the user does after an error).
 
 **3b — Cross-screen journey.** A task that spans more than one screen is a journey, not a flow. For each, map:
@@ -124,6 +154,7 @@ Cover the primary flow for every task. Under `full`, also map secondary flows (e
 - **Save / resume** — is partial progress persisted (draft), and how the user resumes. A multi-step form that loses everything on reload fails this.
 - **Entry + exit points** — how the journey is entered (deep-link? only from screen X?) and where completion/abandonment lands the user. Name the route map source: `cfn-arch` Step 3 owns the route structure; cfn-ux owns the in-journey navigation behavior.
 - **First-run / onboarding** — when the journey is a user's first encounter, the `empty` state is an activation opportunity, not a blank. Name the empty-as-onboarding content.
+- **Per-step task rows** — each journey step also gets a row in the 3a task-flow table (`| Task | Entry | Action | Result | Error path | Disabled-when |`) so no step ships without an error path.
 
 **3c — Confirmation, feedback & undo.** For every action that mutates data:
 - **Feedback** — what confirms success (toast, inline, redirect). Optimistic update or wait-for-server, and how a rollback shows if the optimistic write fails.
@@ -131,7 +162,7 @@ Cover the primary flow for every task. Under `full`, also map secondary flows (e
 - **Undo** — where an undo affordance exists and its window. Prefer undo over a confirm dialog for reversible actions.
 A mutating action with no success feedback fails this phase.
 
-**3d — Role-based visibility.** Consume `cfn-arch` Step 6 AuthZ matrix (operation × role). For each role, name per restricted affordance: **hidden** (not in DOM) vs **disabled** (visible, inert, with reason). Default: hide what the role cannot do; disable only when the user should know the action exists. cfn-ux decides *what is seen*; cfn-arch decides *what is allowed* — never re-implement the permission check here.
+**3d — Role-based visibility.** Consume `cfn-arch` Step 6 AuthZ matrix (operation × role, cells from {allow, deny-role, deny-state}). Consumer matches that table byte-for-byte; unmatched values route back as producer defects. For each role, name per restricted affordance: **hidden** (not in DOM) vs **disabled** (visible, inert, with reason). Derivation: deny-role (user can never do it) -> hidden (not in DOM). deny-state (could do it after upgrade/state change) -> disabled + reason text. The matrix cell decides; no other criterion. cfn-ux decides *what is seen*; cfn-arch decides *what is allowed* — never re-implement the permission check here.
 
 `light` (mvp): 3a + 3c success feedback only. `full`: all of 3a-3d.
 
@@ -147,7 +178,15 @@ Flag the interaction-level a11y obligations and hand them to `cfn-design` (which
 - **Focus order:** the focus sequence through each flow (entry field → ... → submit). Focus must follow the visual / logical order of the flow.
 - **ARIA hooks:** roles / labels the control type implies (combobox needs `role=combobox` + `aria-expanded`; error state needs `aria-invalid` + `aria-describedby` pointing at the error message).
 
-This is a handoff list, not a compliance pass. `cfn-design` consumes it.
+Emit the hooks as the handoff table (pinned shape; see template section 5):
+
+```
+| Control/field | Keyboard keys (non-standard only) | Focus position (n of N in flow) | ARIA attrs required |
+```
+
+Rule: one row per control from the section-1 map; standard controls may say "native"; a section-1 control missing here is a gap, not an implied default.
+
+This is a handoff table, not a compliance pass. `cfn-design` consumes it verbatim; unmatched values route back as producer defects.
 
 ## Output
 
@@ -164,6 +203,7 @@ Template:
 **Status:** draft | reviewed | locked
 
 ## 1. Field → Control Map
+Input: DATA section 2 field-bindings table (8 columns). Consumer matches it byte-for-byte; unmatched binding tokens route back as cfn-data defects.
 | Field | Binding (from DATA) | Control | Value source | Validation | Default | Autofocus | Validate-when | Help |
 
 ## 2. Screen States
@@ -172,13 +212,13 @@ Template:
 (happy six; + edge states — session-expired / stale / timeout / offline — at full for mutating screens)
 
 ## 3a. Flows
-### <task-name>
-entry -> action -> result -> error path
+| Task | Entry | Action | Result | Error path | Disabled-when |
 Affordances: <clickable>, <disabled-when>
 
 ## 3b. Journeys  (multi-screen tasks)
 ### <journey-name>
 steps + progress | forward/back | save+resume | entry/exit (route map: ARCH Step 3) | first-run/onboarding
+Per-step rows in the 3a table: | Task | Entry | Action | Result | Error path | Disabled-when |
 
 ## 3c. Feedback & Undo
 | Action | Success feedback | Destructive confirm? | Undo window |
@@ -189,8 +229,10 @@ steps + progress | forward/back | save+resume | entry/exit (route map: ARCH Step
 ## 4. Analytics Events  (only if in extras)
 | Event | Trigger | Properties |
 
-## 5. Accessibility Hooks (handoff to cfn-design)
-- Keyboard / focus order / ARIA per flow
+## 5. Accessibility Hooks (handoff table - cfn-design consumes verbatim)
+| Control/field | Keyboard keys (non-standard only) | Focus position (n of N in flow) | ARIA attrs required |
+| course (combobox) | ArrowUp/Down, Enter, Esc | 1 of 9 | role=combobox, aria-expanded, aria-controls |
+(one row per control from the section-1 map; standard controls may say "native"; a section-1 control missing here is a gap, not an implied default. Consumer matches this table byte-for-byte; unmatched values route back as producer defects.)
 
 ## Open Items
 - [OPEN] <decisions needing user input>
@@ -200,20 +242,20 @@ steps + progress | forward/back | save+resume | entry/exit (route map: ARCH Step
 
 This example directly illustrates the bug this phase prevents. The `course` field is backed by a `courses` table, so it is a dropdown, never a text input.
 
-**1. Field → Control Map**
+**1. Field → Control Map** (all 9 template columns; one fully-populated row per binding kind where feasible)
 
-| Field | Binding (from DATA) | Control | Value source | Validation |
-|---|---|---|---|---|
-| course | FK → `public.courses` (12 rows) | select | `SELECT id, name FROM courses WHERE active` | value ∈ courses |
-| instructor | FK → `public.instructors` (40 rows) | combobox + search | `SELECT id, name FROM instructors` | value ∈ instructors |
-| session_date | date | date picker | — | within course schedule window |
-| skill_level | enum (beginner/intermediate/advanced) | radio group (3) | enum `skill_level` | value ∈ enum |
-| send_reminder | boolean | toggle | — | — |
-| seats | numeric range 1-8 | stepper | course.capacity | 1 ≤ n ≤ capacity |
-| notes | free text | textarea | — | ≤ 500 chars |
-| add_ons | multi-select FK → `public.add_ons` | chip multiselect | `SELECT id, name FROM add_ons` | each ∈ add_ons |
+| Field | Binding (from DATA) | Control | Value source | Validation | Default | Autofocus | Validate-when | Help |
+|---|---|---|---|---|---|---|---|---|
+| course | FK → `public.courses` (12 rows) | select | `SELECT id, name FROM courses WHERE active` | value ∈ courses | empty | yes (sole autofocus) | on-change (gates rest of form) | none |
+| instructor | FK → `public.instructors` (40 rows) | combobox + search | `SELECT id, name FROM instructors` | value ∈ instructors | empty | no | on-blur | none |
+| session_date | date | date picker | — | within course schedule window | empty | no | on-blur | "sessions run within the course schedule window" |
+| skill_level | enum (beginner/intermediate/advanced) | radio group (3) | enum `skill_level` | value ∈ enum | beginner | no | on-change | none |
+| send_reminder | boolean | toggle (takes effect immediately) | — | — | off | no | on-change | none |
+| seats | numeric range 1-8 | stepper (bounded, <=20 steps) | course.capacity | 1 ≤ n ≤ capacity | 1 | no | on-change | "1 to course capacity" |
+| notes | free-text (<=500 chars, multi-sentence) | textarea | — | ≤ 500 chars | empty | no | on-blur | "max 500 chars" |
+| add_ons | multi-FK → `public.add_ons` | chip multiselect | `SELECT id, name FROM add_ons` | each ∈ add_ons | none selected | no | on-change | none |
 
-The `course` row is the whole point: a planner who wrote "course: text input" would have shipped the bug. The binding forces `select`.
+The `course` row is the whole point: a planner who wrote "course: text input" would have shipped the bug. The binding forces `select`. (`lookup` and `timestamp` bindings do not occur on this form; when present they get the same fully-populated row.)
 
 **2. Screen States — Booking Form**
 
@@ -226,9 +268,12 @@ The `course` row is the whole point: a planner who wrote "course: text input" wo
 | partial | courses loaded but add-ons failed: form usable, add-ons section shows its own retry |
 | disabled | Submit disabled until course selected, date in window, seats ≤ capacity |
 
-**3. Flow — Book a course**
+**3. Flow — Book a course** (task-flow table)
 
-entry (open booking form) → action (select course, pick date, set seats, Submit) → result (booking created, confirmation shown) → error path (submit fails: keep form state, show error banner, re-enable Submit for retry).
+| Task | Entry | Action | Result | Error path | Disabled-when |
+|---|---|---|---|---|---|
+| Book a course | open booking form | select course, pick date, set seats, Submit | booking created, confirmation shown | submit fails: keep form state, show error banner, re-enable Submit for retry | Submit: no course OR date outside window OR seats > capacity |
+
 Affordances: course/instructor/date/seats interactive; Submit disabled-when (no course OR date outside window OR seats > capacity).
 
 ## Handoff
@@ -255,7 +300,7 @@ No planning artifacts required here. Code is the input.
 
 1. **Enumerate fields.** Parse the target form / screen. For every user-editable field emit: `file:line`, field name, **rendered control** (`<input type=text>`, `<select>`, `<textarea>`, checkbox, date-picker, etc.).
 2. **Recover the real binding.** For each field, determine what it is actually backed by — read it, do not guess:
-   - prefer `--data` / `--schema`: the field-bindings table or the migration/ORM model gives FK / enum / lookup / boolean / date / numeric / free-text directly.
+   - prefer `--data` / `--schema`: the field-bindings table or the migration/ORM model gives FK / enum / lookup / boolean / date / timestamp / free-text / numeric / multi-FK directly.
    - else infer from the column the field writes (FK name `*_id` referencing a table, a CHECK/enum constraint, a `bool`/`timestamptz` type) and from the submit handler.
    - if binding cannot be established, mark the field `binding-unknown` (a finding in itself — the code is ambiguous).
 3. **Apply the affordance map** (same table as forward mode) → expected control.

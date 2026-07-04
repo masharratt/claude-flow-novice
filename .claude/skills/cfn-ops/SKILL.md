@@ -39,13 +39,13 @@ The orchestrator passes `Tier`, `Directive`, `extras`, `drops`. Resolve each pro
 
 | Phase | mvp | beta (light core) | enterprise (full) |
 |---|:--:|---|---|
-| 1. Threat model | SKIP | light: top data-flows, name a control per realistic STRIDE category | full STRIDE: every data-flow, all 6 categories, control + residual risk |
+| 1. Threat model | SKIP | beta floor: EVERY externally-reachable data-flow edge gets >=1 STRIDE row with at minimum S, T, and I evaluated; any skipped category gets "n/a: <reason>" (reason required) | full STRIDE: every data-flow, all 6 categories, control + residual risk |
 | 2. Observability | SKIP | full: decision-point log lines + metrics + the on-call query | full + dashboards + alert thresholds |
 | 3. Rollout | SKIP | flags: feature flag + staged % | flags + canary (wire `cfn-canary`) + canary criteria |
 | 4. Success metrics / KPIs | SKIP | full: prod-acceptance metrics | full + per-segment + guardrail metrics |
 | 5. Failure-mode / degradation | SKIP | light: per critical dep, name dep-down behavior + timeout | full FMEA: severity x likelihood x detection, circuit breakers |
 | 6. Rollback rehearsal | SKIP | full: tested undo steps | full + dry-run evidence |
-| 7. Capacity / infra / cost | SKIP | light: name the obvious resource budget + `--budget` cap if LLM in loop | full: topology, scaling, cost-per-call, token model |
+| 7. Capacity / infra / cost | SKIP | beta floor: >=1 named-constant budget row, plus the `--budget` row whenever an LLM is in the loop | full: topology, scaling, cost-per-call, token model |
 | 8. Runbook / on-call | SKIP | light: symptoms → first action | full on-call doc with escalation |
 
 beta `extras`: `observability, rollout, metrics, rollback_rehearsal`. beta `drops`: `threat_full, capacity_full, runbook_full` (these run light, not off). enterprise `extras`: `threat, observability, rollout, canary, metrics, failure_mode, rollback_rehearsal, capacity, cost_model, runbook` (all full).
@@ -72,7 +72,7 @@ Output table (one row per threat, grouped by data-flow):
 | Worker -> Postgres         | R      | No audit of who changed status      | append-only status_events row per transition    | low      |
 ```
 
-beta: cover the externally-reachable data-flows and the realistic categories per edge (don't force all 6 where none apply). enterprise: every edge, all 6, plus residual risk and an owner for any `med`/`high` residual.
+beta floor: EVERY externally-reachable data-flow edge gets >=1 STRIDE row, and S, T, and I are each evaluated per edge at minimum. A category skipped on an edge gets an explicit "n/a: <reason>" cell; the reason is required, never blank. enterprise: every edge, all 6 categories, plus residual risk and an owner for any `med`/`high` residual.
 
 Cross-reference: HTTP edges must confirm the security-headers middleware (HSTS/CSP/X-Frame-Options). DB edges must reference the RLS policy from `DATA_<slug>.md`. Never hand-roll auth/crypto/token parsing here — point at the vetted middleware.
 
@@ -197,7 +197,7 @@ enterprise — full:
 | LLM summarize     | --budget=5.00 per batch       | provider rate limit | ~$0.002 (grok-4-1)   |
 ```
 
-beta light — name the one obvious resource budget and, if any LLM is in the loop, the `--budget` cap. Skip full topology.
+beta floor — name at least one budget row whose value is a named constant in shared config (cite the constant name, not a magic number), plus the `--budget=<usd>` row whenever an LLM is in the loop. A beta Phase 7 with zero budget rows, or an LLM in the loop with no `--budget` row, is incomplete. Skip full topology.
 
 ### Phase 8: Runbook / on-call (beta light / enterprise full) — G28
 
@@ -272,7 +272,15 @@ Template (include only the phases active for the tier; mark skipped phases `N/A 
 
 ## Handoff
 
-`OPS_<slug>.md` is consumed at L7 by `/write-plan`, which folds rollout/observability/rollback into the implementation roadmap (e.g. the flag wrapper, the log lines, the down-migration become concrete build tasks). Bar A (verifiable-done) turns each KPI and canary criterion into an executable AC. `cfn-plan-review` (L8) blast-radius-checks the ops surface.
+`OPS_<slug>.md` is consumed at L7 by `/write-plan`, which folds rollout/observability/rollback into the implementation roadmap (e.g. the flag wrapper, the log lines, the down-migration become concrete build tasks via its "Ops Integration Tasks" section). Bar A (verifiable-done) turns each KPI and canary criterion into an executable AC. `cfn-plan-review` (L8) blast-radius-checks the ops surface.
+
+## Return (to orchestrator)
+
+Return exactly:
+- Artifact path: `planning/OPS_<slug>.md`
+- A 3-line summary (STRIDE edges covered with row count, flag name + rollout stages, rollback trigger + down-migration named).
+- Floors line: STRIDE floor met yes/no (every external edge has >=1 row, S/T/I evaluated), budget floor met yes/no (>=1 named-constant row; `--budget` row present if LLM in loop).
+- Any `[OPEN]` items needing a user decision (unmeasurable success criterion, banned provider, missing budget cap, header bypass).
 
 ## Anti-Patterns
 

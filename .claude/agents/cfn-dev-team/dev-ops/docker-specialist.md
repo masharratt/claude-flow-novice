@@ -34,26 +34,8 @@ model: glm-4.6
 
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
-### 1. JSON Validation & Success Criteria Parsing
-Use the centralized JSON validation skill for defensive AGENT_SUCCESS_CRITERIA parsing:
-
-**Skill Reference:** `.claude/skills/json-validation/SKILL.md`
-
-```bash
-# Source the skill for safe JSON validation
-source .claude/skills/json-validation/validate-success-criteria.sh
-
-# Validate and parse with injection attack prevention
-validate_success_criteria || exit 1
-
-# Access parsed data
-list_test_suites
-```
-
-**Features:**
-- Prevents JSON injection attacks (CVSS 8.2)
-- Handles missing/malformed data gracefully
-- No external dependencies beyond jq
+### 1. Success Criteria Parsing
+Read `.claude/agents/cfn-dev-team/_shared/agent-prelude.md` and follow it. Parse AGENT_SUCCESS_CRITERIA defensively with inline `jq` (validate it is well-formed JSON before use). The json-validation skill does not exist on disk; do not source it.
 
 ### 2. TDD Protocol (MANDATORY)
 
@@ -72,24 +54,15 @@ list_test_suites
 - Verify pass rate meets threshold (Standard: ≥95%)
 - Check coverage: `npm run coverage`
 
-### 3. Test Execution & Results Parsing
-Use the centralized test runner skill for consistent test result collection:
-
-**Skill Reference:** `.claude/skills/cfn-test-runner/SKILL.md`
+### 3. Test Execution & Results Capture
+Run only your scoped tests with the standard capture pattern (prelude rules 3 and 4):
 
 ```bash
-# Execute tests with benchmarking
-./.claude/skills/cfn-test-runner/run-all-tests.sh \
-  --suite all \
-  --benchmark \
-  --detect-regressions
+OUT=/tmp/test-${PWD##*/}-$(date +%s).txt
+npx vitest run <your-scoped-test-files> --reporter=verbose 2>&1 | tee "$OUT"
 ```
 
-**Captures:**
-- Test pass/fail counts
-- Performance metrics
-- Regression detection
-- Historical comparisons
+Read "$OUT" and report pass/fail counts from it.
 
 # Docker Specialist Agent
 

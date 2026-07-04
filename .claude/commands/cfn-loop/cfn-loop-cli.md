@@ -6,6 +6,8 @@ allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "SlashCommand"]
 
 # CFN Loop CLI Mode - Local MDAP Orchestration
 
+⚠️ **VERIFICATION REQUIRED BEFORE USE (non-functional as written):** two components this command references are missing on disk: `lib/mdap/orchestrator.js` (only `lib/mdap/orchestrator.ts` exists, uncompiled) and `.claude/skills/product-owner-decision/execute-decision.sh` (skill directory does not exist). Verify or build these before running this command; otherwise Step 3 will fail at import time. Prefer `/cfn-loop-task` unless external-API delegation is required.
+
 🚨 **v3.0 ARCHITECTURE:** Direct orchestration using local MDAP (no Trigger.dev or Redis required)
 
 ---
@@ -223,11 +225,13 @@ Report completion status, iterations completed, files processed, and test result
 
 ## Mode Comparison
 
-| Mode | Gate Threshold | Max Iterations | Use Case |
-|------|----------------|----------------|----------|
-| MVP | 70% | 5 | Prototypes, quick experiments |
-| Standard | 95% | 10 | Production features |
-| Enterprise | 98% | 15 | Security, compliance |
+Single source of truth: `.claude/skills/cfn-loop-orchestration-v2/THRESHOLDS.md` (all values decimals). Summary:
+
+| Mode | test_pass_rate_gate | confidence_gate (CLI mode) | Max Iterations | Use Case |
+|------|---------------------|----------------------------|----------------|----------|
+| MVP | 0.70 | 0.70 | 5 | Prototypes, quick experiments |
+| Standard | 0.95 | 0.75 | 10 | Production features |
+| Enterprise | 0.98 | 0.85 | 15 | Security, compliance |
 
 ## How Local MDAP Works
 

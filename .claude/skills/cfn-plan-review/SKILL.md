@@ -62,6 +62,14 @@ Output format:
 
 Each assumption is UNTESTED until explicitly verified by querying the system.
 
+**Verification is mandatory, not optional.** Before Phase 6, every assumption must be resolved to VERIFIED or FAILED by running a command, or escalated:
+
+```
+| # | Assumption | Verify command (executed) | Evidence (paste actual output line) | Verdict |
+```
+
+An assumption left UNTESTED is itself a numbered Phase 6 finding ("could not verify: <why>"). A review containing any UNTESTED assumption cannot report "Alpha-ready: YES". Same rule for Phase 2: every dependency row cites the query/grep output that proved it; a dependency graph with no pasted evidence is an invalid review.
+
 ### Phase 2: Dependency Trace
 
 For every entity the plan touches (table, API, module, config), trace dependencies in both directions:
@@ -80,6 +88,14 @@ For every entity the plan touches (table, API, module, config), trace dependenci
 - Cron jobs, pipelines, background workers
 - Frontend code that renders its data
 - API consumers (internal and external)
+
+**Code-entity trace commands (run these, paste hit counts as evidence):**
+- FIRST, always: `/codebase-search "<symbol or endpoint>" --top 10` (mandatory before any grep)
+- Fallback importers trace: `grep -rn "from ['\"].*<module>" src/`
+- Endpoint consumers: grep the endpoint path across ALL consumer projects, not just this repo
+- Config: grep for the env var name across code AND deploy config (fly.toml, Dockerfile, .env.example)
+
+Zero hits is a result to record, not a step to skip. Every dependency row in the graph cites its hit count or query output.
 
 **For API/HTTP changes, also check the request path:**
 - Does the request pass through a reverse proxy, API gateway, or frontend proxy before reaching the backend? (e.g., Next.js catch-all route, nginx, Cloudflare Workers)
@@ -232,11 +248,22 @@ Completeness (Phases 1-5) checks whether the plan covers the system. The judge c
 
 Spawn a small panel (2-3) of independent reviewers, each with a distinct lens — maintainability, simplicity (could a smaller approach hit the same acceptance criteria?), and risk. Each scores the plan's approach 1-5 and names one concretely better alternative if it exists. If a majority scores ≤3 or all three name the same alternative, surface "approach may be wrong" as a Phase 6 finding with the alternative. This is the design-altitude check completeness cannot give.
 
+**Score anchors (each score has a proof obligation):**
+- 5 = reviewer cannot name a simpler approach meeting the same ACs
+- 4 = a simpler approach exists but loses an explicit AC/NFR (name both the approach and the criterion it loses)
+- 3 = a simpler approach meets ALL ACs (impossible to award without naming that approach)
+- 2 = the chosen approach fails an AC/NFR as designed (cite the AC/NFR)
+- 1 = the approach conflicts with a resolved DECISIONS entry or the security floor (cite the entry/rule)
+
+A score <=3 with no named alternative or citation is invalid and re-runs.
+
 ### Phase 5.6: Haiku-Executable Gate (Bar B)
 
 When run inside `cfn-megaplan`, this phase also invokes `bars/haiku-executable.md`: static weasel-word scan, structural scan (every step has file path + signature + control type + error path), branch-coverage scan, then the live haiku probe. Any finding routes to its owning phase (ui_control -> cfn-ux, value source -> cfn-data/cfn-arch, branch -> cfn-pseudo) and that phase re-runs. Re-run until clean. Outside megaplan, run it manually before declaring the plan ready.
 
 ### Phase 6: Findings Summary
+
+**Minimum evidence floor.** A valid review contains: >=5 extracted assumptions (or an explicit per-category statement why none applies), >=1 dependency graph with pasted query/grep evidence, and a fully-filled Alpha Readiness table. A zero-gap review must show the executed evidence clearing each hard requirement; "PASS" with an empty Notes cell is invalid.
 
 Present all gaps from Phases 1-5 as numbered questions, one per issue. Each question includes:
 - What was found
@@ -264,6 +291,25 @@ Format:
    Plan modifies pricing logic but does not name the failing test written first. Per TDD protocol, no implementation without a failing test.
    Recommendation: Add Phase 1.5 to plan: write failing test for new pricing rule before touching production code.
 ```
+
+## Output
+
+Write to: `planning/REVIEW_<slug>.md` with this required section order:
+
+1. **Assumptions verified table** (| # | Assumption | Verify command (executed) | Evidence | Verdict |)
+2. **Dependency Graph** (with pasted query/grep evidence per row)
+3. **Blast Radius** (covered / safe / GAPS)
+4. **Edge Cases**
+5. **Alpha Readiness table** (fully filled, no empty Notes cells)
+6. **Findings** (numbered, each tagged BLOCKER / GAP / NOTE)
+
+## Return (to orchestrator)
+
+Return exactly:
+- Artifact path: `planning/REVIEW_<slug>.md`
+- Finding count by severity: BLOCKER / GAP / NOTE
+- Alpha-ready: YES or NO
+- List of UNTESTED-assumption findings needing user input (empty list if all verified)
 
 ## Integration
 

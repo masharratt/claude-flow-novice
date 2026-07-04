@@ -8,9 +8,26 @@ status: production
 
 # Product Owner Decision Skill
 
-**Version:** 2.0.0 (TypeScript)
-**Status:** Production (Dual: Bash + TypeScript)
-**Purpose:** Strategic decision-making for CFN Loop progression with robust parsing
+**Version:** 2.0.0
+**Purpose:** Strategic decision-making for CFN Loop progression
+
+---
+
+## VERIFIED STATUS (read this first)
+
+**In Task Mode (`/cfn-loop-task`), the `product-owner` AGENT makes the decision.** Spawn it via the Task tool with the consensus numbers, deliverable paths, and tech-debt ledger; it returns PROCEED/ITERATE/ABORT directly in its output. No script is required.
+
+**Verified on disk in this directory:**
+- `parse-decision.sh` (legacy bash parser)
+- `validate-deliverables.sh`
+- `test-backlog-integration.sh`
+
+**Missing on disk (do NOT invoke; referenced sections below are ASPIRATIONAL only):**
+- `execute-decision.sh`
+- `src/decision-parser.ts`, `src/index.ts`, `dist/cli/parse-decision-cli.js`
+- `.claude/skills/cfn-task-audit/` (skill missing)
+- `.claude/skills/cfn-backlog-management/` (skill missing)
+- `.claude/skills/cfn-loop-validation/` (skill missing)
 
 ---
 
@@ -30,133 +47,44 @@ Provides autonomous Product Owner decision execution with:
 
 ## Architecture
 
-### Skill Components
+### Skill Components (verified on disk)
 
 ```
-.claude/skills/cfn-product-owner-decision/
-├── SKILL.md                                  # This file
-├── execute-decision.sh                       # Bash wrapper (main execution)
-├── parse-decision.sh                         # Legacy bash parser (deprecated)
-├── validate-deliverables.sh                  # Bash deliverable validator
-└── src/
-    ├── decision-parser.ts                    # TypeScript parser (core logic)
-    └── index.ts                              # TypeScript exports
+.claude/skills/cfn-loop-orchestration-v2/lib/decision/
+├── SKILL.md                    # This file
+├── parse-decision.sh           # Legacy bash parser (exists, verified)
+├── validate-deliverables.sh    # Bash deliverable validator (exists, verified)
+└── test-backlog-integration.sh # Test script (exists, verified)
 ```
 
-### CLI Integration
+### Decision Flow (Task Mode)
 
 ```
-src/cli/parse-decision-cli.ts                # TypeScript CLI entry point
-```
-
-**Compiled Output:**
-```
-dist/cli/parse-decision-cli.js               # Compiled CLI binary
-```
-
-### Decision Flow
-
-```
-1. Orchestrator → Spawn Product Owner with context
-2. Skill → Capture agent output
-3. Skill → Parse decision (PROCEED/ITERATE/ABORT) via TypeScript parser
-4. Skill → Validate deliverables (for PROCEED)
-5. Skill → Detect consensus on vapor (plans without code)
-6. Skill → Push decision to Redis
-7. Skill → Signal completion to orchestrator
+1. Coordinator -> Spawn product-owner agent (Task tool) with:
+   consensus score, threshold, iteration/max, deliverable paths,
+   tech-debt ledger line
+2. product-owner agent -> Returns decision directly in output
+   (PROCEED/ITERATE/ABORT with reasoning)
+3. Coordinator -> Acts on the decision; no Redis, no scripts
 ```
 
 ---
 
 ## Usage
 
-### From Orchestrator (Primary Use)
+### Task Mode (primary, current)
+
+The **product-owner AGENT makes the decision in Task Mode.** Spawn it with the Task tool; it returns its decision directly in its final output. Do not call any script.
+
+### Legacy bash parser (verified on disk)
+
+If you must mechanically parse a captured product-owner output file:
 
 ```bash
-# Modern: Use bash script (which uses TypeScript for parsing if available)
-DECISION_RESULT=$(./.claude/skills/cfn-product-owner-decision/execute-decision.sh \
-  --task-id "$TASK_ID" \
-  --agent-id "$PO_UNIQUE_ID" \
-  --consensus "$LOOP2_CONSENSUS" \
-  --threshold "$CONSENSUS" \
-  --iteration "$ITERATION" \
-  --max-iterations "$MAX_ITERATIONS")
-
-DECISION_TYPE=$(echo "$DECISION_RESULT" | jq -r '.decision')
+./.claude/skills/cfn-loop-orchestration-v2/lib/decision/parse-decision.sh <output-file>
 ```
 
-### Direct TypeScript Parsing (Programmatic)
-
-```typescript
-import { DecisionParser } from './src/cfn-loop/product-owner/decision-parser';
-
-const parser = new DecisionParser({
-  strict: true,
-  validateDeliverables: true,
-  taskContext: 'Create TypeScript module',
-  taskId: 'cfn-123'
-});
-
-const result = parser.parse(productOwnerOutput);
-console.log(result.decision); // 'PROCEED' | 'ITERATE' | 'ABORT'
-console.log(result.confidence); // 0.0-1.0
-```
-
-### CLI Parsing
-
-```bash
-# From stdin
-echo "Decision: PROCEED" | npx claude-flow-novice parse-decision
-
-# From file
-npx claude-flow-novice parse-decision --input output.txt --json
-
-# With validation
-npx claude-flow-novice parse-decision \
-  --input output.txt \
-  --task-context "Create TypeScript module" \
-  --json --verbose
-```
-
----
-
-## Parameters
-
-### execute-decision.sh
-
-| Parameter | Required | Description | Example |
-|-----------|----------|-------------|---------|
-| `--task-id` | Yes | CFN Loop task identifier | `cfn-auth-system-123` |
-| `--agent-id` | Yes | Product Owner agent ID | `product-owner-1` |
-| `--consensus` | Yes | Loop 2 consensus score | `0.92` |
-| `--threshold` | Yes | Consensus threshold | `0.90` |
-| `--iteration` | Yes | Current iteration number | `2` |
-| `--max-iterations` | Yes | Max iterations allowed | `10` |
-| `--success-criteria` | No | JSON success criteria | `{"tests":"pass"}` |
-
-### DecisionParser TypeScript Options
-
-```typescript
-interface DecisionParserOptions {
-  strict?: boolean;           // Throw on parse failure (default: true)
-  validateDeliverables?: boolean;  // Check for consensus on vapor (default: true)
-  taskContext?: string;       // Task description for vapor detection
-  taskId?: string;           // Task ID for reference
-}
-```
-
-### parse-decision CLI Options
-
-| Option | Short | Description | Example |
-|--------|-------|-------------|---------|
-| `--input FILE` | `-i` | Read from file (default: stdin) | `-i output.txt` |
-| `--output FILE` | `-o` | Write to file (default: stdout) | `-o result.json` |
-| `--task-context TEXT` | - | Task description for vapor check | `--task-context "Create module"` |
-| `--task-id ID` | - | Task ID for reference | `--task-id cfn-123` |
-| `--json` | - | Output as JSON | `--json` |
-| `--verbose` | `-v` | Include verbose output | `-v` |
-| `--no-strict` | - | Non-strict parsing (default to ITERATE) | `--no-strict` |
-| `--help` | `-h` | Show help message | `-h` |
+There is no `execute-decision.sh` and no TypeScript CLI on disk; do not invoke them.
 
 ---
 
@@ -188,6 +116,8 @@ OR Critical issue detected
 ---
 
 ## Output Parsing
+
+**ASPIRATIONAL SECTION: describes a TypeScript parser (`src/decision-parser.ts`) that is missing on disk. Kept as a design reference only. Use the product-owner agent's direct output, or `parse-decision.sh`, instead.**
 
 ### Pattern Matching (Robust Fallbacks)
 
@@ -284,6 +214,8 @@ Reason: "No files created despite implementation task"
 
 ## Audit Trail Integration
 
+**ASPIRATIONAL SECTION: `cfn-task-audit` skill is missing on disk. Do not invoke `get-audit-data.sh`. Kept as a design reference only.**
+
 ### Audit Data Retrieval
 
 The skill retrieves historical data from `cfn-task-audit`:
@@ -334,6 +266,8 @@ Product Owner can:
 ---
 
 ## Return Value
+
+**ASPIRATIONAL SECTION: the bash wrapper (`execute-decision.sh`), TypeScript parser, and CLI below are missing on disk. Kept as a design reference only. Everything from here through "Performance" describes the missing implementations.**
 
 ### Bash (JSON)
 
@@ -657,9 +591,7 @@ Exit Code: 1 (overridden)
 
 ## Related Skills
 
-- **cfn-task-audit:** Audit data retrieval
-- **cfn-backlog-management:** Deferred item processing
-- **cfn-loop-validation:** Loop progression validation
+All three related skills previously listed here (`cfn-task-audit`, `cfn-backlog-management`, `cfn-loop-validation`) are missing on disk. In-tree validation lives at `.claude/skills/cfn-loop-orchestration-v2/lib/validation/SKILL.md` (CLI mode only).
 
 ---
 

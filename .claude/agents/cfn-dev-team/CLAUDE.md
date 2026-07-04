@@ -7,6 +7,8 @@ tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 
 # Agent Creation & Customization Guide
 
+**LEGACY v4 GUIDE. Several referenced paths (.claude/templates/, redis-coordination skill) no longer exist. Authoritative current sources: .claude/agents/cfn-dev-team/_shared/agent-prelude.md, .claude/commands/cfn-loop-task.md, .claude/skills/cfn-megaplan/SKILL.md. Where this doc conflicts with those, those win.**
+
 **Version:** 4.0.0
 **Last Updated:** 2025-10-20
 **Audience:** NPM Users & Developers

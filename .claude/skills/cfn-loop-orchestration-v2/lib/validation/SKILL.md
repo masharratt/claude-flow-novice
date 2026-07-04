@@ -9,11 +9,15 @@ confidence: 0.98
 
 # CFN Loop Validation Skill
 
+**APPLIES TO CLI MODE ONLY. In Task Mode (/cfn-loop-task), agents return output directly; never call redis-cli or invoke-waiting-mode.sh.**
+
+**MISSING ON DISK: the redis-coordination skill referenced below does not exist. All redis-coordination script calls in this file are ASPIRATIONAL; do not invoke them. CLI mode currently has no working Redis signaling path.**
+
 **Purpose:** Implement multi-layer validation and quality gates for CFN Loop workflows with clean agent exit patterns.
 
 **Version:** 2.3.0
 **Confidence:** 0.98
-**Status:** Production Ready (Robustness Enhanced)
+**Status:** CLI mode aspirational; Task Mode does not use this file's protocol.
 
 ---
 
@@ -24,7 +28,7 @@ confidence: 0.98
 **Critical Principle:** Agents MUST exit immediately after reporting confidence. No waiting mode for implementers/validators.
 
 ```bash
-# ✅ CORRECT - Agent completion protocol
+# ✅ CORRECT - Agent completion protocol (ASPIRATIONAL: redis-coordination skill missing on disk; do not invoke)
 # Step 1: Complete work
 # Step 2: Signal completion
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
@@ -41,7 +45,7 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ```
 
 ```bash
-# ❌ FORBIDDEN - Agents entering waiting mode
+# ❌ FORBIDDEN - Agents entering waiting mode (ASPIRATIONAL: redis-coordination skill missing on disk)
 ./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
   --task-id "$TASK_ID" \
   --agent-id "${AGENT_ID}" \
@@ -94,26 +98,7 @@ redis-cli lpush "swarm:${TASK_ID}:gate-passed" "true"
 
 ## Mode Configurations
 
-### MVP Mode (Fast Validation)
-- **Gate Threshold:** 0.70
-- **Consensus Threshold:** 0.80
-- **Max Iterations:** 5
-- **Validators:** 2
-- **Use Case:** Quick prototyping, proof-of-concepts
-
-### Standard Mode (Balanced Quality)
-- **Gate Threshold:** 0.75
-- **Consensus Threshold:** 0.90
-- **Max Iterations:** 10
-- **Validators:** 3-4
-- **Use Case:** Production features, standard development
-
-### Enterprise Mode (Maximum Quality)
-- **Gate Threshold:** 0.85
-- **Consensus Threshold:** 0.95
-- **Max Iterations:** 15
-- **Validators:** 5
-- **Use Case:** Critical systems, security-sensitive features
+Single source of truth: `.claude/skills/cfn-loop-orchestration-v2/THRESHOLDS.md`. Do not restate numeric values here. The confidence values this skill gates on are the `confidence_gate` column (CLI mode only: mvp 0.70, standard 0.75, enterprise 0.85 as decimals); consensus and max_iter also come from that table. Validator counts: mvp 2, standard 3-4, enterprise 5.
 
 ---
 
@@ -134,7 +119,7 @@ redis-cli lpush "swarm:${TASK_ID}:gate-passed" "true"
 
 ### Updated Agent Completion Protocol (v2.3)
 ```bash
-# ✅ NEW MANDATORY PROTOCOL - All agents MUST follow
+# ✅ NEW MANDATORY PROTOCOL - All agents MUST follow (ASPIRATIONAL: redis-coordination skill missing on disk; do not invoke)
 # Step 1: Complete work
 # Step 2: Signal completion
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
@@ -161,7 +146,7 @@ exit 0
 
 ### Forbidden Patterns (Critical Anti-Patterns)
 ```bash
-# ❌ FORBIDDEN - Agents MUST NOT enter waiting mode
+# ❌ FORBIDDEN - Agents MUST NOT enter waiting mode (ASPIRATIONAL: redis-coordination skill missing on disk)
 ./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
   --task-id "$TASK_ID" \
   --agent-id "${AGENT_ID}" \
@@ -215,13 +200,23 @@ if [[ -z "$git_status" ]] && [[ "$task_type" == "implementation" ]]; then
 fi
 ```
 
-### Confidence Scoring Patterns
-- **Explicit Numeric:** `0.85` (preferred)
-- **Percentage:** `85%` (supported)
-- **Qualitative:** `high/medium/low` (converted to 0.8/0.5/0.2)
-- **Calculated:** Based on deliverable completion
+### Confidence Scoring (mechanical rubric, MANDATORY)
 
-### Multi-Pattern Parsing (PATTERN-009)
+Agents do NOT estimate confidence freely. Compute it with this arithmetic and report the work:
+
+1. Start at **1.0**
+2. Subtract **0.3** if any scoped test fails
+3. Subtract **0.2** if there are typecheck errors in owned files
+4. Subtract **0.2** if any planned deliverable file was not created
+5. Subtract **0.1** if any acceptance criterion has no test
+6. Subtract **0.1** if a workaround marked with a `cfn:` comment was used
+7. Floor at **0.0**
+
+**Report the arithmetic**, not just the result. Example: `confidence: 1.0 - 0.3 (2 scoped tests failing) - 0.1 (AC-4 has no test) = 0.6`
+
+Reporting format: explicit decimal (`confidence: 0.60`). Percentages and qualitative words (high/medium/low) are forbidden in new output; the parser fallbacks below exist only to recover from malformed legacy output.
+
+### Multi-Pattern Parsing (PATTERN-009, recovery-only fallback)
 ```bash
 # Extract confidence with fallback strategies
 confidence=$(echo "$output" | grep -o "confidence: [0-9.]*" | tail -1 | cut -d' ' -f2)
@@ -255,7 +250,7 @@ fi
 
 ## Integration Points
 
-### Redis Coordination Skill
+### Redis Coordination Skill (MISSING ON DISK; this integration is aspirational)
 - Uses `invoke-waiting-mode.sh report` for confidence reporting
 - No `enter` calls for implementers/validators
 - Blocking via `blpop` for dependency enforcement
@@ -302,7 +297,7 @@ fi
 
 ## Usage Examples
 
-### Standard CFN Loop Execution
+### Standard CFN Loop Execution (ASPIRATIONAL: orchestrate-cfn-loop.sh missing on disk; do not invoke)
 ```bash
 ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
   --task-id "feature-auth-123" \
@@ -316,7 +311,7 @@ fi
   --success-criteria '{"acceptanceCriteria":["JWT tokens work","Tests pass"]}'
 ```
 
-### Agent Implementation Protocol
+### Agent Implementation Protocol (ASPIRATIONAL: redis-coordination skill missing on disk; do not invoke)
 ```bash
 # Agent receives task context
 # Completes implementation work
@@ -369,8 +364,8 @@ redis-cli blpop "swarm:${TASK_ID}:gate-passed" 1
 
 **Deprecation Date:** 2025-11-20  
 **Removal Date:** 2026-02-20 (90 days)  
-**TypeScript Implementation:** dist/validator.js and dist/cli/validate-*.js  
-**Migration Guide:** .claude/skills/cfn-loop-validation/SKILL_TYPESCRIPT.md  
+**TypeScript Implementation:** dist/validator.js and dist/cli/validate-*.js (MISSING ON DISK: no `dist/` directory exists in lib/validation; the TypeScript migration target was never compiled here. Do not set USE_TYPESCRIPT=true expecting it to work.)  
+**Migration Guide:** SKILL_TYPESCRIPT.md (in this directory)  
 
 ### Why Migrate to TypeScript?
 

@@ -1,41 +1,15 @@
 # Coordinators
 
-Agent profiles for coordination and orchestration of multi-agent workflows.
+No coordinator agent profiles live in this directory. Coordination is done by the main chat (the orchestrator session), not by spawned coordinator agent profiles.
 
-## Active Agents (5)
+## Actual Entry Points
 
-**CFN Loop Coordinators:**
-- `cfn-v3-coordinator.md` - CFN v3 dual-mode coordinator with task analysis and configuration
-- `multi-sprint-coordinator.md` - Epic and sprint management for multi-phase projects
-- `product-owner.md` - Product owner agent for CFN Loop strategic decisions
+- **Orchestrator script (enhanced orchestrator v3.0):** `./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`
+- **Task-mode flow:** see `.claude/CLAUDE.md`. Loop 3 executes and tests -> gate check -> Loop 2 validators -> Product Owner decision (PROCEED/ITERATE/ABORT) -> iterate or finish. Task mode agents return output directly; no Redis signaling.
+- **Coordination patterns** (chain, broadcast, mesh, consensus collection): `.claude/skills/cfn-coordination/SKILL.md`
 
-**Strategic Coordinators:**
-- `cto-agent.md` - CTO-level strategic coordination and architecture decisions
-- `product-owner-agent.md` - Product owner team member for requirements and validation
+## Division of Labor
 
-## Purpose
-
-Coordinators spawn and manage other agents using CLI spawning patterns:
-```bash
-npx claude-flow-novice agent-spawn [agent-name] --task-id "$TASK_ID"
-```
-
-They handle:
-- Multi-agent workflow orchestration
-- Redis-based coordination and consensus collection
-- CFN Loop iteration management
-- Strategic decision-making
-- Cross-team communication
-
-## Usage Pattern
-
-Main Chat spawns ONLY the coordinator:
-```javascript
-Task("cfn-v3-coordinator", "Execute CFN Loop for: [task]")
-```
-
-Coordinator handles all agent spawning internally via orchestration scripts.
-
-## Related Skills
-- `.claude/skills/cfn-loop-validation/` - CFN Loop mechanics
-- `.claude/skills/cfn-agent-spawning/` - CLI spawning patterns
+- Main chat spawns Loop 3 implementers and Loop 2 validators, runs full test suites, and passes captured test output files to validators.
+- The product-owner profile (`.claude/agents/cfn-dev-team/product-owners/product-owner.md`) makes the PROCEED/ITERATE/ABORT decision from validator consensus and deliverable evidence.
+- Agents never spawn other agents; only the coordinator (main chat) does.

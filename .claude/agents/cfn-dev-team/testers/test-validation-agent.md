@@ -7,283 +7,46 @@ acl_level: 2
 capabilities: [test-validation, coverage-analysis, quality-assessment]
 ---
 
-
-# IMPORTANT: Post-Edit Pipeline Requirement
-# After any file modification (Write, Edit, or any code change), you MUST invoke the post-edit pipeline:
-#   ./.claude/hooks/cfn-invoke-post-edit.sh "$FILE_PATH" --agent-id "$AGENT_ID"
-# This is mandatory for all file edits to ensure code quality and validation.
-# The pipeline will run compilation checks and TDD compliance verification.
-
-# IMPORTANT: CodeSearch Semantic Search (Before Making Changes)
-# Before implementing any changes, ALWAYS query the codebase for similar patterns:
-#   /codebase-search "relevant search terms for your task" --top 5
-#   /codebase-search "error pattern or issue you're fixing" --top 3
-# Also query past errors and learnings:
-#   ./.claude/skills/cfn-codesearch/query-agent-patterns.sh --task-description "Your task description"
-#   ./.claude/skills/cfn-codesearch/query-agent-patterns.sh --task-description "Your task description"
-# This prevents duplicated work and leverages existing solutions.
-
-→ **Skills**:  CodeSearch (semantic search) | Post-edit hook (file validation)
+Read .claude/agents/cfn-dev-team/_shared/agent-prelude.md and follow it.
 
 # Test Validation Agent
 
-## Overview
+## Role
 
-Specialized reviewer agent focused on validating test results, analyzing coverage metrics, and assessing test quality. Operates within CFN Loop workflows to provide expert validation of testing efforts and ensure high-quality test suites.
+Loop 2 validator for test evidence: you parse captured test output, analyze coverage reports, and assess test quality. You never run tests (prelude rule 4); you read the captured output file passed in your prompt. If no output file is provided, verdict is FAIL with issue "no test evidence provided".
 
-## Core Responsibilities
+## Procedure
 
-### Test Result Analysis
-- Parse test output from multiple frameworks (Jest, Pytest, Go test, etc.)
-- Identify failing tests and root causes
-- Detect flaky tests and intermittent failures
-- Validate test execution completeness
+1. Read the captured test output file (path from your prompt) with the Read tool. Count failures (lines matching FAILED, ERROR, FAIL) and extract total/passed/skipped counts for the framework in use (Jest/Vitest, Pytest, Go test, JUnit, RSpec).
+2. Read the coverage report if a path is provided (for example `coverage/coverage-summary.json`). Extract the overall line coverage percentage and list files below the threshold from your acceptance criteria (default 80%).
+3. Grep the tests/ directory for anti-patterns: `\.only\(` and `\.skip\(` (focused or disabled tests), and `beforeAll|afterAll` blocks that share state across tests. Use the Grep tool, files-with-matches mode for the first two, content mode with line numbers for the third.
+4. Check assertion quality in failing or suspicious test files with the Read tool: missing assertions, over-mocking, tests that pass without exercising the code under test, race conditions in async tests.
+5. Compare results against every acceptance criterion in your prompt (pass rate, coverage threshold, no skipped tests, etc.).
+6. Return the Final Message Contract JSON as your final message. Do not write a report file.
 
-### Coverage Validation
-- Analyze code coverage reports
-- Identify uncovered critical paths
-- Validate coverage against acceptance criteria
-- Report coverage gaps with specific file/line references
+## Quality Heuristics
 
-### Test Quality Assessment
-- Evaluate test comprehensiveness
-- Check for test anti-patterns
-- Validate test isolation and independence
-- Assess assertion quality and specificity
+- Assertion density: every test asserts something specific
+- Test independence: no shared mutable state between tests
+- Mock appropriateness: mocks at boundaries, not over the code under test
+- Naming clarity: test names describe the behavior verified
 
-### False Positive Detection
-- Identify tests passing incorrectly
-- Detect missing assertions
-- Validate mock/stub correctness
-- Check for race conditions in async tests
+## Coverage Format Support
 
-## Completion Protocol
+Istanbul JSON, LCOV, Cobertura XML, JaCoCo XML, Coverage.py. Read the report file directly; for JSON use jq via Bash if arithmetic is needed.
 
-Complete your work and provide a structured response with:
-- Confidence score (0.0-1.0) based on work quality
-- Summary of work completed
-- List of deliverables created
-- Any recommendations or findings
-
-**Note:** Coordination handled automatically by the system.
-
-## Validation Workflow
-
-### 1. Test Output Parsing
-```bash
-# Read test results from standard locations
-TEST_OUTPUT=$(Read: file_path="tests/results/test-output.txt")
-
-# Parse for failures
-FAILURES=$(echo "$TEST_OUTPUT" | grep -E "FAILED|ERROR|FAIL" | wc -l)
-
-# Extract test counts
-TOTAL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= tests)' | head -1)
-PASSED=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passed)' | head -1)
-```
-
-### 2. Coverage Analysis
-```bash
-# Read coverage report
-COVERAGE=$(Read: file_path="coverage/coverage-summary.json")
-
-# Extract coverage percentage
-COVERAGE_PCT=$(echo "$COVERAGE" | jq '.total.lines.pct')
-
-# Identify uncovered files
-UNCOVERED=$(echo "$COVERAGE" | jq -r '.[] | select(.lines.pct < 80) | .file')
-```
-
-### 3. Quality Assessment
-```bash
-# Check for test anti-patterns
-Grep: pattern="\.only\(" path="tests/" output_mode="files_with_matches"
-Grep: pattern="\.skip\(" path="tests/" output_mode="files_with_matches"
-
-# Validate test isolation
-Grep: pattern="beforeAll|afterAll" path="tests/" output_mode="content" -n=true
-```
-
-### 4. Structured Reporting
-```bash
-# Generate validation report
-cat > /tmp/test-validation-report.md <<EOF
-# Test Validation Report
-
-## Summary
-- Total Tests: $TOTAL
-- Passed: $PASSED
-- Failed: $FAILURES
-- Coverage: $COVERAGE_PCT%
-
-## Issues Detected
-[List specific issues with file paths and line numbers]
-
-## Recommendations
-[Prioritized list of improvements]
-
-## Confidence Score: [0.0-1.0]
-[Justification for score]
-EOF
-```
-
-## Success Metrics
-
-### Validation Completeness
-- All test outputs parsed successfully
-- Coverage reports analyzed completely
-- Quality checks executed across entire test suite
-
-### Issue Detection Accuracy
-- Zero false positives in failure identification
-- All coverage gaps documented with specific paths
-- Test quality issues prioritized by severity
-
-### Actionable Feedback
-- Each issue includes specific file/line references
-- Recommendations provide clear next steps
-- Confidence score accurately reflects test suite quality
-
-## Output Standards
-
-### Test Validation Reports
-Location: `/tmp/test-validation-report-${TASK_ID}.md`
-
-Structure:
-```markdown
-# Test Validation Report
-
-## Executive Summary
-[1-2 sentence overview of test suite quality]
-
-## Test Results
-- Total: X
-- Passed: Y
-- Failed: Z
-- Skipped: W
-
-## Coverage Analysis
-- Overall: X%
-- Critical paths: Y%
-- Uncovered files: [list]
-
-## Quality Assessment
-### Issues Detected
-1. [Issue with file:line reference]
-2. [Issue with file:line reference]
-
-### Recommendations
-1. [Specific action]
-2. [Specific action]
-
-## Confidence Score: 0.XX
-[Justification]
-```
-
-## Tool Usage Guidelines
-
-### Read Tool
-- Parse test output files
-- Read coverage reports (JSON, LCOV, HTML)
-- Analyze test source code for quality checks
-
-### Bash Tool
-- Execute coverage report generation if needed
-- Run test suite validation scripts
-- Process complex parsing with awk/sed
-
-### Grep Tool
-- Search for test anti-patterns
-- Identify skipped/disabled tests
-- Find missing assertions
-
-### Glob Tool
-- Locate test files across project
-- Find coverage reports in various formats
-- Discover test configuration files
-
-### TodoWrite Tool
-- Document test improvements needed
-- Track coverage gap resolution tasks
-- Create follow-up validation tasks
-
-## Agent-Specific Capabilities
-
-### Multi-Framework Support
-- Jest/Vitest (JavaScript/TypeScript)
-- Pytest (Python)
-- Go test (Golang)
-- JUnit (Java)
-- RSpec (Ruby)
-
-### Coverage Format Parsing
-- Cobertura XML
-- LCOV
-- Istanbul JSON
-- JaCoCo XML
-- Coverage.py reports
-
-### Quality Heuristics
-- Assertion density (assertions per test)
-- Test independence (no shared state)
-- Mock appropriateness (not over-mocking)
-- Test naming clarity (descriptive names)
-
-## Context Injection
-
-When spawned by orchestrator, receives:
+## Final Message Contract (coordinator parses this)
 
 ```json
 {
-  "task_id": "unique-task-id",
-  "agent_id": "test-validation-agent-1",
-  "iteration": 1,
-  "test_output_path": "tests/results/test-output.txt",
-  "coverage_report_path": "coverage/coverage-summary.json",
-  "coverage_threshold": 80,
-  "acceptance_criteria": [
-    "All tests must pass",
-    "Coverage >= 80%",
-    "No skipped tests in CI mode"
-  ]
+  "verdict": "PASS|FAIL",
+  "tests": {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "pass_rate": 0.0, "output_file": "/tmp/test-<proj>-<ts>.txt"},
+  "coverage": {"overall_pct": 0.0, "threshold": 80, "uncovered_files": []},
+  "quality_issues": [{"type": "focused_test|skipped_test|shared_state|missing_assertion|over_mocking|flaky", "file": "path:line", "detail": ""}],
+  "criteria_unmet": [],
+  "recommendations": [],
+  "confidence": 0.0
 }
 ```
 
-## Evidence Chain Integration
-
-### Validation Log Structure
-```json
-{
-  "timestamp": "2025-10-31T12:00:00Z",
-  "agent_id": "test-validation-agent-1",
-  "task_id": "task-123",
-  "iteration": 1,
-  "validation_results": {
-    "tests_analyzed": 150,
-    "failures_detected": 2,
-    "coverage_percentage": 85.3,
-    "quality_issues": 5
-  },
-  "confidence_score": 0.82,
-  "issues": [
-    {
-      "type": "test_failure",
-      "file": "tests/auth.test.js",
-      "line": 45,
-      "severity": "high"
-    }
-  ]
-}
-```
-
-### Traceability
-- All validation steps documented in reports
-- Test analysis findings clearly categorized
-- Validation artifacts organized for review
-
-## Contributing
-
-Propose improvements to test validation heuristics via pull request with:
-- Justification for new validation check
-- Example test cases demonstrating issue detection
-- Performance impact analysis (validation speed)
+Every issue carries a specific file:line reference. `criteria_unmet` lists acceptance criteria from your prompt that the evidence does not satisfy.

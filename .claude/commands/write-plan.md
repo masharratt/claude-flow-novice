@@ -86,49 +86,124 @@ done
 
 ### Step 1: Analyze Task
 
-```javascript
-const spaContext = SPA_FOUND === 3
-  ? `\nSPA BUNDLE (authoritative source of truth):\n--- SPEC ---\n${spec}\n--- PSEUDO ---\n${pseudo}\n--- ARCH ---\n${arch}\n`
-  : '';
+**Planner self-check (Bar B, run BEFORE writing the plan file).** Whether or not this command runs under megaplan, the planner must verify every implementation step against the Bar B specificity checklist (`.claude/skills/cfn-megaplan/bars/haiku-executable.md`) before the plan is written:
 
-Task("planner", `
+1. **Files**: every step names a full path. No "the relevant component", "the auth module", "wherever X lives".
+2. **Signatures**: every function/method to add or change is given typed args + return. No "a helper that does X".
+3. **UI controls**: every field names its explicit control type (dropdown vs input vs toggle vs date-picker). No "an input for course".
+4. **Value sources**: every value names its origin: which table column, which env var, which constant, which upstream field.
+5. **Branches**: every branch enumerated in PSEUDO maps to a named step. No silent fall-through.
+6. **No weasel words**: zero occurrences of: appropriately, as needed, as appropriate, handle accordingly, figure out, etc., and so on, TBD, properly, gracefully (without a defined behavior), where applicable.
+7. **States**: for any UI surface, loading / empty / error / success / partial / disabled each have a named handling step.
+8. **Errors**: every external call (DB, HTTP, queue) names its error path. No bare happy-path-only step.
+
+A step failing any item gets rewritten before output. Under megaplan the orchestrator re-runs this gate independently; standalone runs get it here.
+
+Spawn the planner with ONE of the two prompt variants below. Pick by the Step 0 branch: variant A when the core trio is present (`SPA_FOUND == 3`), variant B when the task is trivial with no bundle.
+
+**Prompt variant A: with design bundle (SPA_FOUND == 3)**
+
+```
+Task("planner", "
   ANALYZE TASK FOR CFN LOOP PLANNING
 
   Task: $ARGUMENTS
-  Mode: ${mode}
-  ${spaContext}
+  Mode: <mode>
+
+  SPA BUNDLE (authoritative source of truth):
+  --- SPEC ---
+  <contents of planning/SPEC_<slug>.md>
+  --- PSEUDO ---
+  <contents of planning/PSEUDO_<slug>.md>
+  --- ARCH ---
+  <contents of planning/ARCH_<slug>.md>
+  --- OPTIONAL MEGAPLAN ARTIFACTS (inject each found: DATA/UX/DESIGN/OPS/TEST/DECISIONS/RESEARCH) ---
+  <contents>
 
   ANALYSIS REQUIRED:
   1. Complexity Assessment:
-     ${SPA_FOUND === 3
-       ? '- Use ARCH "Components" table: count NEW vs EXTEND vs REUSE for true scope'
-       : '- Estimated files: 1-2 (simple) | 3-5 (standard) | >5 (complex)'}
+     - Use ARCH 'Components' table: count NEW vs EXTEND vs REUSE for true scope
      - Estimated LOC: <200 (simple) | 200-500 (standard) | >500 (complex)
      - Keywords: security, performance, frontend, mobile, etc.
 
   2. Agent Selection:
-     ${SPA_FOUND === 3
-       ? '- Implementer count = ARCH NEW components + ceil(EXTEND/2)\n     - Validators driven by NFRs in SPEC: security NFR -> security-specialist; perf NFR -> perf-analyzer; accessibility NFR -> accessibility-advocate-persona; observability NFR -> devops-engineer'
-       : '- Loop 3 (Implementation): Based on task type\n       * Backend: backend-dev, researcher, devops\n       * Full-stack: backend-dev, react-frontend-engineer, devops\n       * Mobile: mobile-dev, backend-dev\n       * Security: security-specialist, backend-dev\n     - Loop 2 (Validation): Scale by complexity\n       * Simple: reviewer, tester\n       * Standard: +architect, +security-specialist\n       * Complex: +code-analyzer, +perf-analyzer'}
+     - Implementer count = ARCH NEW components + ceil(EXTEND/2)
+     - Validators driven by NFRs in SPEC: security NFR -> security-specialist; perf NFR -> perf-analyzer;
+       accessibility NFR -> accessibility-advocate-persona; observability NFR -> devops-engineer
 
-  3. Test Cases (TDD Approach):
-     ${SPA_FOUND === 3
-       ? '- Red Phase: ONE test per SPEC edge case (EC-1..EC-N) + ONE per acceptance criterion (AC scenarios); no skipping\n     - Green Phase: implementations satisfying SPEC postconditions per PSEUDO operation\n     - Refactor Phase: address PSEUDO complexity flags (O(n^2)+, >3 I/O calls)'
-       : '- Red Phase: Failure scenarios\n     - Green Phase: Minimal passing implementation\n     - Refactor Phase: Quality improvements'}
+  3. Test Binding (TDD):
+     - If planning/TEST_<slug>.md exists: inherit its Phase 6 table verbatim into the plan's TDD Sequence;
+       do NOT invent new test cases.
+     - Otherwise: ONE failing test per SPEC edge case (EC-1..EC-N) + ONE per acceptance criterion; no skipping.
+     - Every implementation step binds to exactly one failing test (see plan structure, Step 2).
 
   4. Success Criteria:
-     ${SPA_FOUND === 3
-       ? '- Every SPEC FR has a passing test\n     - Every SPEC EC has a passing test (mandatory; no skipping)\n     - All NFRs measurably met (cite the threshold from SPEC)\n     - DRY audit honored: no NEW component duplicates an existing one'
-       : '- Test coverage target (≥80%)\n     - Performance benchmarks (if applicable)\n     - Security requirements (if applicable)\n     - Deliverables list'}
+     - Every SPEC FR and EC maps to an executable check (inherit TEST section 3 when present)
+     - All NFRs measurably met (cite the threshold from SPEC)
+     - DRY audit honored: no NEW component duplicates an existing one
 
   5. Build Discipline (standing instruction to every Loop 3 implementer):
-     - Climb the cfn-arch build ladder before writing anything: YAGNI -> reuse in-codebase -> stdlib -> native platform -> reuse installed dep -> one line -> minimum new code -> (last resort) add a NEW dep.
-     - A NEW dependency is a planned line item, never an implementer's silent choice. If the plan needs one, name it here so cfn-plan-review can blast-radius it.
-     - Security carve-out: never hand-roll crypto/auth/parsing/sanitization to avoid a dep — a vetted dep wins there.
+     - Climb the cfn-arch build ladder before writing anything: YAGNI -> reuse in-codebase -> stdlib ->
+       native platform -> reuse installed dep -> one line -> minimum new code -> (last resort) add a NEW dep.
+     - A NEW dependency is a planned line item, never an implementer's silent choice. If the plan needs one,
+       name it here so cfn-plan-review can blast-radius it.
+     - Security carve-out: never hand-roll crypto/auth/parsing/sanitization to avoid a dep. A vetted dep wins there.
 
-  OUTPUT: planning/PLAN_${SLUG}.md
-  ${SPA_FOUND === 3 ? 'CROSS-REFERENCE: Plan must cite SPEC/PSEUDO/ARCH file paths in every section.' : ''}
-`)
+  6. Bar B self-check: verify every step against the 8-item specificity checklist (files, signatures,
+     UI controls, value sources, branches, weasel words, states, errors) before writing the file.
+
+  OUTPUT: planning/PLAN_<slug>.md
+  CROSS-REFERENCE: Plan must cite SPEC/PSEUDO/ARCH file paths in every section.
+")
+```
+
+**Prompt variant B: without design bundle (trivial task, SPA_FOUND == 0)**
+
+```
+Task("planner", "
+  ANALYZE TASK FOR CFN LOOP PLANNING
+
+  Task: $ARGUMENTS
+  Mode: <mode>
+
+  ANALYSIS REQUIRED:
+  1. Complexity Assessment:
+     - Estimated files: 1-2 (simple) | 3-5 (standard) | >5 (complex)
+     - Estimated LOC: <200 (simple) | 200-500 (standard) | >500 (complex)
+     - Keywords: security, performance, frontend, mobile, etc.
+
+  2. Agent Selection:
+     - Loop 3 (Implementation): Based on task type
+       * Backend: backend-dev, researcher, devops
+       * Full-stack: backend-dev, react-frontend-engineer, devops
+       * Mobile: mobile-dev, backend-dev
+       * Security: security-specialist, backend-dev
+     - Loop 2 (Validation): Scale by complexity
+       * Simple: reviewer, tester
+       * Standard: +architect, +security-specialist
+       * Complex: +code-analyzer, +perf-analyzer
+
+  3. Test Binding (TDD):
+     - Produce the same per-step TDD Sequence table shape as the bundle path (see plan structure, Step 2):
+       every implementation step binds to one failing test written first.
+
+  4. Success Criteria:
+     - Every deliverable is an executable check (command + pass condition); no prose criteria
+     - Performance benchmarks (if applicable)
+     - Security requirements (if applicable)
+
+  5. Build Discipline (standing instruction to every Loop 3 implementer):
+     - Climb the cfn-arch build ladder before writing anything: YAGNI -> reuse in-codebase -> stdlib ->
+       native platform -> reuse installed dep -> one line -> minimum new code -> (last resort) add a NEW dep.
+     - A NEW dependency is a planned line item, never an implementer's silent choice. If the plan needs one,
+       name it here so cfn-plan-review can blast-radius it.
+     - Security carve-out: never hand-roll crypto/auth/parsing/sanitization to avoid a dep. A vetted dep wins there.
+
+  6. Bar B self-check: verify every step against the 8-item specificity checklist (files, signatures,
+     UI controls, value sources, branches, weasel words, states, errors) before writing the file.
+
+  OUTPUT: planning/PLAN_<slug>.md
+")
 ```
 
 ### Step 2: Generate Plan Document
@@ -158,55 +233,52 @@ Task("planner", `
 ### Product Owner
 - product-owner (PROCEED/ITERATE/ABORT decision)
 
-## Test-Driven Development Plan
+## Assembly Rule
 
-### Phase 1: Red (Failure Scenarios)
-**Deliverables:**
-- [ ] Test script: tests/test-[feature].sh
-- [ ] Failure test cases defined
+When megaplan artifacts exist (TEST/OPS/etc. in planning/), this plan is an ASSEMBLY document: the step table below + the inherited TEST tables + the OPS integration rows + the risk register. Do not author freehand Red/Green/Refactor phases or prose deliverables; the tables below replace them entirely.
 
-**Test Cases:**
-1. [Test case 1 - expected failure]
-2. [Test case 2 - edge case]
-3. [Test case 3 - performance requirement]
+### Phase 2: Green (Implementation Steps)
+Every step MUST fill every column. A step missing a file path, signature, or verification command is invalid (Bar B haiku-executable rejects it). One step = one file where possible; never more than 3 files per step.
 
-### Phase 2: Green (Minimal Implementation)
-**Deliverables:**
-- [ ] Minimal working implementation
-- [ ] All test cases passing
+| # | File (full path) | Change (exact: function name, typed signature, or config key) | Failing test (from TEST_<slug> Phase 6) | Verify command (exits 0/1) | Done predicate |
+|---|---|---|---|---|---|
+| 2.1 | src/auth/jwt.ts | add `verifyToken(token: string): Promise<Claims>` throwing `TokenExpiredError` | tests/jwt.spec.ts::rejects_expired | `vitest run tests/jwt.spec.ts 2>&1 | tee "$OUT"` | test green |
 
-**Implementation Steps:**
-1. [Core functionality]
-2. [Basic validation]
-3. [Minimal error handling]
+Banned in any cell: "appropriately", "as needed", "handle", "the relevant file", "a helper that", "TBD", "etc".
 
-### Phase 3: Refactor (Quality Improvement)
-**Deliverables:**
-- [ ] Code quality improvements
-- [ ] Enhanced test coverage (≥80%)
-- [ ] Documentation
+## Ops Integration Tasks (required if planning/OPS_<slug>.md exists)
 
-**Refactoring Goals:**
-1. [Code organization]
-2. [Performance optimization]
-3. [Security hardening]
+One implementation-step row (same schema as above) for each of: the feature flag wrapper (OPS section 3: flag name, default off); EVERY log line / metric from OPS section 2 (emit steps; runtime-observed ACs in TEST section 3 depend on them - an AC asserting a log line with no emit step here is a plan defect); the down-migration file (OPS section 6). If OPS exists and this section is empty, the plan is incomplete.
+
+## TDD Sequence (per step, mechanical)
+
+If planning/TEST_<slug>.md exists: copy its Phase 6 table here verbatim and bind each row to a step # from Implementation Steps. Do NOT invent new test cases. If it does not exist, produce the same table shape yourself.
+
+| Step # | Failing test written FIRST (file::case) | Red command (must exit non-zero) | Green command (must exit 0 after step) | Runnable-at (unit/wiring/assembled/runtime-observed) |
+|---|---|---|---|---|
+
+Execution rule per step: (1) write test, (2) coordinator runs Red command, confirm non-zero, (3) implement the one change in the step row, (4) coordinator runs Green command, confirm 0. Agents write tests and read results; the coordinator executes test commands (never the implementer agent). A step whose Red command passes before implementation is a defect: stop, fix the test.
 
 ## Success Criteria
 
 ### Quality Gates
-- Loop 3 Gate: ≥${mode === 'enterprise' ? 0.85 : mode === 'beta' ? 0.75 : 0.70}
-- Loop 2 Consensus: ≥${mode === 'enterprise' ? 0.95 : mode === 'beta' ? 0.90 : 0.80}
+- Loop 3 gate score = (AC checks green) / (total AC checks in TEST section 3)
+- Loop 2 consensus = validators voting PASS / validators spawned
+- Both computed from the VERIFY manifest, never estimated.
+- Canonical thresholds per mode (test_pass_rate_gate / confidence_gate / consensus): .claude/skills/cfn-loop-orchestration-v2/THRESHOLDS.md
 
-### Deliverables
-- [ ] All test cases passing
-- [ ] Test coverage ≥80%
-- [ ] Code complexity <15 per function
-- [ ] Security review complete
-- [ ] Documentation updated
+### Deliverables (every line must be an executable check - Bar A format)
+
+| Deliverable | Check command | Pass condition |
+|---|---|---|
+| all AC checks green | (inherit planning/TEST_<slug>.md section 3 table by reference) | every row green |
+| types compile | `tsc --noEmit 2>&1 | tee "$OUT"` | exit 0 |
+| security gate | /cfn-security-review manifest | 0 high findings |
+
+Prose criteria ("review complete", ">=80% coverage", "documented") are invalid; Bar A rejects them.
 
 ### Performance Benchmarks (if applicable)
-- [Benchmark 1]
-- [Benchmark 2]
+Each benchmark is a row in the Deliverables table: check command = the load/bench invocation, pass condition = the SPEC NFR threshold. No prose benchmarks.
 
 ## Estimation (gap G29 — gated by mode/extras)
 
@@ -228,8 +300,8 @@ Skip for `mvp`. Light for `beta`. Full for `enterprise`. Each risk is a row, not
 Technical risks and dependency risks both live here. A risk with no mitigation AND no trigger is incomplete.
 
 ## Iteration Strategy
-- Max iterations: ${mode === 'enterprise' ? 15 : mode === 'beta' ? 10 : 5}
-- Confidence threshold: ${mode === 'enterprise' ? 0.95 : mode === 'beta' ? 0.90 : 0.80}
+- Max iterations: 15 (enterprise) | 10 (beta) | 5 (mvp)
+- Confidence threshold: per mode from .claude/skills/cfn-loop-orchestration-v2/THRESHOLDS.md (confidence_gate)
 - Adaptive agent spawning: YES
 
 ## Next Steps
@@ -298,11 +370,13 @@ console.log(`/cfn-loop-task "$ARGUMENTS" --mode=${mode}`);
 
 ## Mode Comparison
 
-| Mode | Complexity | Agents | Test Coverage | Use Case |
-|------|------------|--------|---------------|----------|
-| MVP | Low | 3-4 total | ≥70% | Prototypes, proof-of-concept |
-| Beta | Medium | 5-7 total | ≥80% | Production features |
-| Enterprise | High | 8-10 total | ≥90% | Critical systems, compliance |
+| Mode | Complexity | Agents | Coverage gate (executable) | Use Case |
+|------|------------|--------|----------------------------|----------|
+| MVP | Low | 3-4 total | every FR + EC in TEST section 3 has a green check (FR m/m, EC k/k mapped) | Prototypes, proof-of-concept |
+| Beta | Medium | 5-7 total | MVP gate + integration/contract AC rows green | Production features |
+| Enterprise | High | 8-10 total | Beta gate + non-functional AC rows (perf/load/a11y/security) green | Critical systems, compliance |
+
+Coverage is measured as AC-check rows green per the VERIFY manifest, never as a percent estimate. Thresholds: .claude/skills/cfn-loop-orchestration-v2/THRESHOLDS.md.
 
 ## Example Output
 

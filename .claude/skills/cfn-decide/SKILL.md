@@ -24,7 +24,7 @@ Skip only if the orchestrator's tier profile sets `decide` to `skip` (it does no
 
 ## Input
 
-`planning/SPEC_<slug>.md` (required). Read it fully before extracting forks.
+`planning/SPEC_<slug>.md` (required). Read it fully before extracting forks. If multiple `SPEC_*.md` exist, use the one whose slug matches; never regenerate the slug differently.
 
 Optional context the orchestrator may pass: prior decision-log hits for these entities (inject as "prior resolution" rows, status RESOLVED, so you do not re-ask a settled fork).
 
@@ -73,6 +73,19 @@ For each fork found, classify:
 
 - **BLOCKING** — the plan cannot proceed without resolving it. Different choices produce materially different architecture, data model, or component contracts. cfn-data / cfn-arch would build the wrong thing if left open.
 - **non-blocking** — a default is safe; the choice is reversible cheaply later. Record it RESOLVED with your recommendation as the rationale; do not ask the user.
+
+**Blocking litmus (mechanical).** Classify BLOCKING iff reversing the choice later would require ANY of:
+
+- a schema migration,
+- a change to an API contract another component consumes,
+- edits in 3+ files,
+- re-doing work from a downstream phase (data/arch/ux).
+
+If none apply, it is non-blocking: pick the recommendation and RESOLVE it yourself.
+
+**Per-category completeness.** Emit one register row per category in the Phase 1 table even when the row is `no fork found`. A category with no row means it was not walked, and the register is rejected.
+
+**Zero-fork sanity check.** A spec with `db: yes` or `frontend: yes` build flags that yields zero forks is suspicious; re-walk the category table before returning.
 
 Security carve-out: a build-vs-buy fork touching crypto, auth, token/JWT parsing, or input sanitization is NOT a real fork. The audited dependency wins. Record it RESOLVED, rationale "security floor, never hand-roll", do not surface.
 
@@ -125,7 +138,7 @@ Run only when `Include extras:` contains `alternatives_panel`. Pick the SINGLE b
 
 Two sinks, both written. They serve different readers and neither is optional.
 
-**Sink 1 — repo artifact (`planning/DECISIONS_<slug>.md`):** already produced in Phase 4. Versioned with the code, survives forever, human-readable. This is the canonical register.
+**Sink 1, repo artifact (`planning/DECISIONS_<slug>.md`):** produced in Phase 2, updated by Phase 4 when the alternatives panel runs. Versioned with the code, survives forever, human-readable. This is the canonical register.
 
 **Sink 2 — structured decision store (`decision-log` SQLite):** for EVERY `RESOLVED` decision, call the structured write API so future plans query settled forks across sessions, separate from conversation noise.
 

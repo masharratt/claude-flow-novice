@@ -21,10 +21,16 @@ The plan fails the gate if a step requires the implementer to decide, infer, loc
 
 ## Gate logic (orchestrator runs this)
 
-1. **Static scan** — grep the plan for the weasel-word list (item 6). Any hit = finding.
+1. **Static scan (mandatory first pass, before the haiku probe):** run `bars/check-haiku-static.sh <plan file>`. It greps the plan for the banned vague-phrase list (item 6) and prints a JSON findings array (`file`, `line`, `phrase`); exit 0 = clean, exit 1 = findings. Every finding enters the Bar B findings list with kind `weasel`. Do not hand-grep; the script is the single source of the scan.
 2. **Structural scan** — assert each implementation step has: file path, and (if code) a signature, and (if UI) a control type, and (if external I/O) an error path.
 3. **Coverage scan** — assert every PSEUDO branch id appears in a step.
-4. **Live haiku probe (the real test)** — spawn a haiku-tier agent with the plan and the instruction: *"You will build exactly this. List every question you must ask before you can start. If you have zero questions, output PASS."* Any question returned = a finding naming the ambiguous step.
+4. **Live haiku probe (the real test):** spawn a haiku-tier agent with the plan and the instruction: *"You will build exactly this. List every question you must ask before you can start. If you have zero questions, output PASS."*
+
+   Parsing rule (mechanical, no judgment):
+   - The probe passes ONLY if the agent's entire final message, trimmed, equals `PASS`.
+   - Otherwise split the message into lines; every line containing `?` becomes a `probe_question` finding verbatim.
+   - Lines matching `which test runner|which branch|where do I run` are harness noise: log as `probe_noise`, not findings.
+   - Run the probe once per round. Never re-run the probe within a round hoping for a different answer.
 5. **FAIL the plan** if the static, structural, coverage, or probe scan produces any finding.
 
 ## Probe spawn (step 4)
@@ -52,4 +58,4 @@ Agent(
 }
 ```
 
-Each finding routes back to the owning phase to fix (ui_control → cfn-ux, value source → cfn-data/arch, branch → cfn-pseudo). The orchestrator loops the failing phase, not the whole pipeline.
+Each finding routes back to the owning phase to fix (ui_control → cfn-ux, value source → cfn-data/arch, branch → cfn-pseudo). The orchestrator loops the failing phase, not the whole pipeline. Rounds are bounded: the orchestrator runs at most 3 Bar B rounds, then surfaces residual findings to the user (cfn-megaplan Step 6).

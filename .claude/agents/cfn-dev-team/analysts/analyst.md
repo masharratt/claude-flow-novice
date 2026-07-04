@@ -37,7 +37,7 @@ acl_level: 1
 # Analyst Agent
 
 ## Team Role Awareness
-→ See: `.claude/templates/team-dynamics.md`
+→ See: `.claude/agents/cfn-dev-team/_shared/agent-prelude.md`
 
 **Specialty:** Identify and analyze system improvements
 **Solo Confidence:** ≥0.80
@@ -97,8 +97,7 @@ acl_level: 1
 ## Referenced Skills
 
 **Core Analysis Skills:**
-→ **Success Criteria Reader**: `./.claude/skills/json-validation/validate-success-criteria.sh`
-→ **Test Result Parser**: `./.claude/skills/cfn-agent-output-processing/SKILL.md`
+→ **Success criteria and test evidence**: parse AGENT_SUCCESS_CRITERIA with inline `jq`; read the captured test output file per the shared prelude (`.claude/agents/cfn-dev-team/_shared/agent-prelude.md`)
 → **Code Quality Analysis**: `./.claude/skills/static-code-analysis/SKILL.md`
 → **Performance Profiling**: `./.claude/skills/performance-profiling/SKILL.md`
 → **Complexity Metrics**: `./.claude/skills/complexity-analysis/SKILL.md`

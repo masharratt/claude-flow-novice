@@ -14,7 +14,7 @@ status: production
 
 ## When to Use
 
-- After `cfn-spec` produces `planning/SPEC_<task>.md`
+- After `cfn-spec` produces `planning/SPEC_<slug>.md`
 - Auto-invoked by `/cfn-megaplan` (canonical) and the lighter `/cfn-spa-plan` sub-pipeline
 - Standalone when reviewing existing code for logical completeness
 
@@ -22,7 +22,9 @@ Skip only for: pure config changes, declarative schema updates with no procedura
 
 ## Input
 
-Required: `planning/SPEC_<task>.md` from `cfn-spec`. Refuse to run if spec missing or has unresolved `[OPEN]` questions.
+Required: `planning/SPEC_<slug>.md` from `cfn-spec`. If multiple `SPEC_*.md` exist, use the one whose slug matches; never regenerate the slug differently.
+
+Refuse to run if the spec is missing or contains any unresolved `[OPEN]` question. Refuse only on `[OPEN]`. `[PARKED: <accepted default>]` items are acceptable; carry the accepted default into the pseudocode as a stated assumption.
 
 ## Protocol
 
@@ -58,7 +60,26 @@ FUNCTION <name>(<params>):
 Rules:
 - Every branch must trace to a postcondition from the spec
 - Every loop must declare termination condition
-- Every external call (DB, API, file) must declare failure handling
+- Every external call (DB, API, file, queue) appears inside an explicit failure construct (TRY/ON or an error-checked IF) with at least one failure branch per call. An external call with no failure branch fails the Step 3 gate.
+- Every `[core]` FR's operation chain must be traced end-to-end in ONE connected pseudocode path: from the entry point (route, worker start, cron trigger) through to the persistence or emit that the FR asserts. Disconnected fragments are how the unregistered-worker bug ships.
+
+Worked example (persistUser, serves FR-2; note every external call carries failure branches and every RETURN states its postcondition):
+
+```
+FUNCTION persistUser(validUser):
+  1. IF validUser.email IS missing THEN
+       1a. RETURN Error(400, MISSING_EMAIL)
+           -- EC-7 (missing required field); postcondition: no row written
+  2. TRY db.insert(users, validUser) TIMEOUT 5s:
+       2a. ON TIMEOUT:
+             RETURN Error(503, DB_TIMEOUT)
+             -- EC-9 (DB timeout); postcondition: no partial row (insert is atomic)
+       2b. ON DUPLICATE_KEY:
+             RETURN Error(409, DUPLICATE_EMAIL)
+             -- EC-4 (duplicate submission); postcondition: existing row unchanged
+  3. RETURN UserRecord(inserted row)
+     -- AC-2 (happy path); postcondition: users row exists with assigned id
+```
 
 ### Step 3: Branch Coverage Map
 
@@ -72,6 +93,17 @@ Operation: validateUserPayload
   Branch 2b (missing field)   -> EC-7 (missing required field returns 400)
   [UNMAPPED] Branch 2c        -> ??? must add EC or remove branch
 ```
+
+**Step 3b: Spec Coverage (reverse map, MANDATORY).** Coverage is bidirectional. The forward map above catches branches with no spec item; the reverse map catches spec items with no branch. Emit one row for EVERY AC and EC in the spec:
+
+```
+## 3b. Spec Coverage (reverse map)
+| Spec item | Claimed by branch | Status |
+| AC-1 | validateUserPayload 2a | covered |
+| EC-4 | (none) | [UNCOVERED] - add branch or justify N/A with reason |
+```
+
+A spec item may be marked `N/A: <reason>` only with an explicit justification (e.g. "EC-8 is a pure infra concern handled by the platform, no procedural branch exists"). Blank status is rejected.
 
 ### Step 4: Complexity Annotation
 
@@ -105,14 +137,14 @@ If any entity has a lifecycle (draft → published → archived), draw a state m
 
 ## Output
 
-Write to: `planning/PSEUDO_<sanitized-task-name>.md`
+Use the same slug as the SPEC artifact (never regenerate it). Write to: `planning/PSEUDO_<slug>.md`
 
 Template:
 ```markdown
 # Pseudocode: <task>
 
 **Date:** <YYYY-MM-DD>
-**Spec:** planning/SPEC_<task>.md
+**Spec:** planning/SPEC_<slug>.md
 **Status:** draft | reviewed | locked
 
 ## 1. Operation Map
@@ -125,6 +157,11 @@ FUNCTION ...
 ## 3. Branch Coverage
 Operation: <name>
   Branch X -> AC/EC mapping
+
+## 3b. Spec Coverage (reverse map)
+| Spec item | Claimed by branch | Status |
+| AC-1 | validateUserPayload 2a | covered |
+| EC-4 | (none) | [UNCOVERED] - add branch or justify N/A with reason |
 
 ## 4. Complexity
 | Operation | Time | Space | I/O | Idempotent | Reentrant |
@@ -142,9 +179,19 @@ External Dep: <name>
 (if applicable)
 ```
 
+## Return to orchestrator
+
+```
+artifact: planning/PSEUDO_<slug>.md
+operations: <count>
+unmapped_branches: <count>       # forward map [UNMAPPED] entries
+uncovered_spec_items: <count>    # reverse map [UNCOVERED] entries
+gate: PASS | FAIL                # PASS only when both counts are 0
+```
+
 ## Handoff
 
-Input to `cfn-arch`. Do not proceed to architecture phase if branch coverage has any `[UNMAPPED]` entries.
+Input to `cfn-arch`. Do not proceed if any `[UNMAPPED]` branch OR any `[UNCOVERED]` spec item remains.
 
 ## Anti-Patterns
 

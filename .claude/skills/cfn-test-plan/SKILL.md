@@ -123,7 +123,7 @@ Check taxonomy (pick one per AC):
 | Kind | Form | Example |
 |---|---|---|
 | unit / integration test | `<runner> run <file>::<case>` | `vitest run tests/email.spec.ts::rejects_invalid` |
-| e2e / UI | `playwright:` + assertion on snapshot / network | `select#course options match query` |
+| e2e / UI | `npx playwright test <file>::<case>` (run via cfn-e2e in WSL2); the assertion is stated in the pass-condition column | `npx playwright test tests/booking.e2e.ts::course_is_select` |
 | DB state | `db-query` SQL + expected rows | `SELECT ... returns N` |
 | HTTP | `curl` + status / body assertion | `curl -s /api/x \| jq .ok == true` |
 | build / type | `tsc --noEmit` / `cargo check` exit 0 | compile clean |
@@ -242,11 +242,11 @@ Cleanup order is child -> parent, or rely on `CASCADE`. No unscoped delete, no F
 
 | AC-id | criterion | binding | check | pass condition |
 |---|---|---|---|---|
-| AC-3 | course field is a dropdown sourced from the courses table | DB: `SELECT id, name FROM courses WHERE active` | playwright: snapshot `select#course` | element is `<select>`, option set == query result, 0 free-text inputs |
+| AC-3 | course field is a dropdown sourced from the courses table | DB: `SELECT id, name FROM courses WHERE active` | `npx playwright test tests/booking.e2e.ts::course_is_select` (via cfn-e2e) | test green: `select#course` is a `<select>`, option set == query result, 0 free-text inputs |
 | AC-4 | booking row persists with the selected course | ARCH booking service contract | `vitest run tests/booking.int.ts::persists` (real DB, scoped fixture) | test green, row present with marker |
 | AC-7 | invalid email is rejected | spec EC-4 | `vitest run tests/email.spec.ts::rejects_invalid` | test green |
 | AC-9 | seats above course capacity blocked | spec EC-7 | `vitest run tests/seats.spec.ts::over_capacity` | test green, returns 400 SEATS_EXCEEDED |
-| AC-12 | empty course list shows "No courses available" + disabled Submit | UX empty state | playwright: snapshot booking form with 0 active courses | banner text present, `button#submit[disabled]` |
+| AC-12 | empty course list shows "No courses available" + disabled Submit | UX empty state | `npx playwright test tests/booking.e2e.ts::empty_state` (via cfn-e2e; fixture: 0 active courses) | test green: banner text "No courses available" present, `button#submit[disabled]` |
 
 Coverage: FR 2/2 mapped, EC 2/2 mapped, UX states mapped.
 
@@ -266,9 +266,12 @@ Coverage: FR 2/2 mapped, EC 2/2 mapped, UX states mapped.
 
 ## Return (to orchestrator)
 
+**Coverage self-check (self-enforcing floor).** Before returning, recompute coverage from the section 3 table. If FR mapped < m/m or EC mapped < k/k, REFUSE to return: either add the missing AC rows or convert each unmappable criterion into an `[OPEN]` item naming why no runnable check exists. A return with FR mapped < m/m is invalid output.
+
 Return exactly:
 - Artifact path: `planning/TEST_<slug>.md`
 - A 3-line summary (fixtures + markers defined, levels assigned, AC rows with FR/EC coverage count).
+- Coverage line: `FR <m/m> mapped, EC <k/k> mapped` (must be full coverage or accompanied by the `[OPEN]` items that explain the shortfall).
 - Any `[OPEN]` items needing a user decision (criterion with no runnable check, missing NFR threshold, ambiguous binding).
 
 ## Anti-Patterns

@@ -148,8 +148,8 @@ Remember: The best infrastructure is invisible—seamless, scalable, and empower
 ## Skill References
 
 ### Test-Driven Development
-→ **JSON Validation**: `.claude/skills/json-validation/SKILL.md` - Defensive AGENT_SUCCESS_CRITERIA parsing with injection prevention
-→ **Test Runner**: `.claude/skills/cfn-test-runner/SKILL.md` - Unified test execution with benchmarking and regression detection
+→ **Shared prelude**: `.claude/agents/cfn-dev-team/_shared/agent-prelude.md` - edit safety, scope fence, scoped test rules
+→ **Test capture**: `OUT=/tmp/test-${PWD##*/}-$(date +%s).txt` then `<scoped-test-cmd> 2>&1 | tee "$OUT"`; read "$OUT" for results
 
 ### Container & Infrastructure
 → **Docker Build**: `.claude/skills/docker-build/SKILL.md` - Fast Docker builds using Linux native storage (96% faster)

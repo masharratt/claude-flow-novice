@@ -77,7 +77,11 @@ Pull the actual current schema before designing against it. Do not design from m
 
 ### Step 2: Field-bindings table (the cfn-ux feed)
 
-This is the load-bearing output of this phase. `cfn-ux` reads it to derive the control for every user-editable field; it cannot guess control types correctly without it. Emit one row per field the UI will read or write.
+This is the load-bearing output of this phase. `cfn-ux` reads it to derive the control for every user-editable field; it cannot guess control types correctly without it.
+
+**Completeness rule:** Emit a row for EVERY column of every new/changed table except surrogate PKs and audit columns (id, created_at, updated_at). Set UI access to editable/readonly/none; each `none` needs a one-line justification. Over-inclusion is free; omission is the dropdown bug.
+
+**Closed vocabulary (binding kinds):** the canonical nine tokens are `FK | enum | lookup | boolean | date | timestamp | free-text | numeric | multi-FK`. These nine tokens are the closed vocabulary; emit no other value. cfn-ux matches the Binding kind cell byte-for-byte against its derivation map; an unmatched token routes back here as a cfn-data defect.
 
 Binding kinds and the control they imply downstream:
 
@@ -87,26 +91,24 @@ Binding kinds and the control they imply downstream:
 | enum | constrained to a fixed value set | select, or radio if ≤4 |
 | lookup | reference/dimension table (small, stable) | select |
 | boolean | true/false | toggle / checkbox |
-| date | date or timestamp | date picker, range validation |
+| date | date, no time component | date picker, range validation |
+| timestamp | date + time | datetime picker, range validation |
 | free-text | unconstrained string | input / textarea, length + pattern |
 | numeric | number with range | stepper / slider, min/max |
 | multi-FK | many rows in another table (join table) | tag / chip multiselect |
 
-Table format (required in the artifact):
+Table format (required in the artifact, 8 columns, pinned):
 
 ```
-| Field          | Type        | Binding kind | Source table          |
-|----------------|-------------|--------------|-----------------------|
-| course_id      | uuid        | FK           | public.courses        |
-| status         | text        | enum         | (enrollment_status)   |
-| starts_on      | date        | date         | -                     |
-| is_active      | boolean     | boolean      | -                     |
-| tag_ids        | uuid[]      | multi-FK     | public.tags           |
-| notes          | text        | free-text    | -                     |
-| seats          | integer     | numeric      | -                     |
+| Field | Type | Binding kind | Source table/enum | Required | Options/rows (count or est.) | Range/length | UI access |
+| course_id | uuid | FK | public.courses | yes | 12 rows | - | editable |
+| status | text | enum | enrollment_status | yes | 4 values | - | readonly |
+| notes | text | free-text | - | no | - | <=500 chars | editable |
 ```
 
-Every field that the UI touches must appear. A field the UI reads but the table does not list is a Bar B failure waiting to happen.
+Options/rows for FK/lookup: run a COUNT(*) via db-query or state the spec estimate; never leave blank. Range/length: copy the CHECK/length constraint from Step 1; `-` only if genuinely unconstrained.
+
+Consumer (cfn-ux section 1) matches this table byte-for-byte; unmatched values route back as producer defects.
 
 ### Step 3: Index design
 
@@ -132,6 +134,14 @@ For each new table, author the policy in the migration:
 - **Default-deny.** `ENABLE ROW LEVEL SECURITY` with no policy = no access. List each policy as an explicit allow.
 - **One policy per operation/role** (SELECT/INSERT/UPDATE/DELETE). Name the `USING` and `WITH CHECK` predicate.
 - Service-role writes that bypass RLS must be named explicitly and justified.
+
+Emit the per-operation policy table (pinned shape, required in the artifact):
+
+```
+| Table | Operation | Principal/role | USING | WITH CHECK |
+```
+
+Completeness rule: every new table x each of SELECT/INSERT/UPDATE/DELETE gets a row; intentionally-disallowed operations get an explicit `(no policy - default-deny)` row; a missing row is a floor violation.
 
 ### Step 5: Migration up / down
 
@@ -207,14 +217,16 @@ Template:
 - Constraints / enums
 
 ## 2. Field bindings (cfn-ux feed)
-| Field | Type | Binding kind | Source table |
+| Field | Type | Binding kind | Source table/enum | Required | Options/rows (count or est.) | Range/length | UI access |
+(every column of every new/changed table except surrogate PKs and audit columns; Binding kind from the closed nine-token vocabulary. Consumer, cfn-ux section 1, matches this table byte-for-byte; unmatched values route back as producer defects.)
 
 ## 3. Indexes
 | Index | Columns | Serves query |
 
 ## 4. RLS + auth boundary
 - Principal / auth boundary
-- Per-table policies (operation, USING, WITH CHECK)
+| Table | Operation | Principal/role | USING | WITH CHECK |
+(every new table x SELECT/INSERT/UPDATE/DELETE; disallowed operations get an explicit `(no policy - default-deny)` row; a missing row is a floor violation)
 
 ## 5. Migration
 - Up (ordered)
@@ -268,14 +280,26 @@ CREATE POLICY enrollments_insert_own ON public.enrollments
 DROP TABLE IF EXISTS public.enrollments;   -- indexes + policies drop with the table
 ```
 
-Field bindings emitted for cfn-ux:
+RLS per-operation table (note the two explicit default-deny rows):
 
 ```
-| Field      | Type | Binding kind | Source table     |
-|------------|------|--------------|------------------|
-| course_id  | uuid | FK           | public.courses   |
-| status     | text | enum         | (status check)   |
-| starts_on  | date | date         | -                |
+| Table              | Operation | Principal/role             | USING                | WITH CHECK           |
+|--------------------|-----------|----------------------------|----------------------|----------------------|
+| public.enrollments | SELECT    | authenticated (auth.uid()) | user_id = auth.uid() | -                    |
+| public.enrollments | INSERT    | authenticated (auth.uid()) | -                    | user_id = auth.uid() |
+| public.enrollments | UPDATE    | (no policy - default-deny) | -                    | -                    |
+| public.enrollments | DELETE    | (no policy - default-deny) | -                    | -                    |
+```
+
+Field bindings emitted for cfn-ux (8 columns; every non-audit, non-PK column of the new table appears):
+
+```
+| Field      | Type | Binding kind | Source table/enum        | Required | Options/rows (count or est.) | Range/length | UI access |
+|------------|------|--------------|--------------------------|----------|------------------------------|--------------|-----------|
+| user_id    | uuid | FK           | public.users             | yes      | n/a (server-set)             | -            | none (set from auth.uid(); never user-picked) |
+| course_id  | uuid | FK           | public.courses           | yes      | 12 rows (COUNT via db-query) | -            | editable  |
+| status     | text | enum         | enrollment_status (CHECK)| yes      | 4 values                     | -            | readonly  |
+| starts_on  | date | date         | -                        | yes      | -                            | within course schedule window | editable |
 ```
 
 Scoped test cleanup (never unscoped):
@@ -284,6 +308,10 @@ Scoped test cleanup (never unscoped):
 DELETE FROM public.enrollments
 WHERE user_id IN (SELECT id FROM public.users WHERE email LIKE 'test-%@integration.test');
 ```
+
+## Self-check (before returning)
+
+Before returning: every new table appears in sections 1, 2, 3, 4 AND 5; counts must match. A table present in section 1 (schema) but missing from field bindings, indexes, the RLS per-operation table, or the migration is an incomplete artifact; fix it before returning.
 
 ## Return to orchestrator
 

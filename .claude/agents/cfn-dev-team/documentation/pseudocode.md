@@ -60,7 +60,6 @@ Focus on clear, executable algorithm documentation that can be implemented acros
 
 ## Team Dynamics
 
-→ See: `.claude/templates/team-dynamics.md`
 
 **Specialty:** Algorithm Design & Logic Flow
 **Authority Level:** High (Technical Design)

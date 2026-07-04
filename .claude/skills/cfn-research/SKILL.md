@@ -72,6 +72,16 @@ Acceptable evidence (in priority order):
 - Authoritative docs: the API reference / SDK doc that confirms the operation exists and its limits.
 - An in-repo precedent: existing code that already does the thing.
 
+Probe rules: read-only operations only (GET/SELECT/list/dry-run); never write to a shared DB; never call a paid endpoint beyond a single minimal request; timebox 5 minutes per unknown, then fall back to authoritative docs; docs must be fetched and quoted with URL, never recalled from memory.
+
+Evidence bar:
+
+```
+BAD:  "the SDK likely supports this"
+GOOD: probe `curl -s .../models | jq` returned `video_url` field
+GOOD: doc URL X section Y, quoted line
+```
+
 For each unknown assign one verdict:
 
 | Verdict | Meaning |
@@ -96,7 +106,7 @@ Split the result into two lists the spec can act on:
 
 ## Output
 
-Write to: `planning/RESEARCH_<slug>.md` (slug supplied by the orchestrator).
+Write to: `planning/RESEARCH_<slug>.md` (slug supplied by the orchestrator, built with the canonical rule in `cfn-megaplan` Step 1). Downstream phases reuse the same slug (`SPEC_<slug>.md`, `DECISIONS_<slug>.md`, `PSEUDO_<slug>.md`); never regenerate it differently.
 
 Template:
 ```markdown

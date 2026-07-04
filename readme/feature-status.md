@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-01-14 | **Version:** 2.19.0 | **Status:** Production
+**Last Updated:** 2026-07-03 | **Version:** 2.24.0 | **Status:** Production
 
 ---
 
@@ -41,6 +41,10 @@ This file MUST be updated when:
 | Loop 1 (Product Owner) | ✅ Prod | ✅ | `.claude/agents/cfn-dev-team/product-owners/` | Strategic oversight, PROCEED/ITERATE/ABORT |
 | Gate Check System | ✅ Prod | ✅ | `.claude/skills/cfn-loop-orchestration-v2/` | Threshold validation before Loop 2 |
 | Consensus Collection | ✅ Prod | ✅ | `.claude/skills/cfn-loop-orchestration-v2/` | Validator aggregation with confidence scoring |
+| gate-check.sh | ✅ Prod | ✅ | `.claude/skills/cfn-loop-orchestration-v2/cli/` | Deterministic pass-rate parser (vitest/jest/pytest), exit-code gate, 0/0 never passes |
+| THRESHOLDS.md | ✅ Prod | n/a | `.claude/skills/cfn-loop-orchestration-v2/` | Single source of truth for gate/consensus/max-iter per mode |
+| VERIFY manifest gate | ✅ Prod | ⚠️ | `cfn-loop-task.md` Step 0 + `cfn-megaplan/bars/verifiable-done.md` | Loop completion requires every AC check green from megaplan manifest |
+| Sonnet-hardened prompts | ✅ Prod | n/a | commands, skills, `agents/cfn-dev-team/` | Opus/Sonnet migration: mechanical gates, pinned contracts, shared agent prelude, dead-ref quarantine (docs/PROMPT_AUDIT_OPUS_SONNET_MIGRATION.md) |
 
 ### Execution Modes
 
@@ -357,6 +361,8 @@ This file MUST be updated when:
 | MVP | ≥0.70 | ≥0.80 | 5 | 2 |
 | Standard | ≥0.95 | ≥0.90 | 10 | 3-5 |
 | Enterprise | ≥0.98 | ≥0.95 | 15 | 5-7 |
+
+Canonical source: `.claude/skills/cfn-loop-orchestration-v2/THRESHOLDS.md`. Planning tiers `mvp|beta|enterprise` (cfn-megaplan) map to execution modes `mvp|standard|enterprise`; `beta` maps to `standard`. Gate computed by `cfn-loop-orchestration-v2/cli/gate-check.sh` (exit 2 on 0/0, never passes).
 
 ### Timeouts
 

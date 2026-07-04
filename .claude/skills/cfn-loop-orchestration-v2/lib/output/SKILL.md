@@ -409,6 +409,8 @@ fi
 
 ## Confidence Extraction Patterns
 
+**NOTE: this 5-pattern extraction ladder is RECOVERY-ONLY.** It exists to salvage confidence from malformed agent output. Orchestrator prompts must demand the JSON contract as primary (agents report an explicit JSON block with a decimal `confidence` field, computed by the mechanical rubric in `lib/validation/SKILL.md`). If you find yourself relying on patterns 3-5, fix the spawn prompt, not the parser.
+
 ### Priority Order
 
 1. **Explicit Header** (Priority 1)
