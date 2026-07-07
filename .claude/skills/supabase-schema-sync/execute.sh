@@ -201,24 +201,37 @@ for SCHEMA in "${SCHEMAS[@]}"; do
       while IFS= read -r TABLE_NAME; do
         [[ -z "$TABLE_NAME" ]] && continue
 
-        COL_QUERY="SELECT column_name, data_type, is_nullable
-          FROM information_schema.columns
-          WHERE table_schema = '$SCHEMA'
-          AND table_name = '$TABLE_NAME'
-          ORDER BY ordinal_position;"
+        # pg_description comments are the source of truth for known gotchas
+        # (frozen columns, key mismatches, stale/sparse fields, etc). Pull
+        # them alongside type info so agents see the trap without a second
+        # query. Delimiter is \x01 (not '|') since comment text may itself
+        # contain a pipe.
+        COL_QUERY="SELECT c.column_name, c.data_type, c.is_nullable, pgd.description
+          FROM information_schema.columns c
+          LEFT JOIN pg_catalog.pg_statio_all_tables st
+            ON st.relname = c.table_name AND st.schemaname = c.table_schema
+          LEFT JOIN pg_catalog.pg_description pgd
+            ON pgd.objoid = st.relid AND pgd.objsubid = c.ordinal_position
+          WHERE c.table_schema = '$SCHEMA'
+          AND c.table_name = '$TABLE_NAME'
+          ORDER BY c.ordinal_position;"
 
-        COL_ROWS=$(psql "$CLEAN_URL" -t -A -F '|' -c "$COL_QUERY" 2>&1) || {
+        COL_ROWS=$(psql "$CLEAN_URL" -t -A -F $'\x01' -c "$COL_QUERY" 2>&1) || {
           echo "ERROR: Failed to query columns for $SCHEMA.$TABLE_NAME" >&2
           exit 1
         }
 
-        echo "## ${TABLE_NAME}"
-        echo "| column | type | nullable |"
-        echo "|--------|------|----------|"
+        TABLE_COMMENT_QUERY="SELECT obj_description(format('%I.%I', '$SCHEMA', '$TABLE_NAME')::regclass);"
+        TABLE_COMMENT=$(psql "$CLEAN_URL" -t -A -c "$TABLE_COMMENT_QUERY" 2>/dev/null || true)
 
-        while IFS='|' read -r COL_NAME COL_TYPE IS_NULL; do
+        echo "## ${TABLE_NAME}"
+        [[ -n "$TABLE_COMMENT" ]] && echo "> ${TABLE_COMMENT}"
+        echo "| column | type | nullable | comment |"
+        echo "|--------|------|----------|---------|"
+
+        while IFS=$'\x01' read -r COL_NAME COL_TYPE IS_NULL COL_COMMENT; do
           [[ -z "$COL_NAME" ]] && continue
-          echo "| ${COL_NAME} | ${COL_TYPE} | ${IS_NULL} |"
+          echo "| ${COL_NAME} | ${COL_TYPE} | ${IS_NULL} | ${COL_COMMENT} |"
         done <<< "$COL_ROWS"
 
         echo ""
@@ -245,6 +258,20 @@ description: "Project DB query skill. Use --sql for queries. Use --schema-doc to
 ## IMPORTANT: Read schema before writing SQL
 
 Do NOT guess table or column names. Look up what you need first.
+
+## Column comments = known gotchas
+
+\`--schema-doc\` output includes a \`comment\` column sourced from
+\`pg_description\` (COMMENT ON TABLE/COLUMN). A non-empty comment usually
+documents a landmine (frozen/stale column, non-obvious join key, dual-shape
+sync behavior, sparse-by-design field) that isn't visible in the type alone.
+Read it before trusting the column.
+
+If you discover a non-obvious column contract while working (via code, a
+migration, or a bug) that isn't already commented, add
+\`COMMENT ON TABLE\`/\`COMMENT ON COLUMN\` in the same migration that touches
+it, then re-run \`supabase-schema-sync\` to refresh these docs. Comment-only
+changes are zero-blast-radius — no reason to skip them.
 
 ## Table Index
 

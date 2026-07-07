@@ -128,7 +128,7 @@ Planning tier vocabulary is mvp|beta|enterprise (cfn-megaplan); execution mode v
 
 ### LANE DERIVATION (mechanical, do this before spawning)
 
-1. **Locate the plan.** Find the newest `planning/PLAN_*.md` whose name matches the task slug. If no plan file exists, STOP and run `/write-plan` first. Never improvise lanes without a plan.
+1. **Locate the plan.** Find the newest `planning/PLAN_*.md` whose name matches the task slug. If no `PLAN_` file exists, STOP and run `/write-plan` first. Never improvise lanes without a plan. **Note:** a `planning/MEGAPLAN_<slug>.md` is an index/summary, NOT a lane source — if only `MEGAPLAN_` (and/or `VERIFY_`) exists but no `PLAN_<slug>.md`, the megaplan run failed to persist its plan; run `/write-plan "<task>" --mode=<mode>` to regenerate `PLAN_<slug>.md` from the existing `planning/` artifacts, then continue. Do NOT derive lanes from `MEGAPLAN_` or `VERIFY_`.
 2. **One lane per phase.** Each top-level phase/workstream in the plan becomes one lane. Cap at 4 lanes; if the plan has more phases, merge the smallest phases into neighboring lanes until at most 4 remain.
 3. **Exclusive file ownership.** Each lane gets an exclusive file list derived from the plan. No file may appear in two lanes. If two phases touch the same file, put both phases in the SAME lane and run them sequentially inside it.
 4. **Ownership clause in every spawn prompt.** Each spawn prompt includes: "FILES YOU OWN: <list>. Do not create or edit any file outside this list. Files outside your lane needing changes go in out_of_scope_needs (array of \"path: why\"); blocked_on is only for a blocker that stops YOUR lane (scalar, one sentence, else null)."

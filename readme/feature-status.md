@@ -214,7 +214,7 @@ This file MUST be updated when:
 
 | Command | Status | Tests | Location | Description |
 |---------|--------|-------|----------|-------------|
-| /cfn-loop-task | ✅ Prod | ✅ | `cfn-loop-task.md` | Task mode execution |
+| /cfn-loop-task | ✅ Prod | ✅ | `cfn-loop-task.md` | Task mode execution: derives lanes from planning/PLAN_<slug>.md (lane source), checks completion via planning/VERIFY_<slug>.md. MEGAPLAN_<slug>.md is an index/summary, never a lane source. |
 | /cfn-loop-cli | ✅ Prod | ✅ | `cfn-loop-cli.md` | CLI mode execution |
 | /cfn-fix-errors | ✅ Prod | ✅ | `cfn-fix-errors.md` | Automated error fixing |
 | /cfn-check-errors | ✅ Prod | ✅ | `cfn-check-errors.md` | Error detection |
@@ -443,7 +443,7 @@ Consumer Project
 
 | Feature | Status | Tests | Location | Description |
 |---------|--------|-------|----------|-------------|
-| cfn-megaplan orchestrator | ⚠️ Beta | ⚠️ wiring | `.claude/skills/cfn-megaplan/` | Tiered DAG entry point; supersedes cfn-spa-plan |
+| cfn-megaplan orchestrator | ⚠️ Beta | ⚠️ wiring | `.claude/skills/cfn-megaplan/` | Tiered DAG entry point; supersedes cfn-spa-plan. Multi-plan program support: shared decision register, cross-plan seam ledger, program build-order DAG, back-propagation rule for forced items. PLAN_ persistence gate (cfn-loop-task lane source). Bar B CONDITIONAL-PASS for sibling-blocked plans in multi-plan programs. |
 | Inclusion profiles | ✅ Prod | ✅ | `.claude/skills/cfn-megaplan/profiles/` | mvp/beta/enterprise phase inclusion (JSON-validated) |
 | Bar A: verifiable-done | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-megaplan/bars/verifiable-done.md` | Every AC carries executable check; cfn-loop-task gate |
 | Bar B: haiku-executable | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-megaplan/bars/haiku-executable.md` | Every step unambiguous; static+probe scan |

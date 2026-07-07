@@ -152,6 +152,14 @@ If any phase returns `[OPEN]` items, batch them and surface via `AskUserQuestion
 
 Run `/write-plan "<task>" --mode=<tier>`; it consumes every `planning/<PHASE>_<slug>.md` artifact. Then run **Bar A** (`bars/verifiable-done.md`): convert success criteria to executable AC rows, emit `planning/VERIFY_<slug>.md`. If Bar A fails (any non-executable AC, any unmapped FR/EC), loop back to the owning phase (usually `test_plan` or `spec`), not the whole pipeline.
 
+**PLAN persistence gate (REQUIRED — downstream `/cfn-loop-task` hard-depends on it).** `/write-plan` writes `planning/PLAN_<slug>.md`; this is the lane-derivation source `cfn-loop-task` reads. After `/write-plan` returns, assert the file exists:
+
+```bash
+[ -f "planning/PLAN_${SLUG}.md" ] || { echo "FATAL: write-plan did not persist planning/PLAN_${SLUG}.md"; }
+```
+
+If it is missing, re-run `/write-plan` before advancing to L8. `MEGAPLAN_<slug>.md` (Step 7) is an INDEX/summary, NOT the plan — it cannot substitute for `PLAN_<slug>.md`. A megaplan that produces `VERIFY_` but no `PLAN_` will break `cfn-loop-task` at lane derivation (the plan file is the only source of lanes + exclusive file ownership).
+
 **Bound:** max 3 Bar A loop-back iterations. If Bar A still fails after round 3, stop and surface the residual failures via `AskUserQuestion` (accept as-is / keep iterating / descope).
 
 ### Step 6: L8: plan_review + Bar B
@@ -162,30 +170,64 @@ Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readi
 
 ### Step 7: Synthesis + hand-off
 
-Write `planning/MEGAPLAN_<slug>.md`:
+**Handoff-file gate (run BEFORE writing the synthesis).** `cfn-loop-task` needs BOTH `planning/PLAN_<slug>.md` (lane source) and `planning/VERIFY_<slug>.md` (completion gate). Assert both exist; if either is missing the megaplan is NOT done — re-run the owning step (`/write-plan` for PLAN_, Bar A for VERIFY_) before synthesis:
+
+```bash
+for F in "PLAN_${SLUG}" "VERIFY_${SLUG}"; do
+  [ -f "planning/${F}.md" ] || echo "FATAL: missing planning/${F}.md — megaplan not build-ready"
+done
+```
+
+Write `planning/MEGAPLAN_<slug>.md`. **All eight `##` sections below are REQUIRED** — emit every one even if empty (write `_none_`); dropping a section is a template violation. Do NOT rename headings.
 
 ```markdown
 # MegaPlan: <task>
 Tier: <tier>   Build flags: <frontend? db? pii? unknowns?>   Generated: <date>
 
 ## Artifacts (active phases only)
-<list of planning/*_<slug>.md actually produced>
+<list of planning/*_<slug>.md actually produced — MUST include PLAN_<slug>.md and VERIFY_<slug>.md>
 
 ## Gates
 - Bar A verifiable-done: PASS (N ACs, FR <m/m>, EC <k/k> mapped) -> planning/VERIFY_<slug>.md
 - Bar B haiku-executable: PASS (0 findings after <r> rounds)
+  # or, in a multi-plan program only: CONDITIONAL-PASS (see Cross-plan seams; blocked solely on
+  # named sibling-plan items, all tracked below). CONDITIONAL-PASS is NOT a valid handoff state
+  # for a standalone megaplan — a standalone plan loops its owning phase until PASS.
 
 ## Open decisions resolved
 <from cfn-decide register>
 
+## Cross-plan seams   (multi-plan program ONLY; omit the section body with "_none — standalone plan_" otherwise)
+<seam ledger rows: `owner-plan | item | target artifact/migration | dependency-critical? | applied|PENDING`.
+Every PENDING row that this plan hard-depends on keeps Bar B at CONDITIONAL-PASS, not PASS.>
+
 ## Open tech debt in scope
-<rows from .cfn-cache/tech-debt-ledger.json whose file/area is touched by this plan; no_trigger rows first. Empty if the ledger is absent or clean. These are backlog candidates for the user, not auto-scheduled work.>
+<rows from .cfn-cache/tech-debt-ledger.json whose file/area is touched by this plan; no_trigger rows first. Empty (`_none_`) if the ledger is absent or clean. These are backlog candidates for the user, not auto-scheduled work.>
+
+## Build order   (multi-plan program ONLY; else "_standalone_")
+<this plan's position in the program DAG, e.g. MP1 -> MP2 -> [this] -> MP4>
 
 ## Next
-/cfn-loop-task "<task>" --mode=<mode>   (reads VERIFY_<slug>.md as completion gate)
+/cfn-loop-task "<task>" --mode=<mode>   (reads PLAN_<slug>.md for lanes + VERIFY_<slug>.md as completion gate)
 ```
 
 Hand-off mode mapping: mode = `standard` if tier is `beta`, else the tier verbatim. Planning tier vocabulary is mvp|beta|enterprise; execution mode vocabulary is mvp|standard|enterprise; beta maps to standard.
+
+## Multi-plan programs (a task decomposed into N interdependent megaplans)
+
+When one build is too large for a single megaplan and is split into sibling plans (MP1…MPn) that share a schema / contracts package / decision log, the single-plan assumptions above bend. Extra rules:
+
+1. **Program index doc.** Write `planning/MEGAPLAN_program_<program-slug>.md` (or `_mp0_`) that owns what no single plan can: the build-order DAG across plans, the shared contracts/decision-register paths, and a consolidated cross-plan seam ledger (every row from every plan's `## Cross-plan seams`). Without it the reconciliation smears across each plan's prose and drifts. Each plan links back to it.
+
+2. **Shared decision register.** All plans append to ONE register (e.g. `planning/DECISIONS_<program>.md`) so a fork resolved in MP2 is visible to MP4. `cfn-decide` still owns the format; the register is program-scoped, not plan-scoped.
+
+3. **Cross-plan seam ledger is first-class.** A seam = an item plan A needs that lives in plan B's artifacts (a column, RPC, enum member, edge). Each seam row: `owner | item | target migration/artifact | dependency-critical? | applied|PENDING`. A PENDING dependency-critical seam is a real blocker: it keeps the dependent plan's Bar B at **CONDITIONAL-PASS**.
+
+4. **Bar B CONDITIONAL-PASS verdict (multi-plan only).** A plan whose OWN decomposition is haiku-executable but which is blocked solely on named, tracked sibling-plan seam items is **CONDITIONAL-PASS**, not PASS and not a Bar B failure to loop. It becomes a true PASS the instant every blocking seam flips to `applied`. Standalone plans never use this state — they loop the owning phase to PASS. Do NOT hand a CONDITIONAL-PASS plan to `cfn-loop-task` until its blocking seams are `applied` (re-check at the program level, per build order).
+
+5. **Back-propagation rule (CRITICAL).** Planning a LATER plan (MP4) may discover a touchpoint that must live in an EARLIER, already-"done" plan's artifacts (MP4 forcing columns into MP1's `0001` migration). When this happens: (a) apply the item to the earlier plan's DATA/ARCH/etc. artifacts, (b) re-run that earlier plan's Bar A + Bar B, (c) update its seam ledger row to `applied`. An earlier plan that still lists forced items as "NOT yet applied" is NOT build-eligible — its own artifacts are internally inconsistent with its synthesis. A dependency-critical back-propagated item MUST ship in the earlier plan's migration (the sibling that writes it builds before the plan that consumes it), never deferred to the later plan's migration.
+
+6. **Program build order gates execution.** `cfn-loop-task` runs per plan in DAG order (MP1 → MP2 → …). Before starting plan N, confirm every seam plan N depends on is `applied` in the plans already built. The program index doc's build-order DAG is the source of truth for this sequencing.
 
 ## Worked example: profile resolution + DAG walk
 
@@ -211,10 +253,12 @@ L4  [data]
 L5  [arch, ux]                    (one message)
 L6  [design, test_plan, ops]      (one message)
 L7  write_plan                    (slash command, main chat) + Bar A
+                                  ASSERT planning/PLAN_<slug>.md persisted (loop-task lane source)
 L8  plan_review                   (slash command, main chat) + Bar B
 
 Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
           (tier beta maps to execution mode standard)
+          precondition: PLAN_<slug>.md + VERIFY_<slug>.md both on disk
 ```
 
 ## Failure modes
@@ -227,6 +271,9 @@ Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
 | Bar B probe returns questions | route each to its owning phase, re-run that phase, re-probe |
 | tier ambiguous | `AskUserQuestion`, recommend from spec |
 | user downgrades tier | floor items stay on; warn if a downgrade drops a phase the build flags say is needed |
+| `write-plan` left no `PLAN_<slug>.md` | re-run `/write-plan`; never hand off with only `MEGAPLAN_`/`VERIFY_` — loop-task lane derivation hard-fails without `PLAN_` |
+| sibling plan forced an item into an already-done plan | apply it, re-run that plan's Bar A + Bar B, flip its seam row to `applied` (back-propagation rule); do not build the earlier plan while it lists forced items unapplied |
+| dependent plan blocked on sibling seam | Bar B = CONDITIONAL-PASS (multi-plan only); hold `cfn-loop-task` until blocking seams are `applied`, per program build order |
 
 ## Anti-patterns
 
@@ -235,6 +282,9 @@ Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
 - Letting a tier knob disable a `floor` item (RLS/auth/secrets/PII).
 - Treating Bar A/Bar B as advisory. They are hard gates.
 - Editing planning artifacts during implementation without re-running Bar B.
+- Handing off to `cfn-loop-task` with only `MEGAPLAN_`/`VERIFY_` on disk. `MEGAPLAN_` is an index, not the lane source; loop-task needs `PLAN_<slug>.md`.
+- Shipping an earlier plan that still lists back-propagated sibling items as "NOT yet applied" — its artifacts contradict its own synthesis.
+- Using CONDITIONAL-PASS to hand off a standalone (non-program) megaplan. That state exists only for sibling-seam blocking in a multi-plan program.
 
 ## Related
 

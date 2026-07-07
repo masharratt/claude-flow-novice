@@ -78,6 +78,22 @@ Downstream phases may consume `draft`; `locked` means acceptance criteria are fr
 
 ---
 
+## Megaplan Bar B Result (Multi-Plan Program)
+
+**Entity:** Bar B verdict for plans in a multi-plan program (sibling interdependent megaplans MP1…MPn). Standalone megaplans only use `PASS` (no CONDITIONAL state for single plans).
+
+**States:** `PASS | CONDITIONAL-PASS`
+
+| From | To | Trigger |
+|------|----|---------|
+| (none) | PASS | plan is haiku-executable, no sibling-plan dependencies, or all blocking seams are already `applied` |
+| (none) | CONDITIONAL-PASS | plan is haiku-executable AND is blocked solely on named, tracked sibling seam items (all marked `dependency-critical: true` and `status: PENDING`) |
+| CONDITIONAL-PASS | PASS | all blocking sibling seams flip to `applied` (tracked in program index doc `planning/MEGAPLAN_program_<slug>.md` cross-plan seam ledger) |
+
+A CONDITIONAL-PASS plan is held at cfn-loop-task until its blocking seams are `applied` per program build order. Bar B failure (haiku-executable check itself fails) loops the owning phase, not a state transition — it is not CONDITIONAL-PASS.
+
+---
+
 ## Dependency Scheduling
 
 **States:** `pending | schedulable | in_flight | complete | blocked`
