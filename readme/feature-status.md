@@ -453,9 +453,10 @@ Consumer Project
 | Feature | Status | Tests | Location | Description |
 |---------|--------|-------|----------|-------------|
 | cfn-research | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-research/` | Pre-spec feasibility, prior-art query |
+| cfn-spec | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-spec/` | Requirements → acceptance criteria. Step 1b (Interaction Intent Walk, 2026-07-08) surfaces intent choices on user-facing surfaces before schema locks (archetype bundles, 7-dimension coverage, resolved vs [OPEN] items track). Post-edit hooks validate sections/FRs. No automated test coverage yet; validated by gate presence check in cfn-megaplan §1b gate |
 | cfn-decide | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-decide/` | Decision register + structured decision-log write |
 | cfn-data | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-data/` | Forward DB design + field-bindings (RLS floor) |
-| cfn-ux | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-ux/` | Full interaction: affordance map (FK→dropdown) + per-field interaction + edge states + flows/journeys + feedback/undo + role visibility |
+| cfn-ux | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-ux/` | Full interaction: affordance map (FK→dropdown) + per-field interaction + edge states + flows/journeys + feedback/undo + role visibility. Reads §1b resolved intent as settled; does not re-open answered dimensions |
 | cfn-design | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-design/` | Visual/layout/design-system/a11y/i18n + responsive/touch + content/microcopy + API contract |
 | cfn-test-plan | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-test-plan/` | AC→executable-check table (feeds Bar A) |
 | cfn-ops | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-ops/` | Threat model/observability/rollout (beta+) |

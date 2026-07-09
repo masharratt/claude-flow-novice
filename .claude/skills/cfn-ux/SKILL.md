@@ -30,7 +30,7 @@ Skip only for: backend-only changes, CLI-only tools, or tasks with no user-facin
 ## Input
 
 Required:
-- `planning/SPEC_<slug>.md` — the screens, tasks, and acceptance criteria.
+- `planning/SPEC_<slug>.md` — the screens, tasks, and acceptance criteria. Includes the **§1b Interaction Intent** table: the richness ceiling, value-type inheritance, composition depth, and lifecycle decisions already resolved with the user at spec time. Read it as settled. Derive controls from the resolved intent; do NOT re-open a dimension the intent walk already answered (e.g. if §1b fixed the operator set, the affordance map builds those operators — it does not re-ask which operators exist).
 
 Optional but authoritative when present:
 - `planning/DATA_<slug>.md` — the data phase. Gives the field bindings: which fields are FK / enum / lookup / boolean / date / timestamp / free-text / numeric / multi-FK. This is the source of truth for control derivation. If it exists, you do not guess bindings — you read them.

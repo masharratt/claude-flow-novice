@@ -98,6 +98,8 @@ All artifacts land in `planning/` named `<PHASE>_<SLUG>.md` (e.g. `SPEC_<slug>.m
 
 Spawn `cfn-spec` (L2). It is the hard barrier: nothing else starts until it returns.
 
+When the task has a user-facing surface, cfn-spec runs its **Interaction Intent Walk** (§1b) and may return `[OPEN]` intent items (richness ceiling, value-type inheritance, composition depth, lifecycle). These MUST be surfaced via `AskUserQuestion` and resolved BEFORE L4 `cfn-data` runs — a richness decision taken after the schema locks is a migration, not an edit. They ride the same `[OPEN]`-batching + 3-round bound as any spec open question (see the `spec has [OPEN]` failure-mode row).
+
 Parse the `## 8. Build Flags` block from `planning/SPEC_<slug>.md`. Do NOT re-infer flags from spec prose. The block has this exact format (cfn-spec's template emits it):
 
 ```
@@ -110,6 +112,8 @@ Parse the `## 8. Build Flags` block from `planning/SPEC_<slug>.md`. Do NOT re-in
 ```
 
 If the block is missing, the spec failed its contract: re-run cfn-spec with a directive to emit section 8.
+
+**§1b presence gate (deterministic, same class as the Build Flags check):** if `frontend: yes`, the spec MUST contain a `## 1b. Interaction Intent` section with at least one row per interactive feature and no leverage dimension left blank (each row resolved, `[OPEN]`, or `N/A: <reason>`). A `frontend: yes` spec with no §1b section — or a §1b that skipped dimensions — failed its contract: re-run cfn-spec with a directive to run the Interaction Intent Walk. Do not let the pipeline advance past L2 on prose assurances that intent was covered; the section either exists with full dimension coverage or the spec is rejected.
 
 Tier = `tier-hint` unless the user passed `--tier`; if tier-hint is absent or the audience is ambiguous, **ask the user** with `AskUserQuestion` (one question, plain English, recommend based on the spec).
 

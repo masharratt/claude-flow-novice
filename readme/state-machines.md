@@ -190,6 +190,26 @@ pending ──3/3 / PO IMPLEMENT / user Apply──> implemented
 
 ---
 
+## Intent Item (cfn-spec §1b Interaction Intent Walk)
+
+**Entity:** one richness dimension (Richness ceiling, Value-type inheritance, Composition depth, State/lifecycle, Referential integrity, Scale/volume, Role/context variance) for one interactive feature (form, builder, wizard, table, editor, dashboard).
+
+**States:** `[OPEN] | resolved | [PARKED: <default>]`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | [OPEN] | cfn-spec §1b emit dimension row, user not yet answered | dimension unresolved before L4 cfn-data |
+| [OPEN] | resolved | user answers archetype-bundle question or residual question | answer rewritten back into step 1b table + FR list; dimension feeds control derivation in cfn-ux |
+| [OPEN] | [PARKED: <default>] | cfn-spec defers dimension (e.g. question budget exceeded), explicit user acceptance | assumption recorded; not a spec rejection; dimension travels as assumption in plan artifacts |
+| resolved | resolved | cfn-spec re-run (user changes answer) | in-place table update, FRs updated |
+| [PARKED: <default>] | resolved | backlog item later elevated to priority | assumption flipped to decision during implementation or next planning cycle |
+
+**Pipeline gate:** cfn-megaplan §1b presence gate (deterministic, same class as Build Flags check): if `frontend: yes`, spec MUST contain `## 1b. Interaction Intent` section with at least one row per interactive feature and every dimension either resolved, [OPEN], or `N/A: <reason>`. Frontend spec with no §1b section or incomplete dimension coverage is rejected; cfn-spec must be re-run with Interaction Intent Walk directive.
+
+**[OPEN] blocking:** All [OPEN] items surface via `AskUserQuestion` and MUST be resolved before L4 cfn-data runs; a richness decision taken after schema locks is a migration, not an edit. Same 3-round bound as other spec open questions.
+
+---
+
 ## Monitor Probe (cfn-monitor health gate)
 
 **Entity:** one target endpoint probed by cfn-monitor. Stateless single-shot per run; no persistence between runs.

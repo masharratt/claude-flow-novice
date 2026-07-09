@@ -52,6 +52,74 @@ FR-2 [core]: System SHALL publish a scheduled story AND notify the family WHEN t
 FR-3 [core]: System SHALL archive expired stories WHEN the nightly cron runs, AND SHALL emit log line "archive.complete count=<n>". (runtime signal: archive.complete log)
 ```
 
+### Step 1b: Interaction Intent Walk (MANDATORY when the task has a user-facing surface)
+
+The gate this closes: Bar A and Bar B both verify the plan *against the spec*. Neither can catch a spec that already encodes the thinnest reading of an interactive feature. A conditional-logic builder specced as "show/hide fields based on a condition" is internally consistent, passes every gate, and ships as *one operator (equals) + a free-text value box*. The defect is the scope of the spec, not a deviation from it. This step stress-tests the spec's experience completeness against the user's intent BEFORE the data model locks (`cfn-data`, DAG L4) — after that, adding an operator set or a value-type is a schema migration, not an edit.
+
+**Intent-first, not field-first.** Do NOT interrogate every field. Ask high-leverage questions at the *pattern* level that resolve whole categories at once. Drop to a specific per-field question only for residual ambiguity the intent answer did not clear.
+
+**Archetype bundles: ONE primary question per interactive feature.** Do not ask one question per dimension — seven questions per feature drowns the user at pattern level instead of field level (same disease, higher altitude). Instead, compose a single primary question offering 2–4 *named versions of the whole pattern*. Each version is a bundle that pre-resolves several dimensions at once (typically richness ceiling + value-type inheritance + composition depth). The user picks a version; only the dimensions that choice leaves unresolved get residual questions.
+
+**Mandatory option shape.** Every intent question presented via `AskUserQuestion` MUST:
+
+- Offer 2–4 concrete options. Each option states exactly what it includes ("operators: equals, contains, is-empty; value input matches field type"), never a vague label ("advanced version").
+- Flag exactly one option **(Recommended)**, chosen by audience / tier-hint — recommend for long-term maintenance, not the quickest build.
+- Use plain English; no schema/component jargon.
+- Anchor to a known product when one fits the pattern ("filters like Airtable" / "a basic search box"). A reference anchor is the cheapest intent extraction there is.
+
+Worked question payload (the nysdra condition-builder case):
+
+```
+Question: "Form fields can show/hide based on conditions. Which version of the
+condition builder do you want?"
+  (A) Basic — one operator (equals), value is always a text box, one condition
+      per field.
+  (B) Typed (Recommended) — operators vary by field type (text: equals /
+      contains / is empty; number: = ≠ < >; dropdown: is / is not / any of),
+      value input matches the field being compared (dropdown shows its options,
+      date shows a date picker), multiple conditions combined with AND.
+  (C) Composable — everything in B, plus OR logic and nested condition groups,
+      like Airtable's filter builder.
+```
+
+One answer to that resolves Richness ceiling, Value-type inheritance, AND Composition depth for the entire feature. Residual dimensions (lifecycle, referential integrity) are asked only if still ambiguous after the archetype answer.
+
+For EVERY interactive feature (any FR where the user composes, builds, filters, edits, or configures — form, builder, wizard, table, editor, dashboard), walk these leverage dimensions as the **coverage checklist**: every dimension must end resolved (by the archetype answer, a residual question, or an explicit `N/A: <reason>`).
+
+| Leverage dimension | Intent question it triggers | One answer clears |
+|---|---|---|
+| Richness ceiling | Minimal version or full-featured version of this pattern? | operator sets, option counts, feature toggles across the whole feature |
+| Value-type inheritance | Does an input's type follow the thing it references, or is it always free text? | control type for every comparison / parameter field |
+| Composition depth | Single item, flat list, or nested / grouped (AND/OR, sub-groups)? | data-model shape + UI recursion for the whole feature |
+| State / lifecycle | Draft / save / resume? edit-after-create? versioning? undo? | persistence + screen states across all screens |
+| Referential integrity | What happens to a reference when its target changes or is deleted? | cascade behavior for every cross-field / cross-entity link |
+| Scale / volume | 5 items or 5000? drives search, pagination, bulk actions | list + control patterns feature-wide |
+| Role / context variance | Same experience for everyone, or does it change by role / state? | visibility + control variance |
+
+Output row format (one per dimension per interactive feature):
+
+```
+| Feature | Dimension | Intent question (or N/A: reason) | Resolution |
+| condition builder | Richness ceiling | archetype Q (A/B/C above) | [OPEN] |
+| condition builder | Value-type inheritance | archetype Q (A/B/C above) | [OPEN] |
+| condition builder | Composition depth | archetype Q (A/B/C above) | [OPEN] |
+| condition builder | State/lifecycle | residual: edit conditions after form is live? | [OPEN] |
+| condition builder | Scale/volume | N/A: max 10 conditions per form | flat list, no pagination |
+```
+
+Several rows sharing one archetype question is the normal, desired shape — it means the bundle is doing its job. After the user answers, rewrite each shared row's Resolution with what the chosen archetype fixed (e.g. `archetype B: typed operator set` / `archetype B: value input inherits field type` / `archetype B: flat AND list`).
+
+Rules:
+- **Archetype bundle first, residual questions second, per-field questions last.** A dimension resolved at intent level is NOT re-asked per field downstream — `cfn-ux` reads the resolved intent and derives controls from it; it does not re-litigate.
+- Every resolved intent **feeds back into Step 1**: expand or refine the FR list so the richness is captured as testable behavior (e.g. `FR-N: builder SHALL support operators {equals, not-equals, contains, >, <, in-list, is-empty}`). An intent answer that never becomes an FR is lost.
+- Unresolved dimensions are `[OPEN]` — they block the pipeline (Step 7 machinery), surfaced via `AskUserQuestion` before `cfn-data` runs.
+- **This step SUSPENDS Step 0's "minimum viable interpretation" pull for interactive richness.** Step 0 governs file-count scope; the intent walk governs experience depth — they are different axes. When a dimension has a plausibly-richer reading, surface it; never default thin silently. When the feature's whole point IS the interaction (a builder exists to compose conditions), flag the richer option — equals-only guts the feature. Recommend by audience / tier.
+
+Skip this step entirely for backend-only / CLI-only / no-user-surface tasks (same signal as the `frontend` build flag in Step 8).
+
+<!-- cfn: no question-budget cap on the intent walk; add a per-spec cap (e.g. <=2 questions per feature, overflow -> recommend + [PARKED]) if intent walks start exceeding ~6 questions per spec -->
+
+
 ### Step 2: Non-Functional Requirements
 
 Performance, security, accessibility, observability. Each NFR must include a measurable threshold.
@@ -157,7 +225,7 @@ SLUG=$(echo "$TASK" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut 
 
 Write to: `planning/SPEC_<slug>.md`
 
-Template (all 8 sections required; Build Flags is always last):
+Template (8 core sections required; section 1b required only when the task has a user-facing surface; Build Flags is always last):
 ```markdown
 # Specification: <task>
 
@@ -168,6 +236,10 @@ Template (all 8 sections required; Build Flags is always last):
 ## 1. Functional Requirements
 FR-1: ...
 FR-2 [core]: ...   (mark every mechanism that must fire end-to-end; out-of-band [core] FRs also name their runtime signal)
+
+## 1b. Interaction Intent   (only when the task has a user-facing surface; omit for backend/CLI-only)
+| Feature | Dimension | Intent question (or N/A: reason) | Resolution |
+(walk all 7 leverage dimensions per interactive feature; one archetype-bundle question per feature resolves most rows; each resolution feeds back into an FR above; unresolved = [OPEN])
 
 ## 2. Non-Functional Requirements
 NFR-1: ...
@@ -210,6 +282,13 @@ Same task as `cfn-decide`'s example register, so cross-skill examples cohere.
 FR-1: System SHALL create a notification row WHEN a family member publishes a story.
 FR-2 [core]: System SHALL deliver unread notifications to the browser within 5s WHEN the user has an open session, GIVEN the delivery channel is connected.
 FR-3 [core]: System SHALL mark notifications read WHEN the user opens the notification list, AND SHALL emit log line "notify.read count=<n>". (runtime signal: notify.read log)
+
+## 1b. Interaction Intent
+| Feature | Dimension | Intent question (or N/A: reason) | Resolution |
+| notification list | Richness ceiling | mark-read only, or also dismiss/mute/filter-by-type? | mark-read + dismiss (→ FR-4) |
+| notification list | State/lifecycle | N/A: notifications are ephemeral, no draft/edit | read + dismissed states only |
+| notification list | Scale/volume | cap shown, paginate, or infinite scroll past N? | show latest 50, "load older" (→ FR-5) |
+| notification list | Role/context variance | N/A: same list for every family member | uniform |
 
 ## 2. Non-Functional Requirements
 NFR-1: Delivery p95 < 5s at 100 concurrent sessions.
@@ -275,6 +354,11 @@ This artifact is the input to `cfn-pseudo` and `cfn-decide`. Do not advance to p
 - **Existence / structural acceptance criteria**: "function X exists", "endpoint defined", "component renders without throwing", "type compiles". A do-nothing stub passes every one. Every AC asserts observable behavior, output content, or a state/persistence change.
 - **No `[core]` flag on the mechanism that must actually fire.** If nothing is marked `[core]`, the test plan has no signal for which FR needs an assembled-path check, and the core logic ships unit-tested-only (green gate, dead feature).
 - Assuming missing information instead of recording as Open Question
+- **Speccing the thinnest reading of an interactive feature.** A builder/form/wizard specced at its minimal interpretation (one operator, free-text everywhere, no composition) is internally consistent and passes every gate, then ships gutted. Any user-facing surface MUST pass the Step 1b intent walk before the data model locks.
+- **Field-by-field interrogation instead of intent.** Asking a question per field drowns the user and still misses the pattern. Ask the high-leverage intent question that clears the whole category.
+- **One question per dimension instead of an archetype bundle.** Seven questions per feature is field-by-field interrogation at pattern altitude. Bundle the dimensions into 2–4 named versions of the feature and ask once; residual questions only for what the answer left open.
+- **Options without a recommendation, or vague options.** "Basic vs advanced?" extracts nothing. Every option names its concrete contents; exactly one is flagged (Recommended) by audience/tier.
+- **Letting Step 0's MVP pull thin out interactive richness.** Step 0 caps file count; it does not license equals-only when the feature's point is composing conditions. Different axes.
 
 ## Related
 
