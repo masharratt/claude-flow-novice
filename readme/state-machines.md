@@ -4,6 +4,37 @@ Entity lifecycle documentation for stateful CFN systems.
 
 ---
 
+## CFN Loop Task: Phase 5 Exit Gate (cfn-loop-task 3.2.0, W1/W4/W5)
+
+**States:** `entering | mutation_probe | verify_run | resolving | all_green_gate | build_smoke | done | iterating | stopped`
+
+Mechanical done-verdict gate. Replaces the pre-3.2.0 honor-system single-pass rule. The gate MAY iterate back to Phase 2, bounded by MAX_ITERATIONS.
+
+| From | To | Trigger |
+|------|----|---------|
+| entering | mutation_probe | 5E.0: per core FR, one semantic mutation injected, expect red |
+| mutation_probe | verify_run | mutation caught (verify-run red as expected), file restored + sha256 matches BEFORE |
+| mutation_probe | iterating | 5E.0: mutation survived (verify-run green) once → strengthen AC tests for FR-x |
+| mutation_probe | stopped | mutation survived twice, OR restore sha256 mismatch (corrupted state) |
+| verify_run | resolving | 5E.1-5E.2: needs_agent / predicate_unverified rows present |
+| verify_run | all_green_gate | 5E.3: verify-run summary exit 0, nothing unresolved |
+| verify_run | stopped | 5E.3: verify-run exit 4 (manifest hash mismatch) |
+| resolving | all_green_gate | agent evidence stamped via verify-run resolve, all rows green |
+| resolving | iterating | 5E.3: red ACs remain → back to Phase 2 (counts against MAX_ITERATIONS) |
+| all_green_gate | build_smoke | 5E.4: gate-check --threshold 1.0 passes AND SPEC frontend=yes with build script |
+| all_green_gate | done | 5E.4 passes AND no build smoke applicable |
+| all_green_gate | iterating | persistent reds after flaky re-run + ≤2 quick fixes; user chose Keep iterating |
+| all_green_gate | done | user-approved Quarantine (test.skip + cfn-allow-skip + backlog) |
+| all_green_gate | stopped | user chose Abort |
+| build_smoke | done | 5E.5: npm run build exit 0 |
+| build_smoke | stopped | build fails after ≤2 fix attempts |
+| iterating | entering | Phase 2 re-run completes, re-enters Phase 5 (MAX_ITERATIONS not exhausted) |
+| iterating | stopped | MAX_ITERATIONS exhausted |
+
+Done requires: all ACs mechanically green, manifest unedited since Bar A, no gamed tests, core FRs surviving the mutation probe, all applicable Phase 4 gate skills run, and (frontend) a passing prod build. 0.95 is never a done state; only all-green or an explicit user-approved quarantine.
+
+---
+
 ## GOAP Planner
 
 **States:** `planning | plan_found | unreachable`

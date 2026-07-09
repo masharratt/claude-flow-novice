@@ -82,11 +82,14 @@ Design what gets emitted at every decision point so an on-call engineer can answ
 
 **Log lines at decision points.** For each branch where the system makes a consequential choice (auth allow/deny, gate pass/fail, retry, abort, fallback fired, payment captured), specify the exact structured log line. Every line carries correlation IDs: `request_id`, the primary `entity_id`, and `tenant_id` where multi-tenant.
 
-Log-line spec format:
+Log-line spec format (each line carries `OBS-id`, `criticality`, and `verify`):
 
 ```
+OBS-id: OBS-1
 event: auth.deny
 level: warn
+criticality: alert
+verify: required
 when: JWT verify fails OR tenant mismatch on POST /api/orders
 fields: { request_id, user_id, tenant_id, reason: "expired"|"tenant_mismatch"|"missing", route }
 PII: user_id only (no email/token in line) — redact token as [REDACTED]
@@ -94,15 +97,20 @@ PII: user_id only (no email/token in line) — redact token as [REDACTED]
 
 Enumerate at minimum: every allow/deny, every gate pass/fail, every retry+abort, every fallback/degradation trigger, every external-call failure.
 
-**Metrics.** Name each metric, its type (counter/gauge/histogram), labels, and the SLO it serves:
+**Metrics.** Name each metric, its type (counter/gauge/histogram), labels, the SLO it serves, and its `OBS-id`, `criticality`, and `verify`:
 
 ```
-| Metric                      | Type      | Labels            | SLO / use                        |
-|-----------------------------|-----------|-------------------|----------------------------------|
-| orders_created_total        | counter   | tenant, status    | success-rate KPI (Phase 4)       |
-| order_write_latency_seconds | histogram | route             | p95 < 300ms                      |
-| order_dep_down_total        | counter   | dep               | alert when > 0 over 5m           |
+| OBS-id | Metric                      | Type      | Labels            | SLO / use                        | Criticality (alert|slo|core-signal|diagnostic) | Verify (required | exempt: <reason>) |
+|--------|-----------------------------|-----------|-------------------|----------------------------------|-----------------------------------------------|--------------------------------------|
+| OBS-2  | orders_created_total        | counter   | tenant, status    | success-rate KPI (Phase 4)       | slo                                           | required                             |
+| OBS-3  | order_write_latency_seconds | histogram | route             | p95 < 300ms                      | slo                                           | required                             |
+| OBS-4  | order_dep_down_total        | counter   | dep               | alert when > 0 over 5m           | alert                                         | required                             |
+| OBS-5  | order_debug_trace           | counter   | route             | dev diagnostics only             | diagnostic                                    | exempt: debug log, owes no test      |
 ```
+
+**Criticality rule (verbatim):** verify-required iff the signal backs an alert threshold or on-call query, defines a Phase 4 KPI/guardrail, or is the runtime-observed signal of a [core] FR. Debug logs never owe tests.
+
+Ops names signals (`OBS-n`), never AC ids: `cfn-test-plan` Phase 3 maps each `verify: required` OBS-n to an AC that asserts the signal fires for the test's own input. `OBS-id` is the greppable token and the key behind Bar A counters `obs_required_total/obs_required_mapped`.
 
 **Traces.** Name the span boundaries for the primary flow (entry span → external-call child spans) so a slow request is attributable to a stage.
 
@@ -166,9 +174,21 @@ enterprise full FMEA — add columns: Severity (1-5), Likelihood (1-5), Detectio
 
 Timeout budgets must sum to less than the request's overall deadline — state the budget so cascading timeouts can't blow the SLA.
 
-### Phase 6: Rollback rehearsal (beta+ tested) — G27
+### Phase 6: Rollback rehearsal (beta+ tested) — G27, G50
 
 "Revert the migration" is a wish, not a procedure. Write the actual undo steps AND the evidence they were exercised (dry-run in staging, or a documented reasoning trace if no staging).
+
+**Executable rollback evidence (db flag + reversible migration).** When the `db` build flag is set AND `DATA_<slug>.md` §5 declares a reversible migration, the rehearsal evidence is not reasoning: it is the `cfn-migration-rehearsal` invocation, cited verbatim from DATA §5's line:
+
+```
+CFN_SCRATCH_DATABASE_URL=<scratch> ./.claude/skills/cfn-migration-rehearsal/execute.sh --up <NNNN.up.sql> --down <NNNN.down.sql>
+```
+
+- Reasoning-only evidence is acceptable ONLY when no scratch DB is possible; state why and emit a WARN row so the gap is visible, never a silent downgrade.
+- An irreversible migration carries `n/a: <reason from DATA §5>` (the same one-line reason DATA §5 recorded), not a rehearsal command.
+- The rehearsal never runs against `DATABASE_URL` — the skill already refuses any prod look-alike and requires `CFN_SCRATCH_DATABASE_URL`. This is design-side only; the loop executes it.
+
+This is the ops-side meaning of the existing `rollback_rehearsal` profile token (G50) — no new ops token is added; the token's meaning is extended here. Phase 2's OBS work is likewise the extended meaning of the existing `observability` token (G49).
 
 ```
 Trigger: guardrail error budget breached (Phase 4) OR canary fails (Phase 3).
@@ -236,9 +256,10 @@ Template (include only the phases active for the tier; mark skipped phases `N/A 
 
 ## 2. Observability
 ### Log lines (decision points)
-<event specs>
+<event specs; each carries OBS-id, criticality (alert|slo|core-signal|diagnostic), verify (required | exempt: <reason>)>
 ### Metrics
-| Metric | Type | Labels | SLO/use |
+| OBS-id | Metric | Type | Labels | SLO/use | Criticality (alert|slo|core-signal|diagnostic) | Verify (required | exempt: <reason>) |
+(verify-required iff the signal backs an alert/on-call query, defines a Phase 4 KPI/guardrail, or is the runtime-observed signal of a [core] FR; debug logs never owe tests; OBS-id is the greppable token cfn-test-plan consumes and the Bar A `obs_required_total/obs_required_mapped` key)
 ### Traces
 <span boundaries>
 ### On-call query
@@ -258,6 +279,7 @@ Template (include only the phases active for the tier; mark skipped phases `N/A 
 
 ## 6. Rollback Rehearsal
 - Trigger, tested steps, data safety, rehearsal evidence
+- db + reversible: cfn-migration-rehearsal invocation cited verbatim from DATA §5 (executable evidence); no scratch DB -> WARN row + why; irreversible -> `n/a: <reason from DATA §5>`
 
 ## 7. Capacity / Cost
 | Resource | Budget/cap | Bottleneck | Cost/call |

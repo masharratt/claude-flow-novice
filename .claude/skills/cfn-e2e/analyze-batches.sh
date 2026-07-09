@@ -64,12 +64,12 @@ analyze_batches() {
         category=$(categorize_file "$file")
 
         case "$category" in
-            fast) ((total_fast++)) ;;
-            medium) ((total_medium++)) ;;
-            large) ((total_large++)) ;;
+            fast) total_fast=$((total_fast + 1)) ;;
+            medium) total_medium=$((total_medium + 1)) ;;
+            large) total_large=$((total_large + 1)) ;;
         esac
 
-        ((total_tests += test_count))
+        total_tests=$((total_tests + test_count))
 
         printf "  %-40s %3d tests  [%s]\n" "$filename" "$test_count" "$category"
     done < <(find "$test_dir" -type f \( -name "*.spec.ts" -o -name "*.test.ts" \) -print0 2>/dev/null | sort -z)

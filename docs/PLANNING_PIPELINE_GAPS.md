@@ -3,9 +3,9 @@
 **Scope:** Gaps in the CFN planning pipeline (`cfn-spa-plan` → `write-plan` → `cfn-plan-review` → `cfn-loop-task`).
 **Generated:** 2026-06-27
 
-## Build status — ALL WAVES COMPLETE (2026-06-27)
+## Build status — Waves 1-4 COMPLETE (2026-06-27) · Wave 5 IN BUILD (2026-07)
 
-Implemented as `cfn-megaplan` (tiered orchestrator) + 7 new phase skills + 2 gates + 3 tier profiles. All 36 gaps have a home.
+Waves 1-4 implemented as `cfn-megaplan` (tiered orchestrator) + 7 new phase skills + 2 gates + 3 tier profiles. All 36 original gaps (G01-G36) have a home. Wave 5 (G37-G52, verification hardening) is in build: it mechanizes the done verdict and turns designed-but-unverified concerns (concurrency, state machines, observability, rollback, adversarial data, viewport) into test rows.
 
 | Built artifact | Path | Gaps covered |
 |---|---|---|
@@ -24,6 +24,12 @@ Implemented as `cfn-megaplan` (tiered orchestrator) + 7 new phase skills + 2 gat
 | cfn-plan-review ext | `.claude/skills/cfn-plan-review/SKILL.md` | G35 + Bar B wiring |
 | cfn-spec ext | `.claude/skills/cfn-spec/SKILL.md` | Step 8 Build Flags (frontend/db/pii/unknowns/tier-hint) — orchestrator routing input |
 | cfn-arch ext | `.claude/skills/cfn-arch/SKILL.md` | G17 (Step 9 state machines), G25 (Step 10 error taxonomy), + megaplan division-of-labor (defers storage→cfn-data, ops→cfn-ops) |
+| verify-run executor (Wave 5) | `.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh` | G37, G40, G41 (Phase 5 mechanical done gate + mutation probe) |
+| Bar A static checker (Wave 5) | `.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh` + manifest hash sidecar | G52, G38 |
+| test-hygiene scan (Wave 5) | `.claude/skills/cfn-loop-orchestration-v2/cli/check-test-hygiene.sh` + `gate-check.sh --baseline` | G39 |
+| console/network e2e guard (Wave 5) | `.claude/skills/cfn-e2e/lib/console-guard.ts` + `run-e2e-smart.sh` | G43 |
+| loop-task gate wiring + smoke/flaky (Wave 5) | `.claude/commands/cfn-loop-task.md` (3.2.0) | G42, G44, G45 |
+| verification test rows (Wave 5) | `cfn-data`/`cfn-arch`/`cfn-ops`/`cfn-spec`/`cfn-test-plan`/`cfn-design` SKILL.md | G46, G47, G48, G49, G50, G51 |
 
 **Adoption note:** the canonical planning order in `~/.claude/CLAUDE.md` still names `cfn-spa-plan` as entry point. Switching the canonical entry to `cfn-megaplan` is a user-facing workflow change — left unedited pending user sign-off (see final next-steps).
 
@@ -114,6 +120,29 @@ Impact = build failures / ambiguity it kills. Effort = build cost. Both 1-5.
 | G35 | Plan judge — quality of chosen approach vs alternatives | 2 | 3 | `cfn-plan-review` ext | Review checks completeness, not approach quality. |
 | G36 | Retro → plan feedback loop | 2 | 3 | entry hook | `cfn-retro` hotspots fed forward into next plan. |
 
+### P4 — Wave 5 (verification hardening)
+
+Closes the gap between "plan says done" and "done is mechanically proven". Splits into gate integrity (G37-G42, G52), runtime reality (G43-G45), and designed-but-never-verified (G46-G51).
+
+| ID | Gap | Impact | Effort | Build phase | Why |
+|----|-----|:--:|:--:|---|-----|
+| G37 | verify-run executor (mechanical done gate) | 5 | 3 | `cfn-loop-task` / cli | Done verdict runs on the honor system. A script, not prose, must prove every AC green. |
+| G38 | Manifest integrity hash | 3 | 1 | `bars` / `cfn-megaplan` | Blesses the Bar-A-validated VERIFY file; refuses silent post-validation edits. |
+| G39 | Test-deletion/skip scan | 4 | 2 | cli / `gate-check.sh` | Gate can be gamed by deleting or `.skip`-ing tests. Scan + baseline catch the shrink. |
+| G40 | All-green final gate | 5 | 2 | `cfn-loop-task` | 0.95 is never a done state. Final full-suite re-run at threshold 1.0 or explicit quarantine. |
+| G41 | Mutation spot-check | 3 | 3 | `cfn-loop-task` | Vacuous tests pass anything. One semantic mutation per core FR must turn its ACs red. |
+| G42 | Gate wiring matrix | 4 | 2 | `cfn-loop-task` Phase 4 | Six built gate skills exist but are never wired into the loop. Trigger table wires them. |
+| G43 | Console/network e2e capture | 3 | 2 | `cfn-e2e` | e2e passes while the page throws. Fixture asserts no console/pageerror/4xx-5xx. |
+| G44 | Prod-build smoke | 4 | 2 | `cfn-loop-task` | Tests green, prod build broken. `npm run build` must exit 0 before done. |
+| G45 | Flaky protocol | 3 | 2 | `cfn-loop-task` | Flaky failures masquerade as reds. Re-run once, flag flaky, cap at repeated-iteration real fail. |
+| G46 | Viewport matrix | 3 | 2 | `cfn-test-plan` / `cfn-design` | e2e runs one viewport, ships broken mobile. Named playwright projects per breakpoint. |
+| G47 | Concurrency test rows | 4 | 3 | `cfn-data` / `cfn-test-plan` | G13 designs races but they never become tests. Each CC-n row drives the race in an AC. |
+| G48 | State-machine transition coverage | 4 | 2 | `cfn-arch` / `cfn-test-plan` | G17 designs the SM but transitions go untested. Valid + illegal transition rows owe ACs. |
+| G49 | Observability verification | 3 | 2 | `cfn-ops` / `cfn-test-plan` | G11 designs signals never asserted. verify-required OBS-n rows owe a signal-fires AC. |
+| G50 | Rollback rehearsal wiring | 4 | 2 | `cfn-ops` / `cfn-test-plan` | G27 names rollback but never runs it. Wires `cfn-migration-rehearsal` up+down round-trip. |
+| G51 | Adversarial-data fixtures | 3 | 2 | `cfn-spec` / `cfn-test-plan` | Only happy input tested. Unicode/oversized/script-in-content/zero-row fixtures owe ACs. |
+| G52 | Bar A static checker | 4 | 3 | `bars` (Bar A) | Verifiable-done was honor-checked by the LLM. Mechanizes the manifest lint before the gate report. |
+
 ---
 
 ## cfn-ux affordance map (G03 core payload)
@@ -170,6 +199,7 @@ cfn-loop-task
 - **Wave 2 (P1):** G04, G05, G06, G07, G08, G09.
 - **Wave 3 (P2):** G10–G28. Split `cfn-ops` into threat / obs / rollout sub-items.
 - **Wave 4 (P3):** G29–G36.
+- **Wave 5 (P4, verification hardening):** start G52 + G37 (Bar A checker + verify-run keystone), then planning-side G46–G51 (viewport, concurrency, SM, obs, rollback, adversarial test rows), then loop-side G39–G45 (hygiene scan, all-green, mutation, gate wiring, console-guard, smoke, flaky).
 
 **Start:** G01 (Verifiable-done) — smallest, unblocks the loop's core gap.
 
@@ -266,6 +296,12 @@ The pipeline scales by build stage. `megaplan-<tier>` = the orchestrator + an in
 | Bar A verifiable-done | ● | ● | ● |
 | Bar B haiku-executable | ● | ● | ● |
 | plan-review | ◐ bars + blast radius | ● full alpha-readiness | ● + plan judge + compliance |
+| verify: viewport matrix (G46) | ◐ 1 viewport | ● 2 viewports | ● 2 viewports (missing = FAIL) |
+| verify: concurrency test rows (G47) | — unless inherent | ● | ● |
+| verify: state-machine transitions (G48) | ● | ● | ● |
+| verify: observability signals (G49) | — | ● | ● |
+| verify: rollback rehearsal (G50) | named only | ● rehearsed | ● |
+| verify: adversarial-data fixtures (G51) | — (EC-floored) | ● | ● |
 
 ### Tier meaning
 

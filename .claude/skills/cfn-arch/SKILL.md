@@ -195,22 +195,25 @@ This is a mini blast-radius analysis — `cfn-plan-review` will do a deeper one 
 - Backwards compatibility plan (if changing existing contract)
 - Rollback procedure
 
-### Step 9: State Machines (gap G17)
+### Step 9: State Machines (gap G17, G48)
 
-For every stateful entity in scope, design the lifecycle AT PLAN TIME (not at commit time when `readme/state-machines.md` is updated). For each entity:
-- **States** — enumerate every valid state.
-- **Transitions** — `from -> to`, the trigger, and the guard condition.
-- **Illegal transitions** — states that must be rejected (these become edge-case tests).
-- **Diagram** — mermaid or ASCII.
+For every stateful entity in scope, design the lifecycle AT PLAN TIME (not at commit time when `readme/state-machines.md` is updated). Emit TWO pinned tables that share ONE SM-id space (SM-1, SM-2, ... number continuously across both tables, never restart):
 
+Valid transitions:
 ```
-Entity: booking
-States: draft -> pending -> confirmed -> cancelled | completed
-Transition: pending -> confirmed  trigger: payment_ok  guard: seat still available
-Illegal: completed -> pending (reject), cancelled -> confirmed (reject)
+| SM-id | Entity | From | To | Trigger | Guard |
 ```
 
-The commit-time `readme/state-machines.md` update is then a copy of this section, not a fresh design.
+Illegal transitions:
+```
+| SM-id | Entity | From | To (illegal) | Rejection behavior (exact error code/HTTP status/exception) |
+```
+
+**Completeness rule:** every non-adjacent state pair (any From/To that is not already a valid-transition row) must appear as an illegal-transition row OR be marked `unreachable by construction: <why>`. A pair that is neither a valid row, an illegal row, nor explicitly unreachable is an incomplete artifact.
+
+SM-id is the greppable token `cfn-test-plan` consumes: valid rows drive the trigger and assert the persisted state flip; illegal rows attempt the transition and assert the exact rejection. It is also the key behind Bar A counters `sm_total/sm_mapped`.
+
+Add a **diagram** (mermaid or ASCII) alongside the tables. The commit-time `readme/state-machines.md` update is then a copy of this section, not a fresh design.
 
 ### Step 10: Error Taxonomy (gap G25 — `error_taxonomy` extra, beta+)
 
@@ -276,6 +279,18 @@ interface ...
 
 ## 8. Deployment
 - Env vars, feature flag, compatibility, rollback
+
+## 9. State Machines
+Valid transitions:
+| SM-id | Entity | From | To | Trigger | Guard |
+Illegal transitions:
+| SM-id | Entity | From | To (illegal) | Rejection behavior (exact error code/HTTP status/exception) |
+(one shared SM-id space across both tables; every non-adjacent state pair is a valid row, an illegal row, or `unreachable by construction: <why>`; SM-id is the greppable token cfn-test-plan consumes and the Bar A `sm_total/sm_mapped` key; include a diagram)
+
+## 10. Error Taxonomy   (beta+; `error_taxonomy` extra)
+- Canonical error-code enum (single source-of-truth path)
+- Typed error shape (reuse §2 contract style)
+- Mapping: operation -> code -> HTTP status
 ```
 
 ### Output example: course booking (excerpt, continues the shared cfn-data / cfn-ux / cfn-design example)
@@ -299,13 +314,24 @@ interface BookCourseError {
 }
 ```
 
-State machine (Step 9):
-```
-Entity: booking
-States: draft -> pending -> confirmed -> cancelled | completed
-Transition: pending -> confirmed  trigger: payment_ok  guard: seat still available
-Illegal: completed -> pending (reject), cancelled -> confirmed (reject)
-```
+State machine (Step 9; shared SM-id space across both tables):
+
+Valid:
+
+| SM-id | Entity | From | To | Trigger | Guard |
+|---|---|---|---|---|---|
+| SM-1 | booking | draft | pending | submit | seats requested >= 1 |
+| SM-2 | booking | pending | confirmed | payment_ok | seat still available |
+| SM-3 | booking | confirmed | completed | session_ends | - |
+
+Illegal:
+
+| SM-id | Entity | From | To (illegal) | Rejection behavior (exact error code/HTTP status/exception) |
+|---|---|---|---|---|
+| SM-4 | booking | completed | pending | 409 ILLEGAL_TRANSITION |
+| SM-5 | booking | cancelled | confirmed | 409 ILLEGAL_TRANSITION |
+
+(draft -> confirmed etc.: `unreachable by construction: payment can only fire from pending`)
 
 AuthZ matrix excerpt (Step 6; cfn-ux 3d consumes verbatim):
 

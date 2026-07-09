@@ -10,6 +10,8 @@ status: production
 
 **Purpose:** `cfn-ops` DESIGNS the rollback (the up+down pair and the rollback rehearsal step). This skill EXECUTES that rehearsal: it actually applies the up migration, applies the down migration, and proves the schema round-trips back to its starting state. A down migration that does not fully reverse its up is caught here, before merge, on a disposable database, not in production during an incident.
 
+**Wired by:** this skill is invoked as an executable gate by `cfn-loop-task` Phase 4 (when the `db` build flag is set AND migration files appear in the diff — a hard exit-code gate, not advisory), and it is cited as the executable rollback evidence designed by `cfn-ops` Phase 6 and asserted by `cfn-test-plan` Phase 3 (the `AC-mig` row). It runs only against `CFN_SCRATCH_DATABASE_URL`, never `DATABASE_URL`.
+
 ## SAFETY CONTRACT (read first)
 
 This skill runs DDL against a real database. Every guard below runs BEFORE any database connection is opened. If any guard trips, the skill exits non-zero with a clear message and touches nothing.

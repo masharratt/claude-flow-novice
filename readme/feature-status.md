@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-07-03 | **Version:** 2.24.0 | **Status:** Production
+**Last Updated:** 2026-07-09 | **Version:** 2.24.0 | **Status:** Production
 
 ---
 
@@ -41,9 +41,11 @@ This file MUST be updated when:
 | Loop 1 (Product Owner) | ✅ Prod | ✅ | `.claude/agents/cfn-dev-team/product-owners/` | Strategic oversight, PROCEED/ITERATE/ABORT |
 | Gate Check System | ✅ Prod | ✅ | `.claude/skills/cfn-loop-orchestration-v2/` | Threshold validation before Loop 2 |
 | Consensus Collection | ✅ Prod | ✅ | `.claude/skills/cfn-loop-orchestration-v2/` | Validator aggregation with confidence scoring |
-| gate-check.sh | ✅ Prod | ✅ | `.claude/skills/cfn-loop-orchestration-v2/cli/` | Deterministic pass-rate parser (vitest/jest/pytest), exit-code gate, 0/0 never passes |
+| gate-check.sh | ✅ Prod | ✅ 12/12 | `.claude/skills/cfn-loop-orchestration-v2/cli/` | Deterministic pass-rate parser (vitest/jest/pytest), exit-code gate, 0/0 never passes. `--baseline <int>` fails a shrinking suite (exit 3) to block test-deletion gaming (W3/G39, 2026-07-09); legacy output byte-identical when flag absent |
+| verify-run.sh | ✅ Prod | ✅ 14/14 | `.claude/skills/cfn-loop-orchestration-v2/cli/` | Mechanical VERIFY-manifest executor (W1/G37, 2026-07-09). run/resolve/summary; classifies each AC executable/db-query/needs_agent, runs from repo root, refuses <3-line agent evidence, hash-checks manifest (exit 4 on tamper). Results JSON is the single done authority; prose never counts. Drives cfn-loop-task Phase 5 Exit gate (5E) |
+| check-test-hygiene.sh | ✅ Prod | ✅ 12/12 | `.claude/skills/cfn-loop-orchestration-v2/cli/` | Flags focused/skipped/todo markers (`.only`/`.skip`/`fit`/`@pytest.mark.skip`) in changed test files (W3/G39, 2026-07-09). Same-line `cfn-allow-skip:` = recorded quarantine. Findings = Phase 3 gate FAIL |
 | THRESHOLDS.md | ✅ Prod | n/a | `.claude/skills/cfn-loop-orchestration-v2/` | Single source of truth for gate/consensus/max-iter per mode |
-| VERIFY manifest gate | ✅ Prod | ⚠️ | `cfn-loop-task.md` Step 0 + `cfn-megaplan/bars/verifiable-done.md` | Loop completion requires every AC check green from megaplan manifest |
+| VERIFY manifest gate | ✅ Prod | ✅ | `cfn-loop-task.md` Phase 5 (5E) + `cfn-megaplan/bars/verifiable-done.md` | Loop done requires verify-run.sh proving every AC green mechanically, manifest unedited since Bar A (sha256 sidecar), no gamed tests, core FRs surviving a mutation probe, and all applicable gate skills run |
 | Sonnet-hardened prompts | ✅ Prod | n/a | commands, skills, `agents/cfn-dev-team/` | Opus/Sonnet migration: mechanical gates, pinned contracts, shared agent prelude, dead-ref quarantine (docs/PROMPT_AUDIT_OPUS_SONNET_MIGRATION.md). 2026-07-03 follow-up: agent-builder rewritten as template enforcer (4-section template, validation checklist, never-change-model rule); remaining 17 profiles restructured to conform; full roster now conforming. 2026-07-03 (phase 2): 5 judgment-heavy profiles pinned to opus (root-cause-analyst, goal-planner, system-architect, product-owner, simplifier) for enhanced reasoning on complex decisions |
 
 ### Execution Modes
@@ -214,7 +216,7 @@ This file MUST be updated when:
 
 | Command | Status | Tests | Location | Description |
 |---------|--------|-------|----------|-------------|
-| /cfn-loop-task | ✅ Prod | ✅ | `cfn-loop-task.md` | Task mode execution: derives lanes from planning/PLAN_<slug>.md (lane source), checks completion via planning/VERIFY_<slug>.md. MEGAPLAN_<slug>.md is an index/summary, never a lane source. |
+| /cfn-loop-task | ✅ Prod | ✅ | `cfn-loop-task.md` (3.2.0) | Task mode execution: derives lanes from planning/PLAN_<slug>.md (lane source), checks completion via planning/VERIFY_<slug>.md. MEGAPLAN_<slug>.md is an index/summary, never a lane source. 3.2.0 (2026-07-09): mechanical Phase 5 Exit gate (5E.0-5E.5 via verify-run.sh, MAY iterate to Phase 2 bounded by MAX_ITERATIONS), Phase 4 gate-wiring matrix, Phase 3 hygiene scan + shrink-baseline + flaky protocol, manifest hash check. |
 | /cfn-loop-cli | ✅ Prod | ✅ | `cfn-loop-cli.md` | CLI mode execution |
 | /cfn-fix-errors | ✅ Prod | ✅ | `cfn-fix-errors.md` | Automated error fixing |
 | /cfn-check-errors | ✅ Prod | ✅ | `cfn-check-errors.md` | Error detection |
@@ -444,8 +446,10 @@ Consumer Project
 | Feature | Status | Tests | Location | Description |
 |---------|--------|-------|----------|-------------|
 | cfn-megaplan orchestrator | ⚠️ Beta | ⚠️ wiring | `.claude/skills/cfn-megaplan/` | Tiered DAG entry point; supersedes cfn-spa-plan. Multi-plan program support: shared decision register, cross-plan seam ledger, program build-order DAG, back-propagation rule for forced items. PLAN_ persistence gate (cfn-loop-task lane source). Bar B CONDITIONAL-PASS for sibling-blocked plans in multi-plan programs. |
-| Inclusion profiles | ✅ Prod | ✅ | `.claude/skills/cfn-megaplan/profiles/` | mvp/beta/enterprise phase inclusion (JSON-validated) |
-| Bar A: verifiable-done | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-megaplan/bars/verifiable-done.md` | Every AC carries executable check; cfn-loop-task gate |
+| Inclusion profiles | ✅ Prod | ✅ | `.claude/skills/cfn-megaplan/profiles/` | mvp/beta/enterprise phase inclusion (JSON-validated). v1.2.0 (2026-07-09): test_plan gains concurrency/adversarial_data/viewport_matrix/obs_verification/migration_rehearsal (mvp drops, beta+ extras); ops tokens unchanged |
+| Bar A: verifiable-done | ⚠️ Beta | ✅ 20/20 | `.claude/skills/cfn-megaplan/bars/verifiable-done.md` + `bars/check-verifiable-static.sh` | Every AC carries executable check. Mechanical static pass (check-verifiable-static.sh, W9/G52, 2026-07-09) lints taxonomy/pass-decidability/weasel/coverage before the LLM gate. Presence-keyed coverage keys cc/sm/obs_required/adv/migration_rehearsal/viewport lint when present. Manifest blessed by sha256 sidecar |
+| Manifest integrity hash | ✅ Prod | ✅ | `planning/.VERIFY_<slug>.sha256` (megaplan Step 5 / verify-run.sh) | Sidecar sha256 of the Bar A-blessed VERIFY file (W2/G38, 2026-07-09). cfn-loop-task Step 0 + verify-run.sh refuse a manifest edited since Bar A; missing sidecar = warn (pre-hash-era) |
+| check-haiku-static.sh | ✅ Prod | ✅ | `.claude/skills/cfn-megaplan/bars/` | Bar B weasel/structure scan. Weasel patterns now sourced from shared `bars/weasel-phrases.txt` (single source with Bar A checker, inline fallback), 2026-07-09 |
 | Bar B: haiku-executable | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-megaplan/bars/haiku-executable.md` | Every step unambiguous; static+probe scan |
 
 ### Planning Phase Skills
@@ -492,7 +496,9 @@ Consumer Project
 
 **Reverse/audit mode:** `cfn-megaplan --review <path>` chains `cfn-data --review` -> `cfn-ux --review` -> `cfn-arch --review` to audit already-implemented code (recover artifacts from code, run phase rules as findings, emit `planning/AUDIT_*_<slug>.md`). cfn-ux review is the post-hoc catch for the FK-field-as-textbox bug. Other phases remain forward-only.
 
-**Known limitations:** Phase skills validated for wiring (structural smoke), not yet exercised by a full live orchestration run. Bars enforced via prompt + scan, no automated regression harness yet. Global `~/.claude/CLAUDE.md` canonical-entry switch to cfn-megaplan is local config, not tracked in this repo.
+**Wave 5 (verification hardening, G37-G52, 2026-07-09):** the loop done-verdict is now mechanical, not honor-system. `cfn-loop-task` 3.2.0 rewrites Phase 5 Exit into an ordered gate (5E.0 mutation spot-check, 5E.1-5E.3 verify-run run/resolve/summary, 5E.4 all-green final gate, 5E.5 prod-build smoke) and Phase 4 into a build-flag-driven gate-wiring matrix (security/migration-rehearsal/a11y/dep-audit/perf). Planning side: concurrency (CC-n), state-machine (SM-n), observability (OBS-n), adversarial-data (ADV-n), and migration-rehearsal rows now become test ACs, presence-keyed across tiers. cfn-e2e gains a console/network guard fixture (console-guard.ts) + `--strict-console`. Static harnesses cover the new scripts (verify-run 14, verifiable-static 20, hygiene+baseline 12, strict-console 10).
+
+**Known limitations:** Phase skills validated for wiring (structural smoke) plus the new Bar A static harness, not yet exercised by a full live orchestration run. cfn-loop-task 3.2.0 gate matrix is prompt-driven (mechanical scripts wired, not yet end-to-end integration-tested in a live loop). Global `~/.claude/CLAUDE.md` canonical-entry switch to cfn-megaplan is local config, not tracked in this repo.
 
 ---
 

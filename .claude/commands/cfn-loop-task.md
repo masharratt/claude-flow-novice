@@ -12,7 +12,38 @@ allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "Grep", "Glob"]
 
 ## STEP 0: VERIFY MANIFEST (run before anything else)
 
-Step 0: If `planning/VERIFY_<slug>.md` exists for this task, parse its JSON manifest (the LAST fenced ```json block in the file). The loop's final completion decision requires every `acs[].check` executed with its `pass` predicate true. Refuse to report done otherwise. If the file does not exist, proceed without it (task was not megaplanned).
+Step 0: If `planning/VERIFY_<slug>.md` exists for this task, parse its JSON manifest (the LAST fenced ```json block in the file). The loop's final completion decision is the Phase 5 Exit gate (5E.0-5E.5): it is driven mechanically by `verify-run.sh` against this manifest, never by prose. Refuse to report done unless that gate reports all-green (or an explicit user-approved quarantine). If the file does not exist, proceed without it (task was not megaplanned).
+
+### Step 0a: Manifest integrity (W2, run when VERIFY exists)
+
+The VERIFY manifest is the done authority, so confirm it is byte-identical to the Bar A-blessed version before running any check against it.
+
+```bash
+# Recompute the hash of the VERIFY file and compare to the sidecar megaplan wrote.
+VERIFY_FILE="planning/VERIFY_${SLUG}.md"
+SIDECAR="planning/.VERIFY_${SLUG}.sha256"
+if [ -f "$SIDECAR" ]; then
+  ACTUAL=$(sha256sum "$VERIFY_FILE" | cut -d' ' -f1)
+  EXPECTED=$(cut -d' ' -f1 < "$SIDECAR")
+  # If ACTUAL != EXPECTED -> REFUSE. See below.
+else
+  # Missing sidecar = pre-hash-era manifest. WARN only, continue.
+  echo "WARN: no ${SIDECAR}; VERIFY predates the integrity hash. Proceeding without integrity check."
+fi
+```
+
+- **Match:** proceed normally.
+- **Mismatch:** REFUSE to run. The VERIFY manifest was edited since Bar A blessed it, which can silently move the goalposts. Surface via `AskUserQuestion` (one decision):
+  - **Re-run Bar A**: re-validate the manifest through `check-verifiable-static.sh` + the verifiable-done gate, which re-blesses a fresh hash.
+  - **Approve the edit and re-bless the hash**: accept the current VERIFY file as intentional and overwrite the sidecar with the recomputed hash.
+  This is the `VERIFY manifest hash mismatch` row in the Stop For table.
+- **Missing sidecar:** WARN only and continue (the manifest predates the hash era). Do not block.
+
+Note: `verify-run.sh` (Phase 5) enforces the same hash independently and exits 4 on mismatch, so a manifest edited between Step 0 and Phase 5 is still caught.
+
+### Step 0b: Parse SPEC build flags (W6)
+
+If `planning/SPEC_${SLUG}.md` exists, parse its `## 8. Build Flags` section into coordinator variables (`db`, `frontend`, etc.). If the section is absent (or the SPEC file is missing), treat EVERY flag as `no`. These flags drive the Phase 4 gate-wiring matrix (Step 4.0).
 
 ---
 
@@ -31,6 +62,7 @@ This table is the SINGLE SOURCE OF TRUTH for escalation. No other escalation lis
 | Unclear requirements (feedback for epic improvement) | |
 | Access denied / permission errors | |
 | Irreversible destructive action needed | |
+| VERIFY manifest hash mismatch (Step 0a / verify-run.sh exit 4) | |
 
 **Rules:**
 - If uncertain about approach, pick the simpler option and iterate
@@ -53,9 +85,9 @@ The 0/0 policy (zero compile errors in scoped work and scoped tests, zero remain
 ```
 1. [pending] Parse arguments and initialize task
 2. [pending] LOOP 3: Full epic implementation (all phases, TDD)
-3. [pending] GATE CHECK: Run tests and validate pass rate
-4. [pending] VOTE VERIFICATION: cfn-vote-implement on review manifest
-5. [pending] FINAL ROUTING: Auto-impl unanimous, PO 2/3, batched user prompts for 1/3
+3. [pending] GATE CHECK: hygiene scan + tests + gate-check.sh (baseline/flaky)
+4. [pending] GATE WIRING + VOTE: resolve gate set, hard gates, cfn-vote-implement per manifest
+5. [pending] EXIT GATE: 1/3 batched prompts + 5E.0-5E.5 mechanical VERIFY gate
 ```
 
 **You MUST update todo status as you complete each phase. Do NOT skip phases.**
@@ -70,23 +102,32 @@ The 0/0 policy (zero compile errors in scoped work and scoped tests, zero remain
 │    ITERATION = 1                                            │
 │    WHILE iteration <= MAX_ITERATIONS:                       │
 │      ├── LOOP 3: Spawn impl agents (full epic, TDD)         │
-│      ├── GATE CHECK: typecheck + gate-check.sh              │
+│      ├── GATE CHECK: typecheck + hygiene + gate-check.sh    │
+│      │     (baseline from iter 2; flaky re-run on red)      │
 │      │     ├── IF gate FAILS: iteration++, LOOP             │
 │      │     └── IF gate PASSES: BREAK to Phase B             │
 │      └── END WHILE                                          │
 │                                                             │
-│  PHASE B - VOTE VERIFICATION (single pass):                 │
-│    ├── Generate review manifest from implementation         │
-│    ├── /cfn-vote-implement on manifest                      │
+│  PHASE B - GATE WIRING + VOTE VERIFICATION:                 │
+│    ├── 4.0 resolve gate set from SPEC build flags + diff    │
+│    ├── 4.1 hard gates first (migration-rehearsal)           │
+│    ├── 4.2 /cfn-vote-implement per manifest (explicit path) │
 │    │     ├── 3/3 votes: auto-implement immediately (TDD)    │
 │    │     ├── 2/3 votes: spawn product-owner to decide       │
 │    │     ├── 1/3 votes: queue for batched user prompts      │
 │    │     └── 0/3 votes: skip silently                       │
-│    └── After all votes processed:                           │
-│          └── AskUserQuestion (4 per batch) on 1/3 queue     │
+│    └── AskUserQuestion (4 per batch) on 1/3 queue           │
 │                                                             │
-│  EXIT - All vote outcomes resolved AND (if present)         │
-│         every VERIFY manifest acs[].check passes            │
+│  PHASE 5 EXIT GATE (mechanical; MAY iterate to Phase 2):    │
+│    ├── 5E.0 mutation spot-check (per core FR, cap 3)        │
+│    ├── 5E.1 verify-run.sh run                               │
+│    ├── 5E.2 resolve needs_agent / predicate_unverified rows │
+│    ├── 5E.3 verify-run.sh summary (exit 0 done / 1 iterate  │
+│    │        back to Phase 2 / 4 Stop For)                   │
+│    ├── 5E.4 all-green final gate (--threshold 1.0)          │
+│    └── 5E.5 prod-build smoke (frontend + build script)      │
+│                                                             │
+│  EXIT - Phase 5 gate all-green (or user-approved quarantine)│
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -156,7 +197,8 @@ REQUIREMENTS:
 4. Run ONLY your own test files: npx vitest run <your-test-files> --reporter=verbose
    Never run `npm test` or any repo-wide test command.
 5. Report exactly this JSON as the last block of your output:
-   {"lane": "<lane>", "tests_written": N, "scoped_tests_passed": N, "scoped_tests_total": M, "files_modified": [], "phases_complete": [], "out_of_scope_needs": [], "blocked_on": null | "<one sentence>", "confidence": 0.0}
+   {"lane": "<lane>", "tests_written": N, "scoped_tests_passed": N, "scoped_tests_total": M, "files_modified": [], "phases_complete": [], "out_of_scope_needs": [], "blocked_on": null | "<one sentence>", "tests_removed_reason": null | "<why you intentionally removed or renamed tests>", "confidence": 0.0}
+   Set `tests_removed_reason` to a non-null string ONLY when you deliberately deleted or renamed existing tests (e.g. consolidated a duplicated suite); leave it null otherwise. The coordinator uses it to distinguish an intentional suite shrink from an accidental one (Phase 3, W3 baseline check).
 
 AGENT_ID: loop3-impl-${TASK_ID}-iter${ITERATION}-<lane>
 ```
@@ -183,16 +225,39 @@ TSC_ERRORS=$(grep -c "error TS" /tmp/tsc-${TASK_ID}.txt || true)
 - If `TSC_ERRORS` > 0: the gate FAILS regardless of test pass rate. Compile errors mean zero tests actually ran. Do not compute a pass rate. Iterate (go back to Phase 2) with the tsc output as feedback.
 - Also confirm all scoped TodoWrite items are completed before PROCEED; unfinished scoped todos mean ITERATE.
 
+### Step 3.05: Test-hygiene scan (W3, run BEFORE gate-check)
+
+Before computing any pass rate, confirm no test was silently disabled to game the gate. A skipped/focused test can turn a red suite artificially green.
+
+```bash
+# No args = changed test files via git diff. Exit 0 clean / 1 findings / 2 usage.
+./.claude/skills/cfn-loop-orchestration-v2/cli/check-test-hygiene.sh \
+  2>&1 | tee /tmp/hygiene-${TASK_ID}.txt
+HYGIENE_EXIT=$?
+```
+
+- **Exit 1 (findings):** gate FAILS. Any `.only(` / `.skip(` / `.todo(` / `fit(` / `xit(` / `xdescribe(` / `xtest(` / `@pytest.mark.skip` / `pytest.skip(` without a same-line `// cfn-allow-skip: <reason>` (or `# cfn-allow-skip:`) suppression marker is iteration fuel. Feed the findings JSON into the retry context and go back to Phase 2. Do NOT compute a pass rate on a hygiene failure.
+- **Exit 0 (clean):** proceed to Step 3.1.
+- A `cfn-allow-skip` marker is the W4 quarantine representation: a test the user explicitly approved skipping in a prior Phase 5 Exit. Those do not fail the scan.
+
 ### Step 3.1: Run tests and check the gate mechanically
 
 ```bash
 # Run the full suite (coordinator only; agents never do this)
 npm test 2>&1 | tee /tmp/test-output-${TASK_ID}.txt
 
+# Baseline (W3): the coordinator carries PREV_TOTAL across iterations. From
+# iteration 2 onward, pass --baseline so a shrinking suite is caught.
+BASELINE_ARG=""
+if [ "${ITERATION}" -ge 2 ] && [ -n "${PREV_TOTAL:-}" ]; then
+  BASELINE_ARG="--baseline ${PREV_TOTAL}"
+fi
+
 # Mechanical gate check (THRESHOLD from THRESHOLDS.md, e.g. 0.95 for standard)
 ./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
   --out /tmp/test-output-${TASK_ID}.txt \
-  --threshold ${THRESHOLD}
+  --threshold ${THRESHOLD} \
+  ${BASELINE_ARG}
 GATE_EXIT=$?
 ```
 
@@ -200,13 +265,24 @@ GATE_EXIT=$?
 
 | Exit | Meaning | Action |
 |------|---------|--------|
-| 0 | rate >= threshold and total > 0 | Gate PASSED. Record `pass`/`total` from the JSON, mark todo #3 completed, go to Step 3.5 then Phase 4 |
-| 1 | rate < threshold | Gate FAILED. ITERATION++. If ITERATION > MAX_ITERATIONS report failure and EXIT. Else reset todo #2 to pending and go back to Phase 2 with the retry context (see Iteration Context Injection) |
+| 0 | rate >= threshold and total > 0 | Gate PASSED. Record `pass`/`total` from the JSON. Set `PREV_TOTAL=<total>` for the next iteration's baseline. Mark todo #3 completed, go to Step 3.5 then Phase 4 |
+| 1 | rate < threshold | Gate FAILED. Run the Step 3.2 flaky re-run FIRST (a green-on-rerun failure is not real). If reds persist: ITERATION++. If ITERATION > MAX_ITERATIONS report failure and EXIT. Else reset todo #2 to pending and go back to Phase 2 with the retry context (see Iteration Context Injection) |
 | 2 | no tests detected (0/0) | Gate FAILED. Treat exactly like exit 1. 0/0 never passes |
+| 3 | suite shrank (`total < baseline`) | The test suite has fewer tests than the prior iteration. ESCALATE to the user (Stop For) UNLESS a Phase-2 implementer JSON declared a non-null `tests_removed_reason`, in which case accept the shrink, update `PREV_TOTAL`, record the reason in the report, and treat the run per its rate (exit-0/1 logic above) |
 
-The script prints `{"pass":N,"total":M,"rate":R,"passed":true|false}`. Capture `pass` as PASS_COUNT and `total` as TOTAL_COUNT for the retry template.
+The script prints `{"pass":N,"total":M,"rate":R,"passed":true|false}` (plus `baseline` and `shrunk` when `--baseline` is passed). Capture `pass` as PASS_COUNT and `total` as TOTAL_COUNT for the retry template, and carry TOTAL_COUNT forward as `PREV_TOTAL`.
 
 **DO NOT proceed to Phase 4 if the gate failed. ITERATE.**
+
+### Step 3.2: Flaky re-run protocol (W8)
+
+On gate-check exit 1 (rate below threshold), a failure may be flaky rather than real. Before treating reds as iteration fuel:
+
+1. Dedupe the failing test FILES from `/tmp/test-output-${TASK_ID}.txt` (unique file paths, not individual test cases).
+2. Re-run ONLY those files once.
+3. **Green on rerun** = flaky-flagged. Record the file in the report's `Flaky:` line (see Phase 5 Exit 5E.4). It is NOT iteration fuel. Recompute the effective pass rate inline by moving those tests from failing to passing, and re-evaluate the gate against that effective rate.
+4. **Still red on rerun** = a real failure. It stays iteration fuel; proceed with the exit-1 ITERATE action.
+5. **Cap:** a test flaky-flagged in ≥2 separate iterations counts as a REAL failure from then on (persistent flakiness is a defect). Track flaky flags per test across iterations.
 
 ### Step 3.5: Harvest Tech-Debt Ledger (Product Owner input)
 
@@ -221,32 +297,50 @@ After the gate passes, inventory the deliberate shortcuts implementers took so t
 
 ---
 
-## PHASE 4: VOTE VERIFICATION (replaces Loop 2 validators)
+## PHASE 4: GATE WIRING + VOTE VERIFICATION (replaces Loop 2 validators)
 
 **Mark todo #4 as in_progress.**
 
 **ONLY execute if Gate Check passed AND full epic implementation complete.**
 
-This phase replaces the old Loop 2 validator pattern. Instead of free-form validator findings, three specialized vote agents (correctness / consistency / feasibility) review the implementation and produce a structured manifest of suggestions. The manifest is then routed by vote count.
+This phase replaces the old Loop 2 validator pattern. Instead of a single free-form review, the coordinator resolves an applicable SET of gates from the build flags and diff, runs any hard exit-code gates first, then routes every gate's suggestion manifest through cfn-vote-implement. Vote agents (correctness / consistency / feasibility) still do the voting; the change is that more than one manifest can feed them.
 
-### Step 4.1: Generate Review Manifest
+### Step 4.0: Resolve the gate set
 
-Spawn the DRY/code-review pass to produce a manifest of suggestions:
+From the SPEC build flags parsed in Step 0b and the working diff, resolve which gates apply:
+
+| Trigger | Gate | Type | Skip behavior |
+|---------|------|------|---------------|
+| always | `/cfn-dry-review` | manifest | never |
+| `db=yes` OR diff touches migrations/auth/HTTP | `cfn-security-review --diff` + spawn a `security-specialist` to populate the skeleton | manifest | never (floor) |
+| `db=yes` AND migration files in diff | `cfn-migration-rehearsal --up/--down` | HARD exit-code gate | `CFN_SCRATCH_DATABASE_URL` unset -> WARN-skip in report |
+| `frontend=yes` | `cfn-a11y-gate` | manifest | URLs from `CFN_A11Y_URLS`, fallback the `A11y-URLs:` line in `planning/OPS_${SLUG}.md`; unreachable (2s curl probe) -> WARN-skip naming the exact env line. Never auto-start servers |
+| diff touches `package.json`/lockfile/`Cargo.toml`/`requirements*` | `cfn-dep-audit` | manifest | self-contained |
+| `CFN_PERF_BENCH_CMD` set | `cfn-perf-gate` | manifest | unset -> silent skip |
+
+The security-review row is a floor: it runs whenever the trigger fires regardless of mode. The alpha-launch manifest is NOT a separate row: fold it into the always `/cfn-dry-review` row only when the task description contains "release", "launch", or "production readiness". The tech-debt line harvested in Step 3.5 carries through into every product-owner 2/3 decision and the final report.
+
+### Step 4.1: Run hard exit-code gates first
+
+Run the HARD gates (migration-rehearsal) before any manifest gate.
+
+- **migration-rehearsal failure:** treat as a Phase-3-style ITERATE. Feed the rehearsal output as retry context and go back to Phase 2 (counts against MAX_ITERATIONS). Do NOT proceed to the manifest gates on a failed rehearsal.
+- `CFN_SCRATCH_DATABASE_URL` unset: WARN-skip in the report (do not fail; the skill refuses to run without an explicit scratch DB and never touches `DATABASE_URL`).
+
+### Step 4.2: Run cfn-vote-implement per manifest (sequential)
+
+Run each manifest gate, then vote on each produced manifest by EXPLICIT path, in this order: security-review -> dep-audit -> dry-review -> perf-gate -> a11y-gate (skip any gate not in the resolved set).
 
 ```bash
-/cfn-dry-review
-# Emits: .cfn-cache/manifests/cfn-dry-review-<timestamp>.json
+# One call per manifest, explicit path. NEVER `latest` when >1 manifest exists.
+/cfn-vote-implement <explicit-manifest-path>
 ```
 
-**Manifest source rule.** Default: `/cfn-dry-review`. Use the `/cfn-alpha-launch` manifest ONLY if the task description contains "release", "launch", or "production readiness".
+**NEVER pass `latest` when more than one manifest exists.** `latest` resolves via an mtime glob that silently drops every manifest but the newest, so the other gates' suggestions vanish. Always pass the explicit path per manifest.
 
-### Step 4.2: Run cfn-vote-implement
+**Invalid-pass rule:** a security-review manifest with 0 suggestions AND no `security-specialist` transcript does NOT count as a pass (an empty manifest with no evidence of work is indistinguishable from a gate that never ran). Re-run the security gate with the specialist before accepting.
 
-```bash
-/cfn-vote-implement latest
-```
-
-The skill internally runs the 3 voting agents in parallel. For each suggestion in the manifest, it routes by vote count:
+Each cfn-vote-implement call runs the 3 voting agents in parallel and routes each suggestion by vote count:
 
 | Vote count | Routing |
 |------------|---------|
@@ -261,16 +355,16 @@ The skill internally runs the 3 voting agents in parallel. For each suggestion i
 
 ---
 
-## PHASE 5: BATCHED USER PROMPTS (1/3 Items)
+## PHASE 5: BATCHED USER PROMPTS + EXIT GATE
 
 **Mark todo #5 as in_progress.**
 
-After cfn-vote-implement has processed all 3/3 (auto-impl) and 2/3 (product-owner) items, collect the queued 1/3 items.
+After cfn-vote-implement has processed all 3/3 (auto-impl) and 2/3 (product-owner) items, collect the queued 1/3 items, resolve them, then run the mechanical Exit gate (5E.0-5E.5).
 
 ### Routing
 
-- If the 1/3 queue is empty: mark todo #5 completed, run the VERIFY manifest check (Step 0), then EXIT.
-- Else: surface 1/3 items via `AskUserQuestion`, **batched 4 questions per call**, one decision per question.
+- If the 1/3 queue is empty: proceed straight to the Exit gate (5E.0 onward).
+- Else: surface 1/3 items via `AskUserQuestion`, **batched 4 questions per call**, one decision per question, then proceed to the Exit gate.
 
 ### Question Format
 
@@ -282,9 +376,106 @@ Each 1/3 item is one AskUserQuestion entry:
 
 After each batch returns, implement the `Apply` items with TDD (sequential, same protocol as 3/3 items). Continue until queue is empty.
 
-### Exit
+### Exit gate (mechanical VERIFY gate, ordered 5E.0 -> 5E.5)
 
-- After the last batch resolved: if a VERIFY manifest exists (Step 0), execute every `acs[].check` and confirm each `pass` predicate true; refuse to report done otherwise. Then mark todo #5 completed, report summary, EXIT.
+The done verdict is mechanical, not honor-system. `verify-run.sh` reads the results file it writes; prose never counts. Steps 5E.0-5E.3 run only when a VERIFY manifest exists (Step 0); a non-megaplanned task skips them and starts at 5E.4. This gate MAY iterate back to Phase 2 (bounded by MAX_ITERATIONS): a red AC or a surviving mutation is iteration fuel.
+
+#### 5E.0 Mutation spot-check (W5, runs FIRST)
+
+Runs first so any residue a mutation leaves behind is caught by the later all-green gate (5E.4). Per `[core]` FR in the manifest, capped at 3:
+
+1. Pick the primary impl file for that FR from the PLAN lane mapping. Write a one-line justification of the choice into the report.
+2. Back it up and record the hash BEFORE mutating (no git stash: that would sweep uncommitted loop work):
+   ```bash
+   mkdir -p /tmp/cfn-mutation-${TASK_ID}
+   cp "${IMPL_FILE}" "/tmp/cfn-mutation-${TASK_ID}/$(basename "${IMPL_FILE}")"
+   BEFORE_SHA=$(sha256sum "${IMPL_FILE}" | cut -d' ' -f1)
+   ```
+   Install a restore-on-exit trap so a crash between mutate and restore cannot leave the file mutated:
+   ```bash
+   trap 'cp "/tmp/cfn-mutation-${TASK_ID}/$(basename "${IMPL_FILE}")" "${IMPL_FILE}" 2>/dev/null' EXIT
+   ```
+3. Spawn a mutation agent that makes exactly ONE semantic mutation (invert a key conditional OR replace a body with a constant), emits a unified diff, and touches nothing else.
+4. Run `verify-run.sh run --verify planning/VERIFY_${SLUG}.md --only <that FR's AC ids>` and EXPECT red. A red result means the AC tests actually exercise the mutated logic.
+5. Restore the backup and assert the restored file's hash equals `BEFORE_SHA`:
+   ```bash
+   cp "/tmp/cfn-mutation-${TASK_ID}/$(basename "${IMPL_FILE}")" "${IMPL_FILE}"
+   [ "$(sha256sum "${IMPL_FILE}" | cut -d' ' -f1)" = "${BEFORE_SHA}" ] || echo "STOP FOR: corrupted state"
+   ```
+   Hash mismatch after restore = Stop For (corrupted state, manual recovery).
+6. **GREEN after mutation = the mutation survived** (the AC tests did not catch it). Record it and iterate once with "strengthen AC tests for FR-x" (back to Phase 2, counts against MAX_ITERATIONS). If it survives AGAIN on the next pass -> Stop For.
+
+`cfn: single-mutation probe, upgrade to a real mutation framework if survival rate matters` (deliberate shortcut: one mutation per FR, not exhaustive operators).
+
+#### 5E.1 Run the VERIFY manifest mechanically
+
+```bash
+./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh run \
+  --verify planning/VERIFY_${SLUG}.md \
+  --out planning/VERIFY_RESULTS_${SLUG}.json
+```
+
+This executes every executable/db-query AC and writes the results file (the single done authority).
+
+#### 5E.2 Resolve needs_agent / predicate_unverified rows
+
+For each results row with `mode: needs_agent` or `predicate_unverified: true` (`pass: null`, UNRESOLVED), spawn a verification agent. The spawn prompt MUST pin that AC's `check`, `pass`, trigger, seeds, and signal, and MUST require a verbatim evidence excerpt (the agent captures real output, it does not assert). Then stamp the evidence:
+
+```bash
+./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh resolve \
+  --results planning/VERIFY_RESULTS_${SLUG}.json \
+  --ac <AC-id> --pass true|false --evidence-file <captured-evidence-file>
+```
+
+`resolve` refuses evidence under 3 non-empty lines. An unresolved row can never count as done.
+
+#### 5E.3 Summary = the done verdict
+
+```bash
+./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh summary \
+  --results planning/VERIFY_RESULTS_${SLUG}.json
+SUMMARY_EXIT=$?
+```
+
+| Exit | Meaning | Action |
+|------|---------|--------|
+| 0 | all green AND nothing unresolved | This is the done verdict source. Proceed to 5E.4 |
+| 1 | red or unresolved AC(s) | The red ACs are iteration fuel: go back to Phase 2 (counts against MAX_ITERATIONS). If ITERATION > MAX_ITERATIONS, report failure and EXIT |
+| 4 | VERIFY sha256 mismatch | Stop For (the manifest was edited since Bar A; same as Step 0a) |
+
+#### 5E.4 All-green final gate (W4)
+
+Code changed since Phase 3 (vote-applied 3/3, 2/3, 1/3 items), so a mandatory final FULL-suite re-run is required. This gate is `--threshold 1.0`, not the mode rate gate.
+
+```bash
+npm test 2>&1 | tee /tmp/test-final-${TASK_ID}.txt
+./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
+  --out /tmp/test-final-${TASK_ID}.txt --threshold 1.0
+```
+
+- Red -> run the Step 3.2 W8 flaky re-run FIRST (a green-on-rerun red is flaky-flagged, not real).
+- Persistent reds -> at most 2 quick-fix attempts.
+- Still red after 2 attempts -> `AskUserQuestion` (one decision): **Quarantine** / **Keep iterating** / **Abort**.
+  - **Quarantine**: recorded in the report + wrap the test in `test.skip` carrying `// cfn-allow-skip: quarantined <date> <reason>` (this is what makes Step 3.05 hygiene accept it) + a backlog entry.
+  - **Keep iterating**: back to Phase 2 (counts against MAX_ITERATIONS).
+  - **Abort**: stop and report.
+
+**Final done is all-green OR an explicit user-approved quarantine. 0.95 is never a done state.** The mode rate gate (Phase 3) is iteration fuel only; this final gate is the completion bar.
+
+#### 5E.5 Prod-build smoke (W8a, runs LAST)
+
+If SPEC `frontend: yes` AND `package.json` has a `build` script:
+
+```bash
+npm run build 2>&1 | tee /tmp/build-smoke-${TASK_ID}.txt
+```
+
+- Non-zero exit = red. At most 2 fix attempts (back to Phase 2 with the build output as context), then Stop For.
+- Runs last so the built artifact reflects all vote-applied and quarantine changes.
+
+### Exit report
+
+After 5E.5 (or 5E.4 for non-frontend tasks) reports done, mark todo #5 completed, report summary, EXIT.
 
 ```
 Summary report:
@@ -294,9 +485,11 @@ Summary report:
   Product Owner decided (2/3): ${COUNT_2_OF_3}
   User decided (1/3):        ${COUNT_1_OF_3}
   Skipped (0/3):             ${COUNT_0_OF_3}
+  Quarantined:               ${QUARANTINED_TESTS}
+  Flaky:                     ${FLAKY_TESTS}
 ```
 
-**No iteration after Phase 5.** Vote-based verification is single-pass. If the user wants another round, they re-run `/cfn-loop-task`.
+**No vote iteration after Phase 5; the Phase 5 Exit gate (5E.0-5E.5) MAY iterate back to Phase 2, bounded by MAX_ITERATIONS.** If the user wants another round beyond MAX_ITERATIONS, they re-run `/cfn-loop-task`.
 
 ---
 
@@ -345,11 +538,21 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
          "FIX ONLY THESE FAILURES. Do not refactor passing code."
 [Iter 2] tsc -> 0 errors. gate-check.sh
          -> {"pass":21,"total":21,"rate":1.0000,"passed":true} exit 0
+[Phase 4] Step 4.0 gate set: always dry-review; frontend=no, db=no -> no
+          security/migration/a11y; no dep/perf triggers. Only dry-review.
 [Phase 4] /cfn-dry-review -> manifest with 3 suggestions
-[Phase 4] /cfn-vote-implement: item A 3/3 -> auto-implemented with TDD;
-          item B 2/3 -> product-owner says DEFER (backlogged);
+[Phase 4] /cfn-vote-implement <explicit-path>: item A 3/3 -> auto-implemented
+          with TDD; item B 2/3 -> product-owner says DEFER (backlogged);
           item C 1/3 -> queued
-[Phase 5] AskUserQuestion batch (1 question): user picks Skip. EXIT.
+[Phase 5] AskUserQuestion batch (1 question): user picks Skip.
+[Phase 5] 5E.0 mutation probe on core FR-1 impl: invert conditional ->
+          verify-run.sh --only AC-1,AC-2 -> red (caught). Restore, hash OK.
+[Phase 5] 5E.1 verify-run.sh run -> VERIFY_RESULTS_auth.json
+[Phase 5] 5E.2 1 needs_agent row (playwright login) -> agent captures excerpt
+          -> verify-run.sh resolve --pass true
+[Phase 5] 5E.3 verify-run.sh summary -> exit 0 (all green)
+[Phase 5] 5E.4 gate-check.sh --threshold 1.0 -> 22/22 all green
+[Phase 5] 5E.5 frontend=no -> skip build smoke. EXIT (done).
 ```
 
 ---
@@ -360,9 +563,9 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 |-------|--------------|-----------------|--------------|
 | 1. Parse | Initialize vars | → Phase 2 | N/A |
 | 2. Loop 3 | Full epic implementation | → Phase 3 | Retry |
-| 3. Gate | typecheck + gate-check.sh | → Phase 4 | → Phase 2 (iterate) |
-| 4. Vote | cfn-vote-implement on review manifest | → Phase 5 | Re-vote |
-| 5. User batch | AskUserQuestion x4 on 1/3 items | EXIT | EXIT |
+| 3. Gate | typecheck + hygiene + gate-check.sh (+baseline, +flaky re-run) | → Phase 4 | → Phase 2 (iterate) |
+| 4. Gate wiring + Vote | resolve gate set, hard gates first, cfn-vote-implement per manifest | → Phase 5 | → Phase 2 (migration-rehearsal fail) / Re-vote |
+| 5. Exit gate | 5E.0 mutation → 5E.1-5E.3 verify-run.sh → 5E.4 all-green → 5E.5 build smoke; 1/3 batched prompts resolved first | EXIT (all-green or quarantine) | → Phase 2 (red AC / surviving mutation, bounded by MAX_ITERATIONS) |
 
 **Routing matrix:**
 
@@ -384,6 +587,10 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 - **Queue 1/3 items and surface them only after all 3/3 and 2/3 items are resolved** (never prompt the user mid-vote).
 - **Ask at most 4 questions per AskUserQuestion call** (tool limit and cognitive load).
 - **Treat test failures as iteration fuel: capture excerpts and respawn** (never stop the loop on a test failure).
+- **Run the test-hygiene scan before gate-check every iteration** (a `.skip`/`.only` without `// cfn-allow-skip:` is a gate FAIL, not a pass).
+- **Pass `--baseline PREV_TOTAL` from iteration 2 onward** (a shrinking suite is exit 3: escalate unless an implementer JSON declared `tests_removed_reason`).
+- **In Phase 4, call `/cfn-vote-implement` with an EXPLICIT manifest path per manifest; NEVER `latest` when more than one manifest exists** (the mtime glob silently drops every manifest but the newest).
+- **Final done is all-green (`--threshold 1.0`) OR an explicit user-approved quarantine; 0.95 is never a done state** (the mode rate gate is Phase-3 iteration fuel only).
 - **Update todos at every phase boundary** (this is the coordinator's state machine).
 - **Let the product-owner agent decide 2/3 splits** (no user prompt for those).
 
@@ -391,4 +598,4 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 
 ---
 
-**Version:** 3.1.0 | **Date:** 2026-07-03 | Standard CFN Loop. Full-epic Phase 2; mechanical gate via cli/gate-check.sh; thresholds pinned in THRESHOLDS.md; Phase 4 replaces Loop 2 validators with cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user prompts).
+**Version:** 3.2.0 | **Date:** 2026-07-09 | Standard CFN Loop. Full-epic Phase 2; mechanical gate via cli/gate-check.sh; thresholds pinned in THRESHOLDS.md; Phase 4 is the gate-wiring matrix (dry-review + conditional security/migration/a11y/dep-audit/perf gates) routed through cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user prompts); Phase 5 Exit is a mechanical VERIFY gate (5E.0 mutation probe, 5E.1-5E.3 verify-run.sh, 5E.4 all-green, 5E.5 prod-build smoke) that MAY iterate back to Phase 2 bounded by MAX_ITERATIONS.

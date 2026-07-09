@@ -99,6 +99,8 @@ Per screen, name:
 
   Rule: one row per breakpoint token defined in the system's token file (list the tokens from Phase 1). "No change" is written explicitly; an absent row fails the phase. Touch column: interactive targets meet the minimum hit size (44x44 CSS px); name any that do not and the fix. Hover column: no affordance is hover-only; anything revealed on hover names its tap/focus fallback, and any gesture (swipe to delete) names its non-gesture fallback. cfn-ux named the affordance; here you make it operable by finger.
 
+  **Viewport cross-ref (to playwright project tokens):** `bp.sm -> mobile-375` (375x667), `bp.lg -> desktop-1280` (1280x720). `cfn-test-plan` Phase 3 reads this per-breakpoint table to decide which viewport project each e2e AC runs at (`--project=mobile-375` / `--project=desktop-1280`); a breakpoint that forces a layout change here is a viewport an e2e AC must cover.
+
 The six UX states (loading / empty / error / success / partial / disabled) each need a visual treatment, not just a control treatment: the skeleton shape for loading, the empty illustration / copy slot, the error banner styling, the disabled token. `cfn-ux` named what renders in each state; you name how it looks.
 
 ### Phase 3: Accessibility (gap, scales by tier)

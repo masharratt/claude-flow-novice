@@ -149,8 +149,15 @@ Completeness rule: every new table x each of SELECT/INSERT/UPDATE/DELETE gets a 
 - **Down:** exact reverse, or a one-line note on why it is irreversible.
 - **In-flight data during cutover:** if the migration changes an existing table, state what happens to existing rows mid-deploy. Backfill order, default for the new column, whether the old code path still works against the new schema (expand/contract). A non-null column added to a populated table needs a default or a backfill step, not a bare `ADD COLUMN NOT NULL`.
 - **Migration filename:** `NNNN_descriptive_name.sql`.
+- **Rehearsal invocation (reversible migrations):** name the exact command that proves up+down round-trips, verbatim:
 
-### Step 6: Concurrency / idempotency (beta+ extra — G13)
+  ```
+  CFN_SCRATCH_DATABASE_URL=<scratch> ./.claude/skills/cfn-migration-rehearsal/execute.sh --up <NNNN.up.sql> --down <NNNN.down.sql>
+  ```
+
+  `cfn-ops` Phase 6 and `cfn-test-plan` Phase 3 cite this line verbatim as executable rollback evidence. An irreversible migration names its one-line reason instead of this command; it is never rehearsed.
+
+### Step 6: Concurrency / idempotency (beta+ extra — G13, G47)
 
 Drop at mvp unless the concurrency is inherent to the feature. Otherwise design:
 
@@ -158,6 +165,18 @@ Drop at mvp unless the concurrency is inherent to the feature. Otherwise design:
 - **Ordering:** does write order matter? If so, name the ordering guarantee (sequence, timestamp, version column).
 - **Locks:** optimistic (version column, compare-and-set) vs pessimistic (`SELECT ... FOR UPDATE`). State which and why. Prefer optimistic unless contention is proven.
 - **Race windows:** name the check-then-act gaps and how a constraint or lock closes each.
+
+Emit the pinned concurrency-control table (required in the artifact; one row per control):
+
+```
+| CC-id | Mechanism (idempotency-key|unique-constraint|optimistic-lock|pessimistic-lock|ordering) | Entity (schema.table) | Race scenario closed (double-submit|parallel-write|retry-refire|check-then-act) | Enforcement (exact DDL/stmt from §1/§5) | Expected conflict behavior (decidable: 409 DUPLICATE, second write rejected, idempotent 200) |
+```
+
+No-concurrency builds emit a single `N/A: <reason>` row. The Expected conflict behavior cell is a decidable claim about what the loser of the race observes (409 DUPLICATE, second write rejected, idempotent 200), never "handled safely".
+
+**Self-check:** every CC row's Enforcement object must already appear in §1 (schema) or §5 (migration). A control citing a constraint or lock statement absent from §1/§5 is an incomplete artifact; fix it before returning.
+
+CC-id is the greppable token `cfn-test-plan` consumes to drive one race-closing test per row, and the key behind Bar A coverage counters `cc_total/cc_mapped`.
 
 ### Step 7: Data lifecycle (beta+ extra — G19)
 
@@ -233,8 +252,12 @@ Template:
 - Down (or irreversible-why)
 - In-flight data during cutover
 - Filename: NNNN_*.sql
+- Rehearsal invocation (reversible; cited verbatim by cfn-ops Phase 6 + cfn-test-plan Phase 3):
+  `CFN_SCRATCH_DATABASE_URL=<scratch> ./.claude/skills/cfn-migration-rehearsal/execute.sh --up <NNNN.up.sql> --down <NNNN.down.sql>`
 
 ## 6. Concurrency / idempotency   (beta+; mvp: dropped unless inherent)
+| CC-id | Mechanism (idempotency-key|unique-constraint|optimistic-lock|pessimistic-lock|ordering) | Entity (schema.table) | Race scenario closed (double-submit|parallel-write|retry-refire|check-then-act) | Enforcement (exact DDL/stmt from §1/§5) | Expected conflict behavior (decidable: 409 DUPLICATE, second write rejected, idempotent 200) |
+(no-concurrency builds emit a single `N/A: <reason>` row; every CC Enforcement object appears in §1 or §5; CC-id is the greppable token cfn-test-plan consumes and the Bar A `cc_total/cc_mapped` key)
 
 ## 7. Lifecycle   (beta+; mvp: dropped)
 - Seed / backfill / retention / scoped cleanup

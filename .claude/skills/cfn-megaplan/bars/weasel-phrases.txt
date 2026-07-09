@@ -1,0 +1,19 @@
+# Banned vague-phrase list (single source of truth).
+# One ERE regex pattern per line. Blank lines and lines starting with '#' are ignored.
+# Matched case-insensitively with non-alnum boundaries by both:
+#   - bars/check-haiku-static.sh  (Bar B, scans plan files)
+#   - bars/check-verifiable-static.sh  (Bar A, scans VERIFY manifest pass fields)
+# Source of the list: bars/haiku-executable.md specificity checklist item 6.
+# "gracefully" is flagged unconditionally; the owning phase clears the finding by
+# naming the defined behavior instead.
+appropriately
+as needed
+as appropriate
+handle accordingly
+figure out
+etc\.
+and so on
+TBD
+properly
+gracefully
+where applicable

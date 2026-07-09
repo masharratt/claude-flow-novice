@@ -164,7 +164,7 @@ The point of this skill. Walk ALL 10 categories below. For EACH category, emit o
 | Concurrency | race conditions, duplicate submissions, stale reads |
 | Failure modes | network timeout, DB down, partial write, retry semantics |
 | Auth/permission | unauthenticated, unauthorized, expired token, role mismatch |
-| Data quality | malformed input, encoding issues, injection, oversized payload |
+| Data quality | malformed input, encoding issues; SQL injection AND HTML/script-in-content (expect escaped render, no live `<script>` element); 10k-char oversized input; zero rows; >=100-row volume |
 | State transitions | invalid state for operation, already-completed, deleted entity |
 | Time | clock skew, timezone, DST, leap second, future/past dates |
 | Locale/i18n | Unicode, RTL, surrogate pairs, normalization |
@@ -179,6 +179,10 @@ Output row format (one row per EC, plus one `N/A` row per category with no appli
 ```
 
 For each edge case, state the expected behavior with concrete values. "Returns 400 with error code INVALID_X" not "handles gracefully".
+
+**Hostile-input rule (frontend or free-text).** When `frontend=yes` (Step 8) OR any field accepts free text, the **Data quality** and **Locale/i18n** categories may NOT be marked `N/A`. Each must emit >=1 EC carrying a concrete hostile value (an actual injection string, an emoji/RTL/surrogate sequence, a 10k-char blob) and the exact expected behavior (escaped render with no live `<script>`, normalized display, 400 on oversize). A vague "handles unicode" is rejected the same as any adjective-only Then.
+
+**Tier note (adversarial fixtures).** The full adversarial fixture class is a beta+ extra in `cfn-test-plan`, NOT floored. Injection/XSS itself is already floored here via the always-on spec EC path: mvp still tests the injection EC at unit level; beta+ adds the full fixture class (the ADV-n table). This note also appears in `cfn-test-plan`.
 
 ### Step 5: Pre/Post Conditions and Invariants
 

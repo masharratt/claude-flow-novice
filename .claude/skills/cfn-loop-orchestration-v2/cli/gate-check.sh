@@ -11,12 +11,14 @@
 #   1 - rate < threshold (gate FAILED)
 #   2 - no test counts detected; prints {"error":"no tests detected"}
 #       (0/0 must NOT pass)
+#   3 - total < baseline (test count shrank vs prior iteration; only with --baseline)
 #
 # Thresholds come from .claude/skills/cfn-loop-orchestration-v2/THRESHOLDS.md
 set -uo pipefail
 
 OUT=""
 THRESHOLD=""
+BASELINE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -24,11 +26,18 @@ while [[ $# -gt 0 ]]; do
       OUT="${2:-}"; shift 2 ;;
     --threshold)
       THRESHOLD="${2:-}"; shift 2 ;;
+    --baseline)
+      BASELINE="${2:-}"; shift 2 ;;
     *)
       echo "{\"error\":\"unknown argument: $1\"}"
       exit 2 ;;
   esac
 done
+
+if [[ -n "$BASELINE" ]] && ! echo "$BASELINE" | grep -qE '^[0-9]+$'; then
+  echo "{\"error\":\"baseline must be a non-negative integer, got: $BASELINE\"}"
+  exit 2
+fi
 
 if [[ -z "$OUT" || -z "$THRESHOLD" ]]; then
   echo '{"error":"usage: gate-check.sh --out <file> --threshold <decimal>"}'
@@ -107,8 +116,23 @@ fi
 RATE=$(awk -v p="$PASS" -v t="$TOTAL" 'BEGIN { printf "%.4f", p / t }')
 PASSED=$(awk -v r="$RATE" -v th="$THRESHOLD" 'BEGIN { print (r >= th) ? "true" : "false" }')
 
-echo "{\"pass\":$PASS,\"total\":$TOTAL,\"rate\":$RATE,\"passed\":$PASSED}"
+if [[ -z "$BASELINE" ]]; then
+  # Legacy output — byte-identical to pre-baseline behavior.
+  echo "{\"pass\":$PASS,\"total\":$TOTAL,\"rate\":$RATE,\"passed\":$PASSED}"
+  if [[ "$PASSED" == "true" ]]; then
+    exit 0
+  fi
+  exit 1
+fi
 
+# --baseline supplied: report shrinkage and gate on it.
+SHRUNK=$(awk -v t="$TOTAL" -v b="$BASELINE" 'BEGIN { print (t < b) ? "true" : "false" }')
+echo "{\"pass\":$PASS,\"total\":$TOTAL,\"rate\":$RATE,\"passed\":$PASSED,\"baseline\":$BASELINE,\"shrunk\":$SHRUNK}"
+
+# A shrinking suite (tests removed to game the gate) fails first, regardless of rate.
+if [[ "$SHRUNK" == "true" ]]; then
+  exit 3
+fi
 if [[ "$PASSED" == "true" ]]; then
   exit 0
 fi

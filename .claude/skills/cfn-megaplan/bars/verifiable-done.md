@@ -71,10 +71,14 @@ AC-38 | spawned worker publishes a seeded due row within one interval
 | static/lint | grep/ast assertion | `no occurrences of <antipattern>` |
 | assembled-path | real trigger through the running system (no direct-fn call, no self-seed, no no-throw) | spawned worker publishes a seeded due row within one interval; builder-saved options render as the exact `<select>` set |
 | assembled-path (runtime-observed) | strongest form: assembled-path check that also asserts the real process **emitted the runtime signal** a human would have eyeballed in the logs: a specific log line, a telemetry/metric event, an audit row | worker logs `published story=<id>` (test captures stdout / structured-log sink, asserts the line for the seeded id); handler increments `stories_published_total` and test reads the counter delta |
+| migration-rehearsal | `CFN_SCRATCH_DATABASE_URL=... ./.claude/skills/cfn-migration-rehearsal/execute.sh --up <NNNN.up.sql> --down <NNNN.down.sql>` — applies up then down against a scratch DB, asserts exit 0 and empty schema-diff | reversible migration `0007` rolls up and back clean, schema-diff empty |
 
 ## Gate logic (orchestrator runs this)
 
 1. Parse every AC row from the plan.
+
+1.5. **Mechanical static pass (mandatory, BEFORE the LLM gate report).** After the VERIFY file is drafted, run `bars/check-verifiable-static.sh planning/VERIFY_<slug>.md`. It parses the LAST fenced json manifest and mechanically checks: every AC has id/check/kind/pass/maps_to; each `check` matches the taxonomy form for its `kind`; each `pass` is decidable (comparison op / quoted literal / row count / exit code / exact string) and not a banned weasel/shallow phrase; and coverage counters are internally consistent (see coverage keys below). Exit 0 = clean or warnings only, exit 1 = error findings, exit 2 = usage/parse. **Any error-severity finding FAILS the gate** and routes back to the owning phase — do not hand-write this scan, the script is the single source of the static pass. The LLM gate report (step 6a) runs only after the script is clean.
+
 2. For each AC: assert `check` is non-empty AND matches one check-taxonomy form AND `pass condition` is a decidable predicate (no "appropriately", "as needed", "etc").
 3. Assert every SPEC functional requirement (FR-n) and edge case (EC-n) maps to ≥1 AC.
 4. **Assembled-path check (the anti-stub rule).** Read the SPEC `[core]` flags. For **every `[core]` FR**, assert ≥1 mapped AC is `kind: assembled-path` and passes ALL of these mechanical rules. Evaluate the rules on the `trigger` / `seeds` / `signal` / `pass condition` columns only. No intent inference:
@@ -99,6 +103,14 @@ Any non-clean cell (check_form_matched NONE, pass_decidable N, empty maps_to, co
 
 `VERIFY_<slug>.md` = (1) markdown AC table, (2) gate report table, (3) the JSON manifest in a fenced ```json block as the FINAL element of the file. Consumers parse the LAST fenced json block. `cfn-loop-task` Step 0 consumes this file as its completion gate.
 
+**Integrity sidecar `planning/.VERIFY_<slug>.sha256`.** After Bar A PASSES (including the mechanical static pass, step 1.5), the orchestrator blesses the validated file by writing its SHA-256:
+
+```bash
+sha256sum "planning/VERIFY_${SLUG}.md" | awk '{print $1}' > "planning/.VERIFY_${SLUG}.sha256"
+```
+
+The hash pins the exact validated bytes. `cfn-loop-task` Step 0 recomputes it and REFUSES to run if the manifest was edited after Bar A (a post-gate manifest edit is a way to game the done verdict); `verify-run.sh` enforces the same independently (exit 4 on mismatch, missing sidecar = warn for pre-hash-era files).
+
 ## Output contract (consumed by cfn-loop-task)
 
 The JSON manifest below is the FINAL fenced ```json block of `VERIFY_<slug>.md` (pinned layout above). `cfn-loop-task` Step 0 parses the LAST fenced json block of the file.
@@ -120,3 +132,17 @@ The JSON manifest below is the FINAL fenced ```json block of `VERIFY_<slug>.md` 
 ```
 
 `cfn-loop-task` reads this manifest, runs each `check`, and reports done only when every AC is green. Unmapped FR/EC → gate refuses to start. Any `core_fr` not in `core_fr_assembled_path_ok` → gate refuses to start (a core mechanism with no clean assembled-path check is a stub-risk the gate must not pass). Any `out_of_band_core_fr` not in `core_fr_runtime_observed` → WARN (`runtime_signal_missing`): the async mechanism fires but no check reads the log/telemetry signal a human would have watched for. Enterprise tier promotes this WARN to a FAIL.
+
+### Optional coverage keys (presence-keyed enforcement)
+
+Producers that emit specialized row classes add their own paired counters. All are **optional and additive** — old manifests without them still parse. Enforcement is **presence-keyed, not tier-keyed**: if the counter is present with `total > mapped`, the gate FAILS regardless of tier (the upstream artifact emitted rows, so those rows owe AC coverage). Tiers control whether the producing section is emitted at all; they never relax coverage. The `check-verifiable-static.sh` static pass lints every counter below when present. New ID vocabularies `CC-n` / `SM-n` / `OBS-n` / `ADV-n` are legal in an AC's `binding` and in `maps_to`.
+
+| Key(s) | Producer | Rule | Verdict on gap |
+|---|---|---|---|
+| `cc_total` / `cc_mapped` | cfn-data §6 (concurrency) | every `CC-n` race-control row maps to ≥1 AC whose check drives the race | FAIL (all tiers) |
+| `sm_total` / `sm_mapped` | cfn-arch Step 9 (state machines) | every valid/illegal `SM-n` transition maps to ≥1 AC (persisted flip / exact rejection) | FAIL (all tiers) |
+| `obs_required_total` / `obs_required_mapped` | cfn-ops Phase 2 (observability) | every `verify: required` `OBS-n` signal maps to ≥1 AC asserting the signal fires for the test's own input | FAIL (beta+) |
+| `adv_total` / `adv_mapped` | cfn-test-plan Phase 1 (adversarial data) | every `ADV-n` hostile-input row maps to ≥1 AC | FAIL (presence-keyed) |
+| `migration_rehearsal` | cfn-ops Phase 6 / cfn-data §5 | db + reversible + beta+ → value is `AC-<id>` (a migration-rehearsal AC) OR `warn:<reason>` (no scratch DB) OR `n/a:<reason>` (irreversible) | FAIL if db+reversible+beta+ and no AC and no warn |
+| `no_core_mechanism_reason` | spec | required string when `core_fr` is empty (spec declares no core mechanism) | FAIL if `core_fr` empty and key absent |
+| `viewport_missing` | cfn-test-plan Phase 3 (viewport matrix) | `true` when a frontend user-flow e2e AC omits `--project=<viewport>` | WARN (enterprise promotes to FAIL) |

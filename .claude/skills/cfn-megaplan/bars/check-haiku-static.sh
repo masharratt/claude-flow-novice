@@ -19,21 +19,34 @@ if [ ! -f "$PLAN" ]; then
 fi
 
 # Banned vague phrases (regex, matched case-insensitively with non-alnum boundaries).
+# Single source of truth: bars/weasel-phrases.txt (shared with check-verifiable-static.sh).
+# Falls back to the inline array if the file is missing (defence in depth).
 # "gracefully" is flagged unconditionally; the owning phase clears the finding by
 # naming the defined behavior instead.
-PATTERNS=(
-  'appropriately'
-  'as needed'
-  'as appropriate'
-  'handle accordingly'
-  'figure out'
-  'etc\.'
-  'and so on'
-  'TBD'
-  'properly'
-  'gracefully'
-  'where applicable'
-)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PHRASE_FILE="$SCRIPT_DIR/weasel-phrases.txt"
+PATTERNS=()
+if [ -f "$PHRASE_FILE" ]; then
+  while IFS= read -r pat; do
+    case "$pat" in ''|'#'*) continue ;; esac
+    PATTERNS+=("$pat")
+  done < "$PHRASE_FILE"
+fi
+if [ "${#PATTERNS[@]}" -eq 0 ]; then
+  PATTERNS=(
+    'appropriately'
+    'as needed'
+    'as appropriate'
+    'handle accordingly'
+    'figure out'
+    'etc\.'
+    'and so on'
+    'TBD'
+    'properly'
+    'gracefully'
+    'where applicable'
+  )
+fi
 
 json_escape() {
   local s=$1

@@ -1,6 +1,6 @@
 {
   "tier": "mvp",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Prove it works. Correctness + security floor + buildability. No ops/rollout/compliance. Ugly-but-functional ok. Still gets ux (the dropdown bug is correctness, not polish).",
   "bars": { "verifiable_done": "full", "haiku_executable": "full" },
   "floor": ["rls", "auth_boundaries", "secrets_handling", "no_unscoped_delete", "pii_if_present"],
@@ -13,7 +13,7 @@
     "arch":        { "directive": "light", "level": 5, "agent": "system-architect", "drops": ["error_taxonomy"] },
     "ux":          { "directive": "full", "condition": "frontend", "level": 5, "agent": "ui-designer" },
     "design":      { "directive": "light", "condition": "frontend", "level": 6, "agent": "ui-designer", "drops": ["i18n", "a11y_full"] },
-    "test_plan":   { "directive": "light", "level": 6, "agent": "tester", "drops": ["integration", "contract", "load", "soak", "mocking_strategy"] },
+    "test_plan":   { "directive": "light", "level": 6, "agent": "tester", "drops": ["integration", "contract", "load", "soak", "mocking_strategy", "concurrency", "adversarial_data", "viewport_matrix", "obs_verification", "migration_rehearsal"] },
     "ops":         { "directive": "skip",  "level": 6, "agent": "devops-engineer" },
     "write_plan":  { "directive": "full",  "level": 7, "drops": ["estimation", "risk_register"] },
     "plan_review": { "directive": "light", "level": 8, "drops": ["plan_judge", "compliance", "full_alpha_readiness"] }

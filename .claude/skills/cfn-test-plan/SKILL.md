@@ -1,7 +1,7 @@
 ---
 name: cfn-test-plan
 description: "Test-strategy phase of cfn-megaplan. Designs test depth properly: fixtures/test-data, the unit/integration/contract/e2e/load split, mocking strategy, and non-functional tests, instead of lumping everything into a vague red phase. Feeds Bar A (verifiable-done): every acceptance criterion becomes a concrete runnable check. Use after cfn-spec, cfn-arch, and (if frontend) cfn-ux."
-version: 1.0.0
+version: 1.1.0
 tags: [planning, testing, test-strategy, fixtures, tdd, verifiable-done, megaplan]
 status: production
 ---
@@ -26,15 +26,17 @@ Skip only for: single-line fixes, renames, or a bug fix that already has a repro
 
 Required:
 - `planning/SPEC_<slug>.md` — functional requirements (FR-n), edge cases (EC-n), NFRs with thresholds, pre/post conditions. This is what you turn into checks. **`[core]`-flagged FRs are the mechanisms that must fire end-to-end; each owes an assembled-path AC row (Phase 3).** If the spec marked nothing `[core]`, emit an `[OPEN]` back to spec rather than guessing which FR is core.
-- `planning/ARCH_<slug>.md` — component boundaries and interface contracts. Tells you what is a unit vs an integration seam vs a cross-service contract.
+- `planning/ARCH_<slug>.md` — component boundaries and interface contracts. Tells you what is a unit vs an integration seam vs a cross-service contract. **§9 (state-machine tables) supplies the SM-n valid + illegal transition rows; every SM-n row owes a transition AC in Phase 3, all tiers (ARCH Step 9 is not tier-gated).**
 
 Optional but authoritative when present:
 - `planning/UX_<slug>.md` — the field->control map and screen state table. Every UI state (loading/empty/error/success/partial/disabled) needs a test row. The field->control map drives e2e assertions (a DB-backed dropdown asserts `<select>` options == query result).
+- `planning/DATA_<slug>.md` (the data-layer design). **§6 (concurrency table) supplies the CC-n rows (mechanism, entity, race scenario closed, enforcement, expected conflict behavior); every CC-n row owes a race-driving AC in Phase 3.** Present whenever the build has a concurrency mechanism (beta+ by profile, mvp when the race is inherent), presence-keyed, so those rows are charged regardless of tier. **§5 names the exact migration-rehearsal invocation** the `AC-mig` row (Phase 3) cites verbatim.
+- `planning/OPS_<slug>.md` (beta+, the operations design). **§2 (observability signals) supplies the OBS-n rows, each with a criticality and a `verify: required|exempt` flag; every `verify: required` OBS-n owes a signal-firing AC in Phase 3.**
 
 From the orchestrator you also receive:
 - **Tier** — `mvp` | `beta` | `enterprise`.
 - **Directive** — `full` | `light`.
-- **Include extras** — e.g. `mocking_strategy`, `load`, `soak`, `nonfunctional`.
+- **Include extras** — e.g. `mocking_strategy`, `load`, `soak`, `nonfunctional`, `concurrency`, `adversarial_data`, `viewport_matrix`, `obs_verification`, `migration_rehearsal`.
 - **Omit** — drops listed by the profile.
 
 ### Directive scope (`light` vs `full`)
@@ -46,6 +48,8 @@ The AC -> executable check table (Phase 3) and the fixture strategy (Phase 1) ar
 - **`enterprise` (`full`):** everything. Add load + soak + non-functional tests (Phase 5: perf, a11y, security scan), each tied to a SPEC NFR threshold.
 
 `light` reduces breadth (which levels, which non-functional tests). It never reduces coverage: every FR and EC still gets an AC row with a runnable check, every tier.
+
+**Presence-keyed coverage (does not drop with tier).** Some sections are gated by an upstream artifact emitting rows, not by tier. If DATA §6 emits CC-n rows, ARCH §9 emits SM-n rows, OPS §2 emits `verify: required` OBS-n rows, DATA §5 declares a reversible migration, or the build is `frontend: yes`, those rows owe AC coverage in Phase 3 regardless of directive. Tiers control whether a section is emitted at all (`adversarial_data`, `obs_verification`, and `migration_rehearsal` are beta+ extras; `concurrency` is beta+ by profile but mvp still emits §6 when the race is inherent); once emitted, every row is charged. SM-n coverage is charged every tier (ARCH Step 9 is not tier-gated).
 
 ## Protocol
 
@@ -72,6 +76,20 @@ Define:
 
 The artifact must list every fixture table, its marker, and its scoped cleanup `WHERE` clause. A fixture with no marker or an unscoped delete is a hard defect in this phase.
 
+### Phase 1b: Adversarial-Data Fixture Class (`adversarial_data` extra, beta+, gap G51)
+
+Emit this subsection when `adversarial_data` is in extras (beta+). It is **REQUIRED** (not optional) whenever the SPEC build flag `frontend: yes` OR any free-text field appears in the DATA §2 field-bindings table. A rendering surface or a free-text sink is exactly where hostile input lands. The hostile-value catalog comes from `cfn-spec` Step 4 (the Data-quality / Locale-i18n "look for" cells).
+
+Pin one row per hostile class, this exact header:
+
+```
+| ADV-id | Class (unicode-emoji-rtl|oversized-10k|html-script-content|zero-rows|high-row-count) | Exact value/generator | Target field/screen state | Asserts (exact: escaped render, no <script> element, layout intact, pagination fires) |
+```
+
+All 5 classes are required. A class that genuinely cannot apply to this build is written as `n/a: <reason>` (e.g. `n/a: no list view, high-row-count moot`), never silently dropped. Every ADV-id row owes >=1 AC in Phase 3: its check drives the hostile value through the real render/persist path, its pass condition is the exact assert from the last column (escaped render, no `<script>` element in the DOM, layout intact, pagination fires), never "handles gracefully".
+
+**Tier note (verbatim).** `adversarial_data` is a beta+ extra, NOT floored. Injection / XSS is already floored via the always-on spec EC path: mvp tests the injection EC at unit level; beta+ adds the full fixture class (all five hostile classes as fixtures). The floor enum is unchanged; this subsection widens breadth at beta+, it does not add a new security floor.
+
 ### Phase 2: Test-Level Split (gap G08)
 
 For each acceptance criterion, assign the right level. Stop lumping everything into one "red phase". Define what each level covers in this build:
@@ -88,7 +106,8 @@ Rules:
 - A pure-logic FR or EC -> unit. A boundary that crosses a service or persists state -> integration or contract. A user-visible flow or UI state -> e2e. An NFR with a throughput/latency threshold -> load.
 - Every UI state from `UX_<slug>.md` (loading/empty/error/success/partial/disabled) gets at least one e2e or component test row.
 - Push detail down: prefer a fast unit test over a slow e2e when the criterion is logic, not flow. Reserve e2e for what only the full stack can verify.
-- Output a table mapping each FR/EC to its assigned level, so Phase 3 knows which runner each check uses.
+- **Concurrency rows (CC-n) map to integration, never a new level (gap G47).** Each CC-n row from DATA §6 becomes an **integration** entry in the FR/EC->level table (real DB, real constraint), tagged with its CC-n id so the binding is greppable. There is no "concurrency" test level: the race is proven at the integration level against the real constraint/lock. The greppable token is the CC-n binding, not a level name. The AC that drives the race is written in Phase 3.
+- Output a table mapping each FR/EC to its assigned level, so Phase 3 knows which runner each check uses. CC-n rows appear here tagged with their CC-id.
 
 ### Phase 3: AC -> Executable Check Table (THE Bar A feed, FLOORED)
 
@@ -118,6 +137,39 @@ Three banned shortcuts for a `[core]`-FR assembled-path row (each is how a green
 
 **Flip test** for each `[core]` FR before you accept its rows: *"Could a hand-written stub that does nothing real pass every check on this FR?"* If yes, the assembled-path row is missing or shortcut-ed. Fix it here — this is exactly the class of miss that survives to prod.
 
+**Concurrency coverage (CC-n rows, presence-keyed all tiers, gap G47).** Every CC-n row from DATA §6 maps to >=1 AC whose check DRIVES the race, not one that merely unit-tests the key generator. Match the check to the row's "race scenario closed" column:
+- **double-submit**: the AC fires the real trigger twice (two requests / two invocations of the assembled path) and asserts exactly-one-row persisted OR the exact conflict behavior from the row (e.g. `409 DUPLICATE`, second insert rejected by the unique constraint).
+- **parallel-write**: the AC launches two concurrent writers against the real DB and asserts the optimistic/pessimistic lock rejects one, with the exact expected behavior from the row.
+- **retry-refire**: the AC replays the same idempotency-keyed request and asserts an identical result with no duplicate row.
+
+A unit test of the key-generation function alone is a **wiring-stub-class defect** (the race is never exercised); the constraint or lock must fire against the real DB. These rows are integration level (Phase 2). Bar A fails the plan on any unmapped CC-n.
+
+**State-machine transition coverage (SM-n rows, ALL tiers, gap G48).** ARCH Step 9 is not tier-gated, so SM-n coverage is charged every tier. For each SM-n row from ARCH §9:
+- a **valid-transition** row emits an AC that drives the real trigger and asserts the **persisted state flip** (the entity's status/state column equals the `To` value after the trigger). Never "does not throw".
+- an **illegal-transition** row emits an AC that attempts the transition and asserts the **exact rejection** from the row's rejection-behavior column (the named error code / HTTP status / exception).
+
+Level per SM-n: **unit** if the transition is a pure reducer (no persistence), **integration** if the state is persisted, **e2e** only when the trigger is UI-only. Bar A fails the plan on any unmapped SM-n (an illegal transition reachable in prod is an edge-case-class miss, already hard-failed).
+
+**Observability verification (OBS-n rows, beta+, gap G49).** Every OBS-n row from OPS §2 flagged `verify: required` maps to >=1 AC that asserts the signal fires FOR THE TEST'S OWN INPUT: capture the structured-log sink (assert the exact line for the seeded id) or read the metric counter delta (assert `+1` for the operation the test performed). This generalizes the runtime-observed machinery above beyond `[core]` FRs: any required signal (an alert-backing threshold, an on-call query field, a Phase-4 KPI/guardrail, or a runtime-observed signal of a core FR) owes a firing assertion. `verify: exempt` rows (debug logs, diagnostic-only) owe nothing. As with runtime-observed core rows, the emit must be a planned deliverable (Phase 6) and the check sequences at the assembled / runtime-observed stage, never as the first red.
+
+**Migration rehearsal (AC-mig row; db + reversible + beta+, gap G50).** When the SPEC db flag is set AND DATA §5 declares a reversible migration AND tier is beta+, emit one `AC-mig` row. Its **check** is the DATA §5 rehearsal invocation verbatim:
+
+```
+CFN_SCRATCH_DATABASE_URL=<scratch> ./.claude/skills/cfn-migration-rehearsal/execute.sh --up <NNNN.up.sql> --down <NNNN.down.sql>
+```
+
+Its **pass condition** is exit 0 with an empty schema-diff (up and down are proven inverses). If no scratch database is available, emit an explicit **WARN row** stating why (`warn: no CFN_SCRATCH_DATABASE_URL, rehearsal deferred`), never silently drop the row. An irreversible migration is `n/a: <reason from DATA §5>`. The rehearsal never runs against `DATABASE_URL` (the skill itself refuses anything that looks like prod).
+
+**Viewport matrix (frontend, gap G46).** When the SPEC build flag `frontend: yes`, every e2e check names its viewport via the playwright project token `--project=<viewport>`. The two named projects are `mobile-375` (375x667) and `desktop-1280` (1280x720). Decision source is the `cfn-design` per-breakpoint table (a layout change at the small breakpoint means both viewports matter).
+- **mvp:** 1 viewport, `desktop-1280`, or `mobile-375` if the spec is mobile-first.
+- **beta+:** every user-flow e2e AC runs at BOTH viewports (one AC row per `--project`). A component-scoped AC may pin a single viewport with a one-line reason. A screen marked "No change" at all breakpoints in the DESIGN table still needs >=1 smoke AC at the second viewport.
+
+Template AC row (mobile viewport):
+```
+| AC-14 | booking flow renders on mobile | UX flow + DESIGN bp.sm | npx playwright test tests/booking.e2e.ts::flow --project=mobile-375 (via cfn-e2e) | test green at 375x667: form single-column, Submit reachable |
+```
+**WSL2 note:** viewport variants are SEPARATE test entries for cfn-e2e batch sizing, never parallel browser pools. Each `--project` run is its own entry the e2e batcher sizes independently; do not spawn a concurrent browser pool per viewport (memory).
+
 Check taxonomy (pick one per AC):
 
 | Kind | Form | Example |
@@ -128,6 +180,7 @@ Check taxonomy (pick one per AC):
 | HTTP | `curl` + status / body assertion | `curl -s /api/x \| jq .ok == true` |
 | build / type | `tsc --noEmit` / `cargo check` exit 0 | compile clean |
 | static / lint | grep / ast assertion | `no occurrences of <antipattern>` |
+| migration-rehearsal | the DATA §5 rehearsal invocation verbatim (up+down round-trip against a scratch DB) | `CFN_SCRATCH_DATABASE_URL=<scratch> ./.claude/skills/cfn-migration-rehearsal/execute.sh --up 0007.up.sql --down 0007.down.sql` -> exit 0, empty schema-diff |
 | assembled-path | real trigger through the running system — no direct-fn call, no self-seed, no no-throw | spawned worker publishes a seeded due row within one interval; builder-saved options render as the exact `<select>` set; source guard asserts the worker is registered in bootstrap |
 | assembled-path (runtime-observed) | strongest form — assembled-path check that ALSO reads the runtime signal a human would have watched in the logs: a specific log line, telemetry/metric event, or audit row emitted by the real process for the test's own input | worker logs `published story=<id>` and test captures the structured-log sink / stdout and asserts the line for the seeded id; handler bumps `stories_published_total` and test reads the counter delta |
 
@@ -170,6 +223,7 @@ No implementation without a failing test. For each implementation step the plan 
 - For each FR / step: name the test file + case that must be written and must fail before the production code is written (red), then pass after (green).
 - **Bug fixes start with a reproducing test.** If this build includes a bug fix, name the reproducing test that fails with the current bug and passes after the fix. The test name references the bug.
 - Order the tests so each maps to one named implementation step from the plan. This list is what `cfn-loop-task` uses to enforce test-first.
+- **Observability (OBS-n) and concurrency (CC-n) rows sequence late.** An OBS-n firing assertion needs the emit code plus the assembled process, so it lands at the assembled / runtime-observed stage exactly like a core runtime-observed row (never the first red). A CC-n race-driving check needs the real constraint in a real DB, so it lands at the integration stage after the schema/constraint exists. Mark each with its stage.
 - **Assembly-dependent checks sequence last, by construction.** A check runs at the earliest step whose code makes it *runnable*, never before. Unit reds come first (pure logic, no wiring). The wiring-guard (source/bootstrap grep) lands with the step that registers/mounts/spawns the mechanism. The assembled-path row — and especially the **runtime-observed** row that reads a log/telemetry signal — comes last for that FR: it needs the emit code plus the assembled process, so it cannot be the first red and must not gate a step that ships before the runtime exists. If a `[core]` FR's runtime-observed check depends on a signal emit, that emit is its own ordered step that precedes the check. Rule of thumb: never place a check that requires a deploy or a running assembled system ahead of the steps that build that system. Mark each Phase 6 row with the stage it becomes runnable (unit / wiring / assembled / runtime-observed) so the loop cannot run a post-assembly check pre-assembly.
 
 ## Output
@@ -194,12 +248,17 @@ Verbose, no watch, no bail. Read $OUT for full failures.
 ## 1. Fixtures / Test Data
 | Table | Seed source | Marker | Scoped cleanup (WHERE) |
 
+## 1b. Adversarial-Data Fixtures  (beta+; frontend flag OR free-text DATA §2 field)
+| ADV-id | Class (unicode-emoji-rtl|oversized-10k|html-script-content|zero-rows|high-row-count) | Exact value/generator | Target field/screen state | Asserts (exact) |
+
 ## 2. Test-Level Split
 | FR/EC | Level | Runner |
+(CC-n concurrency rows appear here as integration entries tagged with their CC-id.)
 
 ## 3. Acceptance Criteria -> Executable Checks  (Bar A feed)
 | AC-id | criterion | binding | check | pass condition |
-Coverage: FR <m/m> mapped, EC <k/k> mapped.
+Coverage: FR <m/m> mapped, EC <k/k> mapped, CC <j/j> mapped, SM <k/k> mapped, OBS-required <m/m> mapped, ADV <n/n> mapped, migration_rehearsal <AC-mig|warn:r|n/a:r>, viewport <ok|MISSING>.
+(Report only the sections that emitted rows; a section with no rows is `n/a`. e2e ACs name `--project=mobile-375` / `--project=desktop-1280`.)
 
 ## 4. Mocking Strategy  (beta+ only)
 | Dependency | Unit | Integration | e2e | Injection seam | Contract fidelity |
@@ -248,7 +307,7 @@ Cleanup order is child -> parent, or rely on `CASCADE`. No unscoped delete, no F
 | AC-9 | seats above course capacity blocked | spec EC-7 | `vitest run tests/seats.spec.ts::over_capacity` | test green, returns 400 SEATS_EXCEEDED |
 | AC-12 | empty course list shows "No courses available" + disabled Submit | UX empty state | `npx playwright test tests/booking.e2e.ts::empty_state` (via cfn-e2e; fixture: 0 active courses) | test green: banner text "No courses available" present, `button#submit[disabled]` |
 
-Coverage: FR 2/2 mapped, EC 2/2 mapped, UX states mapped.
+Coverage: FR 2/2 mapped, EC 2/2 mapped, UX states mapped, CC n/a (no concurrency mechanism), SM n/a, OBS-required n/a (mvp), ADV n/a (mvp), migration_rehearsal n/a, viewport ok (mvp: desktop-1280).
 
 **6. TDD Ordering**
 
@@ -266,12 +325,12 @@ Coverage: FR 2/2 mapped, EC 2/2 mapped, UX states mapped.
 
 ## Return (to orchestrator)
 
-**Coverage self-check (self-enforcing floor).** Before returning, recompute coverage from the section 3 table. If FR mapped < m/m or EC mapped < k/k, REFUSE to return: either add the missing AC rows or convert each unmappable criterion into an `[OPEN]` item naming why no runnable check exists. A return with FR mapped < m/m is invalid output.
+**Coverage self-check (self-enforcing floor).** Before returning, recompute coverage from the section 3 table. REFUSE to return unless every emitted category is fully mapped: FR `m/m`, EC `k/k`, CC `j/j` (DATA §6 rows), SM `k/k` (ARCH §9 rows), OBS-required `m/m` (OPS §2 `verify: required` rows), ADV `n/n` (Phase 1b rows). For a shortfall, either add the missing AC rows or convert each unmappable criterion into an `[OPEN]` item naming why no runnable check exists. A return with any emitted category mapped short is invalid output. Presence-keyed: a category with zero emitted rows is `n/a` and does not block; a category that emitted rows owes full coverage regardless of tier.
 
 Return exactly:
 - Artifact path: `planning/TEST_<slug>.md`
 - A 3-line summary (fixtures + markers defined, levels assigned, AC rows with FR/EC coverage count).
-- Coverage line: `FR <m/m> mapped, EC <k/k> mapped` (must be full coverage or accompanied by the `[OPEN]` items that explain the shortfall).
+- Coverage line: `FR <m/m> mapped, EC <k/k> mapped, CC <j/j> mapped, SM <k/k> mapped, OBS-required <m/m> mapped, ADV <n/n> mapped, migration_rehearsal <AC-mig|warn:r|n/a:r>, viewport <ok|MISSING>` (each category full or accompanied by the `[OPEN]` items that explain the shortfall; report `n/a` for any category with no emitted rows). These feed the Bar A coverage keys `cc_total/cc_mapped`, `sm_total/sm_mapped`, `obs_required_total/obs_required_mapped`, `adv_total/adv_mapped`, `migration_rehearsal`, and the `viewport_missing` warn.
 - Any `[OPEN]` items needing a user decision (criterion with no runnable check, missing NFR threshold, ambiguous binding).
 
 ## Anti-Patterns
@@ -288,6 +347,11 @@ Return exactly:
 - **Watch mode / bail.** `vitest` not `vitest run`, or `-x` / `--bail`, hides failures and forces re-runs. Verbose, full run, capture to file.
 - **Mock that drifts from the real contract.** A stub returning a shape the real dependency never returns hides integration bugs. Mocks assert the real contract shape.
 - **Non-functional test with no threshold.** A perf/load/a11y test needs a number from a SPEC NFR. No threshold -> `[OPEN]` back to spec, not an invented value.
+- **CC-n row proven by a unit test of the key generator.** The race is never exercised, so a broken constraint ships green. Drive the race against the real DB (double-submit fires twice, parallel-write launches two writers, retry-refire replays the idempotency key) and assert the exact conflict behavior.
+- **SM-n valid transition asserting "no throw".** A stub that silently swallows the trigger passes. Assert the persisted state flip; assert the exact rejection for the illegal transition.
+- **OBS-n required signal with no firing assertion.** A dead worker that emits nothing passes. Capture the log sink or the metric counter delta for the test's own input.
+- **e2e AC without a `--project` viewport (frontend).** An unspecified viewport hides responsive breakage. Name `--project=mobile-375` or `--project=desktop-1280`; beta+ user-flow ACs run at both.
+- **Adversarial class silently dropped.** A missing `html-script-content` or `oversized-10k` fixture is a hole, not an omission. Emit all five classes or `n/a: <reason>`.
 
 ## Related
 
@@ -295,4 +359,5 @@ Return exactly:
 - Gate (feeds): `bars/verifiable-done.md` (consumes the Phase 3 AC table; this phase is its upstream feeder).
 - Downstream: `/cfn-loop-task` (runs the checks from the VERIFY manifest; enforces TDD ordering).
 - Orchestrator: `cfn-megaplan` (spawns this phase at DAG level 6, always active, parallel with `cfn-design` + `cfn-ops`).
-- Backlog + design rationale: `docs/PLANNING_PIPELINE_GAPS.md` (gaps G07, G08, G20, G21).
+- Producers of presence-keyed rows: `cfn-data` §6 (CC-n concurrency) + §5 (migration invocation), `cfn-arch` §9 (SM-n transitions), `cfn-ops` §2 (OBS-n signals), `cfn-spec` Step 4 (adversarial hostile-value catalog), `cfn-design` per-breakpoint table (viewport decision).
+- Backlog + design rationale: `docs/PLANNING_PIPELINE_GAPS.md` (gaps G07, G08, G20, G21, and Wave 5: G46 viewport, G47 concurrency, G48 SM transitions, G49 observability, G50 migration rehearsal, G51 adversarial data).

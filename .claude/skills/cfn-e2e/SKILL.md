@@ -1,7 +1,7 @@
 ---
 name: cfn-e2e
 description: "MUST BE USED instead of running Playwright tests directly in WSL2. Parallel E2E execution, auto-batches tests (fast/medium/large) to avoid OOM on memory-constrained WSL2. Use for Playwright/E2E test runs."
-version: 1.0.0
+version: 1.1.0
 tags: [testing, e2e, playwright, parallel, batching]
 status: production
 category: testing
@@ -58,6 +58,60 @@ PARALLELISM=2 WORKERS=2 HEAP_SIZE_MB=4096 ./.claude/skills/cfn-e2e/run-e2e-smart
 # Discover and categorize tests without running
 ./.claude/skills/cfn-e2e/analyze-batches.sh tests/e2e
 ```
+
+## Console / Network Guard (strict mode)
+
+E2E runs pass even when a page logs `console.error`, throws an uncaught error, or
+serves a 4xx/5xx: the assertions never look at the console or network. The
+console-guard fixture closes that gap by failing any test whose page produced a
+console error, a page error, a same-origin 4xx/5xx response, or a failed request.
+
+### Install (copy the fixture into your project)
+
+1. Copy `lib/console-guard.ts` to your project's `tests/e2e/fixtures/console-guard.ts`.
+2. Swap the import in each spec (the extended `test`/`expect` are drop-in):
+
+   ```ts
+   // before
+   import { test, expect } from '@playwright/test';
+   // after
+   import { test, expect } from '../fixtures/console-guard';
+   ```
+
+   Adjust the relative path to where the spec lives. Dependency-free beyond
+   `@playwright/test`.
+
+### Opt out (per test)
+
+Some tests exercise the error path on purpose. Annotate those with
+`allow-console-errors` and the guard skips its teardown assertions:
+
+```ts
+test('renders the client-side error banner',
+  { annotation: { type: 'allow-console-errors', description: 'asserts the error path' } },
+  async ({ page }) => { /* ... */ });
+```
+
+### Enforce wiring in CI (`--strict-console`)
+
+```bash
+# Fail the run if no spec imports the console-guard fixture.
+./.claude/skills/cfn-e2e/run-e2e-smart.sh --strict-console
+# Equivalent via env:
+CFN_E2E_STRICT_CONSOLE=1 ./.claude/skills/cfn-e2e/run-e2e-smart.sh
+```
+
+Strict mode greps the spec files and records `console_guard` in the results JSON:
+`present` (every spec imports the fixture), `partial` (some do), or `absent`
+(none). `absent` exits 1. Strict mode also aggregates any console-violation
+attachments and screenshots from `test-results/**` into two new results-JSON
+arrays: `artifacts` and `failed_files`. Non-strict output is unchanged.
+
+### WSL2 note
+
+The guard adds zero extra memory: listeners run in-process on the existing
+`page` object (no new browser, worker, or process), so it does not affect batch
+sizing or the WSL2 memory profile.
 
 ## Batch Heuristics
 
@@ -198,9 +252,12 @@ This triggers the pipeline execution engine:
 | File | Purpose |
 |------|---------|
 | `SKILL.md` | This documentation |
-| `run-e2e-smart.sh` | Main batched test runner |
+| `run-e2e-smart.sh` | Main batched test runner (supports `--strict-console`) |
 | `analyze-batches.sh` | Test discovery and categorization |
 | `lib/batch-runner.sh` | Batch execution utilities |
+| `lib/console-guard.ts` | Playwright console/network guard fixture (copy into project) |
+| `tests/test-strict-console.sh` | Bash test for `--strict-console` wiring detection |
+| `tests/console-guard.selftest.spec.ts` | Playwright self-test pair for the guard fixture |
 
 ## Known Limitations
 
@@ -228,4 +285,5 @@ This triggers the pipeline execution engine:
 
 ## Version History
 
+- **1.1.0** (2026-07-09): Console/network guard fixture (`lib/console-guard.ts`) + `--strict-console` wiring gate (W7/G43). Hardened batch arithmetic for `set -e`.
 - **1.0.0** (2025-01-17): Initial release with smart batching

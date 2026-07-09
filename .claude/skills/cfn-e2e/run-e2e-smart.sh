@@ -16,7 +16,22 @@ BATCH_SIZE="${BATCH_SIZE:-all}"
 WORKERS="${WORKERS:-3}"
 HEAP_SIZE_MB="${HEAP_SIZE_MB:-6144}"
 TIMEOUT_MS="${TIMEOUT_MS:-30000}"
-RESULTS_FILE="/tmp/cfn-e2e-results-$(date +%s).json"
+# RESULTS_FILE is overridable (tests pin a known path); default keeps prior behavior.
+RESULTS_FILE="${RESULTS_FILE:-/tmp/cfn-e2e-results-$(date +%s).json}"
+
+# Strict console-guard mode (flag --strict-console or env CFN_E2E_STRICT_CONSOLE=1)
+STRICT_CONSOLE="${CFN_E2E_STRICT_CONSOLE:-0}"
+CONSOLE_GUARD_STATUS=""
+ARTIFACTS_JSON="[]"
+FAILED_FILES_JSON="[]"
+
+# Safe defaults so the results writer works even on an early (pre-run) exit.
+total_tests=0
+total_fast=0
+total_medium=0
+total_large=0
+FAILURES=0
+DURATION=0
 
 # Colors for output
 RED='\033[0;31m'
@@ -29,6 +44,82 @@ log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[PASS]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[FAIL]${NC} $1"; }
+
+# Turn newline-separated stdin into a JSON array of strings (no jq dependency).
+to_json_array() {
+    local out="[" first=1 line esc
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        esc="${line//\\/\\\\}"
+        esc="${esc//\"/\\\"}"
+        if [[ $first -eq 1 ]]; then first=0; else out+=","; fi
+        out+="\"$esc\""
+    done
+    out+="]"
+    printf '%s' "$out"
+}
+
+# console_guard detection: present (all specs import the fixture) | partial | absent.
+detect_console_guard() {
+    local specs=() total=0 present=0 f
+    while IFS= read -r -d '' f; do
+        specs+=("$f")
+    done < <(find "$PROJECT_ROOT/$TEST_DIR" -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) -print0 2>/dev/null)
+    total=${#specs[@]}
+    for f in "${specs[@]}"; do
+        if grep -qE "console-guard" "$f" 2>/dev/null; then
+            present=$((present + 1))
+        fi
+    done
+    if [[ $total -eq 0 || $present -eq 0 ]]; then
+        echo "absent"
+    elif [[ $present -eq $total ]]; then
+        echo "present"
+    else
+        echo "partial"
+    fi
+}
+
+# Collect console-violation attachments + screenshots emitted under test-results/.
+aggregate_console_artifacts() {
+    local results_dir="$PROJECT_ROOT/test-results"
+    ARTIFACTS_JSON="[]"
+    FAILED_FILES_JSON="[]"
+    [[ -d "$results_dir" ]] || return 0
+    ARTIFACTS_JSON="$(find "$results_dir" -type f \( -iname '*console-violation*' -o -iname '*.png' \) 2>/dev/null | LC_ALL=C sort | to_json_array)"
+    FAILED_FILES_JSON="$(find "$results_dir" -type f -iname '*console-violation*' -printf '%h\n' 2>/dev/null | LC_ALL=C sort -u | to_json_array)"
+}
+
+# Write the results JSON. Strict mode appends console_guard/artifacts/failed_files;
+# non-strict output is byte-identical to the pre-strict-console layout.
+write_results_json() {
+    {
+        printf '{\n'
+        printf '  "timestamp": "%s",\n' "$(date -Iseconds)"
+        printf '  "duration_seconds": %s,\n' "$DURATION"
+        printf '  "total_files": %s,\n' "$total_tests"
+        printf '  "fast_files": %s,\n' "$total_fast"
+        printf '  "medium_files": %s,\n' "$total_medium"
+        printf '  "large_files": %s,\n' "$total_large"
+        printf '  "failures": %s,\n' "$FAILURES"
+        printf '  "config": {\n'
+        printf '    "test_dir": "%s",\n' "$TEST_DIR"
+        printf '    "parallelism": %s,\n' "$PARALLELISM"
+        printf '    "batch_size": "%s",\n' "$BATCH_SIZE"
+        printf '    "workers": %s,\n' "$WORKERS"
+        printf '    "heap_size_mb": %s,\n' "$HEAP_SIZE_MB"
+        printf '    "timeout_ms": %s\n' "$TIMEOUT_MS"
+        if [[ "$STRICT_CONSOLE" == "1" ]]; then
+            printf '  },\n'
+            printf '  "console_guard": "%s",\n' "$CONSOLE_GUARD_STATUS"
+            printf '  "artifacts": %s,\n' "$ARTIFACTS_JSON"
+            printf '  "failed_files": %s\n' "$FAILED_FILES_JSON"
+        else
+            printf '  }\n'
+        fi
+        printf '}\n'
+    } > "$RESULTS_FILE"
+}
 
 # Try to source CFN utilities if available
 if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-utilities/execute.sh" ]]; then
@@ -46,15 +137,18 @@ OPTIONS:
     -p, --parallelism N     Parallel batch count (default: 3)
     -b, --batch-size SIZE   fast|medium|large|all|smoke (default: all)
     -w, --workers N         Playwright workers per batch (default: 3)
+    --strict-console        Require the console-guard fixture in specs (exit 1 if absent)
     -h, --help              Show this help
 
 ENVIRONMENT:
-    TEST_DIR        Same as --test-dir
-    PARALLELISM     Same as --parallelism
-    BATCH_SIZE      Same as --batch-size
-    WORKERS         Same as --workers
-    HEAP_SIZE_MB    Node heap size (default: 6144)
-    TIMEOUT_MS      Per-test timeout (default: 30000)
+    TEST_DIR                Same as --test-dir
+    PARALLELISM             Same as --parallelism
+    BATCH_SIZE              Same as --batch-size
+    WORKERS                 Same as --workers
+    HEAP_SIZE_MB            Node heap size (default: 6144)
+    TIMEOUT_MS              Per-test timeout (default: 30000)
+    CFN_E2E_STRICT_CONSOLE  Set to 1 for --strict-console
+    RESULTS_FILE            Override results JSON path (default: /tmp/cfn-e2e-results-<ts>.json)
 
 EXAMPLES:
     $(basename "$0")                          # Run all tests
@@ -72,6 +166,7 @@ while [[ $# -gt 0 ]]; do
         -p|--parallelism) PARALLELISM="$2"; shift 2 ;;
         -b|--batch-size) BATCH_SIZE="$2"; shift 2 ;;
         -w|--workers) WORKERS="$2"; shift 2 ;;
+        --strict-console) STRICT_CONSOLE=1; shift ;;
         -h|--help) usage ;;
         *) log_error "Unknown option: $1"; exit 2 ;;
     esac
@@ -87,6 +182,19 @@ fi
 if ! command -v npx &>/dev/null; then
     log_error "npx not found. Install Node.js first."
     exit 2
+fi
+
+# Strict console-guard wiring gate (runs before any browser work).
+if [[ "$STRICT_CONSOLE" == "1" ]]; then
+    CONSOLE_GUARD_STATUS="$(detect_console_guard)"
+    log_info "Strict console mode: console_guard=$CONSOLE_GUARD_STATUS"
+    if [[ "$CONSOLE_GUARD_STATUS" == "absent" ]]; then
+        log_error "Strict console guard: no spec imports the console-guard fixture."
+        aggregate_console_artifacts
+        write_results_json
+        log_error "Results: $RESULTS_FILE"
+        exit 1
+    fi
 fi
 
 # Analyze batches
@@ -199,9 +307,9 @@ run_parallel_batches() {
         while [[ $running -ge $max_parallel ]]; do
             for pid in "${pids[@]}"; do
                 if ! kill -0 "$pid" 2>/dev/null; then
-                    wait "$pid" || ((failed++))
+                    wait "$pid" || failed=$((failed + 1))
                     pids=("${pids[@]/$pid}")
-                    ((running--))
+                    running=$((running - 1))
                 fi
             done
             sleep 0.5
@@ -212,12 +320,12 @@ run_parallel_batches() {
         batch_id="${batch_id%.test.ts}"
         run_test_file "$test_file" "$batch_id" &
         pids+=($!)
-        ((running++))
+        running=$((running + 1))
     done
 
     # Wait for remaining
     for pid in "${pids[@]}"; do
-        wait "$pid" || ((failed++))
+        wait "$pid" || failed=$((failed + 1))
     done
 
     return $failed
@@ -239,7 +347,7 @@ run_sequential_batches() {
     for test_file in "${batch_array[@]}"; do
         batch_id="$(basename "$test_file" .spec.ts)"
         batch_id="${batch_id%.test.ts}"
-        run_test_file "$test_file" "$batch_id" || ((failed++))
+        run_test_file "$test_file" "$batch_id" || failed=$((failed + 1))
     done
 
     return $failed
@@ -273,26 +381,11 @@ DURATION=$((END_TIME - START_TIME))
 MINUTES=$((DURATION / 60))
 SECONDS=$((DURATION % 60))
 
-# Generate results JSON
-cat > "$RESULTS_FILE" <<EOF
-{
-  "timestamp": "$(date -Iseconds)",
-  "duration_seconds": $DURATION,
-  "total_files": $total_tests,
-  "fast_files": $total_fast,
-  "medium_files": $total_medium,
-  "large_files": $total_large,
-  "failures": $FAILURES,
-  "config": {
-    "test_dir": "$TEST_DIR",
-    "parallelism": $PARALLELISM,
-    "batch_size": "$BATCH_SIZE",
-    "workers": $WORKERS,
-    "heap_size_mb": $HEAP_SIZE_MB,
-    "timeout_ms": $TIMEOUT_MS
-  }
-}
-EOF
+# Generate results JSON (strict mode aggregates console-violation artifacts).
+if [[ "$STRICT_CONSOLE" == "1" ]]; then
+    aggregate_console_artifacts
+fi
+write_results_json
 
 # Summary
 echo ""

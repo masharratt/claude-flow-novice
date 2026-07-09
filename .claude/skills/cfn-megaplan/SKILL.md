@@ -37,7 +37,7 @@ Each emits `planning/AUDIT_<PHASE>_<slug>.md` (findings table, `file:line | issu
 
 ## Pipeline shape (8-level DAG)
 
-Only `spec` is a hard gate. After it, branches fan out. Critical path = 8 levels, not 12 sequential.
+Only `spec` is a hard gate. After it, branches fan out. Critical path = 9 levels at beta+ (8 at mvp, where `ops` is skipped and `test_plan` collapses back up a level), not 12 sequential.
 
 ```
 L1 research            (conditional: unknowns)
@@ -45,10 +45,15 @@ L2 spec                HARD BARRIER
 L3 decide ∥ pseudo
 L4 data                (conditional: db)
 L5 arch ∥ ux           (ux conditional: frontend)
-L6 design ∥ test_plan ∥ ops   (design conditional: frontend)
-L7 write_plan          JOIN: synthesizes all branches; runs Bar A
-L8 plan_review         runs Bar B; loops failing phase, not whole pipeline
+L6 design ∥ ops        (design conditional: frontend; ops conditional: beta+)
+L7 test_plan           consumes OPS §2 (observability signals) + DATA §6 (concurrency);
+                       at mvp `ops` is skipped, so the skipped-dep rule lets test_plan
+                       run in parallel with design at L6 (no extra level)
+L8 write_plan          JOIN: synthesizes all branches; runs Bar A
+L9 plan_review         runs Bar B; loops failing phase, not whole pipeline
 ```
+
+**Why test_plan moved below ops (G49).** `ops` (Phase 2) names the observability signals that must be verified (`OBS-n`, `verify: required`); `test_plan` turns each into an AC. When both sat at L6 in parallel, test_plan could not read OPS. Making the dependency explicit (test_plan deps += ops, data) is correct scheduling; the rejected alternative — a Bar A back-fill loop — would guarantee a wasted iteration, and loops should signal defects, not schedule known work.
 
 Node dependencies (orchestrator must honor; do not spawn a node before its deps return). The Consumes column names which sections of each input artifact the consumer needs; put those paths and section names in the phase prompt:
 
@@ -62,8 +67,8 @@ Node dependencies (orchestrator must honor; do not spawn a node before its deps 
 | arch | spec, pseudo, data | SPEC: FR ids, constraints; PSEUDO: module + branch structure; DATA: schema, field-bindings table | `cfn-arch` |
 | ux | spec, data | SPEC: FR ids, user-facing flows; DATA: field-bindings table (drives control derivation) | `cfn-ux` |
 | design | ux | UX: affordance map, state enumeration, flows | `cfn-design` |
-| test_plan | spec, arch, ux | SPEC: FR/EC ids, `[core]` flags; ARCH: component boundaries, contracts; UX: state enumeration | `cfn-test-plan` |
 | ops | spec, arch, data | SPEC: FR ids, audience/tier signals; ARCH: components, external calls; DATA: schema, migration plan | `cfn-ops` |
+| test_plan | spec, arch, ux, data, ops | SPEC: FR/EC ids, `[core]` flags; ARCH: component boundaries, contracts, state machines (§9); UX: state enumeration; DATA: concurrency table (§6), migration invocation (§5); OPS: observability signals (§2, `verify: required`) — `ops` absent at mvp, then test_plan runs at L6 | `cfn-test-plan` |
 | write_plan | all above | every active artifact in full (synthesis join) | `/write-plan` + Bar A |
 | plan_review | write_plan | the assembled plan in full, plus `VERIFY_<slug>.md` | `cfn-plan-review` + Bar B |
 
@@ -130,7 +135,7 @@ For each phase in the profile, mechanical resolution: if `condition` is present 
 
 ### Step 4: Walk the DAG, batch by level
 
-For levels L3 → L6, spawn every active phase at that level **in a single message** (true parallel; they are independent within a level). Wait for the whole level to return before advancing (join).
+For levels L3 → L7, spawn every active phase at that level **in a single message** (true parallel; they are independent within a level). Wait for the whole level to return before advancing (join). Note `test_plan` (L7) depends on `ops` (L6) at beta+; at mvp `ops` is skipped and test_plan joins the L6 message.
 
 Agent selection: spawn each phase as the profile's `agent` key. A phase with no `agent` key → spawn `general-purpose` with the SKILL.md path in the prompt.
 
@@ -150,11 +155,25 @@ If any phase returns `[OPEN]` items, batch them and surface via `AskUserQuestion
 
 **Bound:** max 3 `[OPEN]`-item cycles per level (resolve, re-run phase, re-check). If a phase still returns `[OPEN]` items after round 3, stop and surface the residual items via `AskUserQuestion` (accept as-is / keep iterating / descope) instead of looping again.
 
-### Step 5: L7: write_plan + Bar A
+### Step 5: L8: write_plan + Bar A
 
 `write_plan` and `plan_review` are slash commands run by the orchestrator in main chat via the Skill tool, never spawned as subagents.
 
 Run `/write-plan "<task>" --mode=<tier>`; it consumes every `planning/<PHASE>_<slug>.md` artifact. Then run **Bar A** (`bars/verifiable-done.md`): convert success criteria to executable AC rows, emit `planning/VERIFY_<slug>.md`. If Bar A fails (any non-executable AC, any unmapped FR/EC), loop back to the owning phase (usually `test_plan` or `spec`), not the whole pipeline.
+
+**Mechanical static pass (Bar A step 1.5, REQUIRED).** After `VERIFY_<slug>.md` is emitted, run the static checker:
+
+```bash
+.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh "planning/VERIFY_${SLUG}.md"
+```
+
+Exit 1 (error findings — missing AC field, taxonomy mismatch, non-decidable/weasel pass, coverage-counter gap) routes back to the owning phase and counts against the same 3-round Bar A bound. Do not hand-write this scan. Only when it is clean (exit 0) do you proceed.
+
+**Bless the integrity hash (W2).** After Bar A passes (static pass clean), write the sidecar that pins the validated bytes — `cfn-loop-task` Step 0 and `verify-run.sh` recompute it to detect a post-gate manifest edit:
+
+```bash
+sha256sum "planning/VERIFY_${SLUG}.md" | awk '{print $1}' > "planning/.VERIFY_${SLUG}.sha256"
+```
 
 **PLAN persistence gate (REQUIRED — downstream `/cfn-loop-task` hard-depends on it).** `/write-plan` writes `planning/PLAN_<slug>.md`; this is the lane-derivation source `cfn-loop-task` reads. After `/write-plan` returns, assert the file exists:
 
@@ -162,11 +181,11 @@ Run `/write-plan "<task>" --mode=<tier>`; it consumes every `planning/<PHASE>_<s
 [ -f "planning/PLAN_${SLUG}.md" ] || { echo "FATAL: write-plan did not persist planning/PLAN_${SLUG}.md"; }
 ```
 
-If it is missing, re-run `/write-plan` before advancing to L8. `MEGAPLAN_<slug>.md` (Step 7) is an INDEX/summary, NOT the plan — it cannot substitute for `PLAN_<slug>.md`. A megaplan that produces `VERIFY_` but no `PLAN_` will break `cfn-loop-task` at lane derivation (the plan file is the only source of lanes + exclusive file ownership).
+If it is missing, re-run `/write-plan` before advancing to L9. `MEGAPLAN_<slug>.md` (Step 7) is an INDEX/summary, NOT the plan — it cannot substitute for `PLAN_<slug>.md`. A megaplan that produces `VERIFY_` but no `PLAN_` will break `cfn-loop-task` at lane derivation (the plan file is the only source of lanes + exclusive file ownership).
 
 **Bound:** max 3 Bar A loop-back iterations. If Bar A still fails after round 3, stop and surface the residual failures via `AskUserQuestion` (accept as-is / keep iterating / descope).
 
-### Step 6: L8: plan_review + Bar B
+### Step 6: L9: plan_review + Bar B
 
 Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readiness scaled to tier) in main chat via the Skill tool. Then run **Bar B** (`bars/haiku-executable.md`): static + structural + coverage scans, then the live haiku probe. Any finding routes to the owning phase (ui_control → `cfn-ux`, value source → `cfn-data`/`cfn-arch`, branch → `cfn-pseudo`) and that phase re-runs. Re-run Bar B after each fix round.
 
@@ -180,6 +199,7 @@ Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readi
 for F in "PLAN_${SLUG}" "VERIFY_${SLUG}"; do
   [ -f "planning/${F}.md" ] || echo "FATAL: missing planning/${F}.md — megaplan not build-ready"
 done
+[ -f "planning/.VERIFY_${SLUG}.sha256" ] || echo "FATAL: missing planning/.VERIFY_${SLUG}.sha256 — Bar A hash not blessed (re-run Step 5 static pass + hash)"
 ```
 
 Write `planning/MEGAPLAN_<slug>.md`. **All eight `##` sections below are REQUIRED** — emit every one even if empty (write `_none_`); dropping a section is a template violation. Do NOT rename headings.
@@ -255,10 +275,12 @@ L2  spec                          (hard barrier)
 L3  [decide, pseudo]              (one message)
 L4  [data]
 L5  [arch, ux]                    (one message)
-L6  [design, test_plan, ops]      (one message)
-L7  write_plan                    (slash command, main chat) + Bar A
+L6  [design, ops]                 (one message)
+L7  test_plan                     (consumes OPS §2 + DATA §6; own level below ops at beta+)
+L8  write_plan                    (slash command, main chat) + Bar A
+                                  static pass (check-verifiable-static.sh) + bless .VERIFY hash
                                   ASSERT planning/PLAN_<slug>.md persisted (loop-task lane source)
-L8  plan_review                   (slash command, main chat) + Bar B
+L9  plan_review                   (slash command, main chat) + Bar B
 
 Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
           (tier beta maps to execution mode standard)
