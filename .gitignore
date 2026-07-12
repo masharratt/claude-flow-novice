@@ -302,3 +302,13 @@ legacy/v1/**/.next/planning/global/
 
 # CFN local cache (manifests, scratch state)
 .cfn-cache/
+
+# TypeScript build output (source of truth is the .ts files)
+src/planning/**/*.js
+src/planning/**/*.js.map
+src/planning/**/*.d.ts
+src/planning/**/*.d.ts.map
+.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/dist-worker/
+
+# Video-skill example media (regenerable; 36M+ of demo renders)
+.claude/skills/hyperframes-animation/examples/assets/

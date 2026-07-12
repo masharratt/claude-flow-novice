@@ -73,11 +73,14 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
 PSQL=(psql "$SCRATCH" -v ON_ERROR_STOP=1 -q)
-# normalized schema snapshot: structure only, comments/blank lines stripped
+# normalized schema snapshot: structure only, comments/blank lines stripped.
+# \restrict / \unrestrict are psql meta-commands pg_dump >=16.14 emits with a
+# per-run random token; they are transport framing, not schema, so they must be
+# stripped or an otherwise-clean round-trip reports DIRTY on every run.
 snapshot() {
   local dump
   dump=$(pg_dump "$SCRATCH" --schema-only --no-owner --no-privileges 2>/dev/null) || return 1
-  printf '%s\n' "$dump" | grep -vE '^(--|SET |SELECT pg_catalog|$)' | sort || true
+  printf '%s\n' "$dump" | grep -vE '^(--|SET |SELECT pg_catalog|\\restrict|\\unrestrict|$)' | sort || true
 }
 
 echo "cfn-migration-rehearsal: scratch DB verified safe. Rehearsing round-trip."

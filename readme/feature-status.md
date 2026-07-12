@@ -505,6 +505,10 @@ Consumer Project
 
 **Known limitations:** the live validation exercised the mechanical scripts end-to-end, not the cfn-loop-task 3.2.0 prompt gate matrix inside a real Loop 3/Loop 2 orchestration run (that path remains prompt-driven, unrun end-to-end). Global `~/.claude/CLAUDE.md` canonical-entry switch to cfn-megaplan is local config, not tracked in this repo.
 
+**Video/design skill family (🚧 Dev, untested in CI, 2026-07-12):** 15 skills land under `.claude/skills/` covering video generation and design import. Hyperframes core (`hyperframes`, `-core`, `-cli`, `-registry`, `-keyframes`, `-animation`, `-creative`) is the animation engine and its authoring surface; `remotion-to-hyperframes` migrates Remotion compositions onto it. Vertical skills built on top: `music-to-video`, `talking-head-recut`, `faceless-explainer`, `pr-to-video`, `product-launch-video`, `website-to-video`, `slideshow`, `motion-graphics`, `general-video`, `embedded-captions`. Plus `media-use` (asset handling) and `figma` (design import). No automated test coverage; not wired into any CFN gate or pipeline. Example render assets under `hyperframes-animation/examples/assets/` are gitignored (36M of .mp4 demos) and must be regenerated locally.
+
+**Build-artifact hygiene (2026-07-12):** `.gitignore` now excludes compiled TypeScript output (`src/planning/**/*.{js,js.map,d.ts,d.ts.map}`) and `cfn-loop-orchestration-v2/lib/orchestrator/dist-worker/`. The `.ts` sources remain the single source of truth; the emitted files were untracked churn.
+
 ---
 
 ## Current Development Phase
