@@ -41,6 +41,20 @@ OUT=/tmp/test-${PWD##*/}-$(date +%s).txt
 ## 5. Scope Fence
 - Edit ONLY files named in your task prompt. If another file needs changing,
   report it under "out_of_scope_needs" in your final message; do not edit it.
+- **"out_of_scope_needs" is a BLOCKING gate, not prose (S006).** The coordinator
+  persists every entry to `planning/.DEFERRALS_<slug>.json`
+  (`deferrals.sh record`, cfn-loop-task.md Step 3.01) and Phase 5's exit gate
+  (5E.4a, `deferrals.sh gate`) refuses to declare done while any entry is open
+  and blocking. Every entry defaults to blocking (fail-closed) until an
+  explicit `deferrals.sh resolve` closes it. Naming a file or step ANOTHER
+  LANE was supposed to finish (e.g. "src/index.ts: needs the new provider
+  wired in") is exactly the orphan-creating shape that must block — this is
+  the mechanical fix for MP-A, which shipped a feature 81/81 green while
+  unreachable from its production entrypoint because the implementer's
+  correctly-flagged deferral was never read by anything (see
+  ROOTCAUSE_mpa_thread_wiring_gap.md). Do not use this field to quietly punt
+  work you suspect nobody will revisit — it now stops the loop until someone
+  does.
 - No drive-by refactors, renames, or formatting-only changes.
 - No new dependencies. If stdlib/existing deps are insufficient, stop and report.
 - Every DELETE in test code needs a WHERE clause scoped to test-marker rows.
@@ -76,4 +90,4 @@ Canonical implementer contract JSON, reported as the last block of your final me
 ```json
 {"lane": "<lane>", "tests_written": N, "scoped_tests_passed": N, "scoped_tests_total": M, "files_modified": [], "phases_complete": [], "out_of_scope_needs": [], "blocked_on": null | "<one sentence>", "confidence": 0.0}
 ```
-out_of_scope_needs = out-of-lane file needs ("path: why"); blocked_on = own-lane blocker only (one sentence, else null).
+out_of_scope_needs = out-of-lane file needs ("path: why") — BLOCKING until resolved (see §5); blocked_on = own-lane blocker only (one sentence, else null).

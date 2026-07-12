@@ -96,6 +96,16 @@ for key in slug acs done_rule coverage; do
   fi
 done
 
+# ---- Check 1b: required coverage keys (wiring counters — MANDATORY, not presence-keyed).
+# An opt-in wiring gate is dodgeable by omission, which is the same failure class it exists to
+# prevent (S004 / MP-A rootcause: a manifest that stayed silent on wiring got no wiring gate at
+# all). See bars/verifiable-done.md for the full rationale.
+for key in wiring_total wiring_mapped; do
+  if [ "$(echo "$MANIFEST" | jq --arg k "$key" 'if has("coverage") then (.coverage | has($k)) else false end')" != "true" ]; then
+    add_finding "(manifest)" "$key" "required coverage key missing" "error"
+  fi
+done
+
 # ---- Per-AC checks (1 shape, 2 taxonomy, 3 decidability, 4 weasel) ----
 AC_COUNT=$(echo "$MANIFEST" | jq '.acs | length' 2>/dev/null || echo 0)
 i=0
@@ -123,12 +133,26 @@ while [ "$i" -lt "$AC_COUNT" ]; do
       *curl*|http)                                       echo "$CHECK" | grep -qiE '^curl' || tax_ok=0 ;;
       *build*|*type*|*compile*)                          echo "$CHECK" | grep -qiE '(tsc|cargo check|go build|compile)' || tax_ok=0 ;;
       *static*|*lint*)                                   echo "$CHECK" | grep -qiE '(grep|rg |ast|no occurrences|no free-text|snapshot)' || tax_ok=0 ;;
+      *wiring-guard*)                                    echo "$CHECK" | grep -qiE '(grep|rg |ast)' || tax_ok=0 ;;
       *migration-rehearsal*)                             echo "$CHECK" | grep -qiE 'migration-rehearsal' || tax_ok=0 ;;
       *unit*|*integration*|*assembled*)                  echo "$CHECK" | grep -qiE '(vitest|jest|mocha|ava|cargo|pytest|go |golang|npx|npm|pnpm|node |bash |tsc)' || tax_ok=0 ;;
       *)                                                 add_finding "$ACID" "kind" "unrecognized check kind '$KIND' (cannot verify taxonomy)" "warn" ;;
     esac
     if [ "$tax_ok" -eq 0 ]; then
       add_finding "$ACID" "check" "check form does not match taxonomy for kind '$KIND'" "error"
+    fi
+  fi
+
+  # 2b: flag-tautology WARN for wiring-guard ACs (S004 / MP-A rootcause, verifiable-done.md rule 4e).
+  # cfn: token grep only, no flag-default analysis (a wiring AC IS a tautology only when the
+  # referenced flag ALSO defaults the feature off, which this script cannot determine) — WARN,
+  # never hard-fail; the step-6a gate report resolves the real verdict. Upgrade trigger: if this
+  # WARN's false-positive rate makes reviewers start ignoring it, add a config/env-default reader.
+  if echo "$KIND" | grep -qiE 'wiring-guard'; then
+    TRIGGER=$(echo "$AC" | jq -r '.trigger // ""')
+    FLAG_BLOB="$CHECK $PASS $TRIGGER"
+    if echo "$FLAG_BLOB" | grep -qiE '(_enabled\b|_flag\b|feature[_-]?flag|process\.env\.|getenv\(|env::var\(|os\.environ|skipif\(|runif\()'; then
+      add_finding "$ACID" "check" "flag_tautology_risk: wiring-guard AC references an apparent feature/env-flag token — verify the flag does not also default the feature off (green-by-skip); not mechanically provable, resolve in the step-6a gate report" "warn"
     fi
   fi
 
@@ -176,6 +200,25 @@ check_pair cc_total cc_mapped "concurrency (CC) coverage" error
 check_pair sm_total sm_mapped "state-machine (SM) coverage" error
 check_pair obs_required_total obs_required_mapped "observability (OBS) coverage" error
 check_pair adv_total adv_mapped "adversarial-data (ADV) coverage" error
+check_pair wiring_total wiring_mapped "wiring (composition-root) coverage" error
+
+# wiring_total == 0 is legal ONLY with an explicit, non-empty 'no_new_components_reason'
+# (zero-new-components escape hatch, same precedent as core_fr/no_core_mechanism_reason below).
+# A bare wiring_total: 0 with no justification is indistinguishable from an omitted counter.
+if cov_has wiring_total; then
+  WT=$(cov_num wiring_total)
+  if [ "$WT" = "0" ]; then
+    if cov_has no_new_components_reason; then
+      REASON=$(echo "$COV" | jq -r '.no_new_components_reason // ""')
+      TRIMMED_REASON=$(echo "$REASON" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+      if [ -z "$TRIMMED_REASON" ]; then
+        add_finding "coverage" "no_new_components_reason" "no_new_components_reason present but empty/whitespace" "error"
+      fi
+    else
+      add_finding "coverage" "wiring_total" "wiring_total is 0 with no 'no_new_components_reason' declared" "error"
+    fi
+  fi
+fi
 
 # core_fr subset of core_fr_assembled_path_ok
 if cov_has core_fr; then

@@ -16,15 +16,25 @@ set -uo pipefail
 PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 # marker patterns (ERE)
+# S001 (origin: ROOTCAUSE_mpa_thread_wiring_gap.md, AC-77): `\.skip\(` requires a
+# literal `(` immediately after `skip`, so `describe.skipIf(...)` never matched.
+# AC-77's wiring guard was written as `describe.skipIf(!THREAD_REFACTOR_ENABLED)`,
+# gated on the same flag that disables the feature, self-skipped, and the skip
+# counted as green -- shipping a feature 81/81 all-green while unreachable from
+# src/index.ts. skipIf/runIf/concurrent.skip/pytest.mark.skipif close that gap.
 PATTERNS=(
   '\.only\('
   '\.skip\('
+  '\.skipIf\('
+  '\.runIf\('
+  '\.concurrent\.skip'
   '\.todo\('
   '\bfit\('
   '\bxit\('
   '\bxdescribe\('
   '\bxtest\('
   '@pytest\.mark\.skip'
+  'pytest\.mark\.skipif'
   'pytest\.skip\('
 )
 

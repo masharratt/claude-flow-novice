@@ -255,3 +255,62 @@ pending ──3/3 / PO IMPLEMENT / user Apply──> implemented
 | unprobed | unreachable | curl fails (timeout CFN_MONITOR_TIMEOUT_S, DNS, connection refused) |
 
 Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 2 if no targets configured, 3 on CFN_MONITOR_TARGETS JSON parse error. Consecutive-failure tracking is a `cfn:` upgrade path (needs scheduled polling, not single-shot).
+
+---
+
+## Lane Deferrals (cfn-loop-orchestration-v2/cli/deferrals.sh, S006)
+
+**Entity:** a blocking item deferred from Loop 3 Phase 2/3 (execution) to backlog for later completion.
+
+**States:** `pending | resolved | backlog`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | pending | deferrals.sh record: blocking task identified during Phase 2-3, recorded as open | Lane cannot proceed until resolved or explicitly deferred |
+| pending | resolved | deferrals.sh resolve: blocking item completed, evidence + sha256 verified | cfn-loop-task Phase 5 (5E.4a) gate fails if any pending deferrals remain |
+| pending | backlog | deferrals.sh resolve with `--defer-to-backlog`: moved to docs/BACKLOG.md, tracked in `.deferrals_<slug>.json` status field | Allows Phase 5 to proceed; item scheduled for future work |
+
+**Enforcement:** cfn-loop-task Phase 5 exit gate (5E.4a) requires `no open blocking deferrals` before entering 5E.4 all-green verdict. Deferrals persist to `planning/.DEFERRALS_<slug>.json`; file MUST be present before 5E gate runs, or gate fails (fail-closed default). Zero deferrals = absence of `.DEFERRALS_<slug>.json` or file with `[]` array.
+
+---
+
+## AC Verdict Lifecycle (verify-run.sh, S003, 2026-07-11)
+
+**Entity:** verdict assigned to each Acceptance Criterion during VERIFY manifest execution.
+
+**States:** `green | red | unresolved`
+
+**Verdict rules (overrides old honor system):**
+
+| Condition | Verdict | Trigger |
+|-----------|---------|---------|
+| executable AC runs, exit 0 | green | All assertions passed, output valid |
+| executable AC runs, exit 1-127 | red | Assertions failed or timeout |
+| AC marked `.skip(` or `.skipIf(` | red | (S001, S003) Skipped tests now count as red (prevent green-by-skip). Old behavior: skip counted as pass. cfn-allow-skip quarantine marker + docs/BACKLOG.md entry required. |
+| test-suite reports 0 collected | red | (S003) Empty test files or all tests skipped force red verdict (prevent pytest denominator-dropping). Old behavior: 0/0 counted as pass. |
+| AC marked `@pytest.mark.skipif` | red | Conditional skip marked red; requires cfn-allow-skip quarantine. |
+| AC type `db-query`: query runs, returns rows | green | Query executed; shape validation deferred to predicate check |
+| AC type `needs_agent`: evidence <3 lines | unresolved | Agent evidence too brief; verify-run resolve gate refuses it |
+| AC type `needs_agent`: evidence ≥3 lines | green (stamped) | Agent signature + summary captured; resolve gate marks AC green |
+| any AC unresolved after resolve phase | red | Predicate or agent evidence missing; cfn-loop-task may iterate to Phase 2 |
+
+**Verdict determinism:** AC verdict is fully determined by executable check output + parse-test-summary.sh classification (S002). Prose description never affects verdict. Results JSON from verify-run is single source of truth.
+
+**Mutation-probe gate (5E.0):** Before verdict finalization, mutation probe on each core FR: inject semantic bug, expect red verdict, restore. If mutation survives (verify-run still green), AC is strengthened by cfn-loop-task Phase 2 re-run (S-series findings force loop iteration).
+
+---
+
+## Test Hygiene Gate (check-test-hygiene.sh, S001, 2026-07-11)
+
+**Entity:** a test file changed in Phase 2/3 execution, scanned for gaming patterns.
+
+**States:** `clean | quarantined | failed`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | clean | check-test-hygiene.sh scan finds no `.only`, `.skip`, `.skipIf(`, `.runIf(`, `.concurrent.skip`, `fit`, `@pytest.mark.skipif` markers | Phase 3 gate passes for this file |
+| (none) | quarantined | marker found + same-line `cfn-allow-skip:` comment present | Finding recorded; backlog entry required; Phase 3 gate FAIL (user must approve backlog addition) |
+| (none) | failed | marker found without quarantine comment | Finding recorded as gate-blocking; Phase 3 gate FAIL |
+| quarantined | clean | cfn-allow-skip marker removed in next Phase 2 re-run | Test un-skipped, gate passes |
+
+**Pattern detection (S001):** Old patterns `.skip\(` could never match new `.skipIf(`. Detector now uses alternation: `.only(`, `.skip(`, `.skipIf(`, `.runIf(`, `.concurrent\.skip`, `fit\(`, `@pytest\.mark\.skipif`. Catches pattern-skip-tautologies (e.g., `describe.skipIf(!FEATURE_FLAG)` where flag defaults off, self-skipping the guard).

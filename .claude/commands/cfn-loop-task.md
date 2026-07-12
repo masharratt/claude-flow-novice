@@ -125,6 +125,7 @@ The 0/0 policy (zero compile errors in scoped work and scoped tests, zero remain
 │    ├── 5E.3 verify-run.sh summary (exit 0 done / 1 iterate  │
 │    │        back to Phase 2 / 4 Stop For)                   │
 │    ├── 5E.4 all-green final gate (--threshold 1.0)          │
+│    ├── 5E.4a deferrals.sh gate (no open blocking needs)     │
 │    └── 5E.5 prod-build smoke (frontend + build script)      │
 │                                                             │
 │  EXIT - Phase 5 gate all-green (or user-approved quarantine)│
@@ -224,6 +225,32 @@ TSC_ERRORS=$(grep -c "error TS" /tmp/tsc-${TASK_ID}.txt || true)
 
 - If `TSC_ERRORS` > 0: the gate FAILS regardless of test pass rate. Compile errors mean zero tests actually ran. Do not compute a pass rate. Iterate (go back to Phase 2) with the tsc output as feedback.
 - Also confirm all scoped TodoWrite items are completed before PROCEED; unfinished scoped todos mean ITERATE.
+
+### Step 3.01: Deferral capture (S006, origin: ROOTCAUSE_mpa_thread_wiring_gap.md)
+
+Persist every lane's `out_of_scope_needs` from Phase 2 before any gate computes
+a verdict. This is the fix for the exact gap that shipped MP-A's thread feature
+81/81 green while unreachable from `src/index.ts`: the implementer correctly
+flagged the unfinished cross-lane wiring step in `out_of_scope_needs`, and
+nothing downstream ever read it. `out_of_scope_needs` is now a BLOCKING gate
+(see agent-prelude.md §5), not prose — this step gives it a persistence
+surface; the Phase 5 gate (5E.4a) is what enforces it.
+
+```bash
+# One call per lane. Save each lane's trailing JSON block from its Phase 2
+# output to a file first, e.g. /tmp/lane-report-${TASK_ID}-<lane>.json.
+for LANE_ID in ${LANE_IDS}; do
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh record \
+    --slug "${SLUG:-$TASK_ID}" --lane "${LANE_ID}" \
+    --json "/tmp/lane-report-${TASK_ID}-${LANE_ID}.json"
+done
+```
+
+Run this every iteration, even when a lane's `out_of_scope_needs` is empty:
+`record` REPLACES that lane's prior entries rather than accumulating them, so
+a lane that resolved its own deferral and now reports `[]` clears its block
+instead of leaving a stale blocker. This step has no pass/fail branch of its
+own; the gate lives at Phase 5 (5E.4a).
 
 ### Step 3.05: Test-hygiene scan (W3, run BEFORE gate-check)
 
@@ -378,7 +405,7 @@ After each batch returns, implement the `Apply` items with TDD (sequential, same
 
 ### Exit gate (mechanical VERIFY gate, ordered 5E.0 -> 5E.5)
 
-The done verdict is mechanical, not honor-system. `verify-run.sh` reads the results file it writes; prose never counts. Steps 5E.0-5E.3 run only when a VERIFY manifest exists (Step 0); a non-megaplanned task skips them and starts at 5E.4. This gate MAY iterate back to Phase 2 (bounded by MAX_ITERATIONS): a red AC or a surviving mutation is iteration fuel.
+The done verdict is mechanical, not honor-system. `verify-run.sh` reads the results file it writes; prose never counts. Steps 5E.0-5E.3 run only when a VERIFY manifest exists (Step 0); a non-megaplanned task skips them and starts at 5E.4. 5E.4a (deferrals gate, S006) always runs, VERIFY manifest or not. This gate MAY iterate back to Phase 2 (bounded by MAX_ITERATIONS): a red AC, a surviving mutation, or an open blocking deferral is iteration fuel.
 
 #### 5E.0 Mutation spot-check (W5, runs FIRST)
 
@@ -461,6 +488,28 @@ npm test 2>&1 | tee /tmp/test-final-${TASK_ID}.txt
   - **Abort**: stop and report.
 
 **Final done is all-green OR an explicit user-approved quarantine. 0.95 is never a done state.** The mode rate gate (Phase 3) is iteration fuel only; this final gate is the completion bar.
+
+#### 5E.4a Deferral gate (S006, always runs, origin: ROOTCAUSE_mpa_thread_wiring_gap.md)
+
+Runs regardless of whether a VERIFY manifest exists (unlike 5E.0-5E.3, which
+are megaplan-only) because `out_of_scope_needs` can be reported by any lane in
+any task-mode run. This is the mechanical fix for the exact gap that let MP-A
+ship: an implementer correctly flagged an unfinished cross-lane wiring step in
+`out_of_scope_needs` (Step 3.01 persisted it), and nothing downstream ever
+consumed it — the loop declared 81/81 all-green over a feature unreachable
+from `src/index.ts`.
+
+```bash
+./.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh gate --slug "${SLUG:-$TASK_ID}"
+DEFERRALS_GATE_EXIT=$?
+```
+
+| Exit | Meaning | Action |
+|------|---------|--------|
+| 0 | no open blocking deferrals (or none were ever recorded) | ANDs into the done verdict; proceed to 5E.5 |
+| 1 | one or more open blocking deferrals | NOT DONE. The printed offenders (lane + text, stderr) name the file/step still owed: go back to Phase 2 and route that file to the lane that owns it. Counts against MAX_ITERATIONS. If ITERATION > MAX_ITERATIONS, escalate (Stop For) instead of silently declaring done |
+
+A deferral only clears via an explicit `deferrals.sh resolve --slug ${SLUG:-$TASK_ID} --id <n> --reason <text>` once the deferred work actually lands — never by re-running the gate itself. **Done requires 5E.4 (all-green) AND 5E.4a (no open blocking deferrals).**
 
 #### 5E.5 Prod-build smoke (W8a, runs LAST)
 
@@ -552,6 +601,7 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
           -> verify-run.sh resolve --pass true
 [Phase 5] 5E.3 verify-run.sh summary -> exit 0 (all green)
 [Phase 5] 5E.4 gate-check.sh --threshold 1.0 -> 22/22 all green
+[Phase 5] 5E.4a deferrals.sh gate --slug auth -> exit 0 (no open blocking needs)
 [Phase 5] 5E.5 frontend=no -> skip build smoke. EXIT (done).
 ```
 
@@ -563,9 +613,9 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 |-------|--------------|-----------------|--------------|
 | 1. Parse | Initialize vars | → Phase 2 | N/A |
 | 2. Loop 3 | Full epic implementation | → Phase 3 | Retry |
-| 3. Gate | typecheck + hygiene + gate-check.sh (+baseline, +flaky re-run) | → Phase 4 | → Phase 2 (iterate) |
+| 3. Gate | typecheck + deferral capture (3.01) + hygiene + gate-check.sh (+baseline, +flaky re-run) | → Phase 4 | → Phase 2 (iterate) |
 | 4. Gate wiring + Vote | resolve gate set, hard gates first, cfn-vote-implement per manifest | → Phase 5 | → Phase 2 (migration-rehearsal fail) / Re-vote |
-| 5. Exit gate | 5E.0 mutation → 5E.1-5E.3 verify-run.sh → 5E.4 all-green → 5E.5 build smoke; 1/3 batched prompts resolved first | EXIT (all-green or quarantine) | → Phase 2 (red AC / surviving mutation, bounded by MAX_ITERATIONS) |
+| 5. Exit gate | 5E.0 mutation → 5E.1-5E.3 verify-run.sh → 5E.4 all-green → 5E.4a deferrals gate → 5E.5 build smoke; 1/3 batched prompts resolved first | EXIT (all-green or quarantine) | → Phase 2 (red AC / surviving mutation / open blocking deferral, bounded by MAX_ITERATIONS) |
 
 **Routing matrix:**
 
@@ -593,9 +643,11 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 - **Final done is all-green (`--threshold 1.0`) OR an explicit user-approved quarantine; 0.95 is never a done state** (the mode rate gate is Phase-3 iteration fuel only).
 - **Update todos at every phase boundary** (this is the coordinator's state machine).
 - **Let the product-owner agent decide 2/3 splits** (no user prompt for those).
+- **Record every lane's `out_of_scope_needs` in Step 3.01, every iteration, even when empty** (`deferrals.sh record` replaces, not accumulates — a lane that clears its own deferral must not stay blocked by a stale entry).
+- **Run `deferrals.sh gate` at 5E.4a every Phase 5 pass, VERIFY manifest or not** (an open blocking deferral is NOT DONE — this is the S006 fix: a lane correctly flagging a deferred wiring step in `out_of_scope_needs` must block the loop, not just sit in a report nobody reads).
 
 **When to escalate to user:** ONLY the rows in the Stop For column of the AUTONOMOUS PROGRESSION table at the top of this file. That table is the single source of truth; do not maintain a second list.
 
 ---
 
-**Version:** 3.2.0 | **Date:** 2026-07-09 | Standard CFN Loop. Full-epic Phase 2; mechanical gate via cli/gate-check.sh; thresholds pinned in THRESHOLDS.md; Phase 4 is the gate-wiring matrix (dry-review + conditional security/migration/a11y/dep-audit/perf gates) routed through cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user prompts); Phase 5 Exit is a mechanical VERIFY gate (5E.0 mutation probe, 5E.1-5E.3 verify-run.sh, 5E.4 all-green, 5E.5 prod-build smoke) that MAY iterate back to Phase 2 bounded by MAX_ITERATIONS.
+**Version:** 3.3.0 | **Date:** 2026-07-11 | Standard CFN Loop. Full-epic Phase 2; mechanical gate via cli/gate-check.sh; thresholds pinned in THRESHOLDS.md; Phase 3 now captures lane `out_of_scope_needs` into a side-manifest (Step 3.01, cli/deferrals.sh record); Phase 4 is the gate-wiring matrix (dry-review + conditional security/migration/a11y/dep-audit/perf gates) routed through cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user prompts); Phase 5 Exit is a mechanical VERIFY gate (5E.0 mutation probe, 5E.1-5E.3 verify-run.sh, 5E.4 all-green, 5E.4a deferrals gate — cli/deferrals.sh gate, S006 — 5E.5 prod-build smoke) that MAY iterate back to Phase 2 bounded by MAX_ITERATIONS.

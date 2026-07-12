@@ -24,6 +24,9 @@ set -uo pipefail
 DEFAULT_TIMEOUT="${CFN_VERIFY_TIMEOUT_S:-300}"
 
 PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/parse-test-summary.sh
+source "$SCRIPT_DIR/lib/parse-test-summary.sh"
 
 die2() { echo "{\"error\":\"$1\"}" >&2; exit 2; }
 need() { command -v "$1" >/dev/null 2>&1 || die2 "$1 not found on PATH"; }
@@ -147,7 +150,35 @@ cmd_run() {
         excerpt="$(printf '%s\n' "$raw" | tail -20)"
         mode="executed"
         if is_authoritative "$check"; then
-          if [ "$rc" -eq 0 ]; then pass_val="true"; else pass_val="false"; fi
+          # S002 (origin: ROOTCAUSE_mpa_thread_wiring_gap.md, AC-77): exit code 0
+          # alone must never close a runner-kind AC: a fully skipIf-ed test file
+          # exits 0 and used to mark the AC green. Parse the captured stdout via
+          # the shared summary parser (same logic gate-check.sh already uses).
+          # Deliberate choice: RED, not unresolved, for both cases below:
+          #   - zero-collected: the check named a test that did not run, so the
+          #     check itself is broken.
+          #   - skipped/todo present: a skipped guard is not a guard.
+          # Exit code is only trusted when the runner's own summary is
+          # unrecognized ("unknown": cargo/go/mocha/ava/npx/npm/pnpm/node/bash/
+          # tsc, or an unparseable summary shape); those keep the pre-S002
+          # exit-code-only semantics because this parser does not cover them.
+          local raw_tmp
+          raw_tmp="$(mktemp)"
+          printf '%s\n' "$raw" > "$raw_tmp"
+          if parse_test_summary "$raw_tmp"; then
+            if [ "$PTS_COLLECTED" -eq 0 ]; then
+              pass_val="false"
+            elif [ "$PTS_SKIP" -gt 0 ] || [ "$PTS_TODO" -gt 0 ]; then
+              pass_val="false"
+            elif [ "$rc" -eq 0 ]; then
+              pass_val="true"
+            else
+              pass_val="false"
+            fi
+          else
+            if [ "$rc" -eq 0 ]; then pass_val="true"; else pass_val="false"; fi
+          fi
+          rm -f "$raw_tmp"
         else
           if [ "$rc" -ne 0 ]; then pass_val="false"; else pred_unv="true"; pass_val="null"; fi
         fi

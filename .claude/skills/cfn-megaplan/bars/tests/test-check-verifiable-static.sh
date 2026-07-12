@@ -56,6 +56,44 @@ assert_exit 0 "warn-only: exit 0 (warn does not fail)"
 assert_has 'runtime_signal_missing' "warn-only: reports runtime warn"
 assert_missing '"severity":"error"' "warn-only: no error severity"
 
+# wiring-mismatch -> exit 1, wiring_mapped != wiring_total (S004)
+run wiring-mismatch.md
+assert_exit 1 "wiring-mismatch: exit 1"
+assert_has '"field":"wiring_mapped"' "wiring-mismatch: flags wiring_mapped"
+assert_has 'unmapped items' "wiring-mismatch: names the gap"
+
+# wiring-absent -> exit 1, wiring counters are now MANDATORY, not presence-keyed (S004:
+# omission must FAIL — an opt-in wiring gate is dodgeable by silently leaving the keys out,
+# which is the exact failure class that shipped the MP-A wiring gap). This assertion used to
+# be "absent = backward-compat pass"; that is now INVERTED.
+run wiring-absent.md
+assert_exit 1 "wiring-absent: exit 1 (wiring keys mandatory, omission is not backward compat)"
+assert_has '"field":"wiring_total"' "wiring-absent: flags missing wiring_total"
+assert_has '"field":"wiring_mapped"' "wiring-absent: flags missing wiring_mapped"
+assert_has 'required coverage key missing' "wiring-absent: names the missing-key reason"
+
+# wiring-zero-no-reason -> exit 1, wiring_total: 0 with no no_new_components_reason (S004)
+run wiring-zero-no-reason.md
+assert_exit 1 "wiring-zero-no-reason: exit 1"
+assert_has "wiring_total is 0 with no 'no_new_components_reason' declared" "wiring-zero-no-reason: flags missing reason"
+
+# wiring-zero-with-reason -> exit 0, empty findings (wiring_total: 0 WITH a stated reason, S004)
+run wiring-zero-with-reason.md
+assert_exit 0 "wiring-zero-with-reason: exit 0"
+if [ "$OUT" = "[]" ]; then ok "wiring-zero-with-reason: empty findings"; else no "wiring-zero-with-reason: expected [] got $OUT"; fi
+
+# wiring-clean -> exit 0, empty findings (wiring-guard kind + matched coverage, no flag token, S004)
+run wiring-clean.md
+assert_exit 0 "wiring-clean: exit 0"
+if [ "$OUT" = "[]" ]; then ok "wiring-clean: empty findings"; else no "wiring-clean: expected [] got $OUT"; fi
+
+# wiring-flag-tautology -> exit 0 (WARN only, not FAIL), non-empty warn finding (S004)
+run wiring-flag-tautology.md
+assert_exit 0 "wiring-flag-tautology: exit 0 (warn does not fail)"
+assert_has 'flag_tautology_risk' "wiring-flag-tautology: flags flag_tautology_risk"
+assert_has '"severity":"warn"' "wiring-flag-tautology: warn severity"
+assert_missing '"severity":"error"' "wiring-flag-tautology: no error severity"
+
 # usage errors -> exit 2
 "$SCRIPT" >/dev/null 2>&1; [ $? -eq 2 ] && ok "no-arg: exit 2" || no "no-arg: exit 2"
 "$SCRIPT" /nonexistent/x.md >/dev/null 2>&1; [ $? -eq 2 ] && ok "missing-file: exit 2" || no "missing-file: exit 2"

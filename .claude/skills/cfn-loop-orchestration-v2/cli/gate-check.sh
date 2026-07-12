@@ -16,6 +16,10 @@
 # Thresholds come from .claude/skills/cfn-loop-orchestration-v2/THRESHOLDS.md
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/parse-test-summary.sh
+source "$SCRIPT_DIR/lib/parse-test-summary.sh"
+
 OUT=""
 THRESHOLD=""
 BASELINE=""
@@ -54,52 +58,18 @@ if ! echo "$THRESHOLD" | grep -qE '^(0(\.[0-9]+)?|1(\.0+)?)$'; then
   exit 2
 fi
 
-# Strip ANSI color codes for reliable matching
-CLEAN=$(mktemp)
-trap 'rm -f "$CLEAN"' EXIT
-sed -e $'s/\x1b\[[0-9;]*[A-Za-z]//g' "$OUT" > "$CLEAN"
-
+# Detection delegates to the shared lib/parse-test-summary.sh parser (S002+S003
+# DRY refactor, origin: ROOTCAUSE_mpa_thread_wiring_gap.md). ANSI-stripping and
+# per-runner (jest/vitest/pytest) summary-line parsing now live in one place;
+# verify-run.sh sources the same lib so both callers agree on what "skipped"
+# means. PTS_COLLECTED is the corrected denominator: for pytest it now INCLUDES
+# skipped (S003: the old inline logic here computed TOTAL = PASS+FAIL+ERR,
+# dropping SKIPPED, so skipping a failing test RAISED the reported pass rate).
 PASS=""
 TOTAL=""
-
-extract_count() {
-  # extract_count "<line>" "<word>" -> integer count or empty
-  echo "$1" | grep -oE "[0-9]+ $2" | tail -1 | grep -oE '^[0-9]+'
-}
-
-# --- jest: "Tests:       2 failed, 10 passed, 12 total"
-LINE=$(grep -E '^[[:space:]]*Tests:.*[0-9]+ total' "$CLEAN" | tail -1 || true)
-if [[ -n "$LINE" ]]; then
-  PASS=$(extract_count "$LINE" "passed"); PASS=${PASS:-0}
-  TOTAL=$(extract_count "$LINE" "total")
-fi
-
-# --- vitest: "Tests  2 failed | 10 passed (12)" or " Tests  12 passed (12)"
-if [[ -z "$TOTAL" ]]; then
-  LINE=$(grep -E '^[[:space:]]*Tests[[:space:]]+.*[0-9]+ (passed|failed)' "$CLEAN" | tail -1 || true)
-  if [[ -n "$LINE" ]]; then
-    PASS=$(extract_count "$LINE" "passed"); PASS=${PASS:-0}
-    FAIL=$(extract_count "$LINE" "failed"); FAIL=${FAIL:-0}
-    SKIP=$(extract_count "$LINE" "skipped"); SKIP=${SKIP:-0}
-    TODO=$(extract_count "$LINE" "todo"); TODO=${TODO:-0}
-    PAREN=$(echo "$LINE" | grep -oE '\([0-9]+\)' | tail -1 | tr -d '()')
-    if [[ -n "$PAREN" ]]; then
-      TOTAL="$PAREN"
-    else
-      TOTAL=$((PASS + FAIL + SKIP + TODO))
-    fi
-  fi
-fi
-
-# --- pytest: "===== 10 passed, 2 failed, 1 error in 1.23s ====="
-if [[ -z "$TOTAL" ]]; then
-  LINE=$(grep -E '[0-9]+ (passed|failed|error|errors).* in [0-9.]+s' "$CLEAN" | tail -1 || true)
-  if [[ -n "$LINE" ]]; then
-    PASS=$(extract_count "$LINE" "passed"); PASS=${PASS:-0}
-    FAIL=$(extract_count "$LINE" "failed"); FAIL=${FAIL:-0}
-    ERR=$(extract_count "$LINE" "errors?"); ERR=${ERR:-0}
-    TOTAL=$((PASS + FAIL + ERR))
-  fi
+if parse_test_summary "$OUT"; then
+  PASS="$PTS_PASS"
+  TOTAL="$PTS_COLLECTED"
 fi
 
 if [[ -z "$TOTAL" ]]; then

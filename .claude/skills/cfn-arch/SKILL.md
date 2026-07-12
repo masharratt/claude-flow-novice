@@ -81,6 +81,15 @@ If `NEW` count > 50% of operations, pause: scope may be wrong or reuse search in
 
 ### Step 1: Component Decomposition
 
+**Composition root (REQUIRED, name once).** Before listing components, name the file(s) where components are actually constructed and dependency-injected into the running process — the file(s) `cfn-test-plan` Phase 3 will grep to prove each component is wired (e.g. `src/index.ts`, `src/daemon.ts`). This is the file the production entrypoint calls through; not a test harness, not a direct-module caller. One line per entrypoint process:
+
+```
+Composition root(s):
+- src/index.ts        (HTTP + poll-loop daemon entrypoint)
+```
+
+A build with more than one runtime process (e.g. an API server and a separate worker daemon) names one composition root per process. Every component in the table below is checked against ONE of these files by Bar A's `wiring_total`/`wiring_mapped` coverage counter — a component with no composition root it is constructed in is an unwired orphan by definition, this is exactly the class of miss recorded in `/home/masha/projects/daily-agents/planning/ROOTCAUSE_mpa_thread_wiring_gap.md`.
+
 Group operations into components/modules. Each component has:
 - **Name** (kebab-case, matches file/dir)
 - **Responsibility** (one sentence, single responsibility principle)
@@ -123,6 +132,20 @@ Rules:
 - Every contract is named and reusable (no anonymous shapes)
 - Error shapes are typed, not strings
 - Shared contracts live in a single source-of-truth file. State the path.
+
+**Core-FR Dependency Interfaces (REQUIRED when any component maps to a `core_fr`).** For every component that implements a SPEC `core_fr`, name the typed interface at the composition root through which it is injected, and state whether that dependency is required or optional:
+
+```
+| Component | core_fr | Dependency interface (file:Symbol) | Optionality | DECISIONS ref (if optional) |
+|---|---|---|---|---|
+| ThreadManager | FR-20 | src/poll-loop.ts:PollLoopDeps | required | - |
+```
+
+Rule: a component mapped to a `core_fr` MUST be `required` here — a `?` on that property in the composition root's dependency type is what lets the process compile and run with the mechanism silently absent (this is precisely what shipped MP-A's dead thread manager, see `/home/masha/projects/daily-agents/planning/ROOTCAUSE_mpa_thread_wiring_gap.md`). `optional` is only acceptable with a filled DECISIONS ref (a `D-n` row from `planning/DECISIONS_<slug>.md` naming the ceiling and the upgrade trigger) — an inline code comment does not satisfy this column; leaving it blank on an `optional` row is a defect Bar B rejects.
+
+**Do not conflate a widened seam with an omittable component.** Making a *call-site parameter* optional for backward compatibility (e.g. `postCard(msg, opts?.thread)` so existing callers keep compiling) is a different decision from making the *composition-root dependency* optional (e.g. `deps.thread?:` on the daemon's own construction). The first says "this call site tolerates no-thread"; the second says "the daemon may run with the component never built at all." Record them as separate rows if both exist — do not let a documented seam-widening decision stand in for authorization to omit the component's construction.
+
+This table is the file:Symbol list `cfn-test-plan` Phase 3 turns into `WIRE-n` rows and Bar B's optional-DI static assist (`bars/check-haiku-static.sh`) scopes its grep to — components not listed here are components the mechanical assist cannot check, so list every `core_fr` component.
 
 ### Step 3: Data Flow Diagram (route-map behavior detail SKIPPED under megaplan+frontend - see Step -1; keep the route list)
 
@@ -249,6 +272,9 @@ Template:
 | Operation | Disposition | Existing Path | Notes |
 
 ## 1. Components
+Composition root(s):
+- <file>   (<process/entrypoint description>)
+
 ### <component-name>
 - Responsibility:
 - Owns operations:
@@ -259,6 +285,9 @@ Template:
 ```typescript
 interface ...
 ```
+
+Core-FR Dependency Interfaces (only when a component maps to a `core_fr`):
+| Component | core_fr | Dependency interface (file:Symbol) | Optionality | DECISIONS ref (if optional) |
 
 ## 3. Data Flow
 (diagram)

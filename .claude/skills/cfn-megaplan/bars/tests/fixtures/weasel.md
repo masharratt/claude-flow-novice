@@ -8,6 +8,6 @@
     { "id": "AC-2", "check": "vitest run t.spec.ts::y", "kind": "unit", "pass": "renders", "maps_to": ["FR-2"] }
   ],
   "done_rule": "all acs green",
-  "coverage": { "fr_total": 2, "fr_mapped": 2, "ec_total": 0, "ec_mapped": 0, "core_fr": [], "no_core_mechanism_reason": "ui only" }
+  "coverage": { "fr_total": 2, "fr_mapped": 2, "ec_total": 0, "ec_mapped": 0, "wiring_total": 0, "wiring_mapped": 0, "no_new_components_reason": "weasel fixture: no new composition-root components; testing weasel/shallow pass conditions only", "core_fr": [], "no_core_mechanism_reason": "ui only" }
 }
 ```
