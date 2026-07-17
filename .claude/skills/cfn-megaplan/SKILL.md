@@ -1,7 +1,7 @@
 ---
 name: cfn-megaplan
 description: "Tiered planning orchestrator. Runs the full SPARC+ pipeline (research, spec, decide, pseudo, data, arch, ux, design, test, ops) as a parallel DAG, scaled by build stage (mvp/beta/enterprise) via inclusion profiles. Enforces two gates: every success criterion is executable (verifiable-done) and every step is unambiguous (haiku-executable). Use as the entry point for any non-trivial build instead of cfn-spa-plan."
-version: 1.0.0
+version: 1.1.0
 tags: [planning, orchestrator, sparc, tiered, mvp, beta, enterprise, dag]
 status: production
 ---
@@ -74,6 +74,40 @@ Node dependencies (orchestrator must honor; do not spawn a node before its deps 
 
 **Skipped-dep rule:** A dependency dropped in Step 3 counts as satisfied immediately. In the dependent phase's prompt, replace its artifact path with the literal line `Input <PHASE>: ABSENT (phase skipped: <flag>=false)` so the phase does not go looking for it.
 
+## Open-item triage (BLOCKING vs deferrable)
+
+A mid-pipeline `AskUserQuestion` stalls every downstream level on human latency. Most stalls are not worth it: a question whose answer no downstream phase reads cannot change the plan's structure, only its content. Those get answered once, at the end, in one batch.
+
+**Triage rule (mechanical — the phase does NOT judge importance).** An `[OPEN]` item is **BLOCKING** iff either:
+
+1. It lives in a section of the phase's own artifact that appears in the **Downstream-consumed sections** table below, or
+2. It touches a profile `floor` item (`rls`, `auth_boundaries`, `secrets_handling`, `no_unscoped_delete`, `pii_if_present`).
+
+Otherwise it is **deferrable**: the phase picks a default, self-parks the item as `[PARKED: <default> | deferred: <section> is not downstream-consumed]`, and keeps running. It never reaches the user mid-pipeline.
+
+This reuses the existing `[PARKED: <accepted default>]` marker (`cfn-spec` §Open Questions; already honored by `cfn-pseudo`), rather than adding a second vocabulary. The only change: a phase may now park an item *itself* under this rule, instead of only after the user accepts a deferral. `[PARKED]` still travels downstream as a stated assumption and still does not set the `unknowns` build flag.
+
+**Downstream-consumed sections (inverts the Deps table above; this is the triage input).** The orchestrator pastes the row for the phase being spawned into that phase's prompt. `write_plan` (L8) consumes every artifact in full — that join does **not** count here; if it did, every item would be blocking and the rule would be dead. Only phase-to-phase deps (L1→L7) count.
+
+| Artifact | Read by | Downstream-consumed sections (an `[OPEN]` here BLOCKS) |
+|---|---|---|
+| RESEARCH | spec | feasibility verdicts, prior-art findings, resolved unknowns |
+| SPEC | decide, pseudo, data, arch, ux, ops, test_plan | FR/EC ids, `[core]` flags, constraints, pre/post conditions, invariants, entities, pii flag, user-facing flows, audience/tier signals, Build Flags (§8), Interaction Intent (§1b) |
+| DECISIONS | data | resolved forks that pick storage/shape |
+| PSEUDO | arch | module + branch structure |
+| DATA | arch, ux, ops, test_plan | schema, field-bindings table, migration plan (§5), concurrency table (§6) |
+| ARCH | ops, test_plan | components, external calls, component boundaries, contracts, state machines (§9) |
+| UX | design, test_plan | affordance map, state enumeration, flows |
+| OPS | test_plan | observability signals (§2, `verify: required`) |
+| DESIGN | — (terminal) | _none_ — every non-floor `[OPEN]` here is deferrable |
+| TEST | — (terminal) | _none_ — every non-floor `[OPEN]` here is deferrable |
+
+**Picking the default.** The parked default is the **conservative** side, never the convenient one: include the check rather than skip it, keep the stricter validation, keep the narrower access. A default that reduces coverage or loosens a boundary is not eligible for parking — raise it as BLOCKING instead. Rationale: a deferred item the user never gets to must fail safe.
+
+**Never deferrable, regardless of section:** any floor item; anything that changes the schema, a contract, the FR/EC set, or a `[core]` flag. `cfn-spec` §1b Interaction Intent items stay hard-blocking (Step 2) — a richness decision taken after the schema locks is a migration, not an edit.
+
+**Worked example.** `cfn-test-plan` returns "should the e2e run include the invite-resend path?". TEST is terminal (no downstream reader) and the item touches no floor concern → deferrable. The phase parks it as `[PARKED: include invite-resend in e2e | deferred: TEST is not downstream-consumed]` (conservative side = include), the pipeline never stops, and the item surfaces in the Step 7 batch for the user to override.
+
 ## Protocol
 
 ### Step 0: Scope check
@@ -133,11 +167,24 @@ For each phase in the profile, mechanical resolution: if `condition` is present 
 - Every dropped phase triggers the skipped-dep rule above for its dependents.
 - **Floor override:** every item in the profile `floor` array is forced into the relevant phase regardless of tier or directive. A `light` `data` phase still authors RLS, auth boundaries, secrets handling. A `skip`-level concern that is in `floor` (e.g. `pii_if_present` when `pii` flag is true) is forced on.
 
+### Step 3a: Resolve the model per phase
+
+Each profile phase may carry a `model` key (`opus` | `sonnet` | `haiku`). It is a **wall-clock lever, not a quality knob**: phases whose job is transcription and enumeration against an already-decided structure run `sonnet`; phases that decide structure run `opus`.
+
+Rules:
+
+- `model` present → spawn that phase at that model.
+- `model` absent → inherit the session model. Every `write_plan` / `plan_review` step is main-chat and always inherits; never assign them a model.
+- **Never downgrade a phase that owns a decision downstream phases consume**: `spec`, `data`, `arch`, and `decide` at `full` stay `opus` in every profile. Downgrading them moves the error upstream of everything, where it is most expensive.
+- A `directive: light` phase is the safe downgrade candidate — `light` already dropped the parts that needed judgment.
+- Never downgrade a phase carrying a `floor` item.
+- If a downgraded phase fails Bar A/Bar B twice on the same finding, re-run it at `opus` and record it: the profile's model assignment is wrong, not the phase.
+
 ### Step 4: Walk the DAG, batch by level
 
 For levels L3 → L7, spawn every active phase at that level **in a single message** (true parallel; they are independent within a level). Wait for the whole level to return before advancing (join). Note `test_plan` (L7) depends on `ops` (L6) at beta+; at mvp `ops` is skipped and test_plan joins the L6 message.
 
-Agent selection: spawn each phase as the profile's `agent` key. A phase with no `agent` key → spawn `general-purpose` with the SKILL.md path in the prompt.
+Agent selection: spawn each phase as the profile's `agent` key. A phase with no `agent` key → spawn `general-purpose` with the SKILL.md path in the prompt. Pass the profile's `model` key as the spawn model when present; a phase with no `model` key inherits the session model (see Step 3a).
 
 Each phase prompt carries:
 
@@ -148,18 +195,53 @@ Tier: <tier>   Directive: <full|light>   Include extras: <extras>   Omit: <drops
 Floor (forced on, never skip): <applicable floor items>
 Read inputs: <dep artifact paths>
 Write artifact: planning/<PHASE>_<slug>.md
-Return: artifact path + a 3-line summary + any [OPEN] items needing a user decision.
+
+Open-item triage (apply to EVERY [OPEN] you would raise):
+  Downstream-consumed sections of your artifact: <row from the Downstream-consumed table, or "none — terminal">
+  An [OPEN] is BLOCKING only if it lives in one of those sections, or touches a floor item.
+  Otherwise: pick the CONSERVATIVE default, park it as
+    [PARKED: <default> | deferred: <section> is not downstream-consumed]
+  and keep going. Do not ask the user. Never park a floor item, a schema/contract/FR-set/[core] change,
+  or any default that reduces coverage or loosens a boundary — those are BLOCKING.
+
+Return: artifact path + a 3-line summary + [OPEN] items (BLOCKING, need a user decision now)
+        + [PARKED] items (deferred, listed separately with the default you chose).
 ```
 
-If any phase returns `[OPEN]` items, batch them and surface via `AskUserQuestion` before advancing past the level. Record every resolved decision to the decision log (closes gap G35/decision-log loop). `cfn-decide` owns the register; the orchestrator forwards mid-level decisions to it.
+If any phase returns **BLOCKING** `[OPEN]` items, batch them and surface via `AskUserQuestion` before advancing past the level. Record every resolved decision to the decision log (closes gap G35/decision-log loop). `cfn-decide` owns the register; the orchestrator forwards mid-level decisions to it.
 
-**Bound:** max 3 `[OPEN]`-item cycles per level (resolve, re-run phase, re-check). If a phase still returns `[OPEN]` items after round 3, stop and surface the residual items via `AskUserQuestion` (accept as-is / keep iterating / descope) instead of looping again.
+`[PARKED]` items do **not** gate the level. Collect them into a running list (artifact, item, chosen default, reason) and carry it to Step 7, where they surface as one batched `AskUserQuestion` after the bars pass.
+
+**Triage audit (cheap, do it — the rule is only worth having if it is enforced in one direction).** For each BLOCKING item a phase returns, confirm the named section actually appears in that artifact's Downstream-consumed row, or that it names a floor item. A phase escalating a terminal-artifact item is re-prompted once with the rule restated, not forwarded to the user. Do not audit in the other direction: a phase that parks something it should have blocked on gets caught by Bar A/Bar B, which read the parked default as a stated assumption.
+
+**Bound:** max 3 BLOCKING-item cycles per level (resolve, re-run phase, re-check). If a phase still returns BLOCKING items after round 3, stop and surface the residual items via `AskUserQuestion` (accept as-is / keep iterating / descope) instead of looping again.
+
+### Loop-back protocol: patch mode (used by Bar A, Bar B, and Step 7 overrides)
+
+"Loop the owning phase" does not mean re-run it. A full re-run of e.g. `cfn-test-plan` rewrites a whole artifact to fix two findings, costs a full phase execution, and churns rows the bars already passed. Loop-backs are the pipeline's serial tail — up to 3 Bar A rounds plus 3 Bar B rounds land end-to-end after every branch has joined, so this is where saved minutes are real minutes.
+
+**Default: PATCH.** Spawn the owning phase's agent with:
+
+```
+Follow .claude/skills/<phase-skill>/SKILL.md exactly. Read the skill file first.
+PATCH MODE: planning/<PHASE>_<slug>.md already exists and already passed its own contract.
+Read it. Fix ONLY these findings:
+<verbatim finding list — file:line | kind | detail>
+Rewrite only the rows/sections those findings name. Do not restructure, re-derive, or renumber
+anything else; downstream artifacts already cite these ids. Preserve every id (FR-n, AC-n, D-n).
+Re-run your skill's own self-checks (e.g. the coverage self-check) before returning.
+Return: the artifact path + one line per finding stating how it was fixed.
+```
+
+**Escalate to full re-run** when either: the same finding survives 2 patch rounds, or a finding requires renumbering / adding an FR / changing the artifact's structure (a patch cannot honestly do that). A patch round and a full re-run each count as one round against the phase's 3-round bound — the bound counts attempts, not effort.
+
+Patch mode does not apply to a phase that never ran (a dropped phase newly forced on by a resolved decision). That is a fresh spawn at its normal directive.
 
 ### Step 5: L8: write_plan + Bar A
 
 `write_plan` and `plan_review` are slash commands run by the orchestrator in main chat via the Skill tool, never spawned as subagents.
 
-Run `/write-plan "<task>" --mode=<tier>`; it consumes every `planning/<PHASE>_<slug>.md` artifact. Then run **Bar A** (`bars/verifiable-done.md`): convert success criteria to executable AC rows, emit `planning/VERIFY_<slug>.md`. If Bar A fails (any non-executable AC, any unmapped FR/EC), loop back to the owning phase (usually `test_plan` or `spec`), not the whole pipeline.
+Run `/write-plan "<task>" --mode=<tier>`; it consumes every `planning/<PHASE>_<slug>.md` artifact. Then run **Bar A** (`bars/verifiable-done.md`): convert success criteria to executable AC rows, emit `planning/VERIFY_<slug>.md`. If Bar A fails (any non-executable AC, any unmapped FR/EC), loop back to the owning phase (usually `test_plan` or `spec`) in **patch mode** (see Loop-back protocol), not the whole pipeline and not a full phase re-run.
 
 **Mechanical static pass (Bar A step 1.5, REQUIRED).** After `VERIFY_<slug>.md` is emitted, run the static checker:
 
@@ -187,11 +269,31 @@ If it is missing, re-run `/write-plan` before advancing to L9. `MEGAPLAN_<slug>.
 
 ### Step 6: L9: plan_review + Bar B
 
-Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readiness scaled to tier) in main chat via the Skill tool. Then run **Bar B** (`bars/haiku-executable.md`): static + structural + coverage scans, then the live haiku probe. Any finding routes to the owning phase (ui_control → `cfn-ux`, value source → `cfn-data`/`cfn-arch`, branch → `cfn-pseudo`) and that phase re-runs. Re-run Bar B after each fix round.
+Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readiness scaled to tier) in main chat via the Skill tool. Then run **Bar B** (`bars/haiku-executable.md`): static + structural + coverage scans, then the live haiku probe. Any finding routes to the owning phase (ui_control → `cfn-ux`, value source → `cfn-data`/`cfn-arch`, branch → `cfn-pseudo`), which fixes it in **patch mode** (see Loop-back protocol). Re-run Bar B after each fix round.
 
 **Bound: max 3 Bar B rounds.** If findings remain after round 3, stop and surface residual findings via `AskUserQuestion` (accept as-is / keep iterating / descope).
 
-### Step 7: Synthesis + hand-off
+### Step 7: Deferred-decision batch, synthesis + hand-off
+
+**Deferred-decision batch (run FIRST, before the handoff gate).** Take the `[PARKED]` list accumulated across Step 4 levels. These are the questions the triage rule kept off the critical path; this is where they get answered, once, together.
+
+1. Drop any parked item whose default the plan already made moot (a later phase decided it).
+2. Surface the rest via `AskUserQuestion`, **batched 4 per call**, each stating the chosen default and what changes if overridden. Every item is pre-answered by its default, so the user can accept the whole batch in one pass.
+3. `AskUserQuestion` caps at 4 options per question — an item with more candidate values gets its top 3 plus "Other".
+4. Accepted default → rewrite the marker to `[PARKED: <default> | accepted]`. Record it to the decision log via `cfn-decide` like any other resolved fork.
+5. Override → route to the owning phase in **patch mode** with the override as the finding.
+
+**Re-gating after an override (do not skip — the bars passed against the OLD bytes).**
+
+| Override changed | Re-run |
+|---|---|
+| nothing (default accepted) | nothing |
+| artifact prose only, no AC row and no plan step | the static passes (`check-verifiable-static.sh`, `check-haiku-static.sh`) |
+| an AC row (added/removed/rewritten), or a `[core]` FR, or a plan step's semantics | full Bar A + full Bar B, including the live haiku probe |
+
+Any edit to `VERIFY_<slug>.md` **must** re-bless the integrity hash (`sha256sum ... > planning/.VERIFY_<slug>.sha256`), or `cfn-loop-task` Step 0 will correctly reject the manifest as tampered.
+
+Override rounds are bounded at 2. Residual disagreement is a scope question, not a planning loop — surface it and stop.
 
 **Handoff-file gate (run BEFORE writing the synthesis).** `cfn-loop-task` needs BOTH `planning/PLAN_<slug>.md` (lane source) and `planning/VERIFY_<slug>.md` (completion gate). Assert both exist; if either is missing the megaplan is NOT done — re-run the owning step (`/write-plan` for PLAN_, Bar A for VERIFY_) before synthesis:
 
@@ -220,6 +322,13 @@ Tier: <tier>   Build flags: <frontend? db? pii? unknowns?>   Generated: <date>
 
 ## Open decisions resolved
 <from cfn-decide register>
+
+## Deferred decisions
+<one row per [PARKED] item from the Step 7 batch:
+`phase | item | default chosen | accepted|overridden | re-gate run (none|static|full)`.
+`_none_` if triage parked nothing. Every row here is a question that was kept off the critical
+path on purpose — an item in this table that turns out to have been schema/contract/FR-set
+affecting means the triage rule mis-classified it; fix the rule, not just the row.>
 
 ## Cross-plan seams   (multi-plan program ONLY; omit the section body with "_none — standalone plan_" otherwise)
 <seam ledger rows: `owner-plan | item | target artifact/migration | dependency-critical? | applied|PENDING`.
@@ -270,6 +379,10 @@ Profile resolution (profiles/beta.json):
 - design:    condition frontend, flag true -> kept (drops i18n).
 - test_plan: full.        ops: full.
 
+Model resolution (Step 3a, from beta.json):
+- opus:   spec, decide, data, arch, ux, ops   (structure-deciding, or carrying floor items)
+- sonnet: research, pseudo, design, test_plan (gathering, or terminal artifacts)
+
 DAG walk (each bracket = one message, phases in a bracket spawn in parallel):
 L2  spec                          (hard barrier)
 L3  [decide, pseudo]              (one message)
@@ -282,6 +395,18 @@ L8  write_plan                    (slash command, main chat) + Bar A
                                   ASSERT planning/PLAN_<slug>.md persisted (loop-task lane source)
 L9  plan_review                   (slash command, main chat) + Bar B
 
+Open-item triage during the walk:
+- L4 data raises "retention window for payout rows?" -> DATA schema IS downstream-consumed
+  (arch, ux, ops, test_plan read it) AND pii=yes makes it a floor item -> BLOCKING.
+  AskUserQuestion before L5. Correct stall: answering it later would be a migration.
+- L6 design raises "which breakpoint does the payout table collapse at?" -> DESIGN is terminal
+  -> parked [PARKED: collapse at md (768px) | deferred: DESIGN is not downstream-consumed].
+- L7 test_plan raises "should e2e cover the payout-export path?" -> TEST is terminal, no floor
+  -> parked [PARKED: cover payout-export | deferred: TEST is not downstream-consumed]
+  (conservative side = cover it).
+Both parked items surface together in ONE AskUserQuestion at Step 7, after the bars pass.
+Net: 1 human stall on the critical path instead of 3.
+
 Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
           (tier beta maps to execution mode standard)
           precondition: PLAN_<slug>.md + VERIFY_<slug>.md both on disk
@@ -292,9 +417,13 @@ Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
 | Failure | Recovery |
 |---|---|
 | phase agent missing | resurrect from `.claude/backups/` or fall back to `general-purpose` with the SKILL.md path in the prompt |
-| spec has `[OPEN]` | surface via `AskUserQuestion` before L3 |
-| Bar A fails | loop owning phase only, not the pipeline |
-| Bar B probe returns questions | route each to its owning phase, re-run that phase, re-probe |
+| spec has `[OPEN]` | surface via `AskUserQuestion` before L3 (SPEC is consumed by 7 phases — its opens are almost always BLOCKING) |
+| phase escalated a terminal-artifact item as BLOCKING | re-prompt that phase once with the triage rule restated; do not forward to the user |
+| phase parked something schema/contract/FR-set affecting | Bar A/Bar B catch it (they read the default as a stated assumption); fix via patch mode and correct the phase's triage row |
+| Bar A fails | patch the owning phase only — not the pipeline, not a full phase re-run |
+| Bar B probe returns questions | route each to its owning phase, patch it, re-probe |
+| same finding survives 2 patch rounds | escalate to a full phase re-run; if that phase was downgraded in Step 3a, re-run it at `opus` |
+| Step 7 override changed an AC row or a `[core]` FR | re-run full Bar A + Bar B (the bars passed against the old bytes), then re-bless `.VERIFY_<slug>.sha256` |
 | tier ambiguous | `AskUserQuestion`, recommend from spec |
 | user downgrades tier | floor items stay on; warn if a downgrade drops a phase the build flags say is needed |
 | `write-plan` left no `PLAN_<slug>.md` | re-run `/write-plan`; never hand off with only `MEGAPLAN_`/`VERIFY_` — loop-task lane derivation hard-fails without `PLAN_` |
@@ -307,6 +436,12 @@ Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
 - Spawning a node before its deps return.
 - Letting a tier knob disable a `floor` item (RLS/auth/secrets/PII).
 - Treating Bar A/Bar B as advisory. They are hard gates.
+- Stopping the pipeline to ask a question no downstream phase reads. Triage it, park it with a conservative default, batch it at Step 7.
+- Parking a floor item, a schema/contract change, or any default that reduces coverage or loosens a boundary, because the section looked terminal. Triage classifies by *section*; the floor and the never-deferrable list override the section every time.
+- Judging an `[OPEN]` by how important it feels. Triage is mechanical: is the section downstream-consumed, yes or no.
+- Full-re-running a phase to fix two Bar findings. Patch mode exists; a re-run also churns ids downstream artifacts already cite.
+- Downgrading `spec` / `data` / `arch` / `decide`-at-full to a cheaper model. They decide the structure every later phase consumes; an error there is the most expensive kind.
+- Accepting a Step 7 override that rewrites an AC row without re-running Bar A/Bar B and re-blessing the `.VERIFY` hash. The gates passed against different bytes; `cfn-loop-task` will reject the manifest.
 - Editing planning artifacts during implementation without re-running Bar B.
 - Handing off to `cfn-loop-task` with only `MEGAPLAN_`/`VERIFY_` on disk. `MEGAPLAN_` is an index, not the lane source; loop-task needs `PLAN_<slug>.md`.
 - Shipping an earlier plan that still lists back-propagated sibling items as "NOT yet applied" — its artifacts contradict its own synthesis.
