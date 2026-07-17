@@ -342,6 +342,7 @@ From the SPEC build flags parsed in Step 0b and the working diff, resolve which 
 | `db=yes` OR diff touches migrations/auth/HTTP | `cfn-security-review --diff` + spawn a `security-specialist` to populate the skeleton | manifest | never (floor) |
 | `db=yes` AND migration files in diff | `cfn-migration-rehearsal --up/--down` | HARD exit-code gate | `CFN_SCRATCH_DATABASE_URL` unset -> WARN-skip in report |
 | `frontend=yes` | `cfn-a11y-gate` | manifest | URLs from `CFN_A11Y_URLS`, fallback the `A11y-URLs:` line in `planning/OPS_${SLUG}.md`; unreachable (2s curl probe) -> WARN-skip naming the exact env line. Never auto-start servers |
+| `frontend=yes` AND `.claude/skills/role-*/SKILL.md` exists | `cfn-persona-verify` | manifest | no role docs -> silent skip (project never opted in). Validator exit 3 -> WARN-skip naming the failing doc; never verify against a doc that failed its schema. Login creds or `$*_BASE_URL` unset, or target unreachable (2s curl probe) -> WARN-skip naming the exact env var. Never auto-start servers |
 | diff touches `package.json`/lockfile/`Cargo.toml`/`requirements*` | `cfn-dep-audit` | manifest | self-contained |
 | `CFN_PERF_BENCH_CMD` set | `cfn-perf-gate` | manifest | unset -> silent skip |
 
@@ -356,7 +357,18 @@ Run the HARD gates (migration-rehearsal) before any manifest gate.
 
 ### Step 4.2: Run cfn-vote-implement per manifest (sequential)
 
-Run each manifest gate, then vote on each produced manifest by EXPLICIT path, in this order: security-review -> dep-audit -> dry-review -> perf-gate -> a11y-gate (skip any gate not in the resolved set).
+Run each manifest gate, then vote on each produced manifest by EXPLICIT path, in this order: security-review -> dep-audit -> dry-review -> perf-gate -> a11y-gate -> persona-verify (skip any gate not in the resolved set).
+
+**Scoping the persona gate:** run it last, because it drives the live app and is the slowest gate in the set. It must be scoped to this change, never run against every role every time:
+
+- **SPEC present:** pass the FR ids this task implements (`/cfn-persona-verify --fr FR-12,FR-13`). The skill intersects them against each actor's `Touches (FR ids)` in SPEC 1a.
+- **No SPEC:** pass the refs in play (`/cfn-persona-verify --ref PR4,C8`).
+
+An unscoped run reports every not-yet-built capability across every role and buries the real findings. A skipped role is named in the report with its reason: a silently skipped role reads as a passing role.
+
+**Blocked is not passed.** The skill reports `blocked` when a check could not run (no seed data, login failed, entry point 404s for an unrelated reason). Carry every `blocked` into the report as-is. A capability that had nothing to click has not been verified, and recording it as a pass is how the gate starts lying.
+
+Only `implementation-wrong` findings enter the manifest and reach the vote. `doc-stale` findings surface as role-doc update proposals for the user to accept or reject, and `not-yet-built` is report-only. Never let this gate write to a role doc: those docs are the ground truth it is checking against, and auto-writing observed behavior into them turns a live bug into "working as designed" permanently.
 
 ```bash
 # One call per manifest, explicit path. NEVER `latest` when >1 manifest exists.
