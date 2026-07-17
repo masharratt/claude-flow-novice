@@ -314,3 +314,36 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 | quarantined | clean | cfn-allow-skip marker removed in next Phase 2 re-run | Test un-skipped, gate passes |
 
 **Pattern detection (S001):** Old patterns `.skip\(` could never match new `.skipIf(`. Detector now uses alternation: `.only(`, `.skip(`, `.skipIf(`, `.runIf(`, `.concurrent\.skip`, `fit\(`, `@pytest\.mark\.skipif`. Catches pattern-skip-tautologies (e.g., `describe.skipIf(!FEATURE_FLAG)` where flag defaults off, self-skipping the guard).
+
+---
+
+## Role Capability Outcome (cfn-persona-verify)
+
+**Entity:** a single capability verified within a role document by cfn-persona-verify schema validator.
+
+**States:** `pass | denied-ok | fail | blocked`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | pass | Role doc explicitly grants capability with required detail (## Allowed section) | Capability achievable by actor |
+| (none) | denied-ok | Role doc explicitly denies capability with documented reason (## Denied section) | Denial is intentional, not accidental omission |
+| (none) | fail | Role doc omits capability (missing from both ## Allowed and ## Denied sections) | Schema validator flags missing entry; blocks role-doc acceptance |
+| (none) | blocked | A prerequisite capability failed or is denied, blocking this capability's evaluation | Transitive blocking, suggests upstream redesign |
+
+**Note:** Observer-only validation by default. Write operations (e.g., capability approval tracking) are opt-in per capability and governed by marker invariant: a pass record may only operate on rows it created itself. This prevents observability from breaking a pre-existing row's intent during dry-run.
+
+---
+
+## Role Verification Finding (cfn-persona-verify schema audit)
+
+**Entity:** one non-conformance discovered by cfn-persona-verify against the ROLE_SKILL_SCHEMA.md template.
+
+**States:** `implementation-wrong | doc-stale | not-yet-built`
+
+| From | To | Trigger | Guide |
+|------|----|---------|-------|
+| (none) | implementation-wrong | Role doc is correct; code doesn't grant stated capability | Implement missing authorization/UI control in code, then re-verify |
+| (none) | doc-stale | Code is correct; role doc is outdated or incorrect | Update role doc to reflect actual capability set, then re-verify |
+| (none) | not-yet-built | Both doc and code are incomplete; feature is in backlog | Defer role-doc to planning phase; add to BACKLOG.md with phased delivery date |
+
+**Audit closure:** All findings must move to a resolved category (code updated, doc updated, or backlog-tracked) before role acceptance. Manifest output from validate-role-skills.sh lists finding classification to guide fix sequencing (implementation-wrong = fast fixes, doc-stale = docs-only, not-yet-built = scope clarification).

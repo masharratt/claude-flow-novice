@@ -111,6 +111,7 @@ This file MUST be updated when:
 | cfn-test-framework | ✅ Prod | ✅ | `cfn-test-framework/` | Test orchestration |
 | cfn-validation-framework | ✅ Prod | ✅ | `cfn-validation-framework/` | Test validation |
 | cfn-edit-safety | ✅ Prod | ✅ | `cfn-edit-safety/` | Pre/post-edit backup & validation |
+| cfn-persona-verify | ⚠️ Beta | ✅ 21/21 | `cfn-persona-verify/` | Role-coherence gate: compares implementation to role reality. Detects builds that are correct/tests-green but nonsense for the actor using them (e.g. manager with no approval capability). Schema mechanically enforced (21 negative controls), walkthrough unproven against live app. Known limitation: zero of NYSDRA's 8 role docs currently satisfy schema (58 violations, all additive). Observe-only by default; capability-scoped writes opt-in, governed by marker invariant (pass may only act on rows it created). |
 
 ### Planning & Management Skills
 
