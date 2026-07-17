@@ -1,7 +1,7 @@
 ---
 name: cfn-megaplan
 description: "Tiered planning orchestrator. Runs the full SPARC+ pipeline (research, spec, decide, pseudo, data, arch, ux, design, test, ops) as a parallel DAG, scaled by build stage (mvp/beta/enterprise) via inclusion profiles. Enforces two gates: every success criterion is executable (verifiable-done) and every step is unambiguous (haiku-executable). Use as the entry point for any non-trivial build instead of cfn-spa-plan."
-version: 1.1.0
+version: 1.2.0
 tags: [planning, orchestrator, sparc, tiered, mvp, beta, enterprise, dag]
 status: production
 ---
@@ -92,7 +92,7 @@ This reuses the existing `[PARKED: <accepted default>]` marker (`cfn-spec` §Ope
 | Artifact | Read by | Downstream-consumed sections (an `[OPEN]` here BLOCKS) |
 |---|---|---|
 | RESEARCH | spec | feasibility verdicts, prior-art findings, resolved unknowns |
-| SPEC | decide, pseudo, data, arch, ux, ops, test_plan | FR/EC ids, `[core]` flags, constraints, pre/post conditions, invariants, entities, pii flag, user-facing flows, audience/tier signals, Build Flags (§8), Interaction Intent (§1b) |
+| SPEC | decide, pseudo, data, arch, ux, ops, test_plan | FR/EC ids, `[core]` flags, constraints, pre/post conditions, invariants, entities, pii flag, user-facing flows, audience/tier signals, Build Flags (§8), Actors (§1a), Interaction Intent (§1b) |
 | DECISIONS | data | resolved forks that pick storage/shape |
 | PSEUDO | arch | module + branch structure |
 | DATA | arch, ux, ops, test_plan | schema, field-bindings table, migration plan (§5), concurrency table (§6) |
@@ -151,6 +151,8 @@ Parse the `## 8. Build Flags` block from `planning/SPEC_<slug>.md`. Do NOT re-in
 ```
 
 If the block is missing, the spec failed its contract: re-run cfn-spec with a directive to emit section 8.
+
+**§1a presence gate (deterministic, same class as the Build Flags check):** if `frontend: yes` OR `db: yes`, the spec MUST contain a `## 1a. Actors` section with at least one row, no blank cells, and every FR touched by at least one actor. A spec missing it failed its contract: re-run `cfn-spec` with a directive to emit §1a. Do not accept prose assurances that the roles are "obvious" — `cfn-data` §4 derives the RLS policy set from this table at L4 (a floor item) and `cfn-arch` §6 derives its AuthZ columns from it at L5. With no §1a, both invent a role set independently and the two do not have to agree.
 
 **§1b presence gate (deterministic, same class as the Build Flags check):** if `frontend: yes`, the spec MUST contain a `## 1b. Interaction Intent` section with at least one row per interactive feature and no leverage dimension left blank (each row resolved, `[OPEN]`, or `N/A: <reason>`). A `frontend: yes` spec with no §1b section — or a §1b that skipped dimensions — failed its contract: re-run cfn-spec with a directive to run the Interaction Intent Walk. Do not let the pipeline advance past L2 on prose assurances that intent was covered; the section either exists with full dimension coverage or the spec is rejected.
 

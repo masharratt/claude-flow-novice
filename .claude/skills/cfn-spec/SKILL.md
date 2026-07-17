@@ -1,7 +1,7 @@
 ---
 name: cfn-spec
 description: "SPARC Specification phase. Make testable acceptance criteria, edge cases, pre/post conditions, invariants BEFORE planning implementation. Use when starting any non-trivial task to lock intent, surface ambiguity early."
-version: 1.0.0
+version: 1.1.0
 tags: [planning, sparc, specification, requirements, edge-cases]
 status: production
 ---
@@ -52,6 +52,42 @@ FR-2 [core]: System SHALL publish a scheduled story AND notify the family WHEN t
 FR-3 [core]: System SHALL archive expired stories WHEN the nightly cron runs, AND SHALL emit log line "archive.complete count=<n>". (runtime signal: archive.complete log)
 ```
 
+### Step 1a: Actor Inventory (MANDATORY when `frontend: yes` OR `db: yes`)
+
+**The gap this closes:** two downstream phases are already told to get roles from the spec, and the spec has nowhere to put them. `cfn-arch` Step 6 says its AuthZ matrix roles are "enumerated from SPEC". `cfn-data` Step 4 (an RLS **floor** item) needs a `Principal/role` per policy — and `cfn-data` runs at DAG L4, *before* `cfn-arch` at L5, so it cannot borrow arch's matrix either. Without this section both phases scrape prose or invent a role set, and two invented sets do not have to agree. Naming actors once, here, is what makes the RLS policy and the AuthZ matrix derivable instead of guessed.
+
+This is **not** a permission model. You name **who exists**; `cfn-arch` Step 6 decides what each is allowed, `cfn-data` Step 4 writes the policy that enforces it, `cfn-ux` 3d decides what each sees. Do not put allow/deny in this table.
+
+Emit when `frontend: yes` OR `db: yes`. Omit only for a build with no user surface and no database (pure library / CLI with a single implicit caller).
+
+```
+| Actor | Kind | Touches (FR ids) | Trust boundary | Distinct experience? |
+```
+
+- **Actor** — the canonical name. Downstream consumes these **verbatim**: `cfn-arch` Step 6 AuthZ matrix columns and `cfn-data` Step 4 `Principal/role` cells must use these exact strings, the same byte-for-byte contract `cfn-ux` 3d already has with arch. A downstream phase inventing a role not listed here is a producer defect; route it back.
+- **Kind** — `human-role` | `service` | `system`. Not decoration: `cfn-data` Step 4 requires every service-role write that bypasses RLS to be named explicitly, and it can only do that if the service actors are enumerated.
+- **Touches (FR ids)** — which FRs this actor exercises. Forces the linkage both ways (see rules).
+- **Trust boundary** — where this actor's identity is established: `authenticated (auth.uid())` | `anonymous/public` | `service key` | `internal (no external caller)`. Feeds `cfn-data` Step 4's auth boundary and `cfn-arch` AuthN.
+- **Distinct experience?** — `yes` | `no`. This is the forcing function for Step 1b's Role/context variance dimension.
+
+Rules:
+
+- **Anonymous is an actor.** A public read path has an actor named `anonymous`. Omitting it is how a table ends up with a permissive policy nobody decided to write.
+- **Non-human actors count.** A cron job, a queue consumer, a worker, a webhook caller — each is an actor with a trust boundary. `[core]` FRs that fire out-of-band (Step 1) always have one.
+- **Every FR is touched by >=1 actor.** An FR no actor touches is `[OPEN]`: either an actor is missing or the requirement is dead.
+- **Every actor touches >=1 FR.** An actor touching nothing is speculation; cut it.
+- **Single-actor builds are legitimate.** One row, `Distinct experience? = no`. State it; do not skip the section to avoid saying it.
+- Unresolved actors are `[OPEN]` and block — they reach `cfn-data`'s RLS floor at L4.
+- **Reuse the project's existing role definitions; never re-derive them.** Before writing this table, check for project-local role skills (`.claude/skills/role-*/SKILL.md`). Where one exists for an actor, its name is the canonical Actor string and its documented capabilities are ground truth — this table cites it (`see [[role-<name>]]`) and records only what THIS build changes. A spec that re-derives a role already defined in a role skill creates a second source of truth for that role, and the two will drift. If this build changes what a role can do, that is a change to the role skill, not a private redefinition here.
+
+```
+| Actor | Kind | Touches (FR ids) | Trust boundary | Distinct experience? |
+| coach | human-role | FR-1, FR-2, FR-4 | authenticated (auth.uid()) | yes |
+| family-member | human-role | FR-2, FR-5 | authenticated (auth.uid()) | yes |
+| anonymous | human-role | FR-5 | anonymous/public | yes |
+| publish-worker | system | FR-2 [core] | internal (no external caller) | no |
+```
+
 ### Step 1b: Interaction Intent Walk (MANDATORY when the task has a user-facing surface)
 
 The gate this closes: Bar A and Bar B both verify the plan *against the spec*. Neither can catch a spec that already encodes the thinnest reading of an interactive feature. A conditional-logic builder specced as "show/hide fields based on a condition" is internally consistent, passes every gate, and ships as *one operator (equals) + a free-text value box*. The defect is the scope of the spec, not a deviation from it. This step stress-tests the spec's experience completeness against the user's intent BEFORE the data model locks (`cfn-data`, DAG L4) — after that, adding an operator set or a value-type is a schema migration, not an edit.
@@ -94,7 +130,7 @@ For EVERY interactive feature (any FR where the user composes, builds, filters, 
 | State / lifecycle | Draft / save / resume? edit-after-create? versioning? undo? | persistence + screen states across all screens |
 | Referential integrity | What happens to a reference when its target changes or is deleted? | cascade behavior for every cross-field / cross-entity link |
 | Scale / volume | 5 items or 5000? drives search, pagination, bulk actions | list + control patterns feature-wide |
-| Role / context variance | Same experience for everyone, or does it change by role / state? | visibility + control variance |
+| Role / context variance | Resolve against **Step 1a**, never in the abstract: for each actor with `Distinct experience? = yes`, what changes for them? | visibility + control variance |
 
 Output row format (one per dimension per interactive feature):
 
@@ -108,6 +144,12 @@ Output row format (one per dimension per interactive feature):
 ```
 
 Several rows sharing one archetype question is the normal, desired shape — it means the bundle is doing its job. After the user answers, rewrite each shared row's Resolution with what the chosen archetype fixed (e.g. `archetype B: typed operator set` / `archetype B: value input inherits field type` / `archetype B: flat AND list`).
+
+**Role / context variance resolves against the Step 1a actor table, not from memory.** This dimension is the one an archetype bundle cannot pre-resolve — a bundle names versions of a *pattern*, and "who sees what" is orthogonal to how rich the pattern is. Resolve it mechanically:
+
+- Zero actors with `Distinct experience? = yes` → `N/A: single experience across <n> actors`. Valid, and now it is a stated finding rather than an unasked question.
+- One or more → the dimension is NOT resolved until each such actor has a named difference (what they see, what they cannot do, what changes). "Varies by role" is not a resolution; it is the question restated.
+- A difference named here feeds back into Step 1 as an FR, same as any other intent resolution. `cfn-arch` Step 6 turns it into AuthZ cells and `cfn-ux` 3d into hidden/disabled — neither re-litigates it.
 
 Rules:
 - **Archetype bundle first, residual questions second, per-field questions last.** A dimension resolved at intent level is NOT re-asked per field downstream — `cfn-ux` reads the resolved intent and derives controls from it; it does not re-litigate.
@@ -240,6 +282,12 @@ Template (8 core sections required; section 1b required only when the task has a
 ## 1. Functional Requirements
 FR-1: ...
 FR-2 [core]: ...   (mark every mechanism that must fire end-to-end; out-of-band [core] FRs also name their runtime signal)
+
+## 1a. Actors   (required when frontend: yes OR db: yes; omit only for no-surface + no-db builds)
+| Actor | Kind | Touches (FR ids) | Trust boundary | Distinct experience? |
+(names are canonical: cfn-arch §6 AuthZ columns and cfn-data §4 Principal/role consume them verbatim.
+Kind = human-role|service|system. Anonymous and non-human actors are actors. Every FR touched by >=1
+actor; every actor touches >=1 FR. Cite an existing [[role-<name>]] skill rather than re-deriving it.)
 
 ## 1b. Interaction Intent   (only when the task has a user-facing surface; omit for backend/CLI-only)
 | Feature | Dimension | Intent question (or N/A: reason) | Resolution |

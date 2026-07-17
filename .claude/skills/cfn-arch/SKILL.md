@@ -1,7 +1,7 @@
 ---
 name: cfn-arch
 description: "SPARC Architecture phase. Define component boundaries, interface contracts, integration points, DRY reuse BEFORE implementation. Use after cfn-spec and cfn-pseudo to lock structure, catch integration mismatches early."
-version: 1.0.0
+version: 1.1.0
 tags: [planning, sparc, architecture, contracts, components, integration]
 status: production
 ---
@@ -193,7 +193,7 @@ For every entity that persists:
 
 Address each explicitly:
 - **AuthN:** how identity is established (cross-reference NFRs in SPEC)
-- **AuthZ matrix (REQUIRED table - cfn-ux 3d consumes this verbatim):** `| Operation | <role-1> | <role-2> | ... |` with cells from {allow, deny-role, deny-state}. Roles enumerated from SPEC; every PSEUDO operation gets a row. No blank cells. Consumer (cfn-ux 3d) matches this table byte-for-byte; unmatched values route back as producer defects.
+- **AuthZ matrix (REQUIRED table - cfn-ux 3d consumes this verbatim):** `| Operation | <role-1> | <role-2> | ... |` with cells from {allow, deny-role, deny-state}. **Columns are the Actor names from SPEC §1a Actor Inventory, verbatim — do not invent, rename, or merge roles here.** Include every `human-role` and `service` actor; a `system` actor gets a column when any PSEUDO operation is reachable by it. An actor in §1a with no column, or a column naming a role absent from §1a, is a defect: route back to `cfn-spec` rather than inventing the role set (`cfn-data` §4 derives its RLS `Principal/role` from the same §1a table at L4, one level ahead of this phase — two independently invented role sets do not have to agree, and the RLS policy is a floor item). Every PSEUDO operation gets a row. No blank cells. Consumer (cfn-ux 3d) matches this table byte-for-byte; unmatched values route back as producer defects.
 - **Observability:** log events, metrics, traces emitted
 - **Rate limiting:** per-endpoint limits
 - **Caching:** what is cached, where, TTL, invalidation trigger

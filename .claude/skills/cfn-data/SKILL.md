@@ -1,7 +1,7 @@
 ---
 name: cfn-data
 description: "Forward database / data-layer design phase of the MegaPlan pipeline. Designs schema, indexes, RLS, migration up+down, lifecycle, concurrency, and privacy FORWARD instead of tracing them backward at review time. Emits the field-bindings table that cfn-ux consumes to derive UI controls. Use after cfn-spec + cfn-decide when the build touches a database."
-version: 1.0.0
+version: 1.1.0
 tags: [planning, megaplan, database, schema, rls, migration, data-layer, field-bindings]
 status: production
 ---
@@ -130,10 +130,12 @@ For every index, name the query pattern from the spec that justifies it. No spec
 
 For each new table, author the policy in the migration:
 
-- **State the auth boundary.** Who is the principal? (`auth.uid()`, a service role, a tenant claim.) Where is identity established (cross-reference SPEC NFRs and `cfn-arch` AuthN)?
+- **The role set comes from SPEC §1a Actor Inventory, verbatim.** Its Actor names are the `Principal/role` values below and its `Trust boundary` column names where each principal's identity is established. Do not invent a role here: `cfn-arch` §6 builds its AuthZ matrix from the same §1a table at L5, and a role set invented independently at L4 does not have to agree with it. An actor that needs data access but has no policy — or a policy naming a principal absent from §1a — is a defect; route back to `cfn-spec`. §1a is required whenever `db: yes` precisely so this floor has a source.
+- **State the auth boundary.** Who is the principal? (`auth.uid()`, a service role, a tenant claim.) Where is identity established (§1a `Trust boundary`; cross-reference SPEC NFRs and `cfn-arch` AuthN)?
 - **Default-deny.** `ENABLE ROW LEVEL SECURITY` with no policy = no access. List each policy as an explicit allow.
 - **One policy per operation/role** (SELECT/INSERT/UPDATE/DELETE). Name the `USING` and `WITH CHECK` predicate.
-- Service-role writes that bypass RLS must be named explicitly and justified.
+- **Every §1a actor is accounted for per table:** an explicit allow policy, or an explicit note that it has no access to that table. An `anonymous` actor in §1a with no stated policy is the exact path to an accidental permissive read.
+- Service-role writes that bypass RLS must be named explicitly and justified. §1a `Kind = service` enumerates the candidates; a service actor bypassing RLS with no justification here is a floor violation.
 
 Emit the per-operation policy table (pinned shape, required in the artifact):
 
