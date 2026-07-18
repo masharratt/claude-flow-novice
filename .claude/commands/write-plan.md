@@ -240,11 +240,17 @@ When megaplan artifacts exist (TEST/OPS/etc. in planning/), this plan is an ASSE
 ### Phase 2: Green (Implementation Steps)
 Every step MUST fill every column. A step missing a file path, signature, or verification command is invalid (Bar B haiku-executable rejects it). One step = one file where possible; never more than 3 files per step.
 
-| # | File (full path) | Change (exact: function name, typed signature, or config key) | Failing test (from TEST_<slug> Phase 6) | Verify command (exits 0/1) | Done predicate |
-|---|---|---|---|---|---|
-| 2.1 | src/auth/jwt.ts | add `verifyToken(token: string): Promise<Claims>` throwing `TokenExpiredError` | tests/jwt.spec.ts::rejects_expired | `vitest run tests/jwt.spec.ts 2>&1 | tee "$OUT"` | test green |
+| # | File (full path) | Change (exact: function name, typed signature, or config key) | Produces | Consumes | Failing test (from TEST_<slug> Phase 6) | Verify command (exits 0/1) | Done predicate |
+|---|---|---|---|---|---|---|---|
+| 2.1 | src/auth/types.ts | add `interface Claims { sub: string; exp: number }` | `src/auth/types.ts:Claims` | `-` | tests/types.spec.ts::claims_shape | `vitest run tests/types.spec.ts 2>&1 | tee "$OUT"` | test green |
+| 2.2 | src/auth/jwt.ts | add `verifyToken(token: string): Promise<Claims>` throwing `TokenExpiredError` | `src/auth/jwt.ts:verifyToken` | `src/auth/types.ts:Claims` | tests/jwt.spec.ts::rejects_expired | `vitest run tests/jwt.spec.ts 2>&1 | tee "$OUT"` | test green |
 
-Banned in any cell: "appropriately", "as needed", "handle", "the relevant file", "a helper that", "TBD", "etc".
+**Produces / Consumes columns (cross-lane ordering metadata).** These let `cfn-loop-task` order parallel lanes into dependency-correct waves instead of discovering a missing symbol at the gate and burning a retry wave.
+- **Produces:** new files or exported symbols this step CREATES that did not exist before, as `<full-path>` or `<full-path>:<symbol>`, comma-separated. `-` when the step creates nothing importable (e.g. edits an existing function body only).
+- **Consumes:** files or exported symbols from OTHER steps that this step needs to already exist, same identifier form. `-` when the step depends only on already-existing tree symbols. A Consumes value MUST string-match (exact, trimmed) a Produces value of some other step, else it is treated as a pre-existing symbol (no ordering edge) — a typo therefore produces no edge and self-demotes to a gate failure, so keep the strings identical byte-for-byte.
+- **No duplicate producers:** two steps in DIFFERENT lanes must not Produce the same identifier (ambiguous owner). Same-lane duplicate is fine.
+
+Banned in any cell (Produces/Consumes included): "appropriately", "as needed", "handle", "the relevant file", "the relevant export", "a helper that", "TBD", "etc". A Produces/Consumes cell is either a concrete `<path>`/`<path>:<symbol>` list or `-`.
 
 ## Ops Integration Tasks (required if planning/OPS_<slug>.md exists)
 

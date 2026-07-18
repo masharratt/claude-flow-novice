@@ -101,7 +101,9 @@ The 0/0 policy (zero compile errors in scoped work and scoped tests, zero remain
 │  PHASE A - IMPLEMENTATION (iterate until gate passes):      │
 │    ITERATION = 1                                            │
 │    WHILE iteration <= MAX_ITERATIONS:                       │
-│      ├── LOOP 3: Spawn impl agents (full epic, TDD)         │
+│      ├── LOOP 3: Spawn impl agents in dependency waves      │
+│      │     (produce/consume edges; ≤LANE_CAP=8 per slot;    │
+│      │      cheap producer guard between waves; full epic)   │
 │      ├── GATE CHECK: typecheck + hygiene + gate-check.sh    │
 │      │     (baseline from iter 2; flaky re-run on red)      │
 │      │     ├── IF gate FAILS: iteration++, LOOP             │
@@ -171,11 +173,15 @@ Planning tier vocabulary is mvp|beta|enterprise (cfn-megaplan); execution mode v
 ### LANE DERIVATION (mechanical, do this before spawning)
 
 1. **Locate the plan.** Find the newest `planning/PLAN_*.md` whose name matches the task slug. If no `PLAN_` file exists, STOP and run `/write-plan` first. Never improvise lanes without a plan. **Note:** a `planning/MEGAPLAN_<slug>.md` is an index/summary, NOT a lane source — if only `MEGAPLAN_` (and/or `VERIFY_`) exists but no `PLAN_<slug>.md`, the megaplan run failed to persist its plan; run `/write-plan "<task>" --mode=<mode>` to regenerate `PLAN_<slug>.md` from the existing `planning/` artifacts, then continue. Do NOT derive lanes from `MEGAPLAN_` or `VERIFY_`.
-2. **One lane per phase.** Each top-level phase/workstream in the plan becomes one lane. Cap at 4 lanes; if the plan has more phases, merge the smallest phases into neighboring lanes until at most 4 remain.
+2. **One lane per phase.** Each top-level phase/workstream in the plan becomes one lane. **LANE_CAP = 8** (one constant, used here AND in wave scheduling step 6). If the plan has more phases than LANE_CAP, merge the smallest phases into neighboring lanes until at most LANE_CAP remain. (Lanes = phases, so most plans never reach the cap; it is a ceiling, not a target.)
 3. **Exclusive file ownership.** Each lane gets an exclusive file list derived from the plan. No file may appear in two lanes. If two phases touch the same file, put both phases in the SAME lane and run them sequentially inside it.
 4. **Ownership clause in every spawn prompt.** Each spawn prompt includes: "FILES YOU OWN: <list>. Do not create or edit any file outside this list. Files outside your lane needing changes go in out_of_scope_needs (array of \"path: why\"); blocked_on is only for a blocker that stops YOUR lane (scalar, one sentence, else null)."
+5. **Compute lane-dependency edges (from Produces/Consumes).** First run the static sanity gate: `.claude/skills/cfn-megaplan/bars/check-produce-consume.sh planning/PLAN_<slug>.md` — exit 1 (duplicate producer / weasel / empty / malformed cell) BLOCKS; resolve before deriving lanes (a duplicate-producer finding is the AskUserQuestion below). Warnings (dangling consume) are advisory. If the plan has no such columns the checker exits 0 and you skip to a single wave. Then collect every step's identifiers per lane. Draw a directed edge **A → E** whenever any step in lane E has a `Consumes` string-equal (exact, trimmed) to a `Produces` of any step in lane A, with A ≠ E. A Consumes matching no lane's Produces is a pre-existing symbol → no edge (log a one-line `warn: dangling consume <id>` so a typo is visible). **Duplicate producer** (the same identifier Produced by steps in two DIFFERENT lanes) is ambiguous ownership → STOP and surface one `AskUserQuestion` (which lane owns it); do not guess. If the columns are absent or every cell is `-`, the edge set is empty. **Cycle** (A → E and E → A): merge the cycle's lanes into one lane run sequentially — same resolution as the same-file rule in step 3 — and log `cycle-merge: <lanes>`.
+6. **Order lanes into waves (topological).** WAVE_1 = every lane with no inbound edge. Each next wave = lanes whose inbound edges all originate in already-completed waves. Within a wave, run at most LANE_CAP lanes concurrently; ready-but-capped lanes defer to the next slot (never merge them just to fit the cap). Empty edge set ⇒ exactly one wave with all lanes ⇒ identical to the pre-feature single-wave behavior. Log `wave N: lanes [...]` per wave before spawning it.
 
-### Spawn implementer agents in parallel using Task tool (one per lane)
+### Spawn implementer agents in waves using Task tool (one per lane)
+
+Iterate the waves from step 6 in order. For each wave: spawn its lanes in parallel (single message, one Task per lane, up to LANE_CAP), using the prompt below. A single-wave plan (empty edge set) is the common case and spawns exactly once — identical to prior behavior.
 
 ```
 TASK: Full epic implementation, iteration ${ITERATION}: ${TASK_DESCRIPTION}
@@ -204,7 +210,11 @@ REQUIREMENTS:
 AGENT_ID: loop3-impl-${TASK_ID}-iter${ITERATION}-<lane>
 ```
 
-**WAIT for all agents to complete and aggregate results.**
+**WAIT for the wave's agents to complete and aggregate results.**
+
+**Inter-wave producer guard (only when a NEXT wave exists).** Before spawning the next wave, cheaply confirm the just-completed wave actually created what downstream lanes consume: for each `Produces` identifier a later wave `Consumes`, assert it now resolves — `npm run typecheck` scoped to those files, or `grep -RnF "<symbol>"` on the produced path. This is NOT the full Phase-3 gate (no test suite, no gate-check.sh); it is a symbol-existence check so a consumer wave never builds on an absent export. If a claimed symbol is missing, respawn ONLY the producing lane with that as the finding, re-run the guard, then proceed. When no further wave exists, skip the guard — the full Phase-3 gate below covers it.
+
+**After the final wave completes, aggregate all waves' results.**
 
 **Mark todo #2 as completed. Proceed to Phase 3.**
 
@@ -578,6 +588,8 @@ ${TSC_HEAD}
 FIX ONLY THESE FAILURES. Do not refactor passing code.
 ```
 
+**Downstream-dependent respawn (when lanes have produce/consume edges).** When you respawn only the lane(s) that failed the gate, ALSO respawn every lane transitively downstream of a failing lane in the step-6 edge graph — a downstream lane may have built on the failing lane's absent or wrong export. Compute the downstream set from the current edges (recomputed each iteration), respawn failing-lane ∪ downstream in the correct wave order, and leave lanes with no path from any failing lane untouched. Empty edge set ⇒ no downstream ⇒ "respawn failing lane only" exactly as before.
+
 **After 3 failed iterations, spawn root-cause-analyst before next Loop 3:**
 ```
 Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
@@ -588,7 +600,11 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 ## Worked Example (abbreviated transcript)
 
 ```
-[Iter 1] Spawn 2 lanes (lane=api, lane=ui) from planning/PLAN_auth.md
+[Iter 1] Lane derivation: lanes api, ui; edges: api Consumes src/types.ts:Claims
+         Produced by a shared 'types' step folded into api -> edge types->ui.
+         Waves: wave1=[api], wave2=[ui] (empty-edge plans would be one wave).
+[Iter 1] Wave1 spawn lane=api. Barrier. Producer guard: grep Claims in
+         src/types.ts -> resolves. Wave2 spawn lane=ui.
 [Iter 1] Agents return JSON: api 12/12 scoped, ui 8/9 scoped
 [Iter 1] Step 3.0: tsc -> 0 errors. Step 3.1: npm test -> tee output
 [Iter 1] gate-check.sh --out ... --threshold 0.95

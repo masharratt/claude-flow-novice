@@ -45,10 +45,10 @@ From the orchestrator you also receive:
 
 ### Directive scope (`light` vs `full`)
 
-- **`light` (mvp):** interaction correctness only. Emit the field-control table (Phase 1), the state table (Phase 2), and the core flows (Phase 3). Skip polish: no micro-interaction notes, no exhaustive empty-state copy, no secondary flows. Every field still gets a derived control; every screen still gets all six states named. Correctness never drops.
+- **`light` (mvp):** interaction correctness only. Emit the field-control table (Phase 1), the state table (Phase 2), the core flows (Phase 3), and the low-fi wireframe (Phase 6). Skip polish: no micro-interaction notes, no exhaustive empty-state copy, no secondary flows. Every field still gets a derived control; every screen still gets all six states named. Correctness never drops.
 - **`full` (beta / enterprise):** all phases. Add analytics events (Phase 4, when in extras), full accessibility hooks (Phase 5), secondary and recovery flows, and partial-state detail.
 
-`light` reduces breadth, never the affordance map. The map is the reason this phase floors at MVP.
+`light` reduces breadth, never the affordance map or the wireframe. The map is the reason this phase floors at MVP; the wireframe is the visual confirmation of it, floored for the same reason — both catch a wrong path, and a wrong path is a correctness defect at any tier.
 
 ## Protocol
 
@@ -188,6 +188,34 @@ Rule: one row per control from the section-1 map; standard controls may say "nat
 
 This is a handoff table, not a compliance pass. `cfn-design` consumes it verbatim; unmatched values route back as producer defects.
 
+### Phase 6: Low-Fidelity Wireframe (floored at every tier; the visual wrong-path catch)
+
+Render this interaction design as a **low-fidelity, grayscale, self-contained HTML wireframe** and publish it with the **Artifact** tool, so the user SEES the screen structure and flow before the pipeline spends a single downstream level on it. This is the visual twin of the spec's §1b Interaction Intent walk: §1b confirms intent in words before the schema locks; the wireframe confirms structure in a picture before `cfn-design`, `cfn-test-plan`, `cfn-ops`, and `write-plan` build on it. You own it because you own the structure — the control map (Phase 1), the screen states (Phase 2), and the flows/journeys (Phase 3) ARE the wireframe. `cfn-design`'s visual layer (tokens, color, exact grid) is deliberately absent; low-fi is the point.
+
+**Draw from what you already produced** — do not invent new structure here:
+- One page per screen in the Phase 2 state list.
+- Every control from the Phase 1 field→control map, placed in Phase 3 flow order, with the real field labels.
+- The primary journey (Phase 3b) drawn between screens: a labeled arrow or a "→ goes to <screen>" note.
+- The six screen states (Phase 2) shown compactly (tabs or stacked variants for loading / empty / error) so the user sees they were designed, not just the happy path.
+
+**Low-fidelity is a hard contract (anti-scope-creep).** The wireframe communicates *structure and flow*, never appearance:
+- Grayscale only. No brand colors, no design tokens, no gradients.
+- No imagery, photos, icons-as-art, or logos. A box labeled `[image]` stands in.
+- No pixel styling, shadows, or animation. Plain boxes, borders, real text, system font.
+- The question it answers is "is this the right screen, the right controls, the right flow" — NOT "does it look good". Visual craft is `cfn-design` + `frontend-design` at their own stages, not here.
+
+Emitting a colored, image-laden, or token-styled mockup is a Phase-6 defect (see Anti-Patterns): it drags the user into aesthetics when the decision on the table is structure, and it duplicates `cfn-design`.
+
+**Publish + record.** Publish the HTML via the Artifact tool (one page, per-screen sections). Record the reference in the `## 6. Wireframe` section of the output artifact using this exact machine-detectable line:
+
+```
+wireframe: <artifact-url-or-path>
+```
+
+**Degrade, never block.** If the Artifact publish fails, write the same HTML to `planning/wireframe_<slug>.html` and record `wireframe: planning/wireframe_<slug>.html`. If there are zero renderable screens, record `_skipped: no renderable screens_` instead — that is not a defect. Never stall on wireframe production; the approval gate that CAN stall is the orchestrator's, not this phase's.
+
+**Approval is the orchestrator's, at the L5→L6 barrier.** You emit the wireframe and return its reference as a BLOCKING item. `cfn-megaplan` surfaces Approve / Revise before spawning L6, so a wrong structure is caught before design/test-plan/ops run on it. On Revise, you are re-spawned in patch mode with the user's note — you adjust the structure (a control, a screen, a flow) and re-render. A revision that would change an FR, an AC, or the schema is not a wireframe tweak: it routes back to `cfn-spec`/`cfn-data`, not here.
+
 ## Output
 
 Write to: `planning/UX_<slug>.md`
@@ -234,6 +262,10 @@ Per-step rows in the 3a table: | Task | Entry | Action | Result | Error path | D
 | course (combobox) | ArrowUp/Down, Enter, Esc | 1 of 9 | role=combobox, aria-expanded, aria-controls |
 (one row per control from the section-1 map; standard controls may say "native"; a section-1 control missing here is a gap, not an implied default. Consumer matches this table byte-for-byte; unmatched values route back as producer defects.)
 
+## 6. Wireframe
+wireframe: <artifact-url-or-path>
+(exact machine-detectable line; or `_skipped: no renderable screens_`. Low-fi grayscale, one page per screen, drawn from sections 1-3. Orchestrator surfaces Approve/Revise at the L5→L6 barrier before design/test-plan/ops run.)
+
 ## Open Items
 - [OPEN] <decisions needing user input>
 ```
@@ -278,16 +310,18 @@ Affordances: course/instructor/date/seats interactive; Submit disabled-when (no 
 
 ## Handoff
 
-`UX_<slug>.md` feeds three consumers:
+`UX_<slug>.md` feeds three consumers plus the orchestrator gate:
 - **`cfn-design`** (level 6) — consumes the control list and a11y hooks to design visual layout and run the full WCAG pass.
 - **`cfn-test-plan`** (level 6) — turns the field-control map and state table into UI test rows.
 - **Bar B** (`bars/haiku-executable.md`) — reads the control column to verify every field has an explicit, non-guessable control with a named value source.
+- **`cfn-megaplan` L5→L6 barrier** — reads the `## 6. Wireframe` reference and surfaces one BLOCKING Approve/Revise decision before spawning L6, so a wrong structure never reaches design/test-plan/ops. Revise re-spawns this phase in patch mode.
 
 ## Return (to orchestrator)
 
 Return exactly:
 - Artifact path: `planning/UX_<slug>.md`
 - A 3-line summary (fields mapped, screens with full state coverage, flows mapped).
+- The wireframe reference (`wireframe: <url|path>`, or `_skipped: no renderable screens_`), flagged as a BLOCKING approval item so the orchestrator gates on it at the L5→L6 barrier.
 - Any `[OPEN]` items needing a user decision (e.g. ambiguous binding, missing value source).
 
 ## Review Mode (audit implemented code)
@@ -334,6 +368,8 @@ Pairs with `cfn-data --review`: run that first so bindings come from the real sc
 - **Raw select for a large list.** >20 rows needs a searchable combobox, not an unfiltered select.
 - **Doing visual design here.** Layout, color, spacing, tokens belong to `cfn-design`. This phase decides control and state, not appearance.
 - **Dropping the affordance map under `light`.** `light` reduces breadth, never the field-control map. The map floors at MVP.
+- **High-fidelity wireframe (Phase 6).** A colored, brand-styled, image-laden, or token-accurate mockup. The wireframe is low-fi grayscale structure + flow only; fidelity drags the user into aesthetics when the decision is "is this the right screen and flow", and it duplicates `cfn-design`.
+- **Inventing structure in the wireframe.** The wireframe draws ONLY the screens, controls, and flows from Phases 1-3. A screen or control that appears in the wireframe but not the tables is a defect — fix the table, then re-render.
 
 ## Related
 

@@ -347,3 +347,37 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 | (none) | not-yet-built | Both doc and code are incomplete; feature is in backlog | Defer role-doc to planning phase; add to BACKLOG.md with phased delivery date |
 
 **Audit closure:** All findings must move to a resolved category (code updated, doc updated, or backlog-tracked) before role acceptance. Manifest output from validate-role-skills.sh lists finding classification to guide fix sequencing (implementation-wrong = fast fixes, doc-stale = docs-only, not-yet-built = scope clarification).
+
+---
+
+## Wireframe Gate (cfn-megaplan L5→L6 barrier)
+
+**Entity:** the wireframe emitted by cfn-ux Phase 6, gated before design/test-plan/ops run.
+
+**States:** `emitted | approved | revising | skipped`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | emitted | cfn-ux (L5) publishes the low-fi wireframe; `wireframe: <url\|path>` recorded in UX_<slug>.md | frontend=yes AND ≥1 renderable screen |
+| (none) | skipped | cfn-ux has zero renderable screens; records `_skipped: no renderable screens_` | no L5→L6 gate fires; not a defect |
+| emitted | approved | user selects Approve at the L5→L6 AskUserQuestion | L6 (design ∥ ops) spawns only after this |
+| emitted | revising | user selects Revise with a note | note does NOT change an FR/AC/schema (else route to cfn-spec/cfn-data) |
+| revising | emitted | cfn-ux re-spawned in patch mode re-renders; reference line replaced | bounded by the per-level 3 BLOCKING-cycle cap |
+| approved | (terminal) | — | never re-gated; approval precedes Bar A/Bar B (L8/L9) so the plan is built on a signed-off structure |
+
+## Implementation Wave (cfn-loop-task LANE DERIVATION)
+
+**Entity:** a lane wave scheduled by produce/consume edges (LANE DERIVATION step 5/6).
+
+**States:** `blocked | ready | running | complete`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | ready | lane has no inbound produce/consume edge (or empty edge set) | ready lanes form WAVE_1 |
+| (none) | blocked | lane Consumes an identifier Produced by a lane not yet complete | edge A→E from step-5 computation |
+| ready | running | wave spawned (≤ LANE_CAP=8 lanes concurrently; excess defers to next slot) | file ownership exclusive across lanes |
+| running | complete | all wave agents return + barrier reached + producer-existence guard passes | claimed Produces symbols resolve (scoped typecheck/grep), else respawn producing lane |
+| blocked | ready | every inbound-edge source lane reached complete | dependency satisfied |
+| complete | running | gate fails and this lane is the failing lane OR transitively downstream of it | respawn set recomputed from current edges each iteration |
+
+**Cycle note:** a produce/consume cycle (A→E and E→A) is not a state — it is collapsed at derivation time into a single lane run sequentially (same resolution as the same-file rule), so no wave ever waits on itself.

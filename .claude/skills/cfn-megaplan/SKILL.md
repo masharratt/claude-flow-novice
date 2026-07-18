@@ -45,6 +45,8 @@ L2 spec                HARD BARRIER
 L3 decide ∥ pseudo
 L4 data                (conditional: db)
 L5 arch ∥ ux           (ux conditional: frontend)
+   └─ WIREFRAME GATE    (frontend only: cfn-ux emits a low-fi wireframe; user Approve/Revise
+                         BLOCKS before L6 — the visual wrong-path catch, before design/test/ops)
 L6 design ∥ ops        (design conditional: frontend; ops conditional: beta+)
 L7 test_plan           consumes OPS §2 (observability signals) + DATA §6 (concurrency);
                        at mvp `ops` is skipped, so the skipped-dep rule lets test_plan
@@ -212,6 +214,15 @@ Return: artifact path + a 3-line summary + [OPEN] items (BLOCKING, need a user d
 
 If any phase returns **BLOCKING** `[OPEN]` items, batch them and surface via `AskUserQuestion` before advancing past the level. Record every resolved decision to the decision log (closes gap G35/decision-log loop). `cfn-decide` owns the register; the orchestrator forwards mid-level decisions to it.
 
+**Wireframe gate (L5→L6 barrier, when `frontend=yes`).** `cfn-ux` (L5) emits a low-fi wireframe and returns its reference (`wireframe: <url|path>`) as a BLOCKING approval item (see `cfn-ux` Phase 6). At the L5 join, BEFORE spawning L6 (design ∥ ops), surface the wireframe with one `AskUserQuestion`: **Approve** / **Revise**. This is the visual twin of the spec §1b intent walk — §1b confirms interaction intent in words before the schema locks at L4; the wireframe confirms screen structure + flow in a picture before design/test-plan/ops/write-plan build on it. Catching a wrong structure here costs a `cfn-ux` patch; catching it at Step 7 would cost re-running L6–L9.
+
+- **Approve** → proceed to L6. Record the approval to the decision log.
+- **Revise** → route to `cfn-ux` in **patch mode** with the user's note as the finding; it adjusts the structure (a control, a screen, a flow) and re-renders. Re-surface. This rides the same **3-BLOCKING-cycle-per-level bound** as any L5 blocking item; after round 3, surface residual via `AskUserQuestion` (accept as-is / keep iterating / descope).
+- A revision that would change an FR, an AC, or the schema is NOT a wireframe tweak — route it to `cfn-spec`/`cfn-data` and re-run the affected levels, not a `cfn-ux` patch.
+- A `_skipped: no renderable screens_` reference raises no gate.
+
+Because the wireframe is approved at L5, it never reaches Bar A/Bar B or the Step 7 batch: the structure the plan is built on was signed off before the plan existed.
+
 `[PARKED]` items do **not** gate the level. Collect them into a running list (artifact, item, chosen default, reason) and carry it to Step 7, where they surface as one batched `AskUserQuestion` after the bars pass.
 
 **Triage audit (cheap, do it — the rule is only worth having if it is enforced in one direction).** For each BLOCKING item a phase returns, confirm the named section actually appears in that artifact's Downstream-consumed row, or that it names a floor item. A phase escalating a terminal-artifact item is re-prompted once with the rule restated, not forwarded to the user. Do not audit in the other direction: a phase that parks something it should have blocked on gets caught by Bar A/Bar B, which read the parked default as a stated assumption.
@@ -277,7 +288,7 @@ Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readi
 
 ### Step 7: Deferred-decision batch, synthesis + hand-off
 
-**Deferred-decision batch (run FIRST, before the handoff gate).** Take the `[PARKED]` list accumulated across Step 4 levels. These are the questions the triage rule kept off the critical path; this is where they get answered, once, together.
+**Deferred-decision batch (run FIRST, before the handoff gate).** Take the `[PARKED]` list accumulated across Step 4 levels. These are the questions the triage rule kept off the critical path; this is where they get answered, once, together. (The wireframe is NOT here — it is a BLOCKING gate at the L5→L6 barrier in Step 4, resolved before design/test-plan/ops run.)
 
 1. Drop any parked item whose default the plan already made moot (a later phase decided it).
 2. Surface the rest via `AskUserQuestion`, **batched 4 per call**, each stating the chosen default and what changes if overridden. Every item is pre-answered by its default, so the user can accept the whole batch in one pass.
@@ -390,6 +401,8 @@ L2  spec                          (hard barrier)
 L3  [decide, pseudo]              (one message)
 L4  [data]
 L5  [arch, ux]                    (one message)
+    WIREFRAME GATE                (frontend=yes: cfn-ux emitted a wireframe; Approve/Revise
+                                  BLOCKS before L6. Approve → L6; Revise → cfn-ux patch, re-render)
 L6  [design, ops]                 (one message)
 L7  test_plan                     (consumes OPS §2 + DATA §6; own level below ops at beta+)
 L8  write_plan                    (slash command, main chat) + Bar A
