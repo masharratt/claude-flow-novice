@@ -134,12 +134,20 @@ cmd_run() {
       continue
     fi
 
-    local class mode exit_code excerpt pass_val pred_unv evidence
+    local class mode exit_code excerpt pass_val pred_unv evidence reason
     mode=""; exit_code="null"; excerpt=""; pass_val="null"; pred_unv="false"; evidence=""
+    # S005 (origin: MANIFEST_HANDOFF_conversational_interview_engine.md item 2):
+    # every row states WHY it landed where it did, in-band. A check that ran 0
+    # tests was already red, but the only thing an author saw was the runner's
+    # tail -- for cargo, incremental-compile fs warnings -- with nothing saying
+    # "this proved nothing". Authors read that as a feature failure and went
+    # hunting in correct code.
+    reason=""
     class="$(classify "$check")"
 
     if [ "$class" = "db-query" ] && [ -z "${CFN_VERIFY_DATABASE_URL:-}" ]; then
       class="needs_agent"
+      reason="needs_agent: db-query check but CFN_VERIFY_DATABASE_URL is unset — resolve with captured evidence, or set the var and re-run"
     fi
 
     case "$class" in
@@ -159,28 +167,46 @@ cmd_run() {
           #     check itself is broken.
           #   - skipped/todo present: a skipped guard is not a guard.
           # Exit code is only trusted when the runner's own summary is
-          # unrecognized ("unknown": cargo/go/mocha/ava/npx/npm/pnpm/node/bash/
-          # tsc, or an unparseable summary shape); those keep the pre-S002
+          # unrecognized ("unknown": mocha/ava/bash/tsc, non-verbose `go test`,
+          # or an unparseable summary shape); those keep the pre-S002
           # exit-code-only semantics because this parser does not cover them.
+          # S005 moved cargo, cargo-nextest and `go test -v` OUT of that set.
           local raw_tmp
           raw_tmp="$(mktemp)"
           printf '%s\n' "$raw" > "$raw_tmp"
           if parse_test_summary "$raw_tmp"; then
             if [ "$PTS_COLLECTED" -eq 0 ]; then
               pass_val="false"
+              reason="zero_tests_ran: check ran 0 tests (runner=$PTS_RUNNER, filtered_out=$PTS_FILTERED) — the selector or flag in this check matched no test, so it proves nothing. Fix the check, not the feature."
+              echo "  [$acid] zero_tests_ran (runner=$PTS_RUNNER, filtered_out=$PTS_FILTERED) — check selector/flag matched no test" >&2
             elif [ "$PTS_SKIP" -gt 0 ] || [ "$PTS_TODO" -gt 0 ]; then
               pass_val="false"
+              reason="skipped_present: $PTS_SKIP skipped / $PTS_TODO todo of $PTS_COLLECTED collected (runner=$PTS_RUNNER) — a skipped guard is not a guard"
             elif [ "$rc" -eq 0 ]; then
               pass_val="true"
+              reason="ok: $PTS_PASS/$PTS_COLLECTED passed (runner=$PTS_RUNNER)"
             else
               pass_val="false"
+              reason="runner_failed: exit $rc, $PTS_FAIL failed of $PTS_COLLECTED collected (runner=$PTS_RUNNER)"
             fi
           else
-            if [ "$rc" -eq 0 ]; then pass_val="true"; else pass_val="false"; fi
+            if [ "$rc" -eq 0 ]; then
+              pass_val="true"
+              reason="exit_code_only: runner summary unrecognized, trusting exit 0 — no proof any test ran"
+            else
+              pass_val="false"
+              reason="exit_code_only: runner summary unrecognized, exit $rc"
+            fi
           fi
           rm -f "$raw_tmp"
         else
-          if [ "$rc" -ne 0 ]; then pass_val="false"; else pred_unv="true"; pass_val="null"; fi
+          if [ "$rc" -ne 0 ]; then
+            pass_val="false"
+            reason="predicate_failed: exit $rc"
+          else
+            pred_unv="true"; pass_val="null"
+            reason="predicate_unverified: exit 0 but the check does not self-assert (no jq -e / grep -q / comparison) — resolve with captured evidence"
+          fi
         fi
         ;;
       db-query)
@@ -190,32 +216,45 @@ cmd_run() {
         exit_code="$rc"
         excerpt="$(printf '%s\n' "$raw" | tail -20)"
         mode="executed"
-        if [ "$rc" -ne 0 ]; then pass_val="false"; else pred_unv="true"; pass_val="null"; fi
+        if [ "$rc" -ne 0 ]; then
+          pass_val="false"
+          reason="predicate_failed: psql exit $rc"
+        else
+          pred_unv="true"; pass_val="null"
+          reason="predicate_unverified: psql exit 0 but the query does not self-assert — resolve with the captured rows"
+        fi
         ;;
       needs_agent)
         mode="needs_agent"; pass_val="null"
+        [ -n "$reason" ] || reason="needs_agent: check is not mechanically executable by this runner — resolve with captured evidence"
         ;;
     esac
 
     results+=("$(jq -n \
       --arg ac "$acid" --arg kind "$kind" --arg check "$check" --arg mode "$mode" \
       --argjson ec "$exit_code" --argjson pass "$pass_val" --argjson pu "$pred_unv" \
-      --arg out "$excerpt" --arg ev "$evidence" --arg ts "$(now_ts)" \
-      '{ac_id:$ac,kind:$kind,check:$check,mode:$mode,exit_code:$ec,pass:$pass,predicate_unverified:$pu,output_excerpt:$out,evidence:$ev,timestamp:$ts}')")
+      --arg out "$excerpt" --arg ev "$evidence" --arg rs "$reason" --arg ts "$(now_ts)" \
+      '{ac_id:$ac,kind:$kind,check:$check,mode:$mode,exit_code:$ec,pass:$pass,predicate_unverified:$pu,reason:$rs,output_excerpt:$out,evidence:$ev,timestamp:$ts}')")
   done
 
-  local arr; arr="$(printf '%s\n' "${results[@]:-}" | jq -s '.')"
+  local arr arrfile; arr="$(printf '%s\n' "${results[@]:-}" | jq -s '.')"
+  # ARG_MAX guard: --argjson passes $arr as a command-line arg, which blows the
+  # kernel limit (~128KB) on a large manifest (103 ACs x ~20-line excerpts).
+  # Write $arr to a temp file and read it via --slurpfile instead ($results is
+  # then [[<array>]], so unwrap with $results[0]).
+  arrfile="$(mktemp)"; printf '%s\n' "$arr" > "$arrfile"
   local doc
   doc="$(jq -n --arg slug "$SLUG" --arg vf "$VERIFY" --arg sha "$SHA" --arg ts "$(now_ts)" \
-    --argjson results "$arr" \
-    '{slug:$slug,verify_file:$vf,verify_sha256:$sha,timestamp:$ts,results:$results} | . + {summary: (
+    --slurpfile results "$arrfile" \
+    '{slug:$slug,verify_file:$vf,verify_sha256:$sha,timestamp:$ts,results:($results[0])} | . + {summary: (
         .results as $r |
         {total: ($r|length),
          executed: ([$r[]|select(.mode=="executed")]|length),
          needs_agent: ([$r[]|select(.mode=="needs_agent")]|length),
          green: ([$r[]|select(.pass==true)]|length),
          red: ([$r[]|select(.pass==false)]|length),
-         unresolved: ([$r[]|select(.pass==null)]|length)}
+         unresolved: ([$r[]|select(.pass==null)]|length),
+         zero_ran: ([$r[]|select((.reason // "")|startswith("zero_tests_ran"))]|length)}
         | . + {all_green: (.red==0 and .unresolved==0 and .total>0)}
       )}')"
 
@@ -263,7 +302,8 @@ cmd_resolve() {
          needs_agent: ([$r[]|select(.mode=="needs_agent")]|length),
          green: ([$r[]|select(.pass==true)]|length),
          red: ([$r[]|select(.pass==false)]|length),
-         unresolved: ([$r[]|select(.pass==null)]|length)}
+         unresolved: ([$r[]|select(.pass==null)]|length),
+         zero_ran: ([$r[]|select((.reason // "")|startswith("zero_tests_ran"))]|length)}
         | . + {all_green: (.red==0 and .unresolved==0 and .total>0)} )
   ' "$RESULTS")"
 

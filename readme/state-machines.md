@@ -287,7 +287,9 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 | executable AC runs, exit 0 | green | All assertions passed, output valid |
 | executable AC runs, exit 1-127 | red | Assertions failed or timeout |
 | AC marked `.skip(` or `.skipIf(` | red | (S001, S003) Skipped tests now count as red (prevent green-by-skip). Old behavior: skip counted as pass. cfn-allow-skip quarantine marker + docs/BACKLOG.md entry required. |
-| test-suite reports 0 collected | red | (S003) Empty test files or all tests skipped force red verdict (prevent pytest denominator-dropping). Old behavior: 0/0 counted as pass. |
+| test-suite reports 0 collected | red, `reason=zero_tests_ran` | (S003/S005) Empty test files, all tests skipped, or a selector/flag that matched no test force red. Old behavior: 0/0 counted as pass. S005 adds the reason string + `filtered_out` count + a stderr line, so the author sees "the check matched no test" instead of the runner's tail. |
+| cargo reports `N ignored` > 0 | red, `reason=skipped_present` | (S005) cargo says `ignored` where pytest says `skipped`. Before the cargo branch existed, Rust output was parsed as pytest, `PTS_SKIP` was always 0, and this rule never fired on any Rust project. |
+| runner summary shape unrecognized | verdict = exit code, `reason=exit_code_only` | Fallback for runners the parser does not cover (mocha/ava/custom). Recorded explicitly so "trusted the exit code, no proof any test ran" is visible rather than implied. |
 | AC marked `@pytest.mark.skipif` | red | Conditional skip marked red; requires cfn-allow-skip quarantine. |
 | AC type `db-query`: query runs, returns rows | green | Query executed; shape validation deferred to predicate check |
 | AC type `needs_agent`: evidence <3 lines | unresolved | Agent evidence too brief; verify-run resolve gate refuses it |
@@ -295,6 +297,8 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 | any AC unresolved after resolve phase | red | Predicate or agent evidence missing; cfn-loop-task may iterate to Phase 2 |
 
 **Verdict determinism:** AC verdict is fully determined by executable check output + parse-test-summary.sh classification (S002). Prose description never affects verdict. Results JSON from verify-run is single source of truth.
+
+**Verdict reason (S005, 2026-07-22):** every results row carries a `reason` string naming which rule decided it — `zero_tests_ran` / `skipped_present` / `runner_failed` / `ok` / `exit_code_only` / `predicate_failed` / `predicate_unverified` / `needs_agent`. `summary.zero_ran` counts the first case separately, because a zero-ran check is a *check* defect (wrong selector, `--ignored` vs `#[ignore]` mismatch, wrong module path with `--exact`) and never a feature failure. Sending authors to debug correct code was the dominant cost in both 2026-07-22 field handoffs.
 
 **Mutation-probe gate (5E.0):** Before verdict finalization, mutation probe on each core FR: inject semantic bug, expect red verdict, restore. If mutation survives (verify-run still green), AC is strengthened by cfn-loop-task Phase 2 re-run (S-series findings force loop iteration).
 

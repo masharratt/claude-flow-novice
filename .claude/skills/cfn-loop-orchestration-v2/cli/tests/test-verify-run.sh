@@ -160,6 +160,83 @@ bless "$VF"
 assert_exit $? 0 "S002: unrecognized summary format falls back to exit-code (rc=0 -> green)"
 [ "$(jq -r '.results[0].pass' "$WORK/res-unknown.json")" = "true" ] && ok "S002: unknown-format fallback uses exit code" || no "S002: unknown-format fallback uses exit code"
 
+# ---- S005: cargo output is parsed as cargo, and 0-ran is loud ----
+# Origin: MANIFEST_HANDOFF_conversational_interview_engine.md. A check that
+# added `--ignored` to a plain `#[test]` made cargo run 0 tests and exit 0.
+# The AC went red (correct) but the only thing the author saw was the cargo
+# tail -- incremental-compile fs warnings -- with no line saying the check
+# proved nothing. These assert the diagnosis is now in-band.
+VF=$(mkvf cargozero <<'JSON'
+{ "slug":"cargozero","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"unit","check":"bash -c 'printf \"test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 645 filtered out; finished in 0.01s\\n\"; exit 0'","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-cargozero.json" >/dev/null 2>&1
+assert_exit $? 1 "S005: cargo 0-ran -> exit 1"
+[ "$(jq -r '.results[0].pass' "$WORK/res-cargozero.json")" = "false" ] && ok "S005: cargo 0-ran forced red despite rc=0" || no "S005: cargo 0-ran forced red despite rc=0"
+jq -r '.results[0].reason' "$WORK/res-cargozero.json" | grep -q 'zero_tests_ran' \
+  && ok "S005: reason names zero_tests_ran, not a bare exit code" || no "S005: reason names zero_tests_ran"
+jq -r '.results[0].reason' "$WORK/res-cargozero.json" | grep -q 'filtered_out=645' \
+  && ok "S005: reason surfaces filtered_out count (the flag/selector mismatch tell)" || no "S005: reason surfaces filtered_out count"
+[ "$(jq -r '.summary.zero_ran' "$WORK/res-cargozero.json")" = "1" ] && ok "S005: summary counts zero_ran separately" || no "S005: summary counts zero_ran separately"
+
+# cargo "ignored" must reach the S002 skipped rule. Before the cargo branch
+# existed, Rust output was parsed as pytest, which looks for the word
+# "skipped" -- so PTS_SKIP was always 0 and an all-ignored Rust suite read green.
+VF=$(mkvf cargoignored <<'JSON'
+{ "slug":"cargoignored","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"unit","check":"bash -c 'printf \"test result: ok. 5 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.10s\\n\"; exit 0'","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-cargoign.json" >/dev/null 2>&1
+assert_exit $? 1 "S005: cargo ignored>0 -> exit 1 (S002 rule now fires for Rust)"
+jq -r '.results[0].reason' "$WORK/res-cargoign.json" | grep -q 'skipped_present' \
+  && ok "S005: reason names skipped_present for cargo 'ignored'" || no "S005: reason names skipped_present"
+
+# A genuinely green cargo run must still go green -- no false-positive red.
+VF=$(mkvf cargogreen <<'JSON'
+{ "slug":"cargogreen","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"unit","check":"bash -c 'printf \"test result: ok. 645 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.20s\\n\"; exit 0'","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-cargogreen.json" >/dev/null 2>&1
+assert_exit $? 0 "S005: genuine cargo pass still goes green"
+jq -r '.results[0].reason' "$WORK/res-cargogreen.json" | grep -q 'runner=cargo' \
+  && ok "S005: green reason records runner=cargo (not the old pytest misparse)" || no "S005: green reason records runner=cargo"
+
+# nextest has no "in <N>s" tail, so it used to fall through to exit-code-only.
+VF=$(mkvf nextestzero <<'JSON'
+{ "slug":"nextestzero","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"unit","check":"bash -c 'printf \"     Summary [   0.001s] 0 tests run: 0 passed, 0 skipped\\n\"; exit 0'","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-nextestzero.json" >/dev/null 2>&1
+assert_exit $? 1 "S005: nextest 0-ran -> exit 1 (was exit-code-only green)"
+jq -r '.results[0].reason' "$WORK/res-nextestzero.json" | grep -q 'zero_tests_ran' \
+  && ok "S005: nextest 0-ran reason is loud" || no "S005: nextest 0-ran reason is loud"
+
+# Every non-executed row still carries a reason a human can act on.
+jq -e '.results[0].reason | test("needs_agent")' "$WORK/res-agent.json" >/dev/null 2>&1 \
+  && ok "S005: needs_agent rows carry a reason" || no "S005: needs_agent rows carry a reason"
+jq -e '.results[0].reason | test("predicate_unverified")' "$WORK/res-pred.json" >/dev/null 2>&1 \
+  && ok "S005: predicate_unverified rows carry a reason" || no "S005: predicate_unverified rows carry a reason"
+
 # ---- sha256 mismatch -> exit 4 ----
 VF=$(mkvf tamper <<'JSON'
 { "slug":"tamper","done_rule":"all acs green",

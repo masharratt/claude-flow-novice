@@ -312,3 +312,6 @@ src/planning/**/*.d.ts.map
 
 # Video-skill example media (regenerable; 36M+ of demo renders)
 .claude/skills/hyperframes-animation/examples/assets/
+
+# CFN local cache
+.cfn-cache/
