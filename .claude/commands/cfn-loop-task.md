@@ -126,6 +126,7 @@ The 0/0 policy (zero compile errors in scoped work and scoped tests, zero remain
 │    ├── 5E.2 resolve needs_agent / predicate_unverified rows │
 │    ├── 5E.3 verify-run.sh summary (exit 0 done / 1 iterate  │
 │    │        back to Phase 2 / 4 Stop For)                   │
+│    ├── 5E.3a backfill evidence + bless --stage exit         │
 │    ├── 5E.4 all-green final gate (--threshold 1.0)          │
 │    ├── 5E.4a deferrals.sh gate (no open blocking needs)     │
 │    └── 5E.5 prod-build smoke (frontend + build script)      │
@@ -492,6 +493,21 @@ SUMMARY_EXIT=$?
 | 1 | red or unresolved AC(s) | The red ACs are iteration fuel: go back to Phase 2 (counts against MAX_ITERATIONS). If ITERATION > MAX_ITERATIONS, report failure and EXIT |
 | 4 | VERIFY sha256 mismatch | Stop For (the manifest was edited since Bar A; same as Step 0a) |
 
+#### 5E.3a Backfill evidence and re-bless at the exit stage (S007)
+
+Runs only when 5E.3 exited 0. The manifest was blessed at plan stage with `evidence: "PENDING: <reason>"` on rows whose code did not exist yet; the run above executed every check, so its recorded output is the real evidence.
+
+```bash
+./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh backfill-evidence \
+  --results planning/VERIFY_RESULTS_${SLUG}.json \
+  --verify  planning/VERIFY_${SLUG}.md
+
+.claude/skills/cfn-megaplan/bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" \
+  --stage exit --note "exit gate: evidence backfilled from VERIFY_RESULTS"
+```
+
+Only green rows are backfilled. `bless-verify.sh --stage exit` refuses (exit 1) on any surviving `PENDING`, which means an AC reported green without producing output — treat that as a red row, not a formality, and iterate. The re-bless re-pins the sidecar over the rewritten file; skipping it leaves the sidecar stale and the next `verify-run.sh` exits 4.
+
 #### 5E.4 All-green final gate (W4)
 
 Code changed since Phase 3 (vote-applied 3/3, 2/3, 1/3 items), so a mandatory final FULL-suite re-run is required. This gate is `--threshold 1.0`, not the mode rate gate.
@@ -628,6 +644,8 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 [Phase 5] 5E.2 1 needs_agent row (playwright login) -> agent captures excerpt
           -> verify-run.sh resolve --pass true
 [Phase 5] 5E.3 verify-run.sh summary -> exit 0 (all green)
+[Phase 5] 5E.3a backfill-evidence -> 22 rows PENDING -> real output;
+          bless-verify.sh --stage exit -> blessed #2 (predicate_changed false)
 [Phase 5] 5E.4 gate-check.sh --threshold 1.0 -> 22/22 all green
 [Phase 5] 5E.4a deferrals.sh gate --slug auth -> exit 0 (no open blocking needs)
 [Phase 5] 5E.5 frontend=no -> skip build smoke. EXIT (done).
@@ -643,7 +661,7 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 | 2. Loop 3 | Full epic implementation | → Phase 3 | Retry |
 | 3. Gate | typecheck + deferral capture (3.01) + hygiene + gate-check.sh (+baseline, +flaky re-run) | → Phase 4 | → Phase 2 (iterate) |
 | 4. Gate wiring + Vote | resolve gate set, hard gates first, cfn-vote-implement per manifest | → Phase 5 | → Phase 2 (migration-rehearsal fail) / Re-vote |
-| 5. Exit gate | 5E.0 mutation → 5E.1-5E.3 verify-run.sh → 5E.4 all-green → 5E.4a deferrals gate → 5E.5 build smoke; 1/3 batched prompts resolved first | EXIT (all-green or quarantine) | → Phase 2 (red AC / surviving mutation / open blocking deferral, bounded by MAX_ITERATIONS) |
+| 5. Exit gate | 5E.0 mutation → 5E.1-5E.3 verify-run.sh → 5E.3a evidence backfill + exit bless → 5E.4 all-green → 5E.4a deferrals gate → 5E.5 build smoke; 1/3 batched prompts resolved first | EXIT (all-green or quarantine) | → Phase 2 (red AC / surviving mutation / open blocking deferral, bounded by MAX_ITERATIONS) |
 
 **Routing matrix:**
 

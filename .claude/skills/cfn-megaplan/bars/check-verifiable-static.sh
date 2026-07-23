@@ -3,22 +3,73 @@
 # Runs BEFORE the LLM gate report; a FAIL here means the VERIFY manifest is not
 # machine-decidable and cfn-loop-task could not mechanically decide "done".
 #
-# Usage:   check-verifiable-static.sh <planning/VERIFY_<slug>.md>
+# Usage:   check-verifiable-static.sh <planning/VERIFY_<slug>.md> [--stage plan|exit]
+#          --stage plan (default) — the manifest is being blessed at planning
+#            time, before the code exists. `evidence: "PENDING: <reason>"` is
+#            accepted (warn), because a check for unwritten code cannot have run.
+#          --stage exit — the manifest is being re-blessed at the completion
+#            gate. Every check has had code to run against, so a surviving
+#            PENDING marker is an error.
 # Output:  JSON findings array on stdout:
 #            [{"file":"...","ac_id":"...","field":"...","issue":"...","severity":"error|warn"}]
 #          Empty array [] when clean.
 # Exit:    0 = clean OR warnings only
 #          1 = one or more error-severity findings
-#          2 = usage / file-not-found / jq-missing / no json manifest block
+#          2 = usage / bad --stage / file-not-found / jq-missing / no json manifest block
 # Deps:    jq
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PHRASE_FILE="$SCRIPT_DIR/weasel-phrases.txt"
 
+# Shared runner-summary parser, used to validate that an AC's pasted `evidence`
+# actually shows tests running. Sourced from the orchestration skill because it
+# is already the single source of this logic for gate-check.sh and
+# verify-run.sh; a third copy here would drift from those two. Degrades to a
+# warn-level finding (see EVIDENCE_PARSER_OK) when the file is not reachable,
+# so this checker never hard-fails on a missing sibling skill.
+EVIDENCE_PARSER_OK=0
+PARSER_LIB="$SCRIPT_DIR/../../cfn-loop-orchestration-v2/cli/lib/parse-test-summary.sh"
+if [ -f "$PARSER_LIB" ]; then
+  # shellcheck source=../../cfn-loop-orchestration-v2/cli/lib/parse-test-summary.sh
+  source "$PARSER_LIB" && EVIDENCE_PARSER_OK=1
+fi
+
+# Controlled `kind` vocabulary. Closed set, exact match, lowercased.
+#
+# S007 (origin: MANIFEST_HANDOFF_conversational_interview_engine.md pattern 5):
+# an unrecognized kind used to fall through to a WARN. That made the taxonomy
+# check -- the lint whose whole job is catching a `check` body that contradicts
+# its `kind` -- unreachable for any kind outside the case patterns. The real
+# manifest that motivated this declared `kind: cargo-test` with a grep body and
+# sailed through, because a kind that matches no case matches no rule either.
+VALID_KINDS="unit integration e2e ui e2e/ui assembled-path wiring-guard db db-query http curl build type compile static lint migration-rehearsal perf a11y security"
+
+# Kinds whose check must drive a test runner, so whose evidence must show a
+# runner summary with a non-zero collected count.
+RUNNER_KINDS="unit integration e2e ui e2e/ui assembled-path"
+
+in_list() { # needle haystack
+  case " $2 " in *" $1 "*) return 0 ;; esac
+  return 1
+}
+
 VERIFY="${1:-}"
+STAGE="plan"
+if [ $# -gt 0 ]; then shift; fi
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --stage) STAGE="${2:-}"; shift 2 || true ;;
+    *) echo "unknown arg: $1" >&2; exit 2 ;;
+  esac
+done
+case "$STAGE" in
+  plan|exit) : ;;
+  *) echo "error: --stage must be 'plan' or 'exit' (got '$STAGE')" >&2; exit 2 ;;
+esac
+
 if [ -z "$VERIFY" ]; then
-  echo 'usage: check-verifiable-static.sh <planning/VERIFY_<slug>.md>' >&2
+  echo 'usage: check-verifiable-static.sh <planning/VERIFY_<slug>.md> [--stage plan|exit]' >&2
   exit 2
 fi
 if [ ! -f "$VERIFY" ]; then
@@ -114,7 +165,7 @@ while [ "$i" -lt "$AC_COUNT" ]; do
   ACID=$(echo "$AC" | jq -r '.id // "AC-?"')
 
   # 1: shape
-  for f in id check kind pass maps_to; do
+  for f in id check kind pass maps_to evidence; do
     if [ "$(echo "$AC" | jq --arg k "$f" 'has($k)')" != "true" ]; then
       add_finding "$ACID" "$f" "AC missing required field" "error"
     fi
@@ -123,6 +174,81 @@ while [ "$i" -lt "$AC_COUNT" ]; do
   KIND=$(echo "$AC" | jq -r '.kind // ""' | tr '[:upper:]' '[:lower:]')
   CHECK=$(echo "$AC" | jq -r '.check // ""')
   PASS=$(echo "$AC" | jq -r '.pass // ""')
+  EVIDENCE=$(echo "$AC" | jq -r '.evidence // ""')
+
+  # 1c: controlled kind vocabulary (S007). Exact membership, error not warn.
+  if [ -n "$KIND" ] && ! in_list "$KIND" "$VALID_KINDS"; then
+    add_finding "$ACID" "kind" "unrecognized check kind '$KIND' — must be one of: $VALID_KINDS" "error"
+  fi
+
+  # 1d: run-before-bless evidence (S007). The `check` must have been EXECUTED
+  # once and its actual output pasted here before the manifest is hashed.
+  # Authoring happens against the plan and verification happens against the
+  # code; nothing else in the loop forces those two to be the same statement,
+  # which is how 21/147 and 71/104 ACs went runtime-red against correct code.
+  if [ -z "${EVIDENCE//[[:space:]]/}" ]; then
+    add_finding "$ACID" "evidence" "no runtime evidence — run this check once and paste its actual output (test result line, grep hit count, or exit status) before blessing the manifest" "error"
+  elif [[ "$EVIDENCE" =~ ^[[:space:]]*PENDING([[:space:]]*:|[[:space:]]|$) ]]; then
+    # A greenfield manifest is authored before the code exists, so its checks
+    # cannot have been run. `PENDING: <reason>` keeps the field honest instead
+    # of inviting a fabricated paste, and the exit-stage bless turns every
+    # surviving marker into a hard failure.
+    if [ "$STAGE" = "exit" ]; then
+      add_finding "$ACID" "evidence" "evidence_pending: still 'PENDING' at the exit bless — the code exists now, so run this check and paste its real output" "error"
+    else
+      add_finding "$ACID" "evidence" "evidence_pending: placeholder accepted at the plan-stage bless; the exit-stage bless will reject it" "warn"
+    fi
+  elif [ "$EVIDENCE_PARSER_OK" -eq 1 ] && in_list "$KIND" "$RUNNER_KINDS"; then
+    # A runner-kind AC's evidence must show tests actually running. Without
+    # this, the bar just moves the rubber stamp one field to the left: cargo
+    # exits 0 whether the filter matched 645 tests or 0, so an author doing a
+    # manual preflight sees exit 0 and blesses a check that proves nothing.
+    EV_TMP=$(mktemp)
+    printf '%s\n' "$EVIDENCE" > "$EV_TMP"
+    if parse_test_summary "$EV_TMP"; then
+      if [ "$PTS_COLLECTED" -eq 0 ]; then
+        add_finding "$ACID" "evidence" "evidence_zero_ran: pasted evidence shows 0 tests collected (runner=$PTS_RUNNER, filtered_out=$PTS_FILTERED) — the check's selector or flag matched no test, so this evidence proves nothing" "error"
+      fi
+    else
+      add_finding "$ACID" "evidence" "evidence for a runner kind does not contain a recognizable test-runner summary line — paste the runner's own 'test result' / 'Tests N passed' output, not a description of it" "warn"
+    fi
+    rm -f "$EV_TMP"
+  elif [ "$EVIDENCE_PARSER_OK" -eq 0 ] && in_list "$KIND" "$RUNNER_KINDS"; then
+    add_finding "$ACID" "evidence" "evidence not machine-checked: parse-test-summary.sh not found at $PARSER_LIB" "warn"
+  fi
+
+  # 1e: unrunnable selector shorthand (S007). `<file>::<name>` is a
+  # manifest-internal convention no runner implements: vitest and playwright
+  # both read it as a single filename and report "No test files found" (exit
+  # non-zero, zero tests run). 89 of one field manifest's 104 checks used it.
+  if echo "$CHECK" | grep -qE '[A-Za-z0-9_/.-]+\.(spec|test)\.[a-z]+::|\.rs::|\.py::[a-z_]+ '; then
+    add_finding "$ACID" "check" "unrunnable_selector: '<file>::<name>' is not a selector any runner accepts — use -t \"<name>\" (vitest/jest), -g \"<name>\" (playwright), or 'cargo test <path> -- --exact'" "error"
+  fi
+
+  # 1f: requires{} precondition shape (S007). verify-run.sh reports an unmet
+  # precondition as `blocked` rather than red; a malformed one would silently
+  # never be enforced.
+  if [ "$(echo "$AC" | jq 'has("requires")')" = "true" ]; then
+    REQ=$(echo "$AC" | jq -c '.requires')
+    ENV_N=$(echo "$REQ" | jq '(.env // []) | length')
+    ei=0
+    while [ "$ei" -lt "$ENV_N" ]; do
+      ENTRY=$(echo "$REQ" | jq -r ".env[$ei]")
+      if ! echo "$ENTRY" | grep -qE '^[A-Za-z_][A-Za-z0-9_]*(=.*)?$'; then
+        add_finding "$ACID" "requires.env" "malformed env precondition '$ENTRY' — must be NAME (asserted present) or NAME=value (exported into the check)" "error"
+      fi
+      ei=$((ei + 1))
+    done
+    if [ "$(echo "$REQ" | jq 'has("http")')" = "true" ]; then
+      REQ_HTTP=$(echo "$REQ" | jq -r '.http')
+      echo "$REQ_HTTP" | grep -qE '^https?://' \
+        || add_finding "$ACID" "requires.http" "http precondition '$REQ_HTTP' is not an absolute http(s) URL" "error"
+    fi
+    if [ "$(echo "$REQ" | jq 'has("db")')" = "true" ] \
+       && [ "$(echo "$REQ" | jq -r '.db | type')" != "boolean" ]; then
+      add_finding "$ACID" "requires.db" "db precondition must be a boolean" "error"
+    fi
+  fi
 
   # 2: taxonomy — check form must match the kind family
   if [ -n "$CHECK" ] && [ -n "$KIND" ]; then
@@ -136,7 +262,10 @@ while [ "$i" -lt "$AC_COUNT" ]; do
       *wiring-guard*)                                    echo "$CHECK" | grep -qiE '(grep|rg |ast)' || tax_ok=0 ;;
       *migration-rehearsal*)                             echo "$CHECK" | grep -qiE 'migration-rehearsal' || tax_ok=0 ;;
       *unit*|*integration*|*assembled*)                  echo "$CHECK" | grep -qiE '(vitest|jest|mocha|ava|cargo|pytest|go |golang|npx|npm|pnpm|node |bash |tsc)' || tax_ok=0 ;;
-      *)                                                 add_finding "$ACID" "kind" "unrecognized check kind '$KIND' (cannot verify taxonomy)" "warn" ;;
+      # Vocabulary membership is enforced by check 1c above (error). A kind
+      # that is IN the vocabulary but has no form rule here (perf, a11y,
+      # security) is intentionally unconstrained on check form.
+      *)                                                 : ;;
     esac
     if [ "$tax_ok" -eq 0 ]; then
       add_finding "$ACID" "check" "check form does not match taxonomy for kind '$KIND'" "error"

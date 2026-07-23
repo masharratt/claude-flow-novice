@@ -264,11 +264,15 @@ Run `/write-plan "<task>" --mode=<tier>`; it consumes every `planning/<PHASE>_<s
 
 Exit 1 (error findings — missing AC field, taxonomy mismatch, non-decidable/weasel pass, coverage-counter gap) routes back to the owning phase and counts against the same 3-round Bar A bound. Do not hand-write this scan. Only when it is clean (exit 0) do you proceed.
 
-**Bless the integrity hash (W2).** After Bar A passes (static pass clean), write the sidecar that pins the validated bytes — `cfn-loop-task` Step 0 and `verify-run.sh` recompute it to detect a post-gate manifest edit:
+**Bless the integrity hash (W2).** After Bar A passes (static pass clean), bless the manifest. Use `bless-verify.sh` — **never write the sidecar by hand.** It re-runs the static checker and refuses to pin anything on an error finding, then writes the sidecar plus an append-only bless ledger naming which ACs moved:
 
 ```bash
-sha256sum "planning/VERIFY_${SLUG}.md" | awk '{print $1}' > "planning/.VERIFY_${SLUG}.sha256"
+.claude/skills/cfn-megaplan/bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" --note "Bar A pass"
 ```
+
+Exit 1 = refused (Bar A findings remain, nothing pinned). On a re-bless it prints `structure_changed` / `predicate_changed`; a `predicate_changed: true` means a `pass` condition moved and needs a stated reason before you advance.
+
+This is the **plan-stage** bless (the default), which is why every AC's `evidence` field reads `PENDING: <reason>` here — the code it checks does not exist yet. `cfn-loop-task` 5E.3a backfills the real output from the exit-gate run and re-blesses with `--stage exit`, which rejects any surviving `PENDING`.
 
 **PLAN persistence gate (REQUIRED — downstream `/cfn-loop-task` hard-depends on it).** `/write-plan` writes `planning/PLAN_<slug>.md`; this is the lane-derivation source `cfn-loop-task` reads. After `/write-plan` returns, assert the file exists:
 
@@ -304,7 +308,7 @@ Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readi
 | artifact prose only, no AC row and no plan step | the static passes (`check-verifiable-static.sh`, `check-haiku-static.sh`) |
 | an AC row (added/removed/rewritten), or a `[core]` FR, or a plan step's semantics | full Bar A + full Bar B, including the live haiku probe |
 
-Any edit to `VERIFY_<slug>.md` **must** re-bless the integrity hash (`sha256sum ... > planning/.VERIFY_<slug>.sha256`), or `cfn-loop-task` Step 0 will correctly reject the manifest as tampered.
+Any edit to `VERIFY_<slug>.md` **must** re-bless via `bars/bless-verify.sh "planning/VERIFY_<slug>.md" --note "<why>"`, or `cfn-loop-task` Step 0 will correctly reject the manifest as tampered. The re-bless appends a ledger entry naming the moved ACs and fields; read its `predicate_changed` line before accepting an override that touched a `pass` condition.
 
 Override rounds are bounded at 2. Residual disagreement is a scope question, not a planning loop — surface it and stop.
 

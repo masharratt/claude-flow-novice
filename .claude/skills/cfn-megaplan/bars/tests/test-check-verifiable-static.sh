@@ -10,8 +10,8 @@ RUN=0; PASS=0; FAIL=0
 ok()  { echo "PASS: $1"; PASS=$((PASS+1)); RUN=$((RUN+1)); }
 no()  { echo "FAIL: $1"; FAIL=$((FAIL+1)); RUN=$((RUN+1)); }
 
-# run <fixture> -> sets OUT (stdout) and CODE (exit)
-run() { OUT=$("$SCRIPT" "$FIX/$1" 2>/dev/null); CODE=$?; }
+# run <fixture> [args...] -> sets OUT (stdout) and CODE (exit)
+run() { local f="$1"; shift; OUT=$("$SCRIPT" "$FIX/$f" "$@" 2>/dev/null); CODE=$?; }
 
 assert_exit()     { if [ "$CODE" -eq "$1" ]; then ok "$2"; else no "$2 (exit $CODE, wanted $1)"; fi; }
 assert_has()      { if echo "$OUT" | grep -q "$1"; then ok "$2"; else no "$2 (missing '$1' in: $OUT)"; fi; }
@@ -93,6 +93,68 @@ assert_exit 0 "wiring-flag-tautology: exit 0 (warn does not fail)"
 assert_has 'flag_tautology_risk' "wiring-flag-tautology: flags flag_tautology_risk"
 assert_has '"severity":"warn"' "wiring-flag-tautology: warn severity"
 assert_missing '"severity":"error"' "wiring-flag-tautology: no error severity"
+
+# ---- S007: run-before-bless evidence ----
+# Both 2026-07-22 field handoffs traced their reds to the same gap: checks were
+# authored from the plan and hashed on shape, and nothing forced them to be
+# executed once before the hash was blessed. 21/147 and 71/104 runtime-red
+# against CORRECT code. Requiring a pasted runtime result closes it at bless
+# time instead of at loop-exit time.
+run evidence-missing.md
+assert_exit 1 "evidence-missing: exit 1"
+assert_has 'evidence' "evidence-missing: names the evidence field"
+assert_has '"severity":"error"' "evidence-missing: error severity"
+
+# Evidence that itself proves the check ran nothing must not satisfy the bar --
+# otherwise the gate just moves the rubber stamp one field to the left.
+run evidence-zero-ran.md
+assert_exit 1 "evidence-zero-ran: exit 1"
+assert_has 'evidence_zero_ran' "evidence-zero-ran: flags 0-test evidence"
+
+# A greenfield manifest is authored BEFORE the code exists, so its checks cannot
+# have been run yet. `PENDING: <reason>` is the only legal placeholder, and it is
+# legal ONLY at the plan-stage bless. Without this the evidence rule would be
+# unsatisfiable for every new build and would get routed around.
+run evidence-pending.md
+assert_exit 0 "evidence-pending: exit 0 at plan stage (default)"
+assert_has 'evidence_pending' "evidence-pending: still reports the pending marker"
+assert_missing '"severity":"error"' "evidence-pending: warn, not error, at plan stage"
+
+run evidence-pending.md --stage exit
+assert_exit 1 "evidence-pending: exit 1 at --stage exit"
+assert_has 'evidence_pending' "evidence-pending: names the pending marker at exit stage"
+assert_has '"severity":"error"' "evidence-pending: error severity at exit stage"
+
+# Real evidence must satisfy BOTH stages -- the exit stage adds a requirement, it
+# does not change what counts as valid evidence.
+run clean.md --stage exit
+assert_exit 0 "clean: exit 0 at --stage exit (real evidence satisfies both stages)"
+
+run clean.md --stage bogus
+assert_exit 2 "unknown --stage value -> exit 2"
+
+# ---- S007: controlled `kind` vocabulary ----
+# Previously an unrecognized kind fell to a WARN, so `kind: cargo-test` with a
+# grep body (fireside pattern 5) passed the taxonomy check by not matching any
+# case at all -- the kind/command consistency lint could never bite.
+run bad-kind.md
+assert_exit 1 "bad-kind: exit 1"
+assert_has 'unrecognized check kind' "bad-kind: rejects kind outside the vocabulary"
+assert_has '"severity":"error"' "bad-kind: error severity, not warn"
+
+# ---- S007: file::testname shorthand ----
+# 89 of NSC's 104 checks used it. No runner accepts it; both vitest and
+# playwright read it as a single filename and report "No test files found".
+run selector-shorthand.md
+assert_exit 1 "selector-shorthand: exit 1"
+assert_has 'unrunnable_selector' "selector-shorthand: flags the :: shorthand"
+
+# ---- S007: requires{} shape ----
+run requires-bad.md
+assert_exit 1 "requires-bad: exit 1"
+assert_has 'requires.env' "requires-bad: flags malformed env entry"
+assert_has 'requires.http' "requires-bad: flags non-URL http precondition"
+assert_has 'requires.db' "requires-bad: flags non-boolean db precondition"
 
 # usage errors -> exit 2
 "$SCRIPT" >/dev/null 2>&1; [ $? -eq 2 ] && ok "no-arg: exit 2" || no "no-arg: exit 2"

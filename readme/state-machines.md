@@ -278,7 +278,7 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 
 **Entity:** verdict assigned to each Acceptance Criterion during VERIFY manifest execution.
 
-**States:** `green | red | unresolved`
+**States:** `green | red | unresolved | blocked` (S007 added `blocked`)
 
 **Verdict rules (overrides old honor system):**
 
@@ -295,10 +295,30 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 | AC type `needs_agent`: evidence <3 lines | unresolved | Agent evidence too brief; verify-run resolve gate refuses it |
 | AC type `needs_agent`: evidence ≥3 lines | green (stamped) | Agent signature + summary captured; resolve gate marks AC green |
 | any AC unresolved after resolve phase | red | Predicate or agent evidence missing; cfn-loop-task may iterate to Phase 2 |
+| AC `requires` unmet (env unset, db URL absent, http URL unreachable) | blocked, `reason=precondition_unmet` | (S007) Infra absent is not feature failure. Counted in `summary.blocked`, resolvable with captured evidence like `needs_agent` once a human brings the infra up. One field loop hand-verified 27 rows to separate these two. |
+| AC `cwd` does not exist | blocked, `reason=precondition_unmet` | (S007) A monorepo subdir named in the manifest but absent on disk is a manifest defect, not a red check. |
 
 **Verdict determinism:** AC verdict is fully determined by executable check output + parse-test-summary.sh classification (S002). Prose description never affects verdict. Results JSON from verify-run is single source of truth.
 
-**Verdict reason (S005, 2026-07-22):** every results row carries a `reason` string naming which rule decided it — `zero_tests_ran` / `skipped_present` / `runner_failed` / `ok` / `exit_code_only` / `predicate_failed` / `predicate_unverified` / `needs_agent`. `summary.zero_ran` counts the first case separately, because a zero-ran check is a *check* defect (wrong selector, `--ignored` vs `#[ignore]` mismatch, wrong module path with `--exact`) and never a feature failure. Sending authors to debug correct code was the dominant cost in both 2026-07-22 field handoffs.
+**Verdict reason (S005, 2026-07-22):** every results row carries a `reason` string naming which rule decided it — `zero_tests_ran` / `skipped_present` / `runner_failed` / `ok` / `exit_code_only` / `predicate_failed` / `predicate_unverified` / `needs_agent` / `precondition_unmet` (S007). `summary.zero_ran` counts the first case separately, because a zero-ran check is a *check* defect (wrong selector, `--ignored` vs `#[ignore]` mismatch, wrong module path with `--exact`) and never a feature failure. Sending authors to debug correct code was the dominant cost in both 2026-07-22 field handoffs.
+
+## VERIFY Manifest Bless Lifecycle (bless-verify.sh, S007, 2026-07-22)
+
+**Entity:** the `planning/VERIFY_<slug>.md` manifest, from authoring to the done verdict.
+
+**States:** `draft → blessed(plan) → blessed(exit)`, with `refused` as the terminal-for-now state of a failed bless attempt.
+
+| From | To | Trigger | Guard |
+|---|---|---|---|
+| draft | refused | `bless-verify.sh` run with Bar A error findings | Sidecar is NOT written; nothing is pinned |
+| draft | blessed(plan) | `bless-verify.sh <file>` (default `--stage plan`) | `check-verifiable-static.sh --stage plan` clean. `evidence: "PENDING: <reason>"` allowed (warn) because the code does not exist yet |
+| blessed(plan) | blessed(plan) | manifest edited, re-blessed | Ledger appends an entry naming changed ACs + fields; `structure_changed` / `predicate_changed` reported separately |
+| blessed(plan) | blessed(exit) | `verify-run.sh backfill-evidence` then `bless-verify.sh --stage exit` (cfn-loop-task 5E.3a) | `--stage exit` errors on any surviving `PENDING`. Only green rows are backfilled |
+| blessed(*) | draft | any edit to the file | Sidecar goes stale; `verify-run.sh` exits 4 until re-blessed |
+
+**Why two stages:** a manifest is authored during planning, so "run the check once and paste its output" is impossible for code that does not exist. `PENDING` is the honest plan-time value, and the exit stage is where the loop collects on it. A single-stage rule would be unsatisfiable at plan time and therefore routed around.
+
+**Ledger (`planning/.VERIFY_<slug>.bless.json`, append-only):** each entry records `timestamp`, `sha256`, `stage`, `ac_count`, `note`, `changed[]`, `added`, `removed`, `structure_changed`, `predicate_changed`. `predicate_changed: true` is the gaming vector (a `pass` loosened until the code satisfies it) and never folds into "just check text".
 
 **Mutation-probe gate (5E.0):** Before verdict finalization, mutation probe on each core FR: inject semantic bug, expect red verdict, restore. If mutation survives (verify-run still green), AC is strengthened by cfn-loop-task Phase 2 re-run (S-series findings force loop iteration).
 

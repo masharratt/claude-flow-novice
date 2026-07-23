@@ -123,6 +123,15 @@ Rules (match Bar A exactly):
 - **binding** names the source of truth: a SPEC EC id, an RLS policy name, a DB query, a contract schema.
 - Every FR-n and every EC-n maps to >=1 AC row. Bar A fails the plan on any unmapped FR/EC.
 
+**Runnable-check rules (S007 — every one of these caused field reds against CORRECT code).** `verify-run.sh` executes the `check` string verbatim, so it must be an invocation the runner actually accepts:
+
+- **Never `<file>::<testname>`.** No runner implements it; vitest and playwright read it as a filename and report "No test files found". Use `-t "NAME"` (vitest/jest), `-g "NAME"` (playwright), `NAME -- --exact` (cargo). One field manifest used the `::` shorthand in 89 of 104 checks.
+- **Name tests that exist.** Copying a test name out of the plan when the implementation named it something else produces a filter matching zero tests. `cargo test` and `vitest -t` both exit **0** on a zero match, so nothing but the summary line catches it.
+- **`cwd`** — set the manifest-level `"cwd": "<subdir>"` (or per-AC `cwd`) whenever the runner config lives in a subdirectory. Playwright cannot run from a monorepo root when two `@playwright/test` versions resolve.
+- **`requires`** — declare live infrastructure the check needs: `{"env": ["RUN_INTEGRATION=1", "DATABASE_URL"], "db": true, "http": "http://localhost:3800/"}`. `NAME=value` is exported into the check, bare `NAME` is asserted present. An unmet precondition reports `blocked`, never red, so absent infra cannot masquerade as a broken feature. Omit `requires` entirely for checks that need nothing.
+- **`evidence` (REQUIRED)** — the check's actual output. This phase runs before the code exists, so every row you emit carries `"evidence": "PENDING: <reason>"`; the field is never omitted and never empty. `cfn-loop-task` 5E.3a backfills the real output from the exit-gate run and re-blesses with `--stage exit`, which rejects any surviving `PENDING`. When you write a check against code that ALREADY exists (standalone use of this skill, adding coverage to a shipped feature), run it now and paste the real output — Bar A fails `evidence_zero_ran` if the pasted runner summary shows zero tests collected. This is the only thing in the pipeline that forces a check authored against the plan to be reconciled with the code.
+- **`--ignored` only on `#[ignore]` tests.** Passing it to a plain `#[test]` filters that test out and the run collects zero.
+
 **Assembled-path requirement (FLOORED, every tier).** Every FR the spec marked `[core]` (the mechanism that must actually fire for the feature to exist) gets **>=1 AC row whose check drives the fully-assembled path through the running system**: real trigger -> real wired entry point -> observable outcome. This row is *in addition to* any unit rows for the same FR. A `[core]` FR covered only by the shortcut checks below is a hard defect in this phase — Bar A treats an unmet assembled-path requirement like an unmapped FR. (If the spec marked nothing `[core]`, raise an `[OPEN]` back to spec; do not guess.)
 
 Three banned shortcuts for a `[core]`-FR assembled-path row (each is how a green gate ships a dead feature):
@@ -180,7 +189,7 @@ Its **pass condition** is exit 0 with an empty schema-diff (up and down are prov
 
 Template AC row (mobile viewport):
 ```
-| AC-14 | booking flow renders on mobile | UX flow + DESIGN bp.sm | npx playwright test tests/booking.e2e.ts::flow --project=mobile-375 (via cfn-e2e) | test green at 375x667: form single-column, Submit reachable |
+| AC-14 | booking flow renders on mobile | UX flow + DESIGN bp.sm | npx playwright test tests/booking.e2e.ts -g "flow" --project=mobile-375 (via cfn-e2e) | test green at 375x667: form single-column, Submit reachable |
 ```
 **WSL2 note:** viewport variants are SEPARATE test entries for cfn-e2e batch sizing, never parallel browser pools. Each `--project` run is its own entry the e2e batcher sizes independently; do not spawn a concurrent browser pool per viewport (memory).
 
@@ -188,8 +197,8 @@ Check taxonomy (pick one per AC):
 
 | Kind | Form | Example |
 |---|---|---|
-| unit / integration test | `<runner> run <file>::<case>` | `vitest run tests/email.spec.ts::rejects_invalid` |
-| e2e / UI | `npx playwright test <file>::<case>` (run via cfn-e2e in WSL2); the assertion is stated in the pass-condition column | `npx playwright test tests/booking.e2e.ts::course_is_select` |
+| unit / integration test | `<runner> run <file> -t "<case>"` | `vitest run tests/email.spec.ts -t "rejects_invalid"` |
+| e2e / UI | `npx playwright test <file> -g "<case>"` (run via cfn-e2e in WSL2); the assertion is stated in the pass-condition column | `npx playwright test tests/booking.e2e.ts -g "course_is_select"` |
 | DB state | `db-query` SQL + expected rows | `SELECT ... returns N` |
 | HTTP | `curl` + status / body assertion | `curl -s /api/x \| jq .ok == true` |
 | build / type | `tsc --noEmit` / `cargo check` exit 0 | compile clean |
@@ -316,11 +325,11 @@ Cleanup order is child -> parent, or rely on `CASCADE`. No unscoped delete, no F
 
 | AC-id | criterion | binding | check | pass condition |
 |---|---|---|---|---|
-| AC-3 | course field is a dropdown sourced from the courses table | DB: `SELECT id, name FROM courses WHERE active` | `npx playwright test tests/booking.e2e.ts::course_is_select` (via cfn-e2e) | test green: `select#course` is a `<select>`, option set == query result, 0 free-text inputs |
-| AC-4 | booking row persists with the selected course | ARCH booking service contract | `vitest run tests/booking.int.ts::persists` (real DB, scoped fixture) | test green, row present with marker |
-| AC-7 | invalid email is rejected | spec EC-4 | `vitest run tests/email.spec.ts::rejects_invalid` | test green |
-| AC-9 | seats above course capacity blocked | spec EC-7 | `vitest run tests/seats.spec.ts::over_capacity` | test green, returns 400 SEATS_EXCEEDED |
-| AC-12 | empty course list shows "No courses available" + disabled Submit | UX empty state | `npx playwright test tests/booking.e2e.ts::empty_state` (via cfn-e2e; fixture: 0 active courses) | test green: banner text "No courses available" present, `button#submit[disabled]` |
+| AC-3 | course field is a dropdown sourced from the courses table | DB: `SELECT id, name FROM courses WHERE active` | `npx playwright test tests/booking.e2e.ts -g "course_is_select"` (via cfn-e2e) | test green: `select#course` is a `<select>`, option set == query result, 0 free-text inputs |
+| AC-4 | booking row persists with the selected course | ARCH booking service contract | `vitest run tests/booking.int.ts -t "persists"` (real DB, scoped fixture) | test green, row present with marker |
+| AC-7 | invalid email is rejected | spec EC-4 | `vitest run tests/email.spec.ts -t "rejects_invalid"` | test green |
+| AC-9 | seats above course capacity blocked | spec EC-7 | `vitest run tests/seats.spec.ts -t "over_capacity"` | test green, returns 400 SEATS_EXCEEDED |
+| AC-12 | empty course list shows "No courses available" + disabled Submit | UX empty state | `npx playwright test tests/booking.e2e.ts -g "empty_state"` (via cfn-e2e; fixture: 0 active courses) | test green: banner text "No courses available" present, `button#submit[disabled]` |
 
 Coverage: FR 2/2 mapped, EC 2/2 mapped, UX states mapped, CC n/a (no concurrency mechanism), SM n/a, OBS-required n/a (mvp), ADV n/a (mvp), migration_rehearsal n/a, viewport ok (mvp: desktop-1280).
 
@@ -328,9 +337,9 @@ Coverage: FR 2/2 mapped, EC 2/2 mapped, UX states mapped, CC n/a (no concurrency
 
 | Step | Failing test written first | Runnable at | Red -> Green |
 |---|---|---|---|
-| reject invalid email | `tests/email.spec.ts::rejects_invalid` | unit | fails (accepts) -> passes |
-| block over-capacity | `tests/seats.spec.ts::over_capacity` | unit | fails (allows) -> passes |
-| render course select | `tests/booking.e2e.ts::course_is_select` | assembled | fails (no select) -> passes |
+| reject invalid email | `tests/email.spec.ts` › `rejects_invalid` | unit | fails (accepts) -> passes |
+| block over-capacity | `tests/seats.spec.ts` › `over_capacity` | unit | fails (allows) -> passes |
+| render course select | `tests/booking.e2e.ts` › `course_is_select` | assembled | fails (no select) -> passes |
 
 ## Handoff
 

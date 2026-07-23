@@ -17,7 +17,8 @@
 #   fi
 #
 # parse_test_summary sets (always, even on no-match):
-#   PTS_RUNNER     jest | vitest | pytest | node | cargo | nextest | go | unknown
+#   PTS_RUNNER     jest | vitest | pytest | node | cargo | nextest | playwright
+#                  | go | unknown
 #   PTS_PASS       passed count (0 if runner reports none)
 #   PTS_FAIL       failed count
 #   PTS_ERROR      error count (pytest only; 0 for every other runner)
@@ -166,6 +167,35 @@ parse_test_summary() {
     else
       PTS_COLLECTED="$SUMMED"
     fi
+    rm -f "$clean"
+    return 0
+  fi
+
+  # --- playwright: "Running 16 tests using 4 workers" header, then a tail of
+  #   1 failed
+  #   2 flaky
+  #   13 passed (12.1s)
+  # S007 made `playwright:` checks executable, so this branch exists to stop
+  # them inheriting the exit-code-only hole the whole S002/S005 line closes:
+  # `--pass-with-no-tests` (or a config that sets it) turns a grep that matched
+  # nothing into exit 0.
+  #
+  # Identified by the HEADER, never by the bare "N passed (Xs)" tail: that tail
+  # shape is generic enough to false-match arbitrary program output, whereas
+  # "Running N tests using M worker(s)" is playwright-specific. The header's N
+  # is the pre-run count and is the authoritative denominator when it exceeds
+  # the summed tail (playwright omits a zero line rather than printing "0 skipped").
+  LINE=$(grep -E '^[[:space:]]*Running [0-9]+ tests? using [0-9]+ workers?' "$clean" | tail -1 || true)
+  if [[ -n "$LINE" ]]; then
+    PTS_RUNNER="playwright"
+    local PW_HEADER PW_SUM
+    PW_HEADER=$(echo "$LINE" | grep -oE '[0-9]+ tests?' | head -1 | grep -oE '^[0-9]+')
+    PW_HEADER=${PW_HEADER:-0}
+    PTS_PASS=$(pts_sum_count "$clean" '^[[:space:]]*[0-9]+ passed' 'passed')
+    PTS_FAIL=$(pts_sum_count "$clean" '^[[:space:]]*[0-9]+ (failed|flaky)' '(failed|flaky)')
+    PTS_SKIP=$(pts_sum_count "$clean" '^[[:space:]]*[0-9]+ (skipped|did not run)' '(skipped|did not run)')
+    PW_SUM=$((PTS_PASS + PTS_FAIL + PTS_SKIP))
+    if [ "$PW_HEADER" -gt "$PW_SUM" ]; then PTS_COLLECTED="$PW_HEADER"; else PTS_COLLECTED="$PW_SUM"; fi
     rm -f "$clean"
     return 0
   fi

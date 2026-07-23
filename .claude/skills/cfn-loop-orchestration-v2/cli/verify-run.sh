@@ -9,6 +9,10 @@
 #   run     --verify <VERIFY_<slug>.md> [--out <RESULTS.json>] [--only AC-3,AC-7] [--timeout N]
 #   resolve --results <RESULTS.json> --ac AC-3 --pass true|false --evidence-file <f>
 #   summary --results <RESULTS.json>
+#   backfill-evidence --results <RESULTS.json> --verify <VERIFY_<slug>.md>
+#           writes each green row's real output into that AC's `evidence` field
+#           (replacing the plan-stage `PENDING:` placeholder), then the manifest
+#           must be re-blessed with bars/bless-verify.sh --stage exit
 #
 # Env:  CFN_VERIFY_TIMEOUT_S      per-check timeout seconds (default 300)
 #       CFN_VERIFY_DATABASE_URL   when set, db-query: checks run via psql; else -> needs_agent
@@ -43,18 +47,105 @@ extract_manifest() {
   ' "$1"
 }
 
+# Strip a leading `playwright:` taxonomy prefix, returning the bare command.
+# Bar A REQUIRES e2e/ui ACs to carry this prefix; it is a kind marker, not part
+# of the command, so it must come off before execution.
+strip_pw() {
+  local c="$1"
+  case "$c" in
+    playwright:*) c="${c#playwright:}"; printf '%s' "${c#"${c%%[![:space:]]*}"}" ;;
+    *) printf '%s' "$c" ;;
+  esac
+}
+
 # Classify a check string -> executable | db-query | needs_agent
+#
+# S007 (origin: HANDOFF_verify_manifest_runnability.md): `playwright:` used to
+# map unconditionally to needs_agent while Bar A's taxonomy REQUIRED that exact
+# prefix on every e2e/ui AC. A Bar-A-compliant e2e AC therefore could never be
+# mechanically green, and authors routed around it by mislabeling `kind` -- which
+# is the kind/command drift the other handoff reported as its own defect. The
+# discriminator is now what FOLLOWS the prefix: a real shell command executes;
+# a prose assertion ("playwright: snapshot select#course, options match query",
+# the form Bar A's own examples use) still needs an agent.
 classify() {
   local check="$1"
   case "$check" in
-    playwright:*|playwright\ *) echo needs_agent; return ;;
-    db-query*)                  echo db-query;    return ;;
+    db-query*) echo db-query; return ;;
   esac
+  check="$(strip_pw "$check")"
   local first="${check%% *}"
   case "$first" in
-    vitest|jest|mocha|ava|cargo|pytest|go|npx|npm|pnpm|node|bash|tsc|curl|grep|rg|jq) echo executable ;;
+    vitest|jest|mocha|ava|cargo|pytest|go|npx|npm|pnpm|yarn|playwright|node|bash|tsc|curl|grep|rg|jq) echo executable ;;
     *) echo needs_agent ;;
   esac
+}
+
+# Verify an AC's `requires` preconditions.
+# Sets REQ_ENV (newline-separated NAME=value assignments the check must run
+# with) and, on failure, PRECOND_REASON. Returns 0 met / 1 unmet.
+#
+# Both channels are globals, NOT stdout: a `$(check_requires ...)` call would
+# run the function in a subshell, where PRECOND_REASON is assigned and then
+# discarded when the subshell exits.
+#
+# S007: "infra absent" must be reported distinctly from "feature broken". NSC's
+# loop had 27 rows that were unrunnable for want of a DB, a dev server, or an
+# env pin, all indistinguishable from real failures, so a human hand-verified
+# every one to find out which were which.
+#
+# `env` entries carry two different meanings by shape, deliberately:
+#   NAME=value  -> EXPORTED into the check. The manifest declares the pins the
+#                  check needs, so a human can read the row and reproduce the
+#                  run by hand unchanged.
+#   NAME        -> ASSERTED present in the runner's own environment. For
+#                  secrets (DB URLs, tokens) that must never be written into a
+#                  manifest that gets committed.
+PRECOND_REASON=""
+REQ_ENV=""
+check_requires() {
+  local ac="$1"
+  PRECOND_REASON=""
+  REQ_ENV=""
+  local req; req="$(echo "$ac" | jq -c '.requires // {}')"
+  [ "$req" = "{}" ] && return 0
+
+  local n i entry name
+  n="$(echo "$req" | jq '(.env // []) | length')"
+  i=0
+  while [ "$i" -lt "$n" ]; do
+    entry="$(echo "$req" | jq -r ".env[$i]")"
+    i=$((i + 1))
+    case "$entry" in
+      *=*) REQ_ENV="${REQ_ENV}${entry}"$'\n' ;;
+      *)
+        name="$entry"
+        if [ -z "${!name:-}" ]; then
+          PRECOND_REASON="precondition_unmet: required env var $name is unset in the runner's environment"
+          return 1
+        fi ;;
+    esac
+  done
+
+  if [ "$(echo "$req" | jq -r '.db // false')" = "true" ] && [ -z "${CFN_VERIFY_DATABASE_URL:-}" ]; then
+    PRECOND_REASON="precondition_unmet: requires.db but CFN_VERIFY_DATABASE_URL is unset"
+    return 1
+  fi
+
+  local url; url="$(echo "$req" | jq -r '.http // ""')"
+  if [ -n "$url" ]; then
+    if ! command -v curl >/dev/null 2>&1; then
+      PRECOND_REASON="precondition_unmet: requires.http $url but curl is not on PATH"
+      return 1
+    fi
+    # Any HTTP response proves the service is listening; a 404 still means the
+    # dev server is up. Only a connection failure is a blocked precondition.
+    if ! curl -sS -o /dev/null --max-time 5 "$url" >/dev/null 2>&1; then
+      PRECOND_REASON="precondition_unmet: requires.http $url is unreachable (service not running?)"
+      return 1
+    fi
+  fi
+  return 0
 }
 
 # exit-code-authoritative? runner kinds prove pass by exit code; predicate kinds
@@ -62,7 +153,7 @@ classify() {
 is_authoritative() {
   local check="$1"
   case "${check%% *}" in
-    vitest|jest|mocha|ava|cargo|pytest|go|npx|npm|pnpm|node|bash|tsc) return 0 ;;
+    vitest|jest|mocha|ava|cargo|pytest|go|npx|npm|pnpm|yarn|playwright|node|bash|tsc) return 0 ;;
   esac
   # predicate kinds: authoritative only if the command itself fails on a false predicate
   if echo "$check" | grep -qE '(jq -e|grep -q|rg -q| -eq | -ne |\[\[|test )'; then
@@ -109,10 +200,17 @@ cmd_run() {
   [ -n "${MANIFEST//[[:space:]]/}" ] || die2 "no fenced json manifest block in $VERIFY"
   echo "$MANIFEST" | jq -e . >/dev/null 2>&1 || die2 "manifest json does not parse"
 
-  local SLUG SHA
+  local SLUG SHA MANIFEST_CWD
   SLUG="$(echo "$MANIFEST" | jq -r '.slug // "unknown"')"
   SHA="$(sha256sum "$VERIFY" | awk '{print $1}')"
   [ -n "$OUT" ] || OUT="$dir/VERIFY_RESULTS_${SLUG}.json"
+  # S007: manifest-global cwd. Every check used to run from the git top-level,
+  # but in a monorepo the runner config (vitest.config / playwright.config /
+  # tsconfig path aliases) lives in a subdirectory and every manifest path is
+  # relative to it -- so from the repo root none of them resolved. Playwright
+  # specifically CANNOT run from the repo root when two @playwright/test
+  # versions resolve, so this is not fixable by path-prefixing the checks.
+  MANIFEST_CWD="$(echo "$MANIFEST" | jq -r '.cwd // ""')"
 
   # optional --only filter
   local only_filter=""
@@ -135,6 +233,7 @@ cmd_run() {
     fi
 
     local class mode exit_code excerpt pass_val pred_unv evidence reason
+    local ac_cwd run_cwd exec_check req_env
     mode=""; exit_code="null"; excerpt=""; pass_val="null"; pred_unv="false"; evidence=""
     # S005 (origin: MANIFEST_HANDOFF_conversational_interview_engine.md item 2):
     # every row states WHY it landed where it did, in-band. A check that ran 0
@@ -144,20 +243,55 @@ cmd_run() {
     # hunting in correct code.
     reason=""
     class="$(classify "$check")"
+    exec_check="$(strip_pw "$check")"
 
     if [ "$class" = "db-query" ] && [ -z "${CFN_VERIFY_DATABASE_URL:-}" ]; then
       class="needs_agent"
       reason="needs_agent: db-query check but CFN_VERIFY_DATABASE_URL is unset — resolve with captured evidence, or set the var and re-run"
     fi
 
+    # --- cwd resolution: per-AC overrides manifest-global overrides repo root.
+    ac_cwd="$(echo "$ac" | jq -r '.cwd // ""')"
+    [ -n "$ac_cwd" ] || ac_cwd="$MANIFEST_CWD"
+    run_cwd="$PROJECT_ROOT"
+    if [ -n "$ac_cwd" ]; then
+      case "$ac_cwd" in
+        /*) run_cwd="$ac_cwd" ;;
+        *)  run_cwd="$PROJECT_ROOT/$ac_cwd" ;;
+      esac
+    fi
+    if [ "$class" != "needs_agent" ] && [ ! -d "$run_cwd" ]; then
+      class="blocked"
+      reason="precondition_unmet: cwd '$ac_cwd' does not exist (resolved to $run_cwd)"
+    fi
+
+    # --- requires{} preconditions. Reported as `blocked`, never as red: an
+    # absent DB or a dead dev server is not a feature defect, and collapsing
+    # the two forced a human to hand-verify every row to tell them apart.
+    req_env=""
+    if [ "$class" = "executable" ] || [ "$class" = "db-query" ]; then
+      if check_requires "$ac"; then
+        req_env="$REQ_ENV"
+      else
+        class="blocked"
+        reason="$PRECOND_REASON"
+      fi
+    fi
+
     case "$class" in
       executable)
         local raw rc
-        raw="$(cd "$PROJECT_ROOT" && timeout "$TIMEOUT" bash -c "$check" 2>&1)"; rc=$?
+        local -a envargs=()
+        if [ -n "$req_env" ]; then
+          while IFS= read -r envline; do
+            [ -n "$envline" ] && envargs+=("$envline")
+          done <<< "$req_env"
+        fi
+        raw="$(cd "$run_cwd" && timeout "$TIMEOUT" env ${envargs[@]+"${envargs[@]}"} bash -c "$exec_check" 2>&1)"; rc=$?
         exit_code="$rc"
         excerpt="$(printf '%s\n' "$raw" | tail -20)"
         mode="executed"
-        if is_authoritative "$check"; then
+        if is_authoritative "$exec_check"; then
           # S002 (origin: ROOTCAUSE_mpa_thread_wiring_gap.md, AC-77): exit code 0
           # alone must never close a runner-kind AC: a fully skipIf-ed test file
           # exits 0 and used to mark the AC green. Parse the captured stdout via
@@ -212,7 +346,7 @@ cmd_run() {
       db-query)
         local sql raw rc
         sql="${check#db-query:}"; sql="${sql#db-query}"
-        raw="$(cd "$PROJECT_ROOT" && timeout "$TIMEOUT" psql "$CFN_VERIFY_DATABASE_URL" -X -A -t -c "$sql" 2>&1)"; rc=$?
+        raw="$(cd "$run_cwd" && timeout "$TIMEOUT" psql "$CFN_VERIFY_DATABASE_URL" -X -A -t -c "$sql" 2>&1)"; rc=$?
         exit_code="$rc"
         excerpt="$(printf '%s\n' "$raw" | tail -20)"
         mode="executed"
@@ -223,6 +357,12 @@ cmd_run() {
           pred_unv="true"; pass_val="null"
           reason="predicate_unverified: psql exit 0 but the query does not self-assert — resolve with the captured rows"
         fi
+        ;;
+      blocked)
+        # A third state, distinct from red. The check never ran, so it says
+        # nothing about the feature -- bring the infrastructure up and re-run,
+        # or resolve the row with evidence captured by hand.
+        mode="blocked"; pass_val="null"
         ;;
       needs_agent)
         mode="needs_agent"; pass_val="null"
@@ -251,6 +391,7 @@ cmd_run() {
         {total: ($r|length),
          executed: ([$r[]|select(.mode=="executed")]|length),
          needs_agent: ([$r[]|select(.mode=="needs_agent")]|length),
+         blocked: ([$r[]|select(.mode=="blocked")]|length),
          green: ([$r[]|select(.pass==true)]|length),
          red: ([$r[]|select(.pass==false)]|length),
          unresolved: ([$r[]|select(.pass==null)]|length),
@@ -300,6 +441,7 @@ cmd_resolve() {
         {total: ($r|length),
          executed: ([$r[]|select(.mode=="executed")]|length),
          needs_agent: ([$r[]|select(.mode=="needs_agent")]|length),
+         blocked: ([$r[]|select(.mode=="blocked")]|length),
          green: ([$r[]|select(.pass==true)]|length),
          red: ([$r[]|select(.pass==false)]|length),
          unresolved: ([$r[]|select(.pass==null)]|length),
@@ -309,6 +451,75 @@ cmd_resolve() {
 
   local tmp; tmp="$(mktemp)"; printf '%s\n' "$doc" > "$tmp"; mv "$tmp" "$RESULTS"
   echo "$doc" | jq -c '.summary'
+  exit 0
+}
+
+# ---------------- backfill-evidence ----------------
+# Writes each GREEN row's real output back into the manifest's `evidence` field,
+# replacing the `PENDING: <reason>` placeholder a plan-stage bless allows.
+#
+# S007: Bar A requires runtime evidence per AC, but the manifest is authored
+# during planning, before the code it checks exists — so the placeholder is the
+# only honest plan-stage value, and something has to collect on it later. The
+# exit-gate run already executed every check, so its recorded output IS the
+# evidence; asking a human to paste one excerpt per AC across a 147-AC manifest
+# is how a gate stops being run at all.
+#
+# Only green rows are backfilled. A red row's output is evidence that the check
+# FAILED; pasting it in would let `check-verifiable-static.sh --stage exit` pass
+# on a manifest whose checks do not pass.
+cmd_backfill() {
+  local RESULTS="" VERIFY=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --results) RESULTS="${2:-}"; shift 2 ;;
+      --verify)  VERIFY="${2:-}"; shift 2 ;;
+      *) die2 "unknown backfill-evidence arg: $1" ;;
+    esac
+  done
+  [ -f "$RESULTS" ] || die2 "results file not found: $RESULTS"
+  [ -n "$VERIFY" ] || die2 "backfill-evidence requires --verify"
+  [ -f "$VERIFY" ] || die2 "verify file not found: $VERIFY"
+  need jq
+
+  local manifest
+  manifest="$(extract_manifest "$VERIFY")"
+  [ -n "${manifest//[[:space:]]/}" ] || die2 "no fenced json manifest block in $VERIFY"
+  echo "$manifest" | jq -e . >/dev/null 2>&1 || die2 "manifest json does not parse"
+
+  local updated
+  updated="$(jq -n --argjson m "$manifest" --slurpfile r "$RESULTS" '
+    ( [ $r[0].results[]
+        | select(.pass == true)
+        | { key: .ac_id,
+            value: ( if (.evidence // "") != "" then .evidence else (.output_excerpt // "") end ) }
+        | select(.value != "") ] | from_entries ) as $ev
+    | $m | .acs |= map( if $ev[.id] then .evidence = $ev[.id] else . end )
+  ')" || die2 "could not merge evidence into the manifest"
+
+  # Splice the new manifest into the LAST fenced json block, byte-preserving
+  # everything else in the file (the AC table and gate report live above it).
+  local tmp; tmp="$(mktemp)"
+  printf '%s' "$updated" > "$tmp.json"
+  awk -v jf="$tmp.json" '
+    /^```json/ { n++ }
+    { line[NR] = $0; if (/^```json/) start[n] = NR }
+    /^```$/    { if (n > 0 && start[n] && !stop[n]) stop[n] = NR }
+    END {
+      s = start[n]; e = stop[n];
+      for (i = 1; i <= NR; i++) {
+        if (i == s) { print line[i]; while ((getline l < jf) > 0) print l; }
+        else if (i > s && i < e) { continue }
+        else print line[i]
+      }
+    }
+  ' "$VERIFY" > "$tmp" && mv "$tmp" "$VERIFY"
+  rm -f "$tmp.json"
+
+  local n
+  n="$(jq -r '[.results[] | select(.pass == true)] | length' "$RESULTS")"
+  echo "{\"backfilled\":$n,\"verify\":\"$VERIFY\"}"
+  echo "note: the sha256 sidecar is now stale — re-bless with bars/bless-verify.sh --stage exit" >&2
   exit 0
 }
 
@@ -330,8 +541,9 @@ cmd_summary() {
 
 SUB="${1:-}"; shift || true
 case "$SUB" in
-  run)     cmd_run "$@" ;;
-  resolve) cmd_resolve "$@" ;;
-  summary) cmd_summary "$@" ;;
-  *) echo "usage: verify-run.sh {run|resolve|summary} ..." >&2; exit 2 ;;
+  run)                cmd_run "$@" ;;
+  resolve)            cmd_resolve "$@" ;;
+  summary)            cmd_summary "$@" ;;
+  backfill-evidence)  cmd_backfill "$@" ;;
+  *) echo "usage: verify-run.sh {run|resolve|summary|backfill-evidence} ..." >&2; exit 2 ;;
 esac

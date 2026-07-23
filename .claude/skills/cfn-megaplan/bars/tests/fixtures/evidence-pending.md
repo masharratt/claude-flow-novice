@@ -1,4 +1,4 @@
-# VERIFY: clean
+# VERIFY: evidence-pending
 
 | AC-id | criterion | binding | check | pass | trigger | seeds | signal |
 |---|---|---|---|---|---|---|---|
@@ -13,7 +13,7 @@
 
 ```json
 {
-  "slug": "clean",
+  "slug": "evidence-pending",
   "acs": [
     {
       "id": "AC-1",
@@ -26,7 +26,7 @@
       "maps_to": [
         "EC-1"
       ],
-      "evidence": " Tests  1 passed (1)"
+      "evidence": "PENDING: test not written yet (plan-time bless)"
     },
     {
       "id": "AC-2",
@@ -39,7 +39,7 @@
       "maps_to": [
         "FR-2"
       ],
-      "evidence": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s"
+      "evidence": "PENDING: worker not implemented yet"
     }
   ],
   "done_rule": "all acs green",

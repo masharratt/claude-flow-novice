@@ -113,6 +113,55 @@ EOF
 parse_test_summary "$F"
 eq 0 "$PTS_COLLECTED" "nextest zero-ran: collected 0"
 
+# ---------------- playwright ----------------
+# S007 made `playwright:` checks executable; without this branch they would
+# inherit the exit-code-only hole (a --pass-with-no-tests run exits 0).
+
+F=$(fixture <<'EOF'
+Running 16 tests using 4 workers
+  ok 1 [desktop-1280] > e2e/dash.spec.ts:4:1 > save_reorder_persists (1.2s)
+
+  1 failed
+  2 flaky
+  13 passed (12.1s)
+EOF
+)
+parse_test_summary "$F"; rc=$?
+eq 0 "$rc" "playwright: recognized"
+eq "playwright" "$PTS_RUNNER" "playwright: runner"
+eq 13 "$PTS_PASS" "playwright: passed"
+eq 3 "$PTS_FAIL" "playwright: failed + flaky both count as not-passing"
+eq 16 "$PTS_COLLECTED" "playwright: collected from the header"
+
+# The whole point of the branch: a grep that matched nothing.
+F=$(fixture <<'EOF'
+Running 0 tests using 0 workers
+EOF
+)
+parse_test_summary "$F"
+eq "playwright" "$PTS_RUNNER" "playwright zero: runner"
+eq 0 "$PTS_COLLECTED" "playwright zero: collected 0 (grep matched no test)"
+
+# The header is the identifier, never the bare "N passed (Xs)" tail -- that
+# shape is generic enough to false-match arbitrary program output.
+F=$(fixture <<'EOF'
+  13 passed (12.1s)
+EOF
+)
+parse_test_summary "$F"; rc=$?
+eq 1 "$rc" "playwright: bare tail without the header is NOT claimed"
+
+F=$(fixture <<'EOF'
+Running 4 tests using 2 workers
+
+  4 passed (3.0s)
+EOF
+)
+parse_test_summary "$F"
+eq 4 "$PTS_COLLECTED" "playwright green: collected"
+eq 0 "$PTS_FAIL" "playwright green: no failures"
+eq 0 "$PTS_SKIP" "playwright green: no skips"
+
 # ---------------- go ----------------
 
 F=$(fixture <<'EOF'

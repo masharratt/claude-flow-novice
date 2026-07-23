@@ -14,7 +14,7 @@ No prose success criteria. Each acceptance criterion (AC) is a row with an execu
 ## Required AC row shape
 
 ```
-| AC-id | criterion | binding | check | pass condition | trigger | seeds | signal |
+| AC-id | criterion | binding | check | pass condition | trigger | seeds | signal | evidence |
 ```
 
 Column definitions:
@@ -22,25 +22,29 @@ Column definitions:
 - **trigger** = the entrypoint the check drives, one of: `http:<METHOD> <path>` (e.g. `http:POST /api/x`), `worker:spawn`, `ui:<action> <selector>` (e.g. `ui:click #save`), `fn:<name>` (direct function call).
 - **seeds** = the fixture rows the check inserts, listed by table/stage (e.g. `stories(2 rows, status=due)`). `(none)` if the check inserts nothing.
 - **signal** = the log line / metric / audit row the check asserts the running process emitted. Empty allowed ONLY for synchronous core paths; out-of-band core paths must fill it.
+- **evidence** = the check's ACTUAL output from running it once, pasted verbatim (S007). Required on every AC; `PENDING: <reason>` at plan time, real output by the exit gate. See *Run-before-bless* below.
 
 Examples:
 
 ```
 AC-3 | course field is a dropdown sourced from the courses table
      | DB: SELECT name FROM courses
-     | playwright: snapshot select#course
+     | playwright: npx playwright test e2e/courses.spec.ts -g "course_is_select" --project=desktop-1280
      | element is <select>, option set == query result, 0 free-text inputs
      | trigger: ui:load /courses/new
      | seeds: courses(3 rows, fixture names A/B/C)
      | signal: (empty, synchronous path)
+     | requires: http http://localhost:3800/ , env ALLOW_TEST_AUTH=true
+     | evidence: "Running 1 test using 1 worker / 1 passed (2.1s)"
 
 AC-7 | invalid email is rejected
      | spec EC-4
-     | vitest run tests/email.spec.ts::rejects_invalid
+     | vitest run tests/email.spec.ts -t "rejects_invalid"
      | test green, response body error == "invalid_email"
      | trigger: http:POST /api/signup
      | seeds: (none)
      | signal: (empty, synchronous path)
+     | evidence: "Test Files  1 passed (1) / Tests  1 passed (1)"
 
 AC-11 | new payouts table denies cross-tenant reads
       | RLS policy payouts_tenant_isolation
@@ -49,22 +53,127 @@ AC-11 | new payouts table denies cross-tenant reads
       | trigger: fn:db-query (static policy check; sibling AC-12 is the bootstrap-guard asserting the policy is attached)
       | seeds: payouts(1 row, tenant_a)
       | signal: (empty, synchronous path)
+      | requires: db true
+      | evidence: " count \n-------\n     0\n(1 row)"
 
 AC-38 | spawned worker publishes a seeded due row within one interval
       | FR-2 [core]
-      | cargo test tests/worker.rs::spawned_worker_publishes_within_interval
+      | cargo test spawned_worker_publishes_within_interval -- --exact
       | row status flips to published within one tick AND stdout contains "published story=<seeded id>"
       | trigger: worker:spawn
       | seeds: stories(1 row, status=due)   <- seeded at the INPUT stage, not the stage under test
       | signal: log line "published story=<id>" captured from the running worker
+      | evidence: "test result: ok. 1 passed; 0 failed; 0 ignored; 644 filtered out; finished in 1.20s"
 ```
+
+`requires` is omitted entirely when the check needs no live infrastructure (AC-7 above). It is a machine-read precondition set, not a place for setup notes — see *Runnable-check contract* rule 3 below.
+
+The `evidence` values above are the **exit-stage** state. A manifest authored during planning carries `evidence: "PENDING: <reason>"` on every row and gets it backfilled from the exit-gate run — see *Run-before-bless* below.
+
+## Runnable-check contract (S007 — read before authoring any `check`)
+
+A `check` is executed verbatim by `verify-run.sh`. Three rules, each of which
+cost a field loop a full manual re-verification pass when it was broken:
+
+**1. No `<file>::<name>` selector.** It is a manifest-internal shorthand no
+runner implements. vitest and playwright both read it as a single filename and
+report "No test files found" — non-zero exit, zero tests run. `check-verifiable-static.sh`
+rejects it (`unrunnable_selector`).
+
+| Runner | Not runnable | Runnable |
+|---|---|---|
+| vitest / jest | `vitest run F.test.ts::NAME` | `vitest run F.test.ts -t "NAME"` |
+| playwright | `playwright test F.spec.ts::NAME` | `playwright test F.spec.ts -g "NAME"` |
+| cargo | `cargo test F.rs::NAME` | `cargo test NAME -- --exact` |
+
+Note the vitest landmine this creates in the other direction: `vitest run -t <name>`
+that matches **zero** tests exits **0**. Verdicts are not exit-code-only —
+`verify-run.sh` parses the runner's own summary and forces red on a zero
+collected count — but the `evidence` rule below is what catches a typo'd test
+name at bless time rather than at loop-exit time.
+
+**2. Paths are relative to `cwd`, not to the repo root.** Set the manifest-level
+`"cwd": "<subdir>"` (or a per-AC `cwd`) whenever the runner config
+(`vitest.config`, `playwright.config`, `tsconfig` path aliases) lives in a
+subdirectory. Playwright in particular cannot run from a monorepo root when two
+`@playwright/test` versions resolve, so this is not fixable by path-prefixing.
+A `cwd` that does not exist reports `blocked`, not red.
+
+**3. Infrastructure a check needs is declared, never assumed.** Use `requires`:
+
+```json
+"requires": {
+  "env": ["RUN_INTEGRATION=1", "DATABASE_URL"],
+  "db": true,
+  "http": "http://localhost:3800/"
+}
+```
+
+- `env` entry `NAME=value` is **exported into the check** — the manifest states
+  the pins, so a human can read the row and reproduce the run by hand.
+- `env` entry bare `NAME` is **asserted present** in the runner's environment.
+  For secrets that must never be written into a committed manifest.
+- `db: true` requires `CFN_VERIFY_DATABASE_URL`.
+- `http: <url>` requires something listening at that URL (any response counts).
+
+An unmet precondition reports **`blocked`**, a third state distinct from red.
+"Infra absent" must never masquerade as "feature broken" — one field loop
+hand-verified 27 rows to tell those two apart.
+
+## Run-before-bless: the `evidence` field (S007, REQUIRED)
+
+Every AC carries `"evidence": "<the check's ACTUAL output>"`. The check must be
+**executed once** and its real output pasted before the manifest is hashed.
+`check-verifiable-static.sh` fails any AC with empty evidence, and for
+runner-kind ACs it parses the pasted text and fails
+`evidence_zero_ran` when it shows a zero collected count.
+
+**Two stages, because a plan-time manifest describes code that does not exist yet.**
+
+| Stage | When | `evidence` rule |
+|---|---|---|
+| `--stage plan` (default) | megaplan Bar A, before implementation | `"PENDING: <reason>"` accepted (warn). Empty is still an error — the field is never omitted. |
+| `--stage exit` | `cfn-loop-task` Phase 5 exit gate, after the build | a surviving `PENDING` is an **error** (`evidence_pending`). Real output only. |
+
+Backfilling is mechanical, not a paste job — the exit-gate run already executed
+every check, so its recorded output is the evidence:
+
+```bash
+verify-run.sh backfill-evidence --results planning/VERIFY_RESULTS_${SLUG}.json \
+                                --verify  planning/VERIFY_${SLUG}.md
+bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" --stage exit --note "exit gate: evidence backfilled"
+```
+
+Only **green** rows are backfilled. A red row's output is evidence the check
+failed, so writing it in would let the exit bless pass on a manifest whose
+checks do not pass; those rows keep their placeholder and stay iteration fuel.
+
+This exists because authoring happens against the plan and verification happens
+against the code, and nothing else in the loop forces those to be the same
+statement. Two field manifests hashed green on shape and then went runtime-red
+against **correct** code — 21 of 147 and 71 of 104 ACs — every one a check
+string that did not match the real invocation. The single deciding fact:
+`cargo test` exits 0 whether the filter matched 645 tests or 0, so an author
+doing a manual preflight sees exit 0 and blesses a check that proves nothing.
+Pasting the runner's own `test result: N passed` line makes that visible.
 
 ## Check taxonomy (pick one per AC)
 
+`kind` is a **closed vocabulary**, matched exactly (lowercased). A kind outside
+this set is an error, not a warning — an unrecognized kind used to fall through
+every taxonomy rule, so `kind: cargo-test` with a grep body passed the
+kind/command consistency lint by matching nothing at all.
+
+```
+unit  integration  e2e  ui  e2e/ui  assembled-path  wiring-guard
+db  db-query  http  curl  build  type  compile  static  lint
+migration-rehearsal  perf  a11y  security
+```
+
 | Kind | Form | Example |
 |---|---|---|
-| unit/integration test | `<runner> run <file>::<case>` | `vitest run tests/x.spec.ts::case` |
-| e2e / UI | `playwright:` + assertion on snapshot/network | `select#course options match query` |
+| unit/integration test | `<runner> run <file> -t "<case>"` | `vitest run tests/x.spec.ts -t "case"` |
+| e2e / UI | `playwright:` + either a real command (executed) or a snapshot/network assertion (routed to an agent) | `playwright: npx playwright test e2e/x.spec.ts -g "case" --project=desktop-1280` |
 | DB state | `db-query` SQL + expected rows | `SELECT ... returns N` |
 | HTTP | `curl` + status/body assertion | `curl -s /api/x \| jq .ok == true` |
 | build/type | `tsc --noEmit` / `cargo check` exit 0 | compile clean |
@@ -108,13 +217,27 @@ Any non-clean cell (check_form_matched NONE, pass_decidable N, empty maps_to, co
 
 `VERIFY_<slug>.md` = (1) markdown AC table, (2) gate report table, (3) the JSON manifest in a fenced ```json block as the FINAL element of the file. Consumers parse the LAST fenced json block. `cfn-loop-task` Step 0 consumes this file as its completion gate.
 
-**Integrity sidecar `planning/.VERIFY_<slug>.sha256`.** After Bar A PASSES (including the mechanical static pass, step 1.5), the orchestrator blesses the validated file by writing its SHA-256:
+**Integrity sidecar `planning/.VERIFY_<slug>.sha256`.** After Bar A PASSES (including the mechanical static pass, step 1.5), the orchestrator blesses the validated file. **Blessing is done ONLY through `bars/bless-verify.sh`** — never by writing the sidecar by hand:
 
 ```bash
-sha256sum "planning/VERIFY_${SLUG}.md" | awk '{print $1}' > "planning/.VERIFY_${SLUG}.sha256"
+./.claude/skills/cfn-megaplan/bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" \
+  --note "Bar A pass, first bless"
 ```
 
+The script (1) re-runs `check-verifiable-static.sh` and REFUSES to pin anything if there is a single error-severity finding, (2) writes the sha256 sidecar in the same path/format as before, and (3) appends a bless-ledger entry to `planning/.VERIFY_<slug>.bless.json` plus a manifest snapshot in `planning/.VERIFY_<slug>.blessed.json`.
+
 The hash pins the exact validated bytes. `cfn-loop-task` Step 0 recomputes it and REFUSES to run if the manifest was edited after Bar A (a post-gate manifest edit is a way to game the done verdict); `verify-run.sh` enforces the same independently (exit 4 on mismatch, missing sidecar = warn for pre-hash-era files).
+
+**Bless ledger (required reading on any re-bless).** A hand-written sidecar made re-blessing all-or-nothing: a reviewer could not tell whether a corrected `check` command or a rewritten acceptance criterion caused the new hash. The ledger reports two axes separately per bless:
+
+| Field | Meaning | Reviewer action |
+|---|---|---|
+| `changed[]` | Per AC id, exactly which fields moved | Skim. `check`/`evidence`-only moves are the benign case. |
+| `added` / `removed` | AC ids that appeared or disappeared | Any `removed` needs a stated reason — an AC deleted after Bar A is scope reduction. |
+| `structure_changed` | An AC was added/removed, or an `id`/`kind`/`maps_to` moved | The criteria set itself changed. Re-read the coverage block. |
+| `predicate_changed` | A `pass` condition moved | **The gaming vector.** A `pass` loosened until the code satisfies it is a fabricated green. Never approve without reading the before/after. |
+
+A re-bless with `predicate_changed: true` is legitimate only when the original predicate was wrong (untestable, or it encoded a misread requirement). "The code does X, so the predicate now says X" is not a reason.
 
 ## Output contract (consumed by cfn-loop-task)
 
@@ -123,9 +246,10 @@ The JSON manifest below is the FINAL fenced ```json block of `VERIFY_<slug>.md` 
 ```json
 {
   "slug": "<task-slug>",
+  "cwd": "portal",
   "acs": [
-    { "id": "AC-3", "check": "playwright: select#course ...", "kind": "e2e", "pass": "<predicate>", "trigger": "ui:load /courses/new", "seeds": "courses(3 rows)", "signal": "", "maps_to": ["FR-2", "EC-1"] },
-    { "id": "AC-38", "check": "cargo test ...::spawned_worker_publishes_within_interval", "kind": "assembled-path", "pass": "row status flips to published within one tick", "trigger": "worker:spawn", "seeds": "stories(1 row, status=due)", "signal": "log line published story=<id>", "maps_to": ["FR-2"] }
+    { "id": "AC-3", "check": "playwright: npx playwright test e2e/booking.spec.ts -g \"course_is_select\" --project=desktop-1280", "kind": "e2e", "pass": "select#course option set == query result, 0 free-text inputs", "trigger": "ui:load /courses/new", "seeds": "courses(3 rows)", "signal": "", "requires": { "env": ["ALLOW_TEST_AUTH=true"], "http": "http://localhost:3800/" }, "evidence": "Running 1 test using 1 worker\n  1 passed (2.1s)", "maps_to": ["FR-2", "EC-1"] },
+    { "id": "AC-38", "check": "cargo test spawned_worker_publishes_within_interval -- --exact --ignored", "kind": "assembled-path", "pass": "row status flips to published within one tick", "trigger": "worker:spawn", "seeds": "stories(1 row, status=due)", "signal": "log line published story=<id>", "requires": { "db": true }, "evidence": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 644 filtered out; finished in 1.20s", "maps_to": ["FR-2"] }
   ],
   "done_rule": "all acs green",
   "coverage": {
