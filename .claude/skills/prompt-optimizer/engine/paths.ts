@@ -14,6 +14,8 @@
  * target. SKILL_DIR (wherever this file physically lives) is read-only code.
  */
 import { resolve } from 'node:path';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export interface ProjectPaths {
   /** <cwd>/.claude/prompt-optimizer */
@@ -54,4 +56,27 @@ export function templateFilePath(paths: ProjectPaths, targetId: string): string 
 
 export function runFilePath(paths: ProjectPaths, targetId: string, ts: string): string {
   return resolve(paths.runsDir, `${targetId}-${ts}.md`);
+}
+
+/**
+ * True when `metaUrl` (a module's `import.meta.url`) names the same file the
+ * process was started with (`process.argv[1]`).
+ *
+ * L7: a plain `metaUrl === pathToFileURL(argv1).href` comparison is FALSE
+ * whenever the entry point is reached through a symlink, because Node resolves
+ * `import.meta.url` to the REAL path while `argv[1]` keeps the symlinked path.
+ * The shared engine is invoked as `~/.claude/skills/prompt-optimizer/...`,
+ * which IS such a symlink for every consuming project, so the naive guard made
+ * the CLI do nothing and exit 0 — a silent no-op indistinguishable from
+ * success. Both sides are realpath'd before comparison; if either path cannot
+ * be resolved on disk, it falls back to the href comparison.
+ */
+export function isMainModule(metaUrl: string, argv1: string | undefined): boolean {
+  if (argv1 === undefined) return false;
+  const here = fileURLToPath(metaUrl);
+  try {
+    return realpathSync(here) === realpathSync(argv1);
+  } catch {
+    return metaUrl === pathToFileURL(argv1).href;
+  }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { aggregate, ranFraction, shouldAbort, isImprovement, type AggregateScore } from './rubric-core.js';
+import { aggregate, ranFraction, shouldAbort, isImprovement, resolveScoringMode, type AggregateScore } from './rubric-core.js';
 import type { RubricScore } from './types.js';
 
 function score(categories: Record<string, number>, ran = true): RubricScore {
@@ -131,5 +131,120 @@ describe('isImprovement', () => {
       candidate: { promptTokens: 400 },
     });
     expect(accepted).toBe(false);
+  });
+});
+
+// L9. Found by the first live daily-coverage run of narration-base, which
+// ACCEPTED a candidate scoring total=2 over ran=11 against a baseline of
+// total=3 over ran=15. The candidate did not write better narration -- it made
+// four generations fail extraction, and an excluded example contributes 0 to
+// the sum. Comparing raw sums across unequal sample counts rewards a template
+// for breaking its own output.
+//
+// Two distinct defects, and rate normalisation alone does NOT fix the live
+// case (2/11 = 0.182 still beats 3/15 = 0.200). The excluded examples are the
+// hard ones, so dropping them lifts the average of whatever survives. The
+// ran-count floor is what actually closes it: a template that runs on fewer
+// examples than the incumbent is not measuring the same thing, so it is not
+// comparable and cannot win.
+describe('isImprovement - sample-count integrity (L9)', () => {
+  it('refuses the exact live regression: fewer ran examples, lower raw sum', () => {
+    const prev = agg({ specificity: 1, monotony: 2 }, { ranCount: 15 });
+    const candidate = agg({ specificity: 0, monotony: 2 }, { ranCount: 11, excludedCount: 4 });
+    expect(candidate.total).toBeLessThan(prev.total); // the trap: raw sum looks like a win
+    expect(isImprovement(prev, candidate)).toBe(false);
+  });
+
+  it('refuses a candidate that ran on fewer examples even when its per-example rate is better', () => {
+    const prev = agg({ a: 10 }, { ranCount: 10 }); // 1.0 per example
+    const candidate = agg({ a: 1 }, { ranCount: 5, excludedCount: 5 }); // 0.2 per example
+    expect(isImprovement(prev, candidate)).toBe(false);
+  });
+
+  it('refuses a candidate on which nothing ran at all, rather than reading its empty total as perfect', () => {
+    const prev = agg({ a: 5 }, { ranCount: 10 });
+    const candidate = agg({}, { ranCount: 0, excludedCount: 10 });
+    expect(candidate.total).toBe(0);
+    expect(isImprovement(prev, candidate)).toBe(false);
+  });
+
+  it('compares per-example rates, so a candidate that ran on MORE examples is not punished for its larger sum', () => {
+    const prev = agg({ a: 3 }, { ranCount: 10 }); // 0.30 per example
+    const candidate = agg({ a: 4 }, { ranCount: 20 }); // 0.20 per example, but a bigger raw sum
+    expect(candidate.total).toBeGreaterThan(prev.total);
+    expect(isImprovement(prev, candidate)).toBe(true);
+  });
+
+  it('applies the rate comparison per category too, not only to the total', () => {
+    const prev = agg({ a: 2, b: 2 }, { ranCount: 10 }); // a: 0.20, b: 0.20
+    // Total rate improves (0.40 -> 0.30) but category b regresses (0.20 -> 0.25).
+    const candidate = agg({ a: 1, b: 5 }, { ranCount: 20 });
+    expect(isImprovement(prev, candidate)).toBe(false);
+  });
+
+  it('still accepts a genuine win at an unchanged ran count', () => {
+    const prev = agg({ a: 3 }, { ranCount: 15 });
+    const candidate = agg({ a: 1 }, { ranCount: 15 });
+    expect(isImprovement(prev, candidate)).toBe(true);
+  });
+
+  it('accepts a candidate that RECOVERS excluded examples at an equal per-example rate', () => {
+    // Mirror image of the bug: fixing extraction raises both ranCount and the
+    // raw sum. Same rate, more evidence, fewer exclusions -> not a regression.
+    const prev = agg({ a: 2 }, { ranCount: 10, excludedCount: 5 });
+    const candidate = agg({ a: 3 }, { ranCount: 15, excludedCount: 0 });
+    const accepted = isImprovement(prev, candidate, {
+      prev: { promptTokens: 400 },
+      candidate: { promptTokens: 300 },
+    });
+    expect(accepted).toBe(true);
+  });
+});
+
+// L10. `lib/xai.ts` in the daily-coverage plugin asserted "Grok honors
+// temperature 0, so eval scoring stays deterministic (FIX #3)". Measured
+// false: two `narration-base` runs of the SAME seed template, with prompts
+// proven byte-stable across all 22 fixtures, produced train baselines of
+// total=3 and total=8. A direct two-call probe at temperature 0 returned
+// outputs diverging at word 5 (175 vs 201 words).
+//
+// The engine gated ALL of its nondeterminism protection -- the warning,
+// holdout repeats, and the INCONCLUSIVE mixed-repeats refusal -- on
+// `evalTemperature !== 0`. A provider that ignores temperature 0 therefore
+// got no protection and no warning: the single riskiest case was the one
+// silently treated as an exact measurement. Nondeterminism is a property of
+// the provider, not of the number we send it, so a target must be able to
+// declare it independently.
+describe('resolveScoringMode (L10)', () => {
+  it('treats an absent evalTemperature as deterministic temperature 0 (unchanged default)', () => {
+    const mode = resolveScoringMode({});
+    expect(mode.evalTemperature).toBe(0);
+    expect(mode.nondeterministic).toBe(false);
+  });
+
+  it('treats a non-zero evalTemperature as nondeterministic (unchanged L2 behaviour)', () => {
+    const mode = resolveScoringMode({ evalTemperature: 1 });
+    expect(mode.evalTemperature).toBe(1);
+    expect(mode.nondeterministic).toBe(true);
+    expect(mode.reason).toContain('evalTemperature');
+  });
+
+  it('honors an explicit nondeterministic flag even at temperature 0 (the live Grok case)', () => {
+    const mode = resolveScoringMode({ nondeterministic: true });
+    expect(mode.evalTemperature).toBe(0);
+    expect(mode.nondeterministic).toBe(true);
+    expect(mode.reason).toContain('provider');
+  });
+
+  it('reports temperature as the reason when both apply, since it is the stronger signal', () => {
+    const mode = resolveScoringMode({ evalTemperature: 1, nondeterministic: true });
+    expect(mode.nondeterministic).toBe(true);
+    expect(mode.reason).toContain('evalTemperature');
+  });
+
+  it('does not let an explicit nondeterministic:false override a non-zero temperature', () => {
+    // A plugin cannot opt out of noise it is demonstrably generating.
+    const mode = resolveScoringMode({ evalTemperature: 1, nondeterministic: false });
+    expect(mode.nondeterministic).toBe(true);
   });
 });

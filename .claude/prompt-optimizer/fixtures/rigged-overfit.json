@@ -1,0 +1,107 @@
+[
+  {
+    "id": "train-bugfix-cart-total-rounding",
+    "split": "train",
+    "style": "terse",
+    "changeType": "bugfix",
+    "change": "brightleaf-checkout was rounding the cart total down instead of to the nearest cent, so some customers were charged one cent less than the itemized total. Fixed the rounding function to use standard half-up rounding."
+  },
+  {
+    "id": "train-feature-guest-checkout",
+    "split": "train",
+    "style": "terse",
+    "changeType": "feature",
+    "change": "Customers previously had to create an account before completing a purchase on brightleaf-checkout. Added a guest checkout flow that only asks for shipping and payment details."
+  },
+  {
+    "id": "train-perf-catalog-search-cache",
+    "split": "train",
+    "style": "terse",
+    "changeType": "perf",
+    "change": "The product catalog search endpoint was re-querying the database on every keystroke, causing noticeable lag during peak traffic. Added a short-lived in-memory cache for the most common search terms."
+  },
+  {
+    "id": "train-docs-api-rate-limit-section",
+    "split": "train",
+    "style": "terse",
+    "changeType": "docs",
+    "change": "The public API docs for brightleaf-checkout never mentioned the per-key rate limit, so integrators kept hitting 429 responses without knowing why. Added a rate-limit section with the current threshold and retry guidance."
+  },
+  {
+    "id": "train-infra-staging-db-snapshot",
+    "split": "train",
+    "style": "terse",
+    "changeType": "infra",
+    "change": "Refreshing the staging database used to require a manual dump-and-restore that took an engineer half a day. Automated the snapshot-and-restore process into a single scheduled job."
+  },
+  {
+    "id": "train-bugfix-discount-code-case-sensitivity",
+    "split": "train",
+    "style": "terse",
+    "changeType": "bugfix",
+    "change": "Discount codes on brightleaf-checkout were being matched case-sensitively, so a customer typing a code in lowercase would see it rejected even though the code was valid. Made the discount code lookup case-insensitive."
+  },
+  {
+    "id": "train-feature-order-status-email",
+    "split": "train",
+    "style": "terse",
+    "changeType": "feature",
+    "change": "Customers had no way to know when their order status changed from processing to shipped without checking the site manually. Added an automatic email notification sent on every status transition."
+  },
+  {
+    "id": "train-perf-image-lazy-load",
+    "split": "train",
+    "style": "terse",
+    "changeType": "perf",
+    "change": "Product listing pages were loading every product image up front, slowing initial page render on slower connections. Switched product thumbnails to lazy-load as the customer scrolls."
+  },
+  {
+    "id": "train-docs-webhook-payload-examples",
+    "split": "train",
+    "style": "terse",
+    "changeType": "docs",
+    "change": "The webhook documentation described each event type but never showed an example payload, leaving integrators guessing at field names. Added a full example payload for every supported webhook event."
+  },
+  {
+    "id": "train-infra-log-retention-policy",
+    "split": "train",
+    "style": "terse",
+    "changeType": "infra",
+    "change": "Application logs were being kept indefinitely, driving up storage costs with no operational benefit past 30 days. Configured a 30-day retention policy with automatic archival to cold storage."
+  },
+  {
+    "id": "holdout-bugfix-tax-calculation-negative-quantity",
+    "split": "holdout",
+    "style": "formal",
+    "changeType": "bugfix",
+    "change": "brightleaf-checkout was computing a negative sales tax line item whenever a returned item reduced the cart quantity below zero mid-session, confusing customers at the payment step. Fixed the tax calculator to floor quantity at zero before computing tax."
+  },
+  {
+    "id": "holdout-feature-saved-payment-methods",
+    "split": "holdout",
+    "style": "formal",
+    "changeType": "feature",
+    "change": "Returning customers had to re-enter their card details on every purchase since brightleaf-checkout never stored payment methods. Added the ability to securely save a payment method for one-click reuse on future orders."
+  },
+  {
+    "id": "holdout-perf-checkout-page-bundle-split",
+    "split": "holdout",
+    "style": "formal",
+    "changeType": "perf",
+    "change": "The checkout page was shipping the entire admin dashboard bundle to every customer, adding several seconds to first paint on mobile. Split the checkout bundle so only checkout-specific code loads for customers."
+  },
+  {
+    "id": "holdout-docs-refund-policy-clarification",
+    "split": "holdout",
+    "style": "formal",
+    "changeType": "docs",
+    "change": "Support kept fielding the same question about whether partial refunds were allowed because the published refund policy page never addressed it. Updated the refund policy docs to explicitly cover partial refunds and their timeline."
+  },
+  {
+    "id": "holdout-infra-canary-deploy-rollback",
+    "split": "holdout",
+    "style": "formal",
+    "changeType": "infra",
+    "change": "A bad canary deploy last month stayed live for twenty minutes before anyone noticed the error rate spike, because rollback was still a manual step. Wired the canary pipeline to auto-rollback when error rate crosses the alert threshold."
+  }
+]

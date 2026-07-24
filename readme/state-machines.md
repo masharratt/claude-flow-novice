@@ -405,3 +405,30 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 | complete | running | gate fails and this lane is the failing lane OR transitively downstream of it | respawn set recomputed from current edges each iteration |
 
 **Cycle note:** a produce/consume cycle (A→E and E→A) is not a state — it is collapsed at derivation time into a single lane run sequentially (same resolution as the same-file rule), so no wave ever waits on itself.
+
+---
+
+## Prompt Optimizer Run (prompt-optimizer engine)
+
+**Entity:** one `execute.sh <target-id>` run of the shared engine (`engine/optimize.ts`).
+
+**States:** `no_plugin | unknown_target | baselining | iterating | holdout_gate | holdout_skipped | accepted | refused_overfit | refused_inconclusive | aborted | reported`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (start) | no_plugin | no `<cwd>/.claude/prompt-optimizer/config.json` | terminal, exit 0 — the shared skill is inert in projects with no plugin |
+| (start) | unknown_target | target id absent from config.json | terminal, exit 1 |
+| (start) | baselining | plugin + target resolved | train baseline eval, then holdout baseline x `holdoutRepeatCount` |
+| baselining | aborted | budget exhausted, or a baseline eval aborted (<50% fixtures ran) | tri-state no-run guard (FIX #2) |
+| baselining | iterating | baselines measured | `holdoutRepeatCount` = `--holdout-repeats` when nondeterministic, else 1 |
+| iterating | iterating | candidate rejected, mutate failed, or candidate eval failed | L11: a transient provider error excludes the fixture (or the iteration), never kills the run |
+| iterating | iterating | candidate accepted | `isImprovement`: per-category, ran-count floor (L9), cost-Pareto tie-break |
+| iterating | holdout_gate | loop ends (max-iters / patience / budget) AND final template != baseline | a candidate was accepted at some point |
+| iterating | holdout_skipped | loop ends AND final template === baseline | L12: nothing to validate; baseline measurement IS the final measurement, no second paid pass |
+| holdout_gate | accepted | deterministic: final total <= baseline total. Nondeterministic: final beats baseline on EVERY repeat | winning template persisted, prior template backed up first (L1) |
+| holdout_gate | refused_overfit | deterministic: final total > baseline. Nondeterministic: regressed on EVERY repeat | baseline template retained; nothing persisted |
+| holdout_gate | refused_inconclusive | `aborted` — a holdout pass aborted; or `mixed-repeats` — regressed on some repeats but not others | the win is inside the noise floor; baseline retained |
+| holdout_skipped | reported | — | `holdoutFinalSkippedUnchanged: true`; never labeled OVERFIT or INCONCLUSIVE (nothing was proposed) |
+| accepted / refused_overfit / refused_inconclusive | reported | run report written to `runs/<target-id>-<ISO>.md` | terminal |
+
+**Refusal invariant:** `refused_overfit`, `refused_inconclusive`, and `holdout_skipped` all leave the template file byte-identical to the seed, write no backup, and skip the `--apply` source patch. Proven live for all three refusal outcomes — see `planning/RIGS_refusal_paths_live.md`.

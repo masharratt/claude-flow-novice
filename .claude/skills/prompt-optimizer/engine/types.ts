@@ -81,6 +81,22 @@ export interface Target {
    *  state record whenever the value is not 0, so a noisy result is never
    *  mistaken for a clean deterministic measurement. */
   evalTemperature?: number;
+  /** OPTIONAL: declare that this target's provider does NOT answer
+   *  deterministically even when sent temperature 0. Set it when a provider
+   *  accepts temperature 0 but ignores it — measured true for xAI Grok (L10):
+   *  two runs of one byte-identical prompt set produced train baselines of 3
+   *  and 8, and a direct two-call probe diverged at word 5.
+   *
+   *  Nondeterminism is a property of the provider, not of the number we send
+   *  it. Without this flag such a target would get NO warning, NO holdout
+   *  repeats, and no access to the INCONCLUSIVE mixed-repeats refusal — the
+   *  riskiest case with the least protection. Setting it turns all three on,
+   *  exactly as a non-zero `evalTemperature` does.
+   *
+   *  Setting it to `false` does not suppress anything: a non-zero
+   *  `evalTemperature` still forces nondeterministic mode, because a target
+   *  cannot opt out of noise it is demonstrably generating. */
+  nondeterministic?: boolean;
   /** USD cost per 1M tokens for this target's model, preferred over the
    *  engine's built-in PRICING table (`budget.ts`). Optional — declare this
    *  when your model is not in the engine's table so the shared budget
@@ -88,6 +104,30 @@ export interface Target {
    *  engine's exported `costFor(model, inputTokens, outputTokens, pricing)`
    *  from inside `generate()` instead of hand-rolling a local cost function. */
   pricing?: { input: number; output: number };
+  /** OPTIONAL: opts this target into `--apply` source patching
+   *  (`engine/source-patcher.ts`, wired from `optimize.ts`). A path to this
+   *  target's prompt, resolved relative to the CONSUMING project's own cwd,
+   *  never relative to the engine's own location (BLOCKER-1). When declared
+   *  TOGETHER with `varMap` and `assignmentVar` below, AND the CLI is
+   *  invoked with `--apply`, AND the run produced a real (non-refused,
+   *  non-dry-run) win, the engine replaces the region between
+   *    // PROMPT-OPTIMIZER:START id=<target.id>
+   *    // PROMPT-OPTIMIZER:END
+   *  in this file with the winning template. Omit all three (the default)
+   *  and this target keeps writing only to `templates/<id>.md`, unchanged.
+   *  Every existing plugin keeps working untouched. */
+  sourceFile?: string;
+  /** OPTIONAL, required alongside `sourceFile` to actually patch source: maps
+   *  each `{{PLACEHOLDER}}` token used in the template to a local expression
+   *  string (e.g. `{ TITLE: 'input.title' }`) that `source-patcher.ts`
+   *  substitutes as `${input.title}` in the emitted TS template literal.
+   *  `sourceFile` declared without this (or without `assignmentVar`) skips
+   *  the patch rather than throwing. */
+  varMap?: Record<string, string>;
+  /** OPTIONAL, required alongside `sourceFile`: the local variable name the
+   *  emitted `const <assignmentVar> = \`...\`;` assignment uses inside the
+   *  sentinel region. */
+  assignmentVar?: string;
 }
 
 export interface Rubric {
@@ -97,7 +137,15 @@ export interface Rubric {
    *  reason about failures without the engine hard-coding any rubric
    *  specifics (ban lists, gold standards, etc. all live in the plugin). */
   describe(): string;
-  score(text: string, ctx: Fixture): RubricScore;
+  /** Score one generated example. May return a `RubricScore` directly OR a
+   *  `Promise<RubricScore>` (E1). The engine always `await`s the result, so
+   *  an async rubric (LLM-as-judge, network lookup) works unchanged next to
+   *  every existing synchronous rubric. Known limit: an async rubric adds
+   *  one call per scored example and its own cost. The engine's budget
+   *  ledger (`budget.ts`) does NOT track that cost, only `Target.generate`
+   *  costs are recorded there, so an LLM-judge rubric's spend is invisible
+   *  to `--budget`/`--lifetime-budget` unless the plugin records it itself. */
+  score(text: string, ctx: Fixture): RubricScore | Promise<RubricScore>;
   /** Categories that trigger a bounded (1-retry) reject-and-regenerate
    *  when hit during eval (FIX #4). Omit or empty = never regenerate. */
   regenerateOn?: string[];

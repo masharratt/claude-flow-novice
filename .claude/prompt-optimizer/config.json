@@ -3,5 +3,15 @@
     "target": "./targets/commit-msg.ts",
     "rubric": "./rubrics/commit-msg.ts",
     "fixtures": "./fixtures/commit-msg.json"
+  },
+  "rigged-overfit": {
+    "target": "./targets/rigged-overfit.ts",
+    "rubric": "./rubrics/rigged-overfit.ts",
+    "fixtures": "./fixtures/rigged-overfit.json"
+  },
+  "rigged-noise": {
+    "target": "./targets/rigged-noise.ts",
+    "rubric": "./rubrics/rigged-noise.ts",
+    "fixtures": "./fixtures/rigged-noise.json"
   }
 }

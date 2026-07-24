@@ -9,23 +9,38 @@
  * configured" and exits 0 (inert-by-default): a project inherits this
  * shared skill for free and nothing breaks until it opts in with a plugin.
  *
- * Usage: optimize.ts <target-id> [--dry-run] [--budget=N] [--max-iters=N] [--patience=N]
+ * Usage: optimize.ts <target-id> [--dry-run] [--budget=N] [--lifetime-budget=N]
+ *                     [--max-iters=N] [--patience=N]
+ *
+ * L6: --budget=N caps THIS run only (compared against BudgetTracker.runSpent,
+ * which starts at 0 every construction). --lifetime-budget=N (optional,
+ * default unset) is the absolute ceiling across every run that ever wrote to
+ * this project's _budget.json ledger. That ledger persists spentUsd forever
+ * and is shared across every target in the project.
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { resolveProjectPaths, stateFilePath, templateFilePath, runFilePath, type ProjectPaths } from './paths.js';
+import { resolveProjectPaths, stateFilePath, templateFilePath, runFilePath, isMainModule, type ProjectPaths } from './paths.js';
 import { BudgetTracker } from './budget.js';
 import { evaluateTemplate, selectWorst, EVAL_TEMPERATURE, type EvalResult } from './eval.js';
 import { mutateTemplate, pickStrategy } from './mutator.js';
-import { isImprovement, type AggregateScore } from './rubric-core.js';
+import { isImprovement, resolveScoringMode, type AggregateScore } from './rubric-core.js';
+import { patchSource } from './source-patcher.js';
 import type { Target, Rubric, Fixture } from './types.js';
 
 export interface CliArgs {
   targetId: string | null;
   dryRun: boolean;
+  /** L6: PER-RUN cap. Compared only against this run's own spend
+   *  (`BudgetTracker.runSpent`, which starts at 0 every construction), never
+   *  against the ledger's persisted lifetime total. */
   budget: number;
+  /** L6: OPTIONAL absolute lifetime ceiling across every run that ever
+   *  wrote to this project's `_budget.json`. `null` (default) means no
+   *  lifetime ceiling: only the per-run cap applies. */
+  lifetimeBudget: number | null;
   maxIters: number;
   patience: number;
   /** L3: number of times to re-score BOTH holdout baseline and holdout
@@ -34,13 +49,30 @@ export interface CliArgs {
    *  gate. Default 2 — a single sample cannot distinguish a real win from
    *  run-to-run noise. */
   holdoutRepeats: number;
+  /** E2: DEFAULT OFF. Opts into auto-applying a real win back into the
+   *  target's declared `sourceFile` via `source-patcher.ts`, replacing the
+   *  `PROMPT-OPTIMIZER:START id=<target-id>` .. `:END` sentinel region. Every
+   *  existing consumer omits this flag and keeps writing only to
+   *  `templates/<id>.md`, byte-for-byte unchanged. */
+  apply: boolean;
 }
 
 export function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { targetId: null, dryRun: false, budget: 5.0, maxIters: 20, patience: 5, holdoutRepeats: 2 };
+  const args: CliArgs = {
+    targetId: null,
+    dryRun: false,
+    budget: 5.0,
+    lifetimeBudget: null,
+    maxIters: 20,
+    patience: 5,
+    holdoutRepeats: 2,
+    apply: false,
+  };
   for (const a of argv) {
     if (a === '--dry-run') args.dryRun = true;
+    else if (a === '--apply') args.apply = true;
     else if (a.startsWith('--budget=')) args.budget = parseFloat(a.split('=')[1]!);
+    else if (a.startsWith('--lifetime-budget=')) args.lifetimeBudget = parseFloat(a.split('=')[1]!);
     else if (a.startsWith('--max-iters=')) args.maxIters = parseInt(a.split('=')[1]!, 10);
     else if (a.startsWith('--patience=')) args.patience = parseInt(a.split('=')[1]!, 10);
     else if (a.startsWith('--holdout-repeats=')) args.holdoutRepeats = parseInt(a.split('=')[1]!, 10);
@@ -72,11 +104,112 @@ function loadFixturesFile(paths: ProjectPaths, relPath: string): Fixture[] {
   return JSON.parse(readFileSync(abs, 'utf8')) as Fixture[];
 }
 
+/**
+ * L6: says WHICH cap tripped (run vs lifetime) and shows both numbers, e.g.
+ *   "[abort] run budget exhausted ($0.4501 of $0.45 this run; $1.0528 lifetime)"
+ *   "[abort] lifetime budget exhausted ($1.0528 of $1.00 lifetime; $0.0100 this run)"
+ * Before this fix the message only ever showed the (cumulative) spend
+ * number with no indication whether the run cap or a lifetime cap tripped.
+ */
+function budgetAbortMessage(budget: BudgetTracker, args: Pick<CliArgs, 'budget' | 'lifetimeBudget'>): string {
+  const tripped = budget.trippedCap();
+  if (tripped === 'lifetime') {
+    return (
+      `[abort] lifetime budget exhausted ($${budget.spent.toFixed(4)} of $${(args.lifetimeBudget ?? 0).toFixed(2)} lifetime; ` +
+      `$${budget.runSpent.toFixed(4)} this run)`
+    );
+  }
+  return (
+    `[abort] run budget exhausted ($${budget.runSpent.toFixed(4)} of $${args.budget.toFixed(2)} this run; ` +
+    `$${budget.spent.toFixed(4)} lifetime)`
+  );
+}
+
 function formatAgg(agg: AggregateScore): string {
   const cats = Object.entries(agg.categoryTotals)
     .map(([k, v]) => `${k}=${v}`)
     .join(', ');
   return `total=${agg.total} (${cats}) ran=${agg.ranCount} excluded=${agg.excludedCount}`;
+}
+
+/** E2: prints what happened for the opt-in apply step, plainly, whether it
+ *  applied, was skipped, or failed (requirement 6: never silent). */
+function logApplyOutcome(outcome: ApplyOutcome): void {
+  if (outcome.status === 'applied') {
+    console.log(`[apply] Patched ${outcome.sourceFile}. Backup: ${outcome.backupPath}`);
+  } else if (outcome.status === 'skipped') {
+    console.log(`[apply] Skipped: ${outcome.reason}`);
+  } else {
+    console.warn(`[apply] FAILED (${outcome.sourceFile}): ${outcome.error}`);
+  }
+}
+
+/** E2: the load-bearing safety gate. Reuses the exact same "real, refused-
+ *  free win" guard the template-persist block already computes
+ *  (overfit / holdoutInconclusive / templateChanged) so a refused or
+ *  unchanged result can never reach a real source file. Never throws: every
+ *  failure path (missing file, missing/malformed sentinels, any PatchError)
+ *  is caught here and returned as a 'failed' outcome instead of propagating,
+ *  so a patch failure never fails the run or loses the report. */
+function applySourcePatch(params: {
+  apply: boolean;
+  cwd: string;
+  target: Target;
+  finalTemplate: string;
+  overfit: boolean;
+  holdoutInconclusive: boolean;
+  holdoutInconclusiveReason: 'aborted' | 'mixed-repeats' | undefined;
+  templateChanged: boolean;
+  backupsDir: string;
+}): ApplyOutcome | undefined {
+  const { apply, cwd, target, finalTemplate, overfit, holdoutInconclusive, holdoutInconclusiveReason, templateChanged, backupsDir } =
+    params;
+
+  if (!target.sourceFile) {
+    // Nothing declared to patch. Only worth reporting when the caller
+    // actually asked for --apply; otherwise every plugin without a
+    // sourceFile stays silent (unchanged from before this feature existed).
+    return apply ? { status: 'skipped', reason: 'target declares no sourceFile' } : undefined;
+  }
+
+  if (!apply) {
+    return { status: 'skipped', reason: '--apply not passed', sourceFile: target.sourceFile };
+  }
+  if (overfit) {
+    return { status: 'skipped', reason: 'win refused (OVERFIT)', sourceFile: target.sourceFile };
+  }
+  if (holdoutInconclusive) {
+    return {
+      status: 'skipped',
+      reason: `win refused (HOLDOUT INCONCLUSIVE: ${holdoutInconclusiveReason ?? 'unknown'})`,
+      sourceFile: target.sourceFile,
+    };
+  }
+  if (!templateChanged) {
+    return { status: 'skipped', reason: 'final template equals baseline (nothing learned)', sourceFile: target.sourceFile };
+  }
+  if (!target.varMap || !target.assignmentVar) {
+    return {
+      status: 'skipped',
+      reason: 'sourceFile declared but varMap/assignmentVar missing',
+      sourceFile: target.sourceFile,
+    };
+  }
+
+  try {
+    const result = patchSource({
+      projectDir: cwd,
+      sourceFile: target.sourceFile,
+      targetId: target.id,
+      template: finalTemplate,
+      varMap: target.varMap,
+      assignmentVar: target.assignmentVar,
+      backupsDir,
+    });
+    return { status: 'applied', sourceFile: target.sourceFile, backupPath: result.backupPath };
+  } catch (err: any) {
+    return { status: 'failed', sourceFile: target.sourceFile, error: err.message };
+  }
 }
 
 /**
@@ -131,6 +264,16 @@ export function unifiedDiff(before: string, after: string): string {
   return changed ? lines.join('\n') : '(no changes)';
 }
 
+/**
+ * E2: outcome of the (opt-in) source-patch apply step. Never derived from a
+ * thrown exception reaching the caller: the apply step always catches its
+ * own errors (requirement 5) and reports one of these three shapes instead.
+ */
+export type ApplyOutcome =
+  | { status: 'applied'; sourceFile: string; backupPath: string }
+  | { status: 'skipped'; reason: string; sourceFile?: string }
+  | { status: 'failed'; sourceFile: string; error: string };
+
 interface IterRow {
   iter: number;
   ts: string;
@@ -139,7 +282,13 @@ interface IterRow {
   candidateTotal: number;
   acceptedTotal: number;
   accepted: boolean;
+  /** Lifetime (persisted, cumulative-across-runs) spend at this point.
+   *  Unchanged meaning from before L6. */
   spendUsd: number;
+  /** L6: THIS run's own spend at this point (starts at 0 every run).
+   *  Carried alongside `spendUsd` so a reader of the state file is never
+   *  left with only the lifetime figure. */
+  runSpendUsd: number;
   /** L2: true when target.evalTemperature is declared and not 0 — this
    *  run's totals are noisy, not from a deterministic model. Stamped onto
    *  every state row so no reader of the state file mistakes a noisy total
@@ -168,6 +317,11 @@ export interface RunReport {
   trainFinal?: AggregateScore;
   holdoutBaseline?: AggregateScore;
   holdoutFinal?: AggregateScore;
+  /** L12: true when the final holdout pass was skipped because no candidate
+   *  was accepted (final template === baseline template). `holdoutFinal` then
+   *  carries the BASELINE measurement — the same template, already measured —
+   *  rather than a second paid pass that could only sample noise. */
+  holdoutFinalSkippedUnchanged?: boolean;
   overfit?: boolean;
   /** FINDING #1: the holdout final eval itself aborted (mostly-excluded
    *  fixtures — budget exhaustion / extraction failure / refusals), so the
@@ -195,8 +349,17 @@ export interface RunReport {
    *  rubric has no remaining signal to optimize against. */
   rubricSaturated?: boolean;
   iterations?: number;
+  /** Lifetime (persisted, cumulative-across-runs) spend. Unchanged meaning
+   *  from before L6. */
   spentUsd?: number;
+  /** L6: THIS run's own spend, carried on the report alongside `spentUsd`
+   *  so a caller is never left with only the lifetime figure. */
+  runSpentUsd?: number;
   finalTemplate?: string;
+  /** E2: outcome of the opt-in `--apply` source-patch step. Absent when the
+   *  target declares no `sourceFile` AND `--apply` was never passed (the
+   *  common case: every existing consumer never sees this field). */
+  applyResult?: ApplyOutcome;
 }
 
 export async function runOptimize(argv: string[], cwd: string = process.cwd()): Promise<RunReport> {
@@ -226,28 +389,38 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
   const trainFixtures = allFixtures.filter(f => f.split === 'train');
   const holdoutFixtures = allFixtures.filter(f => f.split === 'holdout');
 
-  const budget = new BudgetTracker(paths.budgetFile, args.budget);
+  // L6: args.budget caps THIS run only; args.lifetimeBudget (optional) is
+  // the absolute ceiling across every run that ever wrote to this ledger.
+  const budget = new BudgetTracker(paths.budgetFile, args.budget, args.lifetimeBudget ?? undefined);
 
   // L2: a target may declare the lowest temperature it can actually honor
   // for eval calls (e.g. kimi-k2.6 rejects any temperature except 1). When
   // that value is not 0, every eval result for this run is noisy — stamp a
   // prominent warning up front so it lands in the console log, the run
   // report, AND every appended state row (see below).
-  const evalTemperature = target.evalTemperature ?? EVAL_TEMPERATURE;
-  const nondeterministicScoring = evalTemperature !== 0;
+  // L10: nondeterminism is NOT simply "temperature != 0". A provider may
+  // accept temperature 0 and ignore it (measured true for xAI Grok), which
+  // left the riskiest case with the least protection. resolveScoringMode
+  // honors an explicit target.nondeterministic declaration too.
+  const scoringMode = resolveScoringMode(target, EVAL_TEMPERATURE);
+  const evalTemperature = scoringMode.evalTemperature;
+  const nondeterministicScoring = scoringMode.nondeterministic;
 
   console.log(`\n=== Prompt Optimizer: ${target.id} ===`);
   console.log(`Train fixtures: ${trainFixtures.length}, holdout fixtures: ${holdoutFixtures.length}`);
-  console.log(`Budget cap: $${args.budget.toFixed(2)} (spent so far: $${budget.spent.toFixed(4)})`);
+  // L6: --budget caps THIS run; the ledger's persisted lifetime spend is
+  // reported alongside it so it is never mistaken for the run's own cap.
+  console.log(
+    args.lifetimeBudget != null
+      ? `Budget cap: $${args.budget.toFixed(2)} this run (lifetime cap: $${args.lifetimeBudget.toFixed(2)}, lifetime spent so far: $${budget.spent.toFixed(4)})`
+      : `Budget cap: $${args.budget.toFixed(2)} this run (lifetime spent so far: $${budget.spent.toFixed(4)})`,
+  );
   if (nondeterministicScoring) {
-    console.log(
-      `[NONDETERMINISTIC SCORING] target.evalTemperature=${evalTemperature} (not 0). ` +
-        `This target cannot honor temperature 0 — every total in this run is noisy, not a clean deterministic measurement.`,
-    );
+    console.log(`[NONDETERMINISTIC SCORING] ${scoringMode.reason}`);
   }
 
   if (budget.exhausted()) {
-    console.log(`Budget already exhausted ($${budget.spent.toFixed(4)}).`);
+    console.log(budgetAbortMessage(budget, args));
     return { status: 'aborted' };
   }
 
@@ -298,6 +471,7 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
           : undefined,
       iterations: 0,
       spentUsd: budget.spent,
+      runSpentUsd: budget.runSpent,
       finalTemplate: baselineTemplate,
     };
   }
@@ -309,7 +483,7 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
 
   while (iter < args.maxIters && currentEval.aggregate.total > 0) {
     if (budget.exhausted()) {
-      console.log(`[stop] Budget exhausted ($${budget.spent.toFixed(4)}).`);
+      console.log(`[stop] ${budgetAbortMessage(budget, args)}`);
       break;
     }
     if (itersWithoutImprovement >= args.patience) {
@@ -337,7 +511,20 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
       continue;
     }
 
-    const candidateEval = await evaluateTemplate(target, rubric, mutation.newTemplate, trainFixtures, budget);
+    // L11: defense in depth. eval.ts now converts a per-fixture provider
+    // failure into a ran:false exclusion, so this should not fire — but
+    // mutateTemplate above has been guarded since day one while this call was
+    // not, and that asymmetry is what turned one `TypeError: fetch failed`
+    // into a dead run that discarded an already-paid-for baseline. An
+    // unexpected throw costs this iteration, never the run.
+    let candidateEval;
+    try {
+      candidateEval = await evaluateTemplate(target, rubric, mutation.newTemplate, trainFixtures, budget);
+    } catch (err: any) {
+      console.log(`[eval] FAILED: ${err?.message ?? String(err)}`);
+      itersWithoutImprovement += 1;
+      continue;
+    }
     console.log(`[eval] candidate: ${formatAgg(candidateEval.aggregate)}`);
 
     // FINDING #1: a candidate eval that mostly/fully excluded fixtures
@@ -356,6 +543,7 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
         acceptedTotal: currentEval.aggregate.total,
         accepted: false,
         spendUsd: budget.spent,
+        runSpendUsd: budget.runSpent,
         nondeterministicScoring,
       });
       continue;
@@ -385,6 +573,7 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
       acceptedTotal: currentEval.aggregate.total,
       accepted: accept,
       spendUsd: budget.spent,
+      runSpendUsd: budget.runSpent,
       nondeterministicScoring,
     });
   }
@@ -397,7 +586,22 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
   let holdoutInconclusiveReason: 'aborted' | 'mixed-repeats' | undefined;
   let finalTemplate = currentTemplate;
 
-  if (holdoutFixtures.length > 0 && holdoutBaselineEval) {
+  // L12: no candidate was accepted, so the "final" template IS the baseline
+  // template, byte for byte. Re-running the holdout gate here would spend
+  // holdoutRepeatCount live passes comparing a template to itself; the only
+  // thing that comparison can measure is run-to-run noise, and the noise can
+  // even trip the OVERFIT/INCONCLUSIVE branches on a run that proposed
+  // nothing. Measured live: one run burned 5 repeats x 4 fixtures = 20 paid
+  // calls on exactly this. The baseline measurement already IS the final
+  // measurement, so reuse it and say so.
+  const holdoutFinalSkippedUnchanged = currentTemplate === baselineTemplate;
+
+  if (holdoutFixtures.length > 0 && holdoutBaselineEval && holdoutFinalSkippedUnchanged) {
+    holdoutFinalEval = holdoutBaselineEval;
+    console.log(
+      `\n[holdout final] SKIPPED — no candidate was accepted, so the final template is byte-identical to the baseline. The baseline holdout measurement is the final measurement; re-running it would only sample noise.`,
+    );
+  } else if (holdoutFixtures.length > 0 && holdoutBaselineEval) {
     for (let r = 0; r < holdoutRepeatCount; r++) {
       holdoutFinalRepeats.push(await evaluateTemplate(target, rubric, currentTemplate, holdoutFixtures, budget));
     }
@@ -487,6 +691,20 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
     writeFileSync(templatePath, finalTemplate, 'utf8');
   }
 
+  // --- E2: opt-in source-patch apply step (DEFAULT OFF, --apply). ---
+  const applyResult = applySourcePatch({
+    apply: args.apply,
+    cwd,
+    target,
+    finalTemplate,
+    overfit,
+    holdoutInconclusive,
+    holdoutInconclusiveReason,
+    templateChanged,
+    backupsDir: paths.backupsDir,
+  });
+  if (applyResult) logApplyOutcome(applyResult);
+
   // L5: a perfect accepted train total means the rubric has no remaining
   // signal to optimize against — different from normal convergence
   // (patience/budget/max-iters exhausted with total still > 0).
@@ -500,7 +718,10 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
     `# Prompt Optimizer Run: ${target.id}`,
     `**Date:** ${new Date().toISOString()}`,
     `**Iterations:** ${iter}`,
-    `**Spend:** $${budget.spent.toFixed(4)} / $${args.budget.toFixed(2)}`,
+    `**Spend:** $${budget.runSpent.toFixed(4)} this run / $${args.budget.toFixed(2)} cap this run` +
+      (args.lifetimeBudget != null
+        ? ` ($${budget.spent.toFixed(4)} lifetime / $${args.lifetimeBudget.toFixed(2)} lifetime cap)`
+        : ` ($${budget.spent.toFixed(4)} lifetime)`),
     nondeterministicScoring
       ? `**NONDETERMINISTIC SCORING** (target.evalTemperature=${evalTemperature}) — this target cannot honor temperature 0; treat every total in this run as noisy, not a clean deterministic measurement.`
       : '',
@@ -510,7 +731,10 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
     holdoutBaselineEval && !(nondeterministicScoring && holdoutBaselineRepeats.length > 1)
       ? `**Holdout baseline:** ${formatAgg(holdoutBaselineEval.aggregate)}`
       : '',
-    holdoutFinalEval && !(nondeterministicScoring && holdoutFinalRepeats.length > 1)
+    holdoutFinalSkippedUnchanged && holdoutFinalEval
+      ? `**Holdout final: SKIPPED** — no candidate was accepted, so the final template is byte-identical to the baseline. The holdout baseline above IS the final measurement; no second live pass was run (L12).`
+      : '',
+    holdoutFinalEval && !holdoutFinalSkippedUnchanged && !(nondeterministicScoring && holdoutFinalRepeats.length > 1)
       ? `**Holdout final:** ${formatAgg(holdoutFinalEval.aggregate)}`
       : '',
     nondeterministicScoring && holdoutBaselineRepeats.length > 1
@@ -522,6 +746,13 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
     overfit ? `**OVERFIT — win refused. Baseline template retained.**` : '',
     holdoutInconclusive
       ? `**HOLDOUT INCONCLUSIVE (${holdoutInconclusiveReason}) — win refused. Baseline template retained.**`
+      : '',
+    applyResult
+      ? applyResult.status === 'applied'
+        ? `**Source patch APPLIED:** ${applyResult.sourceFile} (backup: ${applyResult.backupPath})`
+        : applyResult.status === 'failed'
+          ? `**Source patch FAILED:** ${applyResult.sourceFile}: ${applyResult.error}`
+          : `**Source patch skipped:** ${applyResult.reason}`
       : '',
     '',
     '## Seed vs Final Diff',
@@ -547,6 +778,7 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
     trainFinal: currentEval.aggregate,
     holdoutBaseline: holdoutBaselineEval?.aggregate,
     holdoutFinal: holdoutFinalEval?.aggregate,
+    holdoutFinalSkippedUnchanged,
     overfit,
     holdoutInconclusive,
     holdoutInconclusiveReason,
@@ -562,12 +794,17 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
     rubricSaturated,
     iterations: iter,
     spentUsd: budget.spent,
+    runSpentUsd: budget.runSpent,
     finalTemplate,
+    applyResult,
   };
 }
 
 // Only invoke main() when this module is executed directly (not imported by tests).
-const isMain = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+// isMainModule realpath's both sides (L7): the engine is normally reached
+// through the `~/.claude/skills/prompt-optimizer` symlink, and a raw href
+// comparison is false there, which made the CLI exit 0 having done nothing.
+const isMain = isMainModule(import.meta.url, process.argv[1]);
 if (isMain) {
   runOptimize(process.argv.slice(2))
     .then(report => {

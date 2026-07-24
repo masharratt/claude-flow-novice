@@ -1,0 +1,98 @@
+[
+  {
+    "id": "train-tidepool-router",
+    "split": "train",
+    "wantsComma": true,
+    "product": "Tidepool Router",
+    "audience": "homeowners in coastal towns with spotty signal",
+    "detail": "A mesh wifi router built to resist salt air corrosion and hold a signal through storms."
+  },
+  {
+    "id": "train-quietstack-monitor",
+    "split": "train",
+    "wantsComma": false,
+    "product": "Quietstack Monitor",
+    "audience": "facilities managers running open-plan offices",
+    "detail": "A desk sensor that measures ambient noise and flags zones crossing a comfort threshold."
+  },
+  {
+    "id": "train-ferngate-scheduler",
+    "split": "train",
+    "wantsComma": true,
+    "product": "Ferngate Scheduler",
+    "audience": "cafe managers juggling part-time staff",
+    "detail": "Builds a weekly shift schedule from staff availability and warns about coverage gaps."
+  },
+  {
+    "id": "train-cobblewire-sync",
+    "split": "train",
+    "wantsComma": false,
+    "product": "Cobblewire Sync",
+    "audience": "architecture firms sharing large drawing files",
+    "detail": "Syncs project folders across offices and resolves conflicting edits automatically."
+  },
+  {
+    "id": "train-harborcask-brewkit",
+    "split": "train",
+    "wantsComma": true,
+    "product": "Harborcask Brewkit",
+    "audience": "first-time home brewers intimidated by the process",
+    "detail": "A guided brewing kit with preset recipes and a fermentation timer built into the lid."
+  },
+  {
+    "id": "train-windrow-composter",
+    "split": "train",
+    "wantsComma": false,
+    "product": "Windrow Composter",
+    "audience": "urban gardeners without yard space for a compost pile",
+    "detail": "A countertop composter that turns scraps into usable soil in under two weeks."
+  },
+  {
+    "id": "train-emberloop-thermostat",
+    "split": "train",
+    "wantsComma": true,
+    "product": "Emberloop Thermostat",
+    "audience": "tiny-home owners with irregular heating needs",
+    "detail": "Learns a household's actual room-use pattern and stops heating rooms no one is in."
+  },
+  {
+    "id": "train-pinecrest-ledger",
+    "split": "train",
+    "wantsComma": false,
+    "product": "Pinecrest Ledger",
+    "audience": "freelance contractors billing multiple clients monthly",
+    "detail": "Turns tracked hours into branded invoices and reminds clients automatically when payment is late."
+  },
+  {
+    "id": "holdout-brightleaf-ledger",
+    "split": "holdout",
+    "wantsComma": true,
+    "product": "Brightleaf Ledger",
+    "audience": "small farm owners doing their own bookkeeping",
+    "detail": "Tracks seasonal income and expenses and generates a tax-ready summary at year end."
+  },
+  {
+    "id": "holdout-driftlight-lantern",
+    "split": "holdout",
+    "wantsComma": false,
+    "product": "Driftlight Lantern",
+    "audience": "weekend campers who forget to charge gear",
+    "detail": "A solar lantern that trickle-charges all day and runs twelve hours on a single charge."
+  },
+  {
+    "id": "holdout-mossvale-tracker",
+    "split": "holdout",
+    "wantsComma": true,
+    "product": "Mossvale Tracker",
+    "audience": "greenhouse growers managing dozens of plant beds",
+    "detail": "Logs soil moisture and light per bed and alerts growers before a plant stresses."
+  },
+  {
+    "id": "holdout-slatehill-notebook",
+    "split": "holdout",
+    "wantsComma": false,
+    "product": "Slatehill Notebook",
+    "audience": "journalists protecting source notes on shared laptops",
+    "detail": "An encrypted notebook app that locks entries behind a second passphrase, separate from login."
+  }
+]

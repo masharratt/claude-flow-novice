@@ -7,6 +7,19 @@
  * never a path under the engine's own SKILL_DIR (BLOCKER-1). This module
  * itself has no opinion on the path — it just persists to whatever path it
  * is given.
+ *
+ * L6 fix: `_budget.json` persists `spentUsd` FOREVER across runs (it is one
+ * ledger shared by every target in the project). A tracker used to compare
+ * the caller's cap against that CUMULATIVE total, so `--budget=N` read like
+ * a per-run cap but behaved like a lifetime one (LIVE BUG: a fresh
+ * `--budget=0.45` run against a ledger already holding $0.60 of historical
+ * spend aborted instantly, having done zero work). The constructor now takes
+ * a per-run cap (2nd arg, unchanged position) and an OPTIONAL lifetime cap
+ * (3rd arg). `runSpent` always starts at 0 for a fresh construction; `spent`
+ * keeps its old meaning (persisted, lifetime total). `exhausted()` trips on
+ * EITHER cap; `trippedCap()` reports which one so callers can print an
+ * accurate message. The persisted `BudgetState` JSON shape is unchanged
+ * ({capUsd, spentUsd, entries}) so an existing `_budget.json` still loads.
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -22,39 +35,80 @@ export interface BudgetEntry {
 }
 
 export interface BudgetState {
+  /** Historical field name kept for backward compatibility with existing
+   *  `_budget.json` files. Since L6, this no longer gates `exhausted()`
+   *  directly (the run/lifetime caps passed to the constructor do). It is
+   *  retained purely so an old ledger file's shape still parses untouched. */
   capUsd: number;
   spentUsd: number;
   entries: BudgetEntry[];
 }
 
+/** L6: which cap (if any) is currently tripped. */
+export type TrippedCap = 'run' | 'lifetime' | null;
+
 export class BudgetTracker {
   private state: BudgetState;
+  /** This construction's own spend. Always starts at 0, never read from
+   *  the persisted ledger, so a fresh run gets a fresh per-run budget even
+   *  when the ledger already holds lifetime spend from prior runs. */
+  private runSpentUsd = 0;
 
-  constructor(private path: string, capUsd: number) {
+  constructor(
+    private path: string,
+    private runCapUsd: number,
+    private lifetimeCapUsd?: number,
+  ) {
     if (existsSync(this.path)) {
       const raw = JSON.parse(readFileSync(this.path, 'utf8')) as BudgetState;
-      this.state = { ...raw, capUsd };
+      this.state = { ...raw, capUsd: lifetimeCapUsd ?? raw.capUsd };
     } else {
-      this.state = { capUsd, spentUsd: 0, entries: [] };
+      this.state = { capUsd: lifetimeCapUsd ?? runCapUsd, spentUsd: 0, entries: [] };
     }
   }
 
-  get remaining(): number {
-    return this.state.capUsd - this.state.spentUsd;
+  /** This run's own spend so far (starts at 0 every construction). */
+  get runSpent(): number {
+    return this.runSpentUsd;
   }
 
+  /** Lifetime (persisted, cumulative-across-runs) spend. Unchanged meaning
+   *  from before L6. */
   get spent(): number {
     return this.state.spentUsd;
   }
 
+  /** Remaining budget for THIS run against the per-run cap. */
+  get runRemaining(): number {
+    return this.runCapUsd - this.runSpentUsd;
+  }
+
+  /** Remaining budget against the optional lifetime cap. `null` when no
+   *  lifetime cap was supplied (no ceiling to report against). */
+  get lifetimeRemaining(): number | null {
+    if (this.lifetimeCapUsd === undefined) return null;
+    return this.lifetimeCapUsd - this.state.spentUsd;
+  }
+
+  /** True when either the per-run cap or (if supplied) the lifetime cap has
+   *  been reached. */
   exhausted(): boolean {
-    return this.remaining <= 0;
+    return this.trippedCap() !== null;
+  }
+
+  /** Which cap is currently tripped, checked run-cap first (the common
+   *  case), then lifetime. `null` when neither is tripped. */
+  trippedCap(): TrippedCap {
+    if (this.runRemaining <= 0) return 'run';
+    if (this.lifetimeCapUsd !== undefined && this.state.spentUsd >= this.lifetimeCapUsd) return 'lifetime';
+    return null;
   }
 
   record(entry: Omit<BudgetEntry, 'ts'>): void {
     const full: BudgetEntry = { ...entry, ts: new Date().toISOString() };
     this.state.entries.push(full);
     this.state.spentUsd += entry.cost;
+    this.runSpentUsd += entry.cost;
     this.flush();
   }
 

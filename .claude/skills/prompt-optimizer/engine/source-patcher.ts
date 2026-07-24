@@ -15,7 +15,7 @@
  * template.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve } from 'node:path';
 
 export interface PatchResult {
   backupPath: string;
@@ -92,11 +92,23 @@ export function patchSource(inputs: PatchInputs): PatchResult {
 
   const oldRegion = content.slice(afterStart, endIdx);
 
-  // Backup
+  // Backup. The filename is timestamped, but a millisecond ISO stamp is NOT
+  // unique: two patches inside the same millisecond produced the same name and
+  // the second silently OVERWROTE the first backup — losing the only copy of
+  // the region it replaced. Write with the exclusive flag and suffix on
+  // collision so every patch keeps its own recoverable backup.
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupPath = resolve(inputs.backupsDir, `${inputs.targetId}-${ts}.txt`);
-  mkdirSync(dirname(backupPath), { recursive: true });
-  writeFileSync(backupPath, oldRegion, 'utf8');
+  mkdirSync(inputs.backupsDir, { recursive: true });
+  let backupPath = resolve(inputs.backupsDir, `${inputs.targetId}-${ts}.txt`);
+  for (let n = 1; ; n++) {
+    try {
+      writeFileSync(backupPath, oldRegion, { encoding: 'utf8', flag: 'wx' });
+      break;
+    } catch (e: unknown) {
+      if ((e as NodeJS.ErrnoException)?.code !== 'EEXIST') throw e;
+      backupPath = resolve(inputs.backupsDir, `${inputs.targetId}-${ts}-${n}.txt`);
+    }
+  }
 
   const literalBody = templateToLiteralBody(inputs.template, inputs.varMap);
   const newRegion = `\n  const ${inputs.assignmentVar} = \`${literalBody}\`;\n  `;

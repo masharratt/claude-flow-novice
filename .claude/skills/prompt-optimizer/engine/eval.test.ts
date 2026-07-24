@@ -342,6 +342,102 @@ describe('evaluateTemplate — reject-and-regenerate (FIX #4)', () => {
   });
 });
 
+describe('evaluateTemplate (E1: async Rubric.score)', () => {
+  it('still works exactly as before with a synchronous rubric (no regression)', async () => {
+    const target: Target = {
+      id: 'mock-target',
+      loadTemplate: () => 'tpl',
+      renderPrompt: (tpl, fx) => ({ prompt: `${tpl}:${fx.id}` }),
+      generate: async (): Promise<GenerateResult> => makeGenResult('clean output'),
+      extractScript: (raw: string): ExtractResult => ({ ok: true, text: raw }),
+    };
+    const rubric: Rubric = {
+      categories: ['foo'],
+      describe: () => 'scores foo',
+      score: (text: string): RubricScore => ({
+        categories: { foo: text === 'clean output' ? 0 : 1 },
+        total: text === 'clean output' ? 0 : 1,
+        hits: [],
+        ran: true,
+      }),
+    };
+
+    const result = await evaluateTemplate(target, rubric, 'tpl', [fixture('f1')], budget);
+
+    expect(result.aggregate.total).toBe(0);
+    expect(result.aggregate.ranCount).toBe(1);
+    expect(result.perFixture[0]!.score.ran).toBe(true);
+  });
+
+  it('awaits a rubric whose score() returns a Promise, landing resolved categories/total/hits in the aggregate identically to the sync case', async () => {
+    const target: Target = {
+      id: 'mock-target',
+      loadTemplate: () => 'tpl',
+      renderPrompt: (tpl, fx) => ({ prompt: `${tpl}:${fx.id}` }),
+      generate: async (): Promise<GenerateResult> => makeGenResult('needs review'),
+      extractScript: (raw: string): ExtractResult => ({ ok: true, text: raw }),
+    };
+    // LLM-as-judge style rubric: async score(), e.g. judgeEngagement().
+    const asyncRubric: Rubric = {
+      categories: ['engagement'],
+      describe: () => 'async LLM-as-judge rubric',
+      score: async (text: string): Promise<RubricScore> => {
+        await new Promise(r => setTimeout(r, 1));
+        return {
+          categories: { engagement: 2 },
+          total: 2,
+          hits: [{ category: 'engagement', matched: text }],
+          ran: true,
+        };
+      },
+    };
+
+    const result = await evaluateTemplate(target, asyncRubric, 'tpl', [fixture('f1')], budget);
+
+    expect(result.aggregate.total).toBe(2);
+    expect(result.aggregate.categoryTotals.engagement).toBe(2);
+    expect(result.perFixture[0]!.score.hits).toEqual([{ category: 'engagement', matched: 'needs review' }]);
+    expect(result.perFixture[0]!.score.ran).toBe(true);
+  });
+
+  it('reject-and-regenerate (regenerateOn) still works when the rubric is async, since that path re-scores', async () => {
+    const promptsSeen: string[] = [];
+    let call = 0;
+    const target: Target = {
+      id: 'mock-target',
+      loadTemplate: () => 'tpl',
+      renderPrompt: (tpl, fx) => ({ prompt: `${tpl}:${fx.id}` }),
+      generate: async (prompt: string): Promise<GenerateResult> => {
+        promptsSeen.push(prompt);
+        call += 1;
+        return makeGenResult(call === 1 ? 'bad output' : 'good output');
+      },
+      extractScript: (raw: string): ExtractResult => ({ ok: true, text: raw }),
+    };
+    const asyncRubric: Rubric = {
+      categories: ['flagged'],
+      describe: () => 'async rubric with regenerateOn',
+      regenerateOn: ['flagged'],
+      score: async (text: string): Promise<RubricScore> => {
+        await new Promise(r => setTimeout(r, 1));
+        return text === 'bad output'
+          ? { categories: { flagged: 1 }, total: 1, hits: [{ category: 'flagged', matched: 'bad output' }], ran: true }
+          : { categories: { flagged: 0 }, total: 0, hits: [], ran: true };
+      },
+    };
+
+    const result = await evaluateTemplate(target, asyncRubric, 'tpl', [fixture('f1')], budget, {
+      regenerateNudge: '\n\nNUDGE: fix it.',
+    });
+
+    expect(call).toBe(2); // exactly one retry, same as the sync case
+    expect(promptsSeen[1]).toContain('NUDGE: fix it.');
+    expect(result.perFixture[0]!.regenerated).toBe(true);
+    expect(result.perFixture[0]!.text).toBe('good output');
+    expect(result.aggregate.categoryTotals.flagged).toBe(0);
+  });
+});
+
 describe('selectWorst', () => {
   it('returns only ran fixtures, sorted worst-first, capped at k', async () => {
     const target: Target = {
@@ -372,5 +468,120 @@ describe('selectWorst', () => {
     );
     const worst = selectWorst(result, 2);
     expect(worst.map(w => w.fixture.id)).toEqual(['f2', 'f1']);
+  });
+});
+
+describe('evaluateTemplate — L11: a transient provider failure must not destroy the whole eval', () => {
+  // Found live, not in review. A rigged-noise run died at iteration 4 with an
+  // uncaught `TypeError: fetch failed` (cause UND_ERR_HEADERS_TIMEOUT),
+  // discarding a completed holdout baseline that had cost 20 live model calls
+  // ($0.41 of a $2.50 lifetime ledger). Three defects stacked:
+  //   1. retryTransient's pattern missed the most common undici failures, so
+  //      it rethrew on attempt 0 instead of retrying.
+  //   2. The generate call sits inside Promise.all, so ONE fixture's terminal
+  //      error rejected the entire eval.
+  //   3. optimize.ts wrapped mutateTemplate in try/catch but not
+  //      evaluateTemplate, so the rejection killed the process.
+  // The engine already has a first-class concept for "this fixture produced
+  // nothing scoreable": the ran:false tri-state (FIX #2). A network failure
+  // belongs there, not at the top of the stack.
+  function undiciFailure(): Error {
+    const err = new TypeError('fetch failed');
+    (err as any).cause = { code: 'UND_ERR_HEADERS_TIMEOUT' };
+    return err;
+  }
+
+  const cleanRubric: Rubric = {
+    categories: ['foo'],
+    describe: () => 'scores foo',
+    score: (): RubricScore => ({ categories: { foo: 1 }, total: 1, hits: [], ran: true }),
+  };
+
+  it('retries a "fetch failed" / UND_ERR_HEADERS_TIMEOUT error instead of rethrowing immediately', async () => {
+    let calls = 0;
+    const target: Target = {
+      id: 'mock-target',
+      loadTemplate: () => 'tpl',
+      renderPrompt: (tpl, fx) => ({ prompt: `${tpl}:${fx.id}` }),
+      generate: async (): Promise<GenerateResult> => {
+        calls += 1;
+        if (calls === 1) throw undiciFailure();
+        return makeGenResult('recovered output');
+      },
+      extractScript: (raw: string): ExtractResult => ({ ok: true, text: raw }),
+    };
+
+    const result = await evaluateTemplate(target, cleanRubric, 'tpl', [fixture('f1')], budget, {
+      retryDelayMs: 0,
+    });
+
+    expect(calls).toBeGreaterThan(1);
+    expect(result.perFixture[0]!.score.ran).toBe(true);
+  });
+
+  it('excludes a fixture whose generate fails terminally, instead of rejecting the whole eval', async () => {
+    const target: Target = {
+      id: 'mock-target',
+      loadTemplate: () => 'tpl',
+      renderPrompt: (tpl, fx) => ({ prompt: `${tpl}:${fx.id}` }),
+      generate: async (prompt: string): Promise<GenerateResult> => {
+        if (prompt.endsWith('f2')) throw undiciFailure();
+        return makeGenResult('clean output');
+      },
+      extractScript: (raw: string): ExtractResult => ({ ok: true, text: raw }),
+    };
+
+    const fixtures = [fixture('f1'), fixture('f2'), fixture('f3'), fixture('f4')];
+    const result = await evaluateTemplate(target, cleanRubric, 'tpl', fixtures, budget, {
+      retryDelayMs: 0,
+    });
+
+    // The healthy fixtures still produced a real measurement.
+    expect(result.aggregate.ranCount).toBe(3);
+    expect(result.aggregate.excludedCount).toBe(1);
+    const failed = result.perFixture.find(p => p.fixture.id === 'f2')!;
+    expect(failed.score.ran).toBe(false);
+    expect(String(failed.score.metrics?.reason)).toMatch(/generate failed/i);
+  });
+
+  it('still aborts when transient failures take out more than half the fixtures', async () => {
+    // Exclusion must not become a way to silently "pass" a broken run: the
+    // <50% ran guard (FIX #2) is what stops a mostly-dead eval from reading
+    // as an artificially low total.
+    const target: Target = {
+      id: 'mock-target',
+      loadTemplate: () => 'tpl',
+      renderPrompt: (tpl, fx) => ({ prompt: `${tpl}:${fx.id}` }),
+      generate: async (prompt: string): Promise<GenerateResult> => {
+        if (prompt.endsWith('f1')) return makeGenResult('clean output');
+        throw undiciFailure();
+      },
+      extractScript: (raw: string): ExtractResult => ({ ok: true, text: raw }),
+    };
+
+    const fixtures = [fixture('f1'), fixture('f2'), fixture('f3'), fixture('f4')];
+    const result = await evaluateTemplate(target, cleanRubric, 'tpl', fixtures, budget, {
+      retryDelayMs: 0,
+    });
+
+    expect(result.aborted).toBe(true);
+  });
+
+  it('surfaces the provider message in the exclusion reason so a dead run is diagnosable', async () => {
+    const target: Target = {
+      id: 'mock-target',
+      loadTemplate: () => 'tpl',
+      renderPrompt: (tpl, fx) => ({ prompt: `${tpl}:${fx.id}` }),
+      generate: async (): Promise<GenerateResult> => {
+        throw undiciFailure();
+      },
+      extractScript: (raw: string): ExtractResult => ({ ok: true, text: raw }),
+    };
+
+    const result = await evaluateTemplate(target, cleanRubric, 'tpl', [fixture('f1')], budget, {
+      retryDelayMs: 0,
+    });
+
+    expect(String(result.perFixture[0]!.score.metrics?.reason)).toMatch(/fetch failed/i);
   });
 });
