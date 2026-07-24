@@ -103,6 +103,12 @@ This file MUST be updated when:
 
 **Known limitations (glm-video-ingest):** Loom mp4/transcript endpoints unofficial; public Loom only (no workspace-private auth); zai needs paid balance; gemini `GOOGLE_API_KEY` expired. kimi-k2.6 verified end-to-end.
 
+### Prompt Optimization Skills
+
+| Skill | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| prompt-optimizer | ✅ Prod | ✅ 44/44 | `prompt-optimizer/` | Provider-agnostic hill-climb prompt optimizer engine. State-isolated, mutation-driven hill climbing with holdout validation gate. Shared engine at `.claude/skills/prompt-optimizer/`, project-local plugin contract via `<project>/.claude/prompt-optimizer/`. 8 engine TS modules (paths, budget, mutator, eval, optimize, rubric-core, source-patcher, types) + 5 test suites (44 tests). `execute.sh` skill entry point. |
+
 ### Validation & Testing Skills
 
 | Skill | Status | Tests | Location | Description |
