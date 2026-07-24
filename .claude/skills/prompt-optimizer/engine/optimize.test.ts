@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runOptimize } from './optimize.js';
+import { runOptimize, unifiedDiff } from './optimize.js';
 
 let projectDir: string;
 
@@ -30,9 +30,12 @@ function writeMockPlugin(opts: {
   targetId: string;
   baselineTemplate: string;
   improvedTemplate: string;
-  /** given the rendered prompt (which encodes template + fixture id), return
-   *  how many "BAD" markers the mock model should emit. */
-  badCount: (prompt: string) => number;
+  /** given the rendered prompt (which encodes template + fixture id) and the
+   *  0-based call index FOR THAT EXACT PROMPT (increments each time the same
+   *  prompt is generated again — e.g. across L3 holdout-repeats passes),
+   *  return how many "BAD" markers the mock model should emit. Existing
+   *  single-arg callers are unaffected (callIndex simply unused). */
+  badCount: (prompt: string, callIndex: number) => number;
   trainFixtureIds: string[];
   holdoutFixtureIds: string[];
   /** Optional: when true for a given rendered eval prompt, the mock model's
@@ -42,6 +45,11 @@ function writeMockPlugin(opts: {
    *  eval quietly read as an artificially low, fake-winning total). Defaults
    *  to never excluding (existing tests are unaffected). */
   excludeOn?: (prompt: string) => boolean;
+  /** L2/L3: declares Target.evalTemperature on the mock plugin so the
+   *  nondeterministic-scoring path (NONDETERMINISTIC SCORING warning,
+   *  L3 holdout-repeats gate) is exercised. Omit for the existing
+   *  deterministic (temperature-0) mock behavior. */
+  evalTemperature?: number;
 }): void {
   const root = pluginRoot();
   mkdirSync(join(root, 'targets'), { recursive: true });
@@ -66,12 +74,15 @@ function writeMockPlugin(opts: {
   ];
   writeFileSync(join(root, 'fixtures', 'mock.json'), JSON.stringify(fixtures), 'utf8');
 
+  const evalTempLine =
+    opts.evalTemperature !== undefined ? `  evalTemperature: ${JSON.stringify(opts.evalTemperature)},\n` : '';
   const targetSrc = `
+const __callCounts = {};
 export const target = {
   id: ${JSON.stringify(opts.targetId)},
   loadTemplate: () => ${JSON.stringify(opts.baselineTemplate)},
   renderPrompt: (tpl, fx) => ({ prompt: tpl + '::' + fx.id }),
-  generate: async (prompt, options) => {
+${evalTempLine}  generate: async (prompt, options) => {
     if (prompt.startsWith(${JSON.stringify(MUTATE_MARKER)})) {
       return {
         raw: '---DIAGNOSIS---\\nDiagnosis text.\\n\\n---STRATEGY---\\nStrategy text.\\n\\n---TEMPLATE---\\n' + ${JSON.stringify(opts.improvedTemplate)} + '\\n\\n---RATIONALE---\\nRationale text.',
@@ -83,7 +94,9 @@ export const target = {
     }
     const badFn = ${opts.badCount.toString()};
     const excludeFn = ${(opts.excludeOn ?? (() => false)).toString()};
-    const n = badFn(prompt);
+    __callCounts[prompt] = (__callCounts[prompt] || 0) + 1;
+    const callIndex = __callCounts[prompt] - 1;
+    const n = badFn(prompt, callIndex);
     const text = Array.from({ length: n }, () => 'BAD').join(' ') || 'GOOD';
     const raw = excludeFn(prompt) ? '###EXCLUDE###' + text : text;
     return { raw, model: 'mock-model', inputTokens: 20, outputTokens: 10, cost: 0.001 };
@@ -284,5 +297,265 @@ describe('runOptimize — dry-run', () => {
 
     const templatePath = join(pluginRoot(), 'templates', 'mock-target.md');
     expect(existsSync(templatePath)).toBe(false);
+  });
+});
+
+describe('unifiedDiff (L1 helper)', () => {
+  it('returns "(no changes)" when before and after are identical', () => {
+    expect(unifiedDiff('same\ntext', 'same\ntext')).toBe('(no changes)');
+  });
+
+  it('marks removed and added lines with -/+ prefixes', () => {
+    const diff = unifiedDiff('line1\nline2\nline3', 'line1\nline2 changed\nline3');
+    expect(diff).toContain('- line2');
+    expect(diff).toContain('+ line2 changed');
+    expect(diff).toContain('  line1');
+    expect(diff).toContain('  line3');
+  });
+});
+
+describe('runOptimize — L1: seed backup before overwrite + seed-vs-final diff in report', () => {
+  it('writes a backup of the PRIOR template to backupsDir before persisting a win, and the run report contains a diff section', async () => {
+    writeMockPlugin({
+      targetId: 'mock-target',
+      baselineTemplate: 'BASELINE {{X}}',
+      improvedTemplate: 'IMPROVED {{X}}',
+      badCount: (prompt) => (prompt.includes('BASELINE') ? 1 : 0),
+      trainFixtureIds: ['train-1', 'train-2'],
+      holdoutFixtureIds: ['holdout-1'],
+    });
+
+    const report = await runOptimize(['mock-target', '--budget=10', '--max-iters=3'], projectDir);
+    expect(report.status).toBe('ok');
+    expect(report.finalTemplate).toContain('IMPROVED');
+
+    // Backup of the prior (baseline) template must exist, written BEFORE
+    // the winning template overwrote templates/mock-target.md.
+    const backupsDir = join(pluginRoot(), 'backups');
+    expect(existsSync(backupsDir)).toBe(true);
+    const backupFiles = readdirSync(backupsDir).filter(f => f.startsWith('mock-target-'));
+    expect(backupFiles.length).toBeGreaterThanOrEqual(1);
+    const backupContent = readFileSync(join(backupsDir, backupFiles[0]!), 'utf8');
+    expect(backupContent).toBe('BASELINE {{X}}');
+
+    // Run report must contain a diff section showing the seed-vs-final change.
+    const runsDir = join(pluginRoot(), 'runs');
+    const runFiles = readdirSync(runsDir).filter(f => f.startsWith('mock-target-'));
+    expect(runFiles.length).toBeGreaterThanOrEqual(1);
+    const reportContent = readFileSync(join(runsDir, runFiles[0]!), 'utf8');
+    expect(reportContent).toMatch(/## Seed vs Final Diff/i);
+    expect(reportContent).toContain('BASELINE');
+    expect(reportContent).toContain('IMPROVED');
+  });
+
+  it('does not write a backup when the run refuses the win (OVERFIT) and the template is unchanged', async () => {
+    writeMockPlugin({
+      targetId: 'mock-target',
+      baselineTemplate: 'BASELINE {{X}}',
+      improvedTemplate: 'IMPROVED {{X}}',
+      badCount: (prompt) => {
+        if (prompt.includes('IMPROVED') && prompt.includes('holdout-1')) return 3;
+        if (prompt.includes('IMPROVED')) return 0;
+        if (prompt.includes('BASELINE') && prompt.includes('holdout-1')) return 1;
+        return 1;
+      },
+      trainFixtureIds: ['train-1', 'train-2'],
+      holdoutFixtureIds: ['holdout-1'],
+    });
+
+    const report = await runOptimize(['mock-target', '--budget=10', '--max-iters=3'], projectDir);
+    expect(report.overfit).toBe(true);
+
+    const backupsDir = join(pluginRoot(), 'backups');
+    expect(existsSync(backupsDir)).toBe(false);
+  });
+});
+
+describe('runOptimize — L2: NONDETERMINISTIC SCORING stamped in report and state', () => {
+  it('stamps a NONDETERMINISTIC SCORING warning in the run report and per-iteration state when target.evalTemperature is not 0', async () => {
+    writeMockPlugin({
+      targetId: 'mock-target',
+      baselineTemplate: 'BASELINE {{X}}',
+      improvedTemplate: 'IMPROVED {{X}}',
+      badCount: (prompt) => (prompt.includes('BASELINE') ? 1 : 0),
+      trainFixtureIds: ['train-1'],
+      holdoutFixtureIds: [],
+      evalTemperature: 1,
+    });
+
+    const report = await runOptimize(['mock-target', '--budget=10', '--max-iters=1'], projectDir);
+    expect(report.status).toBe('ok');
+
+    const runsDir = join(pluginRoot(), 'runs');
+    const runFiles = readdirSync(runsDir);
+    const reportContent = readFileSync(join(runsDir, runFiles[0]!), 'utf8');
+    expect(reportContent).toMatch(/NONDETERMINISTIC SCORING/);
+
+    const stateContent = JSON.parse(readFileSync(join(pluginRoot(), 'state', 'mock-target.json'), 'utf8'));
+    expect(stateContent.length).toBeGreaterThan(0);
+    expect(stateContent[0].nondeterministicScoring).toBe(true);
+  });
+
+  it('does NOT stamp NONDETERMINISTIC SCORING for a deterministic target (no evalTemperature declared)', async () => {
+    writeMockPlugin({
+      targetId: 'mock-target',
+      baselineTemplate: 'BASELINE {{X}}',
+      improvedTemplate: 'IMPROVED {{X}}',
+      badCount: (prompt) => (prompt.includes('BASELINE') ? 1 : 0),
+      trainFixtureIds: ['train-1'],
+      holdoutFixtureIds: [],
+    });
+
+    const report = await runOptimize(['mock-target', '--budget=10', '--max-iters=1'], projectDir);
+    expect(report.status).toBe('ok');
+
+    const runsDir = join(pluginRoot(), 'runs');
+    const runFiles = readdirSync(runsDir);
+    const reportContent = readFileSync(join(runsDir, runFiles[0]!), 'utf8');
+    expect(reportContent).not.toMatch(/NONDETERMINISTIC SCORING/);
+
+    const stateContent = JSON.parse(readFileSync(join(pluginRoot(), 'state', 'mock-target.json'), 'utf8'));
+    expect(stateContent[0].nondeterministicScoring).toBe(false);
+  });
+});
+
+describe('runOptimize — L3: holdout-repeats noise floor gate', () => {
+  it('accepts the win when the candidate beats the baseline on EVERY holdout repeat (default repeats=2)', async () => {
+    writeMockPlugin({
+      targetId: 'mock-target',
+      baselineTemplate: 'BASELINE {{X}}',
+      improvedTemplate: 'IMPROVED {{X}}',
+      badCount: (prompt) => (prompt.includes('BASELINE') ? 5 : 0),
+      trainFixtureIds: ['train-1'],
+      holdoutFixtureIds: ['holdout-1'],
+      evalTemperature: 1,
+    });
+
+    const report = await runOptimize(['mock-target', '--budget=10', '--max-iters=1'], projectDir);
+
+    expect(report.status).toBe('ok');
+    expect((report as any).overfit).toBe(false);
+    expect((report as any).holdoutInconclusive).toBe(false);
+    expect(report.finalTemplate).toContain('IMPROVED');
+    expect((report as any).holdoutBaselineRepeatTotals).toEqual([5, 5]);
+    expect((report as any).holdoutFinalRepeatTotals).toEqual([0, 0]);
+  });
+
+  it('labels INCONCLUSIVE (not a clean win) and refuses when the candidate wins some repeats but not others (noise floor)', async () => {
+    writeMockPlugin({
+      targetId: 'mock-target',
+      baselineTemplate: 'BASELINE {{X}}',
+      improvedTemplate: 'IMPROVED {{X}}',
+      badCount: (prompt, callIndex) => {
+        if (prompt.includes('BASELINE')) return 5;
+        if (prompt.includes('holdout-1')) return callIndex === 0 ? 0 : 10; // wins repeat 0, loses repeat 1
+        return 0; // clean win on train, always
+      },
+      trainFixtureIds: ['train-1'],
+      holdoutFixtureIds: ['holdout-1'],
+      evalTemperature: 1,
+    });
+
+    const report = await runOptimize(['mock-target', '--budget=10', '--max-iters=1'], projectDir);
+
+    expect(report.status).toBe('ok');
+    expect((report as any).overfit).toBe(false);
+    expect((report as any).holdoutInconclusive).toBe(true);
+    expect((report as any).holdoutInconclusiveReason).toBe('mixed-repeats');
+    // Refused: reverts to baseline, same refusal path as OVERFIT.
+    expect(report.finalTemplate).toBe('BASELINE {{X}}');
+
+    const templatePath = join(pluginRoot(), 'templates', 'mock-target.md');
+    expect(existsSync(templatePath)).toBe(false);
+  });
+
+  it('honors --holdout-repeats=N: a regression only visible on the 3rd repeat is caught with N=3 but missed with the default N=2', async () => {
+    writeMockPlugin({
+      targetId: 'mock-target',
+      baselineTemplate: 'BASELINE {{X}}',
+      improvedTemplate: 'IMPROVED {{X}}',
+      badCount: (prompt, callIndex) => {
+        if (prompt.includes('BASELINE')) return 5;
+        if (prompt.includes('holdout-1')) return callIndex < 2 ? 0 : 10; // wins repeats 0,1; loses repeat 2
+        return 0;
+      },
+      trainFixtureIds: ['train-1'],
+      holdoutFixtureIds: ['holdout-1'],
+      evalTemperature: 1,
+    });
+
+    const report = await runOptimize(
+      ['mock-target', '--budget=10', '--max-iters=1', '--holdout-repeats=3'],
+      projectDir,
+    );
+
+    expect(report.status).toBe('ok');
+    expect((report as any).holdoutInconclusive).toBe(true);
+    expect((report as any).holdoutInconclusiveReason).toBe('mixed-repeats');
+    expect((report as any).holdoutFinalRepeatTotals).toEqual([0, 0, 10]);
+    expect(report.finalTemplate).toBe('BASELINE {{X}}');
+  });
+
+  it('deterministic targets (no evalTemperature) keep the original single-sample holdout gate — no repeats fields on the report', async () => {
+    writeMockPlugin({
+      targetId: 'mock-target',
+      baselineTemplate: 'BASELINE {{X}}',
+      improvedTemplate: 'IMPROVED {{X}}',
+      badCount: (prompt) => (prompt.includes('BASELINE') ? 1 : 0),
+      trainFixtureIds: ['train-1', 'train-2'],
+      holdoutFixtureIds: ['holdout-1'],
+    });
+
+    const report = await runOptimize(['mock-target', '--budget=10', '--max-iters=3'], projectDir);
+
+    expect(report.status).toBe('ok');
+    expect((report as any).holdoutBaselineRepeatTotals).toBeUndefined();
+    expect((report as any).holdoutFinalRepeatTotals).toBeUndefined();
+  });
+});
+
+describe('runOptimize — L5: rubric saturation note', () => {
+  it('notes RUBRIC SATURATED in the report when the accepted/final train total hits 0', async () => {
+    writeMockPlugin({
+      targetId: 'mock-target',
+      baselineTemplate: 'BASELINE {{X}}',
+      improvedTemplate: 'IMPROVED {{X}}',
+      badCount: (prompt) => (prompt.includes('BASELINE') ? 1 : 0),
+      trainFixtureIds: ['train-1'],
+      holdoutFixtureIds: [],
+    });
+
+    const report = await runOptimize(['mock-target', '--budget=10', '--max-iters=3'], projectDir);
+
+    expect(report.status).toBe('ok');
+    expect(report.trainFinal?.total).toBe(0);
+
+    const runsDir = join(pluginRoot(), 'runs');
+    const runFiles = readdirSync(runsDir);
+    const reportContent = readFileSync(join(runsDir, runFiles[0]!), 'utf8');
+    expect(reportContent).toMatch(/RUBRIC SATURATED/);
+    expect(reportContent).toMatch(/total=0/);
+  });
+
+  it('does not note RUBRIC SATURATED when the final train total is above 0', async () => {
+    writeMockPlugin({
+      targetId: 'mock-target',
+      baselineTemplate: 'BASELINE {{X}}',
+      improvedTemplate: 'IMPROVED {{X}}',
+      // IMPROVED still leaves 1 BAD marker: never reaches total=0.
+      badCount: (prompt) => (prompt.includes('BASELINE') ? 3 : 1),
+      trainFixtureIds: ['train-1'],
+      holdoutFixtureIds: [],
+    });
+
+    const report = await runOptimize(['mock-target', '--budget=10', '--max-iters=1'], projectDir);
+
+    expect(report.status).toBe('ok');
+    expect(report.trainFinal?.total).toBe(1);
+
+    const runsDir = join(pluginRoot(), 'runs');
+    const runFiles = readdirSync(runsDir);
+    const reportContent = readFileSync(join(runsDir, runFiles[0]!), 'utf8');
+    expect(reportContent).not.toMatch(/RUBRIC SATURATED/);
   });
 });

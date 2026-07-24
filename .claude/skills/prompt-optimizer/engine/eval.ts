@@ -37,6 +37,12 @@ export interface EvalResult {
   totalPromptTokens: number;
   aborted: boolean;
   abortReason?: string;
+  /** L2: the effective temperature actually used for this eval's generate
+   *  calls — `target.evalTemperature` when declared, else EVAL_TEMPERATURE
+   *  (0). Non-zero means scoring for this eval is NOT deterministic; callers
+   *  (optimize.ts) use this to stamp a NONDETERMINISTIC SCORING warning
+   *  rather than reporting a noisy result as a clean measurement. */
+  evalTemperature: number;
 }
 
 export interface EvalOptions {
@@ -83,6 +89,10 @@ export async function evaluateTemplate(
 ): Promise<EvalResult> {
   const limit = pLimit(options.concurrency ?? DEFAULT_CONCURRENCY);
   const minRanFraction = options.minRanFraction ?? DEFAULT_MIN_RAN_FRACTION;
+  // L2: a target may declare the lowest temperature it can actually honor
+  // for eval calls (e.g. a provider that rejects temperature 0). Falls back
+  // to the engine's temperature-0 default (FIX #3) when absent.
+  const evalTemperature = target.evalTemperature ?? EVAL_TEMPERATURE;
   const perFixture: PerFixtureResult[] = [];
   let totalCost = 0;
   let totalPromptTokens = 0;
@@ -104,7 +114,7 @@ export async function evaluateTemplate(
         }
 
         const { prompt } = target.renderPrompt(template, fixture);
-        const gen = await retryTransient(() => target.generate(prompt, { temperature: EVAL_TEMPERATURE }));
+        const gen = await retryTransient(() => target.generate(prompt, { temperature: evalTemperature }));
         budget.record({
           target: target.id,
           phase: 'eval',
@@ -144,7 +154,7 @@ export async function evaluateTemplate(
           const nudge = options.regenerateNudge ?? DEFAULT_NUDGE;
           const retryPrompt = prompt + nudge;
           const retryGen = await retryTransient(() =>
-            target.generate(retryPrompt, { temperature: EVAL_TEMPERATURE }),
+            target.generate(retryPrompt, { temperature: evalTemperature }),
           );
           budget.record({
             target: target.id,
@@ -190,6 +200,7 @@ export async function evaluateTemplate(
     abortReason: aborted
       ? `Only ${agg.ranCount}/${scores.length} fixtures ran (below ${(minRanFraction * 100).toFixed(0)}% threshold)`
       : undefined,
+    evalTemperature,
   };
 }
 

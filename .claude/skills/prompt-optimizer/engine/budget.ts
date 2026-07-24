@@ -77,8 +77,32 @@ export const PRICING: Record<string, { input: number; output: number }> = {
   'grok-4.20-0309-reasoning': { input: 1.25, output: 2.50 },
 };
 
-export function costFor(model: string, inputTokens: number, outputTokens: number): number {
-  const p = PRICING[model];
-  if (!p) throw new Error(`No pricing for model: ${model}`);
+export interface PricingTable {
+  input: number;
+  output: number;
+}
+
+/**
+ * L4 fix: a project-supplied `Target.pricing` override is preferred over
+ * this engine's built-in table (which only knows the models known at port
+ * time). Never throws on an unknown model mid-run — a new consumer's model
+ * absent from both the override and the table would otherwise break the
+ * shared budget ledger. Instead it warns loudly and records the cost as 0,
+ * so the spend number is visibly incomplete rather than silently wrong.
+ */
+export function costFor(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  override?: PricingTable,
+): number {
+  const p = override ?? PRICING[model];
+  if (!p) {
+    console.warn(
+      `[budget] pricing unknown for model: ${model}. Recording cost as $0 for this call — ` +
+        `supply Target.pricing or extend the engine PRICING table so the spend ledger is accurate.`,
+    );
+    return 0;
+  }
   return (inputTokens * p.input) / 1_000_000 + (outputTokens * p.output) / 1_000_000;
 }

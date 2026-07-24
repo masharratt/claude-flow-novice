@@ -315,3 +315,9 @@ src/planning/**/*.d.ts.map
 
 # CFN local cache
 .cfn-cache/
+
+# Prompt optimizer live state (regenerated per run)
+.claude/prompt-optimizer/_budget.json
+.claude/prompt-optimizer/state/
+.claude/prompt-optimizer/runs/
+.claude/prompt-optimizer/backups/

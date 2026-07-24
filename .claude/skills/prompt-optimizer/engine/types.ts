@@ -72,6 +72,22 @@ export interface Target {
    *  discriminated ExtractResult so no-run cases can be excluded, not
    *  silently scored as empty/garbage text. */
   extractScript(raw: string): ExtractResult;
+  /** The lowest temperature this target can actually honor for eval calls.
+   *  Optional — engine defaults to 0 (FIX #3) when absent, so every existing
+   *  plugin keeps working unchanged. Declare this when a provider rejects
+   *  temperature 0 (e.g. a model that only accepts temperature 1): the
+   *  engine then uses this value for eval calls instead of hard-pinning 0,
+   *  and stamps a NONDETERMINISTIC SCORING warning into the run report and
+   *  state record whenever the value is not 0, so a noisy result is never
+   *  mistaken for a clean deterministic measurement. */
+  evalTemperature?: number;
+  /** USD cost per 1M tokens for this target's model, preferred over the
+   *  engine's built-in PRICING table (`budget.ts`). Optional — declare this
+   *  when your model is not in the engine's table so the shared budget
+   *  ledger never throws "No pricing for model" mid-run. Pass this to the
+   *  engine's exported `costFor(model, inputTokens, outputTokens, pricing)`
+   *  from inside `generate()` instead of hand-rolling a local cost function. */
+  pricing?: { input: number; output: number };
 }
 
 export interface Rubric {

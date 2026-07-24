@@ -44,6 +44,10 @@ interface Target {
   // The ONLY place a provider SDK may be imported — never inside engine/*.
   generate(prompt: string, options: { temperature: number }): Promise<GenerateResult>;
   extractScript(raw: string): { ok: true; text: string } | { ok: false; reason: string };
+  // Optional — declare only if the target needs it. Both default to
+  // engine behavior when absent, so every existing plugin keeps working.
+  evalTemperature?: number;      // lowest temp this target can honor (default: 0)
+  pricing?: { input: number; output: number }; // USD/1M tokens (default: engine's built-in table)
 }
 
 interface Rubric {
@@ -80,7 +84,9 @@ and it does.
   state/<id>.json       per-iteration log
   runs/<id>-<ts>.md     human-readable run report
   templates/<id>.md     the current winning template
-  backups/              source-patcher backups, if a plugin invokes it
+  backups/<id>-<ts>.md  seed backed up here before EVERY overwrite of templates/<id>.md
+                        (never lost — see fix #1 below), plus source-patcher
+                        backups if a plugin invokes it
   _budget.json          spend ledger, capped by --budget
 ```
 
@@ -113,16 +119,32 @@ fixture leakage.
 ## Engine fixes baked in
 
 1. **Held-out split** (`optimize.ts`) — mutate/accept only on `split:'train'`;
-   score the winner ONCE on `split:'holdout'` after convergence. If holdout
-   regresses relative to the baseline's holdout score, the run is labeled
-   **OVERFIT** and the win is refused — the reported/persisted template
-   reverts to the baseline.
+   score the winner ONCE (or, for a nondeterministic target, `--holdout-repeats`
+   times — see fix #3 below) on `split:'holdout'` after convergence. If
+   holdout regresses relative to the baseline's holdout score, the run is
+   labeled **OVERFIT** and the win is refused — the reported/persisted
+   template reverts to the baseline. Before ANY overwrite of
+   `templates/<id>.md`, the prior template is backed up to
+   `backups/<id>-<ISO-timestamp>.md` and a unified diff (seed vs. final) is
+   appended to the run report — the human-authored seed is never destroyed.
 2. **Tri-state no-run exclusion** (`eval.ts`, `rubric-core.ts`) — an
    `extractScript` `ok:false` result (parse failure / refusal / empty) is
    excluded from the aggregate and counted separately. The eval aborts if
    fewer than 50% of fixtures produced a scoreable result.
-3. **Temperature-0 scoring** (`eval.ts`) — eval always pins `temperature: 0`
-   for a stable ranking, regardless of what a plugin's production seam ships.
+3. **Temperature-0 scoring, with an opt-out** (`eval.ts`) — eval pins
+   `temperature: 0` for a stable ranking by default. A target that cannot
+   honor temperature 0 (e.g. a provider that rejects any temperature but 1)
+   declares `Target.evalTemperature` to override this; the engine then
+   stamps a **NONDETERMINISTIC SCORING** warning into the run report and
+   per-iteration state, since every total in that run is noisy rather than a
+   clean deterministic measurement. For a nondeterministic target, the
+   holdout gate (fix #1) re-scores baseline AND final `--holdout-repeats`
+   times (default 2) and requires the final to beat the baseline on EVERY
+   repeat; mixed results (wins some, loses others) are labeled
+   **INCONCLUSIVE** and the win is refused, same as OVERFIT — a noise floor
+   that catches the case where a single lucky/unlucky sample would otherwise
+   accept or reject a win on chance alone. Deterministic targets keep the
+   original single-sample holdout check, no extra cost.
 4. **Reject-and-regenerate** (`eval.ts`) — a rubric hit in a
    `regenerateOn` category triggers exactly ONE regeneration with a
    plugin-supplied corrective nudge appended to the prompt, then scores the
@@ -130,16 +152,31 @@ fixture leakage.
 5. **Cost-Pareto tie-break** (`rubric-core.ts`) — `isImprovement` requires no
    per-category regression; on an exact total tie, prefers the candidate
    with fewer prompt tokens. A pure tie with no cost info is not accepted.
+6. **Non-throwing, overridable pricing** (`budget.ts`) — `costFor` never
+   throws on an unknown model: a `Target.pricing` override (USD per 1M
+   tokens) is preferred when supplied, else the engine's built-in table;
+   an unknown model with neither warns loudly and records cost as `$0`
+   rather than crashing the shared budget ledger or silently misreporting
+   spend.
+7. **Rubric saturation note** (`optimize.ts`) — when the accepted/final
+   train total hits exactly `0`, the report notes **RUBRIC SATURATED
+   (total=0, no remaining signal)** — distinct from normal convergence,
+   since a zero total means the rubric has no more violations left to find.
 
 ## Usage
 
 ```bash
-./.claude/skills/prompt-optimizer/execute.sh <target-id> [--dry-run] [--budget=N] [--max-iters=N] [--patience=N]
+./.claude/skills/prompt-optimizer/execute.sh <target-id> \
+  [--dry-run] [--budget=N] [--max-iters=N] [--patience=N] [--holdout-repeats=N]
 ```
 
 Run from inside the consuming project (or `execute.sh` `cd`s there via its
 own resolution — see `execute.sh`). Resolves `<project>/.claude/prompt-optimizer/config.json`,
 loads the named target's plugin, and runs `engine/optimize.ts` via `npx tsx`.
+
+`--holdout-repeats=N` (default 2) — only takes effect for a target whose
+`evalTemperature` is not 0 (see fix #3). Ignored (no extra API calls) for
+deterministic targets.
 
 ## Testing
 

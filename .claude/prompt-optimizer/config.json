@@ -1,0 +1,7 @@
+{
+  "commit-msg": {
+    "target": "./targets/commit-msg.ts",
+    "rubric": "./rubrics/commit-msg.ts",
+    "fixtures": "./fixtures/commit-msg.json"
+  }
+}

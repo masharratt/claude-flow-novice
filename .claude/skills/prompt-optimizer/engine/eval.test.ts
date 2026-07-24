@@ -55,6 +55,106 @@ describe('evaluateTemplate — temperature pinning (FIX #3)', () => {
   });
 });
 
+describe('evaluateTemplate — L2: Target.evalTemperature contract field', () => {
+  it('uses target.evalTemperature for eval calls when declared, instead of the engine temperature-0 default', async () => {
+    const seenTemperatures: number[] = [];
+    const target: Target = {
+      id: 'kimi-like-target',
+      loadTemplate: () => 'tpl',
+      renderPrompt: (tpl, fx) => ({ prompt: `${tpl}:${fx.id}` }),
+      generate: async (_prompt: string, options: GenerateOptions): Promise<GenerateResult> => {
+        seenTemperatures.push(options.temperature);
+        return makeGenResult('clean output');
+      },
+      extractScript: (raw: string): ExtractResult => ({ ok: true, text: raw }),
+      evalTemperature: 1,
+    };
+    const rubric: Rubric = {
+      categories: ['foo'],
+      describe: () => 'scores foo',
+      score: (): RubricScore => ({ categories: { foo: 0 }, total: 0, hits: [], ran: true }),
+    };
+
+    await evaluateTemplate(target, rubric, 'tpl', [fixture('f1')], budget);
+
+    expect(seenTemperatures.every(t => t === 1)).toBe(true);
+  });
+
+  it('falls back to the engine EVAL_TEMPERATURE (0) when evalTemperature is absent (existing plugins unaffected)', async () => {
+    const seenTemperatures: number[] = [];
+    const target: Target = {
+      id: 'legacy-target',
+      loadTemplate: () => 'tpl',
+      renderPrompt: (tpl, fx) => ({ prompt: `${tpl}:${fx.id}` }),
+      generate: async (_prompt: string, options: GenerateOptions): Promise<GenerateResult> => {
+        seenTemperatures.push(options.temperature);
+        return makeGenResult('clean output');
+      },
+      extractScript: (raw: string): ExtractResult => ({ ok: true, text: raw }),
+      // no evalTemperature declared
+    };
+    const rubric: Rubric = {
+      categories: ['foo'],
+      describe: () => 'scores foo',
+      score: (): RubricScore => ({ categories: { foo: 0 }, total: 0, hits: [], ran: true }),
+    };
+
+    await evaluateTemplate(target, rubric, 'tpl', [fixture('f1')], budget);
+
+    expect(seenTemperatures.every(t => t === EVAL_TEMPERATURE)).toBe(true);
+  });
+
+  it('reports the effective evalTemperature used on the EvalResult so callers can detect nondeterministic scoring', async () => {
+    const target: Target = {
+      id: 'kimi-like-target',
+      loadTemplate: () => 'tpl',
+      renderPrompt: (tpl, fx) => ({ prompt: `${tpl}:${fx.id}` }),
+      generate: async (): Promise<GenerateResult> => makeGenResult('clean output'),
+      extractScript: (raw: string): ExtractResult => ({ ok: true, text: raw }),
+      evalTemperature: 1,
+    };
+    const rubric: Rubric = {
+      categories: ['foo'],
+      describe: () => 'scores foo',
+      score: (): RubricScore => ({ categories: { foo: 0 }, total: 0, hits: [], ran: true }),
+    };
+
+    const result = await evaluateTemplate(target, rubric, 'tpl', [fixture('f1')], budget);
+    expect(result.evalTemperature).toBe(1);
+  });
+
+  it('also uses evalTemperature on the reject-and-regenerate retry call (FIX #4 interaction)', async () => {
+    const seenTemperatures: number[] = [];
+    let call = 0;
+    const target: Target = {
+      id: 'kimi-like-target',
+      loadTemplate: () => 'tpl',
+      renderPrompt: (tpl, fx) => ({ prompt: `${tpl}:${fx.id}` }),
+      generate: async (_prompt: string, options: GenerateOptions): Promise<GenerateResult> => {
+        seenTemperatures.push(options.temperature);
+        call += 1;
+        return makeGenResult(call === 1 ? 'bad output' : 'good output');
+      },
+      extractScript: (raw: string): ExtractResult => ({ ok: true, text: raw }),
+      evalTemperature: 1,
+    };
+    const rubric: Rubric = {
+      categories: ['flagged'],
+      describe: () => 'scores flagged',
+      regenerateOn: ['flagged'],
+      score: (text: string): RubricScore =>
+        text === 'bad output'
+          ? { categories: { flagged: 1 }, total: 1, hits: [{ category: 'flagged', matched: 'bad output' }], ran: true }
+          : { categories: { flagged: 0 }, total: 0, hits: [], ran: true },
+    };
+
+    await evaluateTemplate(target, rubric, 'tpl', [fixture('f1')], budget);
+
+    expect(call).toBe(2);
+    expect(seenTemperatures).toEqual([1, 1]);
+  });
+});
+
 describe('evaluateTemplate — tri-state no-run exclusion (FIX #2)', () => {
   it('excludes an ok:false extraction from the aggregate and counts it separately', async () => {
     const target: Target = {

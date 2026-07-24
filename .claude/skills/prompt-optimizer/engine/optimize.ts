@@ -17,7 +17,7 @@ import { pathToFileURL } from 'node:url';
 
 import { resolveProjectPaths, stateFilePath, templateFilePath, runFilePath, type ProjectPaths } from './paths.js';
 import { BudgetTracker } from './budget.js';
-import { evaluateTemplate, selectWorst, type EvalResult } from './eval.js';
+import { evaluateTemplate, selectWorst, EVAL_TEMPERATURE, type EvalResult } from './eval.js';
 import { mutateTemplate, pickStrategy } from './mutator.js';
 import { isImprovement, type AggregateScore } from './rubric-core.js';
 import type { Target, Rubric, Fixture } from './types.js';
@@ -28,15 +28,22 @@ export interface CliArgs {
   budget: number;
   maxIters: number;
   patience: number;
+  /** L3: number of times to re-score BOTH holdout baseline and holdout
+   *  final when the target is nondeterministic (evalTemperature !== 0).
+   *  Deterministic targets ignore this and keep the original single-sample
+   *  gate. Default 2 — a single sample cannot distinguish a real win from
+   *  run-to-run noise. */
+  holdoutRepeats: number;
 }
 
 export function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { targetId: null, dryRun: false, budget: 5.0, maxIters: 20, patience: 5 };
+  const args: CliArgs = { targetId: null, dryRun: false, budget: 5.0, maxIters: 20, patience: 5, holdoutRepeats: 2 };
   for (const a of argv) {
     if (a === '--dry-run') args.dryRun = true;
     else if (a.startsWith('--budget=')) args.budget = parseFloat(a.split('=')[1]!);
     else if (a.startsWith('--max-iters=')) args.maxIters = parseInt(a.split('=')[1]!, 10);
     else if (a.startsWith('--patience=')) args.patience = parseInt(a.split('=')[1]!, 10);
+    else if (a.startsWith('--holdout-repeats=')) args.holdoutRepeats = parseInt(a.split('=')[1]!, 10);
     else if (!a.startsWith('--') && !args.targetId) args.targetId = a;
   }
   return args;
@@ -72,6 +79,58 @@ function formatAgg(agg: AggregateScore): string {
   return `total=${agg.total} (${cats}) ran=${agg.ranCount} excluded=${agg.excludedCount}`;
 }
 
+/**
+ * L1: minimal line-based unified diff (LCS-backed), no new dependency.
+ * Templates are small (a few dozen to a few hundred lines) so the O(n*m)
+ * LCS table is cheap. Returns "(no changes)" when before === after so the
+ * report never shows an empty diff section when nothing was persisted.
+ */
+export function unifiedDiff(before: string, after: string): string {
+  const a = before.split('\n');
+  const b = after.split('\n');
+  const n = a.length;
+  const m = b.length;
+
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i]![j] = a[i] === b[j] ? dp[i + 1]![j + 1]! + 1 : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
+    }
+  }
+
+  const lines: string[] = [];
+  let i = 0;
+  let j = 0;
+  let changed = false;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) {
+      lines.push(`  ${a[i]}`);
+      i += 1;
+      j += 1;
+    } else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) {
+      lines.push(`- ${a[i]}`);
+      i += 1;
+      changed = true;
+    } else {
+      lines.push(`+ ${b[j]}`);
+      j += 1;
+      changed = true;
+    }
+  }
+  while (i < n) {
+    lines.push(`- ${a[i]}`);
+    i += 1;
+    changed = true;
+  }
+  while (j < m) {
+    lines.push(`+ ${b[j]}`);
+    j += 1;
+    changed = true;
+  }
+
+  return changed ? lines.join('\n') : '(no changes)';
+}
+
 interface IterRow {
   iter: number;
   ts: string;
@@ -81,6 +140,11 @@ interface IterRow {
   acceptedTotal: number;
   accepted: boolean;
   spendUsd: number;
+  /** L2: true when target.evalTemperature is declared and not 0 — this
+   *  run's totals are noisy, not from a deterministic model. Stamped onto
+   *  every state row so no reader of the state file mistakes a noisy total
+   *  for a clean measurement. */
+  nondeterministicScoring: boolean;
 }
 
 function loadIterState(paths: ProjectPaths, targetId: string): IterRow[] {
@@ -112,6 +176,24 @@ export interface RunReport {
    *  was possible. Treated the same as overfit for persist/report purposes:
    *  the win is refused and the baseline template is retained. */
   holdoutInconclusive?: boolean;
+  /** L3 extension of FINDING #1: WHY the win was refused as inconclusive.
+   *  'aborted' — a holdout eval pass (single-sample or one of the repeats)
+   *  itself aborted (mostly-excluded fixtures). 'mixed-repeats' — the
+   *  candidate beat the baseline on SOME holdout repeats but not others
+   *  (noise floor as wide as the measured win — see L3). */
+  holdoutInconclusiveReason?: 'aborted' | 'mixed-repeats';
+  /** L2: true when target.evalTemperature is declared and not 0. The run's
+   *  totals are noisy (not from a deterministic model) — see the report's
+   *  NONDETERMINISTIC SCORING note. */
+  nondeterministicScoring?: boolean;
+  /** L3: per-repeat holdout totals when nondeterministicScoring is true and
+   *  more than one repeat was taken. Absent for deterministic targets (the
+   *  original single-sample gate is unchanged for them). */
+  holdoutBaselineRepeatTotals?: number[];
+  holdoutFinalRepeatTotals?: number[];
+  /** L5: true when the accepted/final train total hit exactly 0 — the
+   *  rubric has no remaining signal to optimize against. */
+  rubricSaturated?: boolean;
   iterations?: number;
   spentUsd?: number;
   finalTemplate?: string;
@@ -146,9 +228,23 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
 
   const budget = new BudgetTracker(paths.budgetFile, args.budget);
 
+  // L2: a target may declare the lowest temperature it can actually honor
+  // for eval calls (e.g. kimi-k2.6 rejects any temperature except 1). When
+  // that value is not 0, every eval result for this run is noisy — stamp a
+  // prominent warning up front so it lands in the console log, the run
+  // report, AND every appended state row (see below).
+  const evalTemperature = target.evalTemperature ?? EVAL_TEMPERATURE;
+  const nondeterministicScoring = evalTemperature !== 0;
+
   console.log(`\n=== Prompt Optimizer: ${target.id} ===`);
   console.log(`Train fixtures: ${trainFixtures.length}, holdout fixtures: ${holdoutFixtures.length}`);
   console.log(`Budget cap: $${args.budget.toFixed(2)} (spent so far: $${budget.spent.toFixed(4)})`);
+  if (nondeterministicScoring) {
+    console.log(
+      `[NONDETERMINISTIC SCORING] target.evalTemperature=${evalTemperature} (not 0). ` +
+        `This target cannot honor temperature 0 — every total in this run is noisy, not a clean deterministic measurement.`,
+    );
+  }
 
   if (budget.exhausted()) {
     console.log(`Budget already exhausted ($${budget.spent.toFixed(4)}).`);
@@ -166,10 +262,26 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
   }
 
   // --- Baseline holdout eval (reference only; mutator never trains on this) ---
+  // L3: when scoring is nondeterministic, a single sample cannot be trusted
+  // as a noise floor (LIVE evidence: identical seed + fixtures produced
+  // holdout baseline 5 in one run, 2 in another). Re-score `holdoutRepeats`
+  // times; deterministic targets keep the original single-sample behavior.
+  const holdoutRepeatCount = nondeterministicScoring ? Math.max(1, args.holdoutRepeats) : 1;
   let holdoutBaselineEval: EvalResult | null = null;
+  const holdoutBaselineRepeats: EvalResult[] = [];
   if (holdoutFixtures.length > 0) {
-    holdoutBaselineEval = await evaluateTemplate(target, rubric, baselineTemplate, holdoutFixtures, budget);
-    console.log(`[holdout baseline] ${formatAgg(holdoutBaselineEval.aggregate)}`);
+    for (let r = 0; r < holdoutRepeatCount; r++) {
+      holdoutBaselineRepeats.push(await evaluateTemplate(target, rubric, baselineTemplate, holdoutFixtures, budget));
+    }
+    holdoutBaselineEval = holdoutBaselineRepeats[0]!;
+    if (nondeterministicScoring && holdoutBaselineRepeats.length > 1) {
+      const totals = holdoutBaselineRepeats.map(e => e.aggregate.total);
+      console.log(
+        `[holdout baseline] ${holdoutBaselineRepeats.length} repeats: [${totals.join(', ')}] (spread=${Math.max(...totals) - Math.min(...totals)})`,
+      );
+    } else {
+      console.log(`[holdout baseline] ${formatAgg(holdoutBaselineEval.aggregate)}`);
+    }
   }
 
   if (args.dryRun) {
@@ -179,6 +291,11 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
       targetId: target.id,
       trainBaseline: trainBaselineEval.aggregate,
       holdoutBaseline: holdoutBaselineEval?.aggregate,
+      nondeterministicScoring,
+      holdoutBaselineRepeatTotals:
+        nondeterministicScoring && holdoutBaselineRepeats.length > 1
+          ? holdoutBaselineRepeats.map(e => e.aggregate.total)
+          : undefined,
       iterations: 0,
       spentUsd: budget.spent,
       finalTemplate: baselineTemplate,
@@ -239,6 +356,7 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
         acceptedTotal: currentEval.aggregate.total,
         accepted: false,
         spendUsd: budget.spent,
+        nondeterministicScoring,
       });
       continue;
     }
@@ -267,45 +385,112 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
       acceptedTotal: currentEval.aggregate.total,
       accepted: accept,
       spendUsd: budget.spent,
+      nondeterministicScoring,
     });
   }
 
-  // --- Holdout gate (FIX #1): score the winner ONCE on holdout. ---
+  // --- Holdout gate (FIX #1, extended by L3 for nondeterministic targets). ---
   let holdoutFinalEval: EvalResult | null = null;
+  const holdoutFinalRepeats: EvalResult[] = [];
   let overfit = false;
   let holdoutInconclusive = false;
+  let holdoutInconclusiveReason: 'aborted' | 'mixed-repeats' | undefined;
   let finalTemplate = currentTemplate;
 
   if (holdoutFixtures.length > 0 && holdoutBaselineEval) {
-    holdoutFinalEval = await evaluateTemplate(target, rubric, currentTemplate, holdoutFixtures, budget);
-    console.log(`\n[holdout final] ${formatAgg(holdoutFinalEval.aggregate)}`);
-    // FINDING #1: if the holdout final pass itself mostly/fully excluded
-    // fixtures (e.g. budget exhausts at the final gate), its aggregate.total
-    // reads near 0 and the naive "total > baseline total" regression check
-    // reads as "no regression" — but nothing was actually validated. Treat
-    // this as INCONCLUSIVE (same effect as overfit: refuse the win) instead
-    // of silently reporting a clean win.
-    if (holdoutFinalEval.aborted) {
-      holdoutInconclusive = true;
-      finalTemplate = baselineTemplate;
+    for (let r = 0; r < holdoutRepeatCount; r++) {
+      holdoutFinalRepeats.push(await evaluateTemplate(target, rubric, currentTemplate, holdoutFixtures, budget));
+    }
+    holdoutFinalEval = holdoutFinalRepeats[0]!;
+
+    if (nondeterministicScoring && holdoutFinalRepeats.length > 1) {
+      // L3: a single sample cannot distinguish a real win from run-to-run
+      // noise. Pair each repeat's final total against that SAME repeat
+      // index's baseline total and require the win on EVERY repeat. Wins
+      // on some but not all repeats means the measured "win" is inside the
+      // noise floor — refuse it (same refusal path as OVERFIT) and label it
+      // INCONCLUSIVE rather than reporting a clean win.
+      const finalTotals = holdoutFinalRepeats.map(e => e.aggregate.total);
+      const baselineTotals = holdoutBaselineRepeats.map(e => e.aggregate.total);
       console.log(
-        `[INCONCLUSIVE] holdout final eval ABORTED: ${holdoutFinalEval.abortReason}. Refusing the win; reporting baseline as final.`,
+        `\n[holdout final] ${holdoutFinalRepeats.length} repeats: [${finalTotals.join(', ')}] (spread=${Math.max(...finalTotals) - Math.min(...finalTotals)})`,
       );
-    } else if (holdoutFinalEval.aggregate.total > holdoutBaselineEval.aggregate.total) {
-      overfit = true;
-      finalTemplate = baselineTemplate;
-      console.log(
-        `[OVERFIT] holdout regressed (${holdoutFinalEval.aggregate.total} > ${holdoutBaselineEval.aggregate.total}). Refusing the win; reporting baseline as final.`,
-      );
+
+      const anyAborted = holdoutFinalRepeats.some(e => e.aborted) || holdoutBaselineRepeats.some(e => e.aborted);
+      if (anyAborted) {
+        holdoutInconclusive = true;
+        holdoutInconclusiveReason = 'aborted';
+        finalTemplate = baselineTemplate;
+        console.log(
+          `[INCONCLUSIVE] a holdout repeat pass ABORTED (mostly-excluded fixtures). Refusing the win; reporting baseline as final.`,
+        );
+      } else {
+        const regressed = finalTotals.map((t, idx) => t > (baselineTotals[idx] ?? baselineTotals[0]!));
+        const noneRegressed = regressed.every(r => !r);
+        const allRegressed = regressed.every(Boolean);
+        if (noneRegressed) {
+          // Beats the baseline on EVERY repeat — a real, non-noise win.
+        } else if (allRegressed) {
+          overfit = true;
+          finalTemplate = baselineTemplate;
+          console.log(`[OVERFIT] holdout regressed on EVERY repeat. Refusing the win; reporting baseline as final.`);
+        } else {
+          holdoutInconclusive = true;
+          holdoutInconclusiveReason = 'mixed-repeats';
+          finalTemplate = baselineTemplate;
+          console.log(
+            `[INCONCLUSIVE] holdout regressed on SOME repeats but not others — the win is inside the noise floor. Refusing the win; reporting baseline as final.`,
+          );
+        }
+      }
+    } else {
+      // Deterministic target (or repeats collapsed to 1): original
+      // single-sample gate, unchanged.
+      console.log(`\n[holdout final] ${formatAgg(holdoutFinalEval.aggregate)}`);
+      // FINDING #1: if the holdout final pass itself mostly/fully excluded
+      // fixtures (e.g. budget exhausts at the final gate), its aggregate.total
+      // reads near 0 and the naive "total > baseline total" regression check
+      // reads as "no regression" — but nothing was actually validated. Treat
+      // this as INCONCLUSIVE (same effect as overfit: refuse the win) instead
+      // of silently reporting a clean win.
+      if (holdoutFinalEval.aborted) {
+        holdoutInconclusive = true;
+        holdoutInconclusiveReason = 'aborted';
+        finalTemplate = baselineTemplate;
+        console.log(
+          `[INCONCLUSIVE] holdout final eval ABORTED: ${holdoutFinalEval.abortReason}. Refusing the win; reporting baseline as final.`,
+        );
+      } else if (holdoutFinalEval.aggregate.total > holdoutBaselineEval.aggregate.total) {
+        overfit = true;
+        finalTemplate = baselineTemplate;
+        console.log(
+          `[OVERFIT] holdout regressed (${holdoutFinalEval.aggregate.total} > ${holdoutBaselineEval.aggregate.total}). Refusing the win; reporting baseline as final.`,
+        );
+      }
     }
   }
 
   // --- Persist winning template (only a real, non-overfit, conclusive win) ---
-  if (!overfit && !holdoutInconclusive && finalTemplate !== baselineTemplate) {
+  // L1: the seed template and the persisted "current" template are the SAME
+  // file (templateFilePath). Back up whatever was there BEFORE overwriting
+  // it, so a wrongly-accepted template is always recoverable and the
+  // original human-written seed is never silently destroyed.
+  const templateChanged = finalTemplate !== baselineTemplate;
+  if (!overfit && !holdoutInconclusive && templateChanged) {
+    const backupTs = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupPath = resolve(paths.backupsDir, `${target.id}-${backupTs}.md`);
+    mkdirSync(paths.backupsDir, { recursive: true });
+    writeFileSync(backupPath, baselineTemplate, 'utf8');
+
     const templatePath = templateFilePath(paths, target.id);
     mkdirSync(paths.templatesDir, { recursive: true });
     writeFileSync(templatePath, finalTemplate, 'utf8');
   }
+
+  // L5: a perfect accepted train total means the rubric has no remaining
+  // signal to optimize against — different from normal convergence
+  // (patience/budget/max-iters exhausted with total still > 0).
+  const rubricSaturated = currentEval.aggregate.total === 0;
 
   // --- Run report ---
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
@@ -316,14 +501,34 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
     `**Date:** ${new Date().toISOString()}`,
     `**Iterations:** ${iter}`,
     `**Spend:** $${budget.spent.toFixed(4)} / $${args.budget.toFixed(2)}`,
+    nondeterministicScoring
+      ? `**NONDETERMINISTIC SCORING** (target.evalTemperature=${evalTemperature}) — this target cannot honor temperature 0; treat every total in this run as noisy, not a clean deterministic measurement.`
+      : '',
     `**Train baseline:** ${formatAgg(trainBaselineEval.aggregate)}`,
     `**Train final:** ${formatAgg(currentEval.aggregate)}`,
-    holdoutBaselineEval ? `**Holdout baseline:** ${formatAgg(holdoutBaselineEval.aggregate)}` : '',
-    holdoutFinalEval ? `**Holdout final:** ${formatAgg(holdoutFinalEval.aggregate)}` : '',
+    rubricSaturated ? `**RUBRIC SATURATED** (total=0, no remaining signal)` : '',
+    holdoutBaselineEval && !(nondeterministicScoring && holdoutBaselineRepeats.length > 1)
+      ? `**Holdout baseline:** ${formatAgg(holdoutBaselineEval.aggregate)}`
+      : '',
+    holdoutFinalEval && !(nondeterministicScoring && holdoutFinalRepeats.length > 1)
+      ? `**Holdout final:** ${formatAgg(holdoutFinalEval.aggregate)}`
+      : '',
+    nondeterministicScoring && holdoutBaselineRepeats.length > 1
+      ? `**Holdout baseline repeats (${holdoutBaselineRepeats.length}):** [${holdoutBaselineRepeats.map(e => e.aggregate.total).join(', ')}] (spread=${Math.max(...holdoutBaselineRepeats.map(e => e.aggregate.total)) - Math.min(...holdoutBaselineRepeats.map(e => e.aggregate.total))})`
+      : '',
+    nondeterministicScoring && holdoutFinalRepeats.length > 1
+      ? `**Holdout final repeats (${holdoutFinalRepeats.length}):** [${holdoutFinalRepeats.map(e => e.aggregate.total).join(', ')}] (spread=${Math.max(...holdoutFinalRepeats.map(e => e.aggregate.total)) - Math.min(...holdoutFinalRepeats.map(e => e.aggregate.total))})`
+      : '',
     overfit ? `**OVERFIT — win refused. Baseline template retained.**` : '',
     holdoutInconclusive
-      ? `**HOLDOUT INCONCLUSIVE — final holdout eval aborted, win refused. Baseline template retained.**`
+      ? `**HOLDOUT INCONCLUSIVE (${holdoutInconclusiveReason}) — win refused. Baseline template retained.**`
       : '',
+    '',
+    '## Seed vs Final Diff',
+    '',
+    '```diff',
+    unifiedDiff(baselineTemplate, finalTemplate),
+    '```',
     '',
     '## Final Template',
     '',
@@ -344,6 +549,17 @@ export async function runOptimize(argv: string[], cwd: string = process.cwd()): 
     holdoutFinal: holdoutFinalEval?.aggregate,
     overfit,
     holdoutInconclusive,
+    holdoutInconclusiveReason,
+    nondeterministicScoring,
+    holdoutBaselineRepeatTotals:
+      nondeterministicScoring && holdoutBaselineRepeats.length > 1
+        ? holdoutBaselineRepeats.map(e => e.aggregate.total)
+        : undefined,
+    holdoutFinalRepeatTotals:
+      nondeterministicScoring && holdoutFinalRepeats.length > 1
+        ? holdoutFinalRepeats.map(e => e.aggregate.total)
+        : undefined,
+    rubricSaturated,
     iterations: iter,
     spentUsd: budget.spent,
     finalTemplate,

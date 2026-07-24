@@ -1,0 +1,119 @@
+[
+  {
+    "id": "bugfix-session-guard-undefined-cookie",
+    "split": "train",
+    "changeType": "bugfix",
+    "files": ["src/auth/session_guard.ts", "tests/auth/session_guard.test.ts"],
+    "diffSummary": "session_guard.ts threw a TypeError when the incoming request had no session cookie at all (req.session was undefined, not null); the existing null-check only covered the null case, missing undefined. Added a check for both null and undefined before reading session.userId, and added a regression test covering a request with no cookie header."
+  },
+  {
+    "id": "feature-webhook-retry-backoff",
+    "split": "train",
+    "changeType": "feature",
+    "files": ["src/webhooks/dispatcher.ts", "src/webhooks/types.ts", "tests/webhooks/dispatcher.test.ts"],
+    "diffSummary": "Added exponential-backoff retry (up to 5 attempts, capped at 60s) for outbound webhook deliveries that receive a 5xx or timeout. Previously a single failed delivery attempt was dropped silently, so customers using brightleaf-checkout's order.completed webhook could permanently miss events during a downstream outage."
+  },
+  {
+    "id": "refactor-extract-price-calculator",
+    "split": "train",
+    "changeType": "refactor",
+    "files": ["src/cart/checkout.ts", "src/cart/price_calculator.ts"],
+    "diffSummary": "checkout.ts had grown past 500 lines mixing tax calculation, discount stacking, and currency rounding inline. Extracted all of that into a new price_calculator.ts module with a single computeTotal() entry point. No behavior change; checkout.ts now just calls the new module."
+  },
+  {
+    "id": "docs-readme-local-setup",
+    "split": "train",
+    "changeType": "docs",
+    "files": ["README.md"],
+    "diffSummary": "The local-setup section still referenced the old Postgres 13 docker-compose file that was removed two releases ago, so new contributors following it hit a missing-file error. Updated the steps to reference docker-compose.dev.yml and added the required DATABASE_URL env var example."
+  },
+  {
+    "id": "chore-bump-pg-driver",
+    "split": "train",
+    "changeType": "chore",
+    "files": ["package.json", "package-lock.json"],
+    "diffSummary": "Bumped the pg driver from 8.7.1 to 8.11.3 to pick up a connection-pool leak fix upstream; no application code changed."
+  },
+  {
+    "id": "perf-index-orders-by-customer",
+    "split": "train",
+    "changeType": "perf",
+    "files": ["migrations/0042_add_orders_customer_id_index.sql", "src/orders/repository.ts"],
+    "diffSummary": "The customer order-history page was doing a sequential scan over the orders table because there was no index on customer_id, and that table has grown past 4 million rows. Added a btree index on orders(customer_id, created_at) and updated the repository query to use an ORDER BY that matches the index."
+  },
+  {
+    "id": "breaking-remove-legacy-token-endpoint",
+    "split": "train",
+    "changeType": "breaking",
+    "files": ["src/auth/routes.ts", "src/auth/legacy_token.ts", "docs/api/auth.md"],
+    "diffSummary": "Removed the deprecated POST /auth/legacy-token endpoint that issued non-expiring tokens; it has been replaced by /auth/session for 8 months and every remaining internal caller has migrated. Any external integration still calling the old endpoint now gets a 410 Gone instead of a token. Deleted the legacy_token.ts handler entirely and updated the API docs to drop the endpoint."
+  },
+  {
+    "id": "multi-file-rename-billing-module",
+    "split": "train",
+    "changeType": "multi-file",
+    "files": [
+      "src/billing/invoice.ts",
+      "src/billing/invoice_pdf.ts",
+      "src/billing/index.ts",
+      "src/orders/order_service.ts",
+      "tests/billing/invoice.test.ts"
+    ],
+    "diffSummary": "Renamed the 'invoicing' module to 'billing' across the codebase to match the rest of the domain naming (orders, payments, billing) after repeated confusion between 'invoicing' and 'invoice_pdf' during onboarding. Updated all five import sites and the barrel export in index.ts; no logic changed."
+  },
+  {
+    "id": "one-line-fix-off-by-one-pagination",
+    "split": "train",
+    "changeType": "one-line",
+    "files": ["src/orders/pagination.ts"],
+    "diffSummary": "The page-count calculation used Math.floor(total / pageSize) without accounting for a remainder, so the last partial page of results was silently dropped from the order-history list. Changed the total-pages calculation to Math.ceil(total / pageSize)."
+  },
+  {
+    "id": "what-not-why-shipping-fallback",
+    "split": "train",
+    "changeType": "what-not-why",
+    "files": ["src/shipping/rate_provider.ts"],
+    "diffSummary": "The primary shipping-rate provider (a third-party carrier API) has been returning intermittent 502s during peak hours for the last two weeks, causing checkout to fail entirely for any order needing a live shipping quote. Added a fallback to the last-known cached rate table (refreshed nightly) whenever the live provider call times out after 3s, so checkout degrades to a slightly-stale rate instead of failing outright."
+  },
+  {
+    "id": "revert-flaky-cache-warmup",
+    "split": "holdout",
+    "changeType": "revert",
+    "files": ["src/cache/warmup.ts", "tests/cache/warmup.test.ts"],
+    "diffSummary": "Reverts the cache-warmup-on-boot change from three days ago: it added a blocking warmup pass that reads the entire product catalog into Redis before the server accepts traffic, but on the staging cluster this pushed cold-start time past the 30s health-check deadline and caused rolling restarts to fail. Reverting until the warmup can be made async."
+  },
+  {
+    "id": "migration-add-refund-reason-column",
+    "split": "holdout",
+    "changeType": "migration",
+    "files": ["migrations/0043_add_refund_reason_to_refunds.sql", "src/refunds/refund_service.ts"],
+    "diffSummary": "Support needed a way to see why a refund was issued (customer request vs. chargeback vs. duplicate charge) without reading free-text notes. Added a nullable refund_reason enum column to the refunds table (backfilled existing rows to 'unspecified') and updated refund_service.ts to require the reason on new refunds going forward."
+  },
+  {
+    "id": "bugfix-double-charge-idempotency",
+    "split": "holdout",
+    "changeType": "bugfix",
+    "files": ["src/payments/charge_processor.ts", "tests/payments/charge_processor.test.ts"],
+    "diffSummary": "A fraction of checkout retries (a customer double-clicking 'pay now' on a slow connection) were resulting in two separate charges to the same card, because the idempotency key was derived from the cart id alone and the lookup query wasn't scoped by session, so two rapid submits in the same cart session collided on the wrong key. Fixed the idempotency lookup to also scope by session token and added a regression test simulating two rapid submits."
+  },
+  {
+    "id": "feature-csv-export-orders",
+    "split": "holdout",
+    "changeType": "feature",
+    "files": ["src/orders/export.ts", "src/orders/routes.ts", "tests/orders/export.test.ts"],
+    "diffSummary": "Finance asked for a way to pull a month's orders without paging through the JSON API one page at a time. Added a GET /orders/export.csv endpoint that streams a CSV of orders within a date range directly, instead of requiring pagination through the existing API."
+  },
+  {
+    "id": "multi-file-breaking-payment-provider-swap",
+    "split": "holdout",
+    "changeType": "multi-file-breaking",
+    "files": [
+      "src/payments/provider.ts",
+      "src/payments/stripe_adapter.ts",
+      "src/payments/legacy_adapter.ts",
+      "src/payments/index.ts",
+      "config/payments.yaml"
+    ],
+    "diffSummary": "Swapped the default payment provider adapter from the legacy in-house gateway to the Stripe adapter, since the legacy gateway is being decommissioned by its vendor next quarter. Removed legacy_adapter.ts entirely and updated the provider.ts factory and payments.yaml default config. Any deployment still pinning provider: legacy in its config now fails to start with a clear error instead of silently falling back."
+  }
+]
