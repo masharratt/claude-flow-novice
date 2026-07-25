@@ -410,6 +410,29 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 
 ---
 
+## Pre-Edit Backup Lifecycle (cfn-invoke-pre-edit.sh / cfn-restore-from-backup.sh, S014)
+
+**Entity:** a file backup captured before edit-safety applies transformations.
+
+**States:** `none | captured | restorable | restored`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | captured | cfn-invoke-pre-edit.sh writes `.backups/<agent-id>/<file-hash>.backup-<timestamp>` | pre-edit hook invoked by Claude Code on every edit; backup shell-escaped for restore safety |
+| captured | restorable | backup exists on disk with valid path resolution | `cfn-restore-from-backup.sh` can read and decompress |
+| restorable | restored | user/tool invokes `cfn-restore-from-backup.sh <file>` | file restored to pre-edit state, original backup retained |
+| (none) | restorable | existing backup found under deprecated convention `${FILE}.backup-*` (from cfn-pre-edit-backup.sh) | backward-compat mode: restore understands both modern and legacy naming |
+
+**Bug fixes (S014, 2026-07-25):**
+- **Stderr merge broke stdout capture:** pre-edit hook ran `2>&1` on the backup-creation helper, merging the helper's `✅ Backup created: /path` stderr banner into the stdout path. `BACKUP_PATH=$(...)` captured two lines and resolved to empty. CLAUDE.md §1 entry point was non-functional. Fixed by capturing stdout only; stderr suppressed for logging.
+- **Agent-id attribution broken:** cfn-restore-from-backup.sh passed `--agent-id` as a bare positional arg; the helper's CLI is `--agent-id ID`, so attribution defaulted to `unknown`. All 1451 existing backups sit in `.backups/unknown/`. Fix is forward-only; history not re-attributed.
+- **Restore pattern mismatch:** restore looked only for `${FILE}.backup-*`, matching the deprecated naming from cfn-pre-edit-backup.sh. The current hook writes nothing matching that pattern. Restore now understands both conventions (query both patterns, newest wins). All existing backups remain valid.
+- **Pipe failure masking:** `ls -t $PATTERN | head -1` under `set -euo pipefail` died when glob matched nothing (ls exits 2, pipefail propagates). The "no backup found" branch was unreachable; missing backup exited 2 with zero output.
+
+**Coverage:** 18 tests, 18 passed / 0 failed. Read-only validation: 1451/1451 on-disk backups resolve to a restorable original.
+
+---
+
 ## Pre-commit Credential Scan (scan_staged_file, S010-S014)
 
 **Entity:** a staged file passed through the credential-scanning pre-commit git hook.

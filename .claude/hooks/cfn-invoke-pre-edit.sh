@@ -99,12 +99,34 @@ if [[ ! -f "$BACKUP_SCRIPT" ]]; then
     exit 1
 fi
 
-# Execute backup and capture output
-if ! BACKUP_DIR=$("$BACKUP_SCRIPT" "$FILE_PATH" "$AGENT_ID" 2>&1); then
-    echo "Error: Backup failed: $BACKUP_DIR" >&2
+# Execute backup and capture output.
+#
+# stdout and stderr MUST stay separate. backup.sh writes the backup path to
+# stdout and a "Backup created" banner to stderr; merging them with 2>&1 folded
+# the banner into the value callers assign to BACKUP_PATH, per the documented
+# contract in ~/.claude/CLAUDE.md section 1:
+#     BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "$FILE" --agent-id "$AGENT_ID")
+# Command substitution preserves interior newlines, so BACKUP_PATH came back as
+# two lines naming no directory and every rollback built from it failed.
+BACKUP_STDERR=$(mktemp "${TMPDIR:-/tmp}/cfn-pre-edit-stderr-XXXXXX")
+trap 'rm -f "$BACKUP_STDERR"' EXIT
+
+# The agent id is passed as --agent-id, matching backup.sh's CLI. It used to be
+# passed as a bare second positional, which backup.sh's argument loop shifts
+# past as unknown, silently leaving agent_id="unknown" for every backup.
+if ! BACKUP_DIR=$("$BACKUP_SCRIPT" "$FILE_PATH" --agent-id "$AGENT_ID" 2>"$BACKUP_STDERR"); then
+    echo "Error: Backup failed: $(tr '\n' ' ' < "$BACKUP_STDERR")" >&2
     exit 1
 fi
 
-# Return backup directory path
+# A backup that did not produce a usable directory is a failed backup, even if
+# the helper exited 0. Fail loudly rather than hand back an unusable path.
+if [[ -z "$BACKUP_DIR" ]] || [[ ! -d "$BACKUP_DIR" ]]; then
+    echo "Error: Backup did not produce a usable directory: '$BACKUP_DIR'" >&2
+    echo "$(tr '\n' ' ' < "$BACKUP_STDERR")" >&2
+    exit 1
+fi
+
+# Return backup directory path (stdout carries the path and nothing else)
 echo "$BACKUP_DIR"
 exit 0

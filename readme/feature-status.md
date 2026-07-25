@@ -264,7 +264,7 @@ This file MUST be updated when:
 
 | Hook | Status | Tests | Location | Description |
 |------|--------|-------|----------|-------------|
-| Pre-edit Backup | ✅ Prod | ✅ | `.claude/hooks/cfn-invoke-pre-edit.sh` | Backup before file changes |
+| Pre-edit Backup | ✅ Prod | ✅ 18/18 | `.claude/hooks/cfn-invoke-pre-edit.sh` | Backup before file changes. S014 (2026-07-25): fixed stderr merge in pre-edit hook (captured `✅ Backup created:` banner into stdout path, so `BACKUP_PATH=$(...)` returned two lines and named no directory); fixed restore to understand both current and deprecated backup conventions, fixed `ls -t | head -1` pipe error under `set -euo pipefail` (glob mismatch exited 2, masking "no backup found" logic). All 1451/1451 on-disk backups now resolve to a restorable original. |
 | Post-edit Validation | ✅ Prod | ✅ | `.claude/hooks/cfn-invoke-post-edit.sh` | Validate after changes |
 | Session Start | ✅ Prod | ✅ | `.claude/hooks/SessionStart-*` | Session initialization |
 | WSL Memory Monitor | ✅ Prod | ✅ | `~/.local/bin/wsl-memory-monitor.sh` | Kill orphaned test processes |
