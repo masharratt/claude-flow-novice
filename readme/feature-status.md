@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-07-20 | **Version:** 2.24.0 | **Status:** Production
+**Last Updated:** 2026-07-24 | **Version:** 2.24.1 | **Status:** Production
 
 ---
 
@@ -480,7 +480,7 @@ Consumer Project
 
 | Feature | Status | Tests | Location | Description |
 |---------|--------|-------|----------|-------------|
-| Structured decision store | ✅ Prod | ✅ | `.claude/skills/decision-log/{schema.sql,record.sh,decisions.sh}` | SQLite `decisions` table; cross-session, per-project; write via record.sh, read via decisions.sh |
+| Structured decision store | ✅ Prod | ✅ | `.claude/skills/decision-log/{schema.sql,record.sh,ingest.sh,decisions.sh}` | SQLite `decisions` table; cross-session, per-project; write via record.sh, read via decisions.sh. ingest.sh (2026-07-24) fixed two critical bugs: SQL string literals now use single quotes with doubled internal quotes (jq @json emitted backslash-escaped JSON that SQLite could not parse, dropping messages with double quotes and causing parser desync); text extraction now handles both string and array formats, so modern session files with block-type messages no longer skip user turns. Verified recovery: 15,333 → 28,917 messages across 99 session files; NSC 170→3,005, fireside-family 963→3,482, daily-agents/keystone/gsrx never indexed until now |
 
 **Dependencies:** cfn-megaplan reads cfn-spec build flags to route conditional phases. cfn-ux consumes cfn-data field-bindings. cfn-decide writes to decision-log SQLite (read by cfn-megaplan Step 0 + cfn-plan-review Phase 1).
 
@@ -491,7 +491,7 @@ Consumer Project
 | cfn-security-review | ✅ Prod | ✅ 10/10 | `.claude/skills/cfn-security-review/` | Post-impl security gate on the diff (injection, authz, secrets, RLS, headers, unscoped DELETE, input). Emits manifest. Never auto-fixes |
 | cfn-dep-audit | ✅ Prod | ✅ 8/8 | `.claude/skills/cfn-dep-audit/` | Supply-chain gate: ~90-day cooldown on new deps + immediate-CVE carve-out (npm/pnpm/yarn/cargo audit). Emits manifest |
 | cfn-perf-gate | ✅ Prod | ✅ 29/29 | `.claude/skills/cfn-perf-gate/` | Runs CFN_PERF_BENCH_CMD, diffs vs `.cfn-cache/perf-baseline.json`, emits manifest per path regressed beyond CFN_PERF_THRESHOLD_PCT (default 10). Never auto-fixes |
-| cfn-a11y-gate | ✅ Prod | ✅ 5/5 | `.claude/skills/cfn-a11y-gate/` | Local WCAG gate: axe-core via Playwright against CFN_A11Y_URLS, emits manifest per violation. Not a GitHub Action. Requires axe-core preinstalled, degrades with install instruction |
+| cfn-a11y-gate | ✅ Prod | ✅ 5/5 | `.claude/skills/cfn-a11y-gate/` | Local WCAG gate: axe-core via Playwright against CFN_A11Y_URLS, emits manifest per violation. Not a GitHub Action. v1.0.1 (2026-07-24): runner moved to .cjs for CommonJS require() support under ESM parent packages; NODE_PATH built from project's node_modules walk (both invocation dir and git root); dependency check now distinguishes genuine module-not-found (exit 3 with install instruction) from other runtime errors (exit 4 with full error); exit codes and error messages now fully deterministic |
 | cfn-migration-rehearsal | ✅ Prod | ✅ 6/6 | `.claude/skills/cfn-migration-rehearsal/` | Rehearses migration up+down round-trip against CFN_SCRATCH_DATABASE_URL only; refuses prod. Executes what cfn-ops designs |
 | docs-sync pre-commit check | ✅ Prod | ✅ 9/9 | `.claude/hooks/cfn-docs-sync-check.sh` | Warns (blocks if CFN_DOCS_SYNC_STRICT=1) when a code commit omits feature-status.md / state-machines.md |
 

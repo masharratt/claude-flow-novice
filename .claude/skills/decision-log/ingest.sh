@@ -37,26 +37,51 @@ if [ "$LAST_LINE" -ge "$TOTAL_LINES" ]; then
     exit 0
 fi
 
-# Extract messages via single jq pass, output as TSV for safe sqlite import
-# Format: uuid\trole\tcontent\ttimestamp
+# Extract messages via a single jq pass into a batch of SQL INSERTs.
+# The jq program lives in its own file (heredoc, quoted delimiter) so it can
+# contain literal single quotes: SQLite string literals need them, and inlining
+# the program in a bash single-quoted argument would break on the first one.
 TMPFILE=$(mktemp /tmp/decision-log-XXXXXX.sql)
-trap "rm -f '$TMPFILE'" EXIT
+JQFILE=$(mktemp /tmp/decision-log-XXXXXX.jq)
+trap "rm -f '$TMPFILE' '$JQFILE'" EXIT
+
+cat > "$JQFILE" <<'JQPROG'
+# SQLite string literal: wrap in single quotes, double any internal quote.
+# Do NOT use @json here: it emits a double-quoted JSON string with backslash
+# escapes, which SQLite cannot parse. Any message containing a double quote
+# used to blow up the statement (and sometimes the rest of the batch).
+def sql: "'" + (tostring | gsub("'"; "''")) + "'";
+
+# Modern session files store user content as an array of blocks; older ones
+# store a bare string. Handle both, keeping only text blocks (tool_result
+# payloads are machine noise, not conversation).
+def text_of:
+    if type == "string" then .
+    elif type == "array" then ([.[]? | select(.type == "text") | .text] | join("\n"))
+    else "" end;
+
+def row($role; $c):
+    "INSERT OR IGNORE INTO messages (session_id, project, uuid, role, content, timestamp) VALUES ("
+    + ($sid|sql) + ", " + ($proj|sql) + ", " + (.uuid|sql) + ", " + ($role|sql) + ", "
+    + ($c | .[0:10000] | sql) + ", " + (.timestamp|sql) + ");";
+
+if .type == "user" then
+    (.message.content | text_of) as $c |
+    if ($c | length) >= 10 and ($c | test("^<(local-command|command-name)") | not) then
+        row("user"; $c)
+    else empty end
+elif .type == "assistant" then
+    (.message.content | text_of) as $c |
+    if ($c | length) >= 10 then
+        row("assistant"; $c)
+    else empty end
+else empty end
+JQPROG
 
 echo "BEGIN TRANSACTION;" > "$TMPFILE"
 
-tail -n +"$((LAST_LINE + 1))" "$SESSION_FILE" | jq -r --arg sid "$SESSION_ID" --arg proj "$PROJECT" '
-    if .type == "user" then
-        .message.content as $c |
-        if ($c | type) == "string" and ($c | length) >= 10 and ($c | test("^<(local-command|command-name)") | not) then
-            "INSERT OR IGNORE INTO messages (session_id, project, uuid, role, content, timestamp) VALUES (\($sid | @json), \($proj | @json), \(.uuid | @json), \"user\", \($c | .[0:10000] | @json), \(.timestamp | @json));"
-        else empty end
-    elif .type == "assistant" then
-        ([.message.content[]? | select(.type == "text") | .text] | join("\n")) as $c |
-        if ($c | length) >= 10 then
-            "INSERT OR IGNORE INTO messages (session_id, project, uuid, role, content, timestamp) VALUES (\($sid | @json), \($proj | @json), \(.uuid | @json), \"assistant\", \($c | .[0:10000] | @json), \(.timestamp | @json));"
-        else empty end
-    else empty end
-' 2>/dev/null >> "$TMPFILE"
+tail -n +"$((LAST_LINE + 1))" "$SESSION_FILE" \
+    | jq -r --arg sid "$SESSION_ID" --arg proj "$PROJECT" -f "$JQFILE" 2>/dev/null >> "$TMPFILE"
 
 echo "COMMIT;" >> "$TMPFILE"
 
