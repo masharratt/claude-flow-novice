@@ -410,6 +410,32 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 
 ---
 
+## Subagent Lifecycle Hooks (cfn-subagent-start.sh / cfn-subagent-stop.sh, S015)
+
+**Entity:** a subagent spawned by Claude Code (via SubagentStart/SubagentStop events).
+
+**States:** `starting | running | stopping | stopped`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | starting | Claude Code SubagentStart event fired; cfn-subagent-start.sh invoked | agent id/type parsed from stdin JSON payload, inserted to agents table |
+| starting | running | INSERT succeeds, agent row created with id/type/timestamp | run_id foreign key active, metadata field initialized |
+| running | stopping | Claude Code SubagentStop event fired; cfn-subagent-stop.sh invoked | agent row located by id from stdin JSON |
+| stopping | stopped | UPDATE succeeds, metadata column recorded with final state | row archived, agent lifecycle complete |
+
+**Bug fixes (S015, 2026-07-25):**
+- **NOT NULL constraint crash:** cfn-subagent-start.sh INSERT omitted two mandatory columns (`name`, `updated_at`). Canonical DDL lives in execute-lifecycle-hook.sh; extracted to schema.sql so both hooks enforce the same structure. Pre-S015, every subagent start crashed with constraint error, no audit row written.
+- **Environment variable fallback broken:** both hooks read agent id/type from ENVIRONMENT VARIABLES (never set by Claude Code, only present in manual shell invocation). Claude Code always delivers a JSON payload on stdin via SubagentStart/SubagentStop. Hooks now parse JSON first, fall back to env for manual testing. Result: all audit rows before S015 have `id='unknown'`.
+- **SQL injection:** agent id was interpolated raw into INSERT/UPDATE queries. Now properly escaped using SQLite quoting rules (single quotes doubled).
+- **Metadata column wipe:** `json_set(NULL, ...)` returns NULL, silently erasing the metadata field on stop. Now COALESCE-guarded so existing metadata merges with new updates.
+- **Hook exit code interferes with spawns:** cfn-subagent-start.sh under `set -euo pipefail` exited nonzero on any bookkeeping failure, which interfered with Claude Code's agent spawn. Relaxed to `set -uo pipefail` so database writes never block agent creation (bookkeeping is optional; spawn is critical).
+
+**Coverage:** 21 tests, 21 passed / 0 failed. Verified against a /tmp copy of the DB; real production database untouched.
+
+**Registration status:** these hooks are deliberately NOT registered in any settings file. Duplicate SubagentStop writer already exists (cfn-agent-lifecycle/cli/lifecycle-hook.sh complete with status 0.92), and the row owner must be decided before both can coexist.
+
+---
+
 ## Pre-Edit Backup Lifecycle (cfn-invoke-pre-edit.sh / cfn-restore-from-backup.sh, S014)
 
 **Entity:** a file backup captured before edit-safety applies transformations.

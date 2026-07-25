@@ -80,7 +80,7 @@ This file MUST be updated when:
 |-------|--------|-------|----------|-------------|
 | cfn-loop-orchestration | ✅ Prod | ✅ | `cfn-loop-orchestration/` | Core orchestrator v3.0 |
 | cfn-loop-orchestration-v2 | ✅ Prod | ✅ | `cfn-loop-orchestration-v2/` | Gate checks, consensus |
-| cfn-agent-lifecycle | ✅ Prod | ✅ | `cfn-agent-lifecycle/` | Agent creation → deletion |
+| cfn-agent-lifecycle | ✅ Prod | ✅ 21/21 | `cfn-agent-lifecycle/` | Agent creation → deletion. S015 (2026-07-25): subagent lifecycle hooks fixed. cfn-subagent-start.sh crashed with NOT NULL constraint (INSERT omitted `name` and `updated_at`); canonical DDL extracted to schema.sql shared with execute-lifecycle-hook.sh (S015a). Both hooks read agent id/type from ENVIRONMENT VARIABLES (never set by Claude Code) instead of stdin JSON SubagentStart/SubagentStop payload (S015b); now parsed from stdin, env fallback for manual invocation. Added SQL escaping for single quotes. json_set(NULL, ...) silently wiped metadata column on stop; now COALESCE-guarded. cfn-subagent-start.sh set -euo pipefail relaxed to set -uo pipefail (nonzero hook exit interferes with spawns, bookkeeping must not block). Tests: 21 assertions, 21 passed / 0 failed, run against /tmp copy of DB. IMPORTANT: these hooks are NOT registered in any settings file yet; registration gated because duplicate SubagentStop writer already registered (cfn-agent-lifecycle/cli/lifecycle-hook.sh complete) and row owner must be decided first. |
 | cfn-agent-spawning | ✅ Prod | ✅ | `cfn-agent-spawning/` | CLI agent spawning |
 
 ### Code Intelligence Skills

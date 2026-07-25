@@ -37,48 +37,19 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Canonical schema lives in schema.sql so the subagent lifecycle hooks can apply
+# the exact same DDL instead of forking their own copy.
+SCHEMA_SQL="${SCRIPT_DIR}/schema.sql"
+
 # Initialize SQLite database
 init_database() {
     if [[ ! -f "$DB_PATH" ]]; then
         log_info "Creating agent lifecycle database: $DB_PATH"
-        sqlite3 "$DB_PATH" << 'EOF'
--- Create agents table
-CREATE TABLE IF NOT EXISTS agents (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'spawned',
-    confidence REAL,
-    output TEXT,
-    metadata TEXT,
-    spawned_at TEXT NOT NULL,
-    completed_at TEXT,
-    updated_at TEXT NOT NULL
-);
-
--- Create lifecycle_events table
-CREATE TABLE IF NOT EXISTS lifecycle_events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    agent_id TEXT NOT NULL,
-    event_type TEXT NOT NULL,
-    confidence REAL,
-    reasoning TEXT,
-    phase TEXT,
-    iteration INTEGER,
-    tokens_used INTEGER,
-    cost_usd REAL,
-    duration_ms INTEGER,
-    timestamp TEXT NOT NULL,
-    FOREIGN KEY (agent_id) REFERENCES agents(id)
-);
-
--- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
-CREATE INDEX IF NOT EXISTS idx_agents_type ON agents(type);
-CREATE INDEX IF NOT EXISTS idx_lifecycle_agent_id ON lifecycle_events(agent_id);
-CREATE INDEX IF NOT EXISTS idx_lifecycle_timestamp ON lifecycle_events(timestamp);
-CREATE INDEX IF NOT EXISTS idx_lifecycle_event_type ON lifecycle_events(event_type);
-EOF
+        if [[ ! -f "$SCHEMA_SQL" ]]; then
+            log_error "Canonical schema not found: $SCHEMA_SQL"
+            exit 1
+        fi
+        sqlite3 "$DB_PATH" < "$SCHEMA_SQL"
         log_success "Database initialized successfully"
     fi
 
