@@ -1,0 +1,259 @@
+#!/bin/bash
+# cfn-selftest: not-a-hook git pre-commit source, installed by install-git-hooks.sh
+# Pre-Commit Hook: Credential Exposure Prevention
+# Scans staged files for exposed credentials before allowing commit
+# Exit codes: 0 = no credentials, 1 = credentials detected, block commit
+#
+# Bypass with: git commit --no-verify (NOT RECOMMENDED)
+# Install: bash .claude/hooks/install-git-hooks.sh
+
+set -euo pipefail
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+# Exit codes
+EXIT_SUCCESS=0
+EXIT_CREDENTIALS_DETECTED=1
+
+# Credential patterns (same as post-edit credential scanner)
+declare -a PATTERNS=(
+    # API Keys
+    "sk-ant-[a-zA-Z0-9_-]{40,}"                           # Anthropic API keys
+    "sk-zai-[a-zA-Z0-9._-]{20,}"                          # Z.ai API keys
+    "npm_[a-zA-Z0-9]{36}"                                 # NPM API keys
+    "tr_dev_[a-zA-Z0-9]{16,}"                             # Trigger.dev API keys
+    "AIzaSy[a-zA-Z0-9_-]{33}"                             # Google API keys
+    "xai-[a-zA-Z0-9]{32,}"                                # XAi API keys
+    "grok-[a-zA-Z0-9]{32,}"                               # Grok API keys
+
+    # Z.ai token formats
+    "[a-zA-Z0-9]{32,}\.SUs3hnpAZAGsQDHX"                  # Z.ai token format
+    "[a-zA-Z0-9]{32,}\.QO8R0JxF4fucsoWL"                  # Legacy Z.ai format
+    "[a-zA-Z0-9]{32,}\.gDXkwrMNlYcqE8mF"                  # Legacy Z.ai format
+
+    # Environment variable assignments (suspicious)
+    "ANTHROPIC_API_KEY\s*=\s*[\"']sk-ant-"
+    "ZAI_API_KEY\s*=\s*[\"'][a-zA-Z0-9._-]{20,}"
+    "NPM_API_KEY\s*=\s*[\"']npm_"
+    "TRIGGER_API_KEY\s*=\s*[\"']tr_dev_"
+    "REDIS_PASSWORD\s*=\s*[\"'][a-zA-Z0-9]{16,}"
+    "POSTGRES_PASSWORD\s*=\s*[\"'][a-zA-Z0-9]{16,}"
+
+    # JSON/YAML credentials
+    "\"api_key\"\s*:\s*\"[a-zA-Z0-9_-]{20,}\""
+    "\"apiKey\"\s*:\s*\"[a-zA-Z0-9_-]{20,}\""
+    "\"auth_token\"\s*:\s*\"[a-zA-Z0-9._-]{20,}\""
+    "\"password\"\s*:\s*\"[a-zA-Z0-9]{16,}\""
+)
+
+# Whitelist patterns (safe to ignore)
+declare -a WHITELIST=(
+    "\\[REDACTED\\]"                                      # Already redacted
+    "YOUR_API_KEY"                                        # Placeholder
+    "YOUR_.*_KEY"                                         # Generic placeholder
+    "example\\.com"                                       # Example domains
+    "CHANGE_ME"                                           # Placeholder prefix
+    "CHANGE_ME_"                                          # Placeholder prefix
+    "test[_-]?key"                                        # Test keys
+    "mock[_-]?key"                                        # Mock keys
+    "sk-ant-mock"                                         # Mock Anthropic keys
+    "npm_MockTestKey"                                     # Mock NPM keys
+)
+
+# File types to scan
+declare -a SCANNABLE_TYPES=(
+    "*.ts" "*.tsx" "*.js" "*.jsx"
+    "*.json" "*.md" "*.sh" "*.bash"
+    "*.env*" "*.yaml" "*.yml" "*.txt"
+)
+
+# Temporary file for results
+TEMP_RESULTS=$(mktemp)
+trap "rm -f $TEMP_RESULTS" EXIT
+
+# Check if file type should be scanned
+should_scan_file() {
+    local file="$1"
+    local filename=$(basename "$file")
+
+    # Skip files in .git, node_modules, .venv, etc.
+    if [[ "$file" =~ ^(.git|node_modules|\.venv|\.env|dist|build|\.next|\.artifacts) ]]; then
+        return 1
+    fi
+
+    # Skip binary files
+    if file "$file" 2>/dev/null | grep -q "binary"; then
+        return 1
+    fi
+
+    # Skip large files (>1MB)
+    local file_size
+    file_size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo 0)
+    if [ "$file_size" -gt 1048576 ]; then
+        return 1
+    fi
+
+    # Check file extension
+    for type in "${SCANNABLE_TYPES[@]}"; do
+        if [[ "$filename" == $type ]]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+# Check if match is whitelisted
+is_whitelisted() {
+    local match="$1"
+
+    for pattern in "${WHITELIST[@]}"; do
+        if echo "$match" | grep -qE "$pattern"; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+# Scan staged file for credentials
+scan_staged_file() {
+    local file="$1"
+    local credentials_found=0
+
+    # Get staged content using git show
+    local staged_content
+    staged_content=$(git show ":$file" 2>/dev/null || echo "")
+
+    if [ -z "$staged_content" ]; then
+        return 0
+    fi
+
+    for pattern in "${PATTERNS[@]}"; do
+        # Search for pattern in staged content
+        if echo "$staged_content" | grep -nE "$pattern" > "$TEMP_RESULTS" 2>/dev/null; then
+            while IFS=: read -r line_number matched_line; do
+                # Skip if whitelisted
+                if is_whitelisted "$matched_line"; then
+                    continue
+                fi
+
+                credentials_found=$((credentials_found + 1))
+
+                # Redact the actual credential in output
+                local redacted_line
+                redacted_line=$(echo "$matched_line" | sed -E "s/${pattern}/[CREDENTIAL_REDACTED]/g")
+
+                # Append to results file
+                {
+                    echo ""
+                    echo -e "${RED}CREDENTIAL DETECTED:${NC}"
+                    echo "   File: $file"
+                    echo "   Line: $line_number"
+                    echo "   Match: $redacted_line"
+                    echo "   Pattern: $pattern"
+                } >> "$TEMP_RESULTS"
+
+            done < "$TEMP_RESULTS"
+        fi
+    done
+
+    return $credentials_found
+}
+
+# Main pre-commit logic
+main() {
+    local staged_files=()
+    local total_scanned=0
+    local total_credentials=0
+
+    # Get list of staged files
+    mapfile -t staged_files < <(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || echo "")
+
+    if [ ${#staged_files[@]} -eq 0 ]; then
+        # No staged files, allow commit
+        exit $EXIT_SUCCESS
+    fi
+
+    echo -e "${BOLD}🔍 Pre-Commit Hook: Scanning for credential exposure...${NC}"
+    echo ""
+
+    # Scan each staged file
+    for file in "${staged_files[@]}"; do
+        if ! should_scan_file "$file"; then
+            continue
+        fi
+
+        total_scanned=$((total_scanned + 1))
+        echo -e "   Scanning: ${YELLOW}$file${NC}"
+
+        if ! scan_staged_file "$file"; then
+            findings=$?
+            total_credentials=$((total_credentials + findings))
+        fi
+    done
+
+    echo ""
+    echo -e "   Scanned: ${GREEN}$total_scanned files${NC}"
+
+    # Check results
+    if [ $total_credentials -gt 0 ]; then
+        echo ""
+        echo -e "${RED}${BOLD}❌ COMMIT BLOCKED: $total_credentials credential(s) detected${NC}"
+        echo ""
+        cat "$TEMP_RESULTS"
+        echo ""
+        echo -e "${BOLD}🛡️  REMEDIATION STEPS:${NC}"
+        echo "   1. ${YELLOW}Identify the exposed credentials${NC}"
+        echo "   2. ${YELLOW}Replace with [REDACTED] placeholder${NC}"
+        echo "   3. ${YELLOW}Move secrets to .env or secure configuration${NC}"
+        echo "   4. ${YELLOW}Use environment variables instead${NC}"
+        echo "   5. ${YELLOW}Stage the corrected files:${NC} git add <files>"
+        echo ""
+        echo -e "${BOLD}⚠️  For test files with mock credentials:${NC}"
+        echo "   Use these patterns (automatically whitelisted):"
+        echo "      - sk-ant-mock"
+        echo "      - npm_MockTestKey"
+        echo "      - test_key / mock_key"
+        echo "      - [REDACTED]"
+        echo ""
+        echo -e "${YELLOW}To bypass (NOT RECOMMENDED):${NC}"
+        echo "   git commit --no-verify"
+        echo ""
+
+        # Log to git hook logs for audit trail
+        if [ -d ".artifacts/logs" ]; then
+            {
+                echo "$(date -Iseconds) | PRE-COMMIT BLOCKED | CREDENTIALS:$total_credentials | FILES_SCANNED:$total_scanned"
+                cat "$TEMP_RESULTS"
+            } >> ".artifacts/logs/git-hooks.log"
+        fi
+
+        exit $EXIT_CREDENTIALS_DETECTED
+    else
+        echo -e "${GREEN}✅ No credentials detected - proceeding with commit${NC}"
+        echo ""
+
+        # Log successful scan
+        if [ -d ".artifacts/logs" ]; then
+            echo "$(date -Iseconds) | PRE-COMMIT SUCCESS | FILES_SCANNED:$total_scanned" >> ".artifacts/logs/git-hooks.log"
+        fi
+
+        # Commit-time docs-sync reminder (CLAUDE.md mandate). Warn-only unless
+        # CFN_DOCS_SYNC_STRICT=1. Never let its failure crash the hook on warn.
+        DOCS_SYNC_HOOK="$(git rev-parse --show-toplevel)/.claude/hooks/cfn-docs-sync-check.sh"
+        if [ -x "$DOCS_SYNC_HOOK" ]; then
+            "$DOCS_SYNC_HOOK" || exit $?
+        fi
+
+        exit $EXIT_SUCCESS
+    fi
+}
+
+# Run main function
+main "$@"

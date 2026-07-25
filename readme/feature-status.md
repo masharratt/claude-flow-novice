@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-07-24 | **Version:** 2.24.1 | **Status:** Production
+**Last Updated:** 2026-07-25 | **Version:** 2.24.2 | **Status:** Production
 
 ---
 
@@ -268,6 +268,11 @@ This file MUST be updated when:
 | Post-edit Validation | ✅ Prod | ✅ | `.claude/hooks/cfn-invoke-post-edit.sh` | Validate after changes |
 | Session Start | ✅ Prod | ✅ | `.claude/hooks/SessionStart-*` | Session initialization |
 | WSL Memory Monitor | ✅ Prod | ✅ | `~/.local/bin/wsl-memory-monitor.sh` | Kill orphaned test processes |
+| Hook Self-Test | ✅ Prod | ✅ 32/32 | `.claude/hooks/cfn-hook-selftest.sh` | SessionStart validation: settings parse, registered hook paths resolve, no unguarded exec targets, orphan detection (S008, 2026-07-25) |
+| Security Scanner | ✅ Prod | ✅ 32/32 | `.claude/skills/cfn-edit-safety/lib/hooks/security-scanner.sh` | De-symlinked from external /mnt/c path; detects secrets, API keys, JWT tokens, SQL injection, XSS patterns. Stderr output (not stdout) for FILE/TYPE/MATCHES lines to prevent JSON parse crashes (S009, 2026-07-25). Case-insensitive hardcoded-secret regex (S010, 2026-07-25). |
+| Destructive Guard | ✅ Prod | ✅ 32/32 | `.claude/hooks/cfn-careful-guard.sh` | PreToolUse blocker for rm -rf, git push --force, database DROP/TRUNCATE. Added git checkout rule (S011, 2026-07-25). Fixed greedy sed bug: two-step quote extraction prevents JSON tail glue (S012, 2026-07-25). |
+| Git Hook Installer | ✅ Prod | ✅ 32/32 | `.claude/hooks/install-git-hooks.sh` | Deploy credential-scanning git hook. Fixed inverted source/destination (S013, 2026-07-25). Added per-file fallback to global hooks dir (S014, 2026-07-25). Coverage went from 3/41 to 41/41 repos. |
+| Pre-commit Credential Scan | ✅ Prod | ✅ 32/32 | `.claude/hooks/pre-commit` | Tracked source for credential-scanning git hook (S015, 2026-07-25). Previously lost to symlink drift. |
 
 ### Docker Support
 

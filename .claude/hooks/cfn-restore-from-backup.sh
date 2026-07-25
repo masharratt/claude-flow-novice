@@ -1,4 +1,5 @@
 #!/bin/bash
+# cfn-selftest: not-a-hook manually-invoked CLI, never fires on an event
 # Restore File from Backup
 # Restores a file from its most recent backup
 

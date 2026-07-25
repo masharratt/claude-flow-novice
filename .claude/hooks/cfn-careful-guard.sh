@@ -5,12 +5,18 @@
 
 INPUT=$(timeout 1 cat 2>/dev/null || echo "")
 
-# Extract command from JSON without jq
-# Pattern: "command":"<value>" or "command": "<value>"
-COMMAND=$(echo "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\(.*\)"/\1/p' | head -1)
+# Extract command from JSON without jq.
+# Two steps, because POSIX sed has no non-greedy match: strip everything up to
+# and including the opening quote, then cut at the first unescaped closing
+# quote. A single greedy 's/..."\(.*\)"/\1/' captured through to the LAST quote
+# in the payload, leaving the JSON tail ("}}") glued to the command and
+# swallowing any field that followed it (e.g. "description"). Mid-string
+# patterns still matched, so the damage stayed invisible until a rule needed
+# to anchor at end-of-command.
+COMMAND=$(echo "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"//p' | head -1)
 
-# Handle escaped quotes in command value - trim at next unescaped quote
-COMMAND=$(echo "$COMMAND" | sed 's/\([^\\]\)".*/\1/')
+# Cut at the first quote that is not backslash-escaped.
+COMMAND=$(printf '%s' "$COMMAND" | sed 's/\(\(\\.\|[^"\\]\)*\)".*/\1/')
 
 [ -z "$COMMAND" ] && exit 0
 
@@ -52,6 +58,16 @@ fi
 if echo "$CMD_LOWER" | grep -qE 'git[[:space:]]+clean[[:space:]]+.*-f'; then
     echo "BLOCKED: git clean -f detected." >&2
     echo "This removes untracked files permanently. Confirm with the user." >&2
+    exit 2
+fi
+
+# Promised by cfn-careful/SKILL.md and by CLAUDE.md ("Rollback: use backup
+# scripts, NOT git checkout"), but never implemented. Discards uncommitted
+# work silently, and the pathspec forms are the destructive ones -- plain
+# `git checkout <branch>` is a normal branch switch and must stay allowed.
+if echo "$CMD_LOWER" | grep -qE 'git[[:space:]]+checkout[[:space:]]+(--[[:space:]]+)?(\.|\*)([[:space:]]|$)'; then
+    echo "BLOCKED: git checkout of working-tree paths detected." >&2
+    echo "This discards uncommitted changes. Use the edit-safety backup scripts to roll back." >&2
     exit 2
 fi
 

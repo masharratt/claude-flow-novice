@@ -2,6 +2,8 @@
 
 Entity lifecycle documentation for stateful CFN systems.
 
+**Last Updated:** 2026-07-25 | **Infrastructure Audit:** S008-S015 hook security & self-test (2026-07-25)
+
 ---
 
 ## CFN Loop Task: Phase 5 Exit Gate (cfn-loop-task 3.2.0, W1/W4/W5)

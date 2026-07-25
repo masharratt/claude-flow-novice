@@ -16,7 +16,26 @@ NC='\033[0m'
 # Configuration
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 GIT_HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
+# Prefer a repo-local .claude/hooks, else fall back to the global one (a
+# reverse symlink into claude-flow-novice). Only claude-flow-novice has a
+# local .claude/hooks, so requiring it meant this installer could not run in
+# any other repo -- the second reason credential scanning reached 3 of 41.
 HOOKS_SOURCE_DIR="$PROJECT_ROOT/.claude/hooks"
+[ -d "$HOOKS_SOURCE_DIR" ] || HOOKS_SOURCE_DIR="$HOME/.claude/hooks"
+GLOBAL_HOOKS_DIR="$HOME/.claude/hooks"
+
+# Resolve one hook source, preferring the repo-local copy and falling back to
+# the global one. The fallback must be per-FILE, not per-directory: several
+# repos have a .claude/hooks/ that exists but contains no pre-commit, so a
+# directory-level check picks the local dir and then finds nothing in it.
+resolve_hook_source() {
+    local name="$1"
+    if [ -f "$HOOKS_SOURCE_DIR/$name" ]; then
+        printf '%s' "$HOOKS_SOURCE_DIR/$name"
+    else
+        printf '%s' "$GLOBAL_HOOKS_DIR/$name"
+    fi
+}
 FORCE_INSTALL=false
 
 # Exit codes
@@ -188,8 +207,13 @@ main() {
     local install_count=0
     local fail_count=0
 
-    # Install pre-commit hook
-    if install_hook "$PROJECT_ROOT/.git/hooks/pre-commit"; then
+    # Install pre-commit hook from the tracked source in .claude/hooks/.
+    # This previously passed "$PROJECT_ROOT/.git/hooks/pre-commit" -- the
+    # DESTINATION -- as the source, so it copied the file onto itself where one
+    # already existed and warned-and-failed on a fresh clone. Net effect: the
+    # installer could never actually deploy anything, which is why credential
+    # scanning reached only the 3 repos where it had been placed by hand.
+    if install_hook "$(resolve_hook_source pre-commit)"; then
         install_count=$((install_count + 1))
     else
         fail_count=$((fail_count + 1))
