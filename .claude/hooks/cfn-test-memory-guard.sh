@@ -2,6 +2,29 @@
 # CFN Test Memory Guard Hook
 # Blocks npm/npx test runs that don't include memory limits
 # to prevent memory leaks from killing the system
+#
+# DEREGISTERED 2026-07-25 from all 16 projects that had it wired as a
+# PreToolUse "Bash" hook. It was not deleted, only unregistered.
+#
+# Why it was deregistered: it gated on the literal command string the user
+# typed and never resolved package.json, so it could not see what a script
+# actually runs.
+#   - False positives: it blocked `npm test` in every project sampled (16/16),
+#     including daily-seo whose test script is already
+#     NODE_OPTIONS='--max-old-space-size=2048 --expose-gc' vitest. The limit
+#     was set correctly; the guard just never looked past the word "test".
+#   - Blocked no-op invocations: `npx jest --version` runs zero tests and was
+#     still refused.
+#   - Trivially evadable: `pnpm test`, `yarn test`, and `turbo run test` were
+#     not in the regex and sailed through, so the guard was strictest with the
+#     people already doing the right thing and absent for everyone else.
+# Superseded by ~/.local/bin/wsl-memory-monitor.sh, which enforces the same
+# intent process-side: it watches actual RSS of the same runner set
+# (vitest/jest/mocha/ava/tap/playwright/cypress) and kills at 10%. That is
+# unevadable by command spelling and produces no false positives, because it
+# measures memory instead of guessing at it from a string.
+#
+# cfn-selftest: not-a-hook superseded by wsl-memory-monitor.sh (RSS-based, unevadable, no false positives)
 
 # Removed -e flag to prevent hook failures on expected errors
 set -uo pipefail
