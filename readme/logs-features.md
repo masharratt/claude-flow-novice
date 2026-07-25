@@ -539,7 +539,8 @@ Automatically triggered via post-edit hook for matching file extensions (.sh, .p
 
 **Configuration**: `.claude/hooks/cfn-post-edit.config.json`
 
-**Test Location**: `tests/post-edit/test-*-validators.sh`
+**Test Location**: none. The `tests/post-edit/test-*-validators.sh` suites were deleted as dead code
+after the validators themselves were removed (`304584e0b`, dispatch entries cleaned up in `a568d6ee5`).
 
 **Documentation**: See [logs-hooks.md](./logs-hooks.md#multi-language-code-validators)
 

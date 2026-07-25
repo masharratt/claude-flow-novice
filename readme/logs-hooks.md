@@ -228,12 +228,11 @@ python3 .claude/skills/hook-pipeline/python-subprocess-safety.py "src/file.py"
 
 ### Test Coverage
 
-- Bash: 8/8 tests passing
-- Python: 6/6 tests passing
-- JavaScript: 4/4 tests passing
-- Rust: 6/6 tests passing
-
-**Test Location**: `tests/post-edit/test-*-validators.sh`
+**REMOVED.** The validators described above were deleted in commit `304584e0b` (Nov 2025) and their
+dangling dispatch-table entries were removed in `a568d6ee5`. The matching suites under
+`tests/post-edit/test-*-validators.sh` were deleted as dead code. The section above is retained only
+as a record of the removed behavior. There is no current test coverage for these validators because
+the validators no longer exist.
 
 ## Hook Types
 
