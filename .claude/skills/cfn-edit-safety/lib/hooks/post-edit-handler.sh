@@ -12,6 +12,17 @@
 
 set -euo pipefail
 
+# Resolve the canonical pipeline by absolute path. This script is reached from
+# every project through the ~/.claude/skills reverse symlink, so readlink -f
+# first or SCRIPT_DIR lands in $HOME; then prefer git for the repo root and fall
+# back to the known depth (.claude/skills/cfn-edit-safety/lib/hooks -> repo).
+# The previous `node config/hooks/post-edit-pipeline.js` was cwd-relative and
+# resolved only when the caller happened to be sitting in the CFN repo root.
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)"
+[ -n "$REPO_ROOT" ] || REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+POST_EDIT_PIPELINE="$REPO_ROOT/.claude/hooks/post-edit-pipeline.js"
+
 # Parse arguments
 FILE_PATH=""
 MEMORY_KEY=""
@@ -75,7 +86,7 @@ echo "Memory key: $MEMORY_KEY"
 
 # Execute post-edit pipeline
 set +e  # Temporarily disable exit on error to capture exit code
-node config/hooks/post-edit-pipeline.js $CMD_ARGS
+node "$POST_EDIT_PIPELINE" $CMD_ARGS
 EXIT_CODE=$?
 set -e  # Re-enable exit on error
 

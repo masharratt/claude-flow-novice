@@ -13,6 +13,17 @@
 
 set -euo pipefail
 
+# Resolve the canonical pipeline by absolute path. This script is reached from
+# every project through the ~/.claude/skills reverse symlink, so readlink -f
+# first or SCRIPT_DIR lands in $HOME; then prefer git for the repo root and fall
+# back to the known depth (.claude/skills/cfn-edit-safety/lib/hooks -> repo).
+# The previous `node config/hooks/post-edit-pipeline.js` was cwd-relative and
+# resolved only when the caller happened to be sitting in the CFN repo root.
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)"
+[ -n "$REPO_ROOT" ] || REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+POST_EDIT_PIPELINE="$REPO_ROOT/.claude/hooks/post-edit-pipeline.js"
+
 # Parse arguments
 FEEDBACK_TYPE=""
 AUTO_RESOLVE=false
@@ -129,7 +140,7 @@ resolve_root_warning() {
     # Re-run hook validation on new location
     echo ""
     echo "🔍 Re-validating at new location..."
-    if node config/hooks/post-edit-pipeline.js "$suggested_location" >/dev/null 2>&1; then
+    if node "$POST_EDIT_PIPELINE" "$suggested_location" >/dev/null 2>&1; then
         echo "✅ Validation passed"
         return 0
     else
@@ -311,7 +322,7 @@ auto_rust_quality() {
 
     echo ""
     echo "🔍 Re-validating..."
-    if node config/hooks/post-edit-pipeline.js "$FILE_PATH" >/dev/null 2>&1; then
+    if node "$POST_EDIT_PIPELINE" "$FILE_PATH" >/dev/null 2>&1; then
         echo "✅ Validation passed"
         return 0
     else
@@ -363,7 +374,7 @@ resolve_lint_issues() {
 
     echo ""
     echo "🔍 Re-validating..."
-    if node config/hooks/post-edit-pipeline.js "$FILE_PATH" >/dev/null 2>&1; then
+    if node "$POST_EDIT_PIPELINE" "$FILE_PATH" >/dev/null 2>&1; then
         echo "✅ Validation passed"
         return 0
     else

@@ -1,6 +1,17 @@
 #!/bin/bash
 set -e
 
+# Resolve the canonical pipeline by absolute path. This script is reached from
+# every project through the ~/.claude/skills reverse symlink, so readlink -f
+# first or SCRIPT_DIR lands in $HOME; then prefer git for the repo root and fall
+# back to the known depth (.claude/skills/cfn-edit-safety/lib/hooks -> repo).
+# The previous `node config/hooks/post-edit-pipeline.js` was cwd-relative and
+# resolved only when the caller happened to be sitting in the CFN repo root.
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)"
+[ -n "$REPO_ROOT" ] || REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+POST_EDIT_PIPELINE="$REPO_ROOT/.claude/hooks/post-edit-pipeline.js"
+
 RESULTS_FILE=".artifacts/analytics/root-warning-test.json"
 LOG_FILE=".artifacts/logs/post-edit-pipeline.log"
 mkdir -p .artifacts/analytics .artifacts/logs
@@ -33,9 +44,9 @@ test_root_warning() {
   local suggested=""
 
   # Check if hook script exists
-  if [ -f "config/hooks/post-edit-pipeline.js" ]; then
+  if [ -f "$POST_EDIT_PIPELINE" ]; then
     # Run actual hook (captures output)
-    HOOK_OUTPUT=$(node config/hooks/post-edit-pipeline.js "$filename" --memory-key "test/root-warning/$TOTAL_FILES" 2>&1)
+    HOOK_OUTPUT=$(node "$POST_EDIT_PIPELINE" "$filename" --memory-key "test/root-warning/$TOTAL_FILES" 2>&1)
 
     # Check if ROOT_WARNING was printed
     if echo "$HOOK_OUTPUT" | grep -q "ROOT DIRECTORY WARNING"; then

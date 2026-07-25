@@ -103,7 +103,221 @@ const results = {
   recommendations: []
 };
 
-// [Remaining TypeScript, ESLint, and Prettier validation code remains the same]
+// ============================================================================
+// PHASE 1: TypeScript / ESLint / Prettier
+// ============================================================================
+//
+// Restored 2026-07-25 during the two-pipeline consolidation. This file
+// previously carried only the placeholder comment "[Remaining TypeScript,
+// ESLint, and Prettier validation code remains the same]" -- the phases were
+// dropped when the pipeline was hand-copied out of the untracked dist/hooks/
+// (see 1d5bd35d0). The elision left results.typescript / .eslint / .prettier
+// permanently null even though cfn-post-edit.config.json still declares
+// validation.typescript.enabled = true and the exit chain in PHASE 7 still
+// branches on them, so exit 1 (TYPE_WARNING) and exit 6 (LINT_ISSUES) were
+// unreachable. Recovered from config/hooks/post-edit-pipeline.js, which was
+// the only surviving copy, before that file was deleted.
+//
+// Two deliberate differences from the config/ original:
+//  1. Tools are resolved from node_modules/.bin, never through bare `npx`.
+//     The original ran `npx eslint`, which DOWNLOADS eslint from the registry
+//     when the project does not have it -- unacceptable in a hook that every
+//     project reaches through the ~/.claude/hooks symlink.
+//  2. Tools run against the package that owns the EDITED FILE, not
+//     process.cwd(). Agents invoke this hook from a coordinator shell that may
+//     be sitting in an entirely different repo.
+
+// Nearest ancestor of the edited file containing package.json.
+function findPackageRoot(startPath) {
+  let dir = dirname(resolve(startPath));
+  for (let i = 0; i < 20; i++) {
+    if (existsSync(resolve(dir, 'package.json'))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
+const filePackageRoot = findPackageRoot(filePath);
+
+// Walk up from the edited file looking for node_modules/.bin/<name>. Returns
+// null when the tool is not installed for that project, which every caller
+// below treats as "skip this phase" rather than "this phase passed".
+function resolveLocalBin(name) {
+  let dir = dirname(resolve(filePath));
+  for (let i = 0; i < 20; i++) {
+    const candidate = resolve(dir, 'node_modules', '.bin', name);
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
+function runLocalTool(bin, toolArgs, timeout = 15000) {
+  return spawnSync(bin, toolArgs, {
+    cwd: filePackageRoot || dirname(resolve(filePath)),
+    encoding: 'utf-8',
+    timeout,
+    stdio: 'pipe'
+  });
+}
+
+// ---------------------------------------------------------------- TypeScript
+if (['.ts', '.tsx'].includes(ext)) {
+  const tscBin = resolveLocalBin('tsc');
+  if (!tscBin) {
+    log('SKIPPED', 'TypeScript validation skipped (tsc not installed for this project)');
+  } else {
+    log('VALIDATING', 'Running TypeScript validation');
+
+    // cfn: single-file tsc, switch to a project-wide `tsc --noEmit` cache if
+    // false positives from ignored tsconfig paths/aliases become noisy.
+    // Naming a file on the CLI makes tsc ignore tsconfig.json by design, so
+    // the flags below mirror cfn-post-edit.config.json validation.typescript.
+    const proc = runLocalTool(tscBin, ['--noEmit', '--skipLibCheck', resolve(filePath)], 30000);
+    const output = `${proc.stdout || ''}${proc.stderr || ''}`;
+    const tsErrors = output.split('\n').filter(line => line.includes('error TS'));
+
+    if (tsErrors.length === 0) {
+      results.typescript = { passed: true, errors: [] };
+      log('SUCCESS', 'TypeScript validation passed');
+    } else {
+      const errorTypes = {
+        implicitAny: tsErrors.filter(l => l.includes('TS7006') || l.includes('TS7031')).length,
+        propertyMissing: tsErrors.filter(l => l.includes('TS2339')).length,
+        typeMismatch: tsErrors.filter(l => l.includes('TS2322') || l.includes('TS2345')).length,
+        syntaxError: tsErrors.filter(l => l.includes('TS1005') || l.includes('TS1128')).length,
+        other: 0
+      };
+      errorTypes.other = tsErrors.length - Object.values(errorTypes).reduce((a, b) => a + b, 0);
+
+      const severity = errorTypes.syntaxError > 0 ? 'SYNTAX_ERROR'
+        : tsErrors.length > 5 ? 'LINT_ISSUES'
+        : 'TYPE_WARNING';
+
+      results.typescript = {
+        passed: false,
+        errorCount: tsErrors.length,
+        errorTypes,
+        errors: tsErrors.slice(0, 5),
+        severity
+      };
+
+      log(severity, `TypeScript errors detected: ${tsErrors.length}`, {
+        errorCount: tsErrors.length,
+        errorTypes,
+        errors: tsErrors.slice(0, 5)
+      });
+
+      if (errorTypes.syntaxError > 0) {
+        results.recommendations.push({
+          type: 'typescript',
+          priority: 'critical',
+          message: 'Fix syntax errors before proceeding',
+          action: 'Review and fix TypeScript syntax issues'
+        });
+      } else if (errorTypes.implicitAny > 0) {
+        results.recommendations.push({
+          type: 'typescript',
+          priority: 'high',
+          message: 'Add explicit type annotations',
+          action: 'Add type annotations for parameters and return values'
+        });
+      }
+    }
+  }
+}
+
+// -------------------------------------------------------------------- ESLint
+if (['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx'].includes(ext)) {
+  const eslintBin = resolveLocalBin('eslint');
+  if (!eslintBin) {
+    log('SKIPPED', 'ESLint validation skipped (eslint not installed for this project)');
+    results.eslint = { available: false };
+  } else {
+    log('VALIDATING', 'Running ESLint validation');
+
+    const proc = runLocalTool(eslintBin, ['--format', 'json', resolve(filePath)], 20000);
+    let parsed = null;
+    try {
+      parsed = JSON.parse(proc.stdout || '[]');
+    } catch {
+      parsed = null;
+    }
+
+    if (!parsed) {
+      // No parseable JSON means eslint itself failed (bad/missing config,
+      // unsupported file). Report it; do NOT record a pass.
+      log('ERROR', 'ESLint execution failed', {
+        status: proc.status,
+        stderr: (proc.stderr || '').slice(0, 500)
+      });
+      results.eslint = { available: true, ran: false, error: (proc.stderr || '').slice(0, 500) };
+    } else {
+      const fileResults = parsed[0] || { messages: [], errorCount: 0, warningCount: 0 };
+
+      results.eslint = {
+        available: true,
+        ran: true,
+        passed: fileResults.errorCount === 0,
+        errorCount: fileResults.errorCount || 0,
+        warningCount: fileResults.warningCount || 0,
+        messages: (fileResults.messages || []).slice(0, 5)
+      };
+
+      if (fileResults.errorCount > 0) {
+        log('LINT_ISSUES', `ESLint found ${fileResults.errorCount} errors`, {
+          errorCount: fileResults.errorCount,
+          warningCount: fileResults.warningCount
+        });
+
+        results.recommendations.push({
+          type: 'eslint',
+          priority: 'high',
+          message: `Fix ${fileResults.errorCount} ESLint errors`,
+          action: `Run: npx eslint "${filePath}" --fix`
+        });
+      } else {
+        log('SUCCESS', 'ESLint validation passed');
+      }
+    }
+  }
+}
+
+// ------------------------------------------------------------------ Prettier
+if (['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.json', '.css', '.html'].includes(ext)) {
+  const prettierBin = resolveLocalBin('prettier');
+  if (!prettierBin) {
+    log('SKIPPED', 'Prettier check skipped (prettier not installed for this project)');
+    results.prettier = { available: false };
+  } else {
+    log('VALIDATING', 'Running Prettier formatting check');
+
+    const proc = runLocalTool(prettierBin, ['--check', resolve(filePath)], 15000);
+    if (proc.status === 0) {
+      results.prettier = { available: true, passed: true, formatted: true };
+      log('SUCCESS', 'Prettier formatting check passed');
+    } else {
+      results.prettier = {
+        available: true,
+        passed: false,
+        formatted: false,
+        needsFormatting: true
+      };
+      log('LINT_ISSUES', 'File needs Prettier formatting');
+
+      results.recommendations.push({
+        type: 'prettier',
+        priority: 'medium',
+        message: 'File needs formatting',
+        action: `Run: npx prettier --write "${filePath}"`
+      });
+    }
+  }
+}
 
 // ============================================================================
 // PHASE 2: Security Analysis
@@ -975,10 +1189,15 @@ if (hasMissingValidator) {
 } else if (results.rustQuality) {
   exitCode = 5;
   finalStatus = 'RUST_QUALITY';
-} else if (results.prettier && !results.prettier.passed) {
+} else if (results.prettier && results.prettier.available && results.prettier.passed === false) {
+  // `available` and an explicit false are both required: the Prettier phase
+  // records {available:false} when the tool is not installed for the edited
+  // file's project, and a bare `!results.prettier.passed` would read that
+  // undefined as a formatting failure and exit 6 on every file in every
+  // project without prettier.
   exitCode = 6;
   finalStatus = 'LINT_ISSUES';
-} else if (results.typescript && !results.typescript.passed) {
+} else if (results.typescript && results.typescript.passed === false) {
   exitCode = 1;
   finalStatus = 'TYPE_WARNING';
 } else if (results.recommendations.length > 0) {

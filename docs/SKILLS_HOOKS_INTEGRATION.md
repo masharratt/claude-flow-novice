@@ -111,7 +111,7 @@ Claude Code provides 9 hook events. Here's how they map to CFN skills:
   "matcher": "Write|Edit|MultiEdit",
   "hooks": [{
     "type": "command",
-    "command": "node config/hooks/post-edit-pipeline.js \"$FILE\" --agent-id \"$AGENT_ID\"",
+    "command": "node \"$HOME/.claude/hooks/post-edit-pipeline.js\" \"$FILE\" --agent-id \"$AGENT_ID\"",
     "timeout": 45
   }]
 }

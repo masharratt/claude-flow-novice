@@ -112,7 +112,7 @@ fi
 After **EVERY** Edit/Write/MultiEdit operation:
 
 ```bash
-node config/hooks/post-edit-pipeline.js "$FILE_PATH" \
+node "$HOME/.claude/hooks/post-edit-pipeline.js" "$FILE_PATH" \
   --memory-key "swarm/$AGENT_ID/$STEP"
 ```
 

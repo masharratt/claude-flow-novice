@@ -102,8 +102,9 @@ if [ "$ENABLED" != "true" ]; then
 fi
 
 # Get pipeline path from config. The default names the live, git-tracked
-# pipeline that sits next to this script; config/hooks/post-edit-pipeline.js is
-# an older copy with no validator block and must not be the fallback.
+# pipeline that sits next to this script, which is now the ONLY implementation:
+# the divergent second copy at config/hooks/post-edit-pipeline.js was deleted
+# 2026-07-25 after its TypeScript/ESLint/Prettier phases were ported here.
 PIPELINE=$("$JQ_CMD" -r '.pipeline // ".claude/hooks/post-edit-pipeline.js"' "$CONFIG_FILE")
 
 # Resolve relative pipeline path against the CFN repo root so the hook works
