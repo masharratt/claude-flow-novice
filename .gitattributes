@@ -1,3 +1,13 @@
+# Repo-wide default: git normalizes text files to LF in the index and checks
+# them out as LF everywhere. This is where line-ending enforcement belongs.
+# It replaces the deleted enforce-lf.sh post-edit validator (removed with the
+# rest of .claude/skills/hook-pipeline/ in 304584e0b), which rewrote files with
+# `sed -i` DURING an edit -- the wrong layer for a git concern.
+#
+# Kept FIRST on purpose: gitattributes is last-match-wins, so every explicit
+# `eol=lf` rule below still overrides this line rather than being shadowed by it.
+* text=auto eol=lf
+
 # Enforce Unix line endings for shell scripts (prevents Alpine Linux execution failures)
 *.sh text eol=lf
 docker/**/*.sh text eol=lf

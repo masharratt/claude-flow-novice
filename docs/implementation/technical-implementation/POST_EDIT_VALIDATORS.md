@@ -1,8 +1,49 @@
 # Post-Edit Validators Documentation
 
+> ## STATUS: HISTORICAL. EVERY VALIDATOR BELOW HAS BEEN REMOVED.
+>
+> **Do not use this document to restore anything.** It describes the ten
+> validators that used to live in `.claude/skills/hook-pipeline/`. Everything
+> after this banner is a record of what once ran, not of what runs now.
+>
+> **Timeline**
+> - 2025-11-04 -- validators added in `ec9c69585` and `938d96e60`.
+> - 2025-11-05 -- the whole `.claude/skills/hook-pipeline/` directory was
+>   deleted in `304584e0b`, as collateral in a bulk skill cleanup. The
+>   `validatorsByExtension` dispatch table in
+>   `.claude/hooks/post-edit-pipeline.js` was NOT updated, so for months every
+>   dispatch pointed at a file that no longer existed and reported a clean run.
+> - 2026-07-25 -- all ten dangling entries dropped from `validatorsByExtension`.
+>   Decision: **not restored.**
+>
+> **Removed (10):** `bash-pipe-safety.sh`, `bash-dependency-checker.sh`,
+> `enforce-lf.sh`, `python-subprocess-safety.py`, `python-async-safety.py`,
+> `python-import-checker.py`, `js-promise-safety.sh`, `rust-command-safety.sh`,
+> `rust-future-safety.sh`, `rust-dependency-checker.sh`.
+>
+> **Why they were not restored** -- eight of the ten duplicated coverage that is
+> already wired in, or were broken as written:
+>
+> | Removed validator | What covers it now |
+> |---|---|
+> | `bash-pipe-safety.sh`, `bash-dependency-checker.sh` | **shellcheck** (`--format=gcc`), run by the pipeline for `.sh`/`.bash`. Non-blocking: findings become warnings in the `BASH_VALIDATOR_WARNING` bucket (exit 10, listed under `feedback.nonBlocking`). shellcheck is a system binary (`apt install shellcheck` / `brew install shellcheck`), NOT an npm dependency; when it is absent the pipeline prints a one-line `SHELLCHECK SKIPPED` note and continues -- skipped, never a silent pass. |
+> | `enforce-lf.sh` | `* text=auto eol=lf` in `.gitattributes`. Line endings are a git concern; the validator rewrote files with `sed -i` *during* an edit, which is the wrong layer. |
+> | `js-promise-safety.sh` | ESLint: `plugin:promise/recommended`, `@typescript-eslint/no-floating-promises`, `no-misused-promises`, `no-async-promise-executor` (see `.eslintrc.json`). |
+> | `rust-command-safety.sh`, `rust-future-safety.sh`, `rust-dependency-checker.sh` | `cargo clippy` plus the pipeline's own `.rs` quality block (unwrap/panic/println detection). |
+> | `python-subprocess-safety.py`, `python-async-safety.py`, `python-import-checker.py` | No Python source ships in this repo; these dispatched on a file type the project does not build. |
+>
+> **What was deliberately kept:** the missing-validator *detection* machinery in
+> `post-edit-pipeline.js` -- the `existsSync` preflight, the stderr warning, the
+> `missing`/`dispatched` accounting and exit code 9. That is what catches the
+> next dangling reference. It is exercised by
+> `tests/test-hook-pipeline-validators.sh` through the `CFN_HOOK_VALIDATORS` and
+> `CFN_HOOK_VALIDATOR_DIR` test seams.
+
 ## Overview
 
-The post-edit pipeline integrates 11 validators across 4 programming languages to ensure code quality, safety, and compatibility. These validators run automatically when files are edited based on file type.
+**(Historical -- see the banner above. None of the following is live.)**
+
+The post-edit pipeline integrated 11 validators across 4 programming languages to ensure code quality, safety, and compatibility. These validators ran automatically when files were edited based on file type.
 
 **Supported Languages:**
 - Bash (3 validators)

@@ -410,31 +410,40 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 
 ---
 
-## Post-Edit Validation Pipeline (cfn-invoke-post-edit.sh / post-edit-pipeline.js, S016)
+## Post-Edit Validation Pipeline (cfn-invoke-post-edit.sh / post-edit-pipeline.js, S016/S018)
 
 **Entity:** post-edit transformations and validators chained after Claude Code applies edits.
 
-**States:** `validating | dispatching | collecting | summarizing | passed | blocked`
+**States:** `validating | shellcheck_probe | shellcheck_running | dispatching | collecting | summarizing | passed | warned | blocked`
 
 | From | To | Trigger | Guard |
 |------|----|---------|-------|
 | (none) | validating | cfn-invoke-post-edit.sh invoked after edit completes | pre-flight: check all validator scripts exist before running any |
-| validating | blocked | missing validator detected (existsSync fails) | stderr lists missing path, exit 9 (BASH_VALIDATOR_MISSING) |
-| validating | dispatching | all validators resolved | ready to invoke each validator |
-| dispatching | collecting | each validator invoked sequentially | exit codes parsed: 0=pass, 1=warning, 2+=error |
+| validating | blocked | missing validator detected (existsSync fails on extension-dispatched validator) | stderr lists missing path, exit 9 (BASH_VALIDATOR_MISSING) |
+| validating | shellcheck_probe | all dispatched validators resolved (empty table after 2026-07-25 cleanup) OR CFN_HOOK_VALIDATORS injected | probe for shellcheck binary availability (.sh/.bash files only) |
+| shellcheck_probe | shellcheck_running | SHELLCHECK_BIN on PATH and executable | run shellcheck --format=gcc on target file |
+| shellcheck_probe | dispatching | shellcheck not found | one-line stderr note: "SHELLCHECK SKIPPED", results.shellcheck.passed=null (never claimed as pass), continue to next phase |
+| shellcheck_running | warned | shellcheck exit 1: findings present (SC codes) | non-blocking, findings added to recommendations, status BASH_VALIDATOR_WARNING, exit 10 |
+| shellcheck_running | dispatching | shellcheck exit 0: no findings | continue to next phase |
+| shellcheck_running | dispatching | shellcheck exited nonzero (parse error, crash) | log to WARN, skip results, continue (tool problem not file problem) |
+| dispatching | collecting | remaining validators invoked sequentially (usually empty after cleanup) | exit codes parsed: 0=pass, 1=warning, 2+=error |
 | collecting | summarizing | all validators complete | tally passed/warned/failed counts |
-| summarizing | passed | summary count reflects no error-class findings | edit accepted, no intervention needed |
-| summarizing | blocked | `--blocking` flag set and ≥1 finding returned | wrapper exits 1, blocks the edit |
+| summarizing | passed | no warnings (validator exit 1) and no shellcheck findings | edit accepted, no intervention needed |
+| summarizing | warned | shellcheck findings only, no blocking validators | status BASH_VALIDATOR_WARNING, exit 10 (non-blocking) |
+| summarizing | blocked | `--blocking` flag set and ≥1 blocking (exit 2+) finding returned | wrapper exits 1, blocks the edit |
 
-**Bug fixes (S016, 2026-07-25):**
-- **Unversioned pipeline code:** post-edit-pipeline.js lived at `dist/hooks/` (gitignored, untracked). No TypeScript source exists — file is hand-maintained. Moved to `.claude/hooks/post-edit-pipeline.js` for version control and source integration.
-- **Silent validator no-op:** 10 validators referenced under `.claude/skills/hook-pipeline/` (nonexistent path) with `process.cwd()` resolution, so code could only run from repo root. Nonexistent scripts silently skipped: bash exits 127 (missing), but pipeline matched none of the pass/warn/block cases, so `SUCCESS ... executed:3 passed:0` logged despite 7 validators missing. Python exits 2 (matching the non-blocking-warning convention), so three absent .py validators incorrectly surfaced as warnings ABOUT THE EDITED FILE.
-- **Missing validator detection:** now preflight with existsSync before invoking; name each missing validator on stderr; split `executed` (ran) from `missing` (not found) and `dispatched` (attempted); exit 9 (BASH_VALIDATOR_MISSING) on missing. Wrapper still exits 0 unless `--blocking`, so normal edit-safety flow unaffected.
-- **Dead validators:** cfn-post-edit-cfn-retrospective.sh marked `# cfn-selftest: not-a-hook` (all 5 skill paths moved; every case branch unreachable). cfn-pre-edit-security-warning.sh marked `# cfn-selftest: not-a-hook` (not a hook by shape; `docs/*` guard only matches relative paths while hook payloads are always absolute).
+**Cleanup (S018, 2026-07-25):**
+All 10 extension-dispatched validators (bash-pipe-safety, bash-dependency-checker, enforce-lf, python-subprocess-safety, python-async-safety, python-import-checker, js-promise-safety, rust-command-safety, rust-future-safety, rust-dependency-checker) were deleted 2025-11-05 in 304584e0b as collateral in a bulk skill cleanup; validatorsByExtension dispatch table was never updated, leaving 9 months of silent no-ops. Audit determined 8 of 10 duplicated tooling already wired in or were broken as written. bash-pipe-safety was the only one covering a real unchecked bug class (piped stderr hang under pipefail). Removed all 10 entries from validatorsByExtension; detection machinery kept and tested. shellcheck now covers shell files via new Phase 2.6 integration. Line-ending enforcement moved to git config (`.gitattributes * text=auto eol=lf`) instead of sed rewrite mid-edit.
 
-**Coverage:** 17 tests, 17 passed / 0 failed.
+**Bug fixes (S016/S018, 2026-07-25):**
+- **Unversioned pipeline code:** post-edit-pipeline.js lived at `dist/hooks/` (gitignored, untracked, hand-maintained). Moved to `.claude/hooks/post-edit-pipeline.js`.
+- **Silent validator no-op:** 10 validators under nonexistent `.claude/skills/hook-pipeline/` silently skipped. bash exits 127 (no match in pass/warn/block cases), so `SUCCESS executed:3 passed:0` logged despite missing 7 validators. Python exits 2 (matches non-blocking-warning), so 3 absent .py validators incorrectly surfaced as file warnings.
+- **Missing validator detection:** now existsSync preflight; name each missing on stderr; split `executed`/`missing`/`dispatched` counts; exit 9. Wrapper still exits 0 unless `--blocking`.
+- **Dead validator scripts:** cfn-post-edit-cfn-retrospective.sh (all 5 skill paths moved, every case unreachable); cfn-pre-edit-security-warning.sh (not a hook by shape).
 
-**Known limitation:** the 10 missing validators are NOT restored. Restoration is a separate, gated decision (awaiting confirmation that the skill paths have moved, not just moved in this hook's expectations).
+**Coverage:** 12 tests (7 missing-validator, 5 shellcheck integration), 12 passed / 0 failed. Full hook suite 152 passed / 0 failed.
+
+**Known limitation (S018):** shellcheck is NOT currently installed on this machine. Phase 2.6 takes the skipped path everywhere, reporting `SHELLCHECK SKIPPED` on stderr and `passed: null` in results. Installation (`apt install shellcheck` / `brew install shellcheck`) wires it live.
 
 ---
 

@@ -98,6 +98,7 @@ const results = {
   eslint: null,
   prettier: null,
   security: null,
+  shellcheck: null,
   metrics: null,
   recommendations: []
 };
@@ -248,47 +249,49 @@ try {
 
 log('VALIDATING', 'Running bash validators');
 
-// Validator mapping by file extension
-const validatorsByExtension = {
-  '.sh': [
-    'bash-pipe-safety.sh',
-    'bash-dependency-checker.sh',
-    'enforce-lf.sh'
-  ],
-  '.bash': [
-    'bash-pipe-safety.sh',
-    'bash-dependency-checker.sh',
-    'enforce-lf.sh'
-  ],
-  '.py': [
-    'python-subprocess-safety.py',
-    'python-async-safety.py',
-    'python-import-checker.py',
-    'enforce-lf.sh'
-  ],
-  '.js': [
-    'js-promise-safety.sh',
-    'enforce-lf.sh'
-  ],
-  '.ts': [
-    'js-promise-safety.sh',
-    'enforce-lf.sh'
-  ],
-  '.jsx': [
-    'js-promise-safety.sh',
-    'enforce-lf.sh'
-  ],
-  '.tsx': [
-    'js-promise-safety.sh',
-    'enforce-lf.sh'
-  ],
-  '.rs': [
-    'rust-command-safety.sh',
-    'rust-future-safety.sh',
-    'rust-dependency-checker.sh',
-    'enforce-lf.sh'
-  ]
-};
+// Validator mapping by file extension.
+//
+// INTENTIONALLY EMPTY. Ten validators used to be listed here:
+//   bash-pipe-safety.sh, bash-dependency-checker.sh, enforce-lf.sh,
+//   python-subprocess-safety.py, python-async-safety.py,
+//   python-import-checker.py, js-promise-safety.sh, rust-command-safety.sh,
+//   rust-future-safety.sh, rust-dependency-checker.sh
+// They were added 2025-11-04 (ec9c69585, 938d96e60) under
+// .claude/skills/hook-pipeline/ and deleted 2025-11-05 in 304584e0b as
+// collateral in a bulk skill cleanup. This table was never updated, so every
+// dispatch pointed at a file that no longer existed.
+//
+// Decision (2026-07-25): NOT restored. Eight of the ten duplicated checks
+// already wired in elsewhere (security-scanner.sh, eslint/@typescript-eslint
+// promise rules, cargo clippy, the .rs quality block below) or were broken as
+// written. enforce-lf.sh -- the most-dispatched of the ten -- rewrote files
+// mid-edit with `sed -i`; line endings now belong to git via the
+// `* text=auto eol=lf` rule in .gitattributes. Shell linting is handled by the
+// shellcheck phase below.
+//
+// Stale docs still describe these ten as live (see the removal notes in
+// docs/implementation/technical-implementation/POST_EDIT_VALIDATORS.md).
+// Do not re-add them from those docs.
+//
+// The dispatch machinery itself is deliberately kept: the existsSync preflight,
+// the stderr warning, the missing/dispatched accounting and exit code 9 are
+// what catch the NEXT dangling reference. tests/test-hook-pipeline-validators.sh
+// exercises it through the CFN_HOOK_VALIDATOR_DIR / CFN_HOOK_VALIDATORS seams.
+const validatorsByExtension = {};
+
+// Test seam: CFN_HOOK_VALIDATORS is a JSON object of {".ext": ["name", ...]}
+// merged over the table above. It exists so the missing-validator detection
+// path stays testable now that no validators ship by default. Unset in
+// production.
+if (process.env.CFN_HOOK_VALIDATORS) {
+  try {
+    Object.assign(validatorsByExtension, JSON.parse(process.env.CFN_HOOK_VALIDATORS));
+  } catch (error) {
+    log('WARN', 'CFN_HOOK_VALIDATORS is not valid JSON; ignoring', {
+      error: error.message
+    });
+  }
+}
 
 // Helper function to run a single validator
 function runValidator(validatorName, targetFile) {
@@ -474,6 +477,126 @@ if (applicableValidators.length > 0) {
   }
 } else {
   log('DEBUG', `No bash validators configured for ${ext} files`);
+}
+
+// ============================================================================
+// PHASE 2.6: ShellCheck (shell files only)
+// ============================================================================
+//
+// Replaces the deleted bash-pipe-safety.sh / bash-dependency-checker.sh pair.
+// shellcheck is a SYSTEM binary, deliberately not an npm dependency:
+//   apt install shellcheck   |   brew install shellcheck
+//
+// Three distinct outcomes, none of which may be confused with each other:
+//   - not installed -> SKIPPED (one-line note on stderr, exit code untouched)
+//   - installed, clean -> pass
+//   - installed, findings -> non-blocking WARNING, same bucket as a validator
+//     exit code 2 (config maps BASH_VALIDATOR_WARNING to nonBlocking).
+
+if (ext === '.sh' || ext === '.bash') {
+  log('VALIDATING', 'Running shellcheck');
+
+  // CFN_HOOK_SHELLCHECK_BIN points at a shellcheck that is not on PATH (and is
+  // the seam tests/test-hook-pipeline-validators.sh uses to exercise all three
+  // outcomes). Passed as $1 rather than interpolated into the -c string.
+  const SHELLCHECK_BIN = process.env.CFN_HOOK_SHELLCHECK_BIN || 'shellcheck';
+
+  const shellcheckProbe = spawnSync('bash', ['-c', 'command -v "$1"', 'bash', SHELLCHECK_BIN], {
+    encoding: 'utf-8',
+    timeout: 5000
+  });
+  const shellcheckAvailable = shellcheckProbe.status === 0
+    && (shellcheckProbe.stdout || '').trim().length > 0;
+
+  if (!shellcheckAvailable) {
+    // Skipped, NOT passed. Never let an absent linter read like a clean file.
+    console.error(
+      `[post-edit-pipeline] SHELLCHECK SKIPPED: '${SHELLCHECK_BIN}' is not on PATH, so ` +
+      `${filePath} was not lint-checked. Install it (apt install shellcheck / ` +
+      'brew install shellcheck) to enable this check.'
+    );
+    log('SHELLCHECK_SKIPPED', 'shellcheck not installed - shell lint did not run', {
+      file: filePath,
+      install: 'apt install shellcheck | brew install shellcheck'
+    });
+
+    results.shellcheck = {
+      available: false,
+      skipped: true,
+      passed: null,
+      findings: [],
+      findingCount: 0
+    };
+  } else {
+    const shellcheckRun = spawnSync(SHELLCHECK_BIN, ['--format=gcc', filePath], {
+      encoding: 'utf-8',
+      timeout: 15000
+    });
+
+    const scStatus = shellcheckRun.status;
+    const scOut = (shellcheckRun.stdout || '').trim();
+    const scErr = (shellcheckRun.stderr || '').trim();
+    const findings = scOut ? scOut.split('\n').filter(Boolean) : [];
+
+    if (scStatus === 0) {
+      results.shellcheck = {
+        available: true,
+        skipped: false,
+        passed: true,
+        findings: [],
+        findingCount: 0
+      };
+      log('SUCCESS', 'shellcheck found no issues');
+    } else if (scStatus === 1) {
+      // Findings. Non-blocking by design: surfaced as warnings so shell style
+      // issues never stop an edit.
+      results.shellcheck = {
+        available: true,
+        skipped: false,
+        passed: false,
+        findings: findings.slice(0, 20),
+        findingCount: findings.length
+      };
+
+      log('SHELLCHECK_WARNING', `shellcheck reported ${findings.length} issue(s)`, {
+        findings: findings.slice(0, 10)
+      });
+
+      findings.slice(0, 3).forEach(finding => {
+        results.recommendations.push({
+          type: 'shellcheck',
+          priority: 'medium',
+          message: `shellcheck: ${finding}`,
+          action: 'Review the shellcheck finding (non-blocking)'
+        });
+      });
+
+      if (findings.length > 3) {
+        results.recommendations.push({
+          type: 'shellcheck',
+          priority: 'medium',
+          message: `shellcheck reported ${findings.length} issues in total`,
+          action: `Run: shellcheck ${filePath}`
+        });
+      }
+    } else {
+      // shellcheck itself failed (parse error, bad usage, killed). Report as a
+      // tool problem; do not claim the file is clean and do not block.
+      log('WARN', 'shellcheck did not complete', {
+        exitCode: scStatus,
+        stderr: scErr.substring(0, 300)
+      });
+
+      results.shellcheck = {
+        available: true,
+        skipped: true,
+        passed: null,
+        findings: [],
+        findingCount: 0,
+        error: scErr || `shellcheck exited ${scStatus}`
+      };
+    }
+  }
 }
 
 // ============================================================================
@@ -823,6 +946,10 @@ const hasBashValidatorWarning = results.bashValidators && results.bashValidators
 // these checks ran; if they cannot, the run must not exit 0 and let callers
 // believe the file was checked.
 const hasMissingValidator = results.bashValidators && results.bashValidators.missing > 0;
+// shellcheck findings ride the same non-blocking warning bucket as a validator
+// exit code 2 (BASH_VALIDATOR_WARNING is listed under feedback.nonBlocking in
+// cfn-post-edit.config.json). A skipped shellcheck contributes nothing here.
+const hasShellcheckWarning = results.shellcheck && results.shellcheck.findingCount > 0;
 
 if (hasMissingValidator) {
   exitCode = 9;
@@ -836,7 +963,7 @@ if (hasMissingValidator) {
 } else if (results.tddViolation) {
   exitCode = 3;
   finalStatus = 'TDD_VIOLATION';
-} else if (hasBashValidatorWarning) {
+} else if (hasBashValidatorWarning || hasShellcheckWarning) {
   exitCode = 10;
   finalStatus = 'BASH_VALIDATOR_WARNING';
 } else if (hasComplexityIssue && hasComplexityIssue.priority === 'critical') {
@@ -863,6 +990,7 @@ const finalResult = {
   eslint: results.eslint,
   prettier: results.prettier,
   security: results.security,
+  shellcheck: results.shellcheck,
   metrics: results.metrics,
   recommendationCount: results.recommendations.length,
   topRecommendations: results.recommendations.slice(0, 3)

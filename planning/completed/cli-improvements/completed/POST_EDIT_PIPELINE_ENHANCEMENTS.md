@@ -1,6 +1,37 @@
 # Post-Edit Pipeline Enhancements - Handoff Documentation
 
+> ## STATUS: SUPERSEDED 2026-07-25. THE VALIDATORS THIS PLAN SHIPPED ARE GONE.
+>
+> This is the original 2025-11-04 handoff plan. It was implemented (`ec9c69585`,
+> `938d96e60`) into `.claude/skills/hook-pipeline/`, and that directory was
+> deleted the next day, 2025-11-05, in `304584e0b` as collateral in a bulk skill
+> cleanup. The `validatorsByExtension` table in
+> `.claude/hooks/post-edit-pipeline.js` was never updated, so every dispatch
+> silently pointed at a missing file until 2026-07-25, when all ten entries were
+> dropped.
+>
+> **Removed and deliberately NOT restored (10):** `bash-pipe-safety.sh`,
+> `bash-dependency-checker.sh`, `enforce-lf.sh`, `python-subprocess-safety.py`,
+> `python-async-safety.py`, `python-import-checker.py`, `js-promise-safety.sh`,
+> `rust-command-safety.sh`, `rust-future-safety.sh`,
+> `rust-dependency-checker.sh`.
+>
+> **What replaced them**
+> - Shell checks (Enhancements 1 and 4 below) -> **shellcheck**, run by the
+>   pipeline for `.sh`/`.bash`, non-blocking (warning bucket, exit 10). System
+>   binary, not an npm dependency; absent shellcheck is reported as skipped.
+> - Line endings (Enhancement 3, `enforce-lf.sh`) -> `* text=auto eol=lf` in
+>   `.gitattributes`. A `sed -i` rewrite mid-edit was the wrong layer.
+> - Promise safety (Enhancement 2) -> ESLint `plugin:promise/recommended` and
+>   `@typescript-eslint/no-floating-promises` in `.eslintrc.json`.
+> - Rust checks -> `cargo clippy` plus the pipeline's `.rs` quality block.
+>
+> Full rationale table:
+> `docs/implementation/technical-implementation/POST_EDIT_VALIDATORS.md`.
+> Treat the sections below as design history, not as a build instruction.
+
 **Created**: 2025-11-04
+**Status**: Superseded 2026-07-25 (see banner)
 **Purpose**: Generic code quality checks to prevent production bugs
 **Languages**: Bash, JavaScript/TypeScript, Python, Rust
 **Priority**: High (prevents 75% of recently discovered bugs)
