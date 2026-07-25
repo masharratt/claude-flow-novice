@@ -5,7 +5,25 @@ set -uo pipefail
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HOOK_DIR/cfn-codesearch-logger.sh"
 
-INPUT=$(timeout 3 cat || echo "{}")
+# Self-enforced deadline. This hook is registered with "timeout": 5, but its own
+# per-step guards used to sum to 11s (3 stdin + 3 sqlite + 5 semantic). When a
+# slow dependency burned that budget the harness SIGKILLed the hook at 5s and the
+# context injection was lost silently. Cap total work below the registered limit
+# rather than raising it -- a kill can land mid-write to the telemetry log.
+# See cfn-hook-budget.sh for why `timeout N cmd | pipeline` does not bound a step.
+source "$HOOK_DIR/cfn-hook-budget.sh"
+cfn_budget_init
+
+CFN_TMP=$(mktemp -d "${TMPDIR:-/tmp}/cfn-bash-hook-XXXXXX")
+trap 'rm -rf "$CFN_TMP"' EXIT
+
+if STDIN_T=$(cfn_budget 2000); then
+    cfn_run_bounded "$STDIN_T" "$CFN_TMP/stdin.json" cat
+    INPUT=$(cat "$CFN_TMP/stdin.json" 2>/dev/null || true)
+    [ -n "$INPUT" ] || INPUT="{}"
+else
+    INPUT="{}"
+fi
 if command -v jq >/dev/null 2>&1; then
     CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 else
@@ -63,29 +81,39 @@ PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 CONTEXT=""
 
 # Try SQL first (fast, no API key)
-if [ -f "$DB_PATH" ]; then
+if [ -f "$DB_PATH" ] && SQL_T=$(cfn_budget 2000); then
   SAFE_PATTERN=$(echo "$PATTERN" | sed "s/'/''/g")
   SAFE_ROOT=$(echo "$PROJECT_ROOT" | sed "s/'/''/g")
 
-  RESULTS=$(timeout 3 sqlite3 -separator ':' "$DB_PATH" \
-    "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_PATTERN}%' OR file_path LIKE '%${SAFE_PATTERN}%') LIMIT 6" 2>/dev/null || true)
+  cfn_run_bounded "$SQL_T" "$CFN_TMP/sql.txt" sqlite3 -separator ':' "$DB_PATH" \
+    "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_PATTERN}%' OR file_path LIKE '%${SAFE_PATTERN}%') LIMIT 6"
+  RESULTS=$(cat "$CFN_TMP/sql.txt" 2>/dev/null || true)
 
   if [ -n "$RESULTS" ]; then
     result_count=$(echo "$RESULTS" | wc -l)
-    CONTEXT="CodeSearch indexed matches for '$PATTERN':\n$RESULTS"
+    # Real newline, not a literal \n: the payload is JSON-encoded below, so the
+    # encoder is what escapes it. Splicing "\n" here produced a string that only
+    # looked escaped while the embedded query output stayed raw.
+    CONTEXT="CodeSearch indexed matches for '$PATTERN':
+$RESULTS"
     log "SQL context injected for: $PATTERN"
     cs_log "search:hit" "$PATTERN" "$result_count" "bash-hook" "sql"
   fi
 fi
 
 # Fallback to semantic search if SQL found nothing
-if [ -z "$CONTEXT" ] && command -v local-codesearch >/dev/null 2>&1; then
+if [ -z "$CONTEXT" ] && command -v local-codesearch >/dev/null 2>&1 && SEM_T=$(cfn_budget 3000); then
   if load_api_key; then
     log "SQL returned nothing, trying semantic search for: $PATTERN"
-    SEMANTIC=$(timeout 5 local-codesearch query "$PATTERN" --max-results 5 --threshold 0.3 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep -v "^$" | grep -v "INFO\|ERROR\|WARN" | head -6 || true)
+    # Captured to a file, then filtered. Piping local-codesearch straight into
+    # sed/grep let a straggler holding its stdout block the read past the limit.
+    cfn_run_bounded "$SEM_T" "$CFN_TMP/sem.txt" \
+      local-codesearch query "$PATTERN" --max-results 5 --threshold 0.3
+    SEMANTIC=$(sed 's/\x1b\[[0-9;]*m//g' "$CFN_TMP/sem.txt" 2>/dev/null | grep -v "^$" | grep -v "INFO\|ERROR\|WARN" | head -6 || true)
     if [ -n "$SEMANTIC" ]; then
       sem_count=$(echo "$SEMANTIC" | wc -l)
-      CONTEXT="CodeSearch semantic matches for '$PATTERN':\n$SEMANTIC"
+      CONTEXT="CodeSearch semantic matches for '$PATTERN':
+$SEMANTIC"
       log "Semantic context injected for: $PATTERN"
       cs_log "search:hit" "$PATTERN" "$sem_count" "bash-hook" "semantic"
     else
@@ -98,8 +126,30 @@ elif [ -z "$CONTEXT" ]; then
   cs_log "search:miss" "$PATTERN" 0 "bash-hook" "sql empty, no semantic binary"
 fi
 
+# Emit the PreToolUse response.
+#
+# This used to be `echo "{\"additionalContext\":\"$CONTEXT\"}"`, which spliced raw
+# sqlite3 output into a JSON string literal. Query output contains real newlines,
+# and indexed symbol names contain quotes and backslashes, so the result was not
+# valid JSON. Claude Code discards an unparseable hook response without surfacing
+# an error, so the hook logged hits and injected nothing. Encode with jq (which
+# escapes control characters correctly) and fall back to an explicit escaper.
+#
+# The payload also has to sit under hookSpecificOutput: a bare top-level
+# additionalContext key parses fine and is still ignored for PreToolUse.
 if [ -n "$CONTEXT" ]; then
-  echo "{\"additionalContext\":\"$CONTEXT\"}"
+  if command -v jq >/dev/null 2>&1; then
+    jq -cn --arg ctx "$CONTEXT" \
+      '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: $ctx}}'
+  else
+    # Escape backslash and quote, drop remaining control characters, then join
+    # lines with a literal \n escape sequence.
+    ESCAPED=$(printf '%s' "$CONTEXT" \
+      | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' \
+      | tr -d '\000-\010\013\014\016-\037' \
+      | awk 'BEGIN{ORS=""} NR>1{printf "\\n"} {print}')
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"%s"}}\n' "$ESCAPED"
+  fi
 fi
 
 exit 0

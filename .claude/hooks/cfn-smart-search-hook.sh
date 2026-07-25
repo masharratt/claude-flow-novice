@@ -1,12 +1,39 @@
 #!/bin/bash
 set -uo pipefail
-exec 2>/tmp/codesearch-search-hook.log
+
+# Claude Code surfaces STDERR (not stdout) as the reason for a blocking exit 2.
+# This hook used to do `exec 2>/tmp/...log`, sending the process's real stderr to
+# a file, so a block had no reachable channel to explain itself at all. Keep the
+# debug-noise redirect, but stash the ORIGINAL stderr on fd 3 first so the block
+# reason can still be written to the stream the harness reads.
+CS_HOOK_LOG="${CS_HOOK_LOG:-/tmp/codesearch-search-hook.log}"
+exec 3>&2
+exec 2>>"$CS_HOOK_LOG"   # append, not truncate: log() also appends to this file
 
 # Structured logging
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HOOK_DIR/cfn-codesearch-logger.sh"
 
-INPUT=$(timeout 3 cat || echo "{}")
+# Self-enforced deadline. This hook is registered with "timeout": 5, but its own
+# per-step guards summed to 13s (3 stdin + 2 git + 3 sqlite + 5 semantic). When a
+# slow dependency burned that budget the harness SIGKILLed the hook at 5s, losing
+# the block decision and possibly tearing a half-written telemetry record. Bound
+# the total instead of raising the registered timeout, which would only move the
+# cliff further out.
+# See cfn-hook-budget.sh for why `timeout N cmd | pipeline` does not bound a step.
+source "$HOOK_DIR/cfn-hook-budget.sh"
+cfn_budget_init
+
+CFN_TMP=$(mktemp -d "${TMPDIR:-/tmp}/cfn-smart-hook-XXXXXX")
+trap 'rm -rf "$CFN_TMP"' EXIT
+
+if STDIN_T=$(cfn_budget 2000); then
+    cfn_run_bounded "$STDIN_T" "$CFN_TMP/stdin.json" cat
+    INPUT=$(cat "$CFN_TMP/stdin.json" 2>/dev/null || true)
+    [ -n "$INPUT" ] || INPUT="{}"
+else
+    INPUT="{}"
+fi
 
 # Parse JSON without jq (may not be installed)
 if command -v jq >/dev/null 2>&1; then
@@ -18,7 +45,7 @@ else
 fi
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> /tmp/codesearch-search-hook.log
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$CS_HOOK_LOG"
 }
 
 # Load API key from .env if not set
@@ -79,8 +106,9 @@ CONTEXT=""
 UNCOMMITTED=""
 
 # Check uncommitted files
-if command -v git >/dev/null 2>&1; then
-    UNCOMMITTED=$(timeout 2 git diff --name-only HEAD 2>/dev/null | grep -i "$PATTERN" || true)
+if command -v git >/dev/null 2>&1 && GIT_T=$(cfn_budget 2000); then
+    cfn_run_bounded "$GIT_T" "$CFN_TMP/git.txt" git diff --name-only HEAD
+    UNCOMMITTED=$(grep -i "$PATTERN" "$CFN_TMP/git.txt" 2>/dev/null || true)
     if [[ -n "$UNCOMMITTED" ]]; then
         log "Found uncommitted matches"
         CONTEXT="Uncommitted files matching pattern:
@@ -94,7 +122,7 @@ fi
 CODESEARCH_RESULTS=""
 DB_PATH="$HOME/.local/share/codesearch/index_v2.db"
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-if [[ -f "$DB_PATH" ]]; then
+if [[ -f "$DB_PATH" ]] && SQL_T=$(cfn_budget 2000); then
     log "Querying CodeSearch SQL for: $PATTERN (project: $PROJECT_ROOT)"
     # Strip regex metacharacters and escape for SQL LIKE
     SAFE_PATTERN=$(echo "$PATTERN" | sed 's/\\[swdSWDbBnrt+]//g' | sed 's/[.*+?^${}()|\\]//g; s/\[//g; s/\]//g; s/  */ /g; s/^ *//; s/ *$//' | sed "s/'/''/g")
@@ -103,10 +131,12 @@ if [[ -f "$DB_PATH" ]]; then
         CODESEARCH_RESULTS=""
     else
         SAFE_ROOT=$(echo "$PROJECT_ROOT" | sed "s/'/''/g")
-        CODESEARCH_RESULTS=$(timeout 3 sqlite3 -separator ':' "$DB_PATH" \
-            "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_PATTERN}%' OR file_path LIKE '%${SAFE_PATTERN}%') LIMIT 8" 2>/dev/null | head -10 || true)
+        cfn_run_bounded "$SQL_T" "$CFN_TMP/sql.txt" sqlite3 -separator ':' "$DB_PATH" \
+            "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_PATTERN}%' OR file_path LIKE '%${SAFE_PATTERN}%') LIMIT 8"
+        CODESEARCH_RESULTS=$(head -10 "$CFN_TMP/sql.txt" 2>/dev/null || true)
         if [[ -n "$CODESEARCH_RESULTS" ]]; then
-            local result_count
+            # `local` outside a function is a bash error; it printed
+            # "local: can only be used in a function" on every SQL hit.
             result_count=$(echo "$CODESEARCH_RESULTS" | wc -l)
             log "CodeSearch SQL returned results"
             cs_log "search:hit" "$PATTERN" "$result_count" "smart-hook" "sql"
@@ -121,13 +151,16 @@ else
 fi
 
 # Fallback to semantic search if SQL found nothing and API key available
-if [[ -z "$CODESEARCH_RESULTS" ]] && command -v local-codesearch >/dev/null 2>&1; then
+if [[ -z "$CODESEARCH_RESULTS" ]] && command -v local-codesearch >/dev/null 2>&1 && SEM_T=$(cfn_budget 3000); then
     if load_api_key; then
         log "SQL returned nothing, trying semantic search for: $PATTERN"
-        # Strip ANSI codes from output
-        SEMANTIC_RESULTS=$(timeout 5 local-codesearch query "$PATTERN" --max-results 5 --threshold 0.3 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep -v "^$" | grep -v "INFO\|ERROR\|WARN" | head -8 || true)
+        # Captured to a file, then filtered. Piping local-codesearch straight into
+        # sed/grep let a straggler holding its stdout block the read past the limit.
+        cfn_run_bounded "$SEM_T" "$CFN_TMP/sem.txt" \
+            local-codesearch query "$PATTERN" --max-results 5 --threshold 0.3
+        SEMANTIC_RESULTS=$(sed 's/\x1b\[[0-9;]*m//g' "$CFN_TMP/sem.txt" 2>/dev/null | grep -v "^$" | grep -v "INFO\|ERROR\|WARN" | head -8 || true)
         if [[ -n "$SEMANTIC_RESULTS" ]]; then
-            local sem_count
+            # `local` outside a function is a bash error (see above).
             sem_count=$(echo "$SEMANTIC_RESULTS" | wc -l)
             log "Semantic search returned results"
             cs_log "search:hit" "$PATTERN" "$sem_count" "smart-hook" "semantic"
@@ -161,10 +194,13 @@ fi
 if [[ "$TOTAL_RESULTS" -ge 3 ]] && [[ -n "$CONTEXT" ]]; then
     log "BLOCK MODE: $TOTAL_RESULTS results, blocking Grep for pattern: $PATTERN"
     cs_log "search:block" "$PATTERN" "$TOTAL_RESULTS" "smart-hook" "blocked grep, >=3 results"
-    echo "BLOCKED: CodeSearch found $TOTAL_RESULTS indexed matches for functions/classes/files. Use Read on these files.
+    # STDERR (fd 3 = the harness's real stderr), not stdout. Claude Code shows
+    # stderr for a blocking exit 2 and ignores stdout, so writing the reason to
+    # stdout produced a block with no explanation and no escape-hatch hint.
+    printf '%s\n' "BLOCKED: CodeSearch found $TOTAL_RESULTS indexed matches for functions/classes/files. Use Read on these files.
 For literal strings, error messages, comments, or config values: prefix with ! (e.g., pattern: \"!$PATTERN\")
 
-$CONTEXT"
+$CONTEXT" >&3
     exit 2
 fi
 

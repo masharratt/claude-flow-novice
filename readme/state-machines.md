@@ -487,6 +487,37 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 
 ---
 
+## Hook Timeout Budget (cfn-hook-budget.sh, S017)
+
+**Entity:** a hook execution bounded by a shared timeout budget system. Applies to search hooks with per-step timing guarantees.
+
+**States:** `pending | step_executing | step_timeout_skip | step_complete | complete | failed`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | pending | hook invoked with budget registration | budget initialized from /proc/uptime (monotonic, immune to clock jumps) |
+| pending | step_executing | first step ready to execute | deadline computed from budget, timeout guard installed |
+| step_executing | step_complete | step finishes before deadline | step result recorded |
+| step_executing | step_timeout_skip | deadline reached, timeout fires | step skipped (not errored); budget exhaustion never blocks |
+| step_complete | step_executing | next step ready | remaining budget recomputed |
+| step_timeout_skip | step_executing | next step ready (budget permitting) | skipped step does not consume budget further |
+| step_complete | complete | all steps finished, results collected | hook exit 0 (non-blocking) |
+| step_timeout_skip | failed | all remaining steps will timeout; stop attempting | hook exit 0 (non-blocking) |
+
+**Budget exhaustion semantics:** unlike process-level timeout (sends SIGTERM/SIGKILL), hook budget exhaustion SKIPS remaining steps and returns partial results, preserving whatever telemetry was collected. Registration `timeout: 5s` on search hooks means harness will send SIGKILL at 5s if hook has not completed; hook-level budget (3000ms / 3s) provides 2s safety margin and forces step-skip before harness deadline. Hook never blocks (exit 0) even if all steps skipped.
+
+**Critical timing fixes (S017, 2026-07-25):**
+- `timeout -k` alone does not prevent indefinite wait: process sends SIGTERM, parent waits indefinitely for exit. Measured 10002ms vs 2s limit. Requires explicit timeout-after (`-k 1`).
+- Grandchild holding stdout blocks reader on EOF: even after parent timeout, `cat $PIPE | tee $FILE` in parent waits forever for grandchild to release the pipe. Root: child spawns grep that outlives timeout. Fix: capture to regular file instead of pipe.
+- Deadline from `date` (CLOCK_REALTIME) jumps backward after host stall, silently EXTENDING deadlines when most needed. Observed -1533ms backward jump, 3.3s host freeze. Use `/proc/uptime` (CLOCK_MONOTONIC).
+- `timeout` SIGKILLing its process group leaks `Killed` job-control chatter onto stderr, the same stream PreToolUse reads for block decisions. Suppressed via stderr redirection.
+
+**Retry protocol:** timing test runs control and retries on detected stall (max 3 attempts). Exhausted retry budget is still a failure, not a silent pass. Mutation-verified: raising budget to 12000ms produces 4 immediate failures on healthy host.
+
+**Coverage:** 23 tests, 23 passed / 0 failed across 10 consecutive runs, all on attempt 1.
+
+---
+
 ## Pre-commit Credential Scan (scan_staged_file, S010-S014)
 
 **Entity:** a staged file passed through the credential-scanning pre-commit git hook.

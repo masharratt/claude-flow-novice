@@ -55,6 +55,22 @@ git_available() {
     command -v git >/dev/null 2>&1 && [ -d "${PROJECT_DIR}/.git" ]
 }
 
+# Defaults for every git-derived variable. These used to be assigned ONLY inside
+# the `if git_available` block below, but they are read unconditionally further
+# down (MODIFIED_COUNT at the APPROX_TOKENS check, GIT_UNCOMMITTED_COUNT in the
+# work-indicator check, MODIFIED_FILES/STAGED_FILES/GIT_RECENT_COMMITS in the
+# final jq). Outside a git repository that branch is skipped and `set -u` killed
+# the script on the first such read -- exit 1, zero output, no context preserved.
+GIT_BRANCH="unknown"
+GIT_STATUS=""
+GIT_UNCOMMITTED_COUNT=0
+GIT_LAST_COMMIT="unknown"
+GIT_RECENT_COMMITS=""
+MODIFIED_FILES=""
+MODIFIED_COUNT=0
+STAGED_FILES=""
+STAGED_COUNT=0
+
 if git_available; then
     GIT_BRANCH=$(timeout_wrapper git -C "${PROJECT_DIR}" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
     GIT_STATUS=$(timeout_wrapper git -C "${PROJECT_DIR}" status --short 2>/dev/null || echo "")
