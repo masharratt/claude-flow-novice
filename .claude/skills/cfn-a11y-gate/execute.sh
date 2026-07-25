@@ -15,17 +15,49 @@
 #   0  scan ran, no violations (no manifest emitted)
 #   1  violations found (manifest emitted)
 #   2  usage error (no URLs provided)
-#   3  missing dependency (node / @axe-core/playwright / playwright absent)
-#   4  runtime error (browser launch / navigation / runner failure)
+#   3  missing dependency: node absent, or a real module-resolution failure for
+#      @axe-core/playwright / playwright. Nothing else maps to 3.
+#   4  runtime error (browser launch / navigation / runner failure), including
+#      any dep-load error that is NOT a module-resolution failure. The original
+#      error message is always printed.
+#
+# Dependency resolution: the deps live in the PROJECT being scanned, not in this
+# skill directory. NODE_PATH is built from every node_modules dir found walking
+# up from the invocation cwd and the project root, so the runner (which lives in
+# the skill dir) resolves the project's copies.
 #
 # cfn: assumes axe-core is preinstalled. Upgrade trigger: bundle a pinned local
 # copy of axe-core under lib/ if cross-project install drift becomes a problem.
 set -euo pipefail
 
+INVOKE_DIR="$(pwd)"
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RUNNER="${SKILL_DIR}/lib/axe-runner.js"
+# .cjs so the CommonJS require() calls work even under a parent "type": "module"
+RUNNER="${SKILL_DIR}/lib/axe-runner.cjs"
 cd "$PROJECT_ROOT"
+
+# --- resolve the TARGET PROJECT's node_modules for the runner -----------------
+# The runner lives in the skill dir; without this, Node resolves deps relative
+# to the skill dir and misses correctly-installed project deps.
+collect_node_modules() { # dir -> prints colon-separated node_modules chain
+  local dir="$1" acc=""
+  while [[ -n "$dir" && "$dir" != "/" ]]; do
+    if [[ -d "$dir/node_modules" ]]; then
+      acc="${acc:+$acc:}${dir}/node_modules"
+    fi
+    dir="$(dirname "$dir")"
+  done
+  printf '%s' "$acc"
+}
+DISCOVERED_NODE_PATH="$(collect_node_modules "$INVOKE_DIR")"
+if [[ "$PROJECT_ROOT" != "$INVOKE_DIR" ]]; then
+  ROOT_CHAIN="$(collect_node_modules "$PROJECT_ROOT")"
+  [[ -n "$ROOT_CHAIN" ]] && DISCOVERED_NODE_PATH="${DISCOVERED_NODE_PATH:+$DISCOVERED_NODE_PATH:}${ROOT_CHAIN}"
+fi
+if [[ -n "$DISCOVERED_NODE_PATH" ]]; then
+  export NODE_PATH="${DISCOVERED_NODE_PATH}${NODE_PATH:+:$NODE_PATH}"
+fi
 
 INSTALL_LINE="npm install --save-dev @axe-core/playwright playwright && npx playwright install chromium"
 TAGS="${CFN_A11Y_TAGS:-wcag2a,wcag2aa}"
@@ -63,11 +95,36 @@ if ! command -v node >/dev/null 2>&1; then
   echo "    $INSTALL_LINE"
   exit 3
 fi
-if ! node -e "require.resolve('@axe-core/playwright'); require.resolve('playwright')" >/dev/null 2>&1; then
+# NODE_PATH-aware, and narrowed: ONLY a real module-resolution failure exits 3.
+# Any other failure is a genuine runtime error and is reported verbatim as 4.
+DEP_PROBE='
+var deps = ["@axe-core/playwright", "playwright"];
+try {
+  deps.forEach(function (d) { require.resolve(d); });
+} catch (err) {
+  var code = err && err.code;
+  var msg = (err && err.message) || String(err);
+  var missing = (code === "MODULE_NOT_FOUND" || code === "ERR_MODULE_NOT_FOUND")
+    && deps.some(function (d) { return msg.indexOf(d) !== -1; });
+  process.stderr.write(msg + "\n");
+  process.exit(missing ? 3 : 4);
+}
+'
+set +e
+DEP_ERR=$(node -e "$DEP_PROBE" 2>&1 >/dev/null)
+DEP_RC=$?
+set -e
+if [[ "$DEP_RC" -eq 3 ]]; then
   echo "cfn-a11y-gate: axe-core / playwright not installed (dependency gate)."
+  echo "  Looked in: ${NODE_PATH:-<no node_modules found from $INVOKE_DIR>}"
   echo "  This skill never installs deps. Install them, then re-run:"
   echo "    $INSTALL_LINE"
   exit 3
+fi
+if [[ "$DEP_RC" -ne 0 ]]; then
+  echo "cfn-a11y-gate: dependency probe failed with a real error (NOT a missing dependency):"
+  echo "$DEP_ERR" | sed 's/^/  /'
+  exit 4
 fi
 
 # --- run the axe runner -------------------------------------------------------
@@ -79,7 +136,9 @@ RUNNER_OUT=$(CFN_A11Y_TAGS="$TAGS" node "$RUNNER" "${URLS[@]}" 2>"$RUNNER_ERR")
 RC=$?
 set -e
 if [[ "$RC" -eq 3 ]]; then
+  # runner exits 3 only on a real module-resolution failure for its two deps
   echo "cfn-a11y-gate: axe-core / playwright not installed (runner gate)."
+  sed 's/^/  /' "$RUNNER_ERR" || true
   echo "    $INSTALL_LINE"
   exit 3
 fi

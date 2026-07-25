@@ -1,7 +1,7 @@
 ---
 name: cfn-a11y-gate
 description: "LOCAL accessibility (WCAG) gate. Runs axe-core against rendered pages in a headless browser (Playwright) and emits each violation (contrast, missing label, keyboard trap, ARIA misuse) as a suggestion in the shared cfn-vote-implement manifest. NOT a GitHub Action. Requires axe-core preinstalled; degrades with a clear install instruction. Never auto-fixes."
-version: 1.0.0
+version: 1.0.1
 tags: [accessibility, a11y, wcag, axe, gate, frontend]
 status: production
 ---
@@ -37,6 +37,16 @@ npm install --save-dev @axe-core/playwright playwright && npx playwright install
 
 `cfn:` the gate assumes axe-core is preinstalled. Upgrade trigger: bundle a pinned local copy of axe-core under `lib/` if cross-project install drift becomes a problem.
 
+### Where the deps are resolved from
+
+The deps belong to the **project being scanned**, not to this skill directory. `execute.sh` walks up from the invocation cwd (and from the git project root, when different), collects every `node_modules` directory it finds, and exports them as `NODE_PATH` before invoking the runner. Without that, Node would resolve from the skill directory and miss correctly-installed project deps. Any pre-existing `NODE_PATH` is appended, not discarded.
+
+The runner is `lib/axe-runner.cjs`. The `.cjs` extension is required, not cosmetic: the runner uses CommonJS `require()`, and most modern projects (and the skill repo itself) declare `"type": "module"`, which would otherwise make Node load it as an ES module and fail with `require is not defined`.
+
+### Exit 3 means "not installed" and nothing else
+
+Both the `execute.sh` preflight and the runner treat a failure as a missing dependency **only** when it is a module-resolution error (`MODULE_NOT_FOUND` / `ERR_MODULE_NOT_FOUND`) whose message names `@axe-core/playwright` or `playwright`. Every other failure (syntax error, ESM/CJS mismatch, a throw inside a dep, a broken transitive require) exits `4` and prints the original error message and stack. A user is never told to install a package that is already installed.
+
 ## Inputs
 
 Target URLs (at least one required):
@@ -63,8 +73,8 @@ WCAG level:
 | 0 | Scan ran, no violations. No manifest. |
 | 1 | Violations found. Manifest emitted. |
 | 2 | Usage error: no target URLs provided. |
-| 3 | Missing dependency: node, `@axe-core/playwright`, or `playwright` absent. Install line printed. |
-| 4 | Runtime error: browser launch, navigation, or runner failure. |
+| 3 | Missing dependency: node absent, or a genuine module-resolution failure naming `@axe-core/playwright` / `playwright`. Install line printed, plus the `NODE_PATH` that was searched. |
+| 4 | Runtime error: browser launch, navigation, or runner failure. Also any dep-load error that is NOT a module-resolution failure. The original error message and stack are printed. |
 
 ## Usage
 
