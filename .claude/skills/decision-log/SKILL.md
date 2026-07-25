@@ -72,7 +72,22 @@ The two stores are separate on purpose: conversation noise stays out of the stru
 ./.claude/skills/decision-log/stats.sh        # message/session/project counts + DB size
 ```
 
-Ingest is incremental: `ingest_state` tracks `last_line` per session file, so re-runs only process new lines. The SessionStart hook `.claude/hooks/cfn-decision-log-ingest.sh` runs the same incremental ingest across all projects in the background at session start, so the conversation index stays current without manual calls.
+Ingest is incremental: `ingest_state` tracks `last_line` per session file, so re-runs only process new lines. The SessionStart hook `.claude/hooks/cfn-decision-log-ingest.sh` sweeps every project at session start, so the conversation index stays current without manual calls. The hook schedules only — it shells out to `ingest.sh` per file, which is the single source of truth for parsing. It must be registered under `hooks.SessionStart` in `~/.claude/settings.local.json` to run at all; verify with:
+
+```bash
+jq -r '.hooks.SessionStart[].hooks[].command' ~/.claude/settings.local.json | grep decision-log
+```
+
+The sweep detaches (`setsid`) so startup never blocks, and takes a non-blocking `flock` on `~/.claude/decision-log/ingest.lock` so concurrent session starts cannot contend on the SQLite file. Last run's output: `~/.claude/decision-log/ingest.log`.
+
+**Cursor caveat:** `ingest.sh` advances `last_line` to EOF whether or not rows were inserted. If a parsing bug drops messages, re-running will not recover them — the cursor says the file is done. After any fix to the extraction logic, reset before backfilling:
+
+```bash
+sqlite3 ~/.claude/decision-log/decisions.db "UPDATE ingest_state SET last_line = 0;"
+./.claude/skills/decision-log/ingest-all.sh
+```
+
+Re-ingest is idempotent (`messages.uuid` is `UNIQUE`, inserts are `INSERT OR IGNORE`), so this cannot duplicate rows.
 
 ## Consumers
 
@@ -86,4 +101,5 @@ Ingest is incremental: `ingest_state` tracks `last_line` per session file, so re
 - `sqlite3` (with FTS5: `porter unicode61` tokenizer)
 - `jq` (structured-decision and message rendering)
 - `git` (project-name derivation; falls back to `CLAUDE_PROJECT_DIR`/cwd)
-- Hook: `.claude/hooks/cfn-decision-log-ingest.sh` (SessionStart, background incremental ingest)
+- `flock`, `setsid` (util-linux; hook-side locking and detach — hook exits 0 silently if absent)
+- Hook: `.claude/hooks/cfn-decision-log-ingest.sh` (SessionStart, detached incremental sweep; must be registered in `~/.claude/settings.local.json`)
