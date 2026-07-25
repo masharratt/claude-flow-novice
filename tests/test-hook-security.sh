@@ -174,6 +174,193 @@ else
     bad "no hook self-test at .claude/hooks/cfn-hook-selftest.sh"
 fi
 
+# --- shared helper for T8-T12: throwaway git repos -----------------------
+# Every hook invocation below runs inside a fresh, disposable repo under
+# $SCRATCH -- never the real repo, never a real `git commit`.
+mk_repo() {
+    local dir="$1"
+    mkdir -p "$dir"
+    git -C "$dir" init -q
+    git -C "$dir" config user.email "test@example.com"
+    git -C "$dir" config user.name "Test"
+}
+
+HOOK="$REPO_ROOT/.claude/hooks/pre-commit"
+
+# --- T8: infinite loop in scan_staged_file --------------------------------
+# scan_staged_file wrote grep matches to $TEMP_RESULTS and then read it with
+# `done < "$TEMP_RESULTS"` while appending each finding to that SAME file
+# with `>>` -- so every appended line was re-read as further input and the
+# loop never terminated. A commit containing a real credential hung forever
+# instead of being rejected. Every invocation below is wrapped in
+# `timeout 15` so a regression cannot hang this suite.
+head_ "T8  scan_staged_file terminates (no self-feeding read/append loop)"
+
+T8_REPO="$SCRATCH/t8-repo"
+mk_repo "$T8_REPO"
+
+GOOGLE_KEY="AIzaSy$(printf 'X%.0s' {1..33})"
+printf 'GOOGLE_API_KEY="%s"\n' "$GOOGLE_KEY" > "$T8_REPO/secret.env"
+git -C "$T8_REPO" add secret.env
+
+OUT=$( (cd "$T8_REPO" && timeout 15 bash "$HOOK") 2>&1 )
+RC=$?
+
+if [ "$RC" -eq 124 ]; then
+    bad "hook timed out (infinite loop reproduced)"
+else
+    ok "hook terminated within 15s (exit $RC)"
+fi
+
+# --- T9: fail-open via `if ! fn; then findings=$?` ------------------------
+# main() did `if ! scan_staged_file "$file"; then findings=$?`, where `$?` is
+# the exit status of the `!` negation itself -- always 0 -- never the
+# function's finding count. total_credentials therefore never left 0 and the
+# hook printed "No credentials detected" on every commit, including ones
+# containing real secrets.
+head_ "T9  main() captures the real finding count (no fail-open)"
+
+GHP_KEY="ghp_$(printf 'C%.0s' {1..36})"
+
+T9_SECRET="$SCRATCH/t9-secret"
+mk_repo "$T9_SECRET"
+printf 'GITHUB_TOKEN="%s"\n' "$GHP_KEY" > "$T9_SECRET/leak.env"
+git -C "$T9_SECRET" add leak.env
+OUT=$( (cd "$T9_SECRET" && timeout 15 bash "$HOOK") 2>&1 )
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "COMMIT BLOCKED"; then
+    ok "staged secret blocks commit (exit $RC, COMMIT BLOCKED present)"
+else
+    bad "staged secret did NOT block commit (exit $RC) -- fail-open reproduced"
+fi
+
+T9_CLEAN="$SCRATCH/t9-clean"
+mk_repo "$T9_CLEAN"
+printf 'const x = 1;\n' > "$T9_CLEAN/clean.js"
+git -C "$T9_CLEAN" add clean.js
+OUT=$( (cd "$T9_CLEAN" && timeout 15 bash "$HOOK") 2>&1 )
+RC=$?
+[ "$RC" -eq 0 ] && ok "clean file allows commit (exit 0)" \
+                || bad "clean file blocked commit (exit $RC, false positive)"
+
+T9_WHITELIST="$SCRATCH/t9-whitelist"
+mk_repo "$T9_WHITELIST"
+NPM_WL="npm_MockTestKey$(printf 'D%.0s' {1..25})"
+{
+    printf 'ANTHROPIC_API_KEY="[REDACTED]"\n'
+    printf 'NPM_API_KEY="%s"\n' "$NPM_WL"
+} > "$T9_WHITELIST/placeholders.env"
+git -C "$T9_WHITELIST" add placeholders.env
+OUT=$( (cd "$T9_WHITELIST" && timeout 15 bash "$HOOK") 2>&1 )
+RC=$?
+[ "$RC" -eq 0 ] && ok "whitelisted placeholders allow commit (exit 0)" \
+                || bad "whitelisted placeholders blocked commit (exit $RC, false positive)"
+
+# --- T10: credential leak via unshadowed $pattern in is_whitelisted -------
+# is_whitelisted() looped `for pattern in "${WHITELIST[@]}"` without `local`,
+# clobbering scan_staged_file's own $pattern. The redaction sed there then
+# ran with a WHITELIST pattern instead of the matched credential pattern, so
+# it printed the REAL credential unredacted to stdout and appended it
+# verbatim to .artifacts/logs/git-hooks.log.
+head_ "T10  redaction uses the credential pattern, never leaks to stdout or log"
+
+T10_REPO="$SCRATCH/t10-repo"
+mk_repo "$T10_REPO"
+mkdir -p "$T10_REPO/.artifacts/logs"
+
+printf 'GITHUB_TOKEN="%s"\n' "$GHP_KEY" > "$T10_REPO/leak.env"
+git -C "$T10_REPO" add leak.env
+
+OUT=$( (cd "$T10_REPO" && timeout 15 bash "$HOOK") 2>&1 )
+RC=$?
+
+if [ "$RC" -eq 0 ]; then
+    bad "T10 setup did not trigger a detection (exit 0) -- cannot validate redaction"
+else
+    echo "$OUT" | grep -qF "$GHP_KEY" \
+        && bad "RAW SECRET leaked to stdout/stderr" \
+        || ok "raw secret does not appear in stdout/stderr"
+
+    echo "$OUT" | grep -q '\[CREDENTIAL_REDACTED\]' \
+        && ok "[CREDENTIAL_REDACTED] marker present" \
+        || bad "no [CREDENTIAL_REDACTED] marker in output"
+
+    echo "$OUT" | grep "Pattern:" | grep -q "ghp_" \
+        && ok "reported Pattern: line is the matching credential pattern (ghp_...)" \
+        || bad "reported Pattern: line is NOT the credential pattern (whitelist pattern leaked through)"
+
+    LOGFILE="$T10_REPO/.artifacts/logs/git-hooks.log"
+    if [ -f "$LOGFILE" ]; then
+        grep -qF "$GHP_KEY" "$LOGFILE" \
+            && bad "RAW SECRET leaked into git-hooks.log" \
+            || ok "raw secret does not appear in git-hooks.log"
+    else
+        bad "T10 expected .artifacts/logs/git-hooks.log to be written but it was not"
+    fi
+fi
+
+# --- T11: pattern coverage -------------------------------------------------
+# One regression test per credential family the scanner claims to catch.
+head_ "T11  scanner detects each credential family"
+
+declare -A T11_SECRETS=(
+    [google]="AIzaSy$(printf 'X%.0s' {1..33})"
+    [npm]="npm_$(printf 'A%.0s' {1..36})"
+    [openai-proj]="sk-proj-$(printf 'B%.0s' {1..30})"
+    [github-pat]="ghp_$(printf 'C%.0s' {1..36})"
+)
+
+for name in google npm openai-proj github-pat; do
+    secret="${T11_SECRETS[$name]}"
+    dir="$SCRATCH/t11-$name"
+    mk_repo "$dir"
+    printf 'SECRET="%s"\n' "$secret" > "$dir/secret.txt"
+    git -C "$dir" add secret.txt
+
+    OUT=$( (cd "$dir" && timeout 15 bash "$HOOK") 2>&1 )
+    RC=$?
+    if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "COMMIT BLOCKED"; then
+        ok "detects $name credential"
+    else
+        bad "MISSES $name credential (exit $RC)"
+    fi
+done
+
+# --- T12: installer honours core.hooksPath --------------------------------
+# install_hook always wrote to "$PROJECT_ROOT/.git/hooks/$name", hardcoding
+# the classic location. A repo that repoints core.hooksPath (any
+# husky-managed repo) never got the hook installed anywhere git actually
+# reads -- the file existed and was executable, just in a directory git
+# never consults.
+head_ "T12  install-git-hooks.sh honours core.hooksPath"
+
+INSTALLER="$REPO_ROOT/.claude/hooks/install-git-hooks.sh"
+T12_REPO="$SCRATCH/t12-repo"
+mk_repo "$T12_REPO"
+mkdir -p "$T12_REPO/.husky"
+git -C "$T12_REPO" config core.hooksPath .husky
+
+OUT=$( (cd "$T12_REPO" && timeout 15 bash "$INSTALLER" --force) 2>&1 )
+RC=$?
+
+if [ -f "$T12_REPO/.husky/pre-commit" ]; then
+    ok "pre-commit installed into .husky/ (core.hooksPath honoured)"
+else
+    bad "pre-commit NOT found in .husky/ (installer ignored core.hooksPath)"
+fi
+
+if [ -f "$T12_REPO/.git/hooks/pre-commit" ]; then
+    bad "installer ALSO wrote to .git/hooks/pre-commit (wrong destination still used)"
+else
+    ok "installer did not write to the default .git/hooks/ location"
+fi
+
+RESOLVED=$(cd "$T12_REPO" && git rev-parse --git-path hooks/pre-commit 2>/dev/null)
+case "$RESOLVED" in
+    *.husky/pre-commit) ok "git rev-parse --git-path hooks/pre-commit resolves into .husky/ ($RESOLVED)" ;;
+    *) bad "git rev-parse --git-path hooks/pre-commit resolved to '$RESOLVED', not .husky/" ;;
+esac
+
 # --- summary --------------------------------------------------------------
 printf '\n----------------------------------------\n'
 printf 'passed: %d   failed: %d\n' "$PASS" "$FAIL"

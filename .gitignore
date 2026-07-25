@@ -321,3 +321,8 @@ src/planning/**/*.d.ts.map
 .claude/prompt-optimizer/state/
 .claude/prompt-optimizer/runs/
 .claude/prompt-optimizer/backups/
+
+# Installed hook artifact (a copy of .claude/hooks/pre-commit placed by
+# install-git-hooks.sh). Generated, not source -- tracking it would fork the
+# scanner into a second file that silently drifts from the canonical one.
+.husky/pre-commit-credentials

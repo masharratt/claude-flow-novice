@@ -15,7 +15,20 @@ NC='\033[0m'
 
 # Configuration
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-GIT_HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
+# Honour core.hooksPath. Hardcoding .git/hooks meant husky repos (which repoint
+# it at .husky) silently ignored everything installed here -- the hook file was
+# present, executable, and never once invoked. Resolve via git so worktrees and
+# absolute hooksPath values both land correctly.
+GIT_HOOKS_DIR=$(git -C "$PROJECT_ROOT" config --get core.hooksPath 2>/dev/null || true)
+if [ -n "$GIT_HOOKS_DIR" ]; then
+    case "$GIT_HOOKS_DIR" in
+        /*) ;;
+        *) GIT_HOOKS_DIR="$PROJECT_ROOT/$GIT_HOOKS_DIR" ;;
+    esac
+else
+    GIT_HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
+fi
+mkdir -p "$GIT_HOOKS_DIR"
 # Prefer a repo-local .claude/hooks, else fall back to the global one (a
 # reverse symlink into claude-flow-novice). Only claude-flow-novice has a
 # local .claude/hooks, so requiring it meant this installer could not run in

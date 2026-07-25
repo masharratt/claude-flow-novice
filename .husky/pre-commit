@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# pre-commit entry point (git core.hooksPath points at .husky).
+# Credential scan runs FIRST and aborts the commit on any non-zero exit.
+HOOK_DIR=$(dirname "$0")
+"$HOOK_DIR/pre-commit-credentials" || exit $?

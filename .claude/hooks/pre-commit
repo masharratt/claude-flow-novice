@@ -30,6 +30,10 @@ declare -a PATTERNS=(
     "AIzaSy[a-zA-Z0-9_-]{33}"                             # Google API keys
     "xai-[a-zA-Z0-9]{32,}"                                # XAi API keys
     "grok-[a-zA-Z0-9]{32,}"                               # Grok API keys
+    "sk-proj-[a-zA-Z0-9_-]{20,}"                          # OpenAI project keys
+    "sk-[a-zA-Z0-9]{48}"                                  # OpenAI legacy keys
+    "ghp_[a-zA-Z0-9]{36}"                                 # GitHub personal tokens
+    "github_pat_[a-zA-Z0-9_]{60,}"                        # GitHub fine-grained tokens
 
     # Z.ai token formats
     "[a-zA-Z0-9]{32,}\.SUs3hnpAZAGsQDHX"                  # Z.ai token format
@@ -72,9 +76,16 @@ declare -a SCANNABLE_TYPES=(
     "*.env*" "*.yaml" "*.yml" "*.txt"
 )
 
-# Temporary file for results
+# Two separate buffers, deliberately.
+# TEMP_RESULTS accumulates the human-readable findings report (printed later).
+# TEMP_MATCHES holds one pattern's raw grep output while we iterate it.
+# These were previously the SAME file: the loop read from it via `done <` while
+# appending each finding to it with `>>`, so every appended line was re-read as
+# further input and the file grew without bound. A commit containing a real
+# credential hung forever instead of being rejected.
 TEMP_RESULTS=$(mktemp)
-trap "rm -f $TEMP_RESULTS" EXIT
+TEMP_MATCHES=$(mktemp)
+trap 'rm -f "$TEMP_RESULTS" "$TEMP_MATCHES"' EXIT
 
 # Check if file type should be scanned
 should_scan_file() {
@@ -111,9 +122,16 @@ should_scan_file() {
 # Check if match is whitelisted
 is_whitelisted() {
     local match="$1"
+    # `local` is load-bearing, not style. Without it this loop clobbered the
+    # caller's $pattern in scan_staged_file, so the redaction sed there ran with
+    # a WHITELIST pattern instead of the matched credential pattern -- printing
+    # the real credential unredacted to the terminal and appending it verbatim
+    # to .artifacts/logs/git-hooks.log. A credential scanner that writes
+    # credentials to a log file is worse than no scanner.
+    local wl_pattern
 
-    for pattern in "${WHITELIST[@]}"; do
-        if echo "$match" | grep -qE "$pattern"; then
+    for wl_pattern in "${WHITELIST[@]}"; do
+        if echo "$match" | grep -qE "$wl_pattern"; then
             return 0
         fi
     done
@@ -136,7 +154,7 @@ scan_staged_file() {
 
     for pattern in "${PATTERNS[@]}"; do
         # Search for pattern in staged content
-        if echo "$staged_content" | grep -nE "$pattern" > "$TEMP_RESULTS" 2>/dev/null; then
+        if echo "$staged_content" | grep -nE "$pattern" > "$TEMP_MATCHES" 2>/dev/null; then
             while IFS=: read -r line_number matched_line; do
                 # Skip if whitelisted
                 if is_whitelisted "$matched_line"; then
@@ -159,10 +177,14 @@ scan_staged_file() {
                     echo "   Pattern: $pattern"
                 } >> "$TEMP_RESULTS"
 
-            done < "$TEMP_RESULTS"
+            done < "$TEMP_MATCHES"
         fi
     done
 
+    # Exit statuses wrap at 256, so a file with exactly 256 findings would
+    # return 0 and read as clean. Cap it -- the caller only needs "how many, at
+    # least" for the message, and any non-zero blocks.
+    [ "$credentials_found" -gt 200 ] && credentials_found=200
     return $credentials_found
 }
 
@@ -192,10 +214,15 @@ main() {
         total_scanned=$((total_scanned + 1))
         echo -e "   Scanning: ${YELLOW}$file${NC}"
 
-        if ! scan_staged_file "$file"; then
-            findings=$?
-            total_credentials=$((total_credentials + findings))
-        fi
+        # Capture the return value directly. This was previously
+        #   if ! scan_staged_file "$file"; then findings=$?
+        # where $? is the exit status of the `!` negation -- always 0 -- not the
+        # function's finding count. total_credentials therefore never left 0 and
+        # the hook reported "No credentials detected" on every file. The
+        # infinite loop above hid this: it hung before reaching this line.
+        findings=0
+        scan_staged_file "$file" || findings=$?
+        total_credentials=$((total_credentials + findings))
     done
 
     echo ""

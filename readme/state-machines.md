@@ -410,6 +410,28 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 
 ---
 
+## Pre-commit Credential Scan (scan_staged_file, S010-S014)
+
+**Entity:** a staged file passed through the credential-scanning pre-commit git hook.
+
+**States:** `scanned | blocked | allowed`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | scanned | git pre-commit hook invokes `scan_staged_file` on staged file content | 40+ credential/token patterns tested (Anthropic, OpenAI, GitHub, Google, etc.) |
+| scanned | allowed | zero patterns match, or all matches are whitelisted (e.g., `[REDACTED]` placeholder) | commit proceeds, exit 0 |
+| scanned | blocked | ≥1 unwhitelisted pattern match, findings redacted and logged | commit rejected, exit 1; terminal output shows pattern, line number, and match count (redacted) |
+
+**Bug fixes (2026-07-25):**
+- **S010 (infinite loop):** `TEMP_RESULTS` was both written to (`>>`) and read from (`done <`) in the same loop, causing every appended line to be re-read as new input. Fixed by splitting read buffer (`TEMP_MATCHES`) from findings report (`TEMP_RESULTS`). Regression: commits with credentials hung indefinitely instead of rejecting.
+- **S011 (fail-open):** `if ! scan_staged_file "$file"; then findings=$?` captured the negation's exit status (always 0), not the function's finding count. Fixed with `|| findings=$?` capture and count capping at 200 (prevents wraparound at 256). Regression: every file reported clean, including files with real credentials.
+- **S012 (credential leak):** `is_whitelisted()` looped over `WHITELIST[@]` without declaring `wl_pattern` local, clobbering the caller's `$pattern` variable. Redaction sed then ran with a whitelist pattern instead of the matched credential, writing the real credential unredacted to stdout and `.artifacts/logs/git-hooks.log`. Fixed with `local wl_pattern`. Regression: credentials were logged in plain text, defeating the scanner's purpose.
+- **S013 (installer ignoring hooksPath):** `install-git-hooks.sh` hardcoded `$PROJECT_ROOT/.git/hooks`, ignoring git config `core.hooksPath`. Husky repos repoint it to `.husky/`, so the hook was silently ignored everywhere. Fixed with `git config --get core.hooksPath`, handling both relative and absolute paths. Regression: coverage dropped from 41/41 to 3/41 repos.
+
+**Coverage:** 47 tests (T1-T7: baseline, T8-T12: new regression suite). T8 validates termination via 15s timeout; T9 validates block-on-secret and whitelist behavior; T10 validates redaction (no raw leaks); T11 validates pattern completeness (OpenAI/GitHub); T12 validates installer core.hooksPath resolution. Mutation-verified: reverting S010/S011/S012 fixes reproduces 4 test failures.
+
+---
+
 ## Prompt Optimizer Run (prompt-optimizer engine)
 
 **Entity:** one `execute.sh <target-id>` run of the shared engine (`engine/optimize.ts`).
