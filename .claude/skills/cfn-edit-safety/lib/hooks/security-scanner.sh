@@ -47,7 +47,7 @@ detect_pattern() {
         # Extract matching lines for reporting
         local matches
         matches=$(grep -nE "$pattern" "$file_path" 2>/dev/null | head -3)
-        # stderr, NOT stdout: the caller (dist/hooks/post-edit-pipeline.js)
+        # stderr, NOT stdout: the caller (.claude/hooks/post-edit-pipeline.js)
         # JSON.parses this script's stdout. Emitting this line there made every
         # real detection crash the parse, and the catch-block fallback then
         # reported the file clean -- so the only findings we could make were

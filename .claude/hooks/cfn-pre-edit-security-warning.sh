@@ -1,10 +1,25 @@
 #!/bin/bash
+# cfn-selftest: not-a-hook helper for cfn-invoke-pre-edit.sh (positional args, no stdin JSON, cannot block)
 #
-# Pre-Edit Security Warning Hook
+# Pre-Edit Security Warning Helper
 # Warns security-specialist agents when editing documentation files
 # to remind them about credential redaction requirements
 #
-# Usage: Called automatically by cfn-invoke-pre-edit.sh
+# Usage: intended to be called by cfn-invoke-pre-edit.sh as
+#        cfn-pre-edit-security-warning.sh <file_path> <agent_type>
+#
+# NOT a Claude Code hook: it takes positional arguments instead of the stdin
+# JSON payload hooks receive, and always exits 0, so it has no matcher and no
+# blocking behaviour to register.
+#
+# KNOWN DEAD, 2026-07-25 hook audit -- two independent reasons, neither fixed
+# here (behaviour change, needs a decision):
+#   1. cfn-invoke-pre-edit.sh contains no reference to this script, so the
+#      "called automatically" claim above was never true.
+#   2. The `$FILE_PATH == docs/*` test only matches a repo-relative path.
+#      Edit/Write hook payloads always carry an ABSOLUTE path, so the guard
+#      could not fire even once wired -- the same bug as T1 in
+#      tests/test-hook-security.sh.
 #
 
 set -euo pipefail

@@ -1,4 +1,16 @@
 #!/bin/bash
+# cfn-selftest: not-a-hook manually-invoked validator (takes $1, reads no stdin JSON); DEAD - flagged for deletion
+#
+# DEAD CODE, 2026-07-25 hook audit. Kept only so the deletion is a deliberate
+# call, not a silent one. Every path it validates was removed or renamed:
+#   .claude/skills/pattern-extraction/       -> .claude/cfn-extras/skills/analytics/cfn-pattern-extraction/
+#   .claude/skills/improvement-recommender/  -> .claude/cfn-extras/skills/analytics/cfn-improvement-recommender/
+#   .claude/skills/retrospective-report/     -> .claude/cfn-extras/skills/analytics/cfn-retrospective-report/
+#   .claude/skills/playbook-auto-update/     -> .claude/skills/cfn-knowledge-base/lib/playbook/lib/auto-update/
+#   docs/PLAYBOOK.json                       -> gone
+# main()'s case statement matches those same old paths, so no edit can ever
+# reach validate_retrospective_skills(); every invocation falls through to the
+# "No specific validation required" branch and exits 0.
 
 # Post-Edit Hook for CFN Retrospective Skills
 

@@ -368,9 +368,11 @@ async function initializeCfnProject() {
     if (buildResult.status === 0) {
       console.log(chalk.green('✅ TypeScript hooks compiled successfully'));
 
-      // Verify critical hook files exist
+      // Verify critical hook files exist. post-edit-pipeline.js is NOT build
+      // output: it is hand-maintained and tracked at .claude/hooks/, which is
+      // why it survives a dist/ clean.
       const criticalHooks = [
-        'dist/hooks/post-edit-pipeline.js',
+        '.claude/hooks/post-edit-pipeline.js',
         'dist/hooks/backup-manager.js',
         'dist/hooks/post-edit-validator.js'
       ];

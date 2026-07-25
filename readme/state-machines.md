@@ -410,6 +410,34 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 
 ---
 
+## Post-Edit Validation Pipeline (cfn-invoke-post-edit.sh / post-edit-pipeline.js, S016)
+
+**Entity:** post-edit transformations and validators chained after Claude Code applies edits.
+
+**States:** `validating | dispatching | collecting | summarizing | passed | blocked`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | validating | cfn-invoke-post-edit.sh invoked after edit completes | pre-flight: check all validator scripts exist before running any |
+| validating | blocked | missing validator detected (existsSync fails) | stderr lists missing path, exit 9 (BASH_VALIDATOR_MISSING) |
+| validating | dispatching | all validators resolved | ready to invoke each validator |
+| dispatching | collecting | each validator invoked sequentially | exit codes parsed: 0=pass, 1=warning, 2+=error |
+| collecting | summarizing | all validators complete | tally passed/warned/failed counts |
+| summarizing | passed | summary count reflects no error-class findings | edit accepted, no intervention needed |
+| summarizing | blocked | `--blocking` flag set and ≥1 finding returned | wrapper exits 1, blocks the edit |
+
+**Bug fixes (S016, 2026-07-25):**
+- **Unversioned pipeline code:** post-edit-pipeline.js lived at `dist/hooks/` (gitignored, untracked). No TypeScript source exists — file is hand-maintained. Moved to `.claude/hooks/post-edit-pipeline.js` for version control and source integration.
+- **Silent validator no-op:** 10 validators referenced under `.claude/skills/hook-pipeline/` (nonexistent path) with `process.cwd()` resolution, so code could only run from repo root. Nonexistent scripts silently skipped: bash exits 127 (missing), but pipeline matched none of the pass/warn/block cases, so `SUCCESS ... executed:3 passed:0` logged despite 7 validators missing. Python exits 2 (matching the non-blocking-warning convention), so three absent .py validators incorrectly surfaced as warnings ABOUT THE EDITED FILE.
+- **Missing validator detection:** now preflight with existsSync before invoking; name each missing validator on stderr; split `executed` (ran) from `missing` (not found) and `dispatched` (attempted); exit 9 (BASH_VALIDATOR_MISSING) on missing. Wrapper still exits 0 unless `--blocking`, so normal edit-safety flow unaffected.
+- **Dead validators:** cfn-post-edit-cfn-retrospective.sh marked `# cfn-selftest: not-a-hook` (all 5 skill paths moved; every case branch unreachable). cfn-pre-edit-security-warning.sh marked `# cfn-selftest: not-a-hook` (not a hook by shape; `docs/*` guard only matches relative paths while hook payloads are always absolute).
+
+**Coverage:** 17 tests, 17 passed / 0 failed.
+
+**Known limitation:** the 10 missing validators are NOT restored. Restoration is a separate, gated decision (awaiting confirmation that the skill paths have moved, not just moved in this hook's expectations).
+
+---
+
 ## Subagent Lifecycle Hooks (cfn-subagent-start.sh / cfn-subagent-stop.sh, S015)
 
 **Entity:** a subagent spawned by Claude Code (via SubagentStart/SubagentStop events).
