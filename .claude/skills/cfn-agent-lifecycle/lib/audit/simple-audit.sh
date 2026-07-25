@@ -25,8 +25,30 @@ fi
 # Ensure database directory exists
 mkdir -p "$(dirname "$DB_PATH")"
 
-# Create agents table if not exists (schema creation - no user input)
-sqlite3 "$DB_PATH" "CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, type TEXT, status TEXT, confidence REAL, spawned_at TEXT, completed_at TEXT, metadata TEXT);" || {
+# ---------------------------------------------------------------------------
+# Schema: apply the canonical schema.sql, never a local DDL copy.
+#
+# WHY THIS MATTERS (schema poisoning):
+# This script used to run its own
+#   CREATE TABLE IF NOT EXISTS agents (id, type, status, confidence,
+#                                      spawned_at, completed_at, metadata)
+# which is a LEGACY 7-column shape missing the NOT NULL `name` and
+# `updated_at` columns the canonical schema declares. Because every writer
+# uses CREATE TABLE **IF NOT EXISTS**, whichever writer touches a fresh DB
+# first wins permanently. If this script won the race, the canonical
+# schema.sql applied afterwards became a silent no-op, and every subsequent
+# canonical INSERT died with:
+#   "table agents has no column named name"
+# The failure surfaces far away from the cause, in the hooks, hours later.
+# One table definition, one file. Do not re-declare `agents` here.
+# ---------------------------------------------------------------------------
+SCHEMA_SQL="${SCRIPT_DIR}/schema.sql"
+if [[ ! -f "$SCHEMA_SQL" ]]; then
+    echo "❌ Canonical schema not found at $SCHEMA_SQL" >&2
+    exit 1
+fi
+
+sqlite3 "$DB_PATH" < "$SCHEMA_SQL" || {
     echo "❌ Failed to initialize database at $DB_PATH" >&2
     exit 1
 }
@@ -37,11 +59,20 @@ if [[ ! "$CONFIDENCE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
     exit 1
 fi
 
-# Record agent activity using parameterized queries
+# Record agent activity using parameterized queries.
+#
+# Every NOT NULL column in the canonical schema (id, name, type, status,
+# spawned_at, updated_at) MUST be supplied or the INSERT aborts with
+# "NOT NULL constraint failed: agents.name". `name` mirrors the agent id,
+# matching cfn-subagent-start.sh and canonical spawn_agent(). `updated_at`
+# moves on every write to the row, on insert and on update alike.
+# Timestamps use the same ISO-8601 Z format the hooks write.
+NOW_EXPR="strftime('%Y-%m-%dT%H:%M:%SZ','now')"
+
 case "$STATUS" in
     "spawned")
         sqlite_upsert "$DB_PATH" \
-            "INSERT OR REPLACE INTO agents (id, type, status, spawned_at, metadata) VALUES (?1, ?2, 'spawned', datetime('now'), '{\"source\": \"task_mode\"}')" \
+            "INSERT OR REPLACE INTO agents (id, name, type, status, spawned_at, updated_at, metadata) VALUES (?1, ?1, ?2, 'spawned', ${NOW_EXPR}, ${NOW_EXPR}, '{\"source\": \"task_mode\"}')" \
             "$AGENT_ID" "$AGENT_TYPE" || {
             echo "❌ Failed to record agent spawn" >&2
             exit 1
@@ -49,7 +80,7 @@ case "$STATUS" in
         ;;
     "completed")
         sqlite_update "$DB_PATH" \
-            "UPDATE agents SET status = 'completed', confidence = ?1, completed_at = datetime('now') WHERE id = ?2" \
+            "UPDATE agents SET status = 'completed', confidence = ?1, completed_at = ${NOW_EXPR}, updated_at = ${NOW_EXPR} WHERE id = ?2" \
             "$CONFIDENCE" "$AGENT_ID" || {
             echo "❌ Failed to record agent completion" >&2
             exit 1

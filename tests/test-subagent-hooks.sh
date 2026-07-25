@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Regression tests for .claude/hooks/cfn-subagent-start.sh and cfn-subagent-stop.sh.
 #
-# These hooks are NOT registered in any settings file. Before they can be, they
-# have to survive contact with the real agent-lifecycle database. Two defects
-# blocked that:
+# Registration was gated on these hooks surviving contact with the real
+# agent-lifecycle database. Two defects blocked that (both now fixed; T5 covers
+# the registration itself):
 #
 #   1. Forked schema. The hooks hand-rolled their own `agents` CREATE TABLE that
 #      omitted name/output/updated_at. `CREATE TABLE IF NOT EXISTS` is a no-op
@@ -196,18 +196,42 @@ fi
 sqlite3 "$DB_HOOK" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='lifecycle_events';" 2>/dev/null | grep -q 1 \
     && ok "lifecycle_events table present" || bad "lifecycle_events table missing on hook-created DB"
 
-# --- T5: hooks are not registered anywhere ---------------------------------
-# Registration is a separate, reviewed step. This guards against it slipping in
-# before the tests above pass.
-head_ "T5  hooks remain unregistered (registration is a separate gated step)"
+# --- T5: hooks are registered, and nothing fabricates confidence ------------
+# This test used to assert the opposite -- that the hooks stayed unregistered --
+# because registration was gated on them surviving contact with the real DB
+# (T1-T4 above) AND on settling who owned the `agents` row. Both are resolved:
+# the previous SubagentStop registration passed `--status completed` to
+# execute-lifecycle-hook.sh, which rejects unknown flags at its catch-all
+# (lib/audit/execute-lifecycle-hook.sh:406-410) and exits 1 before touching the
+# DB. A trailing `|| true` swallowed it, so it wrote nothing for eight months
+# while looking healthy. Proof: init_database() ALTERs lifecycle_events to add
+# tokens_used/cost_usd/duration_ms on every run (added 2026-05-03), and the live
+# DB has none of those columns.
+head_ "T5  hooks are registered and no writer fabricates a confidence score"
 
-REGISTERED=$(grep -rl "cfn-subagent-start.sh\|cfn-subagent-stop.sh" \
-    "$REPO_ROOT/.claude/settings.json" \
-    "$REPO_ROOT/.claude/settings.local.json" \
-    "$HOME/.claude/settings.json" \
-    "$HOME/.claude/settings.local.json" 2>/dev/null)
-[ -z "$REGISTERED" ] && ok "not registered in any settings file" \
-                     || bad "registered in: $REGISTERED"
+SETTINGS_SCAN=(
+    "$REPO_ROOT/.claude/settings.json"
+    "$REPO_ROOT/.claude/settings.local.json"
+    "$HOME/.claude/settings.json"
+    "$HOME/.claude/settings.local.json"
+)
+
+for hook in cfn-subagent-start.sh cfn-subagent-stop.sh; do
+    if grep -rl "$hook" "${SETTINGS_SCAN[@]}" 2>/dev/null | grep -q .; then
+        ok "$hook is registered"
+    else
+        bad "$hook is registered nowhere -- it writes nothing, silently"
+    fi
+done
+
+# The old registration hardcoded `--confidence 0.92` on every completing agent.
+# A constant in an audit column is fabricated telemetry: it reads as a real
+# score and cannot be distinguished from one. Leaving it NULL until something
+# measures it is the honest state, so guard against the literal coming back.
+FABRICATED=$(grep -l 'lifecycle-hook\.sh.*--confidence[[:space:]]*0\.' \
+    "${SETTINGS_SCAN[@]}" 2>/dev/null)
+[ -z "$FABRICATED" ] && ok "no hardcoded confidence in any registration" \
+                     || bad "hardcoded confidence found in: $FABRICATED"
 
 # --- Summary ---------------------------------------------------------------
 printf '\n%s\n' "-----------------------------------------"
