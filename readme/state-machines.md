@@ -410,11 +410,11 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 
 ---
 
-## Post-Edit Validation Pipeline (cfn-invoke-post-edit.sh / post-edit-pipeline.js, S016/S018)
+## Post-Edit Validation Pipeline (cfn-invoke-post-edit.sh / post-edit-pipeline.js, S016/S018/S020)
 
 **Entity:** post-edit transformations and validators chained after Claude Code applies edits.
 
-**States:** `validating | shellcheck_probe | shellcheck_running | dispatching | collecting | summarizing | passed | warned | blocked`
+**States:** `validating | shellcheck_probe | shellcheck_running | cargo_probe | cargo_running | dispatching | collecting | summarizing | passed | warned | blocked`
 
 | From | To | Trigger | Guard |
 |------|----|---------|-------|
@@ -426,6 +426,12 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 | shellcheck_running | warned | shellcheck exit 1: findings present (SC codes) | non-blocking, findings added to recommendations, status BASH_VALIDATOR_WARNING, exit 10 |
 | shellcheck_running | dispatching | shellcheck exit 0: no findings | continue to next phase |
 | shellcheck_running | dispatching | shellcheck exited nonzero (parse error, crash) | log to WARN, skip results, continue (tool problem not file problem) |
+| dispatching | cargo_probe | [S020] phase 2.7 reached, file extension is .rs | only .rs files enter the cargo phase; all others go straight to collecting |
+| cargo_probe | cargo_running | [S020] CFN_HOOK_CARGO_BIN (default `cargo`) on PATH and nearest Cargo.toml ancestor found within 20 hops | run `cargo check --quiet --message-format=short` in crate root, cwd=crate root, 180s timeout |
+| cargo_probe | collecting | [S020] cargo not on PATH OR no Cargo.toml ancestor | SKIPPED: stderr note "install rustup / cargo", results.cargoCheck.passed=null (never claimed as pass) |
+| cargo_running | warned | [S020] cargo check exit nonzero: compile errors parsed from short-format output | non-blocking, errors pushed to recommendations (type:cargo-check), status CARGO_CHECK_FAIL, exit 10 |
+| cargo_running | collecting | [S020] cargo check exit 0: no compile errors | status CARGO_CHECK_SUCCESS, results.cargoCheck.passed=true |
+| cargo_running | collecting | [S020] cargo timeout (180s) or crash (null status) | log WARN, skip results, continue (tool problem not file problem) |
 | dispatching | collecting | remaining validators invoked sequentially (usually empty after cleanup) | exit codes parsed: 0=pass, 1=warning, 2+=error |
 | collecting | summarizing | all validators complete | tally passed/warned/failed counts |
 | summarizing | passed | no warnings (validator exit 1) and no shellcheck findings | edit accepted, no intervention needed |
@@ -441,9 +447,11 @@ All 10 extension-dispatched validators (bash-pipe-safety, bash-dependency-checke
 - **Missing validator detection:** now existsSync preflight; name each missing on stderr; split `executed`/`missing`/`dispatched` counts; exit 9. Wrapper still exits 0 unless `--blocking`.
 - **Dead validator scripts:** cfn-post-edit-cfn-retrospective.sh (all 5 skill paths moved, every case unreachable; deleted 2026-07-25); cfn-pre-edit-security-warning.sh (not a hook by shape).
 
-**Coverage:** 12 tests (7 missing-validator, 5 shellcheck integration), 12 passed / 0 failed. Full hook suite 152 passed / 0 failed.
+**Coverage:** 17 jest tests (7 missing-validator, 5 shellcheck integration, 5 cargo-check phase), 17 passed / 0 failed. 33 pre-existing `PostEditValidator` tests marked `describe.skip` (broken since 52e06b7f6: ESM `export` in a CommonJS Jest context, missing `.d.ts`, return-shape `{valid}` vs asserted `{passed}`). Full shell hook suite 152 passed / 0 failed.
 
 **Known limitation (S018):** shellcheck is NOT currently installed on this machine. Phase 2.6 takes the skipped path everywhere, reporting `SHELLCHECK SKIPPED` on stderr and `passed: null` in results. Installation (`apt install shellcheck` / `brew install shellcheck`) wires it live.
+
+**Cargo phase (S020, 2026-07-26):** unlike shellcheck, `cargo 1.94.0` IS installed on this machine, so Phase 2.7 runs live for `.rs` edits inside a crate. Compile errors ride the same non-blocking exit-10 warning bucket as shellcheck (the edit already applied; the hook can only warn). This replaces the prior placebo `.rs` handling, which emitted 3 regex quality checks (`println!`/`unwrap()`/`panic!`) plus advice text "Run cargo fmt && cargo clippy --fix" without ever invoking cargo; that regex block is retained alongside cargo check because it covers style that `cargo check` does not. The a568d6ee5 audit's claim that "cargo clippy covers it" was false: clippy was never wired. `cargo clippy` remains a future option (slower, opinionated) over `cargo check`.
 
 ---
 

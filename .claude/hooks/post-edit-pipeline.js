@@ -99,6 +99,7 @@ const results = {
   prettier: null,
   security: null,
   shellcheck: null,
+  cargoCheck: null,
   metrics: null,
   recommendations: []
 };
@@ -814,6 +815,178 @@ if (ext === '.sh' || ext === '.bash') {
 }
 
 // ============================================================================
+// PHASE 2.7: cargo check (Rust files only)
+// ============================================================================
+//
+// The regex Rust quality block below (validateRustQuality, which checks for
+// println!/unwrap/panic!) is style-only and never invokes cargo, so the
+// pipeline could ship a Rust file that does not compile. This phase runs
+// `cargo check --message-format=short` against the containing crate and
+// surfaces compile errors as non-blocking WARNING findings, the same bucket
+// shellcheck uses (exit 10). It mirrors the shellcheck phase's three-state
+// contract: not-installed -> SKIPPED with passed=null, clean -> passed=true,
+// findings -> passed=false + non-blocking warnings. A SKIPPED check NEVER
+// claims a pass it did not perform.
+//
+// The CFN_HOOK_CARGO_BIN env seam (default 'cargo') is the test injection
+// point: tests/test-hook-pipeline-validators.sh analog for cargo points it
+// at a fake cargo script, so CI machines without rustup still pass.
+
+if (ext === '.rs') {
+  log('VALIDATING', 'Running cargo check');
+
+  const CARGO_BIN = process.env.CFN_HOOK_CARGO_BIN || 'cargo';
+
+  // Probe cargo the same way shellcheck does: bash + command -v, with the
+  // candidate passed as $1 so a bad name is never shell-expanded.
+  const cargoProbe = spawnSync('bash', ['-c', 'command -v "$1"', 'bash', CARGO_BIN], {
+    encoding: 'utf-8',
+    timeout: 5000
+  });
+  const cargoAvailable = cargoProbe.status === 0
+    && (cargoProbe.stdout || '').trim().length > 0;
+
+  if (!cargoAvailable) {
+    // SKIPPED, not passed. Same rationale as shellcheck: an absent tool must
+    // not read like a clean file.
+    console.error(
+      `[post-edit-pipeline] CARGO_CHECK SKIPPED: '${CARGO_BIN}' is not on PATH, so ` +
+      `${filePath} was not compile-checked. Install rustup / cargo to enable this check.`
+    );
+    log('CARGO_CHECK_SKIPPED', 'cargo not on PATH - cargo check did not run', {
+      passed: null,
+      skipped: true,
+      reason: 'cargo not on PATH',
+      bin: CARGO_BIN,
+      install: 'install rustup / cargo to enable'
+    });
+
+    results.cargoCheck = {
+      available: false,
+      skipped: true,
+      passed: null,
+      reason: 'cargo not on PATH',
+      errors: []
+    };
+  } else {
+    // Walk up from the edited file's directory to the nearest Cargo.toml. No
+    // Cargo.toml before filesystem root means we are not in a crate; running
+    // cargo outside a crate would error out for the wrong reason, so SKIPPED.
+    let crateDir = dirname(resolve(filePath));
+    let crateRoot = null;
+    for (let i = 0; i < 20; i++) {
+      if (existsSync(resolve(crateDir, 'Cargo.toml'))) {
+        crateRoot = crateDir;
+        break;
+      }
+      const parent = dirname(crateDir);
+      if (parent === crateDir) break;
+      crateDir = parent;
+    }
+
+    if (!crateRoot) {
+      log('CARGO_CHECK_SKIPPED', 'not in a cargo crate - cargo check did not run', {
+        passed: null,
+        skipped: true,
+        reason: 'not in a cargo crate',
+        file: filePath
+      });
+
+      results.cargoCheck = {
+        available: true,
+        skipped: true,
+        passed: null,
+        reason: 'not in a cargo crate',
+        errors: []
+      };
+    } else {
+      // Run cargo check in the crate root with a timeout so a stuck build
+      // cannot hang the hook. --quiet keeps the no-finding case silent.
+      // --message-format=short gives one compact line per error, mirroring
+      // the format shellcheck --format=gcc emits.
+      const cargoRun = spawnSync(CARGO_BIN, ['check', '--quiet', '--message-format=short'], {
+        cwd: crateRoot,
+        encoding: 'utf-8',
+        timeout: 180000
+      });
+
+      const cargoStatus = cargoRun.status;
+      const cargoOut = (cargoRun.stdout || '').trim();
+      const cargoErr = (cargoRun.stderr || '').trim();
+      // Killed on timeout: spawnSync sets status null and signal 'SIGTERM'.
+      // Surface as a tool problem rather than a clean pass or a compile fail.
+      if (cargoRun.signal === 'SIGTERM' || cargoStatus === null) {
+        log('WARN', 'cargo check timed out', {
+          passed: null,
+          skipped: true,
+          reason: 'cargo check timed out',
+          timeoutMs: 180000
+        });
+        results.cargoCheck = {
+          available: true,
+          skipped: true,
+          passed: null,
+          reason: `cargo check timed out (signal ${cargoRun.signal || 'unknown'})`,
+          errors: []
+        };
+      } else if (cargoStatus === 0) {
+        results.cargoCheck = {
+          available: true,
+          skipped: false,
+          passed: true,
+          errors: []
+        };
+        log('CARGO_CHECK_SUCCESS', 'cargo check found no compile errors', {
+          passed: true,
+          crateRoot
+        });
+      } else {
+        // Non-zero exit: compile errors. Parse the combined short-format
+        // output into individual finding lines. These ride the non-blocking
+        // warning bucket (exit 10), same as shellcheck findings.
+        const combined = [cargoErr, cargoOut].filter(Boolean).join('\n');
+        const errorLines = combined
+          .split('\n')
+          .map(l => l.trim())
+          .filter(l => l.length > 0);
+
+        results.cargoCheck = {
+          available: true,
+          skipped: false,
+          passed: false,
+          errors: errorLines.slice(0, 20)
+        };
+
+        log('CARGO_CHECK_FAIL', `cargo check reported ${errorLines.length} compile error(s)`, {
+          passed: false,
+          errors: errorLines.slice(0, 10),
+          crateRoot
+        });
+
+        // Push as non-blocking recommendations so downstream handlers see
+        // them in the same shape shellcheck findings arrive.
+        errorLines.slice(0, 3).forEach(line => {
+          results.recommendations.push({
+            type: 'cargo-check',
+            priority: 'high',
+            message: `cargo check: ${line}`,
+            action: 'Fix compile error (non-blocking)'
+          });
+        });
+        if (errorLines.length > 3) {
+          results.recommendations.push({
+            type: 'cargo-check',
+            priority: 'high',
+            message: `cargo check reported ${errorLines.length} compile errors in total`,
+            action: `Run: cargo check --manifest-path ${resolve(crateRoot, 'Cargo.toml')}`
+          });
+        }
+      }
+    }
+  }
+}
+
+// ============================================================================
 // PHASE 3: Root Directory Detection
 // ============================================================================
 
@@ -1164,6 +1337,14 @@ const hasMissingValidator = results.bashValidators && results.bashValidators.mis
 // exit code 2 (BASH_VALIDATOR_WARNING is listed under feedback.nonBlocking in
 // cfn-post-edit.config.json). A skipped shellcheck contributes nothing here.
 const hasShellcheckWarning = results.shellcheck && results.shellcheck.findingCount > 0;
+// cargo-check findings ride the same non-blocking warning bucket. An explicit
+// `passed === false` (cargo ran and reported compile errors) is required: the
+// phase sets passed=null when cargo is absent or the file is not in a crate,
+// and a bare `!passed` would read that null as a failure.
+const hasCargoCheckWarning = results.cargoCheck
+  && results.cargoCheck.passed === false
+  && Array.isArray(results.cargoCheck.errors)
+  && results.cargoCheck.errors.length > 0;
 
 if (hasMissingValidator) {
   exitCode = 9;
@@ -1177,7 +1358,7 @@ if (hasMissingValidator) {
 } else if (results.tddViolation) {
   exitCode = 3;
   finalStatus = 'TDD_VIOLATION';
-} else if (hasBashValidatorWarning || hasShellcheckWarning) {
+} else if (hasBashValidatorWarning || hasShellcheckWarning || hasCargoCheckWarning) {
   exitCode = 10;
   finalStatus = 'BASH_VALIDATOR_WARNING';
 } else if (hasComplexityIssue && hasComplexityIssue.priority === 'critical') {
@@ -1210,6 +1391,7 @@ const finalResult = {
   prettier: results.prettier,
   security: results.security,
   shellcheck: results.shellcheck,
+  cargoCheck: results.cargoCheck,
   metrics: results.metrics,
   recommendationCount: results.recommendations.length,
   topRecommendations: results.recommendations.slice(0, 3)
