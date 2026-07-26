@@ -25,7 +25,17 @@
  */
 
 import { RedisClientType } from 'redis';
-import { DatabaseService } from '../../src/lib/database-service';
+
+/**
+ * Structural stand-in for the database service tracked by TestCleanupManager.
+ * Only `disconnect()` is called on tracked instances (see closeDatabaseServices),
+ * so any object exposing it is accepted. The concrete DatabaseService type lived
+ * in src/lib/database-service, which was removed with the Sprint-4 stub layer;
+ * this local interface decouples the cleanup utility from that deleted module.
+ */
+interface DatabaseServiceLike {
+  disconnect(): Promise<void> | void;
+}
 
 /**
  * Helper to race a promise with a timeout and properly clear the timeout handle
@@ -67,7 +77,7 @@ export class TestCleanupManager {
   private timers: Set<NodeJS.Timeout> = new Set();
   private intervals: Set<NodeJS.Timeout> = new Set();
   private redisClients: Set<RedisClientType> = new Set();
-  private databaseServices: Set<DatabaseService> = new Set();
+  private databaseServices: Set<DatabaseServiceLike> = new Set();
   private eventListeners: Map<EventTarget | NodeJS.EventEmitter, Array<{
     event: string;
     listener: (...args: any[]) => void;
@@ -98,7 +108,7 @@ export class TestCleanupManager {
   /**
    * Track a database service for cleanup
    */
-  trackDatabaseService(service: DatabaseService): void {
+  trackDatabaseService(service: DatabaseServiceLike): void {
     this.databaseServices.add(service);
   }
 

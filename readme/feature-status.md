@@ -547,6 +547,14 @@ Harness: 288 assertions across 8 suites, all green (parse-test-summary 55, verif
 
 ---
 
+## Legacy Code Removals
+
+**Sprint-4 TS stub layer (2026-07-26, 85c895a95 + 3b41b1aa7 + b894f77e2).** Removed the abandoned TypeScript application layer under `src/{lib,services,hooks,cli,agents,api,middleware,db,lifecycle,jobs,types,coordination}/` (88 stub files carrying the `Created to satisfy test imports` marker), the ~96 placebo test files that imported them, and three duplicate fixture copies under `tests/{src,unit/src,unit/cfn-loop/src}/`. The real implementations were deleted in `ec6203a3b` (Trigger.dev migration Phase 4); only placeholder stubs and compile-fail tests remained. Nothing live imported the layer: the active CFN shell/hooks/skills import nothing from `src/`, the live TS core (`src/cfn-loop/product-owner`, `src/planning`) imports no stub, and `package.json` bin entries are clean. Real implementations are recoverable from `git show 21fca067d:<path>` if any capability is ever needed.
+
+Security note: the deleted layer included security-shaped stub files (`src/api/auth-endpoints.js`, `src/middleware/auth-middleware.js`, `src/services/authentication.js`) and security-themed placebo tests. These were dead stubs, not live security controls (verified zero live importers), so their removal creates no live auth bypass. The live backup path remains the shell script `.claude/skills/cfn-edit-safety/lib/backup/backup.sh`, untouched. `dist/cli/index.js` and `dist/cli/conversation-fork-cleanup.js` are intentionally left in place (orphaned compiled real-impls still executed by `docker/agent` and `scripts/verify-redis-cleanup.sh`); that orphaned-dist-exec is tracked as a separate finding.
+
+---
+
 ## Current Development Phase
 
 **Phase:** Production
