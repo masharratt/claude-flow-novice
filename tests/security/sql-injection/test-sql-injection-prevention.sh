@@ -5,12 +5,23 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# This file lives at tests/security/sql-injection/, so repo root is three
+# levels up. The previous value ($SCRIPT_DIR/..) pointed at tests/security/,
+# which made every $PROJECT_ROOT/.claude/... path resolve to a nonexistent
+# file and silently abort Test 1 under set -e.
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # Test configuration
 TEST_DB="/tmp/test-sql-injection-$$.db"
-LIFECYCLE_SCRIPT="$PROJECT_ROOT/.claude/skills/agent-lifecycle/execute-lifecycle-hook.sh"
-AUDIT_SCRIPT="$PROJECT_ROOT/.claude/skills/agent-lifecycle/simple-audit.sh"
+# The agent-lifecycle skill was restructured to cfn-agent-lifecycle/lib/audit/
+# (canonical schema.sql + sqlite_upsert/sqlite_update from sqlite-params.sh).
+LIFECYCLE_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-agent-lifecycle/lib/audit/execute-lifecycle-hook.sh"
+AUDIT_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-agent-lifecycle/lib/audit/simple-audit.sh"
+# Mutation-testing override. When set, Test 9 runs $AUDIT_SCRIPT_OVERRIDE
+# instead of the canonical $AUDIT_SCRIPT so a deliberately vulnerable copy
+# (e.g. /tmp/vulnerable-audit.sh) can prove the assertions actually catch
+# injection. Default unset.
+AUDIT_SCRIPT_OVERRIDE="${AUDIT_SCRIPT_OVERRIDE:-}"
 
 # Colors
 RED='\033[0;31m'
@@ -30,12 +41,14 @@ log_test() {
 
 log_pass() {
     echo -e "${GREEN}[PASS]${NC} $1"
-    ((TESTS_PASSED++))
+    # Pre-increment: post-increment returns 0 when the counter is 0, which
+    # trips set -e and aborts the entire suite before any test runs.
+    ((++TESTS_PASSED))
 }
 
 log_fail() {
     echo -e "${RED}[FAIL]${NC} $1"
-    ((TESTS_FAILED++))
+    ((++TESTS_FAILED))
 }
 
 # Setup test database
@@ -78,7 +91,7 @@ trap cleanup EXIT
 
 # Test 1: Basic agent spawn with normal input
 test_basic_spawn() {
-    ((TESTS_RUN++))
+    ((++TESTS_RUN))
     log_test "Test 1: Basic agent spawn with normal input"
 
     export AGENT_LIFECYCLE_DB="$TEST_DB"
@@ -101,7 +114,7 @@ test_basic_spawn() {
 
 # Test 2: SQL injection via DROP TABLE in agent ID
 test_injection_drop_table() {
-    ((TESTS_RUN++))
+    ((++TESTS_RUN))
     log_test "Test 2: SQL injection attempt - DROP TABLE in agent ID"
 
     export AGENT_LIFECYCLE_DB="$TEST_DB"
@@ -129,7 +142,7 @@ test_injection_drop_table() {
 
 # Test 3: SQL injection via OR 1=1 in agent name
 test_injection_or_bypass() {
-    ((TESTS_RUN++))
+    ((++TESTS_RUN))
     log_test "Test 3: SQL injection attempt - OR 1=1 in agent name"
 
     export AGENT_LIFECYCLE_DB="$TEST_DB"
@@ -155,7 +168,7 @@ test_injection_or_bypass() {
 
 # Test 4: SQL injection in agent type with UNION SELECT
 test_injection_union_select() {
-    ((TESTS_RUN++))
+    ((++TESTS_RUN))
     log_test "Test 4: SQL injection attempt - UNION SELECT in agent type"
 
     export AGENT_LIFECYCLE_DB="$TEST_DB"
@@ -180,7 +193,7 @@ test_injection_union_select() {
 
 # Test 5: SQL injection in reasoning field
 test_injection_reasoning() {
-    ((TESTS_RUN++))
+    ((++TESTS_RUN))
     log_test "Test 5: SQL injection attempt - malicious reasoning field"
 
     export AGENT_LIFECYCLE_DB="$TEST_DB"
@@ -215,7 +228,7 @@ test_injection_reasoning() {
 
 # Test 6: SQL injection in output field
 test_injection_output() {
-    ((TESTS_RUN++))
+    ((++TESTS_RUN))
     log_test "Test 6: SQL injection attempt - malicious output field"
 
     export AGENT_LIFECYCLE_DB="$TEST_DB"
@@ -248,7 +261,7 @@ test_injection_output() {
 
 # Test 7: SQL injection in termination reason
 test_injection_termination() {
-    ((TESTS_RUN++))
+    ((++TESTS_RUN))
     log_test "Test 7: SQL injection attempt - malicious termination reason"
 
     export AGENT_LIFECYCLE_DB="$TEST_DB"
@@ -281,7 +294,7 @@ test_injection_termination() {
 
 # Test 8: SQL injection in query_status (SELECT injection)
 test_injection_query_status() {
-    ((TESTS_RUN++))
+    ((++TESTS_RUN))
     log_test "Test 8: SQL injection attempt - query_status with malicious ID"
 
     export AGENT_LIFECYCLE_DB="$TEST_DB"
@@ -298,30 +311,60 @@ test_injection_query_status() {
 
 # Test 9: simple-audit.sh SQL injection test
 test_simple_audit_injection() {
-    ((TESTS_RUN++))
+    ((++TESTS_RUN))
     log_test "Test 9: simple-audit.sh SQL injection prevention"
 
-    # Create test database for simple-audit
-    local audit_db="/tmp/test-simple-audit-$$.db"
-    mkdir -p "$(dirname "$audit_db")"
-    sqlite3 "$audit_db" "CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, type TEXT, status TEXT, confidence REAL, spawned_at TEXT, completed_at TEXT, metadata TEXT);"
+    # Per-test sandbox DB. Unique /tmp/ path, cleaned at end. NEVER write to
+    # the repo's data/agent-lifecycle.db.
+    local audit_db="/tmp/test-simple-audit-fixed-$$.db"
+    rm -f "$audit_db"
+
+    # AUDIT_SCRIPT_OVERRIDE swaps in a deliberately vulnerable copy for the
+    # mutation proof. Default: the canonical simple-audit.sh.
+    local audit_script="$AUDIT_SCRIPT"
+    if [[ -n "$AUDIT_SCRIPT_OVERRIDE" ]]; then
+        audit_script="$AUDIT_SCRIPT_OVERRIDE"
+    fi
 
     local malicious_id="agent'; DROP TABLE agents; --"
     local malicious_type="type' OR '1'='1"
 
-    # Override DB path for simple-audit
-    cd "$PROJECT_ROOT"
+    # Run the audit script with AGENT_LIFECYCLE_DB scoped to this
+    # invocation via a subshell, so it cannot leak into other tests. Do NOT
+    # pre-create the agents table; let simple-audit.sh apply schema.sql so
+    # we exercise the real DDL path and prove the resulting table is the
+    # canonical schema, not a legacy 7-column shape.
+    (
+        export AGENT_LIFECYCLE_DB="$audit_db"
+        cd "$PROJECT_ROOT"
+        bash "$audit_script" "$malicious_id" "$malicious_type" "0.85" "spawned" > /dev/null 2>&1
+    )
 
-    # Test with malicious inputs - should handle gracefully
-    if bash "$AUDIT_SCRIPT" "$malicious_id" "$malicious_type" "0.85" "spawned" 2>&1 | grep -q "Invalid agent ID"; then
-        log_pass "simple-audit.sh rejects malicious agent ID"
+    # Three-part assertion. Real injection prevention means the malicious
+    # id is stored as DATA, not executed as SQL:
+    #   (a) the agents table exists in the sandbox DB the script wrote to
+    #   (b) a row was actually written (count >= 1)
+    #   (c) the row's id equals the malicious string verbatim
+    # The previous Test 9 only checked (a) against a table the TEST itself
+    # created in a DB the SCRIPT never touched, so it passed even when the
+    # script was missing or vulnerable. (b) and (c) close that gap.
+    local table_exists
+    table_exists=$(sqlite3 "$audit_db" "SELECT name FROM sqlite_master WHERE type='table' AND name='agents';" 2>&1 || echo "")
+
+    local row_count
+    row_count=$(sqlite3 "$audit_db" "SELECT COUNT(*) FROM agents;" 2>&1 || echo "0")
+
+    local stored_id=""
+    if [[ "$row_count" =~ ^[0-9]+$ ]] && [[ "$row_count" -ge 1 ]]; then
+        stored_id=$(sqlite3 "$audit_db" "SELECT id FROM agents LIMIT 1;" 2>&1 || echo "")
+    fi
+
+    if [[ "$table_exists" == "agents" ]] && \
+       [[ "$row_count" =~ ^[0-9]+$ ]] && [[ "$row_count" -ge 1 ]] && \
+       [[ "$stored_id" == "$malicious_id" ]]; then
+        log_pass "simple-audit.sh stored malicious id as literal data (rows=$row_count)"
     else
-        # Check if table still exists
-        if sqlite3 "$audit_db" "SELECT name FROM sqlite_master WHERE type='table' AND name='agents';" | grep -q "agents"; then
-            log_pass "simple-audit.sh prevented SQL injection"
-        else
-            log_fail "simple-audit.sh allowed SQL injection!"
-        fi
+        log_fail "simple-audit.sh injection handling broken (table='$table_exists' rows='$row_count' stored_id='$stored_id')"
     fi
 
     rm -f "$audit_db"
@@ -329,7 +372,7 @@ test_simple_audit_injection() {
 
 # Test 10: Multi-byte and Unicode injection attempts
 test_unicode_injection() {
-    ((TESTS_RUN++))
+    ((++TESTS_RUN))
     log_test "Test 10: Unicode and multi-byte injection attempts"
 
     export AGENT_LIFECYCLE_DB="$TEST_DB"

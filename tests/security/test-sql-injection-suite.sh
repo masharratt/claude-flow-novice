@@ -279,33 +279,54 @@ test_memory_persistence_injection() {
 
 # Test 7: Verify Pattern B implementation (parameterized queries)
 test_pattern_b_implementation() {
-    log_test "Verifying Pattern B (.parameter set) implementation"
+    log_test "Verifying Pattern B (parameterized queries) implementation"
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+    # The two agent-lifecycle entries previously floated OUTSIDE the array
+    # (orphan bare strings below the closing paren), so the loop never
+    # inspected them. They are now inside, pointing at the restructured
+    # locations under cfn-agent-lifecycle/lib/audit/.
+    #
+    # NOTE: the other five entries reference skills that no longer exist in
+    # this repo (cfn-test-runner/, cfn-sqlite-memory/, integration/,
+    # workflow-codification/). They are listed here so the gap is visible;
+    # each reports "missing" until those skills are re-homed or the entries
+    # are removed.
     local fixed_scripts=(
         ".claude/skills/cfn-test-runner/store-benchmarks.sh"
         ".claude/skills/cfn-sqlite-memory/ttl-cleanup.sh"
         ".claude/skills/integration/agent-handoff.sh"
         ".claude/skills/workflow-codification/deploy-approved-skill.sh"
         ".claude/skills/workflow-codification/propagate-skill-update.sh"
+        ".claude/skills/cfn-agent-lifecycle/lib/audit/execute-lifecycle-hook.sh"
+        ".claude/skills/cfn-agent-lifecycle/lib/audit/simple-audit.sh"
     )
-        ".claude/skills/agent-lifecycle/execute-lifecycle-hook.sh"
-        ".claude/skills/agent-lifecycle/simple-audit.sh"
+
+    # The real parameterized-query layer in this repo is sqlite-params.sh,
+    # sourced as sqlite_upsert / sqlite_insert / sqlite_update / sqlite_select.
+    # It does NOT use the sqlite3 CLI's `.parameter set` dot-command. Match
+    # either form so the check reports accurately for both legacy and current
+    # scripts instead of always saying "missing Pattern B".
+    local pattern_b_regex='sqlite_upsert\|sqlite_insert\|sqlite_update\|sqlite_select\|\.parameter set'
 
     local all_implemented=true
+    local present_count=0
+    local total_count=0
     for script in "${fixed_scripts[@]}"; do
-        if grep -q ".parameter set" "$PROJECT_ROOT/$script" 2>/dev/null; then
-            echo "  ✓ $script uses Pattern B"
+        total_count=$((total_count + 1))
+        if grep -q "$pattern_b_regex" "$PROJECT_ROOT/$script" 2>/dev/null; then
+            echo "  OK $script uses parameterized queries"
+            present_count=$((present_count + 1))
         else
-            echo "  ✗ $script missing Pattern B"
+            echo "    $script missing or lacks parameterized-query marker"
             all_implemented=false
         fi
     done
 
     if [[ "$all_implemented" == "true" ]]; then
-        log_pass "Pattern B implemented in fixed scripts"
+        log_pass "Pattern B implemented in all $total_count fixed scripts"
     else
-        log_fail "Pattern B not fully implemented"
+        log_fail "Pattern B missing in $((total_count - present_count)) of $total_count scripts (see lines above)"
     fi
 }
 
