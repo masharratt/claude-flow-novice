@@ -364,11 +364,84 @@ if cov_has core_fr; then
   fi
 fi
 
+# core_fr_requires_input_correlation -> literal_stub_correlation (CQR gap #1 / rule f).
+# A [core] FR whose input is externally produced / non-deterministic (LLM output,
+# free-text, webhook payload) can be satisfied by a handler that returns a constant
+# literal -- wired correctly, semantically empty. Decidability (rule c) cannot tell a
+# real computation from a constant; "action == Deepen" is decidable and a literal
+# stub satisfies it. This rule requires >=1 mapped AC to seed a concrete token into
+# the upstream input (seeds: "seed:<TOKEN>") AND reference that TOKEN in its pass
+# condition, so a constant-valued stub (which cannot reproduce the seeded token)
+# fails the predicate. Presence-keyed: no-op when the coverage key is absent.
+# Origin: /home/masha/projects/fireside-family/planning/handoff_cqr_megaplan_gaps.md gap #1.
+if cov_has core_fr_requires_input_correlation; then
+  MISSING=$(echo "$MANIFEST" | jq -c '
+    .acs as $all |
+    (.coverage.core_fr_requires_input_correlation // []) as $need |
+    [ $need[] | . as $fr |
+        select(
+          [ $all[] | select((.maps_to // []) | index($fr)) ] as $acs |
+          $acs | any(
+            . as $ac |
+            ([ ($ac.seeds // "") | match("seed:([A-Za-z0-9_]+)"; "g") | .captures[0].string ]) as $toks |
+            ($toks | length > 0) and ($toks | any(. as $t | ($ac.pass // "") | test($t)))
+          )
+        )
+    ] as $sat |
+    ($need - $sat)')
+  if [ "$MISSING" != "[]" ]; then
+    add_finding "coverage" "core_fr_requires_input_correlation" "literal_stub_correlation: core FR(s) $MISSING declared as requiring input correlation, but no mapped AC seeds a concrete token (seeds: \"seed:<TOKEN>\") and references it in pass — a constant-valued handler stub (e.g. a literal TierCOutput) would satisfy the current pass condition without parsing the upstream input" "error"
+  fi
+fi
+
 # out_of_band_core_fr subset of core_fr_runtime_observed -> WARN (runtime_signal_missing)
 if cov_has out_of_band_core_fr; then
   ODIFF=$(echo "$COV" | jq -c '(.out_of_band_core_fr // []) - (.core_fr_runtime_observed // [])')
   if [ "$ODIFF" != "[]" ]; then
     add_finding "coverage" "core_fr_runtime_observed" "out-of-band core FR(s) $ODIFF have no runtime-observed signal (runtime_signal_missing)" "warn"
+  fi
+fi
+
+# boundary_fr -> [boundary] tag integration coverage (CQR gap #2).
+# An FR that reads/writes a persistence layer or external service, whose observable
+# semantics depend on boundary behavior (ordering, filtering, limits), must be backed
+# by >=1 kind: integration AC driving the REAL DB/HTTP path. A builder-isolation unit
+# test (in-memory fixtures) does not cross the boundary and cannot catch a behavioral
+# reversal at the seam (e.g. ORDER BY ASC vs latest-first). Presence-keyed: no-op
+# when boundary_fr is absent (the undeclared-boundary WARN below is the nudge).
+# Origin: /home/masha/projects/fireside-family/planning/handoff_cqr_megaplan_gaps.md gap #2.
+if cov_has boundary_fr; then
+  BLEN=$(echo "$COV" | jq '.boundary_fr | length')
+  if [ "$BLEN" -eq 0 ]; then
+    if ! cov_has no_boundary_fr_reason; then
+      add_finding "coverage" "boundary_fr" "boundary_fr empty and no 'no_boundary_fr_reason' declared" "error"
+    fi
+  else
+    # declarative subset (mirrors core_fr / core_fr_assembled_path_ok)
+    BDIFF=$(echo "$COV" | jq -c '(.boundary_fr // []) - (.boundary_fr_integration_ok // [])')
+    if [ "$BDIFF" != "[]" ]; then
+      add_finding "coverage" "boundary_fr_integration_ok" "boundary FR(s) $BDIFF have no integration AC driving the real DB/HTTP path" "error"
+    fi
+    # per-FR scan (stronger than the declarative _ok list): catch an author who
+    # marks an FR ok but maps only non-integration ACs to it. The declarative
+    # core_fr_assembled_path_ok check cannot catch this lie; this scan does.
+    BSCAN=$(echo "$MANIFEST" | jq -c '
+      .acs as $all |
+      (.coverage.boundary_fr // []) as $need |
+      [ $need[] | . as $fr | select([ $all[] | select((.maps_to // []) | index($fr)) ] | any(.kind == "integration")) ] as $sat |
+      ($need - $sat)')
+    if [ "$BSCAN" != "[]" ]; then
+      add_finding "coverage" "boundary_fr" "boundary FR(s) $BSCAN have no AC with kind: integration — a unit/builder-isolation AC does not cross the persistence/service boundary" "error"
+    fi
+  fi
+else
+  # boundary_fr not declared. Nudge if any AC check references a DB/SQL/HTTP
+  # boundary -- the CQR ORDER-BY reversal shipped precisely because the boundary
+  # FR was never tagged. WARN (not error): keyword match is heuristic and may fire
+  # on a unit test that incidentally mentions SQL; resolve in the step-6a review.
+  BOUNDISH=$(echo "$MANIFEST" | jq -r '[.acs[] | (.check // "")] | join("\n")')
+  if echo "$BOUNDISH" | grep -qiE '(db-query|psql|ORDER BY|repository\.|fetch_asserted|\.sql\b|curl -|SELECT .+ FROM|INSERT INTO|UPDATE .+ SET)'; then
+    add_finding "coverage" "boundary_fr" "boundary_fr_undeclared: AC checks reference a DB/SQL/HTTP boundary but no boundary_fr coverage is declared — if any FR crosses a persistence/service boundary with ordering/filter/limit semantics, tag it [boundary] and add a kind: integration AC (CQR gap #2)" "warn"
   fi
 fi
 

@@ -156,6 +156,42 @@ assert_has 'requires.env' "requires-bad: flags malformed env entry"
 assert_has 'requires.http' "requires-bad: flags non-URL http precondition"
 assert_has 'requires.db' "requires-bad: flags non-boolean db precondition"
 
+# ---- CQR gap #1: literal_stub_correlation (rule f) ----
+# A [core] FR whose input is externally produced (LLM output, free-text, webhook
+# payload) can be satisfied by a handler that returns a constant literal --
+# wired correctly, semantically empty. Decidability (rule c) cannot tell a real
+# computation from a constant. Rule (f) requires a mapped AC to seed a concrete
+# token (seeds: "seed:<TOKEN>") into the upstream input AND reference TOKEN in
+# its pass condition, so a constant-valued stub cannot satisfy it.
+# Origin: /home/masha/projects/fireside-family/planning/handoff_cqr_megaplan_gaps.md gap #1.
+run literal-stub-missing.md
+assert_exit 1 "literal-stub-missing: exit 1"
+assert_has 'literal_stub_correlation' "literal-stub-missing: flags literal_stub_correlation"
+assert_has '"severity":"error"' "literal-stub-missing: error severity"
+
+run literal-stub-correlated.md
+assert_exit 0 "literal-stub-correlated: exit 0"
+if [ "$OUT" = "[]" ]; then ok "literal-stub-correlated: empty findings"; else no "literal-stub-correlated: expected [] got $OUT"; fi
+
+# ---- CQR gap #2: [boundary] tag + integration AC ----
+# A fetch with ordering/filter semantics crossed a persistence boundary; a
+# builder-isolation unit test (in-memory Vec) passed the gate while the DB query
+# inverted the order (ORDER BY ASC vs latest-first). A [boundary] FR owes a
+# kind: integration AC that drives the REAL DB/HTTP path.
+# Origin: handoff_cqr_megaplan_gaps.md gap #2.
+run boundary-fr-no-integration.md
+assert_exit 1 "boundary-fr-no-integration: exit 1"
+assert_has 'boundary FR' "boundary-fr-no-integration: flags boundary gap"
+assert_has '"severity":"error"' "boundary-fr-no-integration: error severity"
+
+run boundary-fr-lied.md
+assert_exit 1 "boundary-fr-lied: exit 1 (scan catches FR declared ok with no integration AC)"
+assert_has 'kind: integration' "boundary-fr-lied: names the missing integration kind"
+
+run boundary-fr-clean.md
+assert_exit 0 "boundary-fr-clean: exit 0"
+if [ "$OUT" = "[]" ]; then ok "boundary-fr-clean: empty findings"; else no "boundary-fr-clean: expected [] got $OUT"; fi
+
 # usage errors -> exit 2
 "$SCRIPT" >/dev/null 2>&1; [ $? -eq 2 ] && ok "no-arg: exit 2" || no "no-arg: exit 2"
 "$SCRIPT" /nonexistent/x.md >/dev/null 2>&1; [ $? -eq 2 ] && ok "missing-file: exit 2" || no "missing-file: exit 2"

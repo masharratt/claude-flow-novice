@@ -46,11 +46,16 @@ FR-2: ...
 2. Phrase every `[core]` FR so the observable outcome is a state change or output content. Never "function exists" / "endpoint defined".
 3. Each `[core]` FR gets an assembled-path check in `cfn-test-plan`: one that drives the real wired path in the running system, not a direct inner-function call. You create the target; you do not write the test.
 4. If the `[core]` mechanism fires out-of-band (spawned worker, cron, queue consumer, anything no caller directly awaits), the FR MUST also name the runtime signal it emits on success: a log line, a metric event, or an audit row. That signal becomes cfn-test-plan's runtime-observed check.
+5. If the `[core]` mechanism's input is externally produced / non-deterministic — LLM structured output, free-text, a webhook or queue payload — the FR MUST also be listed in `core_fr_requires_input_correlation`. Its assembled-path AC seeds a concrete `seed:<TOKEN>` into the upstream input and asserts that TOKEN surfaces in the output, proving the handler parsed the input rather than returning a constant. (CQR gap #1: a handler that built a literal `TierCOutput` satisfied every signature-purity AC while the LLM output was parsed only inside `#[cfg(test)]`.)
 
 ```
 FR-2 [core]: System SHALL publish a scheduled story AND notify the family WHEN the scheduled time passes, GIVEN the publish worker is running.
 FR-3 [core]: System SHALL archive expired stories WHEN the nightly cron runs, AND SHALL emit log line "archive.complete count=<n>". (runtime signal: archive.complete log)
 ```
+
+**Flag boundary-crossing FRs `[boundary]`.** Apply when an FR reads or writes a persistence layer (DB, cache, queue) or calls an external service, AND its observable semantics depend on behavior at that boundary — row ordering, filtering, limits, pagination, status-dependent fetch (e.g. exclude `Corrected`/`Retracted` rows), or constraint enforcement. Tagging is mandatory for such FRs; `cfn-test-plan` then owes a `kind: integration` AC that drives the REAL boundary (a live DB / real HTTP call), never a builder-isolation unit test with in-memory fixtures. Spec emits `boundary_fr: [FR-ids]` into the VERIFY coverage; an empty list requires `no_boundary_fr_reason`.
+
+Why: a builder-isolation test proves the prompt builder honors insertion order; it does NOT prove the DB `ORDER BY` feeds that insertion order correctly. The CQR grounded-opener shipped `ORDER BY created_at ASC` (oldest-first) while a builder test asserted latest-first against an in-memory `Vec` — green structural test, reversed live behavior. `[boundary]` forces the AC to cross the seam. An FR with no boundary-dependent semantics (a trivial single-row lookup whose result is order/filter-independent) need not be tagged; when in doubt, tag it.
 
 ### Step 1a: Actor Inventory (MANDATORY when `frontend: yes` OR `db: yes`)
 

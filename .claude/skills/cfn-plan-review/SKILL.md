@@ -102,6 +102,18 @@ Zero hits is a result to record, not a step to skip. Every dependency row in the
 - Does the proxy have a header whitelist? Custom auth headers (X-Research-Key, X-Custom-Auth, etc.) are silently stripped by proxies that only forward known headers. This causes 401s that are impossible to reproduce when testing the backend directly.
 - Are there middleware layers (CORS, CSRF, auth) mounted at the router level in server.ts that don't appear in the route file itself? Check `app.use()` calls, not just per-route middleware.
 
+**For features whose value lives on a wired signal path — external producer (LLM output, webhook, queue message, cron) → handler → module → observable output — also trace the SIGNAL FLOW, not just data dependencies.** The dependency graph above is entity/data-shaped (FKs, tables, views, services-called); it does not cover control flow through a handler body. A plan can wire every component correctly and still ship an inert feature if no step owns the parse+thread that converts the external input into the consuming module's input type. For each spec-declared external input, name (citing the plan step id and owning FR for each):
+
+- **Parse step** — the handler/module that converts the external bytes (LLM structured output, webhook payload, queue message) into the typed input the consuming module expects, AND the plan step that implements it with a named FR + AC + owner. A spec that declares an external input but has no parse step is a Phase 6 BLOCKER tagged `integration_lane_gap`.
+- **Thread step** — the plan step that passes the parsed value into the consuming module, NOT a sibling that constructs a literal/default in its place. If the handler builds a default/stub instead of threading the parsed value, that is the gap this trace exists to catch: wired correctly, semantically empty.
+- **Observable output** — where the threaded value surfaces (a spoken turn, a persisted row, a log line, a response body). This is what the assembled-path AC asserts (Bar A rule (f) seeds a token here and checks it surfaces).
+
+Zero parse/thread steps for a declared external input is a result to record, not a step to skip — it becomes a Phase 6 `integration_lane_gap` BLOCKER.
+
+Why this exists: the CQR conversation-quality engine shipped 8 pure modules each green on signature-purity ACs, while the production handler built a literal `TierCOutput` and the LLM's structured output was parsed only inside `#[cfg(test)]`. No FR/AC/owner was assigned to the parse+thread integration lane. The `out_of_scope_needs`/S006 tripwire that exists to catch this lives in the execution orchestrator (`cfn-loop-orchestration-v2/cli/deferrals.sh`): it fires only after a build, and only if a lane self-flags — which presupposes the lane had an owner, which it did not. Surfacing it here, at plan review, is what makes it a gate instead of a post-mortem. Full writeup: `/home/masha/projects/fireside-family/planning/handoff_cqr_megaplan_gaps.md` gap #3.
+
+**cfn: not wired mechanically here, reviewer-attention only.** Hoisting `deferrals.sh gate` from the execution orchestrator into this phase — so an `integration_lane_gap` fails the plan before any build — would close the last seam mechanically instead of relying on the reviewer running this trace. Not wired now because it couples the planning skill to the execution skill's CLI. Upgrade trigger: a second integration-lane regression that this trace should have caught but a reviewer waved through.
+
 For database operations, the investigation MUST include:
 ```sql
 -- Trace FKs pointing TO this table
