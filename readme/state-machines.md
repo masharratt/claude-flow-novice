@@ -567,7 +567,7 @@ All 10 extension-dispatched validators (bash-pipe-safety, bash-dependency-checke
 
 ---
 
-## Pre-commit Hook Self-Test Gate (cfn-hook-selftest.sh, S014)
+## Pre-commit Hook Self-Test Gate (cfn-hook-selftest.sh, S019)
 
 **Entity:** the hook-registry consistency check run by `cfn-hook-selftest.sh` when pre-commit detects a change to hook registration.
 
