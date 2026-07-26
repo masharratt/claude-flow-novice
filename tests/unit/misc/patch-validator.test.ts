@@ -7,8 +7,13 @@
  * - Rollback on validation failure
  * - Success/failure detection
  * - Performance metrics tracking
- * - Integration with BackupManager
+ * - Isolated validation directory
  * - Safety guarantees (isolation, rollback)
+ *
+ * Note: BackupManager integration was removed when src/lib/backup-manager.ts
+ * (a 39-line stub, never wired to a real implementation) was deleted.
+ * Backup-creation behavior is now exercised only indirectly via the
+ * validator's own rollback/isolation semantics.
  *
  * Target: 85%+ code coverage
  */
@@ -24,19 +29,15 @@ import {
 } from '../src/services/patch-validator';
 import { PatchType, Patch } from '../src/services/patch-generator';
 import { FailureCategory } from '../src/services/edge-case-analyzer';
-import { BackupManager, BackupType } from '../src/lib/backup-manager';
 
 // Test configuration
 const TEST_DIR = path.join(__dirname, '.test-patch-validator');
 const TEST_VALIDATION_DIR = path.join(TEST_DIR, 'validation');
 const TEST_SKILL_DIR = path.join(TEST_DIR, 'skills');
 const TEST_DB_PATH = path.join(TEST_DIR, 'test-validation.db');
-const TEST_BACKUP_DIR = path.join(TEST_DIR, '.backups');
-const TEST_BACKUP_DB_PATH = path.join(TEST_DIR, 'test-backups.db');
 
 describe('PatchValidator', () => {
   let validator: PatchValidator;
-  let backupManager: BackupManager;
   let db: Database.Database;
 
   beforeAll(() => {
@@ -55,17 +56,9 @@ describe('PatchValidator', () => {
       fs.rmSync(TEST_VALIDATION_DIR, { recursive: true, force: true });
     }
 
-    // Clean up backups
-    if (fs.existsSync(TEST_BACKUP_DIR)) {
-      fs.rmSync(TEST_BACKUP_DIR, { recursive: true, force: true });
-    }
-
-    // Remove old databases
+    // Remove old database
     if (fs.existsSync(TEST_DB_PATH)) {
       fs.unlinkSync(TEST_DB_PATH);
-    }
-    if (fs.existsSync(TEST_BACKUP_DB_PATH)) {
-      fs.unlinkSync(TEST_BACKUP_DB_PATH);
     }
 
     // Create database
@@ -81,28 +74,16 @@ describe('PatchValidator', () => {
       );
     `);
 
-    // Create backup manager
-    backupManager = new BackupManager({
-      backupDir: TEST_BACKUP_DIR,
-      dbPath: TEST_BACKUP_DB_PATH,
-      defaultTtlMs: 60000,
-      projectRoot: TEST_DIR,
-    });
-
     // Create validator
     validator = new PatchValidator({
       dbPath: TEST_DB_PATH,
       validationDir: TEST_VALIDATION_DIR,
-      backupManager,
     });
   });
 
   afterEach(async () => {
     if (db) {
       await db.close();
-    }
-    if (backupManager) {
-      if (backupManager) { try { await backupManager.close(); } catch (e) { /* ignore */ } }
     }
   });
 
@@ -284,46 +265,6 @@ export function execute() {
       // Verify original file is unchanged after rollback
       const finalContent = fs.readFileSync(skillPath, 'utf-8');
       expect(finalContent).toBe(originalContent);
-    });
-
-    it('should create backup before applying patch', async () => {
-      const skillPath = path.join(TEST_SKILL_DIR, 'backup-skill.ts');
-      fs.writeFileSync(
-        skillPath,
-        `
-export function execute() {
-  return "original";
-}
-        `.trim()
-      );
-
-      const patch: Patch = {
-        id: 'patch-5',
-        failureId: 'fail-5',
-        skillId: 'backup-skill',
-        type: PatchType.ADD_ERROR_HANDLING,
-        category: FailureCategory.LOGIC_ERROR,
-        content: `
-export function execute() {
-  try {
-    return "patched";
-  } catch (error) {
-    throw error;
-  }
-}
-        `.trim(),
-        targetFile: skillPath,
-        targetLine: 2,
-        confidence: 0.9,
-        similarFailureCount: 10,
-      };
-
-      await validator.validatePatch(patch, skillPath);
-
-      // Verify backup was created
-      const backups = backupManager.getBackups(skillPath);
-      expect(backups.length).toBeGreaterThan(0);
-      expect(backups[0].agentId).toBe('patch-validator');
     });
 
     it('should validate in isolated directory', async () => {

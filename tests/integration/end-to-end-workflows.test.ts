@@ -4,10 +4,10 @@
  * Tests complete workflows spanning all integration points from Sprints 0-5:
  * - Workflow 1: Complete CFN Loop Execution (Database + Coordination + Metrics)
  * - Workflow 2: Skill Deployment Pipeline (Lifecycle + Storage + Validation)
- * - Workflow 3: Agent Recovery & Checkpoint (Backup + State + Coordination)
+ * - Workflow 3: Agent Recovery & Checkpoint (State + Coordination + Checkpoints)
  * - Workflow 4: Cross-System Data Handoff (Database + Queue + Schema)
  * - Workflow 5: Multi-Agent Collaboration (Coordination + Metrics + Reflection)
- * - Workflow 6: Failure Recovery & Rollback (Backup + Transaction + Checkpoints)
+ * - Workflow 6: Failure Recovery & Rollback (Transaction + Checkpoints)
  *
  * Coverage: All 47 integration points in realistic end-to-end scenarios
  */
@@ -23,7 +23,6 @@ import { SchemaTransform } from '../../src/lib/schema-transform';
 import { MetricsLogger } from '../../src/lib/metrics-logger';
 import { AgentWorkspace } from '../../src/lib/agent-workspace';
 import { SkillContentManager } from '../../src/lib/skill-content-manager';
-import { BackupManager } from '../../src/lib/backup-manager';
 import { CheckpointManager } from '../../src/lib/checkpoint-manager';
 import { EdgeCaseAnalyzer } from '../../src/lib/edge-case-analyzer';
 import { ReflectionLogger } from '../../src/lib/reflection-logger';
@@ -39,7 +38,6 @@ describe('End-to-End Workflow Integration Tests', () => {
   let metricsLogger: MetricsLogger;
   let workspace: AgentWorkspace;
   let skillManager: SkillContentManager;
-  let backupManager: BackupManager;
   let checkpointManager: CheckpointManager;
   let edgeAnalyzer: EdgeCaseAnalyzer;
   let reflectionLogger: ReflectionLogger;
@@ -99,10 +97,6 @@ describe('End-to-End Workflow Integration Tests', () => {
     skillManager = new SkillContentManager({
       baseDir: path.join(testDir, 'skills'),
       enableVersioning: true,
-    });
-
-    backupManager = new BackupManager({
-      backupDir: path.join(testDir, 'backups'),
     });
 
     checkpointManager = new CheckpointManager({
@@ -417,14 +411,10 @@ Test skill for E2E deployment
       const outputParser = new SkillOutputParser();
       const parsedContent = outputParser.parse(skillContent);
 
-      // 1.2: Create backup before file creation
+      // 1.2: Write skill file to disk
       const skillPath = path.join(testDir, 'skills', skillId, 'SKILL.md');
       await fs.mkdir(path.dirname(skillPath), { recursive: true });
       await fs.writeFile(skillPath, skillContent);
-
-      const backup = await backupManager.createBackup(skillPath, {
-        reason: 'pre-deployment',
-      });
 
       // === PHASE 2: Skill Deployment Transaction ===
 
@@ -450,7 +440,6 @@ Test skill for E2E deployment
           skill_id: skillId,
           version: '1.0.0',
           status: 'success',
-          backup_ref: backup,
         });
       });
 
@@ -473,9 +462,6 @@ Test skill for E2E deployment
       expect(pgSkill.status).toBe('deploying');
       expect(redisSkill.version).toBe('1.0.0');
       expect(deploymentLog.status).toBe('success');
-
-      // 4.2: Verify backup created
-      expect(backup).toBeTruthy();
 
       // 4.3: Update status to active
       await dbService.set('postgres', 'skills', {
@@ -559,17 +545,6 @@ Test skill for E2E deployment
       const lastCheckpoint = await checkpointManager.loadCheckpoint(agentId);
       expect(lastCheckpoint.iteration).toBe(3);
       expect(lastCheckpoint.state.items_processed).toBe(30);
-
-      // 3.2: Create backup of failed state
-      const workspaceDir = path.join(testDir, 'workspace', agentId);
-      await fs.mkdir(workspaceDir, { recursive: true });
-      const stateFile = path.join(workspaceDir, 'state.json');
-      await fs.writeFile(stateFile, JSON.stringify({ failed: true }));
-
-      const failureBackup = await backupManager.createBackup(stateFile, {
-        reason: 'failure-backup',
-        agent_id: agentId,
-      });
 
       // 3.3: Restore from checkpoint
       await workspace.recoverAgent(agentId, {
@@ -772,14 +747,13 @@ Test skill for E2E deployment
   });
 
   describe('Workflow 6: Failure Recovery & Rollback', () => {
-    it('should rollback transaction on failure and restore from backup', async () => {
+    it('should rollback transaction on failure', async () => {
       const taskId = 'rollback-test-001';
       const filePath = path.join(testDir, 'rollback-test.txt');
 
       // === PHASE 1: Initial State ===
 
       await fs.writeFile(filePath, 'initial content');
-      const initialBackup = await backupManager.createBackup(filePath);
 
       await dbService.set('postgres', 'tasks', {
         id: taskId,
@@ -816,12 +790,6 @@ Test skill for E2E deployment
       // 3.1: Verify transaction rollback
       const taskAfterRollback = await dbService.get('postgres', 'tasks', { id: taskId });
       expect(taskAfterRollback.status).toBe('initial');
-
-      // 3.2: Restore file from backup
-      await backupManager.restore(initialBackup, filePath);
-
-      const restoredContent = await fs.readFile(filePath, 'utf-8');
-      expect(restoredContent).toBe('initial content');
 
       // 3.3: Log recovery
       await metricsLogger.log({
