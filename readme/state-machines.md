@@ -473,18 +473,29 @@ All 10 extension-dispatched validators (bash-pipe-safety, bash-dependency-checke
 
 ---
 
-## Pre-Edit Backup Lifecycle (cfn-invoke-pre-edit.sh / cfn-restore-from-backup.sh, S014)
+## Pre-Edit Backup Lifecycle (cfn-invoke-pre-edit.sh / restore.sh / cleanup.sh, S014 + S017)
 
 **Entity:** a file backup captured before edit-safety applies transformations.
 
-**States:** `none | captured | restorable | restored`
+**States:** `none | captured | restorable | restored | prunable | orphan | removed`
+
+**Backup capture / restore (S014):**
 
 | From | To | Trigger | Guard |
 |------|----|---------|-------|
-| (none) | captured | cfn-invoke-pre-edit.sh writes `.backups/<agent-id>/<file-hash>.backup-<timestamp>` | pre-edit hook invoked by Claude Code on every edit; backup shell-escaped for restore safety |
-| captured | restorable | backup exists on disk with valid path resolution | `cfn-restore-from-backup.sh` can read and decompress |
-| restorable | restored | user/tool invokes `cfn-restore-from-backup.sh <file>` | file restored to pre-edit state, original backup retained |
-| (none) | restorable | existing backup found under deprecated convention `${FILE}.backup-*` (from cfn-pre-edit-backup.sh) | backward-compat mode: restore understands both modern and legacy naming |
+| (none) | captured | cfn-invoke-pre-edit.sh writes `.backups/<agent-id>/<ts>_<hash>/{original,metadata.json}` | pre-edit hook invoked by Claude Code on every edit; agent-id flows through correctly (S014 fix) |
+| captured | restorable | backup exists on disk with valid path resolution | restore.sh resolves target via multi-root ancestor search (project root fixed at BACKUP time, not RESTORE time) |
+| restorable | restored | `cfn-restore-from-backup.sh <file>` or `restore.sh --file <file>` | md5-vs-file_hash integrity gate passes (or `--force`); restore.sh takes a safety backup under `.backups/restore-safety/` first, so restore is itself reversible |
+| (none) | restorable | legacy `${FILE}.backup-<ts>` sibling found (from deprecated cfn-pre-edit-backup.sh) | restore.sh queries both conventions, newest wins; integrity gate skipped (no hash exists for legacy) |
+
+**Cleanup / prune (S017, new):**
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| captured | prunable | cleanup.sh dry-run selects backup older than `--older-than` and beyond `--keep-latest N` | defaults: older-than 7 days, keep-latest 1; dry-run reports `would_remove:` |
+| prunable | removed | cleanup.sh `--apply` | flock on `<root>/cleanup.lock` acquired; foreign root refused unless `CFN_BACKUP_ALLOW_FOREIGN_ROOT=1` |
+| captured | orphan | backup.sh crashed mid-write (mkdir done, metadata.json never written) | dir exists but no metadata.json |
+| orphan | removed | cleanup.sh `--prune-orphans --apply` | dir age > 60s grace window (mutation-verified); protects backup.sh mkdir→cp→write-metadata atomicity |
 
 **Bug fixes (S014, 2026-07-25):**
 - **Stderr merge broke stdout capture:** pre-edit hook ran `2>&1` on the backup-creation helper, merging the helper's `✅ Backup created: /path` stderr banner into the stdout path. `BACKUP_PATH=$(...)` captured two lines and resolved to empty. CLAUDE.md §1 entry point was non-functional. Fixed by capturing stdout only; stderr suppressed for logging.
@@ -492,7 +503,14 @@ All 10 extension-dispatched validators (bash-pipe-safety, bash-dependency-checke
 - **Restore pattern mismatch:** restore looked only for `${FILE}.backup-*`, matching the deprecated naming from cfn-pre-edit-backup.sh. The current hook writes nothing matching that pattern. Restore now understands both conventions (query both patterns, newest wins). All existing backups remain valid.
 - **Pipe failure masking:** `ls -t $PATTERN | head -1` under `set -euo pipefail` died when glob matched nothing (ls exits 2, pipefail propagates). The "no backup found" branch was unreachable; missing backup exited 2 with zero output.
 
-**Coverage:** 18 tests, 18 passed / 0 failed. Read-only validation: 1451/1451 on-disk backups resolve to a restorable original.
+**Rollback-path gap closed (S017, 2026-07-25):**
+- **Dead registry:** `edit-safety.sh rollback/list/cleanup` read `/tmp/edit-safety/backup-registry.json` which only `register_backup()` ever wrote, and `register_backup()` is called only from `safe_edit()` which nothing invokes. Result: rollback answered "No backup found" for all 1482 backups the live hook had ever written; cleanup reclaimed 0 bytes forever. Fix: rollback/list/cleanup now delegate to `restore.sh`/`cleanup.sh` which read the real `.backups/` tree directly. Dead registry functions deleted, not left as decoys.
+- **Two divergent restore paths collapsed (DRY):** restore.sh is now the single implementation; `cfn-restore-from-backup.sh` is a thin wrapper preserving the FILE_PATH-only CLI, exact stdout/stderr strings, and Redis restore log. Two independent "which backup is newest" answers was the bug class this audit keeps finding.
+- **Dry-run lied about deletions:** cleanup.sh dry-run reported `removed: N` in both modes. Fix: labels flip to `would_remove:` / `would_remove_orphans:` in dry-run; JSON keys carry `dry_run` bool and stay unchanged.
+- **Stderr merge (recurring class):** wrapper's `LIST_OUT=$("$RESTORE_SH" --list ... 2>&1)` would let any stderr warning become the parsed "winning backup" line. Same bug class as S014's BACKUP_PATH capture. Fix: stderr to temp file with trap cleanup. Mutation-verified: merged streams fail 5/18, separate streams pass 18/18.
+- **False deprecation headers:** cfn-invoke-pre-edit.sh and backup.sh both carried headers marking them deprecated with 2026-02-20 removal dates, pointing at `dist/cli/pre-edit-hook.js` (source deleted ec6203a3b, dist gitignored, unbuildable from fresh clone) and `src/lib/backup-manager.ts` (a stub with 4 unimplemented methods). Both scripts are the live path. Headers corrected.
+
+**Coverage:** 92 tests (18 roundtrip + 74 restore/cleanup), all pass. Live read-only validation: restore --list on real file returns newest backup; cleanup dry-run reports 1495 scanned / 483 prunable / 14.8MB reclaimable at 30-day/keep-2.
 
 ---
 

@@ -1,15 +1,37 @@
 #!/bin/bash
 # Edit Safety Main Workflow
 # Coordinates backup, edit, and validation with rollback capability
+#
+# rollback/list/cleanup delegate to lib/backup/restore.sh and
+# lib/backup/cleanup.sh, which operate on the real backup directories the
+# pre-edit hook writes (<repo_root>/.backups/<agent_id>/<ts>_<hash>/). This is
+# the fix for the bug where these subcommands read a /tmp/edit-safety
+# backup-registry.json that nothing populated: register_backup() was only
+# ever called from safe_edit(), which nothing in the real workflow invokes
+# (agents use cfn-invoke-pre-edit.sh / cfn-invoke-post-edit.sh directly,
+# which call lib/backup/backup.sh, not this script's "edit" subcommand).
 
 set -euo pipefail
 
 # Script configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+#
+# readlink -f (not plain dirname+pwd) because ~/.claude/skills is a reverse
+# symlink into this repo; without resolving the real path first, a script
+# invoked via the ~/.claude path would compute the wrong repo root below.
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 LIB_DIR="$SCRIPT_DIR/lib"
 BACKUP_DIR="$LIB_DIR/backup"
 HOOKS_DIR="$LIB_DIR/hooks"
 CLI_DIR="$SCRIPT_DIR/cli"
+
+RESTORE_SH="$BACKUP_DIR/restore.sh"
+CLEANUP_SH="$BACKUP_DIR/cleanup.sh"
+
+# Same backups-root convention as restore.sh: default to $(pwd)/.backups,
+# matching backup.sh's own default, so this script's own "list" (no file
+# given) looks in the same place restore.sh would for "list <file>" in the
+# same invocation. See restore.sh's header comment for the full rationale.
+BACKUPS_ROOT="${CFN_BACKUP_ROOT:-$(pwd)/.backups}"
 
 # Source required components
 source "$BACKUP_DIR/backup.sh"
@@ -33,7 +55,11 @@ run_post_edit_validation() {
     fi
 }
 
-# Function to clean up backup
+# Function to clean up a single backup dir made during the "edit" subcommand's
+# own pre-edit backup (not the reclaim-space workflow; see cleanup.sh for
+# that). Kept from the original edit workflow: on a successful edit +
+# validation, the pre-edit backup made for that one edit is discarded since
+# it is no longer needed.
 cleanup_backup() {
     local backup_id="$1"
     local backup_path="$2"
@@ -55,67 +81,30 @@ cleanup_backup() {
 # Global variables
 EDIT_SAFETY_WORKSPACE="${EDIT_SAFETY_WORKSPACE:-/tmp/edit-safety}"
 EDIT_SAFETY_LOG="$EDIT_SAFETY_WORKSPACE/edit-safety.log"
-BACKUP_REGISTRY="$EDIT_SAFETY_WORKSPACE/backup-registry.json"
 ROLLBACK_MODE="false"
 
-# Initialize workspace
+# Initialize workspace (log directory only; backup tracking now lives on
+# disk under BACKUPS_ROOT via backup.sh/restore.sh/cleanup.sh, not a
+# /tmp registry).
 init_workspace() {
     mkdir -p "$EDIT_SAFETY_WORKSPACE"
-
-    # Initialize backup registry
-    if [[ ! -f "$BACKUP_REGISTRY" ]]; then
-        echo "{}" > "$BACKUP_REGISTRY"
-    fi
-
-    # Initialize log
     touch "$EDIT_SAFETY_LOG"
     log_info "Edit safety workspace initialized at $EDIT_SAFETY_WORKSPACE"
 }
 
-# Logging functions
+# Logging functions. Write to stderr (not just the log file) so that
+# rollback/list/cleanup's delegated stdout (e.g. cleanup --json) stays clean
+# for the caller to parse.
 log_info() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] $*" | tee -a "$EDIT_SAFETY_LOG"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] $*" | tee -a "$EDIT_SAFETY_LOG" >&2
 }
 
 log_warn() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARN] $*" | tee -a "$EDIT_SAFETY_LOG"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARN] $*" | tee -a "$EDIT_SAFETY_LOG" >&2
 }
 
 log_error() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] $*" | tee -a "$EDIT_SAFETY_LOG"
-}
-
-# Register backup for tracking
-register_backup() {
-    local file_path="$1"
-    local backup_id="$2"
-    local backup_path="$3"
-
-    local temp_registry
-    temp_registry=$(jq --arg file "$file_path" \
-                      --arg id "$backup_id" \
-                      --arg path "$backup_path" \
-                      --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-                      '. + {($file): {id: $id, path: $path, timestamp: $timestamp}}' \
-                      "$BACKUP_REGISTRY")
-
-    echo "$temp_registry" > "$BACKUP_REGISTRY"
-    log_info "Registered backup: $file_path -> $backup_path"
-}
-
-# Get backup info from registry
-get_backup_info() {
-    local file_path="$1"
-    jq -r ".\"$file_path\" // empty" "$BACKUP_REGISTRY"
-}
-
-# Remove backup from registry
-unregister_backup() {
-    local file_path="$1"
-    local temp_registry
-    temp_registry=$(jq --arg file "$file_path" 'del(.[$file])' "$BACKUP_REGISTRY")
-    echo "$temp_registry" > "$BACKUP_REGISTRY"
-    log_info "Unregistered backup for: $file_path"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] $*" | tee -a "$EDIT_SAFETY_LOG" >&2
 }
 
 # Validate file exists and is writable
@@ -171,9 +160,6 @@ safe_edit() {
         return 1
     fi
 
-    # Register backup
-    register_backup "$file_path" "$backup_id" "$backup_path"
-
     # Execute edit command
     log_info "Executing edit command..."
     local edit_result=0
@@ -219,13 +205,14 @@ safe_edit() {
     # Clean up backup on success
     log_info "Cleaning up backup..."
     cleanup_backup "$backup_id" "$backup_path"
-    unregister_backup "$file_path"
 
     log_info "Safe edit workflow completed successfully"
     return 0
 }
 
-# Rollback file from backup
+# Rollback file from backup (used internally by safe_edit's own
+# failure-path revert; operates on a known backup_path directly, no
+# registry lookup involved).
 rollback_file() {
     local file_path="$1"
     local backup_path="$2"
@@ -277,20 +264,100 @@ should_rollback() {
     return 1
 }
 
-# List all registered backups
-list_backups() {
-    echo "Registered Backups:"
-    jq -r 'to_entries[] | "- \(.key): \(.value.id) at \(.value.path) (\(.value.timestamp))"' "$BACKUP_REGISTRY"
+# List backups for a single file. Delegates to restore.sh --list, which
+# already resolves matching backups newest-first with the real backups root.
+list_file_backups() {
+    local file_path="$1"
+    local agent_id="$2"
+
+    if [[ -n "$agent_id" ]]; then
+        "$RESTORE_SH" --list "$file_path" --agent-id "$agent_id"
+    else
+        "$RESTORE_SH" --list "$file_path"
+    fi
 }
 
-# Cleanup function
-cleanup() {
-    log_info "Performing cleanup..."
+# List every backup under BACKUPS_ROOT (optionally scoped to one agent), for
+# the no-file-given form of the "list" subcommand. restore.sh deliberately
+# does not support this mode itself (its --list contract requires a file
+# path), so this stays a thin listing here rather than growing a second
+# implementation of restore/cleanup logic.
+list_all_backups() {
+    local agent_filter="$1"
+    local search_root="$BACKUPS_ROOT"
+    if [[ -n "$agent_filter" ]]; then
+        search_root="$BACKUPS_ROOT/$agent_filter"
+    fi
 
-    # Clean up old backups (older than 7 days)
-    find "$EDIT_SAFETY_WORKSPACE" -name "backup-*.tar.gz" -mtime +7 -delete 2>/dev/null || true
+    if [[ ! -d "$search_root" ]]; then
+        echo "No backups found under: $search_root" >&2
+        return 2
+    fi
 
-    log_info "Cleanup completed"
+    local -a entries=()
+    local meta d raw ts
+    while IFS= read -r -d '' meta; do
+        d="$(dirname -- "$meta")"
+        raw="$(jq -r '.timestamp // "0"' "$meta" 2>/dev/null || echo 0)"
+        if [[ "$raw" =~ ^[0-9]{13}$ ]]; then
+            ts=$(( raw / 1000 ))
+        elif [[ "$raw" =~ ^[0-9]+$ ]]; then
+            ts="$raw"
+        else
+            ts=0
+        fi
+        entries+=("$ts"$'\t'"$d")
+    done < <(find "$search_root" -type f -name 'metadata.json' -print0 2>/dev/null)
+
+    if [[ ${#entries[@]} -eq 0 ]]; then
+        echo "No backups found under: $search_root" >&2
+        return 2
+    fi
+
+    local line dir id created agent orig
+    while IFS= read -r line; do
+        dir="${line#*$'\t'}"
+        id="$(basename -- "$dir")"
+        created="$(jq -r '.created_at // "unknown"' "$dir/metadata.json" 2>/dev/null || echo unknown)"
+        agent="$(jq -r '.agent_id // "unknown"' "$dir/metadata.json" 2>/dev/null || echo unknown)"
+        orig="$(jq -r '.original_file // "unknown"' "$dir/metadata.json" 2>/dev/null || echo unknown)"
+        printf '%s\tcreated_at=%s\tagent_id=%s\toriginal_file=%s\n' "$id" "$created" "$agent" "$orig"
+    done < <(printf '%s\n' "${entries[@]}" | sort -t "$(printf '\t')" -k1,1nr)
+
+    return 0
+}
+
+# "list" subcommand entry point: a bare file path (no leading --) scopes the
+# listing to that file via restore.sh; no file path lists everything.
+list_cmd() {
+    local file_path="" agent_id=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --agent-id)
+                if [[ $# -lt 2 ]]; then
+                    echo "Error: --agent-id requires a value" >&2
+                    return 1
+                fi
+                agent_id="$2"
+                shift 2
+                ;;
+            --*)
+                echo "Error: unknown flag for list: $1" >&2
+                return 1
+                ;;
+            *)
+                file_path="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -n "$file_path" ]]; then
+        list_file_backups "$file_path" "$agent_id"
+    else
+        list_all_backups "$agent_id"
+    fi
 }
 
 # Main CLI handler
@@ -310,25 +377,16 @@ main() {
             ;;
         "rollback")
             if [[ $# -lt 1 ]]; then
-                echo "Usage: $0 rollback <file_path>"
+                echo "Usage: $0 rollback <file_path> [--agent-id ID] [--dry-run] [--force]"
                 exit 1
             fi
-            local backup_info
-            backup_info=$(get_backup_info "$1")
-            if [[ -n "$backup_info" ]]; then
-                local backup_path
-                backup_path=$(echo "$backup_info" | jq -r '.path')
-                rollback_file "$1" "$backup_path"
-            else
-                echo "No backup found for: $1"
-                exit 1
-            fi
+            "$RESTORE_SH" --file "$@"
             ;;
         "list")
-            list_backups
+            list_cmd "$@"
             ;;
         "cleanup")
-            cleanup
+            "$CLEANUP_SH" "$@"
             ;;
         *)
             cat << EOF
@@ -338,14 +396,19 @@ USAGE:
     $0 edit <file_path> <edit_command> [agent_id]
         Execute a safe edit with backup and validation
 
-    $0 rollback <file_path>
-        Rollback a file to its last backup
+    $0 rollback <file_path> [--agent-id ID] [--dry-run] [--force]
+        Restore a file from its newest matching backup
+        (delegates to lib/backup/restore.sh --file)
 
-    $0 list
-        List all registered backups
+    $0 list [file_path] [--agent-id ID]
+        List backups for one file (newest first), or every backup under
+        the backups root when no file_path is given
+        (delegates to lib/backup/restore.sh --list for the single-file form)
 
-    $0 cleanup
-        Clean up old backups and temporary files
+    $0 cleanup [--older-than DAYS] [--keep-latest N] [--agent-id ID]
+               [--apply] [--prune-orphans] [--json]
+        Report (default) or reclaim (--apply) space from old backups
+        (delegates to lib/backup/cleanup.sh)
 
 EXAMPLES:
     # Safe edit with automatic backup and validation
@@ -354,14 +417,24 @@ EXAMPLES:
     # Safe edit with custom agent ID
     $0 edit /path/to/file.py "cp new.py file.py" "agent-123"
 
-    # Rollback a failed edit
+    # Rollback a file to its newest backup
     $0 rollback /path/to/file.txt
 
-    # List all backups
+    # List backups for one file
+    $0 list /path/to/file.txt
+
+    # List every backup on record
     $0 list
 
+    # See what cleanup would remove (dry run, the default)
+    $0 cleanup
+
+    # Actually reclaim space
+    $0 cleanup --apply
+
 ENVIRONMENT:
-    EDIT_SAFETY_WORKSPACE    Workspace directory (default: /tmp/edit-safety)
+    EDIT_SAFETY_WORKSPACE    Log directory (default: /tmp/edit-safety)
+    CFN_BACKUP_ROOT          Override the backups root (default: <repo_root>/.backups)
 
 EOF
             exit 1

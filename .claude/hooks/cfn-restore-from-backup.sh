@@ -1,29 +1,39 @@
 #!/bin/bash
 # cfn-selftest: not-a-hook manually-invoked CLI, never fires on an event
 # Restore File from Backup
-# Restores a file from its most recent backup, across every backup convention
-# this repo has ever written.
 #
-# Conventions understood (newest wins across all of them):
+# Thin wrapper around the single restore implementation:
+#   .claude/skills/cfn-edit-safety/lib/backup/restore.sh
 #
-#   1. current  <project-root>/.backups/<agent-id>/<unix-ts>_<md5>/original
-#               written by .claude/skills/cfn-edit-safety/lib/backup/backup.sh
-#               via .claude/hooks/cfn-invoke-pre-edit.sh. The backup directory
-#               name does not contain the source filename, so the owning file is
-#               read from the sibling metadata.json "original_file" field.
+# restore.sh owns every decision about which backup is newest: the current
+# convention (<project-root>/.backups/<agent-id>/<ts>_<hash>/original), the
+# legacy convention (<file>.backup-<ts> siblings written by the deprecated
+# .claude/hooks/deprecated/cfn-pre-edit-backup.sh), the multi-root ancestor
+# search (backup.sh's project root is fixed at BACKUP time, not necessarily
+# the cwd at RESTORE time), and path normalization. See restore.sh's own
+# header comment for the full rules. This wrapper used to duplicate all of
+# that logic itself -- two independent "which backup is newest" answers is
+# exactly the class of bug this merge exists to remove.
 #
-#   2. legacy   <file>.backup-<unix-ts>
-#               written by the deprecated .claude/hooks/deprecated/
-#               cfn-pre-edit-backup.sh. Real backups in this format are still on
-#               disk and are still the rollback safety net for those files, so
-#               they stay supported.
+# This wrapper exists ONLY to preserve, for existing callers:
+#   - the FILE_PATH-only CLI documented in ~/.claude/CLAUDE.md and
+#     agent-prelude.md ("BACKUP_PATH=... ; ... ; cfn-restore-from-backup.sh
+#     $FILE"), and referenced by name in docs/SKILLS_HOOKS_INTEGRATION.md
+#   - the exact stdout/stderr strings tests/test-edit-safety-roundtrip.sh
+#     was written against: the "Restoring ... from ..." line, the
+#     "Restored N lines" line, and the "No backup found" error with its two
+#     "Searched:" continuation lines
+#   - the Redis restore log entry
 #
-# This script previously understood convention 2 only, which meant nothing the
-# current pre-edit hook wrote could ever be found: rollback was broken end to
-# end. It also discovered backups with `LATEST=$(ls -t $PATTERN | head -1)`,
-# whose nonzero exit under `set -euo pipefail` aborted the script at that line,
-# so the "No backup found" branch below was unreachable and a missing backup
-# exited 2 with no output at all.
+# Pre-restore safety copy: this wrapper takes TWO independent copies of the
+# current file before overwriting it, because the two merged implementations
+# did this differently and neither behavior can be safely dropped:
+#   1. a sibling "<file>.pre-restore-<ts>" (this wrapper's own historical
+#      behavior -- something downstream may already depend on that exact
+#      sibling naming)
+#   2. a proper backup.sh backup under .backups/restore-safety/, taken by
+#      restore.sh itself as part of every restore it performs
+# Both are best-effort; neither blocks the restore if it fails.
 
 set -euo pipefail
 
@@ -35,9 +45,11 @@ fi
 
 FILE_PATH="$1"
 
-# --- path normalisation ---------------------------------------------------
-# Backups record whatever path string the caller used. Compare normalised
-# absolute paths so a backup taken via a relative path is still found later.
+HOOK_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+RESTORE_SH="$HOOK_DIR/../skills/cfn-edit-safety/lib/backup/restore.sh"
+
+# --- path normalisation (message text only -- restore.sh normalizes its own
+# comparisons independently) -------------------------------------------------
 abspath() {
   local p="$1"
   case "$p" in
@@ -45,104 +57,80 @@ abspath() {
      *) p="$PWD/$p" ;;
   esac
   if command -v realpath >/dev/null 2>&1; then
-    realpath -m "$p" 2>/dev/null || printf '%s' "$p"
+    realpath -m -- "$p" 2>/dev/null || printf '%s' "$p"
   else
     printf '%s' "$p"
   fi
 }
 
 TARGET_ABS="$(abspath "$FILE_PATH")"
-TARGET_DIR="$(dirname "$TARGET_ABS")"
 
-# --- candidate roots holding a .backups/ tree -----------------------------
-# backup.sh defaults its project root to $(pwd) at BACKUP time, which is not
-# necessarily the cwd at RESTORE time. Search the current directory, the git
-# top level, and every ancestor of the target file.
-collect_roots() {
-  printf '%s\n' "$PWD"
-  git -C "$TARGET_DIR" rev-parse --show-toplevel 2>/dev/null || true
-  local d="$TARGET_DIR"
-  while [ -n "$d" ] && [ "$d" != "/" ]; do
-    printf '%s\n' "$d"
-    d="$(dirname "$d")"
-  done
-  printf '/\n'
-}
+# --- ask restore.sh which backup is newest, without restoring yet ----------
+# restore.sh --list already returns candidates newest-first across both
+# conventions and every searched root; take the top line as the answer to
+# "which backup would a restore use".
+# stdout and stderr MUST stay separate here. TOP_LINE below is parsed as the
+# winning backup, so folding stderr in with 2>&1 would let any warning
+# restore.sh writes become the "newest backup" and get restored from. That is
+# the same stdout/stderr merge that broke BACKUP_PATH capture in
+# cfn-invoke-pre-edit.sh (see its comment at the backup.sh invocation); do not
+# collapse these streams back together.
+LIST_ERR="$(mktemp)"
+trap 'rm -f "$LIST_ERR"' EXIT
+LIST_OUT=""
+LIST_RC=0
+LIST_OUT=$("$RESTORE_SH" --list "$TARGET_ABS" 2>"$LIST_ERR") || LIST_RC=$?
 
-# --- candidate collection -------------------------------------------------
-# Each candidate is "<unix-ts>\t<kind>\t<path-to-restore-from>".
-CANDIDATES=""
-
-add_candidate() {
-  CANDIDATES="${CANDIDATES}${1}	${2}	${3}
-"
-}
-
-# Convention 1: <root>/.backups/<agent-id>/<ts>_<hash>/{original,metadata.json}
-while IFS= read -r root; do
-  [ -n "$root" ] || continue
-  [ -d "$root/.backups" ] || continue
-  for meta in "$root"/.backups/*/*/metadata.json; do
-    [ -f "$meta" ] || continue
-    backup_dir="$(dirname "$meta")"
-    [ -f "$backup_dir/original" ] || continue
-
-    recorded=$(sed -n 's/^[[:space:]]*"original_file"[[:space:]]*:[[:space:]]*"\(.*\)",[[:space:]]*$/\1/p' "$meta" | head -1)
-    [ -n "$recorded" ] || continue
-    [ "$(abspath "$recorded")" = "$TARGET_ABS" ] || continue
-
-    # Timestamp is the directory-name prefix (<ts>_<md5>), with metadata as a
-    # fallback for any backup whose directory was renamed.
-    ts="${backup_dir##*/}"
-    ts="${ts%%_*}"
-    case "$ts" in
-      ''|*[!0-9]*)
-        ts=$(sed -n 's/^[[:space:]]*"timestamp"[[:space:]]*:[[:space:]]*"\{0,1\}\([0-9]*\)"\{0,1\},[[:space:]]*$/\1/p' "$meta" | head -1)
-        ;;
-    esac
-    case "$ts" in
-      ''|*[!0-9]*) ts=0 ;;
-    esac
-
-    add_candidate "$ts" "current" "$backup_dir/original"
-  done
-done < <(collect_roots | awk 'NF && !seen[$0]++')
-
-# Convention 2: <file>.backup-<ts> siblings
-for legacy in "$TARGET_ABS".backup-*; do
-  [ -f "$legacy" ] || continue
-  ts="${legacy##*.backup-}"
-  case "$ts" in
-    ''|*[!0-9]*) ts=0 ;;   # e.g. .backup-phase1: keep it, but never outrank a real timestamp
-  esac
-  add_candidate "$ts" "legacy" "$legacy"
-done
-
-# --- pick the most recent -------------------------------------------------
-LATEST_LINE=$(printf '%s' "$CANDIDATES" | awk 'NF' | sort -t'	' -k1,1nr | head -1)
-
-if [ -z "$LATEST_LINE" ]; then
+if [ "$LIST_RC" -eq 2 ]; then
   echo "❌ No backup found for $FILE_PATH" >&2
   echo "   Searched: <project-root>/.backups/<agent-id>/<ts>_<hash>/original" >&2
   echo "             ${TARGET_ABS}.backup-<ts>" >&2
   exit 1
 fi
 
-LATEST_TS=$(printf '%s' "$LATEST_LINE" | cut -f1)
-LATEST_KIND=$(printf '%s' "$LATEST_LINE" | cut -f2)
-LATEST_BACKUP=$(printf '%s' "$LATEST_LINE" | cut -f3-)
+if [ "$LIST_RC" -ne 0 ]; then
+  echo "❌ Failed to search for a backup of $FILE_PATH: $(cat "$LIST_ERR")" >&2
+  exit 1
+fi
+
+TOP_LINE="$(printf '%s\n' "$LIST_OUT" | head -1)"
+LATEST_ID="$(printf '%s' "$TOP_LINE" | cut -f1)"
+LATEST_BACKUP="$(printf '%s\n' "$TOP_LINE" | grep -oE 'path=.*' | sed 's/^path=//')"
+
+case "$TOP_LINE" in
+  *"$(printf '\t')legacy$(printf '\t')"*)
+    LATEST_KIND="legacy"
+    LATEST_TS="${LATEST_ID##*.backup-}"
+    ;;
+  *)
+    LATEST_KIND="current"
+    LATEST_TS="${LATEST_ID%%_*}"
+    ;;
+esac
+case "$LATEST_TS" in
+  ''|*[!0-9]*) LATEST_TS=0 ;;
+esac
 
 echo "Restoring $FILE_PATH from $LATEST_BACKUP (${LATEST_KIND} convention, ts=${LATEST_TS})"
 
-# Create pre-restore backup of current state so the restore itself is reversible
+# Create pre-restore backup of current state so the restore itself is
+# reversible (this wrapper's own sibling copy -- see header comment).
 TIMESTAMP=$(date +%s)
 if [ -f "$TARGET_ABS" ]; then
   cp "$TARGET_ABS" "${TARGET_ABS}.pre-restore-${TIMESTAMP}" 2>/dev/null || true
 fi
 
-# Restore from backup
-mkdir -p "$TARGET_DIR"
-cp "$LATEST_BACKUP" "$TARGET_ABS"
+# --- delegate the actual restore to restore.sh ------------------------------
+# restore.sh re-finds the same newest candidate (deterministic given no
+# concurrent writes) and takes its own safety backup under
+# .backups/restore-safety/ before overwriting the target. Its own progress
+# text goes to stderr and is discarded here in favor of this wrapper's own
+# contract; only a failure is surfaced.
+RESTORE_ERR=""
+if ! RESTORE_ERR=$("$RESTORE_SH" --file "$TARGET_ABS" 2>&1 >/dev/null); then
+  echo "❌ Restore failed for $FILE_PATH: $RESTORE_ERR" >&2
+  exit 1
+fi
 
 RESTORED_LINES=$(wc -l < "$TARGET_ABS")
 echo "✅ Restored $RESTORED_LINES lines"

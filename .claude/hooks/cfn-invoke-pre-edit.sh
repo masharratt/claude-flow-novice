@@ -1,24 +1,13 @@
 #!/bin/bash
 
 ##############################################################################
-# ⚠️  DEPRECATED - This bash script is deprecated
-#
-# Deprecation Date: 2025-11-20
-# Removal Date: 2026-02-20 (90 days)
-# Replacement: dist/cli/pre-edit-hook.js
-#
-# This script will be removed in 90 days. Please migrate to TypeScript.
-#
-# Migration Guide: See docs/BASH_DEPRECATION_NOTICE.md
-# TypeScript Benefits:
-#   - Type safety (zero runtime type errors)
-#   - 90%+ test coverage
-#   - Better performance
-#   - Comprehensive documentation
-#
-# Automatic Migration:
-#   Set USE_TYPESCRIPT=true to use TypeScript implementation automatically
-#
+# LIVE IMPLEMENTATION, do not remove. A 2025-11-20 header marked this deprecated
+# with a 2026-02-20 removal date pointing at dist/cli/pre-edit-hook.js. That
+# artifact does exist and does run, but only here: its source was deleted in
+# ec6203a3b (2025-12-07) and dist/ is gitignored, so it is unbuildable and
+# absent from any fresh clone. This script is the live path (wired as a
+# PreToolUse hook) and the sole portable implementation producing the backups
+# under .backups/. The stated removal date must not be acted on.
 ##############################################################################
 
 
