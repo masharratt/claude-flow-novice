@@ -567,6 +567,27 @@ All 10 extension-dispatched validators (bash-pipe-safety, bash-dependency-checke
 
 ---
 
+## Pre-commit Hook Self-Test Gate (cfn-hook-selftest.sh, S014)
+
+**Entity:** the hook-registry consistency check run by `cfn-hook-selftest.sh` when pre-commit detects a change to hook registration.
+
+**States:** `skipped | scanned | passed | failed`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (start) | skipped | no staged path matches `^(.claude/hooks/|\.claude/settings[^/]*\.json$|settings\.json$|\.husky/)` | commit proceeds to the next pre-commit phase, selftest not run |
+| (start) | scanned | at least one staged path matches the registration gate | pre-commit invokes `cfn-hook-selftest.sh --strict --quiet` |
+| scanned | passed | every hook on disk is registered or marked `# cfn-selftest: not-a-hook <reason>`, and every registered hook exists and is executable | exit 0; commit proceeds |
+| scanned | failed | a hook script exists on disk but is registered nowhere (orphan), or a registered hook is missing or not executable | `--strict` promotes the orphan class from WARN to FAIL; exit 1, commit rejected |
+
+**Why the gate is path-scoped:** the selftest scans every hook under `.claude/hooks/` and every settings file across the shared-hook repos, so running it on every commit is wasteful. The path regex fires it only when a change could move the registry out of sync with disk.
+
+**Bug context (2026-07-25, eea0436ce):** before this wiring the selftest existed but ran only when invoked by hand. Its orphan class emitted WARN and exited 0, so a dead hook (on disk, registered nowhere) could sit indefinitely without blocking anything; the placebo-test class from the audit was the motivating case. `--strict` was added in the same commit: under the lenient default the orphan class stays WARN (manual runs stay non-blocking), under `--strict` (used by pre-commit) orphans fail.
+
+**Coverage:** the selftest is mutation-verified. Dropping a fake orphan hook (`cfn-MUTATION-FAKE-ORPHAN.sh`) into `.claude/hooks/` fails `--strict` and warns under the lenient default; removing it restores green. The pre-commit gate is meta-confirmed: committing the gate itself triggered it.
+
+---
+
 ## Prompt Optimizer Run (prompt-optimizer engine)
 
 **Entity:** one `execute.sh <target-id>` run of the shared engine (`engine/optimize.ts`).
