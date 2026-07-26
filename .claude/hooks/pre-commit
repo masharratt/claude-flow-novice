@@ -278,6 +278,37 @@ main() {
             "$DOCS_SYNC_HOOK" || exit $?
         fi
 
+        # Hook self-test: blocks the commit when staged changes touch hook
+        # registration paths AND the self-test reports a hard failure (a
+        # registered hook that does not resolve, a broken symlink, a
+        # non-executable target, an unparseable settings file). Regression gate
+        # for the 2026-07-25 audit that found three months of silent dead hooks.
+        # Gate is narrow on purpose so docs-only or source-only commits stay
+        # fast and unblocked. Runs with --strict, which promotes orphan warnings
+        # to failures: an unregistered, unmarked script on disk DOES block here,
+        # which is the cfn-decision-log-ingest.sh failure class this gate exists
+        # to catch. Bypass with git commit --no-verify.
+        SELFTEST_STAGED=$(git diff --cached --name-only 2>/dev/null || echo "")
+        if [ -n "$SELFTEST_STAGED" ] && echo "$SELFTEST_STAGED" \
+                | grep -qE '^(\.claude/hooks/|\.claude/settings[^/]*\.json$|settings\.json$|\.husky/)'; then
+            SELFTEST_HOOK="$(git rev-parse --show-toplevel)/.claude/hooks/cfn-hook-selftest.sh"
+            if [ -x "$SELFTEST_HOOK" ]; then
+                SELFTEST_RC=0
+                SELFTEST_OUT=$(bash "$SELFTEST_HOOK" --strict --quiet 2>&1) || SELFTEST_RC=$?
+                if [ "$SELFTEST_RC" -ne 0 ]; then
+                    SELFTEST_REL="${SELFTEST_HOOK#$(git rev-parse --show-toplevel)/}"
+                    echo -e "${RED}${BOLD}❌ COMMIT BLOCKED: hook self-test failed${NC}" >&2
+                    echo -e "${BOLD}   The hook self-test found a broken registration or non-executable hook.${NC}" >&2
+                    echo "   Findings:" >&2
+                    echo "$SELFTEST_OUT" | sed 's/^/     /' >&2
+                    echo "   Re-run for full output: bash $SELFTEST_REL" >&2
+                    echo -e "${YELLOW}   To bypass (NOT RECOMMENDED):${NC} git commit --no-verify" >&2
+                    exit 1
+                fi
+                echo -e "${GREEN}✓ hooks: selftest ok${NC}"
+            fi
+        fi
+
         exit $EXIT_SUCCESS
     fi
 }

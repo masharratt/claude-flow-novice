@@ -19,7 +19,10 @@
 # .claude/settings*.json too (see SETTINGS_FILES below for the tiering).
 #
 # Exit: 0 = all checks pass, 1 = at least one failure.
-# Flags: --quiet (exit code only), --orphans-only, --json
+# Flags: --quiet (exit code only), --orphans-only, --json,
+#        --strict (promotes orphan warnings to failures; used by the pre-commit
+#                  gate so an unregistered, unmarked hook blocks the commit.
+#                  Manual invocation stays lenient without it.)
 #
 # To exempt a script that lives in hooks/ but is not itself a hook (a sourced
 # library, a manually-invoked CLI, an installer), put this line in its header:
@@ -39,10 +42,12 @@ REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)"
 
 QUIET=0
 ORPHANS_ONLY=0
+STRICT=0
 for arg in "$@"; do
     case "$arg" in
         --quiet) QUIET=1 ;;
         --orphans-only) ORPHANS_ONLY=1 ;;
+        --strict) STRICT=1 ;;
     esac
 done
 
@@ -262,7 +267,16 @@ for script in "$HOOKS_DIR"/*.sh; do
     if echo "$ALL_REGISTERED_CMDS" | grep -q "$base"; then
         [ "$ORPHANS_ONLY" -eq 1 ] || pass "$base"
     else
-        warn "$base is on disk but registered nowhere (register it, or mark it '# cfn-selftest: not-a-hook <reason>')"
+        orphan_msg="$base is on disk but registered nowhere (register it, or mark it '# cfn-selftest: not-a-hook <reason>')"
+        # --strict promotes orphans to FAIL: an unregistered, unmarked script is
+        # exactly the cfn-decision-log-ingest.sh failure class (sat on disk for
+        # three months, registered nowhere, never fired). Lenient mode still
+        # warns so day-to-day manual runs stay non-blocking.
+        if [ "$STRICT" -eq 1 ]; then
+            fail "$orphan_msg"
+        else
+            warn "$orphan_msg"
+        fi
     fi
 done
 
