@@ -439,7 +439,7 @@ All 10 extension-dispatched validators (bash-pipe-safety, bash-dependency-checke
 - **Unversioned pipeline code:** post-edit-pipeline.js lived at `dist/hooks/` (gitignored, untracked, hand-maintained). Moved to `.claude/hooks/post-edit-pipeline.js`.
 - **Silent validator no-op:** 10 validators under nonexistent `.claude/skills/hook-pipeline/` silently skipped. bash exits 127 (no match in pass/warn/block cases), so `SUCCESS executed:3 passed:0` logged despite missing 7 validators. Python exits 2 (matches non-blocking-warning), so 3 absent .py validators incorrectly surfaced as file warnings.
 - **Missing validator detection:** now existsSync preflight; name each missing on stderr; split `executed`/`missing`/`dispatched` counts; exit 9. Wrapper still exits 0 unless `--blocking`.
-- **Dead validator scripts:** cfn-post-edit-cfn-retrospective.sh (all 5 skill paths moved, every case unreachable); cfn-pre-edit-security-warning.sh (not a hook by shape).
+- **Dead validator scripts:** cfn-post-edit-cfn-retrospective.sh (all 5 skill paths moved, every case unreachable; deleted 2026-07-25); cfn-pre-edit-security-warning.sh (not a hook by shape).
 
 **Coverage:** 12 tests (7 missing-validator, 5 shellcheck integration), 12 passed / 0 failed. Full hook suite 152 passed / 0 failed.
 
