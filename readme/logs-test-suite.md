@@ -130,7 +130,6 @@ This document contains comprehensive information about all test suites in Claude
 
 #### Docker Infrastructure Components
 
-- **Docker Image**: `claude-flow-novice:agent` (build script: `scripts/build-agent-image.sh`)
 - **Docker Network**: `mcp-network` (bridge driver)
 - **Redis Coordination**: `.claude/skills/cfn-docker-redis-coordination/coordinate.sh`
 - **Agent Spawning**: `.claude/skills/cfn-docker-agent-spawning/spawn-agent.sh`
@@ -480,9 +479,6 @@ node tests/hello-world/layer0/layer0-docker-tool-validation.cjs
 node tests/hello-world/layer1/layer1-docker-mesh-coordination.cjs
 node tests/hello-world/layer2/layer2-docker-review-coordination.cjs
 node tests/hello-world/layer3/layer3-docker-error-retry.cjs
-
-# Build docker agent image
-bash scripts/build-agent-image.sh
 ```
 
 ### Standard Hello World Tests
@@ -521,25 +517,19 @@ npx claude-flow-novice --help
 
 ### Common Issues
 
-1. **Docker Image Not Found**
-   ```
-   Error: Docker image 'claude-flow-novice:agent' not found
-   Solution: Run 'bash scripts/build-agent-image.sh'
-   ```
-
-2. **Redis Connection Failed**
+1. **Redis Connection Failed**
    ```
    Error: Redis is not running
    Solution: Start Redis server with 'redis-server'
    ```
 
-3. **Network Not Created**
+2. **Network Not Created**
    ```
    Error: Docker network not found
    Solution: Run 'docker network create mcp-network --driver bridge'
    ```
 
-4. **Memory Limits Exceeded**
+3. **Memory Limits Exceeded**
    ```
    Error: Container memory limit exceeded
    Solution: Increase memory limit or check for memory leaks

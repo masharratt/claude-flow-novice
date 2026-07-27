@@ -436,18 +436,7 @@ else
   ((TESTS_FAILED++))
 fi
 
-# Test 12: Verify docker-agent-init.sh uses CFN_REDIS_HOST
-echo -e "${BLUE}[TEST]${NC} docker-agent-init.sh uses CFN_REDIS_HOST"
-
-if grep -q 'CFN_REDIS_HOST' "$PROJECT_ROOT/scripts/docker-agent-init.sh"; then
-  echo -e "${GREEN}[PASS]${NC} docker-agent-init.sh uses CFN_REDIS_HOST"
-  ((TESTS_PASSED++))
-else
-  echo -e "${RED}[FAIL]${NC} docker-agent-init.sh missing CFN_REDIS_HOST"
-  ((TESTS_FAILED++))
-fi
-
-# Test 13: Verify coordinator uses CFN_REDIS_HOST
+# Test 12: Verify coordinator uses CFN_REDIS_HOST
 echo -e "${BLUE}[TEST]${NC} coordinator.js uses CFN_REDIS_HOST"
 
 if grep -q 'CFN_REDIS_HOST' "$PROJECT_ROOT/docker/coordinator/src/coordinator.js"; then

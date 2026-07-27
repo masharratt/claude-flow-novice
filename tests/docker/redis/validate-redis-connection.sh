@@ -305,8 +305,7 @@ else
     echo "💡 Troubleshooting steps:"
     echo "  1. Check Docker logs: docker logs $REDIS_SERVICE"
     echo "  2. Verify network: docker network inspect $NETWORK_NAME"
-    echo "  3. Check agent init script: cat scripts/docker-agent-init.sh"
-    echo "  4. Review rebuild plan: planning/docker/docker-agent-redis-rebuild-plan.md"
+    echo "  3. Review rebuild plan: planning/docker/docker-agent-redis-rebuild-plan.md"
     echo ""
     echo "📝 Detailed test output above for debugging"
     exit 1

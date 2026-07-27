@@ -1,8 +1,34 @@
 # BUG #10: Orphaned `dist/cli` compiled output executed by Docker agent path
 
-**Status:** open (candidate audit finding, surfaced during #9 plan review)
-**Severity:** unknown (depends on whether the Docker agent path is live)
+**Status:** RESOLVED 2026-07-26 (option 1: dead scaffolding removed; dist left frozen)
+**Severity:** low (dead scaffolding) with a blast-radius caveat on dist/cli/index.js
 **Discovered:** 2026-07-26, during deletion of the Sprint-4 TS stub layer (#9)
+**Resolved:** 2026-07-26, deleted docker/agent/Dockerfile + 4 dead scripts; both dist files left frozen
+
+## Resolution (2026-07-26)
+
+Per audit finding #10, chose option 1 (remove dead scaffolding only). Deleted:
+- `docker/agent/Dockerfile` (the dead agent image definition)
+- `scripts/docker-agent-init.sh` (referenced only by the Dockerfile)
+- `scripts/build-agent-image.sh` (no live caller)
+- `scripts/docker-rebuild-all-agents.sh` (no live caller)
+- `scripts/verify-redis-cleanup.sh` (no live caller; was sole consumer of `dist/cli/conversation-fork-cleanup.js`)
+
+Coupling cleanup: trimmed Test 12 from `tests/docker/validation/validate-bug6-redis-vars.sh` (removed the `docker-agent-init.sh` grep; Test 13 coordinator.js check and the runtime contract/env checks remain). Removed the stale `cat scripts/docker-agent-init.sh` troubleshooting hint from `tests/docker/redis/validate-redis-connection.sh`. Trimmed dead build-script refs from `readme/logs-test-suite.md`.
+
+Left frozen (NOT deleted):
+- `dist/cli/index.js` — TypeScript source gone (deleted in `ec6203a3b`), but compiled file still has live consumers: `tests/docker/`, `tests/integration/`, `docker/Dockerfile.optimized`, `docker/scripts/monitor-wrapper.sh`, analytics skill. Recoverable from `ec6203a3b~1:src/cli/index.ts`.
+- `dist/cli/conversation-fork-cleanup.js` — now a TRUE orphan (sole consumer `verify-redis-cleanup.sh` deleted). Real BUG #19 Redis leak fix. Recoverable from `ec6203a3b~1:src/cli/conversation-fork-cleanup.ts`. Left frozen rather than purged; sources recoverable if reproducibility is later required (option 2).
+
+## Investigation verdict (2026-07-26)
+
+- **Docker agent path is DEAD.** Nothing live builds `docker/agent/Dockerfile`: no `docker-compose*.yml`, no `.github/workflows/*`, no `npm run` script, no hook, no Makefile/fly.toml. The only builders are two standalone shell scripts (`scripts/build-agent-image.sh`, `scripts/docker-rebuild-all-agents.sh`) that nothing calls.
+- **`scripts/docker-agent-init.sh`** is referenced only by the Dockerfile itself.
+- **`scripts/verify-redis-cleanup.sh`** has ZERO live callers (docs only). Its `require()` of `conversation-fork-cleanup.js` is inside echo-string remediation hints that fire only on manual invocation.
+- **`dist/cli/index.js` has LIVE blast radius beyond the docker-agent path**: also used by `tests/docker/`, `tests/integration/`, `docker/Dockerfile.optimized`, `docker/scripts/monitor-wrapper.sh`, `.claude/cfn-extras/skills/analytics/cfn-memory-monitoring/SKILL.md`. Deleting it breaks those. It is the real CFN Loop agent-spawner CLI.
+- **`dist/cli/conversation-fork-cleanup.js`** is the real BUG #19 Redis memory-leak fix. Used ONLY by the dead `verify-redis-cleanup.sh`. No live callers.
+- **No enterprise connection.** `docker/agent/Dockerfile` describes itself as the standard CFN agent container, not an enterprise sandbox. The "isolated agents for enterprise" recollection maps to the separate tiered `cfn-docker-loop` system at `.claude/cfn-extras/commands/cfn-docker/`, not this Dockerfile.
+- **Sources recoverable** at `ec6203a3b~1` (both `src/cli/index.ts` and `src/cli/conversation-fork-cleanup.ts`).
 
 ## Summary
 
@@ -24,10 +50,13 @@ The compiled artifacts survive only because `npm run build` is bare `tsc` with n
 
 ## Resolution options (decision needed)
 
-1. **Confirm the Docker agent path is dead** (docker-compose does not build it, no CI builds it). If dead, remove `docker/agent/Dockerfile`, `docker-agent-init.sh`, and the `require()` in `scripts/verify-redis-cleanup.sh`, then delete the two orphaned dist files. Trace all references first.
-2. **If the path is live**, recover the real `src/cli/index.ts` and `src/cli/conversation-fork-cleanup.ts` from `git show 21fca067d:<path>` so the dist is reproducible from source, then rebuild.
+Path is confirmed dead. The remaining decision is how much to remove and whether to make dist reproducible:
 
-Either way, the current state (load-bearing compiled output with no source) is a build-reproducibility landmine.
+1. **Remove dead scaffolding only (safe minimum).** Delete `docker/agent/Dockerfile`, `scripts/docker-agent-init.sh`, `scripts/build-agent-image.sh`, `scripts/docker-rebuild-all-agents.sh`, `scripts/verify-redis-cleanup.sh`. Leave both dist files frozen (index.js has live consumers; conversation-fork-cleanup.js is a harmless orphan).
+2. **Remove scaffolding + recover sources (reproducibility).** Same deletions as (1), plus `git checkout ec6203a3b~1 -- src/cli/index.ts src/cli/conversation-fork-cleanup.ts` so dist/cli is rebuildable from source. (`ec6203a3b~1` is the immediate pre-deletion state and has both files. `21fca067d` is the older Sprint-4 checkpoint and has `src/cli/index.ts` but not `conversation-fork-cleanup.ts`, which was added later in the BUG #19 fix.)
+3. **Full purge.** Delete scaffolding AND both dist files. Requires first re-pointing the live `dist/cli/index.js` consumers (tests/docker/, tests/integration/, docker/Dockerfile.optimized, docker/scripts/monitor-wrapper.sh, analytics skill) or confirming they are also dead. Higher blast radius; needs its own trace.
+
+The current state (load-bearing compiled output with no source) is a build-reproducibility landmine; option 2 resolves it cleanly.
 
 ## Related
 
