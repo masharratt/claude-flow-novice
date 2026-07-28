@@ -1,0 +1,9 @@
+{
+  "slug": "workbench",
+  "generated_at": "2026-07-28T11:00:00Z",
+  "acs": [
+    {"id": "AC1", "status": "pass", "evidence": "results-json AC1 pass"},
+    {"id": "AC2", "status": "pass", "evidence": "results-json AC2 pass"},
+    {"id": "AC3", "status": "fail", "evidence": "results-json AC3 fail"}
+  ]
+}

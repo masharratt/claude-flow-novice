@@ -1,0 +1,35 @@
+{
+  "review_id": "dry-review-1",
+  "source": "cfn-dry-review",
+  "generated_at": "2026-07-28T10:00:00Z",
+  "status": "completed",
+  "comparisons": [],
+  "suggestions": [
+    {
+      "id": "sugg-1",
+      "category": "correctness",
+      "tag": "bug",
+      "one_liner": "Null deref in render path",
+      "title": "Null deref in render.sh",
+      "description": "Pointer may be null when fixtures missing.",
+      "files": ["render.sh"],
+      "impact": "high",
+      "effort": "low",
+      "suggested_approach": "Add null guard.",
+      "status": "open"
+    },
+    {
+      "id": "sugg-2",
+      "category": "tech-debt",
+      "tag": "cfn-marker",
+      "one_liner": "<script>alert(1)</script> injection test",
+      "title": "XSS escape gap",
+      "description": "Verify html_escape on every interpolation. Payload: \"><img src=x>",
+      "files": ["lib/html.sh"],
+      "impact": "high",
+      "effort": "low",
+      "suggested_approach": "Route all output through html_escape.",
+      "status": "open"
+    }
+  ]
+}

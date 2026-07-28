@@ -1,0 +1,7 @@
+{
+  "slug": "workbench",
+  "structure_changed": ["render.sh", "lib/html.sh"],
+  "predicate_changed": [],
+  "blessed_at": "2026-07-28T11:30:00Z",
+  "verdict": "blessed"
+}

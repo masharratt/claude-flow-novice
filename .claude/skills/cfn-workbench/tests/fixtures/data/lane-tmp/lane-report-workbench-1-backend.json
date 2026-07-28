@@ -1,0 +1,9 @@
+{
+  "slug": "workbench",
+  "iteration": 1,
+  "lane": "backend",
+  "pass_rate": 0.95,
+  "tests_passed": 19,
+  "tests_failed": 1,
+  "generated_at": "2026-07-28T10:30:00Z"
+}

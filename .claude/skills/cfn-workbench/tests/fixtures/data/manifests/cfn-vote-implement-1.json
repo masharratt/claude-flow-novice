@@ -1,0 +1,35 @@
+{
+  "review_id": "vote-implement-1",
+  "source": "cfn-vote-implement",
+  "generated_at": "2026-07-28T10:10:00Z",
+  "status": "completed",
+  "comparisons": [],
+  "suggestions": [
+    {
+      "id": "sugg-1",
+      "category": "correctness",
+      "tag": "bug",
+      "one_liner": "Null deref in render path",
+      "title": "Null deref in render.sh",
+      "description": "Pointer may be null when fixtures missing.",
+      "files": ["render.sh"],
+      "impact": "high",
+      "effort": "low",
+      "suggested_approach": "Add null guard.",
+      "status": "accepted"
+    },
+    {
+      "id": "sugg-2",
+      "category": "tech-debt",
+      "tag": "cfn-marker",
+      "one_liner": "XSS escape gap",
+      "title": "XSS escape gap",
+      "description": "Defer to next iteration.",
+      "files": ["lib/html.sh"],
+      "impact": "high",
+      "effort": "low",
+      "suggested_approach": "Route later.",
+      "status": "rejected"
+    }
+  ]
+}
