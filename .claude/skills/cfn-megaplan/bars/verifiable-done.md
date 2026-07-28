@@ -14,7 +14,7 @@ No prose success criteria. Each acceptance criterion (AC) is a row with an execu
 ## Required AC row shape
 
 ```
-| AC-id | criterion | binding | check | pass condition | trigger | seeds | signal | evidence |
+| AC-id | criterion | binding | check | pass condition | trigger | seeds | signal | evidence | reference (optional) |
 ```
 
 Column definitions:
@@ -23,6 +23,7 @@ Column definitions:
 - **seeds** = the fixture rows the check inserts, listed by table/stage (e.g. `stories(2 rows, status=due)`). `(none)` if the check inserts nothing.
 - **signal** = the log line / metric / audit row the check asserts the running process emitted. Empty allowed ONLY for synchronous core paths; out-of-band core paths must fill it.
 - **evidence** = the check's ACTUAL output from running it once, pasted verbatim (S007). Required on every AC; `PENDING: <reason>` at plan time, real output by the exit gate. See *Run-before-bless* below.
+- **reference** (optional) = when present, names ONE specific artifact (a repo-relative path, an absolute path, or an http(s) URL; never a glob) that the `cfn-ab-critic` skill uses as the blind A/B comparison target for this AC's output. Omit the column entirely when the AC does not opt in. The executable `check` still solely decides pass/fail; `reference` adds a quality bar on top, it does not replace the check or the `kind`. See *Optional AC key: `reference`* below.
 
 Examples:
 
@@ -293,3 +294,9 @@ Unlike the optional keys above, these MUST be present in every manifest's `cover
 | `fr_total` / `fr_mapped` | spec (functional requirements) | every FR maps to ≥1 AC | FAIL if missing or unmapped |
 | `ec_total` / `ec_mapped` | spec (edge cases) | every EC maps to ≥1 AC | FAIL if missing or unmapped |
 | `wiring_total` / `wiring_mapped` | cfn-test-plan Phase 3 (wiring coverage), sourced from cfn-arch §1 Components + composition root | every component cfn-arch §1 enumerates maps to ≥1 AC of kind `wiring-guard` whose check greps the composition root for a non-optional construction + injection, offender-count == 0. Zero new components: `wiring_total: 0` / `wiring_mapped: 0` is legal ONLY with a non-empty `no_new_components_reason` | FAIL if either key missing, if `wiring_mapped != wiring_total`, or if `wiring_total: 0` has no stated reason |
+
+### Optional AC key: `reference` (cfn-ab-critic trigger)
+
+`reference` is an OPTIONAL key on an AC object, orthogonal to the executable check. When present, it names ONE specific artifact (a repo-relative path, an absolute path, or an http(s) URL; never a glob) that the `cfn-ab-critic` skill uses as the blind A/B comparison target for that AC's output. The executable `check` is UNCHANGED and still solely decides pass/fail; `reference` adds a quality bar on top, it does not replace the check or change the `kind`. Omitting the key entirely is always legal (opt-in by presence).
+
+`check-verifiable-static.sh` check 1g lints the key when present: a non-string, empty, or glob value is an error at both stages; a local path that does not resolve warns at the `--stage plan` bless (the artifact may not exist yet) and errors at the `--stage exit` bless, mirroring the two-stage `evidence` contract (check 1d). Path existence is checked relative to the cwd the gate is invoked from, which is the repo root by convention.

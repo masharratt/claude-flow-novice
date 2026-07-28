@@ -192,6 +192,54 @@ run boundary-fr-clean.md
 assert_exit 0 "boundary-fr-clean: exit 0"
 if [ "$OUT" = "[]" ]; then ok "boundary-fr-clean: empty findings"; else no "boundary-fr-clean: expected [] got $OUT"; fi
 
+# ---- optional `reference` key (check 1g, ab-critic trigger) ----
+# Orthogonal to the executable check: the AC keeps its kind/check, `reference`
+# adds a quality bar on top. Omission is legal. When present it must name ONE
+# specific artifact (repo-relative path, absolute path, or http(s) URL, not a
+# glob). A local path that does not resolve warns at plan stage and errors at
+# the exit bless, mirroring the two-stage evidence contract (check 1d).
+
+# reference-valid: one URL reference, one existing local path -> clean
+run reference-valid.md
+assert_exit 0 "reference-valid: exit 0"
+if [ "$OUT" = "[]" ]; then ok "reference-valid: empty findings"; else no "reference-valid: expected [] got $OUT"; fi
+
+# reference-absent: no reference key at all -> legal omission, clean
+run reference-absent.md
+assert_exit 0 "reference-absent: exit 0 (omission is legal)"
+if [ "$OUT" = "[]" ]; then ok "reference-absent: empty findings"; else no "reference-absent: expected [] got $OUT"; fi
+
+# reference-empty: empty string -> error
+run reference-empty.md
+assert_exit 1 "reference-empty: exit 1"
+assert_has 'reference key present but empty' "reference-empty: names empty reference"
+assert_has '"severity":"error"' "reference-empty: error severity"
+
+# reference-glob: glob chars -> error
+run reference-glob.md
+assert_exit 1 "reference-glob: exit 1"
+assert_has 'must not be a glob' "reference-glob: rejects glob reference"
+assert_has '"severity":"error"' "reference-glob: error severity"
+
+# reference-non-string: number -> error
+run reference-non-string.md
+assert_exit 1 "reference-non-string: exit 1"
+assert_has 'non-empty string' "reference-non-string: rejects non-string reference"
+assert_has '"severity":"error"' "reference-non-string: error severity"
+
+# reference-missing-path: local path does not resolve. Plan stage accepts with a
+# WARN (the artifact may not exist yet); exit stage errors (bless requires it).
+run reference-missing-path.md
+assert_exit 0 "reference-missing-path: exit 0 at plan stage (default)"
+assert_has 'plan stage accepted' "reference-missing-path: warns at plan stage"
+assert_has '"severity":"warn"' "reference-missing-path: warn severity at plan stage"
+assert_missing '"severity":"error"' "reference-missing-path: no error at plan stage"
+
+run reference-missing-path.md --stage exit
+assert_exit 1 "reference-missing-path: exit 1 at --stage exit"
+assert_has 'does not resolve at exit bless' "reference-missing-path: errors at exit stage"
+assert_has '"severity":"error"' "reference-missing-path: error severity at exit stage"
+
 # usage errors -> exit 2
 "$SCRIPT" >/dev/null 2>&1; [ $? -eq 2 ] && ok "no-arg: exit 2" || no "no-arg: exit 2"
 "$SCRIPT" /nonexistent/x.md >/dev/null 2>&1; [ $? -eq 2 ] && ok "missing-file: exit 2" || no "missing-file: exit 2"

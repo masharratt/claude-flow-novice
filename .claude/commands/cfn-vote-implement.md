@@ -20,7 +20,7 @@ Manifest discovery directory (project-scoped):
 MANIFEST_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.cfn-cache/manifests"
 ```
 
-- If argument is `latest` or empty: pick the most recent file matching `${MANIFEST_DIR}/cfn-*.json` (producers: `cfn-dry-review-*`, `cfn-security-review-*`, `cfn-dep-audit-*`, `cfn-perf-gate-*`, `cfn-a11y-gate-*`, `cfn-review-alpha-*`, `cfn-review-alpha-v2-*`). Use `ls -1t "${MANIFEST_DIR}"/cfn-*.json 2>/dev/null | head -1`.
+- If argument is `latest` or empty: pick the most recent file matching `${MANIFEST_DIR}/cfn-*.json` (producers: `cfn-dry-review-*`, `cfn-security-review-*`, `cfn-dep-audit-*`, `cfn-perf-gate-*`, `cfn-a11y-gate-*`, `cfn-ab-critic-*`, `cfn-review-alpha-*`, `cfn-review-alpha-v2-*`). Use `ls -1t "${MANIFEST_DIR}"/cfn-*.json 2>/dev/null | head -1`.
 - Otherwise: read the specified path.
 
 If no manifests exist in `${MANIFEST_DIR}`, also check legacy `/tmp/cfn-*.json` for transition compatibility and warn the user to re-run the producing skill.

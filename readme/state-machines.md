@@ -196,7 +196,7 @@ proposed ──answer──> accepted ──(--supersede by Dn)──> supersede
 
 ## Manifest Suggestion (cfn-vote-implement processing)
 
-**Entity:** a single code-review suggestion inside a `.cfn-cache/manifests/` manifest. Producers: cfn-dry-review, cfn-security-review, cfn-dep-audit, cfn-perf-gate, cfn-a11y-gate, cfn-alpha-launch. Status field tracks resumable processing.
+**Entity:** a single code-review suggestion inside a `.cfn-cache/manifests/` manifest. Producers: cfn-dry-review, cfn-security-review, cfn-dep-audit, cfn-perf-gate, cfn-a11y-gate, cfn-alpha-launch, cfn-ab-critic. Status field tracks resumable processing.
 
 **States:** `pending | implemented | skipped | failed | deferred | rejected`
 
@@ -219,6 +219,18 @@ pending ──3/3 / PO IMPLEMENT / user Apply──> implemented
    ├──── 0/3 / user Skip ────────────────────> skipped
    ├──── PO DEFER / user Defer ──────────────> deferred
    └──── PO REJECT ──────────────────────────> rejected
+```
+
+**ab-critic entry point (cfn-ab-critic):** produces suggestions with `category: reference-gap` that enter this same lifecycle at `pending` and route through cfn-vote-implement identically (3/3 auto-implement, 2/3 product-owner, 1/3 user, 0/3 skip). Triggered only by an AC carrying a `reference` key. Tags: `polish` (cosmetic gap), `fix` (functional gap), `block` (winner=reference AND confidence>=0.9). A `block` tag is a merge-blocker regardless of vote tally; it bypasses the routing above and forces resolution before the manifest can close.
+
+```
+reference artifact ──┐
+                     ├─ cfn-ab-critic (labels shuffled) ──> category: reference-gap
+build artifact   ────┘                                            │
+                                                                  ▼
+              enters Manifest Suggestion lifecycle at `pending`
+              (3/3 / 2/3 / 1/3 / 0/3 routing as above)
+              tag=`block` ⇒ merge-blocker (bypasses tally)
 ```
 
 ---

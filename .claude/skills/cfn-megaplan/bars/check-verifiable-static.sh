@@ -272,6 +272,40 @@ while [ "$i" -lt "$AC_COUNT" ]; do
     fi
   fi
 
+  # 1g: optional `reference` key (ab-critic trigger). Orthogonal to the executable
+  # check: the AC keeps its kind/check; `reference` adds a quality bar on top. When
+  # present it must name ONE specific artifact (a repo-relative path, an absolute
+  # path, or an http(s) URL). Globs are rejected (they let an author point at a
+  # category instead of an artifact); a non-string or empty value is rejected (a
+  # placeholder reference is worse than none). A local path that does not yet
+  # resolve warns at the plan-stage bless (the artifact may not exist yet) and
+  # errors at the exit bless: same two-stage contract as the evidence rule (1d).
+  # cfn: path resolution is cwd-relative only (no repo-root normalization), relies
+  # on the gate being invoked from repo root; upgrade if a manifest needs to pin
+  # its own resolution base.
+  if [ "$(echo "$AC" | jq 'has("reference")')" = "true" ]; then
+    REF_TYPE=$(echo "$AC" | jq -r '.reference | type')
+    if [ "$REF_TYPE" != "string" ]; then
+      add_finding "$ACID" "reference" "reference must be a non-empty string path or URL (got $REF_TYPE)" "error"
+    else
+      REF=$(echo "$AC" | jq -r '.reference')
+      REF_TRIM=$(echo "$REF" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+      if [ -z "$REF_TRIM" ]; then
+        add_finding "$ACID" "reference" "reference key present but empty, must be a non-empty path or URL, or omit the key" "error"
+      elif echo "$REF_TRIM" | grep -qE '[*?{}]'; then
+        add_finding "$ACID" "reference" "reference must not be a glob, name one specific artifact" "error"
+      elif ! echo "$REF_TRIM" | grep -qE '^https?://'; then
+        if [ ! -e "$REF_TRIM" ]; then
+          if [ "$STAGE" = "exit" ]; then
+            add_finding "$ACID" "reference" "reference path does not resolve at exit bless: $REF_TRIM" "error"
+          else
+            add_finding "$ACID" "reference" "reference path does not resolve yet (plan stage accepted, exit bless will require it): $REF_TRIM" "warn"
+          fi
+        fi
+      fi
+    fi
+  fi
+
   # 2b: flag-tautology WARN for wiring-guard ACs (S004 / MP-A rootcause, verifiable-done.md rule 4e).
   # cfn: token grep only, no flag-default analysis (a wiring AC IS a tautology only when the
   # referenced flag ALSO defaults the feature off, which this script cannot determine) — WARN,
