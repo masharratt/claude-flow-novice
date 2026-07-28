@@ -11,7 +11,7 @@ section_bless_ledger() {
   if [[ ! -f "$bless" ]]; then
     record_gap "bless ledger (.VERIFY_${slug}.bless.json)"
     cat <<EOF
-<section class="card">
+<section class="card" id="sec-bless">
 <h2>Bless Ledger</h2>
 <p class="empty">No bless ledger at planning/.VERIFY_${slug}.bless.json.</p>
 </section>
@@ -44,17 +44,17 @@ EOF
   fi
 
   cat <<EOF
-<section class="card">
+<section class="card" id="sec-bless">
 <h2>Bless Ledger</h2>
-<div class="header-meta" style="margin-bottom:10px;">
+<div class="header-meta bless-meta">
   <span>Verdict: <span class="pill pill-$(html_escape "$verdict")">$(html_escape "$verdict")</span></span>
   <span>Blessed: <code>$(html_escape "$blessed_at")</code></span>
 </div>
-<h3 style="font-size:15px;margin:6px 0 4px;">structure_changed</h3>
+<h3 class="sub-head">structure_changed</h3>
 <ul class="tight">
 ${sc_html}
 </ul>
-<h3 style="font-size:15px;margin:10px 0 4px;">predicate_changed</h3>
+<h3 class="sub-head">predicate_changed</h3>
 <ul class="tight">
 ${pc_html}
 </ul>

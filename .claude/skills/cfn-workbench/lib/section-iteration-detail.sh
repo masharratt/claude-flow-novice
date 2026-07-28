@@ -64,7 +64,7 @@ section_iteration_detail() {
 
   if [[ -z "${sorted// /}" ]]; then
     cat <<EOF
-<section class="card">
+<section class="card" id="sec-detail">
 <h2>Per-Iteration Detail</h2>
 <p class="empty">No iterations detected.</p>
 </section>
@@ -101,26 +101,27 @@ EOF
   for k in "${!show_set[@]}"; do show_paths+="$k "; done
   export WORKBENCH_SHX_SHOW="$show_paths"
 
-  local body=""
+  local body="" first_iter=1
   for iter in $sorted; do
     [[ -z "$iter" ]] && continue
-    body+="$(render_iteration_block "$iter")"
+    body+="$(render_iteration_block "$iter" "$first_iter")"
+    first_iter=0
   done
 
   # After iterations, render a single overflow card if any screenshots were capped.
   local overflow_html=""
   if [[ "$no_shx" == "0" && $overflow_count -gt 0 ]]; then
     overflow_html="$(cat <<EOF
-<div class="card" style="background:#fffbeb;border:1px solid #fbd38d;">
-  <h3 style="margin:0 0 4px;font-size:15px;color:#744210;">${overflow_count} more screenshot(s) omitted (cap: ${max})</h3>
-  <div class="name" style="color:#744210;font-size:12px;word-break:break-all;">$(html_escape "$overflow_paths")</div>
+<div class="card overflow-card">
+  <h3 class="sub-head">${overflow_count} more screenshot(s) omitted (cap: ${max})</h3>
+  <div class="name">$(html_escape "$overflow_paths")</div>
 </div>
 EOF
 )"
   fi
 
   cat <<EOF
-<section class="card">
+<section class="card" id="sec-detail">
 <h2>Per-Iteration Detail</h2>
 $body
 $overflow_html
@@ -133,6 +134,10 @@ EOF
 # screenshots to embed vs. skip silently (overflow is handled by the caller).
 render_iteration_block() {
   local iter="$1"
+  local is_first="${2:-1}"
+  # Only the first iteration expands by default; later iterations collapse.
+  local open_attr="open"
+  [[ "$is_first" == "1" ]] || open_attr=""
   local slug="${WORKBENCH_SLUG:-}"
   local root="${WORKBENCH_ROOT:-.}"
   local manifests_dir="$root/.cfn-cache/manifests"
@@ -183,8 +188,15 @@ EOF
 )"
   done
 
+  local lanes_block
   if [[ -z "$lane_rows" ]]; then
     record_gap "lane-reports for slug ${slug} iteration ${iter}"
+    lanes_block="<p class=\"empty\">no lane reports for iteration ${iter}.</p>"
+  else
+    lanes_block="<div class=\"table-wrap\"><table>
+    <thead><tr><th>Lane</th><th>Pass</th><th>Passed</th><th>Failed</th><th>Source</th></tr></thead>
+    <tbody>${lane_rows}</tbody>
+  </table></div>"
   fi
 
   # Test output summary line.
@@ -268,19 +280,16 @@ EOF
   fi
 
   cat <<EOF
-<details open>
+<details ${open_attr}>
 <summary>Iteration ${iter}</summary>
-<div class="card" style="box-shadow:none;background:#fafbfc;">
-  <h3 style="margin:0 0 6px;font-size:15px;">Lanes</h3>
-  <table>
-    <thead><tr><th>Lane</th><th>Pass</th><th>Passed</th><th>Failed</th><th>Source</th></tr></thead>
-    <tbody>${lane_rows}</tbody>
-  </table>
-  <h3 style="margin:12px 0 4px;font-size:15px;">Test summary</h3>
+<div class="card sub-card">
+  <h3 class="sub-head">Lanes</h3>
+  ${lanes_block}
+  <h3 class="sub-head">Test summary</h3>
   <div>${test_summary}</div>
-  <h3 style="margin:12px 0 4px;font-size:15px;">Gate events</h3>
+  <h3 class="sub-head">Gate events</h3>
   ${gate_events}
-  <h3 style="margin:12px 0 4px;font-size:15px;">Screenshots (${iter_total:-0})</h3>
+  <h3 class="sub-head">Screenshots (${iter_total:-0})</h3>
   ${shx_html}
 </div>
 </details>

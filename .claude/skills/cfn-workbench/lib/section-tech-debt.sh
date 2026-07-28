@@ -13,7 +13,7 @@ section_tech_debt() {
   if [[ ! -d "$manifests_dir" ]] || ! ls "$manifests_dir"/cfn-*.json >/dev/null 2>&1; then
     record_gap "manifests dir (tech-debt ledger empty)"
     cat <<EOF
-<section class="card">
+<section class="card" id="sec-debt">
 <h2>Tech-Debt Ledger</h2>
 <p class="empty">No manifests to scan.</p>
 </section>
@@ -32,7 +32,7 @@ EOF
   total=$(printf '%s' "$merged" | jq 'length')
   if [[ "$total" == "0" ]]; then
     cat <<EOF
-<section class="card">
+<section class="card" id="sec-debt">
 <h2>Tech-Debt Ledger</h2>
 <p class="empty">No tech-debt suggestions (category=tech-debt or tag matches cfn:). </p>
 </section>
@@ -54,15 +54,17 @@ EOF
   ')
 
   cat <<EOF
-<section class="card">
+<section class="card" id="sec-debt">
 <h2>Tech-Debt Ledger (${total})</h2>
 <p class="note">Derived from suggestion manifests (category=tech-debt or tag matches cfn:). When the cfn-tech-debt skill publishes its own ledger, this section can read it directly.</p>
+<div class="table-wrap">
 <table>
   <thead><tr><th>ID</th><th>Title</th><th>Tag</th><th>Files</th><th>Status</th></tr></thead>
   <tbody>
 ${rows}
   </tbody>
 </table>
+</div>
 </section>
 EOF
 }

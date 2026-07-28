@@ -12,7 +12,7 @@ section_vote_ledger() {
   if [[ ! -d "$manifests_dir" ]] || ! ls "$manifests_dir"/cfn-*.json >/dev/null 2>&1; then
     record_gap "manifests dir (vote ledger empty)"
     cat <<EOF
-<section class="card">
+<section class="card" id="sec-votes">
 <h2>Vote Ledger</h2>
 <p class="empty">No suggestion manifests found in .cfn-cache/manifests/.</p>
 </section>
@@ -34,7 +34,7 @@ EOF
   total=$(printf '%s' "$merged" | jq 'length')
   if [[ "$total" == "0" ]]; then
     cat <<EOF
-<section class="card">
+<section class="card" id="sec-votes">
 <h2>Vote Ledger</h2>
 <p class="empty">No suggestions across manifests.</p>
 </section>
@@ -57,15 +57,17 @@ EOF
   ')
 
   cat <<EOF
-<section class="card">
+<section class="card" id="sec-votes">
 <h2>Vote Ledger (${total})</h2>
 <p class="note">One row per suggestion id, status reflects the latest manifest that touched it.</p>
+<div class="table-wrap">
 <table>
   <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Impact/Effort</th><th>Status</th><th>Source</th></tr></thead>
   <tbody>
 ${rows}
   </tbody>
 </table>
+</div>
 </section>
 EOF
 }

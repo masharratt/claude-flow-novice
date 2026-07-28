@@ -10,7 +10,7 @@ section_header() {
   if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     branch="$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
   else
-    record_gap "git repo (no git metadata at $root)"
+    record_gap "git repo (no git metadata at run root)"
   fi
 
   # Iteration count = distinct -N suffixes across manifests.
@@ -54,8 +54,9 @@ section_header() {
     fi
   fi
 
-  local generated_at
+  local generated_at generated_pretty
   generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  generated_pretty="$(date -u -d "$generated_at" '+%Y-%m-%d %H:%M UTC' 2>/dev/null || printf '%s' "$generated_at")"
 
   cat <<EOF
 <header class="card header-card">
@@ -64,7 +65,7 @@ section_header() {
     <span>Branch: <code>$(html_escape "$branch")</code></span>
     <span>Iterations: <strong>$iter_count</strong></span>
     <span>Verdict: <span class="pill pill-$(html_escape "$verdict")">$(html_escape "$verdict")</span></span>
-    <span>Generated: <time>$(html_escape "$generated_at")</time></span>
+    <span>Generated: <time datetime="$(html_escape "$generated_at")">$(html_escape "$generated_pretty")</time></span>
   </div>
 </header>
 EOF

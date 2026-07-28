@@ -125,10 +125,14 @@ export WORKBENCH_SLUG="$SLUG"
 export WORKBENCH_MAX_SCREENSHOTS="$MAX_SCREENSHOTS"
 export WORKBENCH_NO_SCREENSHOTS="$NO_SCREENSHOTS"
 export WORKBENCH_OUT="$OUT"
-export WORKBENCH_INVOCATION="cfn-workbench --slug $SLUG$( [[ "$ROOT" != "$PROJECT_ROOT_DEFAULT" ]] && printf ' --root %s' "$ROOT" )$( [[ "$MAX_SCREENSHOTS" != "50" ]] && printf ' --max-screenshots %s' "$MAX_SCREENSHOTS" )$( [[ "$NO_SCREENSHOTS" == "1" ]] && printf ' --no-screenshots' )"
+# Redact mktemp scratch roots in the recorded command (the dir is ephemeral).
+root_display="$ROOT"
+[[ "$ROOT" == /tmp/tmp.* ]] && root_display="<tmpdir>"
+export WORKBENCH_INVOCATION="cfn-workbench --slug $SLUG$( [[ "$ROOT" != "$PROJECT_ROOT_DEFAULT" ]] && printf ' --root %s' "$root_display" )$( [[ "$MAX_SCREENSHOTS" != "50" ]] && printf ' --max-screenshots %s' "$MAX_SCREENSHOTS" )$( [[ "$NO_SCREENSHOTS" == "1" ]] && printf ' --no-screenshots' )"
 
 # Build sections. Each function emits an HTML chunk on stdout.
 HEADER_HTML="$(section_header)"
+NAV_HTML="$(section_nav)"
 TIMELINE_HTML="$(section_timeline)"
 DETAIL_HTML="$(section_iteration_detail)"
 AC_HTML="$(section_ac_table)"
@@ -152,6 +156,7 @@ FOOTER_HTML="$(section_footer)"
   printf '<body>\n'
   printf '<main class="container">\n'
   printf '%s\n' "$HEADER_HTML"
+  printf '%s\n' "$NAV_HTML"
   printf '%s\n' "$TIMELINE_HTML"
   printf '%s\n' "$DETAIL_HTML"
   printf '%s\n' "$AC_HTML"
@@ -164,6 +169,10 @@ FOOTER_HTML="$(section_footer)"
   printf '</html>\n'
 } > "$OUT"
 
+# Backfill the footer size token (footer renders before the file is written).
+SIZE=$(wc -c < "$OUT" | tr -d ' ')
+sed -i "s#__WB_SIZE__#${SIZE}#" "$OUT"
+
 # Self-containment assertion (defensive; tests also check).
 # cfn: defensive belt-and-suspenders, run on every render so a regression in a
 # section lib cannot silently leak an external src/href into the output.
@@ -175,7 +184,7 @@ self_containment_check() {
   fi
   local bad_src bad_href
   bad_src=$(grep -oE 'src="[^"]*"' "$file" | grep -v '^src="data:' || true)
-  bad_href=$(grep -oE 'href="[^"]*"' "$file" | grep -v '^href="data:' || true)
+  bad_href=$(grep -oE 'href="[^"]*"' "$file" | grep -vE '^href="(data:|#)' || true)
   if [[ -n "$bad_src" ]]; then
     echo "WARN: emitted HTML has non-data: src= attributes:" >&2
     echo "$bad_src" | sed 's/^/  /' >&2; problems=$((problems+1))
@@ -191,7 +200,6 @@ self_containment_check() {
 self_containment_check "$OUT" || echo "WARN: self-containment check reported problems (see above). HTML still written." >&2
 
 # Summary on stdout.
-SIZE=$(wc -c < "$OUT" | tr -d ' ')
 GAP_COUNT=$(get_gap_count)
 echo "Rendered: $OUT"
 echo "Size: ${SIZE} bytes"

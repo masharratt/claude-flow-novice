@@ -7,10 +7,9 @@ section_footer() {
   local out="${WORKBENCH_OUT:-?}"
   local cmd="${WORKBENCH_INVOCATION:-cfn-workbench --slug ${slug}}"
 
-  local size="?"
-  if [[ -f "$out" ]]; then
-    size="$(wc -c < "$out" | tr -d ' ')"
-  fi
+  # Size is backfilled by render.sh after the file is written (the footer
+  # renders before the document is assembled); emit a unique token.
+  local size="__WB_SIZE__"
 
   # Count inputs (manifests + VERIFY + results + bless + lane-reports + screenshots).
   local input_count=0
@@ -41,13 +40,13 @@ section_footer() {
   fi
 
   cat <<EOF
-<footer class="card">
+<footer class="card" id="sec-gaps">
 <h2>Footer</h2>
 <div class="footer-meta">
   <div>Command: <code>$(html_escape "$cmd")</code></div>
   <div>Inputs read: ${input_count}</div>
-  <div>HTML size: $(html_escape "$size") bytes</div>
-  <div>Out: <code>$(html_escape "$out")</code></div>
+  <div>HTML size: $size bytes</div>
+  <div>Out: <code>$(html_escape "$(display_path "$out")")</code></div>
 </div>
 ${gaps_html}
 </footer>

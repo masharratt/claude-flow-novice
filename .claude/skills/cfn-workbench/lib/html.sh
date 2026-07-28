@@ -50,6 +50,40 @@ get_gaps() {
   sort -u "$gaps_file"
 }
 
+# display_path PATH
+# Relativize an absolute path for user-facing copy. Strips the run-root prefix
+# (shows planning/...); redacts mktemp scratch dirs (/tmp/tmp.XXX -> <tmpdir>);
+# otherwise returns the path unchanged. Keeps internal scratch paths out of the
+# rendered HTML (notes, gaps, footer command/out).
+display_path() {
+  local p="$1" root="${WORKBENCH_ROOT:-}"
+  [[ -z "$p" ]] && { printf ''; return; }
+  if [[ -n "$root" && "$p" == "$root"* ]]; then
+    local rel="${p#"$root"}"
+    rel="${rel#/}"
+    [[ -z "$rel" ]] && printf '.' || printf '%s' "$rel"
+    return
+  fi
+  if [[ "$p" == /tmp/tmp.* ]]; then
+    printf '<tmpdir>/%s' "$(printf '%s' "$p" | sed 's#^/tmp/tmp\.[^/]*/##')"
+    return
+  fi
+  printf '%s' "$p"
+}
+
+# section_nav - sticky jump-bar to section anchors (ids emitted by each section).
+section_nav() {
+  cat <<'EOF'
+<nav class="section-nav">
+  <a href="#sec-detail">Detail</a>
+  <a href="#sec-ac">AC</a>
+  <a href="#sec-votes">Votes</a>
+  <a href="#sec-debt">Debt</a>
+  <a href="#sec-gaps">Gaps</a>
+</nav>
+EOF
+}
+
 # default_style - emits the inline <style> body. Light, readable, no external fonts.
 # No em dashes anywhere in copy or comments (project rule).
 default_style() {
@@ -79,10 +113,22 @@ body {
 .pill {
   display: inline-block; padding: 2px 9px; border-radius: 11px;
   font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+  background: #e2e8f0; color: #243b53;
 }
+.pill-in-progress { background: #bee3f8; color: #2a4365; }
 .pill-pass, .pill-accepted, .pill-blessed, .pill-completed { background: #c6f6d5; color: #22543d; }
 .pill-fail, .pill-rejected, .pill-aborted { background: #fed7d7; color: #742a2a; }
 .pill-open, .pill-pending, .pill-unknown { background: #feebc8; color: #7b341e; }
+.table-wrap { overflow-x: auto; }
+.sub-card { background: #fafbfc; box-shadow: none; }
+.sub-head { font-size: 15px; margin: 10px 0 4px; color: #102a43; }
+.overflow-card { background: #fffbeb; border: 1px solid #fbd38d; }
+.overflow-card .sub-head { color: #744210; margin: 0 0 4px; }
+.overflow-card .name { color: #744210; font-size: 12px; word-break: break-all; }
+.bless-meta { margin-bottom: 10px; }
+.section-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; position: sticky; top: 0; background: #f5f7fa; padding: 8px 0; z-index: 10; }
+.section-nav a { font-size: 13px; color: #243b53; background: #ffffff; border: 1px solid #e3e8ef; border-radius: 11px; padding: 2px 10px; text-decoration: none; }
+.section-nav a:hover { background: #f0f4f8; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 6px; }
 th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #e3e8ef; vertical-align: top; }
 th { background: #f0f4f8; color: #243b53; font-weight: 600; font-size: 13px; }
@@ -99,6 +145,7 @@ ul.tight li { margin: 2px 0; }
 }
 .timeline-cell .iter-label { font-size: 12px; color: #627d98; }
 .timeline-cell .iter-value { font-size: 18px; font-weight: 600; color: #102a43; }
+.timeline-cell .iter-value.iter-na { font-size: 13px; font-weight: 400; color: #9aa5b1; }
 .screenshot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 6px; }
 .screenshot-card { border: 1px solid #e3e8ef; border-radius: 6px; padding: 6px; background: #fafbfc; font-size: 12px; }
 .screenshot-card img { width: 100%; height: auto; display: block; border-radius: 3px; }

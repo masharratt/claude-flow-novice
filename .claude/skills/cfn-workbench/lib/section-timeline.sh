@@ -68,7 +68,7 @@ section_timeline() {
   if [[ -z "${sorted// /}" ]]; then
     record_gap "iteration timeline (no manifests, screenshots, or lane-reports found)"
     cat <<EOF
-<section class="card">
+<section class="card" id="sec-timeline">
 <h2>Iteration Timeline</h2>
 <p class="empty">No iterations detected. Render against a project root with .cfn-cache/manifests/, tests/screenshots/&lt;slug&gt;-iteration-*.png, or tmp/lane-report-&lt;slug&gt;-*.json.</p>
 </section>
@@ -100,6 +100,9 @@ EOF
       avg=$(printf '%s\n' $pr_values | awk '{s+=$1; n++} END {if (n>0) printf "%.0f", (s/n)*100; else print "n/a"}')
       [[ -n "$avg" ]] && pass_rate="${avg}%"
     fi
+    # n/a renders muted instead of a big bold "broken" value.
+    local pr_class=""
+    [[ "$pass_rate" == "n/a" ]] && pr_class=" iter-na"
 
     # Gate verdict from manifest status (any non-completed wins).
     if [[ -d "$manifests_dir" ]]; then
@@ -125,7 +128,7 @@ EOF
     rows+="$(cat <<EOF
 <div class="timeline-cell">
   <div class="iter-label">Iteration ${iter}</div>
-  <div class="iter-value">$(html_escape "$pass_rate")</div>
+  <div class="iter-value${pr_class}">$(html_escape "$pass_rate")</div>
   <div class="iter-label">gate: <span class="pill pill-$(html_escape "$gate")">$(html_escape "$gate")</span></div>
   <div class="iter-label">commits: $(html_escape "$commits")</div>
 </div>
@@ -134,7 +137,7 @@ EOF
   done
 
   cat <<EOF
-<section class="card">
+<section class="card" id="sec-timeline">
 <h2>Iteration Timeline</h2>
 <p class="note">Pass rate is the mean across lane reports for the iteration. Commit count is the repo total (per-iter ranges require iter tags).</p>
 <div class="timeline-grid">

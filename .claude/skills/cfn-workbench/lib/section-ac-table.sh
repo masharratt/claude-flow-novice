@@ -27,7 +27,7 @@ section_ac_table() {
   if [[ ! -f "$verify_md" ]]; then
     record_gap "VERIFY_${slug}.md (AC table source)"
     cat <<EOF
-<section class="card">
+<section class="card" id="sec-ac">
 <h2>Acceptance Criteria</h2>
 <p class="empty">No VERIFY doc found at planning/VERIFY_${slug}.md.</p>
 </section>
@@ -107,11 +107,11 @@ EOF
   ' "$verify_md")
 
   if [[ -z "$md_table_json" ]] || [[ "$md_table_json" == "[]" ]]; then
-    record_gap "AC table in $verify_md (no rows parsed)"
+    record_gap "AC table in $(display_path "$verify_md") (no rows parsed)"
     cat <<EOF
-<section class="card">
+<section class="card" id="sec-ac">
 <h2>Acceptance Criteria</h2>
-<p class="empty">No markdown AC table found in $verify_md.</p>
+<p class="empty">No markdown AC table found in $(display_path "$verify_md").</p>
 </section>
 EOF
     return
@@ -191,15 +191,17 @@ EOF
   ')
 
   cat <<EOF
-<section class="card">
+<section class="card" id="sec-ac">
 <h2>Acceptance Criteria (${pass_count}/${total} pass, ${fail_count} fail)</h2>
-<p class="note">Parsed by header name from $verify_md. Reference column shows "-" when the source table omits it.</p>
+<p class="note">Parsed by header name from $(display_path "$verify_md"). Reference column shows "-" when the source table omits it.</p>
+<div class="table-wrap">
 <table>
   <thead><tr><th>ID</th><th>Check</th><th>Kind</th><th>Status</th><th>Evidence</th><th>Reference</th></tr></thead>
   <tbody>
 ${rows}
   </tbody>
 </table>
+</div>
 </section>
 EOF
 }

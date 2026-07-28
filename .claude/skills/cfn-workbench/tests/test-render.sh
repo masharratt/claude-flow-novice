@@ -198,11 +198,11 @@ for HTML in "$OUT5" "$OUT9" "$EMPTY_OUT"; do
     fail "$name: found non-data: src= "
     grep -oE 'src="[^"]*"' "$HTML" | grep -v '^src="data:' | head -3 | sed 's/^/      /'
   else ok "$name: all src= are data:"; fi
-  # every href="..." must be href="data:..."
-  if grep -oE 'href="[^"]*"' "$HTML" | grep -vq '^href="data:'; then
-    fail "$name: found non-data: href= "
-    grep -oE 'href="[^"]*"' "$HTML" | grep -v '^href="data:' | head -3 | sed 's/^/      /'
-  else ok "$name: all href= are data:"; fi
+  # every href="..." must be data: or an in-page fragment (#sec-...); no external fetches.
+  if grep -oE 'href="[^"]*"' "$HTML" | grep -vqE '^href="(data:|#)'; then
+    fail "$name: found non-data/non-fragment href= "
+    grep -oE 'href="[^"]*"' "$HTML" | grep -vE '^href="(data:|#)' | head -3 | sed 's/^/      /'
+  else ok "$name: all href= are data:/fragment"; fi
 done
 
 # ---------------------------------------------------------------
@@ -292,6 +292,54 @@ for HTML in "$OUT5" "$OUT9" "$OUT_SHX"; do
   assert_contains "$name: has inline <style>" "$HTML" "<style>"
   assert_contains "$name: has </html>" "$HTML" "</html>"
 done
+
+# ---------------------------------------------------------------
+# GROUP 12: UI / readability improvements (review P0-P2)
+# ---------------------------------------------------------------
+echo "[12] ui readability"
+# P0-1: verdict pill (in-progress) has a CSS rule; base .pill has a visible bg
+# so ANY unclassed pill renders instead of disappearing.
+assert_match "9col: in-progress pill styled" "$OUT9" '\.pill-in-progress[[:space:]]*\{'
+assert_contains "9col: base .pill has neutral bg" "$OUT9" "background: #e2e8f0"
+# P0-2: HTML size backfilled (no "?" placeholder).
+assert_no_match "9col: no '?' size placeholder" "$OUT9" 'HTML size: \? bytes'
+assert_match "9col: size is numeric" "$OUT9" 'HTML size: [0-9]+ bytes'
+# P0-3: no mktemp scratch paths leak into user-facing copy.
+assert_no_match "9col: no /tmp/tmp. leak" "$OUT9" '/tmp/tmp\.'
+assert_contains "9col: AC note relativized" "$OUT9" "from planning/VERIFY_workbench_9col.md"
+# P1-4: every table wrapped in a scroll container for mobile.
+for HTML in "$OUT5" "$OUT9" "$OUT_SHX"; do
+  [[ -f "$HTML" ]] || continue
+  name="$(basename "$HTML")"
+  assert_contains "$name: has table-wrap" "$HTML" 'class="table-wrap"'
+  tbl=$(grep -oE '<table' "$HTML" | wc -l | tr -d ' ')
+  wrap=$(grep -oE 'class="table-wrap"' "$HTML" | wc -l | tr -d ' ')
+  if [[ "$wrap" -ge 1 && "$tbl" -eq "$wrap" ]]; then ok "$name: all tables wrapped ($tbl)"
+  else fail "$name: table/wrap mismatch tables=$tbl wraps=$wrap"; fi
+done
+# P1-5: empty lanes -> message, not header-only table.
+assert_match "9col: empty-lanes message" "$OUT9" "no lane reports"
+assert_contains "shx: lane row present" "$OUT_SHX" "backend"
+# P1-6: timeline n/a renders muted.
+assert_match "9col: muted n/a iter-value" "$OUT9" "iter-na"
+# P1-7: generated time humanized with datetime attr.
+assert_match "9col: time has datetime attr" "$OUT9" '<time datetime='
+assert_no_match "9col: no raw ISO in time display" "$OUT9" '<time>[0-9]{4}-[0-9]{2}-[0-9]{2}T'
+# P2-8: inline styles extracted to classes.
+assert_no_match "shx: no inline font-size styles" "$OUT_SHX" 'style="[^"]*font-size:15px'
+assert_no_match "shx: no inline box-shadow" "$OUT_SHX" 'box-shadow:none'
+assert_contains "9col: has sub-card class" "$OUT9" 'class="card sub-card"'
+assert_contains "9col: has sub-head class" "$OUT9" "sub-head"
+# P2-9: section jump-nav with anchor targets.
+assert_contains "9col: section-nav present" "$OUT9" 'class="section-nav"'
+assert_contains "9col: nav anchors ac" "$OUT9" 'href="#sec-ac"'
+assert_contains "9col: section id ac" "$OUT9" 'id="sec-ac"'
+# P2-10: only the first iteration detail is open (slug workbench spans 0,1,2).
+if [[ -f "$OUT_SHX" ]]; then
+  open_count=$(grep -oE '<details open>' "$OUT_SHX" | wc -l | tr -d ' ')
+  if [[ "$open_count" -eq 1 ]]; then ok "shx: only first iter details open"
+  else fail "shx: expected 1 <details open> got $open_count"; fi
+fi
 
 # ---------------------------------------------------------------
 # Summary
