@@ -356,6 +356,7 @@ From the SPEC build flags parsed in Step 0b and the working diff, resolve which 
 | `frontend=yes` AND `.claude/skills/role-*/SKILL.md` exists | `cfn-persona-verify` | manifest | no role docs -> silent skip (project never opted in). Validator exit 3 -> WARN-skip naming the failing doc; never verify against a doc that failed its schema. Login creds or `$*_BASE_URL` unset, or target unreachable (2s curl probe) -> WARN-skip naming the exact env var. Never auto-start servers |
 | diff touches `package.json`/lockfile/`Cargo.toml`/`requirements*` | `cfn-dep-audit` | manifest | self-contained |
 | `CFN_PERF_BENCH_CMD` set | `cfn-perf-gate` | manifest | unset -> silent skip |
+| ANY AC in the VERIFY manifest carries a `reference` key | `/cfn-ab-critic --ac <ids>` | manifest | no AC carries `reference` -> silent skip (AC never opted in); reference path/URL missing or unreadable (2s curl probe) -> WARN-skip naming AC+path; unsupported artifact type -> WARN-skip naming type. The executable `check` still owns pass/fail; this is an overlay |
 
 The security-review row is a floor: it runs whenever the trigger fires regardless of mode. The alpha-launch manifest is NOT a separate row: fold it into the always `/cfn-dry-review` row only when the task description contains "release", "launch", or "production readiness". The tech-debt line harvested in Step 3.5 carries through into every product-owner 2/3 decision and the final report.
 
@@ -368,7 +369,7 @@ Run the HARD gates (migration-rehearsal) before any manifest gate.
 
 ### Step 4.2: Run cfn-vote-implement per manifest (sequential)
 
-Run each manifest gate, then vote on each produced manifest by EXPLICIT path, in this order: security-review -> dep-audit -> dry-review -> perf-gate -> a11y-gate -> persona-verify (skip any gate not in the resolved set).
+Run each manifest gate, then vote on each produced manifest by EXPLICIT path, in this order: security-review -> dep-audit -> dry-review -> perf-gate -> a11y-gate -> persona-verify -> ab-critic (skip any gate not in the resolved set).
 
 **Scoping the persona gate:** run it last, because it drives the live app and is the slowest gate in the set. It must be scoped to this change, never run against every role every time:
 
@@ -380,6 +381,17 @@ An unscoped run reports every not-yet-built capability across every role and bur
 **Blocked is not passed.** The skill reports `blocked` when a check could not run (no seed data, login failed, entry point 404s for an unrelated reason). Carry every `blocked` into the report as-is. A capability that had nothing to click has not been verified, and recording it as a pass is how the gate starts lying.
 
 Only `implementation-wrong` findings enter the manifest and reach the vote. `doc-stale` findings surface as role-doc update proposals for the user to accept or reject, and `not-yet-built` is report-only. Never let this gate write to a role doc: those docs are the ground truth it is checking against, and auto-writing observed behavior into them turns a live bug into "working as designed" permanently.
+
+**Scoping the ab-critic gate:** it runs last because a vision/text compare is the slowest gate and it is scoped to opted-in ACs only. Resolve the AC ids from the VERIFY manifest, not from the whole plan:
+
+```bash
+# Extract the LAST fenced json block (same awk as verify-run.sh / bless-verify.sh).
+MANIFEST="$(awk '/^```json/{inblock=1;buf="";next} inblock&&/^```/{inblock=0;last=buf;next} inblock{buf=buf$0"\n"} END{printf "%s",last}' "planning/VERIFY_${SLUG}.md")"
+REF_IDS=$(printf '%s' "$MANIFEST" | jq -r '.acs[] | select(has("reference")) | .id' | paste -sd, -)
+[ -n "$REF_IDS" ] && /cfn-ab-critic --ac "$REF_IDS"
+```
+
+A manifest with zero `reference` keys resolves ab-critic OUT of the gate set entirely (silent skip, no manifest, no vote call) — the feature is opt-in per AC. This gate is a quality overlay: a blocked, missing, or losing reference never flips the AC's executable `check` to fail. A `block` tag (reference wins at confidence >= 0.9) is a merge-blocker regardless of the vote tally, mirroring persona-verify's block rule.
 
 ```bash
 # One call per manifest, explicit path. NEVER `latest` when >1 manifest exists.
