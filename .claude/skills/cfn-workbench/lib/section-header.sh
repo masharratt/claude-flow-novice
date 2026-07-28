@@ -1,5 +1,5 @@
 #!/bin/bash
-# lib/section-header.sh - top header card (slug, branch, iteration count, verdict, generated_at).
+# lib/section-header.sh - sticky Nocturne header band (slug, branch, iteration count, verdict, generated_at).
 
 section_header() {
   local slug="${WORKBENCH_SLUG:-}"
@@ -58,14 +58,36 @@ section_header() {
   generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   generated_pretty="$(date -u -d "$generated_at" '+%Y-%m-%d %H:%M UTC' 2>/dev/null || printf '%s' "$generated_at")"
 
+  # Open vote count across all manifests (open|pending suggestions).
+  local open_count=0
+  if [[ -d "$manifests_dir" ]]; then
+    open_count="$(jq -s '[.[].suggestions[]? | select(.status=="open" or .status=="pending")] | length' "$manifests_dir"/cfn-*.json 2>/dev/null || echo 0)"
+    [[ -z "$open_count" ]] && open_count=0
+  fi
+
+  # Gap count with singular/plural noun.
+  local gap_count gap_noun
+  gap_count="$(get_gap_count)"
+  if [[ "$gap_count" -eq 1 ]]; then
+    gap_noun="gap"
+  else
+    gap_noun="gaps"
+  fi
+
   cat <<EOF
-<header class="card header-card">
-  <h1>CFN Workbench: $(html_escape "$slug")</h1>
-  <div class="header-meta">
-    <span>Branch: <code>$(html_escape "$branch")</code></span>
-    <span>Iterations: <strong>$iter_count</strong></span>
-    <span>Verdict: <span class="pill pill-$(html_escape "$verdict")">$(html_escape "$verdict")</span></span>
-    <span>Generated: <time datetime="$(html_escape "$generated_at")">$(html_escape "$generated_pretty")</time></span>
+<header class="wb-sticky-header">
+  <h1 class="verdict-headline">$(html_escape "$verdict")</h1>
+  <hr class="verdict-rule"/>
+  <p class="header-summary">CFN Workbench run <code>$(html_escape "$slug")</code> on branch <code>$(html_escape "$branch")</code>, iteration $(html_escape "$iter_count"), generated <time datetime="$(html_escape "$generated_at")">$(html_escape "$generated_pretty")</time>.</p>
+  <div class="meta-grid">
+    <div><div class="meta-label">Run</div><div class="meta-value"><code>$(html_escape "$slug")</code></div></div>
+    <div><div class="meta-label">Branch</div><div class="meta-value"><code>$(html_escape "$branch")</code></div></div>
+    <div><div class="meta-label">Iterations</div><div class="meta-value">$(html_escape "$iter_count")</div></div>
+    <div><div class="meta-label">Generated</div><div class="meta-value"><time datetime="$(html_escape "$generated_at")">$(html_escape "$generated_pretty")</time></div></div>
+  </div>
+  <div class="count-pills">
+    <a class="count-pill" href="#sec-votes"><span class="count-pill-num">$(html_escape "$open_count")</span> open</a>
+    <a class="count-pill count-pill-gaps" href="#sec-gaps"><span class="count-pill-num">$(html_escape "$gap_count")</span> $(html_escape "$gap_noun")</a>
   </div>
 </header>
 EOF

@@ -2,10 +2,10 @@
 # lib/section-iteration-detail.sh - per-iteration detail: lanes, test summary, screenshot grid, gate events.
 #
 # Reuses the same iteration-discovery logic as timeline. For each iteration:
-#   - lane rows from lane-reports (pass_rate, tests_passed, tests_failed)
+#   - lane cards from lane-reports (pass_rate, tests_passed, tests_failed)
 #   - test-output summary line(s) from test-output-<slug>-<iter>.txt
 #   - screenshot grid (global cap from --max-screenshots, disabled by --no-screenshots)
-#   - gate events list (one bullet per manifest in this iteration with status + source)
+#   - gate events list (one row per manifest in this iteration with status + source)
 #
 # The screenshot cap is GLOBAL across all iterations: if the total number of
 # screenshots for the slug exceeds --max-screenshots, the first N are embedded
@@ -112,7 +112,7 @@ EOF
   local overflow_html=""
   if [[ "$no_shx" == "0" && $overflow_count -gt 0 ]]; then
     overflow_html="$(cat <<EOF
-<div class="card overflow-card">
+<div class="card sub-card overflow-card">
   <h3 class="sub-head">${overflow_count} more screenshot(s) omitted (cap: ${max})</h3>
   <div class="name">$(html_escape "$overflow_paths")</div>
 </div>
@@ -129,15 +129,13 @@ $overflow_html
 EOF
 }
 
-# render_iteration_block ITER
+# render_iteration_block ITER IS_FIRST
 # Reads WORKBENCH_SHX_SHOW (space-separated allowlist of paths) to decide which
 # screenshots to embed vs. skip silently (overflow is handled by the caller).
+# IS_FIRST=1 opens the <details>; all others render closed.
 render_iteration_block() {
   local iter="$1"
-  local is_first="${2:-1}"
-  # Only the first iteration expands by default; later iterations collapse.
-  local open_attr="open"
-  [[ "$is_first" == "1" ]] || open_attr=""
+  local IS_FIRST="${2:-1}"
   local slug="${WORKBENCH_SLUG:-}"
   local root="${WORKBENCH_ROOT:-.}"
   local manifests_dir="$root/.cfn-cache/manifests"
@@ -154,7 +152,8 @@ render_iteration_block() {
     show_set["$p"]=1
   done
 
-  local lane_rows=""
+  # Lanes: card grid (one lane-card per lane-report matching this iteration).
+  local lane_cards=""
   local lane_files=""
   [[ -d "$lane_root" ]] && lane_files="$(ls "$lane_root"/lane-report-${slug}-*.json 2>/dev/null || true)"
   local runtime_lanes="$(ls /tmp/lane-report-${slug}-*.json 2>/dev/null || true)"
@@ -176,31 +175,38 @@ render_iteration_block() {
     if [[ "$pr" =~ ^[0-9.]+$ ]]; then
       pr_pct="$(awk -v v="$pr" 'BEGIN { printf "%.0f", v*100 }')%"
     fi
-    lane_rows+="$(cat <<EOF
-<tr>
-  <td class="mono">$(html_escape "$lane")</td>
-  <td>$(html_escape "$pr_pct")</td>
-  <td>$(html_escape "$tp")</td>
-  <td>$(html_escape "$tf")</td>
-  <td class="mono">$(html_escape "$(basename "$f")")</td>
-</tr>
+    # Derive a status bucket from pass_rate (and any failures) for state_label.
+    # cfn: pass_rate-only derivation, upgrade if lane-report grows an explicit status field.
+    local status="unknown"
+    if [[ "$tf" =~ ^[0-9]+$ ]] && (( tf > 0 )); then
+      status="fail"
+    elif [[ "$pr" =~ ^[0-9.]+$ ]]; then
+      if awk -v v="$pr" 'BEGIN { exit !(v >= 1.0) }'; then
+        status="pass"
+      else
+        status="fail"
+      fi
+    fi
+    lane_cards+="$(cat <<EOF
+<div class="lane-card">
+  <div class="lane-name">$(html_escape "$lane")</div>
+  <div class="lane-rate">$(html_escape "$pr_pct")</div>
+  $(state_label "$status")
+</div>
 EOF
 )"
   done
 
   local lanes_block
-  if [[ -z "$lane_rows" ]]; then
+  if [[ -z "$lane_cards" ]]; then
     record_gap "lane-reports for slug ${slug} iteration ${iter}"
-    lanes_block="<p class=\"empty\">no lane reports for iteration ${iter}.</p>"
+    lanes_block='<p class="empty">no lane reports</p>'
   else
-    lanes_block="<div class=\"table-wrap\"><table>
-    <thead><tr><th>Lane</th><th>Pass</th><th>Passed</th><th>Failed</th><th>Source</th></tr></thead>
-    <tbody>${lane_rows}</tbody>
-  </table></div>"
+    lanes_block="<div class=\"lane-grid\">${lane_cards}</div>"
   fi
 
   # Test output summary line.
-  local test_summary="<span class=\"empty\">no test-output captured</span>"
+  local test_block='<p class="empty">no test-output captured</p>'
   local test_outputs=""
   [[ -d "$lane_root" ]] && test_outputs="$(ls "$lane_root"/test-output-${slug}-${iter}.txt 2>/dev/null || true)"
   local runtime_tests="$(ls /tmp/test-output-${slug}-${iter}.txt 2>/dev/null || true)"
@@ -216,24 +222,32 @@ EOF
     local summary_line
     summary_line="$(grep -E 'Tests|Test Files|passed|failed|PASS|FAIL' "$first_output" 2>/dev/null | head -3 | tr '\n' ' | ')"
     if [[ -n "$summary_line" ]]; then
-      test_summary="$(html_escape "$summary_line") <span class=\"note\">($(html_escape "$(basename "$first_output")"))</span>"
+      test_block="<div class=\"mono-block\">$(html_escape "$summary_line")</div>"
     fi
   else
     record_gap "test-output for slug ${slug} iteration ${iter}"
   fi
 
   # Gate events from manifests in this iteration.
-  local gate_events="<ul class=\"tight\"><li class=\"empty\">no manifests</li></ul>"
+  local gate_block='<p class="empty">no manifests</p>'
   if [[ -d "$manifests_dir" ]] && ls "$manifests_dir"/cfn-*-${iter}.json >/dev/null 2>&1; then
-    gate_events="<ul class=\"tight\">"
+    local gate_rows=""
     for m in $(ls "$manifests_dir"/cfn-*-${iter}.json 2>/dev/null); do
       [[ -f "$m" ]] || continue
       local src status
       src="$(jq -r '.source // "?"' "$m" 2>/dev/null)"
       status="$(jq -r '.status // "?"' "$m" 2>/dev/null)"
-      gate_events+="<li><span class=\"pill pill-$(html_escape "$status")\">$(html_escape "$status")</span> $(html_escape "$src") <span class=\"note\">($(html_escape "$(basename "$m")"))</span></li>"
+      gate_rows+="$(cat <<EOF
+<div class="gate-row">
+  <span class="gate-name">$(html_escape "$src")</span>
+  $(state_label "$status")
+</div>
+EOF
+)"
     done
-    gate_events+="</ul>"
+    if [[ -n "$gate_rows" ]]; then
+      gate_block="<div class=\"gate-list\">${gate_rows}</div>"
+    fi
   fi
 
   # Screenshots for THIS iteration. Only those in show_set are embedded; the
@@ -241,7 +255,7 @@ EOF
   local shx_html=""
   local iter_total=0
   if [[ "$no_shx" == "1" ]]; then
-    shx_html="<p class=\"note\">Screenshots skipped (--no-screenshots).</p>"
+    shx_html='<p class="note">Screenshots skipped (--no-screenshots).</p>'
   else
     local -a iter_shx=()
     if [[ -d "$screenshots_dir" ]]; then
@@ -259,12 +273,13 @@ EOF
       for s in "${iter_shx[@]:-}"; do
         [[ -z "$s" ]] && continue
         if [[ -n "${show_set[$s]:-}" ]]; then
-          local uri name
-          uri="$(data_uri_png "$s")"
+          local name label
           name="$(basename "$s")"
+          label="${name%.png}"
           cards+="$(cat <<EOF
-<div class="screenshot-card">
-  <details><summary>$(html_escape "$name")</summary><img src="$(html_escape "$uri")" alt="$(html_escape "$name")"></details>
+<div class="shot-thumb">
+  <div class="shot-label">$(html_escape "$label")</div>
+  <img src="$(data_uri_png "$s")" alt="screenshot"/>
   <div class="name">$(html_escape "$name")</div>
 </div>
 EOF
@@ -273,22 +288,23 @@ EOF
         fi
       done
       if [[ $shown_here -eq 0 ]]; then
-        cards="<div class=\"screenshot-card\"><div class=\"note\">All ${iter_total} screenshot(s) for this iteration were omitted by the cap (see overflow card).</div></div>"
+        shx_html="<p class=\"note\">All ${iter_total} screenshot(s) for this iteration were omitted by the cap (see overflow card).</p>"
+      else
+        shx_html="<div class=\"shot-grid\">${cards}</div>"
       fi
-      shx_html="<div class=\"screenshot-grid\">${cards}</div>"
     fi
   fi
 
   cat <<EOF
-<details ${open_attr}>
+<details$([[ "$IS_FIRST" == "1" ]] && printf ' open')>
 <summary>Iteration ${iter}</summary>
 <div class="card sub-card">
   <h3 class="sub-head">Lanes</h3>
   ${lanes_block}
   <h3 class="sub-head">Test summary</h3>
-  <div>${test_summary}</div>
+  ${test_block}
   <h3 class="sub-head">Gate events</h3>
-  ${gate_events}
+  ${gate_block}
   <h3 class="sub-head">Screenshots (${iter_total:-0})</h3>
   ${shx_html}
 </div>

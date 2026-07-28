@@ -12,10 +12,12 @@ section_tech_debt() {
 
   if [[ ! -d "$manifests_dir" ]] || ! ls "$manifests_dir"/cfn-*.json >/dev/null 2>&1; then
     record_gap "manifests dir (tech-debt ledger empty)"
-    cat <<EOF
+    cat <<'EOF'
 <section class="card" id="sec-debt">
-<h2>Tech-Debt Ledger</h2>
-<p class="empty">No manifests to scan.</p>
+<span class="section-kicker">Tech debt</span>
+<h2>Tech-debt ledger</h2>
+<hr class="hr"/>
+<p class="empty">No tech-debt items tagged.</p>
 </section>
 EOF
     return
@@ -31,37 +33,51 @@ EOF
   local total
   total=$(printf '%s' "$merged" | jq 'length')
   if [[ "$total" == "0" ]]; then
-    cat <<EOF
+    cat <<'EOF'
 <section class="card" id="sec-debt">
-<h2>Tech-Debt Ledger</h2>
-<p class="empty">No tech-debt suggestions (category=tech-debt or tag matches cfn:). </p>
+<span class="section-kicker">Tech debt</span>
+<h2>Tech-debt ledger</h2>
+<hr class="hr"/>
+<p class="empty">No tech-debt items tagged.</p>
 </section>
 EOF
     return
   fi
 
-  local rows
-  rows=$(printf '%s' "$merged" | jq -r '
-    def esc: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;") | gsub("\""; "&quot;");
+  # Emit rows as TSV; bash reads them back and builds each <tr> so every cell
+  # routes through html_escape (and status through state_label). jq no longer
+  # does HTML escaping here.
+  local rows_tsv
+  rows_tsv=$(printf '%s' "$merged" | jq -r '
     sort_by(.id) | .[] |
-    "<tr>" +
-      "<td class=\"mono\">" + (.id | tostring | esc) + "</td>" +
-      "<td>" + (.title | if . == "" then (.one_liner | esc) else esc end) + "</td>" +
-      "<td>" + (.tag | esc) + "</td>" +
-      "<td>" + ((.files // []) | join(", ") | esc) + "</td>" +
-      "<td><span class=\"pill pill-" + ((.status // "open") | tostring | esc) + "\">" + ((.status // "open") | tostring | esc) + "</span></td>" +
-    "</tr>"
+    [
+      (.id | tostring),
+      (.tag // ""),
+      (.title // .one_liner // ""),
+      ((.status // "open") | tostring)
+    ] | @tsv
   ')
+
+  local id category item status row_html=""
+  while IFS=$'\t' read -r id category item status; do
+    [[ -z "$id" ]] && continue
+    row_html+=$(printf '<tr><td class="mono">%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' \
+      "$(html_escape "$id")" \
+      "$(html_escape "$category")" \
+      "$(html_escape "$item")" \
+      "$(state_label "$status")")
+  done <<< "$rows_tsv"
 
   cat <<EOF
 <section class="card" id="sec-debt">
-<h2>Tech-Debt Ledger (${total})</h2>
-<p class="note">Derived from suggestion manifests (category=tech-debt or tag matches cfn:). When the cfn-tech-debt skill publishes its own ledger, this section can read it directly.</p>
+<span class="section-kicker">Tech debt</span>
+<h2>Tech-debt ledger</h2>
+<hr class="hr"/>
 <div class="table-wrap">
 <table>
-  <thead><tr><th>ID</th><th>Title</th><th>Tag</th><th>Files</th><th>Status</th></tr></thead>
+  <thead><tr><th>ID</th><th>Category</th><th>Item</th><th>Status</th></tr></thead>
   <tbody>
-${rows}
+${row_html}
   </tbody>
 </table>
 </div>

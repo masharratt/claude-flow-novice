@@ -11,10 +11,12 @@ section_vote_ledger() {
 
   if [[ ! -d "$manifests_dir" ]] || ! ls "$manifests_dir"/cfn-*.json >/dev/null 2>&1; then
     record_gap "manifests dir (vote ledger empty)"
-    cat <<EOF
+    cat <<'EOF'
 <section class="card" id="sec-votes">
-<h2>Vote Ledger</h2>
-<p class="empty">No suggestion manifests found in .cfn-cache/manifests/.</p>
+<span class="section-kicker">Review</span>
+<h2>Vote ledger</h2>
+<hr class="hr"/>
+<p class="empty">No review suggestions.</p>
 </section>
 EOF
     return
@@ -33,41 +35,45 @@ EOF
   local total
   total=$(printf '%s' "$merged" | jq 'length')
   if [[ "$total" == "0" ]]; then
-    cat <<EOF
+    cat <<'EOF'
 <section class="card" id="sec-votes">
-<h2>Vote Ledger</h2>
-<p class="empty">No suggestions across manifests.</p>
+<span class="section-kicker">Review</span>
+<h2>Vote ledger</h2>
+<hr class="hr"/>
+<p class="empty">No review suggestions.</p>
 </section>
 EOF
     return
   fi
 
-  local rows
-  rows=$(printf '%s' "$merged" | jq -r '
-    def esc: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;") | gsub("\""; "&quot;");
-    sort_by(.id) | .[] |
-    "<tr>" +
-      "<td class=\"mono\">" + (.id | tostring | esc) + "</td>" +
-      "<td>" + (.title | if . == "" then (.one_liner | esc) else esc end) + "</td>" +
-      "<td>" + (.category | esc) + "</td>" +
-      "<td>" + (.impact | esc) + "/" + (.effort | esc) + "</td>" +
-      "<td><span class=\"pill pill-" + (.status | tostring | esc) + "\">" + (.status | tostring | esc) + "</span></td>" +
-      "<td class=\"mono\">" + (.source | esc) + "</td>" +
-    "</tr>"
-  ')
+  # jq emits one TSV row per suggestion; bash reads each row and builds the
+  # <tr>, routing EVERY cell through html_escape and the status cell through
+  # state_label. No escaping happens inside jq: the prior local esc() missed
+  # single-quote; @tsv + html_escape closes that gap.
+  printf '<section class="card" id="sec-votes">\n'
+  printf '<span class="section-kicker">Review</span>\n'
+  printf '<h2>Vote ledger</h2>\n'
+  printf '<hr class="hr"/>\n'
+  printf '<div class="table-wrap"><table>\n'
+  printf '<thead><tr><th>ID</th><th>Category</th><th>Suggestion</th><th>Status</th></tr></thead>\n'
+  printf '<tbody>\n'
 
-  cat <<EOF
-<section class="card" id="sec-votes">
-<h2>Vote Ledger (${total})</h2>
-<p class="note">One row per suggestion id, status reflects the latest manifest that touched it.</p>
-<div class="table-wrap">
-<table>
-  <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Impact/Effort</th><th>Status</th><th>Source</th></tr></thead>
-  <tbody>
-${rows}
-  </tbody>
-</table>
-</div>
-</section>
-EOF
+  printf '%s' "$merged" | jq -r '
+    sort_by(.id) | .[] |
+    [ (.id // "" | tostring),
+      (.category // "" | tostring),
+      ((.one_liner // .description // "") | tostring),
+      (.status // "" | tostring)
+    ] | @tsv
+  ' | while IFS=$'\t' read -r id category suggestion status; do
+    printf '<tr>'
+    printf '<td>%s</td>' "$(html_escape "$id")"
+    printf '<td>%s</td>' "$(html_escape "$category")"
+    printf '<td>%s</td>' "$(html_escape "$suggestion")"
+    printf '<td>%s</td>' "$(state_label "$status")"
+    printf '</tr>\n'
+  done
+
+  printf '</tbody></table></div>\n'
+  printf '</section>\n'
 }

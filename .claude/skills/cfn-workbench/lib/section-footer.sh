@@ -4,11 +4,11 @@
 section_footer() {
   local slug="${WORKBENCH_SLUG:-}"
   local root="${WORKBENCH_ROOT:-.}"
-  local out="${WORKBENCH_OUT:-?}"
   local cmd="${WORKBENCH_INVOCATION:-cfn-workbench --slug ${slug}}"
 
   # Size is backfilled by render.sh after the file is written (the footer
   # renders before the document is assembled); emit a unique token.
+  # cfn: literal token, not interpolation; do not html_escape. render.sh sed-fills it.
   local size="__WB_SIZE__"
 
   # Count inputs (manifests + VERIFY + results + bless + lane-reports + screenshots).
@@ -24,31 +24,41 @@ section_footer() {
   [[ -d "$lane_root" ]] && input_count=$((input_count + $(ls "$lane_root"/lane-report-${slug}-*.json 2>/dev/null | wc -l)))
   input_count=$((input_count + $(ls /tmp/lane-report-${slug}-*.json 2>/dev/null | wc -l)))
 
-  # Gaps
+  # Gaps footer detail list. The top-of-page gaps strip is emitted by render.sh
+  # via gaps_strip; this is the separate, always-at-the-bottom detail block.
   local gaps_html=""
   local gap_count
   gap_count=$(get_gap_count)
   if [[ "$gap_count" -gt 0 ]]; then
-    gaps_html="<div class=\"gap-list\"><strong>Data gaps (${gap_count}):</strong><ul>"
+    gaps_html='<div class="gap-list"><strong>Data gaps</strong><ul>'
     while IFS= read -r g; do
       [[ -z "$g" ]] && continue
       gaps_html+="<li>$(html_escape "$g")</li>"
     done < <(get_gaps)
-    gaps_html+="</ul></div>"
-  else
-    gaps_html="<div class=\"note\">No data gaps. All expected sources were found.</div>"
+    gaps_html+='</ul></div>'
   fi
 
   cat <<EOF
-<footer class="card" id="sec-gaps">
+<footer class="card footer-meta" id="sec-gaps">
+<span class="section-kicker">Generated</span>
 <h2>Footer</h2>
+<hr class="hr"/>
 <div class="footer-meta">
   <div>Command: <code>$(html_escape "$cmd")</code></div>
-  <div>Inputs read: ${input_count}</div>
   <div>HTML size: $size bytes</div>
-  <div>Out: <code>$(html_escape "$(display_path "$out")")</code></div>
+  <div>Inputs scanned: $(html_escape "$input_count")</div>
+  ${gaps_html}
 </div>
-${gaps_html}
+<details class="legend">
+  <summary>State key</summary>
+  <div class="legend-grid">
+    <div class="legend-item"><span class="state state-settled">settled</span> pass, completed, accepted, blessed</div>
+    <div class="legend-item"><span class="state state-waiting">waiting</span> pending, in-progress, open, proposed</div>
+    <div class="legend-item"><span class="state state-unknown">unknown</span> unknown, rejected, superseded</div>
+    <div class="legend-item"><span class="state state-action">action</span> fail</div>
+    <div class="legend-item"><span class="state state-fatal">fatal</span> blocked, aborted</div>
+  </div>
+</details>
 </footer>
 EOF
 }

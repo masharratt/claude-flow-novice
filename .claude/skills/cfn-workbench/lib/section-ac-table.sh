@@ -17,6 +17,12 @@
 # Display columns (consistent regardless of source): id, check, kind, pass,
 # status (from embedded/results JSON or derived from pass), evidence, reference.
 # When the source has no "reference" column, the reference cell renders as "-".
+#
+# XSS safety: jq emits rows as TSV (@tsv); bash reads fields with
+# IFS=$'\t' read and routes EVERY cell through html_escape (the canonical
+# escaper, handles single-quote) and status through state_label. jq does no
+# HTML escaping, closing the old divergence where a local jq esc missed
+# single-quote. Payloads like <script>alert(1)</script> stay escaped.
 
 section_ac_table() {
   local slug="${WORKBENCH_SLUG:-}"
@@ -28,8 +34,10 @@ section_ac_table() {
     record_gap "VERIFY_${slug}.md (AC table source)"
     cat <<EOF
 <section class="card" id="sec-ac">
-<h2>Acceptance Criteria</h2>
-<p class="empty">No VERIFY doc found at planning/VERIFY_${slug}.md.</p>
+<span class="section-kicker">Definition of done</span>
+<h2>Acceptance criteria</h2>
+<hr class="hr"/>
+<p class="empty">No VERIFY doc found at $(html_escape "planning/VERIFY_${slug}.md").</p>
 </section>
 EOF
     return
@@ -110,8 +118,10 @@ EOF
     record_gap "AC table in $(display_path "$verify_md") (no rows parsed)"
     cat <<EOF
 <section class="card" id="sec-ac">
-<h2>Acceptance Criteria</h2>
-<p class="empty">No markdown AC table found in $(display_path "$verify_md").</p>
+<span class="section-kicker">Definition of done</span>
+<h2>Acceptance criteria</h2>
+<hr class="hr"/>
+<p class="empty">No markdown AC table found in $(html_escape "$(display_path "$verify_md")").</p>
 </section>
 EOF
     return
@@ -175,33 +185,50 @@ EOF
   pass_count=$(printf '%s' "$merged" | jq '[.[] | select(.status == "pass")] | length')
   fail_count=$(printf '%s' "$merged" | jq '[.[] | select(.status == "fail")] | length')
 
-  # Build rows
-  local rows
-  rows=$(printf '%s' "$merged" | jq -r '
-    def esc: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;") | gsub("\""; "&quot;");
-    .[] |
-    "<tr>" +
-      "<td class=\"mono\">" + (.id | tostring | esc) + "</td>" +
-      "<td>" + (.check | esc) + "</td>" +
-      "<td>" + (.kind | esc) + "</td>" +
-      "<td><span class=\"pill pill-" + (.status | tostring) + "\">" + (.status | tostring | esc) + "</span></td>" +
-      "<td>" + (.evidence | if . == "" then "<span class=\"empty\">-</span>" else esc end) + "</td>" +
-      "<td>" + (.reference | if . == "" or . == "-" then "<span class=\"empty\">-</span>" else esc end) + "</td>" +
-    "</tr>"
-  ')
-
-  cat <<EOF
-<section class="card" id="sec-ac">
-<h2>Acceptance Criteria (${pass_count}/${total} pass, ${fail_count} fail)</h2>
-<p class="note">Parsed by header name from $(display_path "$verify_md"). Reference column shows "-" when the source table omits it.</p>
-<div class="table-wrap">
-<table>
-  <thead><tr><th>ID</th><th>Check</th><th>Kind</th><th>Status</th><th>Evidence</th><th>Reference</th></tr></thead>
-  <tbody>
-${rows}
-  </tbody>
-</table>
-</div>
-</section>
-EOF
+  # Emit rows: jq outputs TSV (raw values, @tsv-escaped), bash reads fields and
+  # builds each <tr> with html_escape on every cell and state_label on status.
+  # This makes html_escape the single escaper (handles single-quote, which the
+  # old jq-local esc did not), so XSS payloads stay escaped.
+  printf '<section class="card" id="sec-ac">'
+  printf '<span class="section-kicker">Definition of done</span>'
+  printf '<h2>Acceptance criteria</h2>'
+  printf '<hr class="hr"/>'
+  printf '<p class="note">Parsed by header name from %s. %s/%s pass, %s fail. Reference column shows "-" when the source table omits it.</p>' \
+    "$(html_escape "$(display_path "$verify_md")")" "$pass_count" "$total" "$fail_count"
+  printf '<div class="table-wrap"><table class="ac-table">'
+  printf '<thead><tr>'
+  printf '<th>%s</th>' "$(html_escape 'ID')"
+  printf '<th>%s</th>' "$(html_escape 'Check')"
+  printf '<th>%s</th>' "$(html_escape 'Kind')"
+  printf '<th>%s</th>' "$(html_escape 'Status')"
+  printf '<th>%s</th>' "$(html_escape 'Evidence')"
+  printf '<th>%s</th>' "$(html_escape 'Reference')"
+  printf '</tr></thead>'
+  printf '<tbody>'
+  printf '%s' "$merged" | jq -r '
+    .[] | [(.id | tostring), (.check | tostring), (.kind | tostring),
+           (.status | tostring), (.evidence | tostring), (.reference | tostring)
+          ] | @tsv
+  ' | while IFS=$'\t' read -r id check kind status evidence reference; do
+    [[ -z "$id" && -z "$check" && -z "$kind" && -z "$status" && -z "$evidence" && -z "$reference" ]] && continue
+    printf '<tr>'
+    printf '<td class="mono">%s</td>' "$(html_escape "$id")"
+    printf '<td>%s</td>' "$(html_escape "$check")"
+    printf '<td>%s</td>' "$(html_escape "$kind")"
+    printf '<td>%s</td>' "$(state_label "$status")"
+    if [[ -z "$evidence" ]]; then
+      printf '<td><span class="empty">-</span></td>'
+    else
+      printf '<td>%s</td>' "$(html_escape "$evidence")"
+    fi
+    if [[ -z "$reference" || "$reference" == "-" ]]; then
+      printf '<td><span class="empty">-</span></td>'
+    else
+      printf '<td>%s</td>' "$(html_escape "$reference")"
+    fi
+    printf '</tr>'
+  done
+  printf '</tbody>'
+  printf '</table></div>'
+  printf '</section>'
 }

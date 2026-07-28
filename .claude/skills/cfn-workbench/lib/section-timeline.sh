@@ -69,18 +69,25 @@ section_timeline() {
     record_gap "iteration timeline (no manifests, screenshots, or lane-reports found)"
     cat <<EOF
 <section class="card" id="sec-timeline">
-<h2>Iteration Timeline</h2>
+<span class="section-kicker">Progress</span>
+<h2>Iteration timeline</h2>
+<hr class="hr"/>
 <p class="empty">No iterations detected. Render against a project root with .cfn-cache/manifests/, tests/screenshots/&lt;slug&gt;-iteration-*.png, or tmp/lane-report-&lt;slug&gt;-*.json.</p>
 </section>
 EOF
     return
   fi
 
+  # Identify the single latest (highest) iteration for the iter-card-latest accent.
+  local latest_iter
+  latest_iter="$(printf '%s\n' $sorted | sed -n '$p')"
+
   local rows=""
   for iter in $sorted; do
     [[ -z "$iter" ]] && continue
     local pass_rate="n/a"
-    local gate="?"
+    local pr_numeric=""
+    local gate=""
     local commits="0"
 
     # Pass rate: average of lane-report pass_rate for this iteration.
@@ -98,11 +105,8 @@ EOF
     if [[ -n "${pr_values// /}" ]]; then
       local avg
       avg=$(printf '%s\n' $pr_values | awk '{s+=$1; n++} END {if (n>0) printf "%.0f", (s/n)*100; else print "n/a"}')
-      [[ -n "$avg" ]] && pass_rate="${avg}%"
+      [[ -n "$avg" ]] && pass_rate="${avg}%" && pr_numeric="$avg"
     fi
-    # n/a renders muted instead of a big bold "broken" value.
-    local pr_class=""
-    [[ "$pass_rate" == "n/a" ]] && pr_class=" iter-na"
 
     # Gate verdict from manifest status (any non-completed wins).
     if [[ -d "$manifests_dir" ]]; then
@@ -125,12 +129,43 @@ EOF
       commits="$(git -C "$root" rev-list --count HEAD 2>/dev/null || echo 0)"
     fi
 
+    # Pre-escape dynamic text values (built fragments stay as raw markup).
+    local iter_esc commits_esc
+    iter_esc="$(html_escape "$iter")"
+    commits_esc="$(html_escape "$commits")"
+
+    # Cell class: accent the single latest/highest iteration only.
+    local cell_class="timeline-cell"
+    [[ "$iter" == "$latest_iter" ]] && cell_class="timeline-cell iter-card-latest"
+
+    # Commit count span: shown when a count is known (data logic always provides one).
+    local commits_span=""
+    [[ -n "$commits_esc" ]] && commits_span="<span> · ${commits_esc} commits</span>"
+
+    # Pass-rate value: numeric -> bold value; n/a -> muted.
+    local pr_class="iter-value"
+    local pr_value
+    if [[ "$pass_rate" == "n/a" ]]; then
+      pr_class="iter-value iter-na"
+      pr_value="$(html_escape "n/a")"
+    else
+      pr_value="$(html_escape "$pass_rate")"
+    fi
+
+    # Progress bar fill only when a numeric rate exists (pure CSS var --p, 0..100).
+    local bar_html=""
+    [[ -n "$pr_numeric" ]] && bar_html="<div class=\"progress\"><div style=\"--p:${pr_numeric}\"></div></div>"
+
+    # Gate verdict via state_label; empty -> unknown bucket (never a literal "?").
+    local gate_html
+    gate_html="$(state_label "${gate:-unknown}")"
+
     rows+="$(cat <<EOF
-<div class="timeline-cell">
-  <div class="iter-label">Iteration ${iter}</div>
-  <div class="iter-value${pr_class}">$(html_escape "$pass_rate")</div>
-  <div class="iter-label">gate: <span class="pill pill-$(html_escape "$gate")">$(html_escape "$gate")</span></div>
-  <div class="iter-label">commits: $(html_escape "$commits")</div>
+<div class="${cell_class}">
+  <div class="iter-label">iter ${iter_esc}${commits_span}</div>
+  <div class="${pr_class}">${pr_value}</div>
+  ${bar_html}
+  <div class="iter-label">${gate_html}</div>
 </div>
 EOF
 )"
@@ -138,8 +173,9 @@ EOF
 
   cat <<EOF
 <section class="card" id="sec-timeline">
-<h2>Iteration Timeline</h2>
-<p class="note">Pass rate is the mean across lane reports for the iteration. Commit count is the repo total (per-iter ranges require iter tags).</p>
+<span class="section-kicker">Progress</span>
+<h2>Iteration timeline</h2>
+<hr class="hr"/>
 <div class="timeline-grid">
 ${rows}
 </div>

@@ -297,10 +297,9 @@ done
 # GROUP 12: UI / readability improvements (review P0-P2)
 # ---------------------------------------------------------------
 echo "[12] ui readability"
-# P0-1: verdict pill (in-progress) has a CSS rule; base .pill has a visible bg
-# so ANY unclassed pill renders instead of disappearing.
-assert_match "9col: in-progress pill styled" "$OUT9" '\.pill-in-progress[[:space:]]*\{'
-assert_contains "9col: base .pill has neutral bg" "$OUT9" "background: #e2e8f0"
+# P0-1: Nocturne state-label system. A state bucket rule exists; dark bg token set.
+assert_match "9col: state-action rule styled" "$OUT9" '\.state-action[[:space:]]*\{'
+assert_contains "9col: dark bg token present" "$OUT9" "--color-bg: #161826"
 # P0-2: HTML size backfilled (no "?" placeholder).
 assert_no_match "9col: no '?' size placeholder" "$OUT9" 'HTML size: \? bytes'
 assert_match "9col: size is numeric" "$OUT9" 'HTML size: [0-9]+ bytes'
@@ -340,6 +339,50 @@ if [[ -f "$OUT_SHX" ]]; then
   if [[ "$open_count" -eq 1 ]]; then ok "shx: only first iter details open"
   else fail "shx: expected 1 <details open> got $open_count"; fi
 fi
+
+# ---------------------------------------------------------------
+# GROUP 13: Nocturne dark-theme re-skin
+# ---------------------------------------------------------------
+echo "[13] nocturne theme"
+# 1. dark tokens present
+assert_contains "9col: bg token" "$OUT9" "--color-bg: #161826"
+assert_contains "9col: accent token" "$OUT9" "--color-accent: #9184d9"
+# 2. no Google Fonts / no external font fetch
+assert_no_match "9col: no google fonts" "$OUT9" "fonts\.googleapis"
+assert_no_match "shx: no google fonts" "$OUT_SHX" "fonts\.googleapis"
+# 10. still self-contained: no @import, no https in <style>
+assert_no_match "9col: no @import" "$OUT9" "@import"
+assert_no_match "9col: no https in style" "$OUT9" "https://"
+# 3. .hr fading rule present (linear-gradient + transparent)
+assert_match "9col: hr fading rule" "$OUT9" "\.hr[^{]*\{[^}]*linear-gradient"
+# 4. state-label buckets emitted across sections
+assert_match "9col: state-settled emitted (pass AC)" "$OUT9" "state-settled"
+assert_match "shx: state-waiting emitted (open suggestion)" "$OUT_SHX" "state-waiting"
+assert_match "shx: state-action or state-fatal present" "$OUT_SHX" "state-(action|fatal)"
+# 5. sticky header + verdict headline
+assert_contains "9col: sticky header class" "$OUT9" 'class="wb-sticky-header"'
+assert_contains "9col: verdict headline" "$OUT9" 'class="verdict-headline"'
+# 6. gaps strip at top when gaps exist (must precede sec-detail in byte order)
+if [[ -f "$OUT_SHX" ]]; then
+  strip_off=$(grep -bo 'class="gaps-strip"' "$OUT_SHX" | head -1 | cut -d: -f1)
+  detail_off=$(grep -bo 'id="sec-detail"' "$OUT_SHX" | head -1 | cut -d: -f1)
+  if [[ -n "$strip_off" && -n "$detail_off" && "$strip_off" -lt "$detail_off" ]]; then
+    ok "shx: gaps-strip precedes sec-detail"
+  else fail "shx: gaps-strip not before sec-detail (strip=$strip_off detail=$detail_off)"; fi
+fi
+# 7. legend present
+assert_contains "9col: legend present" "$OUT9" 'class="legend"'
+# 8. decisions section: id always present; card vs empty-state by ledger presence
+assert_contains "9col: decisions section id" "$OUT9" 'id="sec-decisions"'
+assert_contains "shx: decisions section id" "$OUT_SHX" 'id="sec-decisions"'
+assert_contains "empty: decisions section id" "$EMPTY_OUT" 'id="sec-decisions"'
+assert_contains "shx: decision card with actor-human" "$OUT_SHX" "actor-human"
+assert_match "9col: decisions empty-state" "$OUT9" "(No decisions logged|no decisions)"
+assert_match "empty: decisions empty-state" "$EMPTY_OUT" "(No decisions logged|no decisions)"
+# 9. nav has Decisions anchor
+assert_contains "9col: nav decisions anchor" "$OUT9" 'href="#sec-decisions"'
+# decisions XSS payload (in workbench slug rationale) stays escaped
+assert_not_contains "shx: decisions rationale escaped" "$OUT_SHX" "<script>alert(1)</script>"
 
 # ---------------------------------------------------------------
 # Summary

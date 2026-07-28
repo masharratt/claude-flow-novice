@@ -26,6 +26,7 @@ source "$SCRIPT_DIR/lib/section-ac-table.sh"
 source "$SCRIPT_DIR/lib/section-vote-ledger.sh"
 source "$SCRIPT_DIR/lib/section-tech-debt.sh"
 source "$SCRIPT_DIR/lib/section-bless-ledger.sh"
+source "$SCRIPT_DIR/lib/section-decisions.sh"
 source "$SCRIPT_DIR/lib/section-footer.sh"
 
 SLUG=""
@@ -136,10 +137,15 @@ NAV_HTML="$(section_nav)"
 TIMELINE_HTML="$(section_timeline)"
 DETAIL_HTML="$(section_iteration_detail)"
 AC_HTML="$(section_ac_table)"
+DECISIONS_HTML="$(section_decisions)"
 VOTE_HTML="$(section_vote_ledger)"
 DEBT_HTML="$(section_tech_debt)"
 BLESS_HTML="$(section_bless_ledger)"
 FOOTER_HTML="$(section_footer)"
+# Gaps strip is emitted at the top of the page but can only be built after every
+# section has run (sections record gaps as they render). Captured here, after all
+# sections; empty string when there are no gaps (gap-free renders stay clean).
+GAPS_STRIP_HTML="$(gaps_strip)"
 
 # Assemble the document. Style is inlined; no <link>, no external src/href.
 {
@@ -157,9 +163,11 @@ FOOTER_HTML="$(section_footer)"
   printf '<main class="container">\n'
   printf '%s\n' "$HEADER_HTML"
   printf '%s\n' "$NAV_HTML"
+  printf '%s\n' "$GAPS_STRIP_HTML"
   printf '%s\n' "$TIMELINE_HTML"
   printf '%s\n' "$DETAIL_HTML"
   printf '%s\n' "$AC_HTML"
+  printf '%s\n' "$DECISIONS_HTML"
   printf '%s\n' "$VOTE_HTML"
   printf '%s\n' "$DEBT_HTML"
   printf '%s\n' "$BLESS_HTML"

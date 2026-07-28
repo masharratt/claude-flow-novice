@@ -1,0 +1,29 @@
+{
+  "slug": "workbench",
+  "decisions": [
+    {
+      "id": "D-01",
+      "actor": "human",
+      "title": "Ship Nocturne as the only theme",
+      "chosen": "Replace the light theme entirely; no light/dark toggle",
+      "rationale": "Single theme keeps the renderer simple and the bundle small. No JS needed for a toggle.",
+      "alternatives": "Ship both themes behind a toggle",
+      "iteration": 2,
+      "blocking": false,
+      "timestamp": "2026-07-28T09:12:00Z",
+      "status": "accepted"
+    },
+    {
+      "id": "D-02",
+      "actor": "ai",
+      "title": "Use system font stack for Inter",
+      "chosen": "Map the design's Inter to the OS system font stack",
+      "rationale": "Self-containment contract forbids external requests, so Google Fonts is out. Note: <script>alert(1)</script> payload here to prove escaping.",
+      "alternatives": "Base64-inline the Inter woff2",
+      "iteration": 2,
+      "blocking": false,
+      "timestamp": "2026-07-28T09:14:00Z",
+      "status": "proposed"
+    }
+  ]
+}
