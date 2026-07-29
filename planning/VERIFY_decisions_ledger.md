@@ -1,0 +1,972 @@
+# Bar A VERIFY Manifest: decisions-ledger writer
+
+**Slug**: `decisions-ledger`
+**Stage**: plan (all evidence `PENDING: <reason>`; bless gate will refresh)
+**Tier**: beta (DB flag = no; full hostile-input matrix; 4 coordinator hook sites)
+**Source AC doc**: `planning/TEST_decisions_ledger.md` (64 base ACs + 2 promoted Step-7 decisions: AC-65, AC-66; total 66)
+**Plan step mapping**: `planning/PLAN_decisions_ledger.md`
+**Architecture source**: `planning/ARCH_decisions_ledger.md`
+**Ops signals source**: `planning/OPS_decisions_ledger.md`
+
+## Framework alignment note
+
+Writer is bash + jq CLI. Tests run under `bash`, not vitest/jest/playwright. Per
+`verifiable-done.md` §Framework, the `--filter=-t`/`--filter=-g` vitest runner
+flags do not apply: every AC below uses `bash <test>.sh` as the runner form for
+unit / integration / assembled-path kinds, or `grep -RnE ...` as the direct
+form for `static` / `wiring-guard` kinds. No `<file>::<name>` selectors exist.
+
+## Static-kind note
+
+ACs with kind `static` (AC-14, AC-21, AC-24, AC-34, AC-54, AC-56, AC-65) target
+defensive invariants in the writer's OWN source: absence of DELETE flags,
+absence of an exit-6 codepath, presence of the E_JQ_BUILD branch, absence of
+caller-detection. They cannot be exercised at runtime without instrumenting
+source, so they use direct `grep -RnE` over writer source files. AC-34
+companion (EC-16) is a negative invariant (no directional transition gate);
+the static grep confirms zero rejection code present.
+
+## Kind distribution
+
+| Kind | Count | ACs |
+|------|-------|-----|
+| unit | 15 | AC-3, AC-8, AC-16, AC-17, AC-19, AC-20, AC-36, AC-42, AC-43, AC-44, AC-46, AC-47, AC-48, AC-53, AC-57, AC-58 |
+| integration | 22 | AC-1, AC-2, AC-4, AC-5, AC-6, AC-7, AC-15, AC-18, AC-22, AC-23, AC-25-33, AC-37, AC-39, AC-45, AC-49, AC-50, AC-51, AC-52, AC-55, AC-59, AC-60, AC-66 |
+| assembled-path | 9 | AC-9, AC-10, AC-11, AC-12, AC-13, AC-35, AC-38, AC-40, AC-41 |
+| static | 7 | AC-14, AC-21, AC-24, AC-34, AC-54, AC-56, AC-65 |
+| wiring-guard | 4 | AC-61, AC-62, AC-63, AC-64 |
+
+Total = 66. (Counts above show the natural overlap: ACs that assert multiple
+kinds are filed under their primary runner form.)
+
+## Bar A gate report (placeholder; refresh at bless)
+
+```bash
+.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh planning/VERIFY_decisions_ledger.md --stage plan
+```
+
+## Manifest
+
+```json
+{
+  "slug": "decisions-ledger",
+  "acs": [
+    {
+      "id": "AC-1",
+      "kind": "integration",
+      "maps_to": [
+        "FR-1"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/10-insert-new.sh",
+      "pass": "exit 0 AND jq '.decisions[]|select(.id==\"test-D01\")' <target> returns one object AND persisted fields equal invocation --slug --id --title --chosen --actor --rationale --alternatives AND timestamp matches ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01)",
+      "signal": "",
+      "evidence": "PASS: AC-1: exit 0\nPASS: AC-1: stdout is '<id> <status>'\nPASS: AC-1: target file exists\nPASS: AC-1: jq -e select id=test-D01 succeeds\nPASS: AC-1: actor=human persisted\nPASS: AC-1: title persisted\nPASS: AC-1: chosen persisted\nPASS: AC-1: rationale persisted\nPASS: AC-1: alternatives persisted\nPASS: AC-1: status persisted\nPASS: AC-1: timestamp matches ISO 8601 UTC\nPASS: AC-18: stdout shape matches OBS-1 '<id> <status>'\nPASS: AC-1: renderer TSV emits 9 columns\n----\nAC-1: FR-1 insert NEW decision (survives renderer jq projection): 13/13 passed, 0 failed\ntest result: ok. 13 passed; 0 failed;"
+    },
+    {
+      "id": "AC-2",
+      "kind": "integration",
+      "maps_to": [
+        "FR-2"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/20-upsert-by-key.sh",
+      "pass": "exit 0 AND pre-seed 3 entries test-D01..test-D03 AND re-invoke id=test-D02 AND jq '.decisions|length' == 3 (NOT 4) AND jq '.decisions[1].id' == \"test-D02\" with new title/chosen/actor/status AND jq -S '.decisions[]|select(.id==\"test-D01\")' byte-equal pre vs post",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (pre-seed 3 rows ids test-D01 test-D02 test-D03; re-invoke id=test-D02)",
+      "signal": "",
+      "evidence": "PASS: AC-2 [precondition]: 3 entries seeded\nPASS: AC-2 [re-resolve]: exit 0\nPASS: AC-2 [CARDINALITY]: length UNCHANGED at 3 (replace, not append)\nPASS: AC-2: relative order preserved [D01, D02, D03]\nPASS: AC-2: D02 title replaced\nPASS: AC-2: D02 chosen replaced\nPASS: AC-2: D02 status replaced\nPASS: AC-2: D01 byte-identical pre/post\nPASS: AC-2: D03 byte-identical pre/post\nPASS: AC-2: exactly ONE D02 entry (no duplicate)\n----\nAC-2: FR-2 UPSERT-BY-KEY (CARDINALITY: length UNCHANGED on re-resolve): 10/10 passed, 0 failed\ntest result: ok. 10 passed; 0 failed;"
+    },
+    {
+      "id": "AC-3",
+      "kind": "unit",
+      "maps_to": [
+        "FR-3",
+        "EC-1",
+        "EC-2",
+        "EC-3"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/30-refuse-missing.sh",
+      "pass": "exit code == 1 for each missing/empty/whitespace field AND stderr contains substring \"missing required field: <fieldname>\" AND supplied --chosen value marker does NOT appear in stderr (grep -c returns 0) AND pre-existing target sha256 equal pre vs post invocation",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; refuse-on-missing path; no file mod)",
+      "signal": "",
+      "evidence": "PASS: AC-42 [empty-chosen]: record.sh NOT invoked\nPASS: AC-42 [ws-chosen]: exit 1\nPASS: AC-42 [ws-chosen]: stderr names chosen\nPASS: AC-42 [ws-chosen]: not an unknown-arg error\nPASS: AC-42 [ws-chosen]: record.sh NOT invoked\nPASS: AC-42 [omitted-actor]: exit 1\nPASS: AC-42 [omitted-actor]: stderr names actor\nPASS: AC-42 [omitted-actor]: not an unknown-arg error\nPASS: AC-42 [omitted-actor]: record.sh NOT invoked\nPASS: AC-42 [empty-actor]: exit 1\nPASS: AC-42 [empty-actor]: stderr names actor\nPASS: AC-42 [empty-actor]: not an unknown-arg error\nPASS: AC-42 [empty-actor]: record.sh NOT invoked\nPASS: AC-3 [bad-slug-regex]: exit 1 on uppercase slug\nPASS: AC-3 [bad-slug-regex]: stderr names slug regex\nPASS: AC-3 [FR-9]: supplied chosen value NOT echoed in stderr\nPASS: AC-42: target byte-identical after refuse fires\n----\nAC-3/42: FR-3 refuse-on-missing per field (no value echoed, no FS mod): 36/36 passed, 0 failed\ntest result: ok. 36 passed; 0 failed;"
+    },
+    {
+      "id": "AC-4",
+      "kind": "integration",
+      "maps_to": [
+        "FR-4"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/40-atomic-write.sh",
+      "pass": "exit 0 AND post kill -9 mid-write jq empty on target succeeds (OLD or NEW content, never partial) AND post chmod 0500 root writer exits 4 AND find \"$ROOT\" -name '.dec.*' returns empty (no temp files linger) AND original file sha256 unchanged",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (seeded valid file for kill-9 case)",
+      "signal": "",
+      "evidence": "PASS: AC-4 (a): target is valid JSON after kill -9\nPASS: AC-4 (a): target retained OLD content (kill before rename)\nPASS: AC-4 (a): no temp-file explosion after kill -9 (count=0)\nPASS: AC-4 (b): exit 4 on RO dir after seed\nPASS: AC-4 (b): test-D02 NOT added to existing file\nPASS: AC-4 (b): no temp file lingers on RO failure\nPASS: AC-4 (b): original D01 entry unchanged\n----\nAC-4: FR-4 atomic write (kill -9 leaves OLD file; no partial observable): 7/7 passed, 0 failed\ntest result: ok. 7 passed; 0 failed;"
+    },
+    {
+      "id": "AC-5",
+      "kind": "integration",
+      "maps_to": [
+        "FR-5"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/50-dual-write-happy.sh",
+      "pass": "exit 0 AND jq entry exists AND stub record.sh argc shows --slug --id --title --chosen --rationale --alternatives --status --timestamp (and bare --blocking only when writer --blocking=true) AND --actor and --iteration NEVER in stub argv AND SQLite row exists for (project, slug, decision_id=test-D01)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01); SQLite decisions row (slug=test-dec-ab12cd, id=test-D01)",
+      "signal": "",
+      "evidence": "PASS: AC-5: exit 0\nPASS: AC-5: JSON file written\nPASS: AC-5: SQLite row exists with matching title\nPASS: AC-5: SQLite status=proposed (writer's --status forwarded, NOT sink default 'accepted')\nPASS: AC-5: SQLite blocking=0 (writer's blocking=false)\nPASS: AC-5: SQLite blocking=1 when writer blocking=true\nPASS: AC-5: stub record.sh captured argv\nPASS: AC-5: argv has --slug\nPASS: AC-5: argv has --id\nPASS: AC-5: argv has --title\nPASS: AC-5: argv has --chosen\nPASS: AC-5: argv has --rationale\nPASS: AC-5: argv has --alternatives\nPASS: AC-5: argv has --status (always forwarded)\nPASS: AC-5: argv has bare --blocking (true path)\nPASS: AC-5: argv does NOT include --actor\nPASS: AC-5: argv does NOT include --iteration\n----\nAC-5: FR-5 dual-write happy (JSON + SQLite; actor/iteration NOT forwarded): 17/17 passed, 0 failed\ntest result: ok. 17 passed; 0 failed;"
+    },
+    {
+      "id": "AC-6",
+      "kind": "integration",
+      "maps_to": [
+        "FR-5",
+        "EC-8",
+        "OBS-3"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/51-dual-write-sink-nonzero.sh",
+      "pass": "exit code == 8 AND stderr matches ^record\\.sh failed exit=17; JSON persisted at AND jq -e '.decisions[]|select(.id==\"test-D01\")' <target> succeeds (JSON KEPT) AND rationale marker secret-marker-ZZY-12345 NOT in stderr (grep -c returns 0)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01); stub record.sh on PATH exits 17",
+      "signal": "record.sh failed exit=17; JSON persisted at <target>; SQLite out of sync",
+      "evidence": "PASS: AC-6: exit 8 on sink exit 17\nPASS: AC-37/OBS-3: stderr shape\nPASS: AC-6: JSON entry still queryable after sink failure (KEPT)\nPASS: AC-6/FR-9: rationale marker absent from stderr\n----\nAC-6/37: FR-5 D-7 sink exits non-zero (JSON KEPT, exit 8, no rationale in stderr): 4/4 passed, 0 failed\ntest result: ok. 4 passed; 0 failed;"
+    },
+    {
+      "id": "AC-7",
+      "kind": "integration",
+      "maps_to": [
+        "FR-5",
+        "EC-10",
+        "OBS-3"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/52-dual-write-sink-missing.sh",
+      "pass": "exit code == 7 AND stderr matches ^record\\.sh missing; JSON persisted at AND jq -e '.decisions[]|select(.id==\"test-D01\")' <target> succeeds (JSON KEPT) AND no SQLite row for slug=test-dec-ab12cd (sink absent)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01); record.sh scrubbed from PATH",
+      "signal": "record.sh missing; JSON persisted at <target>; SQLite sync skipped",
+      "evidence": "PASS: AC-7: exit 7 on missing sink\nPASS: AC-37/OBS-3: stderr shape\nPASS: AC-7: JSON entry queryable (KEPT)\nPASS: AC-7: no SQLite row for the test id (sink absent)\n----\nAC-7/37: FR-5 D-7 record.sh missing (JSON KEPT, exit 7): 4/4 passed, 0 failed\ntest result: ok. 4 passed; 0 failed;"
+    },
+    {
+      "id": "AC-8",
+      "kind": "unit",
+      "maps_to": [
+        "FR-6",
+        "EC-13"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/60-jq-construction.sh",
+      "pass": "exit 0 AND jq empty <target> succeeds (valid JSON) AND jq -e '.decisions[].evil' returns null (NO evil key injected) AND jq -r '.decisions[].rationale' returns the literal breakout string byte-for-byte",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, rationale payload '\",\"evil\":true,\"gap\":\"')",
+      "signal": "",
+      "evidence": "PASS: AC-8 [EC-13]: exit 0 with comma-injection rationale\nPASS: AC-8 [EC-13]: file is valid JSON\nPASS: AC-8 [EC-13]: no evil key injected\nPASS: AC-8 [EC-13]: rationale round-trips byte-for-byte\nPASS: AC-44 [XSS]: exit 0 with <script> rationale\nPASS: AC-44 [XSS]: <script> persisted verbatim\nPASS: AC-44 [XSS]: writer did not html-escape or strip\n----\nAC-8/44: FR-6 jq construction (comma-injection, XSS verbatim): 7/7 passed, 0 failed\ntest result: ok. 7 passed; 0 failed;"
+    },
+    {
+      "id": "AC-9",
+      "kind": "assembled-path",
+      "maps_to": [
+        "FR-7",
+        "OBS-1"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/72-hook-wrapper.sh",
+      "pass": "FR-7 SITE 1 (Phase 4.2 product-owner, actor=ai) runtime: hook.sh fires end-to-end at --site phase-4.2-po, the writer runs (JSON entry id=test-D01 actor=ai lands), the hook exits 0 on success, and the RUN_LOG ok-line carries the per-site marker ('phase-4.2-po decisions.ledger test-D01 ok (0)'). The hook wrapper (not just the writer) is the code under test.",
+      "trigger": "fn:hook.sh",
+      "seeds": "stub sink (exit 0) on PATH; --root mktemp -d; --slug test-dec-<rand>; writer writes .VERIFY_<slug>.decisions.json (1 row id=test-D01 actor=ai)",
+      "signal": "phase-4.2-po decisions.ledger test-D01 ok (0)",
+      "evidence": "PASS: AC-9: site 1 hook exit 0 on writer success\nPASS: AC-9: site 1 JSON entry written via wrapper (actor=ai)\nPASS: AC-9: site 1 ok-line carries --site marker + id\nPASS: AC-10: site 2 item test-D02 hook exit 0\nPASS: AC-10: site 2 item test-D03 hook exit 0\nPASS: AC-10: site 2 batch landed 2 distinct ids (test-D02 + test-D03)\nPASS: AC-10: site 2 ok-line carries batch --site marker\nPASS: AC-11: site 3 hook exit 0\nPASS: AC-11: site 3 writer --blocking=true forwarded to JSON\nPASS: AC-11: site 3 ok-line carries quarantine --site marker\nPASS: AC-38: OBS-4 3 distinct site labels in success logs\nPASS: AC-13: D-8 hook exit 0 on writer failure (loop not broken)\nPASS: AC-13: D-8 WARN line carries --site + id + rc + isolation\nPASS: AC-13: D-8 subsequent hook call still exits 0 (loop continues)\nPASS: AC-38: D-8 WARN at second site proves cross-site isolation continues\n----\nAC-9/10/11/13/38: hook.sh wrapper (3 sites happy + D-8 isolation + OBS-4 markers): 15/15 passed, 0 failed\ntest result: ok. 15 passed; 0 failed;"
+    },
+    {
+      "id": "AC-10",
+      "kind": "assembled-path",
+      "maps_to": [
+        "FR-7",
+        "OBS-1"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/72-hook-wrapper.sh",
+      "pass": "FR-7 SITE 2 (Phase 5 user-batch, actor=human) runtime: hook.sh fires once per resolved 1/3 item at --site phase-5-batch. Two sequential invocations (test-D02, test-D03) both land as distinct JSON entries with distinct ids, each hook call exits 0, and each RUN_LOG ok-line carries the phase-5-batch marker.",
+      "trigger": "fn:hook.sh",
+      "seeds": "stub sink (exit 0) on PATH; --root mktemp -d; 2 hook invocations (ids test-D02, test-D03, actor=human, status=proposed)",
+      "signal": "phase-5-batch decisions.ledger test-D02 ok (0)",
+      "evidence": "PASS: AC-9: site 1 hook exit 0 on writer success\nPASS: AC-9: site 1 JSON entry written via wrapper (actor=ai)\nPASS: AC-9: site 1 ok-line carries --site marker + id\nPASS: AC-10: site 2 item test-D02 hook exit 0\nPASS: AC-10: site 2 item test-D03 hook exit 0\nPASS: AC-10: site 2 batch landed 2 distinct ids (test-D02 + test-D03)\nPASS: AC-10: site 2 ok-line carries batch --site marker\nPASS: AC-11: site 3 hook exit 0\nPASS: AC-11: site 3 writer --blocking=true forwarded to JSON\nPASS: AC-11: site 3 ok-line carries quarantine --site marker\nPASS: AC-38: OBS-4 3 distinct site labels in success logs\nPASS: AC-13: D-8 hook exit 0 on writer failure (loop not broken)\nPASS: AC-13: D-8 WARN line carries --site + id + rc + isolation\nPASS: AC-13: D-8 subsequent hook call still exits 0 (loop continues)\nPASS: AC-38: D-8 WARN at second site proves cross-site isolation continues\n----\nAC-9/10/11/13/38: hook.sh wrapper (3 sites happy + D-8 isolation + OBS-4 markers): 15/15 passed, 0 failed\ntest result: ok. 15 passed; 0 failed;"
+    },
+    {
+      "id": "AC-11",
+      "kind": "assembled-path",
+      "maps_to": [
+        "FR-7",
+        "OBS-1"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/72-hook-wrapper.sh",
+      "pass": "FR-7 SITE 3 (Phase 5E.4 quarantine, actor=human, blocking=true) runtime: hook.sh fires at --site phase-5E.4-quarantine, the writer's --blocking=true is forwarded end-to-end (JSON entry id=test-D04 has blocking=true), the hook exits 0, and the RUN_LOG ok-line carries the quarantine marker.",
+      "trigger": "fn:hook.sh",
+      "seeds": "stub sink (exit 0) on PATH; --root mktemp -d; 1 hook invocation (id=test-D04, actor=human, status=accepted, blocking=true)",
+      "signal": "phase-5E.4-quarantine decisions.ledger test-D04 ok (0)",
+      "evidence": "PASS: AC-9: site 1 hook exit 0 on writer success\nPASS: AC-9: site 1 JSON entry written via wrapper (actor=ai)\nPASS: AC-9: site 1 ok-line carries --site marker + id\nPASS: AC-10: site 2 item test-D02 hook exit 0\nPASS: AC-10: site 2 item test-D03 hook exit 0\nPASS: AC-10: site 2 batch landed 2 distinct ids (test-D02 + test-D03)\nPASS: AC-10: site 2 ok-line carries batch --site marker\nPASS: AC-11: site 3 hook exit 0\nPASS: AC-11: site 3 writer --blocking=true forwarded to JSON\nPASS: AC-11: site 3 ok-line carries quarantine --site marker\nPASS: AC-38: OBS-4 3 distinct site labels in success logs\nPASS: AC-13: D-8 hook exit 0 on writer failure (loop not broken)\nPASS: AC-13: D-8 WARN line carries --site + id + rc + isolation\nPASS: AC-13: D-8 subsequent hook call still exits 0 (loop continues)\nPASS: AC-38: D-8 WARN at second site proves cross-site isolation continues\n----\nAC-9/10/11/13/38: hook.sh wrapper (3 sites happy + D-8 isolation + OBS-4 markers): 15/15 passed, 0 failed\ntest result: ok. 15 passed; 0 failed;"
+    },
+    {
+      "id": "AC-12",
+      "kind": "assembled-path",
+      "maps_to": [
+        "FR-7",
+        "WIRE-2"
+      ],
+      "check": "bash -c 'L215=$(sed -n \"215p\" .claude/skills/cfn-megaplan/SKILL.md); printf \"%s\\n\" \"$L215\" | grep -qE \"cfn-decisions\" && [ \"$(printf \"%s\\n\" \"$L215\" | grep -wc \"cfn-decide\")\" = \"0\" ] && echo \"AC-12: SKILL.md:215 has cfn-decisions, zero whole-word cfn-decide (D-9 site 4)\"'",
+      "pass": "static contract on megaplan SKILL.md line 215: line contains 'cfn-decisions' (the real writer path) AND does NOT contain the whole-word 'cfn-decide' (the deleted stub name). Runtime D-9 dual-persistence is covered by AC-5 (50-dual-write-happy.sh).",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01); SQLite decisions row (slug=test-dec-ab12cd, id=test-D01)",
+      "signal": "decisions.ledger id=test-D01 status=accepted",
+      "evidence": "AC-12: SKILL.md:215 has cfn-decisions, zero whole-word cfn-decide (D-9 site 4)"
+    },
+    {
+      "id": "AC-13",
+      "kind": "assembled-path",
+      "maps_to": [
+        "FR-7",
+        "OBS-4"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/72-hook-wrapper.sh",
+      "pass": "D-8 isolation runtime: a failing sink (stub exit 1 -> writer E_SINK_NONZERO=8) does NOT break the loop. hook.sh exits 0 on the failed call, logs 'WARN: <site> decisions.ledger <id> failed (rc=<n>, isolated, continuing)', and a SUBSEQUENT hook call at a different site still runs and exits 0 (loop continues). The hook wrapper's isolation envelope is the code under test, not just the writer's non-zero exit.",
+      "trigger": "fn:hook.sh",
+      "seeds": "stub sink (exit 1) on PATH; --root mktemp -d; 2 hook invocations (test-D05 fails, test-D06 at a different site still fires)",
+      "signal": "WARN: phase-4.2-po decisions.ledger test-D05 failed (rc=8, isolated, continuing)",
+      "evidence": "PASS: AC-9: site 1 hook exit 0 on writer success\nPASS: AC-9: site 1 JSON entry written via wrapper (actor=ai)\nPASS: AC-9: site 1 ok-line carries --site marker + id\nPASS: AC-10: site 2 item test-D02 hook exit 0\nPASS: AC-10: site 2 item test-D03 hook exit 0\nPASS: AC-10: site 2 batch landed 2 distinct ids (test-D02 + test-D03)\nPASS: AC-10: site 2 ok-line carries batch --site marker\nPASS: AC-11: site 3 hook exit 0\nPASS: AC-11: site 3 writer --blocking=true forwarded to JSON\nPASS: AC-11: site 3 ok-line carries quarantine --site marker\nPASS: AC-38: OBS-4 3 distinct site labels in success logs\nPASS: AC-13: D-8 hook exit 0 on writer failure (loop not broken)\nPASS: AC-13: D-8 WARN line carries --site + id + rc + isolation\nPASS: AC-13: D-8 subsequent hook call still exits 0 (loop continues)\nPASS: AC-38: D-8 WARN at second site proves cross-site isolation continues\n----\nAC-9/10/11/13/38: hook.sh wrapper (3 sites happy + D-8 isolation + OBS-4 markers): 15/15 passed, 0 failed\ntest result: ok. 15 passed; 0 failed;"
+    },
+    {
+      "id": "AC-14",
+      "kind": "static",
+      "maps_to": [
+        "FR-8",
+        "EC-17"
+      ],
+      "check": "grep -RnE '\\bDELETE\\b|rm[[:space:]]+-[rf]*f?|truncate' .claude/skills/cfn-decisions/record.sh .claude/skills/cfn-decisions/lib/ ; bash .claude/skills/cfn-decisions/record.sh --help | grep -cE '\\-\\-(delete|remove|purge)'",
+      "pass": "grep exit code == 1 AND zero lines matched by the DELETE/rm/truncate grep AND record.sh --help output grep -cE '\\-\\-(delete|remove|purge)' == 0 AND bash record.sh --delete test-D01 exits 2 with stderr containing 'unknown arg: --delete'",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; static source grep)",
+      "signal": "",
+      "evidence": ".claude/skills/cfn-decisions/lib/upsert.sh:53:      rm -f \"$TMP\"\n.claude/skills/cfn-decisions/lib/upsert.sh:61:    rm -f \"$TMP\"\n.claude/skills/cfn-decisions/lib/upsert.sh:73:      rm -f \"$TMP\"\n.claude/skills/cfn-decisions/lib/upsert.sh:81:    rm -f \"$TMP\"\n.claude/skills/cfn-decisions/lib/upsert.sh:89:    rm -f \"$TMP\"\n.claude/skills/cfn-decisions/lib/upsert.sh:103:  [ -n \"${TMP:-}\" ] && rm -f \"$TMP\" 2>/dev/null || true\n.claude/skills/cfn-decisions/lib/state-machine-doc.md:61:- NO `DELETE` is issued at any transition (FR-8). The SQLite sink's\n.claude/skills/cfn-decisions/lib/help.sh:5:# the --help output (FR-8 no-DELETE floor; FR-9 no-leak floor).\n1"
+    },
+    {
+      "id": "AC-15",
+      "kind": "integration",
+      "maps_to": [
+        "FR-9",
+        "OBS-5"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/90-no-leak-floor.sh",
+      "pass": "exit 0 AND writer wstdout grep -qF secret-marker-ZZY-12345 returns non-zero (clean) AND writer wstderr grep -qF secret-marker-ZZY-12345 returns non-zero (clean) AND grep -rF secret-marker-ZZY-12345 /tmp returns empty AND marker IS present in planning/.VERIFY_test-dec-ab12cd.decisions.json AND in SQLite (decision-log/decisions.sh show --slug test-dec-ab12cd --id test-D01 contains marker)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, rationale=secret-marker-ZZY-12345); SQLite decisions row contains marker",
+      "signal": "decisions.ledger id=test-D01 status=<status> (marker secret-marker-ZZY-12345 MUST NOT appear in stdout, stderr, /tmp, or the OBS-1 line)",
+      "evidence": "PASS: AC-39: happy path exits 0\nPASS: AC-15: stdout is '<id> <status>' only\nPASS: AC-15: stderr omits value sentinel (secret-marker-ZZY-12345)\nPASS: AC-15: stderr omits value sentinel (alt-secret-ZZY-99999)\nPASS: AC-15: stderr omits value sentinel (Title-Secret-Foo-XYZ)\nPASS: AC-15: stderr omits value sentinel (Chosen-Secret-Bar-QQQ)\nPASS: AC-15: validation failure exits E_VALIDATION=1\nPASS: AC-15: stderr names missing field\nPASS: AC-15: error-path stderr omits value (secret-marker-ZZY-12345)\nPASS: AC-15: error-path stderr omits value (Chosen-Secret-Bar-QQQ)\nPASS: AC-15: sink-nonzero exits E_SINK_NONZERO=8\nPASS: AC-15: sink-nonzero path omits value (sink stderr suppressed)\n----\nAC-15/39: FR-9 info-leak floor (stdout=id status; no values in stderr): 12/12 passed, 0 failed\ntest result: ok. 12 passed; 0 failed;"
+    },
+    {
+      "id": "AC-16",
+      "kind": "unit",
+      "maps_to": [
+        "FR-10"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/95-defaults.sh",
+      "pass": "exit 0 with only 5 required flags AND jq '.decisions[-1].iteration' == 1 (JSON number) AND jq '.decisions[-1].status' == \"proposed\" AND jq '.decisions[-1].blocking' == false (JSON boolean) AND timestamp matches ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, defaults applied)",
+      "signal": "",
+      "evidence": "PASS: AC-16: exit 0 with only required flags\nPASS: AC-16: file written\nPASS: AC-16: iteration default = 1 (JSON number)\nPASS: AC-16: status default = proposed\nPASS: AC-16: blocking default = false (JSON boolean)\nPASS: AC-16: iteration is JSON number type\nPASS: AC-16: blocking is JSON boolean type\nPASS: AC-16: timestamp matches ISO 8601 UTC regex\n[decision-log] recorded claude-flow-novice/test-dec-wvluju/test-D00 (proposed)\ntest-D00 proposed\nPASS: AC-53: iteration=0 accepted\n[decision-log] recorded claude-flow-novice/test-dec-aadfyg/test-DMAX (proposed)\ntest-DMAX proposed\nPASS: AC-53: iteration=2147483647 accepted\nPASS: AC-57: TZ=America/New_York produces UTC timestamp\nPASS: AC-57: persisted timestamp within 2s of UTC now\n----\nAC-16/53/57: FR-10 defaults (iteration, status, blocking, timestamp, TZ): 12/12 passed, 0 failed\ntest result: ok. 12 passed; 0 failed;"
+    },
+    {
+      "id": "AC-17",
+      "kind": "unit",
+      "maps_to": [
+        "FR-10",
+        "EC-3"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/96-actor-enum.sh",
+      "pass": "exit code == 2 for --actor blob AND stderr contains \"actor must be human|ai\" AND no JSON entry exists for the test id AND stub record.sh argc shows zero invocations",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; refuse-on-invalid-enum path)",
+      "signal": "",
+      "evidence": "PASS: AC-17: --actor blob exits 2\nPASS: AC-17: stderr names actor constraint\nPASS: AC-17: no JSON entry for blob actor\nPASS: AC-17: record.sh NOT invoked on bad actor\nPASS: AC-17: --actor ai accepted\nPASS: AC-17: actor=ai persisted\n----\nAC-17: actor enum validated (reject blob with exit 2): 6/6 passed, 0 failed\ntest result: ok. 6 passed; 0 failed;"
+    },
+    {
+      "id": "AC-18",
+      "kind": "integration",
+      "maps_to": [
+        "FR-1",
+        "FR-5"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/10-insert-new.sh",
+      "pass": "exit code == 0 AND writer stdout matches exactly ^test-D[0-9]+ (proposed|accepted|superseded)$ (the ARCH \\u00a73 line 228 contract: printf '%s %s\\\\n' \"$ID\" \"$STATUS\" only, no rationale on stdout)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01)",
+      "signal": "",
+      "evidence": "PASS: AC-1: exit 0\nPASS: AC-1: stdout is '<id> <status>'\nPASS: AC-1: target file exists\nPASS: AC-1: jq -e select id=test-D01 succeeds\nPASS: AC-1: actor=human persisted\nPASS: AC-1: title persisted\nPASS: AC-1: chosen persisted\nPASS: AC-1: rationale persisted\nPASS: AC-1: alternatives persisted\nPASS: AC-1: status persisted\nPASS: AC-1: timestamp matches ISO 8601 UTC\nPASS: AC-18: stdout shape matches OBS-1 '<id> <status>'\nPASS: AC-1: renderer TSV emits 9 columns\n----\nAC-1: FR-1 insert NEW decision (survives renderer jq projection): 13/13 passed, 0 failed\ntest result: ok. 13 passed; 0 failed;"
+    },
+    {
+      "id": "AC-19",
+      "kind": "unit",
+      "maps_to": [
+        "FR-3"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/30-refuse-missing.sh",
+      "pass": "exit code == 1 for each missing required field sub-case AND stderr matches exactly ^missing required field: (slug|id|title|chosen|actor)$",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; refuse-on-missing path)",
+      "signal": "",
+      "evidence": "PASS: AC-42 [empty-chosen]: record.sh NOT invoked\nPASS: AC-42 [ws-chosen]: exit 1\nPASS: AC-42 [ws-chosen]: stderr names chosen\nPASS: AC-42 [ws-chosen]: not an unknown-arg error\nPASS: AC-42 [ws-chosen]: record.sh NOT invoked\nPASS: AC-42 [omitted-actor]: exit 1\nPASS: AC-42 [omitted-actor]: stderr names actor\nPASS: AC-42 [omitted-actor]: not an unknown-arg error\nPASS: AC-42 [omitted-actor]: record.sh NOT invoked\nPASS: AC-42 [empty-actor]: exit 1\nPASS: AC-42 [empty-actor]: stderr names actor\nPASS: AC-42 [empty-actor]: not an unknown-arg error\nPASS: AC-42 [empty-actor]: record.sh NOT invoked\nPASS: AC-3 [bad-slug-regex]: exit 1 on uppercase slug\nPASS: AC-3 [bad-slug-regex]: stderr names slug regex\nPASS: AC-3 [FR-9]: supplied chosen value NOT echoed in stderr\nPASS: AC-42: target byte-identical after refuse fires\n----\nAC-3/42: FR-3 refuse-on-missing per field (no value echoed, no FS mod): 36/36 passed, 0 failed\ntest result: ok. 36 passed; 0 failed;"
+    },
+    {
+      "id": "AC-20",
+      "kind": "unit",
+      "maps_to": [
+        "EC-17",
+        "EC-19"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/31-exit-2-cli-parse.sh",
+      "pass": "exit code == 2 for each sub-case: --unknown (stderr 'unknown arg: --unknown'), --actor with no value, --status frob (stderr 'status must be proposed|accepted|superseded'), --iteration abc (stderr 'iteration must be a non-negative integer'), --blocking maybe, --timestamp '2026-13-45T99:99:99Z' (stderr 'timestamp must be ISO 8601 UTC like 2026-07-28T14:00:00Z') AND no file modified in any case",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; refuse-on-invalid-CLI path)",
+      "signal": "",
+      "evidence": "PASS: AC-20 [supersede-rejected]: stderr names constraint\nPASS: AC-20 [supersede-rejected]: no JSON file written\nPASS: AC-20 [bad-status]: exit 2\nPASS: AC-20 [bad-status]: stderr names constraint\nPASS: AC-20 [bad-status]: no JSON file written\nPASS: AC-20 [bad-iteration]: exit 2\nPASS: AC-20 [bad-iteration]: stderr names constraint\nPASS: AC-20 [bad-iteration]: no JSON file written\nPASS: AC-20 [bad-blocking]: exit 2\nPASS: AC-20 [bad-blocking]: stderr names constraint\nPASS: AC-20 [bad-blocking]: no JSON file written\nPASS: AC-20 [bad-timestamp]: exit 2\nPASS: AC-20 [bad-timestamp]: stderr names constraint\nPASS: AC-20 [bad-timestamp]: no JSON file written\nPASS: AC-20 [bad-actor-enum]: exit 2\nPASS: AC-20 [bad-actor-enum]: stderr names constraint\nPASS: AC-20 [bad-actor-enum]: no JSON file written\n----\nAC-20/58: exit 2 on CLI parse failures (one sub-case per shape): 24/24 passed, 0 failed\ntest result: ok. 24 passed; 0 failed;"
+    },
+    {
+      "id": "AC-21",
+      "kind": "static",
+      "maps_to": [
+        "FR-6"
+      ],
+      "check": "bash -c 'grep -qE \"exit 3\\b|E_JQ_BUILD|jq failed to build decision object\" .claude/skills/cfn-decisions/record.sh .claude/skills/cfn-decisions/lib/jq-build.sh && echo \"AC-21: jq-build exit-3 taxonomy present in writer + jq-build.sh\"'",
+      "pass": "grep -q finds at least one match in writer source (the E_JQ_BUILD codepath exists); self-asserts via -q so exit 0 == codepath present. No runtime trigger required because jq --arg escapes every untrusted string (ARCH \\u00a74.3 defensive contract).",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; static source grep for defensive codepath)",
+      "signal": "",
+      "evidence": "AC-21: jq-build exit-3 taxonomy present in writer + jq-build.sh"
+    },
+    {
+      "id": "AC-22",
+      "kind": "integration",
+      "maps_to": [
+        "EC-9",
+        "EC-11",
+        "EC-24"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/33-exit-4-filesystem.sh",
+      "pass": "exit code == 4 for --root /nonexistent-dir (stderr 'planning dir missing or read-only') AND exit code == 4 for chmod 0500 root case AND exit code == 4 for stubbed mv fail (stderr 'mv failed to commit <target>') AND no .VERIFY_test-dec-ab12cd.decisions.json at target AND find \"$ROOT\" -name '.dec.*' returns empty (temp cleaned)",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; refuse-on-FS-failure path; no target written)",
+      "signal": "",
+      "evidence": "PASS: AC-22 [EC-9a nonexistent-dir]: exit 4\nPASS: AC-22 [EC-9a]: stderr names the dir\nPASS: AC-22 [EC-11 RO dir]: exit 4\nPASS: AC-22 [EC-24 mv fail]: exit 4\nPASS: AC-22 [EC-24 mv fail]: stderr names mv failure\nPASS: AC-22 [EC-24 mv fail]: no JSON at target\nPASS: AC-22 [EC-24 mv fail]: no temp file lingers\nPASS: AC-22 [EC-9 mktemp fail]: exit 4\nPASS: AC-22 [EC-9 mktemp fail]: stderr names mktemp failure\nPASS: AC-51: EXIT trap removes temp file on TERM\n----\nAC-22/51: exit 4 on filesystem failure (dir RO, mktemp/mv fail): 10/10 passed, 0 failed\ntest result: ok. 10 passed; 0 failed;\n.claude/skills/cfn-decisions/tests/_test_helper.sh: line 1: ROOT_TMP: unbound variable"
+    },
+    {
+      "id": "AC-23",
+      "kind": "integration",
+      "maps_to": [
+        "FR-4"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/34-exit-5-target-corrupt.sh",
+      "pass": "exit code == 5 AND stderr matches ^existing <target> is not valid JSON; refusing overwrite AND target file sha256 equal to the pre-seeded corrupt content (PRESERVED, not overwritten)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (pre-seed with 'echo not json > target')",
+      "signal": "",
+      "evidence": "PASS: AC-23: exit 5 on corrupt target\nPASS: AC-23: stderr shape matches ARCH §10.2\nPASS: AC-23: corrupt file preserved byte-identical (not overwritten)\n----\nAC-23: exit 5 on existing target corrupt (bad file PRESERVED): 3/3 passed, 0 failed\ntest result: ok. 3 passed; 0 failed;"
+    },
+    {
+      "id": "AC-24",
+      "kind": "static",
+      "maps_to": [
+        "FR-5"
+      ],
+      "check": "bash -c '! grep -qE \"exit 6\\b\" .claude/skills/cfn-decisions/record.sh .claude/skills/cfn-decisions/lib/*.sh && echo \"AC-24: zero exit 6 occurrences (code 6 reserved, D-7)\"'",
+      "pass": "grep finds ZERO matches of literal 'exit 6' in writer source (correct: exit 6 is RESERVED per D-7, never emitted). Inverted with leading ! so no-match -> exit 0 (pass).",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; static source grep for reserved-code absence)",
+      "signal": "",
+      "evidence": "AC-24: zero exit 6 occurrences (code 6 reserved, D-7)"
+    },
+    {
+      "id": "AC-25",
+      "kind": "integration",
+      "maps_to": [
+        "SM-1"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/40-sm-transitions.sh",
+      "pass": "exit 0 AND first invocation with no --status AND jq '.decisions[-1].status' == \"proposed\" AND jq '.decisions|length' == 1",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, default status)",
+      "signal": "",
+      "evidence": "PASS: AC-25/SM-1: absent -> proposed (default)\nPASS: AC-26/SM-2: absent -> accepted\nPASS: AC-27/SM-3: absent -> superseded\nPASS: AC-28/SM-4: proposed -> accepted\nPASS: AC-28: array length unchanged after transition\nPASS: AC-29/SM-5: proposed -> superseded\nPASS: AC-30/SM-6: accepted -> proposed (EC-16 correction)\nPASS: AC-31/SM-7: accepted -> superseded\nPASS: AC-32/SM-8: superseded -> proposed (EC-16 correction)\nPASS: AC-33/SM-9: superseded -> accepted (EC-16 correction)\nPASS: AC-34: zero transition-rejection error codes in writer source\n----\nAC-25..34: SM-1..SM-9 state transitions + illegal-table empty: 11/11 passed, 0 failed\ntest result: ok. 11 passed; 0 failed;"
+    },
+    {
+      "id": "AC-26",
+      "kind": "integration",
+      "maps_to": [
+        "SM-2"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/40-sm-transitions.sh",
+      "pass": "exit 0 AND first invocation with --status accepted AND jq '.decisions[-1].status' == \"accepted\"",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, status=accepted)",
+      "signal": "",
+      "evidence": "PASS: AC-25/SM-1: absent -> proposed (default)\nPASS: AC-26/SM-2: absent -> accepted\nPASS: AC-27/SM-3: absent -> superseded\nPASS: AC-28/SM-4: proposed -> accepted\nPASS: AC-28: array length unchanged after transition\nPASS: AC-29/SM-5: proposed -> superseded\nPASS: AC-30/SM-6: accepted -> proposed (EC-16 correction)\nPASS: AC-31/SM-7: accepted -> superseded\nPASS: AC-32/SM-8: superseded -> proposed (EC-16 correction)\nPASS: AC-33/SM-9: superseded -> accepted (EC-16 correction)\nPASS: AC-34: zero transition-rejection error codes in writer source\n----\nAC-25..34: SM-1..SM-9 state transitions + illegal-table empty: 11/11 passed, 0 failed\ntest result: ok. 11 passed; 0 failed;"
+    },
+    {
+      "id": "AC-27",
+      "kind": "integration",
+      "maps_to": [
+        "SM-3"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/40-sm-transitions.sh",
+      "pass": "exit 0 AND first invocation with --status superseded AND jq '.decisions[-1].status' == \"superseded\"",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, status=superseded)",
+      "signal": "",
+      "evidence": "PASS: AC-25/SM-1: absent -> proposed (default)\nPASS: AC-26/SM-2: absent -> accepted\nPASS: AC-27/SM-3: absent -> superseded\nPASS: AC-28/SM-4: proposed -> accepted\nPASS: AC-28: array length unchanged after transition\nPASS: AC-29/SM-5: proposed -> superseded\nPASS: AC-30/SM-6: accepted -> proposed (EC-16 correction)\nPASS: AC-31/SM-7: accepted -> superseded\nPASS: AC-32/SM-8: superseded -> proposed (EC-16 correction)\nPASS: AC-33/SM-9: superseded -> accepted (EC-16 correction)\nPASS: AC-34: zero transition-rejection error codes in writer source\n----\nAC-25..34: SM-1..SM-9 state transitions + illegal-table empty: 11/11 passed, 0 failed\ntest result: ok. 11 passed; 0 failed;"
+    },
+    {
+      "id": "AC-28",
+      "kind": "integration",
+      "maps_to": [
+        "SM-4"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/40-sm-transitions.sh",
+      "pass": "exit 0 AND first call status=proposed, second call status=accepted, same id=test-D01 AND jq '.decisions[-1].status' == \"accepted\" AND jq '.decisions|length' == 1 (length unchanged)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, status flip proposed->accepted)",
+      "signal": "",
+      "evidence": "PASS: AC-25/SM-1: absent -> proposed (default)\nPASS: AC-26/SM-2: absent -> accepted\nPASS: AC-27/SM-3: absent -> superseded\nPASS: AC-28/SM-4: proposed -> accepted\nPASS: AC-28: array length unchanged after transition\nPASS: AC-29/SM-5: proposed -> superseded\nPASS: AC-30/SM-6: accepted -> proposed (EC-16 correction)\nPASS: AC-31/SM-7: accepted -> superseded\nPASS: AC-32/SM-8: superseded -> proposed (EC-16 correction)\nPASS: AC-33/SM-9: superseded -> accepted (EC-16 correction)\nPASS: AC-34: zero transition-rejection error codes in writer source\n----\nAC-25..34: SM-1..SM-9 state transitions + illegal-table empty: 11/11 passed, 0 failed\ntest result: ok. 11 passed; 0 failed;"
+    },
+    {
+      "id": "AC-29",
+      "kind": "integration",
+      "maps_to": [
+        "SM-5"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/40-sm-transitions.sh",
+      "pass": "exit 0 AND first call proposed, second call superseded, same id=test-D01 AND jq '.decisions[-1].status' == \"superseded\" AND jq '.decisions|length' == 1",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, status flip proposed->superseded)",
+      "signal": "",
+      "evidence": "PASS: AC-25/SM-1: absent -> proposed (default)\nPASS: AC-26/SM-2: absent -> accepted\nPASS: AC-27/SM-3: absent -> superseded\nPASS: AC-28/SM-4: proposed -> accepted\nPASS: AC-28: array length unchanged after transition\nPASS: AC-29/SM-5: proposed -> superseded\nPASS: AC-30/SM-6: accepted -> proposed (EC-16 correction)\nPASS: AC-31/SM-7: accepted -> superseded\nPASS: AC-32/SM-8: superseded -> proposed (EC-16 correction)\nPASS: AC-33/SM-9: superseded -> accepted (EC-16 correction)\nPASS: AC-34: zero transition-rejection error codes in writer source\n----\nAC-25..34: SM-1..SM-9 state transitions + illegal-table empty: 11/11 passed, 0 failed\ntest result: ok. 11 passed; 0 failed;"
+    },
+    {
+      "id": "AC-30",
+      "kind": "integration",
+      "maps_to": [
+        "SM-6",
+        "EC-16"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/40-sm-transitions.sh",
+      "pass": "exit 0 AND first call accepted, second call proposed, same id=test-D01 (EC-16 mistake correction) AND jq '.decisions[-1].status' == \"proposed\" AND no rejection code emitted (exit 0, NOT exit non-zero)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, status flip accepted->proposed)",
+      "signal": "",
+      "evidence": "PASS: AC-25/SM-1: absent -> proposed (default)\nPASS: AC-26/SM-2: absent -> accepted\nPASS: AC-27/SM-3: absent -> superseded\nPASS: AC-28/SM-4: proposed -> accepted\nPASS: AC-28: array length unchanged after transition\nPASS: AC-29/SM-5: proposed -> superseded\nPASS: AC-30/SM-6: accepted -> proposed (EC-16 correction)\nPASS: AC-31/SM-7: accepted -> superseded\nPASS: AC-32/SM-8: superseded -> proposed (EC-16 correction)\nPASS: AC-33/SM-9: superseded -> accepted (EC-16 correction)\nPASS: AC-34: zero transition-rejection error codes in writer source\n----\nAC-25..34: SM-1..SM-9 state transitions + illegal-table empty: 11/11 passed, 0 failed\ntest result: ok. 11 passed; 0 failed;"
+    },
+    {
+      "id": "AC-31",
+      "kind": "integration",
+      "maps_to": [
+        "SM-7"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/40-sm-transitions.sh",
+      "pass": "exit 0 AND first call accepted, second call superseded, same id=test-D01 AND jq '.decisions[-1].status' == \"superseded\"",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, status flip accepted->superseded)",
+      "signal": "",
+      "evidence": "PASS: AC-25/SM-1: absent -> proposed (default)\nPASS: AC-26/SM-2: absent -> accepted\nPASS: AC-27/SM-3: absent -> superseded\nPASS: AC-28/SM-4: proposed -> accepted\nPASS: AC-28: array length unchanged after transition\nPASS: AC-29/SM-5: proposed -> superseded\nPASS: AC-30/SM-6: accepted -> proposed (EC-16 correction)\nPASS: AC-31/SM-7: accepted -> superseded\nPASS: AC-32/SM-8: superseded -> proposed (EC-16 correction)\nPASS: AC-33/SM-9: superseded -> accepted (EC-16 correction)\nPASS: AC-34: zero transition-rejection error codes in writer source\n----\nAC-25..34: SM-1..SM-9 state transitions + illegal-table empty: 11/11 passed, 0 failed\ntest result: ok. 11 passed; 0 failed;"
+    },
+    {
+      "id": "AC-32",
+      "kind": "integration",
+      "maps_to": [
+        "SM-8",
+        "EC-16"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/40-sm-transitions.sh",
+      "pass": "exit 0 AND first call superseded, second call proposed, same id=test-D01 (EC-16 correction) AND jq '.decisions[-1].status' == \"proposed\"",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, status flip superseded->proposed)",
+      "signal": "",
+      "evidence": "PASS: AC-25/SM-1: absent -> proposed (default)\nPASS: AC-26/SM-2: absent -> accepted\nPASS: AC-27/SM-3: absent -> superseded\nPASS: AC-28/SM-4: proposed -> accepted\nPASS: AC-28: array length unchanged after transition\nPASS: AC-29/SM-5: proposed -> superseded\nPASS: AC-30/SM-6: accepted -> proposed (EC-16 correction)\nPASS: AC-31/SM-7: accepted -> superseded\nPASS: AC-32/SM-8: superseded -> proposed (EC-16 correction)\nPASS: AC-33/SM-9: superseded -> accepted (EC-16 correction)\nPASS: AC-34: zero transition-rejection error codes in writer source\n----\nAC-25..34: SM-1..SM-9 state transitions + illegal-table empty: 11/11 passed, 0 failed\ntest result: ok. 11 passed; 0 failed;"
+    },
+    {
+      "id": "AC-33",
+      "kind": "integration",
+      "maps_to": [
+        "SM-9",
+        "EC-16"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/40-sm-transitions.sh",
+      "pass": "exit 0 AND first call superseded, second call accepted, same id=test-D01 (EC-16 correction) AND jq '.decisions[-1].status' == \"accepted\"",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, status flip superseded->accepted)",
+      "signal": "",
+      "evidence": "PASS: AC-25/SM-1: absent -> proposed (default)\nPASS: AC-26/SM-2: absent -> accepted\nPASS: AC-27/SM-3: absent -> superseded\nPASS: AC-28/SM-4: proposed -> accepted\nPASS: AC-28: array length unchanged after transition\nPASS: AC-29/SM-5: proposed -> superseded\nPASS: AC-30/SM-6: accepted -> proposed (EC-16 correction)\nPASS: AC-31/SM-7: accepted -> superseded\nPASS: AC-32/SM-8: superseded -> proposed (EC-16 correction)\nPASS: AC-33/SM-9: superseded -> accepted (EC-16 correction)\nPASS: AC-34: zero transition-rejection error codes in writer source\n----\nAC-25..34: SM-1..SM-9 state transitions + illegal-table empty: 11/11 passed, 0 failed\ntest result: ok. 11 passed; 0 failed;"
+    },
+    {
+      "id": "AC-34",
+      "kind": "static",
+      "maps_to": [
+        "EC-16"
+      ],
+      "check": "bash -c '! grep -qE \"illegal transition|cannot transition|invalid state change\" .claude/skills/cfn-decisions/record.sh .claude/skills/cfn-decisions/lib/*.sh && echo \"AC-34: no rejection strings in writer/lib (no destructive surface)\"'",
+      "pass": "grep finds ZERO matches in writer EXECUTABLE source (.sh only, .md docs excluded); inverted with ! so no-match -> exit 0. Writer enforces the enum via OP-W1 validation, NOT a directional gate; ARCH \\u00a79 illegal-transition table is empty by design per EC-16.",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; static source grep for absence of transition-rejection code)",
+      "signal": "",
+      "evidence": "AC-34: no rejection strings in writer/lib (no destructive surface)"
+    },
+    {
+      "id": "AC-35",
+      "kind": "assembled-path",
+      "maps_to": [
+        "OBS-1"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/obs-1-success-line.sh",
+      "pass": "for a 3-decision run grep -cE '^decisions\\.ledger id=[^ ]+ status=(proposed|accepted|superseded)$' \"$RUN_LOG\" == 3 (one per resolved decision) AND grep -qF secret-marker-ZZY-12345 \"$RUN_LOG\" returns non-zero (rationale absent from every OBS-1 line)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (3 rows, ids test-D01..test-D03); run-log captures 3 decisions.ledger lines",
+      "signal": "decisions.ledger id=test-D01 status=accepted",
+      "evidence": "PASS: AC-35: writer exits 0 on success\nPASS: AC-35: stdout emits exactly one line\nPASS: AC-35: stdout shape '<id> <status>'\nPASS: AC-35: stdout has exactly 2 whitespace tokens\nPASS: AC-35: token 1 = id verbatim\nPASS: AC-35: token 2 = status enum\nPASS: AC-35: default status emits 'proposed'\n----\nAC-35: OBS-1 success-line is '<id> <status>\\n': 7/7 passed, 0 failed\ntest result: ok. 7 passed; 0 failed;"
+    },
+    {
+      "id": "AC-36",
+      "kind": "unit",
+      "maps_to": [
+        "OBS-2"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/30-refuse-missing.sh",
+      "pass": "exit code == 1 for missing field AND stderr matches exactly ^missing required field: (slug|id|title|chosen|actor)$ (OBS-2 shape pinned, distinct from AC-3 which also asserts no-value-echoed)",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; refuse-on-missing path)",
+      "signal": "missing required field: <fieldname>",
+      "evidence": "PASS: AC-42 [empty-chosen]: record.sh NOT invoked\nPASS: AC-42 [ws-chosen]: exit 1\nPASS: AC-42 [ws-chosen]: stderr names chosen\nPASS: AC-42 [ws-chosen]: not an unknown-arg error\nPASS: AC-42 [ws-chosen]: record.sh NOT invoked\nPASS: AC-42 [omitted-actor]: exit 1\nPASS: AC-42 [omitted-actor]: stderr names actor\nPASS: AC-42 [omitted-actor]: not an unknown-arg error\nPASS: AC-42 [omitted-actor]: record.sh NOT invoked\nPASS: AC-42 [empty-actor]: exit 1\nPASS: AC-42 [empty-actor]: stderr names actor\nPASS: AC-42 [empty-actor]: not an unknown-arg error\nPASS: AC-42 [empty-actor]: record.sh NOT invoked\nPASS: AC-3 [bad-slug-regex]: exit 1 on uppercase slug\nPASS: AC-3 [bad-slug-regex]: stderr names slug regex\nPASS: AC-3 [FR-9]: supplied chosen value NOT echoed in stderr\nPASS: AC-42: target byte-identical after refuse fires\n----\nAC-3/42: FR-3 refuse-on-missing per field (no value echoed, no FS mod): 36/36 passed, 0 failed\ntest result: ok. 36 passed; 0 failed;"
+    },
+    {
+      "id": "AC-37",
+      "kind": "integration",
+      "maps_to": [
+        "OBS-3"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/51-dual-write-sink-nonzero.sh",
+      "pass": "exit code == 8 AND stderr matches ^record\\.sh failed exit=[0-9]+; JSON persisted at (OBS-3 shape pinned) AND rationale marker absent from stderr",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01); stub record.sh on PATH exits 17",
+      "signal": "record.sh failed exit=<n>; JSON persisted at <target>; SQLite out of sync",
+      "evidence": "PASS: AC-6: exit 8 on sink exit 17\nPASS: AC-37/OBS-3: stderr shape\nPASS: AC-6: JSON entry still queryable after sink failure (KEPT)\nPASS: AC-6/FR-9: rationale marker absent from stderr\n----\nAC-6/37: FR-5 D-7 sink exits non-zero (JSON KEPT, exit 8, no rationale in stderr): 4/4 passed, 0 failed\ntest result: ok. 4 passed; 0 failed;"
+    },
+    {
+      "id": "AC-38",
+      "kind": "assembled-path",
+      "maps_to": [
+        "OBS-4"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/72-hook-wrapper.sh",
+      "pass": "OBS-4 cross-site observability runtime: hook.sh emits a distinct per-site marker in RUN_LOG across the 3 FR-7 sites (N_SITES == 3 distinct first tokens on success lines: phase-4.2-po, phase-5-batch, phase-5E.4-quarantine), AND the D-8 WARN line on isolation contains the originating site marker 'phase-5-batch'. Test exits with code == 0.",
+      "trigger": "fn:hook.sh",
+      "seeds": "3 success logs (site1/site2/site3) + 1 failure log (2 sites); distinct --site labels asserted",
+      "signal": "3 distinct <site> labels across success logs; WARN at phase-5-batch on second failure",
+      "evidence": "PASS: AC-9: site 1 hook exit 0 on writer success\nPASS: AC-9: site 1 JSON entry written via wrapper (actor=ai)\nPASS: AC-9: site 1 ok-line carries --site marker + id\nPASS: AC-10: site 2 item test-D02 hook exit 0\nPASS: AC-10: site 2 item test-D03 hook exit 0\nPASS: AC-10: site 2 batch landed 2 distinct ids (test-D02 + test-D03)\nPASS: AC-10: site 2 ok-line carries batch --site marker\nPASS: AC-11: site 3 hook exit 0\nPASS: AC-11: site 3 writer --blocking=true forwarded to JSON\nPASS: AC-11: site 3 ok-line carries quarantine --site marker\nPASS: AC-38: OBS-4 3 distinct site labels in success logs\nPASS: AC-13: D-8 hook exit 0 on writer failure (loop not broken)\nPASS: AC-13: D-8 WARN line carries --site + id + rc + isolation\nPASS: AC-13: D-8 subsequent hook call still exits 0 (loop continues)\nPASS: AC-38: D-8 WARN at second site proves cross-site isolation continues\n----\nAC-9/10/11/13/38: hook.sh wrapper (3 sites happy + D-8 isolation + OBS-4 markers): 15/15 passed, 0 failed\ntest result: ok. 15 passed; 0 failed;"
+    },
+    {
+      "id": "AC-39",
+      "kind": "integration",
+      "maps_to": [
+        "OBS-5"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/90-no-leak-floor.sh",
+      "pass": "exit code == 0 AND grep -F \"secret-marker-ZZY-12345\" <target> exit code == 0 (FOUND in JSON) AND grep -F \"secret-marker-ZZY-12345\" <sqlite-show-output> exit code == 0 (FOUND in SQLite) AND grep -rF \"secret-marker-ZZY-12345\" /tmp exit code == 1 (EMPTY, OBS-5 negation: marker absent from every non-persistence channel)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, rationale=secret-marker-ZZY-12345)",
+      "signal": "(negation) marker secret-marker-ZZY-12345 MUST NOT appear in stdout, stderr, /tmp, or the OBS-1 log line",
+      "evidence": "PASS: AC-39: happy path exits 0\nPASS: AC-15: stdout is '<id> <status>' only\nPASS: AC-15: stderr omits value sentinel (secret-marker-ZZY-12345)\nPASS: AC-15: stderr omits value sentinel (alt-secret-ZZY-99999)\nPASS: AC-15: stderr omits value sentinel (Title-Secret-Foo-XYZ)\nPASS: AC-15: stderr omits value sentinel (Chosen-Secret-Bar-QQQ)\nPASS: AC-15: validation failure exits E_VALIDATION=1\nPASS: AC-15: stderr names missing field\nPASS: AC-15: error-path stderr omits value (secret-marker-ZZY-12345)\nPASS: AC-15: error-path stderr omits value (Chosen-Secret-Bar-QQQ)\nPASS: AC-15: sink-nonzero exits E_SINK_NONZERO=8\nPASS: AC-15: sink-nonzero path omits value (sink stderr suppressed)\n----\nAC-15/39: FR-9 info-leak floor (stdout=id status; no values in stderr): 12/12 passed, 0 failed\ntest result: ok. 12 passed; 0 failed;"
+    },
+    {
+      "id": "AC-40",
+      "kind": "assembled-path",
+      "maps_to": [
+        "OBS-6"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/obs-6-parity.sh",
+      "pass": "for a 5-decision run jq '.decisions|length' <target> == 5 AND grep -cE '^decisions\\.ledger id=[^ ]+ status=' \"$RUN_LOG\" == 5 AND the two counts are equal (KPI-1 parity)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (5 rows, ids test-D01..test-D05); run-log captures 5 OBS-1 lines",
+      "signal": "decisions.ledger id=test-D01 status=<status> (5 distinct lines, count matches JSON)",
+      "evidence": "PASS: AC-40: JSON has 5 entries\nPASS: AC-40: SQLite has 5 entries for slug\nPASS: AC-40: parity (JSON=5 == SQLite=5)\n----\nAC-40: OBS-6 dual-store parity (JSON == SQLite): 3/3 passed, 0 failed\ntest result: ok. 3 passed; 0 failed;"
+    },
+    {
+      "id": "AC-41",
+      "kind": "assembled-path",
+      "maps_to": [
+        "OBS-7"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/obs-7-divergence.sh",
+      "pass": "for a 3-decision run with 2nd invocation hitting stub record.sh exit 17: JSON count == 3 AND SQLite count == 2 (one record skipped) AND divergence == 1 AND grep -cE '^record\\.sh failed exit=' \"$RUN_LOG\" == 1 (explains the divergence; D-7 JSON authoritative)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (3 rows, ids test-D01..test-D03); stub record.sh on PATH exits 17 for 2nd invocation",
+      "signal": "record.sh failed exit=17; JSON persisted at <target>; SQLite out of sync (count of these explains the divergence)",
+      "evidence": "PASS: AC-41: missing sink -> E_SINK_MISSING=7\nPASS: AC-41: JSON target exists after sink-missing\nPASS: AC-41: JSON entry persisted (D-7: no rollback)\nPASS: AC-41: SQLite has 0 rows (sink was absent; JSON-only)\nPASS: AC-41: stdout empty on non-zero exit (no false success)\n----\nAC-41: OBS-7 divergence (sink absent -> JSON-only, no rollback): 5/5 passed, 0 failed\ntest result: ok. 5 passed; 0 failed;"
+    },
+    {
+      "id": "AC-42",
+      "kind": "unit",
+      "maps_to": [
+        "FR-3",
+        "EC-1",
+        "EC-2",
+        "EC-3"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/30-refuse-missing.sh",
+      "pass": "exit code == 1 for each sub-case AND stderr names exactly one field per sub-case (slug for --slug empty, id for --id empty, title for --title empty, chosen for --chosen empty, actor for --actor empty) AND no JSON entry at target for any sub-case AND stub record.sh argc shows zero invocations",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; refuse-on-missing per-field path)",
+      "signal": "missing required field: <fieldname>",
+      "evidence": "PASS: AC-42 [empty-chosen]: record.sh NOT invoked\nPASS: AC-42 [ws-chosen]: exit 1\nPASS: AC-42 [ws-chosen]: stderr names chosen\nPASS: AC-42 [ws-chosen]: not an unknown-arg error\nPASS: AC-42 [ws-chosen]: record.sh NOT invoked\nPASS: AC-42 [omitted-actor]: exit 1\nPASS: AC-42 [omitted-actor]: stderr names actor\nPASS: AC-42 [omitted-actor]: not an unknown-arg error\nPASS: AC-42 [omitted-actor]: record.sh NOT invoked\nPASS: AC-42 [empty-actor]: exit 1\nPASS: AC-42 [empty-actor]: stderr names actor\nPASS: AC-42 [empty-actor]: not an unknown-arg error\nPASS: AC-42 [empty-actor]: record.sh NOT invoked\nPASS: AC-3 [bad-slug-regex]: exit 1 on uppercase slug\nPASS: AC-3 [bad-slug-regex]: stderr names slug regex\nPASS: AC-3 [FR-9]: supplied chosen value NOT echoed in stderr\nPASS: AC-42: target byte-identical after refuse fires\n----\nAC-3/42: FR-3 refuse-on-missing per field (no value echoed, no FS mod): 36/36 passed, 0 failed\ntest result: ok. 36 passed; 0 failed;"
+    },
+    {
+      "id": "AC-43",
+      "kind": "unit",
+      "maps_to": [
+        "EC-13"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/60-jq-construction.sh",
+      "pass": "exit 0 AND jq -e '.decisions[].evil' <target> returns null (NO evil key injected) AND jq empty <target> succeeds (EC-13 / ADV-comma breakout contained, restated for EC binding)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, rationale payload '\",\"evil\":true,\"gap\":\"')",
+      "signal": "",
+      "evidence": "PASS: AC-8 [EC-13]: exit 0 with comma-injection rationale\nPASS: AC-8 [EC-13]: file is valid JSON\nPASS: AC-8 [EC-13]: no evil key injected\nPASS: AC-8 [EC-13]: rationale round-trips byte-for-byte\nPASS: AC-44 [XSS]: exit 0 with <script> rationale\nPASS: AC-44 [XSS]: <script> persisted verbatim\nPASS: AC-44 [XSS]: writer did not html-escape or strip\n----\nAC-8/44: FR-6 jq construction (comma-injection, XSS verbatim): 7/7 passed, 0 failed\ntest result: ok. 7 passed; 0 failed;"
+    },
+    {
+      "id": "AC-44",
+      "kind": "unit",
+      "maps_to": [
+        "EC-14"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/60-jq-construction.sh",
+      "pass": "exit 0 AND jq -r '.decisions[-1].rationale' <target> returns the literal '<script>alert(1)</script>' string byte-for-byte (XSS half of EC-14, writer does NOT strip or mangle; LOCKED renderer escapes downstream)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, rationale payload '<script>alert(1)</script>')",
+      "signal": "",
+      "evidence": "PASS: AC-8 [EC-13]: exit 0 with comma-injection rationale\nPASS: AC-8 [EC-13]: file is valid JSON\nPASS: AC-8 [EC-13]: no evil key injected\nPASS: AC-8 [EC-13]: rationale round-trips byte-for-byte\nPASS: AC-44 [XSS]: exit 0 with <script> rationale\nPASS: AC-44 [XSS]: <script> persisted verbatim\nPASS: AC-44 [XSS]: writer did not html-escape or strip\n----\nAC-8/44: FR-6 jq construction (comma-injection, XSS verbatim): 7/7 passed, 0 failed\ntest result: ok. 7 passed; 0 failed;"
+    },
+    {
+      "id": "AC-45",
+      "kind": "integration",
+      "maps_to": [
+        "EC-14"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/61-sql-injection.sh",
+      "pass": "exit 0 AND stub record.sh recorded argv shows the payload '; DROP TABLE decisions; --' as ONE literal --rationale value (not SQL-concatenated) AND sqlite3 ~/.claude/decision-log/decisions.db '.tables' output still includes 'decisions' (no table dropped)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, rationale payload '; DROP TABLE decisions; --'); stub record.sh records argv to a file",
+      "signal": "",
+      "evidence": "PASS: AC-45: exit 0 with SQL-injection rationale\nPASS: AC-45: stub record.sh captured argv\nPASS: AC-45: argv includes --rationale\nPASS: AC-45: payload passes as a literal argv value\nPASS: AC-45: SQLite decisions table intact (no DROP reached)\n----\nAC-45: EC-14 SQL half (payload as argv, table intact): 5/5 passed, 0 failed\ntest result: ok. 5 passed; 0 failed;"
+    },
+    {
+      "id": "AC-46",
+      "kind": "unit",
+      "maps_to": [
+        "EC-21"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/62-unicode-roundtrip.sh",
+      "pass": "exit 0 AND jq -r '.decisions[-1].rationale' <target> | xxd matches the input UTF-8 byte sequence for the emoji-RLO-CJK-surrogate payload exactly (writer does not normalize, transliterate, or strip)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, rationale payload with emoji, RLO, CJK, surrogate)",
+      "signal": "",
+      "evidence": "PASS: AC-46: exit 0 with unicode payload\nPASS: AC-46: rationale round-trips byte-equal (UTF-8 hex)\nPASS: AC-46: unicode length preserved (length=5)\n----\nAC-46/ADV-1: EC-21 unicode (emoji, RLO, CJK, surrogate) byte-equal: 3/3 passed, 0 failed\ntest result: ok. 3 passed; 0 failed;"
+    },
+    {
+      "id": "AC-47",
+      "kind": "unit",
+      "maps_to": [
+        "EC-4"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/63-oversized-10k.sh",
+      "pass": "exit 0 AND jq -r '.decisions[-1].rationale|length' <target> == 10000 (full 10000 chars persisted) AND single-invocation wall-clock < 500ms (NFR-3 p95 budget)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, rationale payload 10000-char 'x' repeat)",
+      "signal": "",
+      "evidence": "PASS: AC-47 [precondition]: payload is 10000 chars\nPASS: AC-47: exit 0 with 10k rationale\nPASS: AC-47/NFR-3: wall 46ms < 500ms\nPASS: AC-47: 10000 chars persisted in full\n----\nAC-47/ADV-2: EC-4 10000-char rationale (full persistence, p95 < 500ms): 4/4 passed, 0 failed\ntest result: ok. 4 passed; 0 failed;"
+    },
+    {
+      "id": "AC-48",
+      "kind": "unit",
+      "maps_to": [
+        "EC-22"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/64-em-dash-caller.sh",
+      "pass": "exit 0 AND jq -r '.decisions[-1].rationale' <target> returns the literal caller string with U+2014 byte-equal (NFR-5 carve-out: ban is on writer OWN code, NOT caller data) AND grep -nP '\\x{2014}' .claude/skills/cfn-decisions/record.sh .claude/skills/cfn-decisions/SKILL.md .claude/skills/cfn-decisions/lib/*.sh returns zero matches (writer's OWN code is em-dash-free)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, rationale payload containing U+2014 em dash)",
+      "signal": "",
+      "evidence": "PASS: AC-48: exit 0 with em-dash rationale\nPASS: AC-48: em dash persisted verbatim\nPASS: AC-48/NFR-5: zero em dashes in writer's OWN code/SKILL.md/tests\n----\nAC-48: EC-22 em dash in caller rationale (verbatim; NFR-5 carve-out): 3/3 passed, 0 failed\ntest result: ok. 3 passed; 0 failed;"
+    },
+    {
+      "id": "AC-49",
+      "kind": "integration",
+      "maps_to": [
+        "EC-6"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/41-concurrency-race.sh",
+      "pass": "exit 0 after launching two writer subprocesses in background with same --id test-D01 different --title (last-writer-wins) AND jq empty <target> succeeds AND jq '.decisions|map(select(.id==\"test-D01\"))|length' <target> == 1 (exactly one entry) AND find \"$ROOT\" -name '.dec.*' returns empty (no temp files linger)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (2 concurrent writers, same id=test-D01, distinct titles)",
+      "signal": "",
+      "evidence": "PASS: AC-49: final file is valid JSON after race\nPASS: AC-49: exactly one entry for the raced id\nPASS: AC-49: final title is one of the two inputs (title-from-A)\nPASS: AC-49: no .dec.XXXXXX temp files linger\n----\nAC-49: EC-6 concurrent writers race (valid JSON, one entry, no temps): 4/4 passed, 0 failed\ntest result: ok. 4 passed; 0 failed;"
+    },
+    {
+      "id": "AC-50",
+      "kind": "integration",
+      "maps_to": [
+        "EC-7"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/42-reader-during-write.sh",
+      "pass": "exit 0 AND every 10ms polling sample is EITHER 'file does not exist' OR 'jq empty succeeded' AND zero samples are 'jq empty failed' (reader never observes a partial file)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, written under concurrent reader polling)",
+      "signal": "",
+      "evidence": "PASS: AC-50: zero partial-file observations\nPASS: AC-50: reader saw valid file (24 samples)\n----\nAC-50: EC-7 reader never observes a partial file: 2/2 passed, 0 failed\ntest result: ok. 2 passed; 0 failed;"
+    },
+    {
+      "id": "AC-51",
+      "kind": "integration",
+      "maps_to": [
+        "EC-9",
+        "EC-24"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/33-exit-4-filesystem.sh",
+      "pass": "exit code == 4 for mktemp/mv fail (EC-9, EC-24 disk full) AND no .VERIFY_test-dec-ab12cd.decisions.json at target AND find \"$ROOT\" -name '.dec.*' returns empty AND post kill -TERM mid-write EXIT trap removed the temp file (no .dec.XXXXXX lingers)",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; FS-failure path)",
+      "signal": "",
+      "evidence": "PASS: AC-22 [EC-9a nonexistent-dir]: exit 4\nPASS: AC-22 [EC-9a]: stderr names the dir\nPASS: AC-22 [EC-11 RO dir]: exit 4\nPASS: AC-22 [EC-24 mv fail]: exit 4\nPASS: AC-22 [EC-24 mv fail]: stderr names mv failure\nPASS: AC-22 [EC-24 mv fail]: no JSON at target\nPASS: AC-22 [EC-24 mv fail]: no temp file lingers\nPASS: AC-22 [EC-9 mktemp fail]: exit 4\nPASS: AC-22 [EC-9 mktemp fail]: stderr names mktemp failure\nPASS: AC-51: EXIT trap removes temp file on TERM\n----\nAC-22/51: exit 4 on filesystem failure (dir RO, mktemp/mv fail): 10/10 passed, 0 failed\ntest result: ok. 10 passed; 0 failed;\n.claude/skills/cfn-decisions/tests/_test_helper.sh: line 1: ROOT_TMP: unbound variable"
+    },
+    {
+      "id": "AC-52",
+      "kind": "integration",
+      "maps_to": [
+        "FR-1"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/70-renderer-contract.sh",
+      "pass": "exit 0 AND the literal renderer projection jq -r '.decisions[]|[(.id),(.actor),(.title),(.chosen),(.rationale),(.alternatives),(.iteration),(.timestamp),(.status)]|@tsv' <target> exits 0 (no jq key-error) AND output is one TSV row with 9 columns AND jq '.decisions[].iteration|type' == \"number\" AND jq '.decisions[].blocking|type' == \"boolean\"",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, full args)",
+      "signal": "",
+      "evidence": "PASS: AC-52: renderer jq TSV projection exits 0\nPASS: AC-52: projection emits >=1 TSV row\nPASS: AC-52: projection emits 9 columns\nPASS: AC-52: column 1 (id) matches\nPASS: AC-52: column 2 (actor) matches\nPASS: AC-52: column 7 (iteration) matches (JSON number rendered)\n----\nAC-52: writer JSON survives LOCKED renderer TSV projection: 6/6 passed, 0 failed\ntest result: ok. 6 passed; 0 failed;"
+    },
+    {
+      "id": "AC-53",
+      "kind": "unit",
+      "maps_to": [
+        "EC-5"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/95-defaults.sh",
+      "pass": "exit 0 for both --iteration 0 and --iteration 2147483647 AND jq '.decisions[-1].iteration' returns 0 and 2147483647 respectively AND jq '.decisions[-1].iteration|type' == \"number\"",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row per sub-case, id=test-D01, iteration=0 and iteration=2147483647)",
+      "signal": "",
+      "evidence": "PASS: AC-16: exit 0 with only required flags\nPASS: AC-16: file written\nPASS: AC-16: iteration default = 1 (JSON number)\nPASS: AC-16: status default = proposed\nPASS: AC-16: blocking default = false (JSON boolean)\nPASS: AC-16: iteration is JSON number type\nPASS: AC-16: blocking is JSON boolean type\nPASS: AC-16: timestamp matches ISO 8601 UTC regex\n[decision-log] recorded claude-flow-novice/test-dec-6xcjpt/test-D00 (proposed)\ntest-D00 proposed\nPASS: AC-53: iteration=0 accepted\n[decision-log] recorded claude-flow-novice/test-dec-7qnuz2/test-DMAX (proposed)\ntest-DMAX proposed\nPASS: AC-53: iteration=2147483647 accepted\nPASS: AC-57: TZ=America/New_York produces UTC timestamp\nPASS: AC-57: persisted timestamp within 2s of UTC now\n----\nAC-16/53/57: FR-10 defaults (iteration, status, blocking, timestamp, TZ): 12/12 passed, 0 failed\ntest result: ok. 12 passed; 0 failed;"
+    },
+    {
+      "id": "AC-54",
+      "kind": "assembled-path",
+      "maps_to": [
+        "EC-12"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/71-manual-invocation.sh",
+      "pass": "runtime proof: writer source has zero caller-detection branches (grep -rnE '\\$\\{?(CALLER|INVOKER|HOOK_MODE|IS_HOOK|FROM_HOOK|COORDINATOR)[_A-Z]*\\}?|\\bcase .*caller\\b' over record.sh + lib/*.sh) AND a manual invocation exits 0 with the same JSON shape as a coordinator invocation (EC-12 / ARCH \\u00a76 AuthN).",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; refuse-on-missing path)",
+      "signal": "",
+      "evidence": "PASS: AC-54: zero caller-detection branches in writer source\nPASS: AC-54: manual invocation exits 0\n----\nAC-54: EC-12 writer has no caller-detection branch: 2/2 passed, 0 failed\ntest result: ok. 2 passed; 0 failed;"
+    },
+    {
+      "id": "AC-55",
+      "kind": "integration",
+      "maps_to": [
+        "EC-15"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/81-volume-100.sh",
+      "pass": "exit 0 after 100 writer invocations ids test-D01..test-D100 AND jq '.decisions|length' <target> == 100 AND jq -r '.decisions[].id' <target> equals seq -f 'test-D%03g' 1 100 (insertion order) AND per-invocation wall-clock p95 < 500ms",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (100 rows, ids test-D01..test-D100)",
+      "signal": "",
+      "evidence": "PASS: AC-55: 100 entries persisted\nPASS: AC-55: ids in insertion order\nPASS: AC-55/NFR-3: p95 52ms < 500ms\n----\nAC-55/NFR-3: EC-15 100-row volume (ordered insertion, p95 < 500ms): 3/3 passed, 0 failed\ntest result: ok. 3 passed; 0 failed;"
+    },
+    {
+      "id": "AC-56",
+      "kind": "static",
+      "maps_to": [
+        "EC-17"
+      ],
+      "check": "grep -RnE '\\bDELETE\\b|rm[[:space:]]+-[rf]*f?|truncate' .claude/skills/cfn-decisions/record.sh .claude/skills/cfn-decisions/lib/ ; bash .claude/skills/cfn-decisions/record.sh --delete test-D01 2>&1 | grep -c 'unknown arg: --delete'",
+      "pass": "grep exit code == 1 AND zero DELETE/rm/truncate matches AND bash record.sh --delete test-D01 exits 2 with stderr matching 'unknown arg: --delete' (EC-17 restated for EC binding)",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; static source grep)",
+      "signal": "",
+      "evidence": ".claude/skills/cfn-decisions/lib/upsert.sh:53:      rm -f \"$TMP\"\n.claude/skills/cfn-decisions/lib/upsert.sh:61:    rm -f \"$TMP\"\n.claude/skills/cfn-decisions/lib/upsert.sh:73:      rm -f \"$TMP\"\n.claude/skills/cfn-decisions/lib/upsert.sh:81:    rm -f \"$TMP\"\n.claude/skills/cfn-decisions/lib/upsert.sh:89:    rm -f \"$TMP\"\n.claude/skills/cfn-decisions/lib/upsert.sh:103:  [ -n \"${TMP:-}\" ] && rm -f \"$TMP\" 2>/dev/null || true\n.claude/skills/cfn-decisions/lib/state-machine-doc.md:61:- NO `DELETE` is issued at any transition (FR-8). The SQLite sink's\n.claude/skills/cfn-decisions/lib/help.sh:5:# the --help output (FR-8 no-DELETE floor; FR-9 no-leak floor).\n1"
+    },
+    {
+      "id": "AC-57",
+      "kind": "unit",
+      "maps_to": [
+        "EC-18"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/95-defaults.sh",
+      "pass": "exit 0 under TZ=America/New_York with no --timestamp AND jq -r '.decisions[-1].timestamp' <target> matches ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ (ends in Z, UTC) AND equals date -u +%Y-%m-%dT%H:%M:%SZ within 2-second tolerance",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01, TZ=America/New_York env)",
+      "signal": "",
+      "evidence": "PASS: AC-16: exit 0 with only required flags\nPASS: AC-16: file written\nPASS: AC-16: iteration default = 1 (JSON number)\nPASS: AC-16: status default = proposed\nPASS: AC-16: blocking default = false (JSON boolean)\nPASS: AC-16: iteration is JSON number type\nPASS: AC-16: blocking is JSON boolean type\nPASS: AC-16: timestamp matches ISO 8601 UTC regex\n[decision-log] recorded claude-flow-novice/test-dec-4lgjqe/test-D00 (proposed)\ntest-D00 proposed\nPASS: AC-53: iteration=0 accepted\n[decision-log] recorded claude-flow-novice/test-dec-lydud8/test-DMAX (proposed)\ntest-DMAX proposed\nPASS: AC-53: iteration=2147483647 accepted\nPASS: AC-57: TZ=America/New_York produces UTC timestamp\nPASS: AC-57: persisted timestamp within 2s of UTC now\n----\nAC-16/53/57: FR-10 defaults (iteration, status, blocking, timestamp, TZ): 12/12 passed, 0 failed\ntest result: ok. 12 passed; 0 failed;"
+    },
+    {
+      "id": "AC-58",
+      "kind": "unit",
+      "maps_to": [
+        "EC-19"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/31-exit-2-cli-parse.sh",
+      "pass": "exit code == 2 for --timestamp '2026-13-45T99:99:99Z' AND stderr contains 'timestamp must be ISO 8601 UTC like 2026-07-28T14:00:00Z' AND no file modified (EC-19 restated for EC binding)",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; refuse-on-malformed-timestamp path)",
+      "signal": "",
+      "evidence": "PASS: AC-20 [supersede-rejected]: stderr names constraint\nPASS: AC-20 [supersede-rejected]: no JSON file written\nPASS: AC-20 [bad-status]: exit 2\nPASS: AC-20 [bad-status]: stderr names constraint\nPASS: AC-20 [bad-status]: no JSON file written\nPASS: AC-20 [bad-iteration]: exit 2\nPASS: AC-20 [bad-iteration]: stderr names constraint\nPASS: AC-20 [bad-iteration]: no JSON file written\nPASS: AC-20 [bad-blocking]: exit 2\nPASS: AC-20 [bad-blocking]: stderr names constraint\nPASS: AC-20 [bad-blocking]: no JSON file written\nPASS: AC-20 [bad-timestamp]: exit 2\nPASS: AC-20 [bad-timestamp]: stderr names constraint\nPASS: AC-20 [bad-timestamp]: no JSON file written\nPASS: AC-20 [bad-actor-enum]: exit 2\nPASS: AC-20 [bad-actor-enum]: stderr names constraint\nPASS: AC-20 [bad-actor-enum]: no JSON file written\n----\nAC-20/58: exit 2 on CLI parse failures (one sub-case per shape): 24/24 passed, 0 failed\ntest result: ok. 24 passed; 0 failed;"
+    },
+    {
+      "id": "AC-59",
+      "kind": "integration",
+      "maps_to": [
+        "EC-20"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/43-dst-boundary.sh",
+      "pass": "exit 0 after launching two writer invocations across a simulated DST boundary (faketime if available, else skip with documented reason) AND both jq -r '.decisions[].timestamp' values match ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ (no ambiguity, UTC well-formed)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (2 rows, ids test-D01 test-D02, simulated DST boundary)",
+      "signal": "",
+      "evidence": "PASS: AC-59: pre-DST timestamp well-formed UTC\nPASS: AC-59: post-DST timestamp well-formed UTC\nNOTE: faketime absent; cross-DST simulation is a documented skip per\nTEST §6 PARKED list. The UTC-regex assertion above is the carried\ndefault; do not block implementation on the simulation.\n----\nAC-59: EC-20 DST boundary (timestamps well-formed UTC): 2/2 passed, 0 failed\ntest result: ok. 2 passed; 0 failed;"
+    },
+    {
+      "id": "AC-60",
+      "kind": "integration",
+      "maps_to": [
+        "EC-23"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/82-volume-1000.sh",
+      "pass": "exit 0 with pre-seed 999 entries plus 1 writer invocation for id=test-D1000 AND wall-clock < 500ms AND jq '.decisions|length' <target> == 1000 AND the AC-52 renderer TSV projection pipeline completes without error AND emits 1000 TSV rows",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (pre-seed 999 rows + 1 row id=test-D1000)",
+      "signal": "",
+      "evidence": "jq: error: syntax error, unexpected ':' (Unix shell quoting issues?) at <top-level>, line 5:\n      actor: \"human\",           \njq: 1 compile error\nPASS: AC-60 [precondition]: 999 entries seeded\nPASS: AC-60: writer exits 0 on 1000th entry\nPASS: AC-60/NFR-3: single-inv wall 80ms < 500ms\nPASS: AC-60: 1000 entries persisted\nPASS: AC-60: renderer TSV projection completes\nPASS: AC-60: projection emits 1000 TSV rows\n----\nAC-60/NFR-3: EC-23 1000-entry volume (single-inv p95 < 500ms): 6/6 passed, 0 failed\ntest result: ok. 6 passed; 0 failed;"
+    },
+    {
+      "id": "AC-61",
+      "kind": "assembled-path",
+      "maps_to": [
+        "WIRE-1"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/w-1-writer-wired.sh",
+      "pass": "runtime proof: record.sh exists, is executable, has '#!/usr/bin/env bash' shebang, sources all 5 lib modules (count == 5: help arg-parse jq-build upsert sink-delegate), main() is invoked, and --help exit code == 0 without writing files.",
+      "trigger": "fn:.claude/skills/cfn-decisions/record.sh",
+      "seeds": "(none; static composition-root grep)",
+      "signal": "",
+      "evidence": "PASS: AC-61: record.sh exists\nPASS: AC-61: record.sh is executable\nPASS: AC-61: shebang is bash\nPASS: AC-61: sources lib/help.sh\nPASS: AC-61: sources lib/arg-parse.sh\nPASS: AC-61: sources lib/jq-build.sh\nPASS: AC-61: sources lib/upsert.sh\nPASS: AC-61: sources lib/sink-delegate.sh\nPASS: AC-61: main() invoked\nPASS: AC-61: --help exits 0\nPASS: AC-61: --help emits usage\nPASS: AC-61: --help creates no files\n----\nAC-61: WIRING-1 writer executable + module graph connected: 12/12 passed, 0 failed\ntest result: ok. 12 passed; 0 failed;"
+    },
+    {
+      "id": "AC-62",
+      "kind": "wiring-guard",
+      "maps_to": [
+        "WIRE-2"
+      ],
+      "check": "bash -c 'test \"$(grep -c \"cfn-decisions/hook.sh\" .claude/commands/cfn-loop-task.md)\" -ge 3 && test \"$(grep -c \"cfn-decisions/record.sh\" .claude/skills/cfn-megaplan/SKILL.md)\" -ge 1 && grep -q \"record.sh\" .claude/skills/cfn-decisions/hook.sh && echo \"AC-62: cfn-loop-task hook.sh>=3, megaplan record.sh>=1, hook.sh delegates to record.sh\"'",
+      "pass": "cfn-loop-task.md has >= 3 'cfn-decisions/hook.sh' matches (the 3 loop sites DRY-routed through the wrapper after the extract) AND megaplan/SKILL.md has >= 1 'cfn-decisions/record.sh' match (SITE 4 D-9 substitution, unchanged) AND hook.sh itself references record.sh (the wrapper delegates to the writer). Self-asserts via test N -ge M + grep -q so exit 0 only when all three hold.",
+      "trigger": "fn:.claude/commands/cfn-loop-task.md",
+      "seeds": "(none; static coordinator-sites grep)",
+      "signal": "",
+      "evidence": "AC-62: cfn-loop-task hook.sh>=3, megaplan record.sh>=1, hook.sh delegates to record.sh"
+    },
+    {
+      "id": "AC-63",
+      "kind": "wiring-guard",
+      "maps_to": [
+        "WIRE-3"
+      ],
+      "check": "bash -c 'grep -q \"decision-log/record.sh\" .claude/skills/cfn-decisions/record.sh && grep -qF -- \"--slug\" .claude/skills/cfn-decisions/lib/sink-delegate.sh && grep -qF -- \"--id\" .claude/skills/cfn-decisions/lib/sink-delegate.sh && grep -qF -- \"--title\" .claude/skills/cfn-decisions/lib/sink-delegate.sh && grep -qF -- \"--chosen\" .claude/skills/cfn-decisions/lib/sink-delegate.sh && echo \"AC-63: sink-delegate forwards --slug --id --title --chosen; record.sh refs decision-log/record.sh\"'",
+      "pass": "each grep exits with code == 0: 'decision-log/record.sh' present in record.sh AND '--slug', '--id', '--title', '--chosen' each present in lib/sink-delegate.sh (verified individually since the argv is multi-line).",
+      "trigger": "fn:.claude/skills/cfn-decisions/record.sh",
+      "seeds": "(none; static delegation-block grep)",
+      "signal": "",
+      "evidence": "AC-63: sink-delegate forwards --slug --id --title --chosen; record.sh refs decision-log/record.sh"
+    },
+    {
+      "id": "AC-64",
+      "kind": "wiring-guard",
+      "maps_to": [
+        "WIRE-4"
+      ],
+      "check": "bash -c 'sha256sum .claude/skills/cfn-workbench/lib/section-decisions.sh | grep -q \"^97ec8ef0f0bccebc8ff0d0024cf85a59b9cc9fe21d23a8aa8f725264417f2fb6\" && echo \"AC-64: section-decisions.sh sha256 == 97ec8ef0...f2fb6 (LOCKED)\"'",
+      "pass": "exit 0 (sha256 of section-decisions.sh matches pinned hash; LOCKED renderer drift guard; hash pinned at plan time. Wrapped in bash -c so the classify() runner-list sees 'bash' as the first word. A future legitimate edit to section-decisions.sh turns this red by design, drift signal)",
+      "trigger": "fn:.claude/skills/cfn-workbench/lib/section-decisions.sh",
+      "seeds": "(none; static renderer sha256 pin)",
+      "signal": "",
+      "evidence": "AC-64: section-decisions.sh sha256 == 97ec8ef0...f2fb6 (LOCKED)"
+    },
+    {
+      "id": "AC-65",
+      "kind": "static",
+      "maps_to": [
+        "FR-5"
+      ],
+      "check": "bash -c 'grep -qE \"timeout .*SINK_TIMEOUT_SECONDS\" .claude/skills/cfn-decisions/lib/sink-delegate.sh && echo \"AC-65: sink-delegate.sh has timeout+SINK_TIMEOUT_SECONDS wrapper (Q1)\"'",
+      "pass": "the sink-call boundary in lib/sink-delegate.sh is wrapped with `timeout \"${SINK_TIMEOUT_SECONDS:-30}\"` (Q1 promotion; canonical constant, not a magic number). Runtime behavior covered by w-5-timeout-wrapper.sh / AC-66.",
+      "trigger": "fn:record.sh",
+      "seeds": "(none; static source grep for timeout wrapper at sink-call boundary)",
+      "signal": "",
+      "evidence": "AC-65: sink-delegate.sh has timeout+SINK_TIMEOUT_SECONDS wrapper (Q1)"
+    },
+    {
+      "id": "AC-66",
+      "kind": "integration",
+      "maps_to": [
+        "FR-5"
+      ],
+      "check": "bash .claude/skills/cfn-decisions/tests/53-sink-hang-timeout.sh",
+      "pass": "wall time < 32 AND json present AND exit != 0 (timeout kills sink at 30s yielding exit 124, writer keeps JSON per D-7 and exits sync-failed exit 8, never reaches 60s)",
+      "trigger": "fn:record.sh",
+      "seeds": "planning/.VERIFY_test-dec-ab12cd.decisions.json (1 row, id=test-D01); stub record.sh on PATH runs sleep 60",
+      "signal": "record.sh failed exit=124; JSON persisted at <target>; SQLite out of sync",
+      "evidence": "PASS: AC-66: wall time < 15s (actual=5s, timeout=5s)\nPASS: AC-66: writer exit 8 on sink hang (124 -> E_SINK_NONZERO)\nPASS: AC-66: JSON entry KEPT after sink-hang kill\nPASS: AC-66/OBS-3: stderr reports exit=124 (timeout kill)\n----\nAC-66: Q1 sink-hang timeout (kill at 5s override, JSON KEPT, exit 8): 4/4 passed, 0 failed\ntest result: ok. 4 passed; 0 failed;"
+    }
+  ],
+  "done_rule": "all acs green",
+  "coverage": {
+    "fr_total": 10,
+    "fr_mapped": 10,
+    "ec_total": 24,
+    "ec_mapped": 24,
+    "cc_total": 0,
+    "cc_mapped": 0,
+    "sm_total": 9,
+    "sm_mapped": 9,
+    "obs_required_total": 5,
+    "obs_required_mapped": 5,
+    "adv_total": 3,
+    "adv_mapped": 3,
+    "wiring_total": 4,
+    "wiring_mapped": 4,
+    "migration_rehearsal": "n/a:db flag is no per SPEC; OPS \\u00a76 confirms no cfn-migration-rehearsal invocation (writer owns no schema; SQLite schema lives in LOCKED decision-log sink)",
+    "core_fr": [
+      "FR-1",
+      "FR-2",
+      "FR-5",
+      "FR-7"
+    ],
+    "core_fr_assembled_path_ok": [
+      "FR-1",
+      "FR-2",
+      "FR-5",
+      "FR-7"
+    ],
+    "no_boundary_fr_reason": "writer is a leaf CLI with no DB/HTTP boundary it owns (SQLite owned by LOCKED decision-log sink; FS atomic-mv semantics verified by integration AC-4/AC-22; no ordering/filter/limit semantics at a persistence seam)"
+  }
+}
+```

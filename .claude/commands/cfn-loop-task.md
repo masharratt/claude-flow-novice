@@ -413,6 +413,26 @@ Each cfn-vote-implement call runs the 3 voting agents in parallel and routes eac
 
 3/3 items are implemented in-line during the vote pass. 2/3 items consult product-owner one at a time. 1/3 items are collected and surfaced after every other item is resolved.
 
+**FR-7 SITE 1 (Phase 4.2 product-owner 2/3) decisions-ledger capture.** Each 2/3 product-owner verdict is final BEFORE this hook fires. Per resolved 2/3 item, set the per-item variables (`DEC_ID`, `DEC_TITLE`, `DEC_CHOSEN`, `DEC_RATIONALE`, `DEC_ALTS`, `DEC_STATUS`, `DEC_BLOCKING`) and invoke the writer once. Status mapping: `IMPLEMENT -> accepted`, `DEFER -> proposed`, `REJECT -> superseded`. Blocking mapping: `true` if the vote was block-severity, else `false`. `actor=ai` (the product-owner agent resolves 2/3 items). D-8 isolation: the writer's non-zero exit is logged and the loop continues (the decision was made by the product-owner agent; a missing ledger row is a coverage gap, not a wrong decision).
+
+```bash
+# FR-7 SITE 1: record the resolved 2/3 product-owner decision (actor=ai, D-8 isolated).
+# hook.sh owns the D-8 isolation envelope + per-site marker (DRY across sites 1/2/3).
+export RUN_LOG="${RUN_LOG:-/tmp/decisions-ledger-${TASK_ID:-unknown}.log}"
+bash .claude/skills/cfn-decisions/hook.sh \
+    --site phase-4.2-po \
+    --slug "${SLUG:-$TASK_ID}" \
+    --id "$DEC_ID" \
+    --title "$DEC_TITLE" \
+    --chosen "$DEC_CHOSEN" \
+    --actor ai \
+    --rationale "${DEC_RATIONALE:-}" \
+    --alternatives "${DEC_ALTS:-}" \
+    --status "${DEC_STATUS:-accepted}" \
+    --blocking "${DEC_BLOCKING:-false}"
+# Loop continues regardless of writer RC (hook.sh always exits 0; D-8 isolation).
+```
+
 **Mark todo #4 as completed. Proceed to Phase 5.**
 
 ---
@@ -435,6 +455,27 @@ Each 1/3 item is one AskUserQuestion entry:
 - **question**: plain English description of the suggestion + the one supporting vote's reasoning + the two opposing votes' reasoning. End with "Apply this change?"
 - **options**: `Apply`, `Skip`, optionally `Defer to backlog`
 - **header**: short slug from suggestion ID (e.g. "Extract validator")
+
+**FR-7 SITE 2 (Phase 5 user-batch) decisions-ledger capture.** After each `AskUserQuestion` batch returns AND BEFORE the Apply items are implemented, record every resolved 1/3 item. One writer invocation per item (4 items max per batch per the batched-4 rule). Status mapping: `Apply -> accepted`, `Skip -> superseded`, `Defer -> proposed`. `actor=human` (the user resolves 1/3 items via AskUserQuestion). `blocking=false` (1/3 items are by definition non-blocking per the routing table above). D-8 isolation: the user's choice is honored regardless of ledger state.
+
+```bash
+# FR-7 SITE 2: record each resolved 1/3 user-batch decision (actor=human, D-8 isolated).
+# Per resolved 1/3 item, set: DEC_ID, DEC_TITLE, DEC_CHOSEN, DEC_RATIONALE, DEC_ALTS, DEC_STATUS
+# hook.sh owns the D-8 isolation envelope + per-site marker (DRY across sites 1/2/3).
+export RUN_LOG="${RUN_LOG:-/tmp/decisions-ledger-${TASK_ID:-unknown}.log}"
+bash .claude/skills/cfn-decisions/hook.sh \
+    --site phase-5-batch \
+    --slug "${SLUG:-$TASK_ID}" \
+    --id "$DEC_ID" \
+    --title "$DEC_TITLE" \
+    --chosen "$DEC_CHOSEN" \
+    --actor human \
+    --rationale "${DEC_RATIONALE:-}" \
+    --alternatives "${DEC_ALTS:-}" \
+    --status "${DEC_STATUS:-accepted}" \
+    --blocking false
+# Repeat per resolved item in the batch; loop continues regardless of writer RC (hook.sh always exits 0; D-8).
+```
 
 After each batch returns, implement the `Apply` items with TDD (sequential, same protocol as 3/3 items). Continue until queue is empty.
 
@@ -533,6 +574,28 @@ npm test 2>&1 | tee /tmp/test-final-${TASK_ID}.txt
 - Red -> run the Step 3.2 W8 flaky re-run FIRST (a green-on-rerun red is flaky-flagged, not real).
 - Persistent reds -> at most 2 quick-fix attempts.
 - Still red after 2 attempts -> `AskUserQuestion` (one decision): **Quarantine** / **Keep iterating** / **Abort**.
+
+  **FR-7 SITE 3 (Phase 5E.4 quarantine) decisions-ledger capture.** Record the user's quarantine choice AFTER the `AskUserQuestion` returns AND BEFORE the dispatch below. One writer invocation total (one decision by design). Status mapping: `Quarantine -> accepted`, `Keep iterating -> proposed`, `Abort -> superseded`. `actor=human`. `blocking=true` (quarantine is load-bearing for Step 3.05 hygiene). D-8 isolation: the audit row is an audit side-effect, not a gate on the quarantine itself; `test.skip` still happens, backlog entry still lands, the loop continues regardless of writer RC.
+
+  ```bash
+  # FR-7 SITE 3: record the quarantine/iterate/abort decision (actor=human, D-8 isolated).
+  # Set DEC_ID, DEC_TITLE, DEC_CHOSEN, DEC_RATIONALE, DEC_ALTS, DEC_STATUS per the user's choice.
+  # hook.sh owns the D-8 isolation envelope + per-site marker (DRY across sites 1/2/3).
+  export RUN_LOG="${RUN_LOG:-/tmp/decisions-ledger-${TASK_ID:-unknown}.log}"
+  bash .claude/skills/cfn-decisions/hook.sh \
+      --site phase-5E.4-quarantine \
+      --slug "${SLUG:-$TASK_ID}" \
+      --id "$DEC_ID" \
+      --title "$DEC_TITLE" \
+      --chosen "$DEC_CHOSEN" \
+      --actor human \
+      --rationale "${DEC_RATIONALE:-}" \
+      --alternatives "${DEC_ALTS:-}" \
+      --status "${DEC_STATUS:-accepted}" \
+      --blocking true
+  # Quarantine / Phase 2 return / report+exit proceed regardless of writer RC (hook.sh always exits 0; D-8).
+  ```
+
   - **Quarantine**: recorded in the report + wrap the test in `test.skip` carrying `// cfn-allow-skip: quarantined <date> <reason>` (this is what makes Step 3.05 hygiene accept it) + a backlog entry.
   - **Keep iterating**: back to Phase 2 (counts against MAX_ITERATIONS).
   - **Abort**: stop and report.

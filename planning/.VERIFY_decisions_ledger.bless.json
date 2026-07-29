@@ -1,0 +1,536 @@
+{
+  "slug": "decisions-ledger",
+  "verify_file": "planning/VERIFY_decisions_ledger.md",
+  "blessings": [
+    {
+      "changed": [],
+      "added": [],
+      "removed": [],
+      "structure_changed": false,
+      "predicate_changed": false,
+      "first": true,
+      "timestamp": "2026-07-29T04:35:08Z",
+      "sha256": "607f1ae37370befae1dbabb26b6a7a4a29237274c7287f0c8fbf346b06bb354d",
+      "ac_count": 64,
+      "stage": "plan",
+      "note": "Bar A plan-time bless: decisions-ledger writer, 64 ACs, all forks resolved D-1..D-9"
+    },
+    {
+      "changed": [
+        {
+          "id": "AC-12",
+          "fields": [
+            "pass"
+          ]
+        }
+      ],
+      "added": [],
+      "removed": [],
+      "structure_changed": false,
+      "predicate_changed": true,
+      "first": false,
+      "timestamp": "2026-07-29T04:52:50Z",
+      "sha256": "0e932b35c4de6e266fe1720f4d5e3f52f657baf160a36b642848d157235daee3",
+      "ac_count": 64,
+      "stage": "plan",
+      "note": "re-bless after F1/F6 review patches: AC-12 grep target corrected (-w word-boundary), step 5c jq expression fixed, all 3 static checks clean"
+    },
+    {
+      "changed": [
+        {
+          "id": "AC-64",
+          "fields": [
+            "check",
+            "evidence",
+            "pass",
+            "seeds"
+          ]
+        }
+      ],
+      "added": [
+        "AC-65",
+        "AC-66"
+      ],
+      "removed": [],
+      "structure_changed": true,
+      "predicate_changed": true,
+      "first": false,
+      "timestamp": "2026-07-29T05:05:44Z",
+      "sha256": "6776f9353c98232bf71c522a7bd40c262943d1bd6402f3d2809b488f8c6431b6",
+      "ac_count": 66,
+      "stage": "plan",
+      "note": "re-bless after Step-7 promotions: +AC-65 (timeout static), +AC-66 (sink-hang integration), AC-64/WIRE-4 sha256-pinned. All 3 static checks exit 0."
+    },
+    {
+      "changed": [
+        {
+          "id": "AC-1",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-2",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-3",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-4",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-5",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-6",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-7",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-8",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-9",
+          "fields": [
+            "check",
+            "evidence",
+            "pass",
+            "seeds",
+            "signal",
+            "trigger"
+          ]
+        },
+        {
+          "id": "AC-10",
+          "fields": [
+            "check",
+            "evidence",
+            "pass",
+            "seeds",
+            "signal",
+            "trigger"
+          ]
+        },
+        {
+          "id": "AC-11",
+          "fields": [
+            "check",
+            "evidence",
+            "pass",
+            "seeds",
+            "signal",
+            "trigger"
+          ]
+        },
+        {
+          "id": "AC-12",
+          "fields": [
+            "check",
+            "evidence",
+            "pass"
+          ]
+        },
+        {
+          "id": "AC-13",
+          "fields": [
+            "check",
+            "evidence",
+            "pass",
+            "seeds",
+            "signal",
+            "trigger"
+          ]
+        },
+        {
+          "id": "AC-14",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-15",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-16",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-17",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-18",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-19",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-20",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-21",
+          "fields": [
+            "check",
+            "evidence",
+            "pass"
+          ]
+        },
+        {
+          "id": "AC-22",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-23",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-24",
+          "fields": [
+            "check",
+            "evidence",
+            "pass"
+          ]
+        },
+        {
+          "id": "AC-25",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-26",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-27",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-28",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-29",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-30",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-31",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-32",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-33",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-34",
+          "fields": [
+            "check",
+            "evidence",
+            "pass"
+          ]
+        },
+        {
+          "id": "AC-35",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-36",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-37",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-38",
+          "fields": [
+            "check",
+            "evidence",
+            "pass",
+            "seeds",
+            "signal",
+            "trigger"
+          ]
+        },
+        {
+          "id": "AC-39",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-40",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-41",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-42",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-43",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-44",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-45",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-46",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-47",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-48",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-49",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-50",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-51",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-52",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-53",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-54",
+          "fields": [
+            "check",
+            "evidence",
+            "kind",
+            "pass",
+            "seeds"
+          ]
+        },
+        {
+          "id": "AC-55",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-56",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-57",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-58",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-59",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-60",
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "id": "AC-61",
+          "fields": [
+            "check",
+            "evidence",
+            "kind",
+            "pass"
+          ]
+        },
+        {
+          "id": "AC-62",
+          "fields": [
+            "check",
+            "evidence",
+            "pass"
+          ]
+        },
+        {
+          "id": "AC-63",
+          "fields": [
+            "check",
+            "evidence",
+            "pass"
+          ]
+        },
+        {
+          "id": "AC-64",
+          "fields": [
+            "check",
+            "evidence",
+            "pass"
+          ]
+        },
+        {
+          "id": "AC-65",
+          "fields": [
+            "check",
+            "evidence",
+            "pass"
+          ]
+        },
+        {
+          "id": "AC-66",
+          "fields": [
+            "evidence"
+          ]
+        }
+      ],
+      "added": [],
+      "removed": [],
+      "structure_changed": true,
+      "predicate_changed": true,
+      "first": false,
+      "timestamp": "2026-07-29T06:36:39Z",
+      "sha256": "f6878eccc449d983b9fcd19286ab57a0dce6b6da8095c98dde1ff9c03a9d723a",
+      "ac_count": 66,
+      "stage": "exit",
+      "note": "Close hook-wrapper coverage gap (user opt B): extract 3 inline record.sh snippets in cfn-loop-task.md -> cfn-decisions/hook.sh (DRY); add runtime test 72-hook-wrapper.sh; repoint AC-9/10/11/13/38 at real wrapper coverage; AC-62 -> hook.sh wiring; static ACs emit proof echoes. 66/66 green, Bar A 0 errors."
+    },
+    {
+      "changed": [],
+      "added": [],
+      "removed": [],
+      "structure_changed": false,
+      "predicate_changed": false,
+      "first": false,
+      "timestamp": "2026-07-29T06:37:09Z",
+      "sha256": "f6878eccc449d983b9fcd19286ab57a0dce6b6da8095c98dde1ff9c03a9d723a",
+      "ac_count": 66,
+      "stage": "exit",
+      "note": "re-confirm after backfill"
+    }
+  ]
+}

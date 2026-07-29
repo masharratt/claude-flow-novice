@@ -212,7 +212,7 @@ Return: artifact path + a 3-line summary + [OPEN] items (BLOCKING, need a user d
         + [PARKED] items (deferred, listed separately with the default you chose).
 ```
 
-If any phase returns **BLOCKING** `[OPEN]` items, batch them and surface via `AskUserQuestion` before advancing past the level. Record every resolved decision to the decision log (closes gap G35/decision-log loop). `cfn-decide` owns the register; the orchestrator forwards mid-level decisions to it.
+If any phase returns **BLOCKING** `[OPEN]` items, batch them and surface via `AskUserQuestion` before advancing past the level. Record every resolved decision via `.claude/skills/cfn-decisions/record.sh` (closes gap G35/decision-log loop AND populates the per-run JSON ledger). The writer owns the per-run JSON register and delegates the SQLite sync to `decision-log/record.sh` (behavior-preserving for SQLite via delegation, additive for JSON as a new per-run artifact); the orchestrator forwards mid-level decisions to the writer, which records them.
 
 **Wireframe gate (L5→L6 barrier, when `frontend=yes`).** `cfn-ux` (L5) emits a low-fi wireframe and returns its reference (`wireframe: <url|path>`) as a BLOCKING approval item (see `cfn-ux` Phase 6). At the L5 join, BEFORE spawning L6 (design ∥ ops), surface the wireframe with one `AskUserQuestion`: **Approve** / **Revise**. This is the visual twin of the spec §1b intent walk — §1b confirms interaction intent in words before the schema locks at L4; the wireframe confirms screen structure + flow in a picture before design/test-plan/ops/write-plan build on it. Catching a wrong structure here costs a `cfn-ux` patch; catching it at Step 7 would cost re-running L6–L9.
 
