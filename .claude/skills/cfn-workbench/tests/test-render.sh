@@ -26,7 +26,7 @@ cp "$FIX"/tests/screenshots/* "$ROOT/tests/screenshots/"    2>/dev/null || true
 
 # Output dir per test (isolated, cleaned on exit)
 TMP_OUT="$(mktemp -d)"
-trap 'rm -rf "$TMP_OUT" "$ROOT"' EXIT
+trap 'rm -rf "$TMP_OUT" "$ROOT" /tmp/cfn-workbench-opened-wb14-*' EXIT
 
 # Counters
 PASS=0
@@ -383,6 +383,83 @@ assert_match "empty: decisions empty-state" "$EMPTY_OUT" "(No decisions logged|n
 assert_contains "9col: nav decisions anchor" "$OUT9" 'href="#sec-decisions"'
 # decisions XSS payload (in workbench slug rationale) stays escaped
 assert_not_contains "shx: decisions rationale escaped" "$OUT_SHX" "<script>alert(1)</script>"
+
+# ---------------------------------------------------------------
+# GROUP 14: --live (meta refresh) + --open (browser launch + idempotency)
+# ---------------------------------------------------------------
+echo "[14] live + open flags"
+# Suppress actual browser spawn during tests; marker + HTML injection are what we assert.
+export WORKBENCH_NO_LAUNCH=1
+
+# --live 10 injects a self-refresh meta tag.
+OUT_LIVE="$TMP_OUT/wb14-live-$$.html"
+"$RENDER" --slug "workbench_9col" --root "$ROOT" --out "$OUT_LIVE" --live 10 2>&1
+RC=$?
+if [[ "$RC" -ne 0 ]]; then fail "--live render failed (exit=$RC)"
+else
+  ok "--live render exit 0"
+  assert_contains "live: meta refresh present" "$OUT_LIVE" '<meta http-equiv="refresh" content="10">'
+fi
+
+# --live output stays self-contained: no <link, no external src/href.
+assert_no_match "live: no <link tag" "$OUT_LIVE" "<link[[:space:]>]"
+if grep -oE 'src="[^"]*"' "$OUT_LIVE" | grep -vq '^src="data:'; then
+  fail "live: found non-data: src="
+else ok "live: all src= are data:"; fi
+if grep -oE 'href="[^"]*"' "$OUT_LIVE" | grep -vqE '^href="(data:|#)'; then
+  fail "live: found non-data/non-fragment href="
+else ok "live: all href= are data:/fragment"; fi
+
+# Header prints the project name (repo dir) so the dashboard says what it belongs to.
+assert_contains "live: header has Project label" "$OUT_LIVE" ">Project<"
+assert_contains "live: header names project (root basename)" "$OUT_LIVE" "$(basename "$ROOT")"
+
+# Regression guard: a render WITHOUT --live must not emit any refresh meta.
+assert_no_match "9col (no --live): no refresh meta" "$OUT9" 'http-equiv="refresh"'
+
+# --open writes a per-output marker file under /tmp and stays idempotent.
+OUT_OPEN="$TMP_OUT/wb14-open-$$.html"
+MARKER="/tmp/cfn-workbench-opened-wb14-open-$$.html"
+rm -f "$MARKER"
+"$RENDER" --slug "workbench_9col" --root "$ROOT" --out "$OUT_OPEN" --open 2>&1
+RC=$?
+if [[ "$RC" -ne 0 ]]; then fail "--open render failed (exit=$RC)"
+else
+  ok "--open render exit 0"
+  assert_file_exists "open: marker file written" "$MARKER"
+fi
+
+# Idempotency: second --open does not error and does not rewrite the marker
+# (open_if_needed early-returns when the marker exists). Stable mtime proves it.
+MT1=$(stat -c %Y "$MARKER" 2>/dev/null || echo 0)
+"$RENDER" --slug "workbench_9col" --root "$ROOT" --out "$OUT_OPEN" --open 2>&1
+RC2=$?
+MT2=$(stat -c %Y "$MARKER" 2>/dev/null || echo 0)
+if [[ "$RC2" -eq 0 ]]; then ok "open: second render exit 0 (idempotent)"
+else fail "open: second render failed (exit=$RC2)"; fi
+if [[ "$MT1" -eq "$MT2" ]]; then ok "open: marker untouched on re-render"
+else fail "open: marker rewritten (mt1=$MT1 mt2=$MT2)"; fi
+
+# --open + --live combine cleanly.
+OUT_BOTH="$TMP_OUT/wb14-both-$$.html"
+"$RENDER" --slug "workbench_9col" --root "$ROOT" --out "$OUT_BOTH" --open --live 5 2>&1
+RC=$?
+if [[ "$RC" -ne 0 ]]; then fail "open+live render failed (exit=$RC)"
+else
+  ok "open+live render exit 0"
+  assert_contains "both: meta refresh present" "$OUT_BOTH" '<meta http-equiv="refresh" content="5">'
+  assert_file_exists "both: marker file written" "/tmp/cfn-workbench-opened-wb14-both-$$.html"
+fi
+
+# Bad --live values are usage errors (exit 2).
+assert_exit "live: non-numeric exits 2" 2 \
+  "$RENDER" --slug "workbench_9col" --root "$ROOT" --out "$TMP_OUT/bad1.html" --live abc
+assert_exit "live: zero exits 2" 2 \
+  "$RENDER" --slug "workbench_9col" --root "$ROOT" --out "$TMP_OUT/bad2.html" --live 0
+assert_exit "live: missing value exits 2" 2 \
+  "$RENDER" --slug "workbench_9col" --root "$ROOT" --out "$TMP_OUT/bad3.html" --live
+
+unset WORKBENCH_NO_LAUNCH
 
 # ---------------------------------------------------------------
 # Summary

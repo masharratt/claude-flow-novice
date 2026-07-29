@@ -34,6 +34,8 @@ OUT=""
 MAX_SCREENSHOTS=50
 NO_SCREENSHOTS=0
 ROOT="$PROJECT_ROOT_DEFAULT"
+OPEN=0
+LIVE_SECS=""
 
 usage() {
   cat <<EOF
@@ -52,6 +54,16 @@ Optional:
   --no-screenshots         Skip screenshot embedding (text-only mode).
   --root <dir>             Project root to resolve inputs from.
                            Default: $PROJECT_ROOT_DEFAULT
+  --open                   Open the rendered HTML in the default browser once.
+                           Idempotent per output path: a marker in /tmp tracks
+                           that the page is already open, so repeated renders
+                           (e.g. each loop iteration) refresh the same tab via
+                           --live instead of spawning new tabs.
+  --live <secs>            Inject <meta http-equiv="refresh" content="<secs>">.
+                           The open page re-reads the file from disk every <secs>,
+                           so re-renders show up live. Positive integer. No url=
+                           is emitted (same-page reload), keeping the page
+                           self-contained.
 
 Inputs (all optional except manifests; missing sources are recorded as data gaps):
   <root>/.cfn-cache/manifests/cfn-*.json         gate timeline + suggestions
@@ -94,6 +106,14 @@ while [[ $# -gt 0 ]]; do
     --root)
       [[ $# -lt 2 ]] && { echo "Error: --root requires a value" >&2; usage; exit 2; }
       ROOT="$2"; shift 2 ;;
+    --open)
+      OPEN=1; shift ;;
+    --live)
+      [[ $# -lt 2 ]] && { echo "Error: --live requires a value" >&2; usage; exit 2; }
+      if ! [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
+        echo "Error: --live must be a positive integer (seconds)" >&2; exit 2
+      fi
+      LIVE_SECS="$2"; shift 2 ;;
     -h|--help)
       usage; exit 0 ;;
     --*)
@@ -129,7 +149,7 @@ export WORKBENCH_OUT="$OUT"
 # Redact mktemp scratch roots in the recorded command (the dir is ephemeral).
 root_display="$ROOT"
 [[ "$ROOT" == /tmp/tmp.* ]] && root_display="<tmpdir>"
-export WORKBENCH_INVOCATION="cfn-workbench --slug $SLUG$( [[ "$ROOT" != "$PROJECT_ROOT_DEFAULT" ]] && printf ' --root %s' "$root_display" )$( [[ "$MAX_SCREENSHOTS" != "50" ]] && printf ' --max-screenshots %s' "$MAX_SCREENSHOTS" )$( [[ "$NO_SCREENSHOTS" == "1" ]] && printf ' --no-screenshots' )"
+export WORKBENCH_INVOCATION="cfn-workbench --slug $SLUG$( [[ "$ROOT" != "$PROJECT_ROOT_DEFAULT" ]] && printf ' --root %s' "$root_display" )$( [[ "$MAX_SCREENSHOTS" != "50" ]] && printf ' --max-screenshots %s' "$MAX_SCREENSHOTS" )$( [[ "$NO_SCREENSHOTS" == "1" ]] && printf ' --no-screenshots' )$( [[ "$OPEN" == "1" ]] && printf ' --open' )$( [[ -n "$LIVE_SECS" ]] && printf ' --live %s' "$LIVE_SECS" )"
 
 # Build sections. Each function emits an HTML chunk on stdout.
 HEADER_HTML="$(section_header)"
@@ -154,6 +174,9 @@ GAPS_STRIP_HTML="$(gaps_strip)"
   printf '<head>\n'
   printf '<meta charset="utf-8">\n'
   printf '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+  # Live auto-refresh: bare content="<secs>" reloads the same file:// page (no
+  # url=), so the page stays self-contained while picking up re-renders.
+  [[ -n "$LIVE_SECS" ]] && printf '<meta http-equiv="refresh" content="%s">\n' "$LIVE_SECS"
   printf '<title>%s</title>\n' "$(html_escape "CFN Workbench: ${SLUG}")"
   printf '<style>\n'
   default_style
@@ -206,6 +229,27 @@ self_containment_check() {
 
 # Run the check but never fail the render (exit 0 contract for normal path).
 self_containment_check "$OUT" || echo "WARN: self-containment check reported problems (see above). HTML still written." >&2
+
+# open_if_needed - open the rendered page once per output path (idempotent).
+# A marker in /tmp records that the page is already open; later renders skip the
+# launch and rely on the --live meta-refresh to update the existing tab. Never
+# fails the render. WORKBENCH_NO_LAUNCH=1 writes the marker but skips the spawn
+# (used by the test suite so renders do not pop a browser window).
+open_if_needed() {
+  local marker="/tmp/cfn-workbench-opened-$(basename "$OUT")"
+  [[ -f "$marker" ]] && return 0
+  : > "$marker"
+  [[ "${WORKBENCH_NO_LAUNCH:-0}" == "1" ]] && return 0
+  if command -v explorer.exe >/dev/null 2>&1; then
+    # WSL2: open in the Windows host default browser via the file:// path.
+    ( explorer.exe "$(wslpath -w "$OUT" 2>/dev/null || echo "$OUT")" >/dev/null 2>&1 & )
+  elif command -v xdg-open >/dev/null 2>&1; then
+    ( xdg-open "$OUT" >/dev/null 2>&1 & )
+  fi
+  return 0
+}
+
+[[ "$OPEN" == "1" ]] && open_if_needed
 
 # Summary on stdout.
 GAP_COUNT=$(get_gap_count)

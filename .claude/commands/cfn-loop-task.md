@@ -147,6 +147,10 @@ MODE="standard"  # or mvp, enterprise
 MAX_ITERATIONS=10
 TASK_ID="cfn-task-$(date +%s)-${RANDOM}"
 ITERATION=1
+# Single stable key for every loop-written output this run (test outputs, lane
+# reports, VERIFY_RESULTS) so cfn-workbench --slug finds them all. SLUG is set
+# by megaplan context; unset in task mode -> RUN_ID == TASK_ID.
+RUN_ID="${SLUG:-$TASK_ID}"
 ```
 
 **Thresholds:** the single source of truth is `.claude/skills/cfn-loop-orchestration-v2/THRESHOLDS.md`. Values reproduced here for convenience; if they ever disagree, THRESHOLDS.md wins.
@@ -160,6 +164,13 @@ ITERATION=1
 **Gate uses test_pass_rate_gate as a decimal (standard = 0.95). Confidence gates apply only to CLI mode; ignore them here.**
 
 Planning tier vocabulary is mvp|beta|enterprise (cfn-megaplan); execution mode vocabulary is mvp|standard|enterprise. Tier `beta` maps to mode `standard`.
+
+**Open the workbench dashboard (loop start).** Render once and open it in the browser. `--live 10` makes the open tab re-read the file every 10s, so the re-renders at end of Phase 2 / Phase 3 / Phase 5 update the same tab in place. `--open` is marker-tracked (idempotent): only this first call launches a browser. The workbench is a reporting artifact, so a render failure is non-blocking.
+
+```bash
+./.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
+  || echo "WARN: workbench render/open skipped (non-blocking)" >&2
+```
 
 **Mark todo #1 as completed. Proceed to Phase 2.**
 
@@ -217,6 +228,13 @@ AGENT_ID: loop3-impl-${TASK_ID}-iter${ITERATION}-<lane>
 
 **After the final wave completes, aggregate all waves' results.**
 
+**Re-render the workbench dashboard** with this iteration's implementation progress (lane reports now on disk). Same tab refreshes via the `--live` meta from Phase 1; `--open` no-ops (marker already set).
+
+```bash
+./.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
+  || echo "WARN: workbench render skipped (non-blocking)" >&2
+```
+
 **Mark todo #2 as completed. Proceed to Phase 3.**
 
 ---
@@ -249,11 +267,11 @@ surface; the Phase 5 gate (5E.4a) is what enforces it.
 
 ```bash
 # One call per lane. Save each lane's trailing JSON block from its Phase 2
-# output to a file first, e.g. /tmp/lane-report-${TASK_ID}-<lane>.json.
+# output to a file first, e.g. /tmp/lane-report-${RUN_ID}-<lane>.json.
 for LANE_ID in ${LANE_IDS}; do
   ./.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh record \
     --slug "${SLUG:-$TASK_ID}" --lane "${LANE_ID}" \
-    --json "/tmp/lane-report-${TASK_ID}-${LANE_ID}.json"
+    --json "/tmp/lane-report-${RUN_ID}-${LANE_ID}.json"
 done
 ```
 
@@ -282,7 +300,7 @@ HYGIENE_EXIT=$?
 
 ```bash
 # Run the full suite (coordinator only; agents never do this)
-npm test 2>&1 | tee /tmp/test-output-${TASK_ID}.txt
+npm test 2>&1 | tee /tmp/test-output-${RUN_ID}.txt
 
 # Baseline (W3): the coordinator carries PREV_TOTAL across iterations. From
 # iteration 2 onward, pass --baseline so a shrinking suite is caught.
@@ -293,10 +311,17 @@ fi
 
 # Mechanical gate check (THRESHOLD from THRESHOLDS.md, e.g. 0.95 for standard)
 ./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
-  --out /tmp/test-output-${TASK_ID}.txt \
+  --out /tmp/test-output-${RUN_ID}.txt \
   --threshold ${THRESHOLD} \
   ${BASELINE_ARG}
 GATE_EXIT=$?
+```
+
+**Re-render the workbench dashboard (iteration boundary).** The test output and gate verdict for the iteration just completed are now on disk, so this render reflects the current pass rate and gate result. Fires every iteration, pass or fail.
+
+```bash
+./.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
+  || echo "WARN: workbench render skipped (non-blocking)" >&2
 ```
 
 **Branch on exit code:**
@@ -316,7 +341,7 @@ The script prints `{"pass":N,"total":M,"rate":R,"passed":true|false}` (plus `bas
 
 On gate-check exit 1 (rate below threshold), a failure may be flaky rather than real. Before treating reds as iteration fuel:
 
-1. Dedupe the failing test FILES from `/tmp/test-output-${TASK_ID}.txt` (unique file paths, not individual test cases).
+1. Dedupe the failing test FILES from `/tmp/test-output-${RUN_ID}.txt` (unique file paths, not individual test cases).
 2. Re-run ONLY those files once.
 3. **Green on rerun** = flaky-flagged. Record the file in the report's `Flaky:` line (see Phase 5 Exit 5E.4). It is NOT iteration fuel. Recompute the effective pass rate inline by moving those tests from failing to passing, and re-evaluate the gate against that effective rate.
 4. **Still red on rerun** = a real failure. It stays iteration fuel; proceed with the exit-1 ITERATE action.
@@ -515,7 +540,7 @@ Runs first so any residue a mutation leaves behind is caught by the later all-gr
 ```bash
 ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh run \
   --verify planning/VERIFY_${SLUG}.md \
-  --out planning/VERIFY_RESULTS_${SLUG}.json
+  --out planning/VERIFY_RESULTS_${RUN_ID}.json
 ```
 
 This executes every executable/db-query AC and writes the results file (the single done authority).
@@ -526,7 +551,7 @@ For each results row with `mode: needs_agent` or `predicate_unverified: true` (`
 
 ```bash
 ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh resolve \
-  --results planning/VERIFY_RESULTS_${SLUG}.json \
+  --results planning/VERIFY_RESULTS_${RUN_ID}.json \
   --ac <AC-id> --pass true|false --evidence-file <captured-evidence-file>
 ```
 
@@ -536,7 +561,7 @@ For each results row with `mode: needs_agent` or `predicate_unverified: true` (`
 
 ```bash
 ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh summary \
-  --results planning/VERIFY_RESULTS_${SLUG}.json
+  --results planning/VERIFY_RESULTS_${RUN_ID}.json
 SUMMARY_EXIT=$?
 ```
 
@@ -552,7 +577,7 @@ Runs only when 5E.3 exited 0. The manifest was blessed at plan stage with `evide
 
 ```bash
 ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh backfill-evidence \
-  --results planning/VERIFY_RESULTS_${SLUG}.json \
+  --results planning/VERIFY_RESULTS_${RUN_ID}.json \
   --verify  planning/VERIFY_${SLUG}.md
 
 .claude/skills/cfn-megaplan/bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" \
@@ -637,6 +662,13 @@ npm run build 2>&1 | tee /tmp/build-smoke-${TASK_ID}.txt
 
 ### Exit report
 
+**Final workbench render.** VERIFY_RESULTS is now on disk, so this render shows the populated AC/verify table and final verdict. One last refresh of the open tab.
+
+```bash
+./.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
+  || echo "WARN: workbench render skipped (non-blocking)" >&2
+```
+
 After 5E.5 (or 5E.4 for non-frontend tasks) reports done, mark todo #5 completed, report summary, EXIT.
 
 ```
@@ -661,7 +693,7 @@ Summary report:
 
 ```bash
 # Verbatim failing-test excerpts
-FAILING_EXCERPTS=$(grep -A5 "FAIL\|✗\|✕" /tmp/test-output-${TASK_ID}.txt | head -80)
+FAILING_EXCERPTS=$(grep -A5 "FAIL\|✗\|✕" /tmp/test-output-${RUN_ID}.txt | head -80)
 # Typecheck errors, if any
 TSC_HEAD=$(head -40 /tmp/tsc-${TASK_ID}.txt)
 ```

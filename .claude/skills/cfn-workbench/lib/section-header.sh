@@ -5,6 +5,10 @@ section_header() {
   local slug="${WORKBENCH_SLUG:-}"
   local root="${WORKBENCH_ROOT:-.}"
   local manifests_dir="$root/.cfn-cache/manifests"
+  # Project = repo dir name (which project this run belongs to). On real runs
+  # WORKBENCH_ROOT is the repo root, so basename is the project name.
+  local project
+  project="$(basename "$root")"
 
   local branch="unknown"
   if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -78,8 +82,9 @@ section_header() {
 <header class="wb-sticky-header">
   <h1 class="verdict-headline">$(html_escape "$verdict")</h1>
   <hr class="verdict-rule"/>
-  <p class="header-summary">CFN Workbench run <code>$(html_escape "$slug")</code> on branch <code>$(html_escape "$branch")</code>, iteration $(html_escape "$iter_count"), generated <time datetime="$(html_escape "$generated_at")">$(html_escape "$generated_pretty")</time>.</p>
+  <p class="header-summary">CFN Workbench run <code>$(html_escape "$slug")</code> in project <code>$(html_escape "$project")</code> on branch <code>$(html_escape "$branch")</code>, iteration $(html_escape "$iter_count"), generated <time datetime="$(html_escape "$generated_at")">$(html_escape "$generated_pretty")</time>.</p>
   <div class="meta-grid">
+    <div><div class="meta-label">Project</div><div class="meta-value"><code>$(html_escape "$project")</code></div></div>
     <div><div class="meta-label">Run</div><div class="meta-value"><code>$(html_escape "$slug")</code></div></div>
     <div><div class="meta-label">Branch</div><div class="meta-value"><code>$(html_escape "$branch")</code></div></div>
     <div><div class="meta-label">Iterations</div><div class="meta-value">$(html_escape "$iter_count")</div></div>
