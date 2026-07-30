@@ -10,7 +10,11 @@
 #   $cwd/.claude/tasks/<session_id>.txt > $cwd/.claude/current-task.txt
 #                                       > ~/.claude/current-task.txt
 #
-# Output is pure JSON (no free text) so the harness parses additionalContext.
+# Output is PLAIN TEXT (stdout). PreCompact does NOT support
+# hookSpecificOutput.additionalContext (only PreToolUse/UserPromptSubmit/
+# PostToolUse/PostToolBatch/Stop/SubagentStop do). Emitting JSON makes the
+# harness run JSON-schema validation and reject it. Plain stdout is added to
+# the pre-compaction context, so the summary carries the task forward.
 set -euo pipefail
 
 input=$(timeout 2s cat 2>/dev/null || echo "{}")
@@ -26,12 +30,9 @@ fi
 [ -z "$task" ] && task=$(head -1 "$HOME/.claude/current-task.txt" 2>/dev/null | tr -d '\r\n' || true)
 
 if [ -n "$task" ]; then
-  ctx="[Compaction reminder] Active task (status bar): ${task}
-If your focus has shifted since this was set, refresh it now: cfn-task \"<new summary>\""
+  printf 'Compaction reminder: Active task (status bar): %s\n' "$task"
+  printf 'If your focus has shifted since this was set, refresh it now: cfn-task "<new summary>"\n'
 else
-  ctx="[Compaction reminder] No active task is set. Set one so the status bar tracks your work across compaction: cfn-task \"<summary>\""
+  printf 'Compaction reminder: No active task is set. Set one so the status bar tracks your work across compaction: cfn-task "<summary>"\n'
 fi
-
-jq -nc --arg ctx "$ctx" \
-  '{hookSpecificOutput:{hookEventName:"PreCompact", additionalContext:$ctx}}'
 exit 0
