@@ -99,8 +99,23 @@ elif [ -n "$cwd" ] && [ -f "$cwd/.git" ]; then
   wt_part="wt:${wt_name}"
 fi
 
+# --- Current task (optional) ---
+# Source precedence: project ($cwd/.claude/current-task.txt) overrides global
+# (~/.claude/current-task.txt). One line, written by session when work starts.
+task=$(head -1 "$cwd/.claude/current-task.txt" 2>/dev/null | tr -d '\r\n')
+[ -z "$task" ] && task=$(head -1 "$HOME/.claude/current-task.txt" 2>/dev/null | tr -d '\r\n')
+task_part=""
+if [ -n "$task" ]; then
+  # Truncate to 50 chars so the rest of the line still fits
+  if [ ${#task} -gt 50 ]; then
+    task="${task:0:49}…"
+  fi
+  task_part="\033[36m» ${task}\033[0m"
+fi
+
 # --- Assemble ---
-parts="$provider"
+parts="$task_part"
+[ -n "$provider" ] && parts="${parts:+$parts  }${provider}"
 [ -n "$model_short" ] && parts="${parts:+$parts }${model_short}"
 [ -n "$ctx_part" ] && parts="${parts:+$parts  }${ctx_part}"
 [ -n "$git_part" ] && parts="${parts:+$parts  }${git_part}"

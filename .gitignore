@@ -321,6 +321,9 @@ src/planning/**/*.d.ts.map
 .claude/prompt-optimizer/runs/
 .claude/prompt-optimizer/backups/
 
+# Status-line current-task: per-machine runtime state, never committed
+.claude/current-task.txt
+
 # Installed hook artifact (a copy of .claude/hooks/pre-commit placed by
 # install-git-hooks.sh). Generated, not source -- tracking it would fork the
 # scanner into a second file that silently drifts from the canonical one.
