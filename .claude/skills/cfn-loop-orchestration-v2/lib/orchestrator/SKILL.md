@@ -20,7 +20,7 @@ status: production
 The ONLY supported entry is:
 
 ```bash
-./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh
+$HOME/.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh
 ```
 
 It routes to `cli/resolve-provider-model.cjs` via Node. Nothing else in this skill directory is a supported entry point.
@@ -36,7 +36,7 @@ The following entry points that earlier versions of this document referenced do 
 For the mechanical test gate, use the verified script:
 
 ```bash
-./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
+$HOME/.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
   --out <test-output-file> --threshold <decimal>
 # exit 0 = pass, 1 = fail, 2 = no tests detected (0/0 never passes)
 ```

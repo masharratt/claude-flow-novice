@@ -24,7 +24,7 @@ Planning tier vocabulary is `mvp|beta|enterprise` (cfn-megaplan); execution mode
 ## Gate mechanics (Task Mode)
 
 ```bash
-./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
+$HOME/.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
   --out <test-output-file> --threshold <test_pass_rate_gate>
 # exit 0 = gate passed (rate >= threshold AND total > 0)
 # exit 1 = gate failed (rate < threshold)

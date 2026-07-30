@@ -60,8 +60,10 @@ For coordination patterns (chain/broadcast/mesh/consensus), see `.claude/skills/
 ## Entry Point
 
 ```bash
-.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh
+$HOME/.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh
 ```
+
+Use the `$HOME/.claude/...` form — it resolves via the global skills symlink in every project. The project-relative `.claude/...` form only works in claude-flow-novice.
 
 ---
 
