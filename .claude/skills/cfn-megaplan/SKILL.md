@@ -16,6 +16,8 @@ status: production
 
 Entry point for any non-trivial build: multi-file, shared state (DB/API/types), new feature, security/auth, cross-project. Skip only for single-line fixes, renames, or a bug fix with a reproducing test (those go straight to `/cfn-loop-task`).
 
+Medium features (3-7 files, single shared-state surface): use `/cfn-megaplan-lite`, the balanced-cut alternative.
+
 ## Invocation
 
 ```
@@ -474,3 +476,4 @@ Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
 - Inputs: `cfn-tech-debt` (Step 0 reads its `.cfn-cache/tech-debt-ledger.json` so open `cfn:` shortcuts in scope surface as backlog candidates)
 - Downstream: `/write-plan`, `/cfn-plan-review`, `/cfn-loop-task`
 - Backlog + design rationale: `docs/PLANNING_PIPELINE_GAPS.md`
+- Balanced-cut alternative: `cfn-megaplan-lite` (medium features, 3-7 files, single shared-state surface)

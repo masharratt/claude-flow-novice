@@ -127,6 +127,26 @@ A CONDITIONAL-PASS plan is held at cfn-loop-task until its blocking seams are `a
 
 ---
 
+## CFN MegaPlan-Lite: Planning DAG
+
+**States:** `L1 spec | L2 decide | L3 data (db=yes) | L4 arch+ux (frontend=yes) | L5 design/test_plan | L6 write_plan | L7 plan_review | Step 7 deferred-decision batch | Step 8 batched handoff`
+
+Balanced-cut alternative to `/cfn-megaplan` for medium features (3-7 files, single shared-state surface). Both bars run 1-round; Bar B is static-only (no live haiku probe); pseudo is folded into the arch phase; non-core phases run at sonnet.
+
+| From | To | Trigger |
+|------|----|---------|
+| L1 spec | L2 decide | spec barrier passes; §1a actors + §1b intent + Build Flags gates cleared |
+| L2 decide | L3 data | decide resolves BLOCKING forks only |
+| L3 data | L4 arch | data emits schema + field-bindings; floor RLS/auth/secrets authored |
+| L4 arch | L5 design/test_plan | arch emits ARCH + PSEUDO folded; ux wireframe 1-cycle gate passed if frontend=yes |
+| L5 design/test_plan | L6 write_plan | design + test_plan return |
+| L6 write_plan | L7 plan_review | write_plan persists PLAN_ + Bar A static clean + bless-verify hash pinned, 1-round |
+| L7 plan_review | Step 7 deferred-decision batch | plan_review + Bar B-static clean, 1-round, no probe |
+| Step 7 deferred-decision batch | Step 8 batched handoff | batched [PARKED] items resolved in one AskUserQuestion; re-gate after override |
+| Step 8 batched handoff | `/cfn-loop-task --mode=mvp` | MEGAPLANLITE_ synthesis written; PLAN_ + VERIFY_ on disk |
+
+---
+
 ## Dependency Scheduling
 
 **States:** `pending | schedulable | in_flight | complete | blocked`

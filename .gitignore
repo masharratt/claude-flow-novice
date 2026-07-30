@@ -325,3 +325,6 @@ src/planning/**/*.d.ts.map
 # install-git-hooks.sh). Generated, not source -- tracking it would fork the
 # scanner into a second file that silently drifts from the canonical one.
 .husky/pre-commit-credentials
+
+# CFN local cache
+.cfn-cache/

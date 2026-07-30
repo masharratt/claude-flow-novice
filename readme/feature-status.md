@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-07-25 | **Version:** 2.24.2 | **Status:** Production
+**Last Updated:** 2026-07-29 | **Version:** 2.24.2 | **Status:** Production
 
 ---
 
@@ -132,6 +132,7 @@ This file MUST be updated when:
 | cfn-tech-debt | ✅ Prod | ✅ | `cfn-tech-debt/` | Harvest `cfn:` shortcut markers into a ledger; flags no-trigger rot. Feeds Product Owner gate (cfn-loop-task Phase 3.5) |
 | cfn-megaplan Bar A (verifiable-done) | ✅ Prod | ✅ | `cfn-megaplan/bars/` | Static gate for Bar A manifests. Adds rule (f) `literal_stub_correlation` (seed-token correlation catches constant handler stubs on LLM/free-text/webhook inputs), `[boundary]` FR tag + `boundary_fr` integration coverage (forces real DB/HTTP ACs for ordering/filter/limit semantics), and cfn-plan-review Phase 2 signal-flow trace (flags `integration_lane_gap` BLOCKER for unowned external-input lanes). Presence-keyed opt-in; existing manifests unaffected. |
 | cfn-workbench | 🚧 Draft | n/a | `.claude/skills/cfn-workbench/` | Renders a self-contained HTML progress page (planning/workbench_<slug>.html) from .cfn-cache/manifests + planning artifacts, showing how artifacts evolved across iterations. Deps: .cfn-cache/manifests, planning/VERIFY_*, planning/.VERIFY_<slug>.decisions.json (optional). Nocturne dark-theme re-skin (system font stack, no external requests) + Decisions section reading a per-run ledger (.VERIFY_<slug>.decisions.json). UI: sticky header with verdict headline + meta grid, section-nav anchors, state-label system (settled/waiting/unknown/action/fatal), fading .hr dividers, gaps strip, legend, sticky-column AC table, collapsible per-iter detail (140/140 render tests). Sticky header prints the project (repo dir name) so a dashboard says which project it belongs to. Auto-open + live re-render: render.sh --open (marker-tracked idempotent browser launch; WSL2 explorer.exe -> Windows default browser, xdg-open fallback; WORKBENCH_NO_LAUNCH=1 suppresses spawn for tests) and --live <secs> (injects <meta http-equiv=refresh> content=N, stays self-contained, no url=). Wired into /cfn-loop-task: RUN_ID=${SLUG:-$TASK_ID} keys test-output/lane-report/VERIFY_RESULTS to one slug so --slug finds them; render hooks at Phase 1 (open + first render), end Phase 2 (impl progress), Phase 3 gate boundary (every iteration, pass or fail), end Phase 5 (final, VERIFY_RESULTS populated). Known limitations: greenfield renderer, no existing HTML generator to displace; bless sidecar is SLUG-named so the bless section reads as a data gap in task mode (RUN_ID != SLUG) |
+| cfn-megaplan-lite | ⚠️ Beta | n/a | `.claude/skills/cfn-megaplan-lite/` | Balanced-cut planning mode for medium features |
 
 ### Infrastructure Skills
 

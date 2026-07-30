@@ -102,9 +102,14 @@ TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 # reformatted manifest is unreadable, and the question a reviewer actually has
 # is "which ACs moved, and did their criteria move or only their commands".
 DIFF_JSON='{"changed":[],"added":[],"removed":[],"structure_changed":false,"predicate_changed":false,"first":true}'
+# ARG_MAX guard: --argjson new "$MANIFEST" blows the ~128KB kernel limit on a
+# large manifest (backfilled evidence fields). Write to a temp file and read via
+# --slurpfile instead (same fix verify-run.sh uses). $new is then [[<manifest>]],
+# so unwrap with $new[0].
+NEWTMP="$(mktemp)"; printf '%s\n' "$MANIFEST" > "$NEWTMP"
 if [ -f "$SNAPSHOT" ]; then
-  DIFF_JSON="$(jq -n --slurpfile old "$SNAPSHOT" --argjson new "$MANIFEST" '
-    ($old[0].acs // []) as $o | ($new.acs // []) as $n |
+  DIFF_JSON="$(jq -n --slurpfile old "$SNAPSHOT" --slurpfile new "$NEWTMP" '
+    ($old[0].acs // []) as $o | ($new[0].acs // []) as $n |
     ([$o[].id] | unique) as $oid | ([$n[].id] | unique) as $nid |
     (["id","kind","maps_to"]) as $structural |
     [ $n[] | . as $na | ($o[] | select(.id == $na.id)) as $oa |
@@ -132,6 +137,7 @@ if [ -f "$SNAPSHOT" ]; then
     exit 1
   fi
 fi
+rm -f "$NEWTMP"
 
 # ---- append the ledger entry ----
 ENTRY="$(jq -n \
