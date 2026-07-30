@@ -100,9 +100,18 @@ elif [ -n "$cwd" ] && [ -f "$cwd/.git" ]; then
 fi
 
 # --- Current task (optional) ---
-# Source precedence: project ($cwd/.claude/current-task.txt) overrides global
-# (~/.claude/current-task.txt). One line, written by session when work starts.
-task=$(head -1 "$cwd/.claude/current-task.txt" 2>/dev/null | tr -d '\r\n')
+# Source precedence: session-keyed > project banner > global.
+#   session: $cwd/.claude/tasks/<session_id>.txt  (per Claude session; parallel
+#            sessions in the same cwd each get their own, no clobber)
+#   project: $cwd/.claude/current-task.txt        (project-wide banner, fallback)
+#   global : $HOME/.claude/current-task.txt        (all projects, fallback)
+# Set with: cfn-task "text"  (writes the session file via CLAUDE_CODE_SESSION_ID)
+session_id=$(echo "$input" | jq -r '.session_id // empty' 2>/dev/null || true)
+task=""
+if [ -n "$session_id" ] && [ -n "$cwd" ]; then
+  task=$(head -1 "$cwd/.claude/tasks/$session_id.txt" 2>/dev/null | tr -d '\r\n')
+fi
+[ -z "$task" ] && task=$(head -1 "$cwd/.claude/current-task.txt" 2>/dev/null | tr -d '\r\n')
 [ -z "$task" ] && task=$(head -1 "$HOME/.claude/current-task.txt" 2>/dev/null | tr -d '\r\n')
 task_part=""
 if [ -n "$task" ]; then
