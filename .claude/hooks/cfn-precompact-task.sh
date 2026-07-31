@@ -29,6 +29,17 @@ fi
 [ -z "$task" ] && task=$(head -1 "$cwd/.claude/current-task.txt" 2>/dev/null | tr -d '\r\n' || true)
 [ -z "$task" ] && task=$(head -1 "$HOME/.claude/current-task.txt" 2>/dev/null | tr -d '\r\n' || true)
 
+# Fire-log: observable proof the hook ran (answers "did it trigger?").
+# One JSON line per invocation. Runtime, gitignored (.claude/cfn-data/*.jsonl).
+trigger=$(printf '%s' "$input" | jq -r '.trigger // empty' 2>/dev/null || true)
+LOG="$HOME/.claude/cfn-data/precompact-fires.jsonl"
+mkdir -p "$(dirname "$LOG")" 2>/dev/null || true
+printf '{"ts":"%s","sid":"%s","cwd":"%s","trigger":"%s","task":%s}\n' \
+  "$(date -Iseconds 2>/dev/null)" \
+  "${sid:-}" "${cwd:-}" "${trigger:-?}" \
+  "$(printf '%s' "$task" | jq -Rs . 2>/dev/null || echo '""')" \
+  >> "$LOG" 2>/dev/null || true
+
 if [ -n "$task" ]; then
   printf 'Compaction reminder: Active task (status bar): %s\n' "$task"
   printf 'If your focus has shifted since this was set, refresh it now: cfn-task "<new summary>"\n'
