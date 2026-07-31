@@ -6,6 +6,11 @@
 # Emits a manifest when findings are actionable, otherwise a plain report.
 set -euo pipefail
 
+# structural npm dep-key detection (a scripts entry is never a dependency)
+__cfn_da_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/npm-new-deps.sh
+source "$__cfn_da_dir/lib/npm-new-deps.sh"
+
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 cd "$PROJECT_ROOT"
 
@@ -21,6 +26,13 @@ elif ! git diff --cached --quiet 2>/dev/null; then
 else
   DIFFBASE="HEAD~1"
 fi
+
+# concrete git ref of the base package.json for structural key-diffing
+case "$DIFFBASE" in
+  --cached) BASE_REF="HEAD" ;;   # staged changes diff against HEAD
+  HEAD~1)   BASE_REF="HEAD~1" ;;
+  *)        BASE_REF="" ;;        # no history -> all current deps treated as new
+esac
 
 CHECKS_RAN=()
 CHECKS_SKIPPED=()
@@ -77,9 +89,10 @@ if [[ -f package.json ]]; then
   fi
 
   # cooldown: newly added deps younger than COOLDOWN_DAYS
+  # structural key-diff over dependency sections only — a scripts entry can never
+  # be mistaken for a dependency here (see lib/npm-new-deps.sh).
   if [[ -n "$DIFFBASE" ]]; then
-    NEW_DEPS=$(added_lines package.json | grep -oE '"[^"]+"[[:space:]]*:[[:space:]]*"[\^~>=<0-9v][^"]*"' \
-      | sed -E 's/^"([^"]+)"[[:space:]]*:[[:space:]]*"(.*)"$/\1 \2/' || true)
+    NEW_DEPS=$(cfn_npm_new_deps "$BASE_REF")
     if [[ -n "$NEW_DEPS" ]]; then
       if has npm; then
         CHECKS_RAN+=("npm cooldown")
@@ -125,6 +138,10 @@ if [[ -f Cargo.toml ]]; then
 
   # cargo cooldown: newly added crates, age via crates.io API (best effort)
   if [[ -n "$DIFFBASE" ]]; then
+    # cfn: table-unaware, whole-file line-grep. Matches any added `name = value`
+    # in Cargo.toml, not only [dependencies] (could flag [package]/[profile] keys).
+    # Upgrade trigger: switch to structural TOML parse when a toml->json tool is
+    # reliably present, mirroring lib/npm-new-deps.sh.
     NEW_CRATES=$(added_lines Cargo.toml | grep -oE '^\+[[:space:]]*[a-zA-Z0-9_-]+[[:space:]]*=' \
       | sed -E 's/^\+[[:space:]]*([a-zA-Z0-9_-]+)[[:space:]]*=.*/\1/' || true)
     if [[ -n "$NEW_CRATES" ]] && has curl; then

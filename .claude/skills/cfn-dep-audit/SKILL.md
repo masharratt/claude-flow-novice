@@ -27,6 +27,8 @@ This is the supply-chain counterpart to `cfn-security-review`. It does not read 
 
 "Newly added" means added in the staged diff (`--cached`), or failing that the last commit (`HEAD~1`), of `package.json` / `Cargo.toml`.
 
+For npm, "newly added" is computed **structurally**: the dependency key set (`dependencies`, `devDependencies`, `peerDependencies`, `optionalDependencies`) of the current `package.json` is diffed against the base ref (`lib/npm-new-deps.sh`). A `scripts` entry, formatting change, or any non-dependency key can never be flagged as a new package. Dependency gates diff structured dependency keys — never raw file lines.
+
 ## Graceful Degradation
 
 Every check is best-effort. If a tool is missing or the network is unavailable, that check is skipped and listed under "checks skipped", not failed. The script always reports which checks actually ran so you know your coverage. With no `package.json` and no `Cargo.toml`, it exits clean with "nothing to audit".

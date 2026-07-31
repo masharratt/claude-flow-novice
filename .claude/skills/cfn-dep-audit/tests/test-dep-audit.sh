@@ -50,6 +50,28 @@ check "cargo path completes"            "cfn-dep-audit complete" "$OUT"
 [ "$RC" -eq 0 ] && { echo "PASS: cargo path exits 0"; PASS=$((PASS+1)); } \
                 || { echo "FAIL: cargo path exits 0 (got $RC)"; FAIL=$((FAIL+1)); }
 
+# Case 5: a scripts entry must never be parsed as a dependency.
+# Regression: the old whole-file line-grep matched any "key": "value" whose
+# value started with a version char (^~>=<0-9v), so a script command starting
+# with v or a digit (e.g. "e2e": "vitest run") was flagged as a new package.
+rm -f Cargo.toml
+source "$(dirname "$SCRIPT")/lib/npm-new-deps.sh"
+printf '{\n  "name":"t","version":"1.0.0",\n  "scripts":{"build":"tsc"},\n  "dependencies":{"lodash":"^4.17.21"}\n}\n' > package.json
+git add package.json; git commit -q -m base
+printf '{\n  "name":"t","version":"1.0.0",\n  "scripts":{"build":"tsc","e2e":"vitest run"},\n  "dependencies":{"lodash":"^4.17.21","react":"^18.2.0"}\n}\n' > package.json
+NEW=$(cfn_npm_new_deps "HEAD")
+if printf '%s\n' "$NEW" | grep -qE '(^|\t)e2e($|\t)'; then
+  echo "FAIL: script key 'e2e' parsed as a dependency"; echo "  got: $NEW"; FAIL=$((FAIL+1))
+else
+  echo "PASS: script entry not treated as dependency"; PASS=$((PASS+1))
+fi
+if printf '%s\n' "$NEW" | grep -qE 'react'; then
+  echo "PASS: real new dep 'react' detected"; PASS=$((PASS+1))
+else
+  echo "FAIL: real new dep 'react' not detected"; echo "  got: $NEW"; FAIL=$((FAIL+1))
+fi
+git rm -qf package.json 2>/dev/null; git commit -q -m reset 2>/dev/null || true
+
 echo "---"
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
