@@ -43,7 +43,16 @@ src="llm"
 base="${ANTHROPIC_BASE_URL:-https://api.z.ai/api/anthropic}"
 token="${ANTHROPIC_AUTH_TOKEN:-}"
 model="${ANTHROPIC_DEFAULT_HAIKU_MODEL:-glm-4.7}"
-if [ -n "$token" ] && command -v curl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+
+# Ban guard: NEVER call the real Anthropic API. z.ai's URL is api.z.ai/api/anthropic
+# (host api.z.ai) — does NOT match. Real Anthropic (api.anthropic.com) -> skip,
+# fall back to truncated prompt. Keeps the hook ban-safe under any project config.
+ban=0
+case "$base" in
+  *api.anthropic.com*) ban=1 ;;
+esac
+
+if [ "$ban" = 0 ] && [ -n "$token" ] && command -v curl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
   sys='You label a developer task for a status bar. Given the user prompt, output ONLY a concise 5-8 word imperative label. No quotes, no trailing punctuation, drop filler articles. Examples: Fix auth token refresh race | Add RLS policies to listings table | Refactor lender entity read path'
   body=$(jq -nc --arg m "$model" --arg s "$sys" --arg u "$line" \
     '{model:$m,max_tokens:25,system:$s,messages:[{role:"user",content:$u}]}' 2>/dev/null || true)
