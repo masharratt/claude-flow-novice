@@ -10,6 +10,9 @@
 .claude/cfn-data/*.db-wal
 .claude/cfn-data/*.db-journal
 
+# Runtime failure log (global, symlinked; per-session/per-project writes)
+.claude/cfn-data/*.jsonl
+
 # Model cache (fastembed ONNX weights)
 .fastembed_cache/
 

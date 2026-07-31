@@ -47,6 +47,39 @@ If `planning/SPEC_${SLUG}.md` exists, parse its `## 8. Build Flags` section into
 
 ---
 
+## TOOL INITIATION FAILURE CAPTURE (global log)
+
+When a CFN tool fails to even START — script missing or not executable (bash exit 126/127), an agent `Task` spawn returns nothing or malformed JSON, a slash skill is not found, or `MAX_ITERATIONS` is exhausted with no done verdict — record it to the GLOBAL failure log so it can be troubleshooted later. This is distinct from a tool that STARTS and then fails its check (gate-check exit 1/2/3, verify-run red ACs): those are normal control-flow exits and are NEVER logged here.
+
+One file, shared by every project via the reverse symlink:
+`~/.claude/cfn-data/tool-init-failures.jsonl` (gitignored runtime data).
+
+The logger auto-captures timestamp, host, cwd, git branch/commit/dirty, provider, session id, and (from env) `TASK_ID`/`RUN_ID`/`SLUG`/`ITERATION`. Export those four at Phase 1 so records carry them. You only supply tool + category. Two modes:
+
+1. **wrap** (PROGRAMMATIC, preferred for bash-invoked CFN CLI tools). Runs the command, re-emits its real exit code + stdout/stderr unchanged, and logs ONLY on an initiation failure (exit 126/127). Control-flow exits are untouched:
+   ```bash
+   CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
+   bash "$CFN_FAILLOG" wrap --tool gate-check.sh -- \
+     ./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh --out /tmp/x.txt --threshold 0.95
+   GATE_EXIT=$?   # 0/1/2/3 preserved exactly
+   ```
+   Every `cfn-*/cli/*.sh` invocation in Phase 3 and Phase 5 below is already wrapped this way (including the `tee`-piped ones: `check-test-hygiene.sh`, `harvest.sh`). For a piped call, keep the `2>&1 | tee` outside the wrapper and read the tool's real exit via `${PIPESTATUS[0]}` (a bare `$?` after a pipe captures `tee`'s exit, not the tool's).
+
+2. **record** (EXPLICIT, for LLM-mediated failures the wrapper cannot see). Call when:
+   - A `Task` spawn returned no output or a malformed trailing JSON block: `--category NO_OUTPUT` (or `INVALID_OUTPUT`), `--agent-id <id>`.
+   - A slash skill / command was not found: `--category SKILL_NOT_FOUND`.
+   - `MAX_ITERATIONS` exhausted with no done verdict — emit ONE record at the failure exit (Step 3.1 exit-1, 5E.3 exit-1, or 5E.4a exit-1 branch), before the summary report: `--category MAX_ITERATIONS`, `--tool <last-failing-gate>`, `--exit-code <rc>`, `--phase <phase>`.
+   ```bash
+   bash "$CFN_FAILLOG" record --tool "Task:backend-developer" \
+     --category NO_OUTPUT --stderr "lane returned no JSON block" --phase 2 --agent-id <id>
+   ```
+
+Categories: `MISSING_TOOL` `NOT_EXECUTABLE` `BAD_ARGS` `SPAWN_FAILED` `NO_OUTPUT` `INVALID_OUTPUT` `SKILL_NOT_FOUND` `DEPENDENCY_MISSING` `TIMEOUT` `MAX_ITERATIONS` `OTHER`.
+
+Review the log any time to triage: `bash "$CFN_FAILLOG" show [--tool NAME] [--last N]` (pretty-prints with `jq` if present).
+
+---
+
 ## ⚡ AUTONOMOUS PROGRESSION (CRITICAL)
 
 **DO NOT stop to ask questions. Keep progressing by launching agents for next steps.**
@@ -268,8 +301,10 @@ surface; the Phase 5 gate (5E.4a) is what enforces it.
 ```bash
 # One call per lane. Save each lane's trailing JSON block from its Phase 2
 # output to a file first, e.g. /tmp/lane-report-${RUN_ID}-<lane>.json.
+CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 for LANE_ID in ${LANE_IDS}; do
-  ./.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh record \
+  bash "$CFN_FAILLOG" wrap --tool deferrals.sh -- \
+    ./.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh record \
     --slug "${SLUG:-$TASK_ID}" --lane "${LANE_ID}" \
     --json "/tmp/lane-report-${RUN_ID}-${LANE_ID}.json"
 done
@@ -287,9 +322,11 @@ Before computing any pass rate, confirm no test was silently disabled to game th
 
 ```bash
 # No args = changed test files via git diff. Exit 0 clean / 1 findings / 2 usage.
-./.claude/skills/cfn-loop-orchestration-v2/cli/check-test-hygiene.sh \
+CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
+bash "$CFN_FAILLOG" wrap --tool check-test-hygiene.sh -- \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/check-test-hygiene.sh \
   2>&1 | tee /tmp/hygiene-${TASK_ID}.txt
-HYGIENE_EXIT=$?
+HYGIENE_EXIT=${PIPESTATUS[0]}
 ```
 
 - **Exit 1 (findings):** gate FAILS. Any `.only(` / `.skip(` / `.todo(` / `fit(` / `xit(` / `xdescribe(` / `xtest(` / `@pytest.mark.skip` / `pytest.skip(` without a same-line `// cfn-allow-skip: <reason>` (or `# cfn-allow-skip:`) suppression marker is iteration fuel. Feed the findings JSON into the retry context and go back to Phase 2. Do NOT compute a pass rate on a hygiene failure.
@@ -310,7 +347,9 @@ if [ "${ITERATION}" -ge 2 ] && [ -n "${PREV_TOTAL:-}" ]; then
 fi
 
 # Mechanical gate check (THRESHOLD from THRESHOLDS.md, e.g. 0.95 for standard)
-./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
+CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
+bash "$CFN_FAILLOG" wrap --tool gate-check.sh -- \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
   --out /tmp/test-output-${RUN_ID}.txt \
   --threshold ${THRESHOLD} \
   ${BASELINE_ARG}
@@ -352,7 +391,10 @@ On gate-check exit 1 (rate below threshold), a failure may be flaky rather than 
 After the gate passes, inventory the deliberate shortcuts implementers took so the Product Owner decides with debt visible, not hidden:
 
 ```bash
-./.claude/skills/cfn-tech-debt/harvest.sh 2>&1 | tee /tmp/cfn-debt-${TASK_ID}.txt
+CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
+bash "$CFN_FAILLOG" wrap --tool harvest.sh -- \
+  ./.claude/skills/cfn-tech-debt/harvest.sh \
+  2>&1 | tee /tmp/cfn-debt-${TASK_ID}.txt
 ```
 
 - Each `cfn: <ceiling>, <trigger>` marker becomes a ledger row; markers with no trigger are flagged `no-trigger` (rot risk).
@@ -538,7 +580,9 @@ Runs first so any residue a mutation leaves behind is caught by the later all-gr
 #### 5E.1 Run the VERIFY manifest mechanically
 
 ```bash
-./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh run \
+CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
+bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh run \
   --verify planning/VERIFY_${SLUG}.md \
   --out planning/VERIFY_RESULTS_${RUN_ID}.json
 ```
@@ -550,7 +594,9 @@ This executes every executable/db-query AC and writes the results file (the sing
 For each results row with `mode: needs_agent` or `predicate_unverified: true` (`pass: null`, UNRESOLVED), spawn a verification agent. The spawn prompt MUST pin that AC's `check`, `pass`, trigger, seeds, and signal, and MUST require a verbatim evidence excerpt (the agent captures real output, it does not assert). Then stamp the evidence:
 
 ```bash
-./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh resolve \
+CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
+bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh resolve \
   --results planning/VERIFY_RESULTS_${RUN_ID}.json \
   --ac <AC-id> --pass true|false --evidence-file <captured-evidence-file>
 ```
@@ -560,7 +606,9 @@ For each results row with `mode: needs_agent` or `predicate_unverified: true` (`
 #### 5E.3 Summary = the done verdict
 
 ```bash
-./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh summary \
+CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
+bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh summary \
   --results planning/VERIFY_RESULTS_${RUN_ID}.json
 SUMMARY_EXIT=$?
 ```
@@ -576,11 +624,14 @@ SUMMARY_EXIT=$?
 Runs only when 5E.3 exited 0. The manifest was blessed at plan stage with `evidence: "PENDING: <reason>"` on rows whose code did not exist yet; the run above executed every check, so its recorded output is the real evidence.
 
 ```bash
-./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh backfill-evidence \
+CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
+bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh backfill-evidence \
   --results planning/VERIFY_RESULTS_${RUN_ID}.json \
   --verify  planning/VERIFY_${SLUG}.md
 
-.claude/skills/cfn-megaplan/bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" \
+bash "$CFN_FAILLOG" wrap --tool bless-verify.sh -- \
+  .claude/skills/cfn-megaplan/bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" \
   --stage exit --note "exit gate: evidence backfilled from VERIFY_RESULTS"
 ```
 
@@ -592,7 +643,9 @@ Code changed since Phase 3 (vote-applied 3/3, 2/3, 1/3 items), so a mandatory fi
 
 ```bash
 npm test 2>&1 | tee /tmp/test-final-${TASK_ID}.txt
-./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
+CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
+bash "$CFN_FAILLOG" wrap --tool gate-check.sh -- \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
   --out /tmp/test-final-${TASK_ID}.txt --threshold 1.0
 ```
 
@@ -638,7 +691,9 @@ consumed it — the loop declared 81/81 all-green over a feature unreachable
 from `src/index.ts`.
 
 ```bash
-./.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh gate --slug "${SLUG:-$TASK_ID}"
+CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
+bash "$CFN_FAILLOG" wrap --tool deferrals.sh -- \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh gate --slug "${SLUG:-$TASK_ID}"
 DEFERRALS_GATE_EXIT=$?
 ```
 
@@ -786,6 +841,7 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 - **After every Loop 3 completion, immediately run Step 3.0 + gate-check.sh before any other action** (never skip the Gate Check).
 - **When the gate fails, go straight back to Phase 2 with the retry context** (never start the vote phase on a failed gate).
 - **Implement every phase of the plan in Phase 2** (never stop after one sprint).
+- **Wrap every CFN CLI tool through `log-tool-init-failure.sh wrap` and `record` any agent/skill/MAX_ITERATIONS that fails to start** (see Tool Initiation Failure Capture). A tool that fails to initiate otherwise vanishes with the summary report; the global log is the only durable trace.
 - **Route every review suggestion through cfn-vote-implement** (never manually decide on suggestions).
 - **Queue 1/3 items and surface them only after all 3/3 and 2/3 items are resolved** (never prompt the user mid-vote).
 - **Ask at most 4 questions per AskUserQuestion call** (tool limit and cognitive load).
