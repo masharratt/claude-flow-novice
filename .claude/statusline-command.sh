@@ -127,13 +127,13 @@ fi
 # Line 2: provider, model, branch, diff/dur/wt, context % (the environment).
 line1="$task_part"
 
-line2="$provider"
+line2="$ctx_part"
+[ -n "$provider" ] && line2="${line2:+$line2  }${provider}"
 [ -n "$model_short" ] && line2="${line2:+$line2 }${model_short}"
 [ -n "$git_part" ] && line2="${line2:+$line2  }${git_part}"
 [ -n "$diff_part" ] && line2="${line2:+$line2  }${diff_part}"
 [ -n "$dur_part" ] && line2="${line2:+$line2  }${dur_part}"
 [ -n "$wt_part" ] && line2="${line2:+$line2  }${wt_part}"
-[ -n "$ctx_part" ] && line2="${line2:+$line2  }${ctx_part}"
 
 parts="$line1"
 [ -n "$line2" ] && parts="${parts:+$parts\n}${line2}"
