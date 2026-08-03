@@ -4,6 +4,39 @@ Entity lifecycle documentation for stateful CFN systems.
 
 **Last Updated:** 2026-07-25 | **Infrastructure Audit:** S008-S015 hook security & self-test (2026-07-25)
 
+## Contents
+
+- [CFN Loop Task: Phase 5 Exit Gate (cfn-loop-task 3.2.0, W1/W4/W5)](#cfn-loop-task-phase-5-exit-gate-cfn-loop-task-320-w1w4w5)
+- [GOAP Planner](#goap-planner)
+- [Agent Selection (GOAP substitution)](#agent-selection-goap-substitution)
+- [Error Recovery (GOAP)](#error-recovery-goap)
+- [Orchestrator Loop (GOAP-advised)](#orchestrator-loop-goap-advised)
+- [Spec Artifact Status (cfn-spec / cfn-megaplan)](#spec-artifact-status-cfn-spec-cfn-megaplan)
+- [Megaplan Bar B Result (Multi-Plan Program)](#megaplan-bar-b-result-multi-plan-program)
+- [CFN MegaPlan-Lite: Planning DAG](#cfn-megaplan-lite-planning-dag)
+- [Dependency Scheduling](#dependency-scheduling)
+- [Video Ingest Run (glm-video-ingest)](#video-ingest-run-glm-video-ingest)
+- [Decision Record (decision-log structured store)](#decision-record-decision-log-structured-store)
+- [Manifest Suggestion (cfn-vote-implement processing)](#manifest-suggestion-cfn-vote-implement-processing)
+- [Intent Item (cfn-spec §1b Interaction Intent Walk)](#intent-item-cfn-spec-1b-interaction-intent-walk)
+- [Monitor Probe (cfn-monitor health gate)](#monitor-probe-cfn-monitor-health-gate)
+- [Lane Deferrals (cfn-loop-orchestration-v2/cli/deferrals.sh, S006)](#lane-deferrals-cfn-loop-orchestration-v2clideferralssh-s006)
+- [AC Verdict Lifecycle (verify-run.sh, S003, 2026-07-11)](#ac-verdict-lifecycle-verify-runsh-s003-2026-07-11)
+- [VERIFY Manifest Bless Lifecycle (bless-verify.sh, S007, 2026-07-22)](#verify-manifest-bless-lifecycle-bless-verifysh-s007-2026-07-22)
+- [Test Hygiene Gate (check-test-hygiene.sh, S001, 2026-07-11)](#test-hygiene-gate-check-test-hygienesh-s001-2026-07-11)
+- [Role Capability Outcome (cfn-persona-verify)](#role-capability-outcome-cfn-persona-verify)
+- [Role Verification Finding (cfn-persona-verify schema audit)](#role-verification-finding-cfn-persona-verify-schema-audit)
+- [Wireframe Gate (cfn-megaplan L5→L6 barrier)](#wireframe-gate-cfn-megaplan-l5l6-barrier)
+- [Implementation Wave (cfn-loop-task LANE DERIVATION)](#implementation-wave-cfn-loop-task-lane-derivation)
+- [Post-Edit Validation Pipeline (cfn-invoke-post-edit.sh / post-edit-pipeline.js, S016/S018/S020)](#post-edit-validation-pipeline-cfn-invoke-post-editsh-post-edit-pipelinejs-s016s018s020)
+- [Subagent Lifecycle Hooks (cfn-subagent-start.sh / cfn-subagent-stop.sh, S015)](#subagent-lifecycle-hooks-cfn-subagent-startsh-cfn-subagent-stopsh-s015)
+- [Pre-Edit Backup Lifecycle (cfn-invoke-pre-edit.sh / restore.sh / cleanup.sh, S014 + S017)](#pre-edit-backup-lifecycle-cfn-invoke-pre-editsh-restoresh-cleanupsh-s014-s017)
+- [Hook Timeout Budget (cfn-hook-budget.sh, S017)](#hook-timeout-budget-cfn-hook-budgetsh-s017)
+- [Pre-commit Credential Scan (scan_staged_file, S010-S014)](#pre-commit-credential-scan-scanstagedfile-s010-s014)
+- [Pre-commit Hook Self-Test Gate (cfn-hook-selftest.sh, S019)](#pre-commit-hook-self-test-gate-cfn-hook-selftestsh-s019)
+- [Prompt Optimizer Run (prompt-optimizer engine)](#prompt-optimizer-run-prompt-optimizer-engine)
+
+
 ---
 
 ## CFN Loop Task: Phase 5 Exit Gate (cfn-loop-task 3.2.0, W1/W4/W5)
