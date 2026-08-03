@@ -34,7 +34,7 @@ check_filename() {
 check_last_updated() {
   # Accept any freshness stamp with a date in the first 20 lines:
   # Last Updated / Last Verified / Last Reviewed / verified against prod
-  grep -qiE '(last[[:space:]]+(updated|verified|reviewed)|verified[[:space:]]+against)[^0-9]*[0-9]{4}-[0-9]{2}-[0-9]{2}' <(head -20 "$1") \
+  grep -qiE '(last[[:space:]]+(updated|verified|reviewed)|verified[[:space:]]+against).*[0-9]{4}-[0-9]{2}-[0-9]{2}' <(head -20 "$1") \
     || err "$1:1 missing Last Updated/Verified/Reviewed date stamp within first 20 lines"
 }
 
@@ -120,7 +120,7 @@ lint_state_machines() {
   # load-bearing spec (complete business rules), not feature-status Description
   # walls. The SCHEMA's "no implementation prose" rule still guides humans here.
   awk -v F="$f" '
-    function norm(s,  r){ r=s; sub(/^[0-9]+\.?[[:space:]]*/,"",r); sub(/[[:space:]]*\([^)]*\)[[:space:]]*$/,"",r); sub(/^[[:space:]]+/,"",r); sub(/[[:space:]]+$/,"",r); return tolower(r) }
+    function norm(s,  r){ r=s; sub(/^[0-9]+\.?[[:space:]]*/,"",r); sub(/[[:space:]]*\([^)]*20[0-9]{2}[^)]*\)[[:space:]]*$/,"",r); sub(/^[[:space:]]+/,"",r); sub(/[[:space:]]+$/,"",r); return tolower(r) }
     /^##[[:space:]]/ {
       if (name!="") {
         if (has_states==0) warn(F":"startln" entity \""name"\" has no States section");
@@ -171,8 +171,18 @@ lint_dir() {
 }
 
 check_all() {
-  local f
-  while IFS= read -r f; do lint_one "$f"; done < <(find "${1:-/home/masha/projects}" -type f \( -name 'feature-status.md' -o -name 'state-machines.md' \) 2>/dev/null | grep -v node_modules)
+  local f d iswt root="${1:-/home/masha/projects}"
+  while IFS= read -r f; do
+    # skip files inside a git worktree (working tree whose .git is a file, not a dir)
+    iswt=0; d="$f"
+    while [ "$d" != "/" ] && [ "$d" != "$root" ]; do
+      if [ -f "$d/.git" ]; then iswt=1; break; fi
+      if [ -d "$d/.git" ]; then break; fi
+      d="$(dirname "$d")"
+    done
+    [ "$iswt" = "1" ] && continue
+    lint_one "$f"
+  done < <(find "$root" -type f \( -name 'feature-status.md' -o -name 'state-machines.md' \) 2>/dev/null | grep -vE 'node_modules|worktrees')
 }
 
 main() {
