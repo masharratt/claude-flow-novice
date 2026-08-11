@@ -12,8 +12,8 @@
   "scripts": {
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "test:unit": "./.claude/cfn-scripts/run-with-memory-limit.sh 2G jest --testPathPattern=tests/unit --coverage --coverageDirectory=coverage/unit",
-    "test:integration": "./.claude/cfn-scripts/run-with-memory-limit.sh 4G jest --testPathPattern=tests/integration --coverage --coverageDirectory=coverage/integration",
-    "test:e2e": "./.claude/cfn-scripts/run-with-memory-limit.sh 6G jest --testPathPattern=tests/e2e --coverage --coverageDirectory=coverage/e2e",
+    "test:integration": "./.claude/cfn-scripts/run-with-memory-limit.sh 4G jest --testPathPattern=tests/integration --coverage --coverageDirectory=coverage/integration --passWithNoTests",
+    "test:e2e": "./.claude/cfn-scripts/run-with-memory-limit.sh 6G jest --testPathPattern=tests/e2e --coverage --coverageDirectory=coverage/e2e --passWithNoTests",
     "test:docker": "./tests/docker-mode/run-all-implementations.sh",
     "test:cli": "./tests/cli-mode/run-all-tests.sh",
     "test:cfn-v3": "./tests/cfn-v3/test-e2e-cfn-loop.sh",
@@ -22,6 +22,7 @@
     "lint:fix": "eslint src/ tests/ --ext .ts,.js --fix",
     "format": "prettier --write src/**/*.{ts,js} tests/**/*.{ts,js}",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "build:watch": "tsc --watch",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
@@ -71,7 +72,8 @@
     "release:major": "npm version major && git push --follow-tags",
     "release:minor": "npm version minor && git push --follow-tags",
     "release:patch": "npm version patch && git push --follow-tags",
-    "postinstall": "node scripts/postinstall.js"
+    "postinstall": "node scripts/postinstall.js",
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "ai",

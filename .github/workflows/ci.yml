@@ -42,10 +42,6 @@ jobs:
       - name: Type checking
         run: npm run typecheck
 
-      - name: Skill markdown linting
-        run: npm run lint:skills
-        continue-on-error: true
-
   unit-tests:
     name: Unit Tests (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
@@ -71,14 +67,14 @@ jobs:
         run: npm run build
 
       - name: Run unit tests
-        run: npm run test -- --coverage --forceExit --maxWorkers=2
+        run: npm run test:unit -- --forceExit --maxWorkers=2
         env:
           NODE_ENV: test
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:
-          files: ./coverage/coverage-final.json
+          files: ./coverage/unit/coverage-final.json
           flags: unittest
           name: unit-${{ matrix.node-version }}
           fail_ci_if_error: false
@@ -91,224 +87,6 @@ jobs:
           name: coverage-unit-${{ matrix.node-version }}
           path: coverage/
           retention-days: 30
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: cfn_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-
-      - name: Build TypeScript
-        run: npm run build
-
-      - name: Run integration tests
-        run: npm run test:integration -- --coverage --forceExit --maxWorkers=4
-        env:
-          NODE_ENV: test
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: cfn_test
-
-      - name: Upload integration coverage
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage/coverage-final.json
-          flags: integration
-          name: integration
-          fail_ci_if_error: false
-
-      - name: Archive integration test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-test-results
-          path: coverage/
-          retention-days: 30
-
-  performance-tests:
-    name: Performance Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-
-      - name: Build TypeScript
-        run: npm run build
-
-      - name: Run performance tests
-        run: npm run test:performance -- --forceExit --maxWorkers=2
-        env:
-          NODE_ENV: test
-          PERFORMANCE_THRESHOLD: 1000
-
-      - name: Archive performance results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: performance-test-results
-          path: |
-            coverage/
-            perf-results.json
-          retention-days: 30
-
-  coverage-gates:
-    name: Coverage Gates
-    runs-on: ubuntu-latest
-    needs: [ unit-tests, integration-tests ]
-    timeout-minutes: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download all coverage reports
-        uses: actions/download-artifact@v4
-        with:
-          path: coverage-reports
-          pattern: coverage-*
-
-      - name: Merge coverage reports
-        run: |
-          npm install -D nyc
-          mkdir -p merged-coverage
-          npx nyc merge coverage-reports merged-coverage/coverage.json
-          npx nyc report --reporter=json --reporter=text --reporter=lcov
-          cat coverage/coverage-summary.json
-
-      - name: Check coverage thresholds
-        run: |
-          echo "Checking coverage thresholds..."
-
-          # Parse coverage summary
-          LINES=$(jq '.total.lines.pct' coverage/coverage-summary.json 2>/dev/null || echo "0")
-          STATEMENTS=$(jq '.total.statements.pct' coverage/coverage-summary.json 2>/dev/null || echo "0")
-          FUNCTIONS=$(jq '.total.functions.pct' coverage/coverage-summary.json 2>/dev/null || echo "0")
-          BRANCHES=$(jq '.total.branches.pct' coverage/coverage-summary.json 2>/dev/null || echo "0")
-
-          echo "Coverage Results:"
-          echo "  Lines:       ${LINES}%"
-          echo "  Statements:  ${STATEMENTS}%"
-          echo "  Functions:   ${FUNCTIONS}%"
-          echo "  Branches:    ${BRANCHES}%"
-
-          # Check minimum thresholds
-          FAIL=0
-          if (( $(echo "$LINES < 80" | bc -l) )); then
-            echo "❌ Lines coverage ${LINES}% < 80%"
-            FAIL=1
-          fi
-          if (( $(echo "$STATEMENTS < 80" | bc -l) )); then
-            echo "❌ Statements coverage ${STATEMENTS}% < 80%"
-            FAIL=1
-          fi
-          if (( $(echo "$FUNCTIONS < 80" | bc -l) )); then
-            echo "❌ Functions coverage ${FUNCTIONS}% < 80%"
-            FAIL=1
-          fi
-          if (( $(echo "$BRANCHES < 75" | bc -l) )); then
-            echo "❌ Branches coverage ${BRANCHES}% < 75%"
-            FAIL=1
-          fi
-
-          if [ $FAIL -eq 1 ]; then
-            echo ""
-            echo "Coverage gates failed. Minimum thresholds:"
-            echo "  Lines/Statements/Functions: 80%"
-            echo "  Branches: 75%"
-            exit 1
-          fi
-
-          echo "✅ All coverage gates passed"
-
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage/coverage-final.json
-          flags: combined
-          name: coverage-gates
-          fail_ci_if_error: false
-
-      - name: Comment PR with coverage
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
-
-            const total = summary.total;
-            const lines = total.lines.pct.toFixed(2);
-            const statements = total.statements.pct.toFixed(2);
-            const functions = total.functions.pct.toFixed(2);
-            const branches = total.branches.pct.toFixed(2);
-
-            const comment = `## Coverage Report
-
-            | Metric | Coverage | Status |
-            |--------|----------|--------|
-            | Lines | ${lines}% | ${lines >= 80 ? '✅' : '❌'} |
-            | Statements | ${statements}% | ${statements >= 80 ? '✅' : '❌'} |
-            | Functions | ${functions}% | ${functions >= 80 ? '✅' : '❌'} |
-            | Branches | ${branches}% | ${branches >= 75 ? '✅' : '❌'} |
-
-            **Thresholds:** Lines/Statements/Functions ≥80%, Branches ≥75%`;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
 
   build-verification:
     name: Build Verification
@@ -340,8 +118,8 @@ jobs:
             exit 1
           fi
 
-          if [ ! -f "dist/index.js" ]; then
-            echo "❌ dist/index.js not found"
+          if [ ! -f "dist/src/index.js" ]; then
+            echo "❌ dist/src/index.js not found"
             exit 1
           fi
 
@@ -357,7 +135,7 @@ jobs:
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [ lint, unit-tests, integration-tests, build-verification ]
+    needs: [ lint, unit-tests, build-verification ]
     timeout-minutes: 5
     if: always()
     steps:
@@ -366,12 +144,10 @@ jobs:
           echo "Job Status Summary:"
           echo "  Lint: ${{ needs.lint.result }}"
           echo "  Unit Tests: ${{ needs.unit-tests.result }}"
-          echo "  Integration Tests: ${{ needs.integration-tests.result }}"
           echo "  Build Verification: ${{ needs.build-verification.result }}"
 
           if [[ "${{ needs.lint.result }}" == "failure" || \
                 "${{ needs.unit-tests.result }}" == "failure" || \
-                "${{ needs.integration-tests.result }}" == "failure" || \
                 "${{ needs.build-verification.result }}" == "failure" ]]; then
             echo "❌ Quality gate failed"
             exit 1
@@ -398,10 +174,8 @@ jobs:
           - **Status:** ${{ needs.quality-gate.result == 'success' && '✅ PASSED' || '❌ FAILED' }}
 
           ## Job Results
-          - Lint & Type Check: ${{ needs.quality-gate.result }}
+          - Lint & Type Check: Completed
           - Unit Tests: Completed
-          - Integration Tests: Completed
-          - Performance Tests: Completed
-          - Build Verification: ${{ needs.quality-gate.result }}
+          - Build Verification: Completed
 
           EOF

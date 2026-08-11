@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-11 (credential scan rewired to pre-commit hook engine, leaked keys redacted from tree) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-11 (ci.yml aligned to real scripts; 8 dead test suites removed; jest cjs discovery fixed) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -270,7 +270,7 @@ This file MUST be updated when:
 
 | Component | Status | Tests | Location | Description |
 |-----------|--------|-------|----------|-------------|
-| CI workflows | ⚠️ Beta | n/a | `.github/workflows/` | 3 workflows: ci.yml (lint, typecheck, unit Node 18/20, build, integration, perf), security-credential-scan.yml (repo pre-commit scanner over all tracked files + TruffleHog full-history, verified-only), npm-publish.yml (release gate). Pruned from 13 in 2026-08. |
+| CI workflows | ⚠️ Beta | n/a | `.github/workflows/` | 3 workflows: ci.yml (eslint advisory, tsc typecheck, unit tests Node 18/20, build verification, quality gate), security-credential-scan.yml (repo pre-commit scanner over all tracked files + TruffleHog full-history, verified-only), npm-publish.yml (release gate). Pruned from 13 in 2026-08. |
 
 ### Databases
 
