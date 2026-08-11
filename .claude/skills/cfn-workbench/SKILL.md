@@ -38,8 +38,9 @@ or open it locally.
 
 ### Required
 - `--slug <slug>`: Run slug. Matches `VERIFY_<slug>.md`, `<slug>-iteration-*.png`,
-  `lane-report-<slug>-*.json`, `test-output-<slug>-*.txt`, and
-  `.VERIFY_<slug>.bless.json`.
+  `lane-report-<slug>-*.json`, `test-output-<slug>-*.txt`,
+  `.VERIFY_<slug>.bless.json`, `run-plan-<slug>.json`, and
+  `cfn-events-<slug>.jsonl`.
 
 ### Optional
 - `--out <path>`: Output HTML path. Default: `<root>/planning/workbench_<slug>.html`.
@@ -63,7 +64,35 @@ or open it locally.
 | Lane reports | `<root>/tmp/lane-report-<slug>-*.json` AND `/tmp/lane-report-<slug>-*.json` | Per-lane pass rate |
 | Test outputs | `<root>/tmp/test-output-<slug>-*.txt` AND `/tmp/test-output-<slug>-*.txt` | Test runner summary line |
 | Screenshots | `<root>/tests/screenshots/<slug>-iteration-*.png` | Base64-inlined as `data:image/png;base64,...` |
+| Run plan | `<root>/planning/run-plan-<slug>.json` | Lane roster (id/name/phase) for the Roster section |
+| Events feed | `/tmp/cfn-events-<slug>.jsonl` AND `<root>/tmp/cfn-events-<slug>.jsonl` | Live lifecycle events (written by `emit-event.sh`) for the Events section, and lane status (`lane_spawned`/`lane_landed`) in the Roster section |
 | Git log | git repo at `<root>` | Branch + commit count |
+
+### Run plan file (`planning/run-plan-<slug>.json`)
+
+Written once per run (Phase 2, before lanes are spawned). Drives the Roster
+section's headline count and table rows.
+
+```json
+{
+  "slug": "<slug>",
+  "generated_at": "ISO8601",
+  "phases": ["Phase 2", "Phase 3"],
+  "lanes": [
+    {"id": "frontend", "name": "Frontend UI", "phase": "Phase 2"}
+  ]
+}
+```
+
+`lanes[].id` is required (used to match lane-report files and events).
+`name`/`phase` are optional and fall back to `id` / `-` in the table.
+
+### Events feed (`cfn-events-<slug>.jsonl`)
+
+Appended to by `emit-event.sh` (see below), one compact JSON line per event:
+`{"ts":"<ISO8601 UTC>","event":"<type>", ...optional lane/phase/detail}`.
+Both the project-root copy (`<root>/tmp/...`) and the runtime copy (`/tmp/...`)
+are read and merged; malformed lines are skipped silently, never rendered raw.
 
 ## Outputs
 
@@ -91,18 +120,79 @@ or open it locally.
   --out /tmp/wb.html
 ```
 
+### Live watch mode (`watch.sh`)
+
+Re-renders automatically as run data changes, so an already-open page (opened
+with `--live <secs>`) picks up new content via its meta-refresh without a
+manual re-run.
+
+```bash
+# Start a background watcher for a run, polling every 10s (default)
+./.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --interval 10
+
+# Check status / stop it
+./.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --status
+./.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --stop
+
+# Run the poll loop in the foreground (used by tests)
+./.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --foreground
+```
+
+Each tick fingerprints the run's data sources (manifests, VERIFY doc/results,
+bless ledger, run plan, lane reports, test outputs, events feed, screenshots);
+on a change (or the first tick) it re-renders via `render.sh --live <interval>`.
+A render failure is logged but never kills the watch loop. Idempotent: a
+second `--slug` start with a live pidfile is a no-op. Pidfile:
+`/tmp/cfn-workbench-watch-<slug>.pid`; log: `/tmp/cfn-workbench-watch-<slug>.log`.
+
+### Emitting lifecycle events (`emit-event.sh`)
+
+Appends one event to the run's live events feed, read by the Events section
+and the Roster section's lane-status derivation.
+
+```bash
+./.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event loop_started
+./.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event lane_spawned --lane frontend --phase "Phase 2"
+./.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event lane_landed --lane frontend --detail "pass_rate=100%"
+./.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event gate_verdict --detail "9/10 pass"
+```
+
+Closed event-type set: `loop_started phase_started lane_spawned lane_landed
+gate_started gate_verdict patch_applied verify_started loop_finished`. Unknown
+event type or missing `--slug`/`--event` exits 2. `--lane`/`--phase`/`--detail`
+are optional and only appear in the emitted JSON when passed. `--file <path>`
+overrides the default output path (`/tmp/cfn-events-<slug>.jsonl`); orchestrator
+call sites wrap every call with `|| true` so a bad emit never blocks the loop.
+
 ## HTML sections
 
-1. **Header**: slug, branch, iteration count, verdict pill, generated_at.
+1. **Header**: slug, branch, iteration count, verdict pill, generated_at, and a
+   live staleness pill (`#wb-staleness`) that ticks `updated Ns/Nm ago` every
+   second client-side (JS off falls back to the static `generated <time> UTC`
+   text). Pill class flips `stale-ok` (< 120s) -> `stale-warn` (120-599s) ->
+   `stale-bad` (>= 600s) purely in inline `<script>`/`<style>`, no re-render
+   needed for the color to change.
 2. **Iteration Timeline**: pass rate, gate verdict, commit count per iteration.
-3. **Per-Iteration Detail**: lanes (pass rate, passed/failed), test summary,
+3. **Lane Roster**: headline `N of M lanes landed`; table of every lane from
+   `run-plan-<slug>.json` with derived status (`landed` / `in-flight` /
+   `pending`) and, for in-flight lanes, a `Since HH:MM` from their
+   `lane_spawned` event. Missing run plan is a data gap; the section still
+   renders with an empty-state card.
+4. **Events**: live feed table (Time, Event, Lane, Phase, Detail) from
+   `cfn-events-<slug>.jsonl`, newest first, capped at 30 rows with an
+   `N earlier events not shown` note past the cap. Missing events file is a
+   data gap; the section still renders with an empty-state card.
+5. **Per-Iteration Detail**: lanes (pass rate, passed/failed), test summary,
    screenshot grid (click to enlarge via `<details>`), gate events.
-4. **Acceptance Criteria**: id, check, kind, status pill, evidence, reference.
-5. **Vote Ledger**: every suggestion id with the latest status (accepted,
+6. **Acceptance Criteria**: id, check, kind, status pill, evidence, reference.
+7. **Vote Ledger**: every suggestion id with the latest status (accepted,
    rejected, open).
-6. **Tech-Debt Ledger**: suggestions tagged `tech-debt` or matching `cfn:`.
-7. **Bless Ledger**: structure_changed and predicate_changed lists + verdict.
-8. **Footer**: command, input count, byte size, data-gap warnings.
+8. **Tech-Debt Ledger**: suggestions tagged `tech-debt` or matching `cfn:`.
+9. **Bless Ledger**: structure_changed and predicate_changed lists + verdict.
+10. **Footer**: command, input count, byte size, data-gap warnings.
+
+Section nav (`section_nav` in `lib/html.sh`) jumps to every section above by
+anchor id (`#sec-timeline`, `#sec-roster`, `#sec-events`, `#sec-detail`, ...).
 
 ## Self-containment guarantees
 
@@ -141,11 +231,25 @@ missing `reference` column renders as `-` in the display. Tests cover both a
 
 ```bash
 bash .claude/skills/cfn-workbench/tests/test-render.sh
+bash .claude/skills/cfn-workbench/tests/test-live-sections.sh
+bash .claude/skills/cfn-workbench/tests/test-watch.sh
 ```
 
-75 assertions cover: arg parsing, empty-state, 5/9-column AC tables, HTML
-escaping, self-containment, screenshot caps, no-screenshots mode, data-gap
-recording, all ledgers, no em dashes, and HTML structure.
+`test-render.sh`: 75 assertions cover arg parsing, empty-state, 5/9-column AC
+tables, HTML escaping, self-containment, screenshot caps, no-screenshots mode,
+data-gap recording, all ledgers, no em dashes, and HTML structure.
+
+`test-live-sections.sh`: staleness banner (element/thresholds/CSS classes),
+Roster (headline count, landed/in-flight/pending derivation, `Since`, empty
+state on missing run plan), Events (row rendering, malformed-line skip, 30-row
+cap + overflow note, empty state on missing file), `emit-event.sh` (exit
+codes, optional-key handling, `--file` override, append-not-overwrite,
+default output path), and nav/self-containment/no-em-dash regressions against
+the new sections.
+
+`test-watch.sh`: arg/exit contract, `--status`/`--stop` lifecycle, foreground
+loop with `WORKBENCH_WATCH_MAX_TICKS`, fingerprint-triggered re-render vs.
+no-op when nothing changed, pidfile lifecycle, idempotent double start.
 
 ## cfn markers
 
@@ -156,3 +260,9 @@ recording, all ledgers, no em dashes, and HTML structure.
 - `render.sh`: `cfn: defensive belt-and-suspenders` on the in-render
   self-containment check. Run on every render so a regression in a section
   lib cannot silently leak an external src/href.
+- `lib/section-roster.sh`: emits its own small inline `<style>` for the
+  `lane-landed`/`lane-inflight`/`lane-pending` pill classes rather than adding
+  rules to `default_style()` in `lib/html.sh` (out of scope for this lane;
+  `lib/html.sh` edits here are nav-only per the live-transparency contract).
+  Upgrade trigger: fold these 4 rules into `default_style()` next time
+  `lib/html.sh` is touched for an unrelated reason.

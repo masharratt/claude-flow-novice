@@ -1,0 +1,11 @@
+{
+  "slug": "workbench",
+  "generated_at": "2026-08-11T10:00:00Z",
+  "phases": ["Phase 2", "Phase 3"],
+  "lanes": [
+    {"id": "frontend", "name": "Frontend UI", "phase": "Phase 2"},
+    {"id": "backend", "name": "Backend API", "phase": "Phase 2"},
+    {"id": "qa", "name": "QA Verification", "phase": "Phase 3"},
+    {"id": "docs", "name": "Docs Update", "phase": "Phase 3"}
+  ]
+}

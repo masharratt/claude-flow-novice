@@ -198,11 +198,14 @@ RUN_ID="${SLUG:-$TASK_ID}"
 
 Planning tier vocabulary is mvp|beta|enterprise (cfn-megaplan); execution mode vocabulary is mvp|standard|enterprise. Tier `beta` maps to mode `standard`.
 
-**Open the workbench dashboard (loop start).** Render once and open it in the browser. `--live 10` makes the open tab re-read the file every 10s, so the re-renders at end of Phase 2 / Phase 3 / Phase 5 update the same tab in place. `--open` is marker-tracked (idempotent): only this first call launches a browser. The workbench is a reporting artifact, so a render failure is non-blocking.
+**Open the workbench dashboard (loop start).** Render once and open it in the browser. `--live 10` makes the open tab re-read the file every 10s. Then start the watcher: it re-renders on data change so the open tab (meta-refresh) stays live between phase boundaries; the phase-boundary re-renders at end of Phase 2 / Phase 3 / Phase 5 remain as belt-and-suspenders. `--open` is marker-tracked (idempotent): only this first call launches a browser. The workbench is a reporting artifact, so a render/watcher failure is non-blocking. Finally emit the `loop_started` event for the workbench events feed.
 
 ```bash
 ./.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
   || echo "WARN: workbench render/open skipped (non-blocking)" >&2
+./.claude/skills/cfn-workbench/watch.sh --slug "$RUN_ID" --interval 10 \
+  || echo "WARN: workbench watcher not started (non-blocking)" >&2
+./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event loop_started || true
 ```
 
 **Mark todo #1 as completed. Proceed to Phase 2.**
@@ -224,9 +227,29 @@ Planning tier vocabulary is mvp|beta|enterprise (cfn-megaplan); execution mode v
 5. **Compute lane-dependency edges (from Produces/Consumes).** First run the static sanity gate: `.claude/skills/cfn-megaplan/bars/check-produce-consume.sh planning/PLAN_<slug>.md` — exit 1 (duplicate producer / weasel / empty / malformed cell) BLOCKS; resolve before deriving lanes (a duplicate-producer finding is the AskUserQuestion below). Warnings (dangling consume) are advisory. If the plan has no such columns the checker exits 0 and you skip to a single wave. Then collect every step's identifiers per lane. Draw a directed edge **A → E** whenever any step in lane E has a `Consumes` string-equal (exact, trimmed) to a `Produces` of any step in lane A, with A ≠ E. A Consumes matching no lane's Produces is a pre-existing symbol → no edge (log a one-line `warn: dangling consume <id>` so a typo is visible). **Duplicate producer** (the same identifier Produced by steps in two DIFFERENT lanes) is ambiguous ownership → STOP and surface one `AskUserQuestion` (which lane owns it); do not guess. If the columns are absent or every cell is `-`, the edge set is empty. **Cycle** (A → E and E → A): merge the cycle's lanes into one lane run sequentially — same resolution as the same-file rule in step 3 — and log `cycle-merge: <lanes>`.
 6. **Order lanes into waves (topological).** WAVE_1 = every lane with no inbound edge. Each next wave = lanes whose inbound edges all originate in already-completed waves. Within a wave, run at most LANE_CAP lanes concurrently; ready-but-capped lanes defer to the next slot (never merge them just to fit the cap). Empty edge set ⇒ exactly one wave with all lanes ⇒ identical to the pre-feature single-wave behavior. Log `wave N: lanes [...]` per wave before spawning it.
 
+### Write the run plan (workbench roster input)
+
+With lanes and waves derived (step 6), persist the lane roster so the workbench roster section can track lane status, then emit `phase_started`. Lane id = the lane name from the plan. Non-blocking.
+
+```bash
+mkdir -p planning
+jq -n --arg slug "$RUN_ID" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --argjson lanes "$(printf '%s\n' ${LANE_IDS} | jq -R . | jq -s 'map({id: ., name: ., phase: "Phase 2"})')" \
+  '{slug: $slug, generated_at: $ts, phases: ["Phase 2"], lanes: $lanes}' \
+  > "planning/run-plan-${RUN_ID}.json" \
+  || echo "WARN: run-plan write skipped (non-blocking)" >&2
+./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event phase_started --phase 2 || true
+```
+
 ### Spawn implementer agents in waves using Task tool (one per lane)
 
 Iterate the waves from step 6 in order. For each wave: spawn its lanes in parallel (single message, one Task per lane, up to LANE_CAP), using the prompt below. A single-wave plan (empty edge set) is the common case and spawns exactly once — identical to prior behavior.
+
+Immediately before each lane's Task spawn, emit its spawn event:
+
+```bash
+./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event lane_spawned --lane "<lane>" || true
+```
 
 ```
 TASK: Full epic implementation, iteration ${ITERATION}: ${TASK_DESCRIPTION}
@@ -255,7 +278,11 @@ REQUIREMENTS:
 AGENT_ID: loop3-impl-${TASK_ID}-iter${ITERATION}-<lane>
 ```
 
-**WAIT for the wave's agents to complete and aggregate results.**
+**WAIT for the wave's agents to complete and aggregate results.** As each lane's trailing JSON block is saved to `/tmp/lane-report-${RUN_ID}-<lane>.json` (the file Step 3.01 reads), emit its landing:
+
+```bash
+./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event lane_landed --lane "<lane>" || true
+```
 
 **Inter-wave producer guard (only when a NEXT wave exists).** Before spawning the next wave, cheaply confirm the just-completed wave actually created what downstream lanes consume: for each `Produces` identifier a later wave `Consumes`, assert it now resolves — `npm run typecheck` scoped to those files, or `grep -RnF "<symbol>"` on the produced path. This is NOT the full Phase-3 gate (no test suite, no gate-check.sh); it is a symbol-existence check so a consumer wave never builds on an absent export. If a claimed symbol is missing, respawn ONLY the producing lane with that as the finding, re-run the guard, then proceed. When no further wave exists, skip the guard — the full Phase-3 gate below covers it.
 
@@ -336,6 +363,8 @@ HYGIENE_EXIT=${PIPESTATUS[0]}
 ### Step 3.1: Run tests and check the gate mechanically
 
 ```bash
+./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event gate_started || true
+
 # Run the full suite (coordinator only; agents never do this)
 npm test 2>&1 | tee /tmp/test-output-${RUN_ID}.txt
 
@@ -356,9 +385,11 @@ bash "$CFN_FAILLOG" wrap --tool gate-check.sh -- \
 GATE_EXIT=$?
 ```
 
-**Re-render the workbench dashboard (iteration boundary).** The test output and gate verdict for the iteration just completed are now on disk, so this render reflects the current pass rate and gate result. Fires every iteration, pass or fail.
+**Re-render the workbench dashboard (iteration boundary).** The test output and gate verdict for the iteration just completed are now on disk, so this render reflects the current pass rate and gate result. Fires every iteration, pass or fail. Emit the `gate_verdict` event first (pass/total from the gate-check JSON) so this render includes it.
 
 ```bash
+./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event gate_verdict \
+  --detail "${PASS_COUNT}/${TOTAL_COUNT} exit ${GATE_EXIT}" || true
 ./.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
   || echo "WARN: workbench render skipped (non-blocking)" >&2
 ```
@@ -480,6 +511,12 @@ Each cfn-vote-implement call runs the 3 voting agents in parallel and routes eac
 
 3/3 items are implemented in-line during the vote pass. 2/3 items consult product-owner one at a time. 1/3 items are collected and surfaced after every other item is resolved.
 
+After each suggestion's patch lands (a 3/3 auto-implement or a 2/3 IMPLEMENT verdict), emit it:
+
+```bash
+./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event patch_applied --detail "<suggestion id>" || true
+```
+
 **FR-7 SITE 1 (Phase 4.2 product-owner 2/3) decisions-ledger capture.** Each 2/3 product-owner verdict is final BEFORE this hook fires. Per resolved 2/3 item, set the per-item variables (`DEC_ID`, `DEC_TITLE`, `DEC_CHOSEN`, `DEC_RATIONALE`, `DEC_ALTS`, `DEC_STATUS`, `DEC_BLOCKING`) and invoke the writer once. Status mapping: `IMPLEMENT -> accepted`, `DEFER -> proposed`, `REJECT -> superseded`. Blocking mapping: `true` if the vote was block-severity, else `false`. `actor=ai` (the product-owner agent resolves 2/3 items). D-8 isolation: the writer's non-zero exit is logged and the loop continues (the decision was made by the product-owner agent; a missing ledger row is a coverage gap, not a wrong decision).
 
 ```bash
@@ -551,6 +588,12 @@ After each batch returns, implement the `Apply` items with TDD (sequential, same
 The done verdict is mechanical, not honor-system. `verify-run.sh` reads the results file it writes; prose never counts. Steps 5E.0-5E.3 run only when a VERIFY manifest exists (Step 0); a non-megaplanned task skips them and starts at 5E.4. 5E.4a (deferrals gate, S006) always runs, VERIFY manifest or not. This gate MAY iterate back to Phase 2 (bounded by MAX_ITERATIONS): a red AC, a surviving mutation, or an open blocking deferral is iteration fuel.
 
 #### 5E.0 Mutation spot-check (W5, runs FIRST)
+
+At entry, emit the verify phase event:
+
+```bash
+./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event verify_started || true
+```
 
 Runs first so any residue a mutation leaves behind is caught by the later all-green gate (5E.4). Per `[core]` FR in the manifest, capped at 3:
 
@@ -717,9 +760,12 @@ npm run build 2>&1 | tee /tmp/build-smoke-${TASK_ID}.txt
 
 ### Exit report
 
-**Final workbench render.** VERIFY_RESULTS is now on disk, so this render shows the populated AC/verify table and final verdict. One last refresh of the open tab.
+**Final workbench render.** VERIFY_RESULTS is now on disk, so this render shows the populated AC/verify table and final verdict. Order matters: emit `loop_finished` first, stop the watcher second, render last so the page ends on complete data. One last refresh of the open tab.
 
 ```bash
+./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event loop_finished || true
+./.claude/skills/cfn-workbench/watch.sh --slug "$RUN_ID" --stop \
+  || echo "WARN: workbench watcher stop skipped (non-blocking)" >&2
 ./.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
   || echo "WARN: workbench render skipped (non-blocking)" >&2
 ```

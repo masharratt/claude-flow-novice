@@ -2,7 +2,7 @@
 
 Entity lifecycle documentation for stateful CFN systems.
 
-**Last Updated:** 2026-07-25 | **Infrastructure Audit:** S008-S015 hook security & self-test (2026-07-25)
+**Last Updated:** 2026-08-11 (cfn-workbench watcher + roster lane lifecycles added)
 
 ## Contents
 
@@ -28,6 +28,8 @@ Entity lifecycle documentation for stateful CFN systems.
 - [Role Verification Finding (cfn-persona-verify schema audit)](#role-verification-finding-cfn-persona-verify-schema-audit)
 - [Wireframe Gate (cfn-megaplan L5→L6 barrier)](#wireframe-gate-cfn-megaplan-l5l6-barrier)
 - [Implementation Wave (cfn-loop-task LANE DERIVATION)](#implementation-wave-cfn-loop-task-lane-derivation)
+- [Workbench Watcher (cfn-workbench watch.sh)](#workbench-watcher-cfn-workbench-watchsh)
+- [Roster Lane (cfn-workbench section-roster)](#roster-lane-cfn-workbench-section-roster)
 - [Post-Edit Validation Pipeline (cfn-invoke-post-edit.sh / post-edit-pipeline.js, S016/S018/S020)](#post-edit-validation-pipeline-cfn-invoke-post-editsh-post-edit-pipelinejs-s016s018s020)
 - [Subagent Lifecycle Hooks (cfn-subagent-start.sh / cfn-subagent-stop.sh, S015)](#subagent-lifecycle-hooks-cfn-subagent-startsh-cfn-subagent-stopsh-s015)
 - [Pre-Edit Backup Lifecycle (cfn-invoke-pre-edit.sh / restore.sh / cleanup.sh, S014 + S017)](#pre-edit-backup-lifecycle-cfn-invoke-pre-editsh-restoresh-cleanupsh-s014-s017)
@@ -685,3 +687,51 @@ All 10 extension-dispatched validators (bash-pipe-safety, bash-dependency-checke
 | accepted / refused_overfit / refused_inconclusive | reported | run report written to `runs/<target-id>-<ISO>.md` | terminal |
 
 **Refusal invariant:** `refused_overfit`, `refused_inconclusive`, and `holdout_skipped` all leave the template file byte-identical to the seed, write no backup, and skip the `--apply` source patch. Proven live for all three refusal outcomes — see `planning/RIGS_refusal_paths_live.md`.
+
+## Workbench Watcher (cfn-workbench watch.sh)
+
+**Source:** `.claude/skills/cfn-workbench/watch.sh` (pidfile `/tmp/cfn-workbench-watch-<slug>.pid`)
+
+### States
+
+`not-running | running | stale-pid`
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| not-running | running | start invocation (default mode) | pidfile written with live pid; loop daemonized (disown). Idempotent: start while running exits 0 without a second loop |
+| running | running | tick every `--interval` secs | re-renders only when the source-glob fingerprint hash changed; render failure logged WARN, loop survives |
+| running | not-running | `--stop` | SIGTERM, SIGKILL after ~2s if still alive; pidfile removed. `--stop` with nothing running still exits 0 |
+| running | stale-pid | watcher process dies without `--stop` | pidfile remains but `kill -0` fails |
+| stale-pid | running | next start invocation | stale pidfile detected and replaced with the fresh pid |
+
+```
+not-running --start--> running --tick--> running
+     ^                    |  \
+     |                 --stop  process death
+     +---(stop)---------/       \
+     ^                           v
+     +----(next start)------ stale-pid
+```
+
+## Roster Lane (cfn-workbench section-roster)
+
+**Source:** `planning/run-plan-<slug>.json` `lanes[]`, joined at render time against `/tmp/lane-report-<slug>-*-<id>.json` (and `<root>/tmp/`) plus `cfn-events-<slug>.jsonl`
+
+### States
+
+`pending | in-flight | landed`
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| pending | in-flight | `lane_spawned` event for the lane id | no lane-report file and no `lane_landed` event yet; Since column = event ts (HH:MM) |
+| in-flight | landed | lane-report file appears OR `lane_landed` event | file glob matches lane id suffix in either tmp scan path |
+| pending | landed | lane-report file appears with no spawn event | derivation is stateless per render; a lane can skip in-flight if events were never emitted |
+
+```
+pending --lane_spawned--> in-flight --report/landed event--> landed
+    \_______________________report file________________________/
+```

@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-03 | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-11 (cfn-workbench live transparency: watcher daemon, staleness pill, lane roster, events feed) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -142,7 +142,7 @@ This file MUST be updated when:
 | cfn-tech-debt | ✅ Prod | ✅ | `cfn-tech-debt/` | Harvest `cfn:` shortcut markers into a ledger; flags no-trigger rot. Feeds Product Owner gate (cfn-loop-task Phase 3.5) |
 | Tool-initiation failure logging | ✅ Prod | ✅ | `.claude/cfn-scripts/log-tool-init-failure.sh` | Global append-only log of CFN tools that fail to start (exit 126/127, agent no-output, skill not found, MAX_ITERATIONS exhausted). Distinct from tools that start and fail their check (control-flow exits, never logged). Dep-free, flock-safe logger (record/wrap/show modes) writes to `~/.claude/cfn-data/tool-init-failures.jsonl`. Wired into cfn-loop-task: all 11 CFN CLI calls wrapped (9 direct via `wrap`, 2 piped via `wrap ... | tee` + `${PIPESTATUS[0]}`). Triage skill `cfn-triage-tool-failures/` pulls the log, summarizes with jq, diagnoses by category, proposes fixes. Known limitations: wrap logs only exit 126/127; LLM-mediated failures (agent no-output, skill not found, MAX_ITERATIONS) need explicit `record` calls. Log is global across projects. |
 | cfn-megaplan Bar A (verifiable-done) | ✅ Prod | ✅ | `cfn-megaplan/bars/` | Static gate for Bar A manifests. Adds rule (f) `literal_stub_correlation` (seed-token correlation catches constant handler stubs on LLM/free-text/webhook inputs), `[boundary]` FR tag + `boundary_fr` integration coverage (forces real DB/HTTP ACs for ordering/filter/limit semantics), and cfn-plan-review Phase 2 signal-flow trace (flags `integration_lane_gap` BLOCKER for unowned external-input lanes). Presence-keyed opt-in; existing manifests unaffected. |
-| cfn-workbench | 🚧 Draft | n/a | `.claude/skills/cfn-workbench/` | Renders a self-contained HTML progress page (planning/workbench_<slug>.html) from .cfn-cache/manifests + planning artifacts, showing artifact evolution. 140/140 render tests. Auto-open (--open) and live re-render (--live). Wired into /cfn-loop-task Phase 1/2/3/5. (CHANGELOG.md) |
+| cfn-workbench | ⚠️ Beta | ✅ 237 | `.claude/skills/cfn-workbench/` | Self-contained HTML progress page per loop run. Live transparency: watch.sh daemon re-renders on data change, staleness pill (120s/600s), lane roster from planning/run-plan-<slug>.json, event feed via emit-event.sh JSONL. Wired into /cfn-loop-task all phases. |
 | cfn-megaplan-lite | ⚠️ Beta | n/a | `.claude/skills/cfn-megaplan-lite/` | Balanced-cut planning mode for medium features |
 
 ### Infrastructure Skills

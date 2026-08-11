@@ -116,6 +116,8 @@ section_nav() {
   cat <<'EOF'
 <nav class="section-nav">
   <a href="#sec-timeline">Timeline</a>
+  <a href="#sec-roster">Roster</a>
+  <a href="#sec-events">Events</a>
   <a href="#sec-detail">Detail</a>
   <a href="#sec-ac">AC</a>
   <a href="#sec-decisions">Decisions</a>

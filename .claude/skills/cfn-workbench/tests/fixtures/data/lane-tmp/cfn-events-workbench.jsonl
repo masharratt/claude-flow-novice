@@ -1,0 +1,8 @@
+{"ts":"2026-08-11T10:00:00Z","event":"loop_started"}
+{"ts":"2026-08-11T10:00:05Z","event":"phase_started","phase":"Phase 2"}
+{"ts":"2026-08-11T10:00:10Z","event":"lane_spawned","lane":"frontend","phase":"Phase 2"}
+{"ts":"2026-08-11T10:00:11Z","event":"lane_spawned","lane":"backend","phase":"Phase 2"}
+{"ts":"2026-08-11T10:02:12Z","event":"lane_spawned","lane":"qa","phase":"Phase 3","detail":"verification lane"}
+{"ts":"2026-08-11T10:05:00Z","event":"lane_landed","lane":"frontend","detail":"pass_rate=100%"}
+{this line is not valid json,,,
+{"ts":"2026-08-11T10:06:00Z","event":"gate_started"}

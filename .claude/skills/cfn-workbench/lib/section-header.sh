@@ -58,9 +58,13 @@ section_header() {
     fi
   fi
 
-  local generated_at generated_pretty
-  generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  generated_pretty="$(date -u -d "$generated_at" '+%Y-%m-%d %H:%M UTC' 2>/dev/null || printf '%s' "$generated_at")"
+  # generated_epoch is the single source of instant; generated_at/generated_pretty
+  # are both derived from it so the staleness pill (F2) reads the same moment
+  # the header text reports.
+  local generated_epoch generated_at generated_pretty
+  generated_epoch="$(date -u +%s)"
+  generated_at="$(date -u -d "@$generated_epoch" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)"
+  generated_pretty="$(date -u -d "@$generated_epoch" '+%Y-%m-%d %H:%M UTC' 2>/dev/null || printf '%s' "$generated_at")"
 
   # Open vote count across all manifests (open|pending suggestions).
   local open_count=0
@@ -88,12 +92,52 @@ section_header() {
     <div><div class="meta-label">Run</div><div class="meta-value"><code>$(html_escape "$slug")</code></div></div>
     <div><div class="meta-label">Branch</div><div class="meta-value"><code>$(html_escape "$branch")</code></div></div>
     <div><div class="meta-label">Iterations</div><div class="meta-value">$(html_escape "$iter_count")</div></div>
-    <div><div class="meta-label">Generated</div><div class="meta-value"><time datetime="$(html_escape "$generated_at")">$(html_escape "$generated_pretty")</time></div></div>
+    <div><div class="meta-label">Generated</div><div class="meta-value"><time datetime="$(html_escape "$generated_at")">$(html_escape "$generated_pretty")</time> <span id="wb-staleness" class="stale-pill" data-generated-epoch="$(html_escape "$generated_epoch")">generated $(html_escape "$generated_pretty")</span></div></div>
   </div>
   <div class="count-pills">
     <a class="count-pill" href="#sec-votes"><span class="count-pill-num">$(html_escape "$open_count")</span> open</a>
     <a class="count-pill count-pill-gaps" href="#sec-gaps"><span class="count-pill-num">$(html_escape "$gap_count")</span> $(html_escape "$gap_noun")</a>
   </div>
 </header>
+<style>
+.stale-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--color-surface-2); color: var(--neutral-200);
+  border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--color-divider);
+}
+.stale-ok { color: var(--ok); }
+.stale-warn { color: var(--warn); }
+.stale-bad { color: var(--bad); }
+</style>
+<script>
+(function () {
+  var el = document.getElementById('wb-staleness');
+  if (!el) { return; }
+  var epoch = parseInt(el.getAttribute('data-generated-epoch'), 10);
+  if (isNaN(epoch)) { return; }
+  function tick() {
+    var age = Math.floor(Date.now() / 1000 - epoch);
+    if (age < 0) { age = 0; }
+    var label;
+    if (age < 60) {
+      label = 'updated ' + age + 's ago';
+    } else {
+      label = 'updated ' + Math.floor(age / 60) + 'm ago';
+    }
+    el.textContent = label;
+    el.classList.remove('stale-ok', 'stale-warn', 'stale-bad');
+    if (age < 120) {
+      el.classList.add('stale-ok');
+    } else if (age < 600) {
+      el.classList.add('stale-warn');
+    } else {
+      el.classList.add('stale-bad');
+    }
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
 EOF
 }
