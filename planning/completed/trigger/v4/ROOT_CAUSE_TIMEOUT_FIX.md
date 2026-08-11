@@ -229,8 +229,8 @@ try {
 3. **Run Test**: ⏳ IN PROGRESS
    ```bash
    cd docker/trigger-dev
-   TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO \
-   ZAI_API_KEY=22f735783ea54c69a8e5d79b731eb4f4.gDXkwrMNlYcqE8mF \
+   TRIGGER_SECRET_KEY=[REDACTED] \
+   ZAI_API_KEY=[REDACTED] \
    npx tsx test-post-edit-integration.ts
    ```
 

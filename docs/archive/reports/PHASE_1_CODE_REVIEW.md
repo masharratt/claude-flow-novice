@@ -449,7 +449,7 @@ File: docker/trigger-dev/.env.example
 
 # Required: trigger.dev Configuration
 TRIGGER_PROJECT_SLUG=cfn
-TRIGGER_API_KEY=tr_dev_xxxxxxxxxxxxx  # From trigger.dev dashboard
+TRIGGER_API_KEY=[REDACTED]  # From trigger.dev dashboard
 TRIGGER_API_URL=http://localhost:3000
 
 # Required: Agent Configuration

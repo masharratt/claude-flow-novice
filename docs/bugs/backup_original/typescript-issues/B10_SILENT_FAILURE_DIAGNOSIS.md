@@ -94,7 +94,7 @@ docker run -d \
 **Status:** This part is correct ✅
 - `.env` file is passed correctly
 - Credentials ARE in `.env`:
-  - `ZAI_API_KEY=4089902faf6c4d30baf352a3d144e1a2.SUs3hnpAZAGsQDHX`
+  - `ZAI_API_KEY=[REDACTED]`
   - `CLAUDE_API_PROVIDER=zai`
 - But we're not validating they're accessible inside containers
 

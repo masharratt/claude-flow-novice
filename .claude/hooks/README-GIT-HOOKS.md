@@ -72,7 +72,7 @@ ls -l .git/hooks/pre-commit
 Detects suspicious assignments like:
 
 ```bash
-ANTHROPIC_API_KEY="sk-ant-..."
+ANTHROPIC_API_KEY="sk-ant-mock"
 ZAI_API_KEY="sk-zai-..."
 REDIS_PASSWORD="password123"
 POSTGRES_PASSWORD="secure_pass"
@@ -89,7 +89,7 @@ POSTGRES_PASSWORD="secure_pass"
 
 ```json
 {
-  "api_key": "long_credential_string",
+  "api_key": "[REDACTED]",
   "apiKey": "secret_value",
   "auth_token": "bearer_token",
   "password": "database_password"

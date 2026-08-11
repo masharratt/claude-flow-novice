@@ -82,7 +82,7 @@ Response: {"code":500,"msg":"404 NOT_FOUND","success":false}
     "_ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",  // INVALID MODEL
     "_ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7",    // INVALID MODEL
     "_ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-    "_ANTHROPIC_AUTH_TOKEN": "ba852d27d46c4a2688c96bbf4da7246e.KgXaXVvWiONN3eis"
+    "_ANTHROPIC_AUTH_TOKEN": "[REDACTED]"
   }
 }
 ```
@@ -92,7 +92,7 @@ Response: {"code":500,"msg":"404 NOT_FOUND","success":false}
 {
   "env": {
     "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-    "ANTHROPIC_AUTH_TOKEN": "ba852d27d46c4a2688c96bbf4da7246e.KgXaXVvWiONN3eis"
+    "ANTHROPIC_AUTH_TOKEN": "[REDACTED]"
   }
 }
 ```
@@ -300,7 +300,7 @@ This will:
    {
      "env": {
        "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-       "ANTHROPIC_AUTH_TOKEN": "ba852d27d46c4a2688c96bbf4da7246e.KgXaXVvWiONN3eis"
+       "ANTHROPIC_AUTH_TOKEN": "[REDACTED]"
      }
    }
    ```
@@ -312,7 +312,7 @@ This will:
 ```bash
 # Test if Z.ai API is actually working
 curl -X POST https://api.z.ai/api/anthropic/messages \
-  -H "x-api-key: ba852d27d46c4a2688c96bbf4da7246e.KgXaXVvWiONN3eis" \
+  -H "x-api-key: [REDACTED]" \
   -H "anthropic-version: 2023-06-01" \
   -H "content-type: application/json" \
   -d '{

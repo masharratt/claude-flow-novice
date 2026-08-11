@@ -138,7 +138,7 @@ docker run --env-file .env \
 ```
 
 Z.ai credentials from `.env`:
-- `ZAI_API_KEY=4089902faf6c4d30baf352a3d144e1a2.SUs3hnpAZAGsQDHX`
+- `ZAI_API_KEY=[REDACTED]`
 - `ZAI_BASE_URL=https://api.z.ai/api/anthropic`
 - `CLAUDE_API_PROVIDER=zai`
 

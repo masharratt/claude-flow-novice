@@ -278,7 +278,7 @@ source .env
 echo $ZAI_API_KEY | cut -c1-20
 
 # Check format (should be: [hex-string].[base64-string])
-# Example: cca13d09dcd6407183efe9e24c804cca.QO8R0JxF4fucsoWL
+# Example: [REDACTED]
 
 # Test key validity
 curl -X POST https://api.z.ai/v1/messages \

@@ -49,7 +49,7 @@ Successfully tagged cfn-agent-poc:simple
 **Command:**
 ```bash
 docker run --rm \
-  -e "ZAI_API_KEY=4089902faf6c4d30baf352a3d144e1a2.SUs3hnpAZAGsQDHX" \
+  -e "ZAI_API_KEY=[REDACTED]" \
   -e "ZAI_BASE_URL=https://api.z.ai/api/anthropic" \
   cfn-agent-poc:simple
 ```
@@ -64,7 +64,7 @@ docker run --rm \
 ```bash
 # Inside container
 env | grep ZAI
-ZAI_API_KEY=4089902faf6c4d30baf352a3d144e1a2.SUs3hnpAZAGsQDHX
+ZAI_API_KEY=[REDACTED]
 ZAI_BASE_URL=https://api.z.ai/api/anthropic
 ```
 

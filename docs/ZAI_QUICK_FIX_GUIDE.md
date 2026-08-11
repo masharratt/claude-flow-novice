@@ -34,7 +34,7 @@ Main Chat + Task Tool: Z.ai
 ```bash
 # Test if your Z.ai API key works
 curl -X POST https://api.z.ai/api/anthropic/messages \
-  -H "x-api-key: ba852d27d46c4a2688c96bbf4da7246e.KgXaXVvWiONN3eis" \
+  -H "x-api-key: [REDACTED]" \
   -H "anthropic-version: 2023-06-01" \
   -H "content-type: application/json" \
   -d '{
@@ -130,7 +130,7 @@ claude login
 "_ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
 "_ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7",
 "_ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-"_ANTHROPIC_AUTH_TOKEN": "ba852d27d46c4a2688c96bbf4da7246e.KgXaXVvWiONN3eis"
+"_ANTHROPIC_AUTH_TOKEN": "[REDACTED]"
 
 # These are ignored anyway, but remove them for clarity
 ```

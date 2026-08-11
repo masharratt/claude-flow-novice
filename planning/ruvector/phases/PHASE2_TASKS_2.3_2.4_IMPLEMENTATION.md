@@ -382,7 +382,7 @@ npm test -- tests/performance/decomposition-benchmark.test.ts
 ```bash
 # Trigger coordinator manually
 curl -X POST "http://localhost:8030/api/v1/tasks/cfn-coordinator/trigger" \
-  -H "Authorization: Bearer tr_dev_ffR3mLELFuaaA0txq0lO" \
+  -H "Authorization: Bearer [REDACTED]" \
   -H "Content-Type: application/json" \
   -d '{
     "payload": {

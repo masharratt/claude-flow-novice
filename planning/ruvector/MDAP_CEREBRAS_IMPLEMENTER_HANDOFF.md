@@ -515,7 +515,7 @@ npx trigger.dev@latest dev --profile self-hosted-v4
 # Look for: "○ Local worker ready [node] -> 20251130.XX"
 
 # 5. Re-run E2E tests
-TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO npx tsx tests/e2e/run-e2e.ts
+TRIGGER_SECRET_KEY=[REDACTED] npx tsx tests/e2e/run-e2e.ts
 ```
 
 **Verification:** After fix, logs should show:

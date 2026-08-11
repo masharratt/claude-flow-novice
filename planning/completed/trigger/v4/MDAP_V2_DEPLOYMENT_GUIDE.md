@@ -109,7 +109,7 @@ export ANTHROPIC_API_KEY="your-anthropic-key"
 
 # Trigger.dev Configuration
 export TRIGGER_API_URL="http://localhost:8030"
-export TRIGGER_SECRET_KEY="tr_dev_ffR3mLELFuaaA0txq0lO"
+export TRIGGER_SECRET_KEY="[REDACTED]"
 
 # Optional: Provider Override (for testing)
 export MDAP_V2_FORCE_PROVIDER="cerebras"  # or "sonnet"
@@ -153,7 +153,7 @@ npx trigger.dev@latest dev --profile self-hosted-v4
 ```bash
 # Simple task (Cerebras gpt-oss-120b)
 curl -X POST "http://localhost:8030/api/v1/tasks/cfn-implementer-cerebras/trigger" \
-  -H "Authorization: Bearer tr_dev_ffR3mLELFuaaA0txq0lO" \
+  -H "Authorization: Bearer [REDACTED]" \
   -H "Content-Type: application/json" \
   -d '{
     "payload": {

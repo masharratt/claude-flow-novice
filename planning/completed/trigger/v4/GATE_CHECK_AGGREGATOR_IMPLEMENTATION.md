@@ -304,7 +304,7 @@ TRIGGER_SECRET_KEY=tr_dev_... npx tsx test-gate-check-aggregator.ts
    npx trigger.dev@latest dev --profile self-hosted-v4
 
    # Run test in another terminal
-   TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO npx tsx test-gate-check-aggregator.ts
+   TRIGGER_SECRET_KEY=[REDACTED] npx tsx test-gate-check-aggregator.ts
    ```
 
 2. Verify async validators complete successfully

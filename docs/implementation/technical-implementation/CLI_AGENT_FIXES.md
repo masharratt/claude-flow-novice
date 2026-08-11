@@ -91,7 +91,7 @@ import('./dist/cli/anthropic-client.js').then(async (m) => {
 ```json
 {
   "provider": "zai",
-  "apiKey": "cca13d09dcd6407183efe9e24c804cca.QO8R0JxF4fucsoWL",
+  "apiKey": "[REDACTED]",
   "baseURL": "https://api.z.ai/api/anthropic"
 }
 ```
@@ -117,7 +117,7 @@ npx claude-flow-novice agent researcher \
 curl -s -m 10 -X POST "https://api.z.ai/api/anthropic/v1/messages" \
   -H "Content-Type: application/json" \
   -H "anthropic-version: 2023-06-01" \
-  -H "x-api-key: cca13d09dcd6407183efe9e24c804cca.QO8R0JxF4fucsoWL" \
+  -H "x-api-key: [REDACTED]" \
   -d '{"model":"claude-3-5-haiku-20241022","max_tokens":100,"messages":[{"role":"user","content":"test"}]}'
 ```
 

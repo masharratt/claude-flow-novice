@@ -169,7 +169,7 @@ $ git log --all -S "sk-ant" --oneline
 # ❌ WRONG - NEEDS REDACTION
 echo -n "sk-ant-actual-key-value-here" > .secrets/ANTHROPIC_API_KEY
 echo "ANTHROPIC_API_KEY=sk-ant-test" > test.env
-  -e ANTHROPIC_API_KEY="sk-ant-xxx" \
+  -e ANTHROPIC_API_KEY="sk-ant-mock" \
 ```
 
 **Remediation - Apply Redaction Pattern:**

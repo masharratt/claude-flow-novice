@@ -198,13 +198,13 @@ try {
 ### Unit Test (Individual Decomposer)
 
 ```bash
-TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO npx tsx test-architecture-decomposer.ts
+TRIGGER_SECRET_KEY=[REDACTED] npx tsx test-architecture-decomposer.ts
 ```
 
 ### Integration Test (Full Swarm)
 
 ```bash
-TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO npx tsx test-decomposition-swarm.ts
+TRIGGER_SECRET_KEY=[REDACTED] npx tsx test-decomposition-swarm.ts
 ```
 
 ## Performance Expectations
@@ -221,7 +221,7 @@ Ensure Cerebras API key is configured:
 
 ```bash
 export CEREBRAS_API_KEY=your-cerebras-key
-export TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO
+export TRIGGER_SECRET_KEY=[REDACTED]
 export TRIGGER_API_URL=http://localhost:8030
 ```
 

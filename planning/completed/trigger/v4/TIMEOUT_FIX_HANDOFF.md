@@ -168,8 +168,8 @@ const result = await execa(CLI_COMMAND, cliArgs, {
 **Run Integration Test**:
 ```bash
 cd docker/trigger-dev
-export TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO
-export ZAI_API_KEY=22f735783ea54c69a8e5d79b731eb4f4.gDXkwrMNlYcqE8mF
+export TRIGGER_SECRET_KEY=[REDACTED]
+export ZAI_API_KEY=[REDACTED]
 npx tsx test-post-edit-integration.ts
 ```
 
@@ -183,7 +183,7 @@ tail -f /tmp/trigger-dev-server-with-fix.log
 
 # Check task status
 curl http://localhost:8030/api/v1/runs/run_cmifytdkg012m61k1ypzhv1aa \
-  -H "Authorization: Bearer tr_dev_ffR3mLELFuaaA0txq0lO"
+  -H "Authorization: Bearer [REDACTED]"
 ```
 
 **Verify File Creation**:
@@ -350,14 +350,14 @@ cat /tmp/test-post-edit-1764159161123/test-syntax-error.ts
 **Test Execution** (aec939):
 ```bash
 cd docker/trigger-dev
-export TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO
-export ZAI_API_KEY=22f735783ea54c69a8e5d79b731eb4f4.gDXkwrMNlYcqE8mF
+export TRIGGER_SECRET_KEY=[REDACTED]
+export ZAI_API_KEY=[REDACTED]
 npx tsx test-post-edit-integration.ts 2>&1 | tee /tmp/test-post-edit-v14-validation.log
 ```
 
 **Dev Server** (PID 1447):
 ```bash
-export ZAI_API_KEY=22f735783ea54c69a8e5d79b731eb4f4.gDXkwrMNlYcqE8mF
+export ZAI_API_KEY=[REDACTED]
 export ZAI_BASE_URL=https://api.z.ai/api/anthropic
 npx trigger.dev@latest dev --profile self-hosted-v4 > /tmp/trigger-dev-server-with-fix.log
 ```

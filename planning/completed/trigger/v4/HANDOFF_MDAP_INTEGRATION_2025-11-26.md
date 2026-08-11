@@ -635,7 +635,7 @@ docker compose -f webapp/docker-compose.yml -f worker/docker-compose.yml up -d
 ### Environment Variables
 ```bash
 # Trigger.dev
-export TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO
+export TRIGGER_SECRET_KEY=[REDACTED]
 export TRIGGER_API_URL=http://localhost:8030
 
 # AI Providers
@@ -663,7 +663,7 @@ npx trigger.dev@latest dev --profile self-hosted-v4
 ### Run MDAP Test
 ```bash
 cd docker/trigger-dev
-TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO \
+TRIGGER_SECRET_KEY=[REDACTED] \
 ZAI_API_KEY=[REDACTED] \
 npx tsx test-mdap-micro-tasks.ts
 ```

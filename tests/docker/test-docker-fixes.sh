@@ -22,7 +22,7 @@ fi
 
 # Test with auth (should succeed)
 echo -n "Testing Redis with auth (should succeed)... "
-REDIS_PASS="Hbqt1bj1VdlWq4KTbzDZ2wL+o1xWVGvjDgzWKMkVtcyfoXmzpW9P43UZ6CgGlxjb"
+REDIS_PASS="[REDACTED]"
 if docker exec cfn-redis redis-cli -a "$REDIS_PASS" PING 2>&1 | grep -q "PONG"; then
     echo "✅ PASS - Auth successful"
 else

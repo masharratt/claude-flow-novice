@@ -87,7 +87,7 @@
    - Worker image builds and starts; API key from `.env.local` works for sending events.
    - North Star 2 against live worker: 18 tests, 15 pass, 3 fail (deliverable existence/content).
    - Failures due to worker not creating deliverables; worker logs show it trying to reach `http://host.docker.internal:3000/api/trigger` and failing (ECONNREFUSED). Likely `TRIGGER_API_URL`/`API_DOMAIN` inside the worker should be `http://trigger-webapp:3000` (container-to-container) instead of host.
-   - Next action: fix worker API URL in docker-compose (or env override), rebuild/restart worker, rerun `npm test tests/e2e/north-star-2-iteration-workflow.test.ts` with `TRIGGER_API_URL=http://localhost:3040` and `TRIGGER_API_KEY=tr_dev_96twwmzi96DLI6H5QrsS`. Verify `/tmp/trigger-dev-deliverables/{taskId}/hello-world.txt` appears.
+   - Next action: fix worker API URL in docker-compose (or env override), rebuild/restart worker, rerun `npm test tests/e2e/north-star-2-iteration-workflow.test.ts` with `TRIGGER_API_URL=http://localhost:3040` and `TRIGGER_API_KEY=[REDACTED]`. Verify `/tmp/trigger-dev-deliverables/{taskId}/hello-world.txt` appears.
 ---
 
 ## Quick Commands

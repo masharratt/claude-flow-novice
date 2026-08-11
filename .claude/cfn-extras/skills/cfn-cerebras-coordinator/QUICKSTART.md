@@ -9,7 +9,7 @@ Get started with iterative TDD in under 5 minutes.
 which curl jq || sudo apt install curl jq
 
 # 2. Set API key
-export ZAI_API_KEY="your-cerebras-api-key"
+export ZAI_API_KEY="YOUR_API_KEY"
 
 # 3. Verify coordinator exists
 ls -lh ./.claude/skills/cfn-cerebras-coordinator/tdd-conversation-coordinator.sh

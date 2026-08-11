@@ -80,7 +80,7 @@ modes:
 **Issue:** CLI agents inherited `REDIS_PASSWORD` from parent shell environment, but local Redis has no password configured.
 
 **Evidence Chain:**
-1. Parent shell has `REDIS_PASSWORD="Hbqt1bj1VdlWq4KTbzDZ2wL+o1xWVGvjDgzWKMkVtcyfoXmzpW9P43UZ6CgGlxjb"`
+1. Parent shell has `REDIS_PASSWORD="[REDACTED]"`
 2. Line 384 (BEFORE): `CFN_REDIS_PASSWORD: process.env.CFN_REDIS_PASSWORD || process.env.REDIS_PASSWORD || ''`
 3. Line 371 spread `...process.env` passed all parent env vars to child agent
 4. `agent-executor.ts` line 66 read password from child env
@@ -643,7 +643,7 @@ a9dbda3cd fix(trigger-dev): resolve Phase 2 critical agent spawning bugs
 
 ### Error Chain #2: Redis Authentication Mismatch
 ```
-1. Parent shell → REDIS_PASSWORD="Hbqt1bj1VdlWq4KTbzDZ2wL+o1xWVGvjDgzWKMkVtcyfoXmzpW9P43UZ6CgGlxjb"
+1. Parent shell → REDIS_PASSWORD="[REDACTED]"
 2. agent-spawner.ts:371 → ...process.env (spreads all parent env vars)
 3. agent-spawner.ts:384 → CFN_REDIS_PASSWORD: ... || process.env.REDIS_PASSWORD
 4. Child agent inherits REDIS_PASSWORD

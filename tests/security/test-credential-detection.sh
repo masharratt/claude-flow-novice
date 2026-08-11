@@ -75,9 +75,12 @@ fi
 
 # Test 3: Detect Z.ai API key
 echo -n "Test 3: Detect Z.ai API key... "
-cat > "$TEST_DIR/test.ts" << 'EOF'
+# Fixture key assembled at runtime: the committed script must never contain a
+# credential-shaped ZAI_API_KEY literal (the CI credential scan reads this file).
+SYNTH_ZAI_KEY="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.ZaiFixtureSuffix"
+cat > "$TEST_DIR/test.ts" << EOF
 const config = {
-  ZAI_API_KEY: "4089902faf6c4d30baf352a3d144e1a2.SUs3hnpAZAGsQDHX"
+  ZAI_API_KEY: "$SYNTH_ZAI_KEY"
 };
 EOF
 
@@ -103,8 +106,10 @@ fi
 
 # Test 5: Detect NPM token
 echo -n "Test 5: Detect NPM token... "
-cat > "$TEST_DIR/.npmrc" << 'EOF'
-//registry.npmjs.org/:_authToken=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
+# Fixture token assembled at runtime: no credential-shaped literal in this file.
+SYNTH_NPM_TOKEN="npm_$(printf 'A%.0s' $(seq 1 36))"
+cat > "$TEST_DIR/.npmrc" << EOF
+//registry.npmjs.org/:_authToken=$SYNTH_NPM_TOKEN
 EOF
 
 if bash "$(pwd)/../../../$HOOK_PATH" 2>&1 | grep -q "authToken"; then

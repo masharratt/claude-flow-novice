@@ -141,7 +141,7 @@ cd docker/trigger-dev && npx tsc --noEmit
 **Example**:
 ```typescript
 // Before:
-console.error(`Failed: Invalid key tr_dev_abc123xyz456`);
+console.error(`Failed: Invalid key [REDACTED]`);
 
 // After:
 console.error(`Failed: Invalid key tr_dev_[REDACTED]`);

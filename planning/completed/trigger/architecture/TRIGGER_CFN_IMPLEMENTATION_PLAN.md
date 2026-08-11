@@ -378,7 +378,7 @@ docker exec cfn-redis redis-cli ping
 
 ```bash
 # Trigger.dev
-TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO
+TRIGGER_SECRET_KEY=[REDACTED]
 TRIGGER_API_URL=http://localhost:8030
 
 # CFN Postgres
@@ -2416,7 +2416,7 @@ npm install -D @types/pg
 npx trigger.dev@latest dev --profile self-hosted-v4
 
 # 4. Run integration test
-TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO npx tsx test-cfn-loop-v2.ts
+TRIGGER_SECRET_KEY=[REDACTED] npx tsx test-cfn-loop-v2.ts
 
 # 5. Check logs
 docker exec cfn-postgres psql -U cfn -d cfn_loop -c "SELECT * FROM v_recent_errors;"
