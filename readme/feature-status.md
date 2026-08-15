@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-11 (ci.yml aligned to real scripts; 8 dead test suites removed; jest cjs discovery fixed) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-14 (added cfn-knowledge-plan non-code planning branch, cfn-share plan publishing, cfn-notify completion hook) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -144,6 +144,9 @@ This file MUST be updated when:
 | cfn-megaplan Bar A (verifiable-done) | ✅ Prod | ✅ | `cfn-megaplan/bars/` | Static gate for Bar A manifests. Adds rule (f) `literal_stub_correlation` (seed-token correlation catches constant handler stubs on LLM/free-text/webhook inputs), `[boundary]` FR tag + `boundary_fr` integration coverage (forces real DB/HTTP ACs for ordering/filter/limit semantics), and cfn-plan-review Phase 2 signal-flow trace (flags `integration_lane_gap` BLOCKER for unowned external-input lanes). Presence-keyed opt-in; existing manifests unaffected. |
 | cfn-workbench | ⚠️ Beta | ✅ 237 | `.claude/skills/cfn-workbench/` | Self-contained HTML progress page per loop run. Live transparency: watch.sh daemon re-renders on data change, staleness pill (120s/600s), lane roster from planning/run-plan-<slug>.json, event feed via emit-event.sh JSONL. Wired into /cfn-loop-task all phases. |
 | cfn-megaplan-lite | ⚠️ Beta | n/a | `.claude/skills/cfn-megaplan-lite/` | Balanced-cut planning mode for medium features |
+| cfn-knowledge-plan | ⚠️ Beta | ✅ 18 | `.claude/skills/cfn-knowledge-plan/` | Non-code branch of the planning pipeline: strategy docs, proposals, competitive analysis, research memos. Plan-for-the-plan (intake → brief → extract-plan+outline) blocks drafting until KPLAN is approved; extract runs one sonnet agent per source emitting verbatim quotes with locators. Gated by Bar K grounding (check-grounding.sh, rules G1-G9) plus megaplan's weasel scan reused unmodified. Known limitations: Bar K checks the Claims Ledger contract, not prose — it cannot flag an ungrounded sentence that carries no `[C-n]` cite at all. |
+| cfn-share | ⚠️ Beta | ✅ 23 | `.claude/skills/cfn-share/` | Publishes a plan/spec/doc as a private Artifact page with a stable URL for non-terminal reviewers. resolve.sh derives title and recalls the pinned URL; record-url.sh writes a `.share-<basename>.url` sidecar holding url + sha256 + timestamp so re-shares update in place and report staleness. Known limitations: Artifact pages are a read surface, not a comment system; reviewer feedback routes back through the owning phase skill by hand. |
+| cfn-notify hook | ⚠️ Beta | n/a | `.claude/hooks/cfn-notify.sh` | Audible turn-completion and needs-input signal for WSL2 sessions. Wired to global Stop and Notification hook events; plays a Windows Media wav via detached powershell.exe with a console-beep fallback. 14ms hook overhead (call is backgrounded). Defaults: stop=chimes, input=Windows Notify Calendar, error=Windows Critical Stop; override per event with `CFN_NOTIFY_STOP`/`_INPUT`/`_ERROR` (no file edit). `--list` enumerates the 70 available sounds, `--play <name>` auditions one synchronously and exits 1 on an unknown name. Disable with `CFN_NOTIFY=0`. Known limitations: WSL2/Windows only, silent no-op elsewhere; no audio verification in CI. |
 
 ### Infrastructure Skills
 

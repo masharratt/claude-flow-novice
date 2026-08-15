@@ -14,6 +14,8 @@ Entity lifecycle documentation for stateful CFN systems.
 - [Spec Artifact Status (cfn-spec / cfn-megaplan)](#spec-artifact-status-cfn-spec-cfn-megaplan)
 - [Megaplan Bar B Result (Multi-Plan Program)](#megaplan-bar-b-result-multi-plan-program)
 - [CFN MegaPlan-Lite: Planning DAG](#cfn-megaplan-lite-planning-dag)
+- [Knowledge Claim (cfn-knowledge-plan Bar K)](#knowledge-claim-cfn-knowledge-plan-bar-k)
+- [Shared Doc Publication (cfn-share)](#shared-doc-publication-cfn-share)
 - [Dependency Scheduling](#dependency-scheduling)
 - [Video Ingest Run (glm-video-ingest)](#video-ingest-run-glm-video-ingest)
 - [Decision Record (decision-log structured store)](#decision-record-decision-log-structured-store)
@@ -179,6 +181,92 @@ Balanced-cut alternative to `/cfn-megaplan` for medium features (3-7 files, sing
 | L7 plan_review | Step 7 deferred-decision batch | plan_review + Bar B-static clean, 1-round, no probe |
 | Step 7 deferred-decision batch | Step 8 batched handoff | batched [PARKED] items resolved in one AskUserQuestion; re-gate after override |
 | Step 8 batched handoff | `/cfn-loop-task --mode=mvp` | MEGAPLANLITE_ synthesis written; PLAN_ + VERIFY_ on disk |
+
+---
+
+## Knowledge Claim (cfn-knowledge-plan Bar K)
+
+**Source:** `.claude/skills/cfn-knowledge-plan/bars/check-grounding.sh` (rules G1-G9); ledger rows in `planning/KDOC_<slug>.md` `## Claims Ledger`.
+
+**States:** `extracted | ledgered | cited | grounded | finding | relabelled | dropped`
+
+A claim is the unit Bar K gates. It enters as a verbatim quote from one source, gets a `C-n` row with a Type, gets cited in the prose, and only then can be blessed. The three Types are terminal classifications, not states: EVIDENCE needs a source plus locator, INFERENCE needs upstream `C-id`s, ASSUMPTION needs neither but must be testable.
+
+### States
+
+| State | Meaning |
+|-------|---------|
+| `extracted` | verbatim quote + locator sits in `KEVIDENCE_<slug>__SRC-n.md`; no ledger row yet |
+| `ledgered` | has a `C-n` row with Type, Source, Locator, Confidence |
+| `cited` | prose references `[C-n]` at least once |
+| `grounded` | ledgered + cited + Bar K clean; blessable |
+| `finding` | Bar K raised G1-G9 against it |
+| `relabelled` | retyped to ASSUMPTION after no source was found; legitimate exit |
+| `dropped` | removed from ledger and prose together |
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | extracted | L4 extract node emits a quote | verbatim text + locator present; paraphrase re-runs the node at opus |
+| extracted | ledgered | L5 synthesis writes the `C-n` row | Type in EVIDENCE\|INFERENCE\|ASSUMPTION (else G6); Confidence in high\|medium\|low (else G8) |
+| ledgered | cited | L6 draft writes `[C-n]` in prose | row exists (else G1 against the prose) |
+| cited | grounded | Bar K exit 0 | EVIDENCE has Source+Locator (else G2); SRC-n exists in KSOURCES (else G4); INFERENCE names upstream C-ids (else G9); id unique (else G5) |
+| ledgered | finding | Bar K G3: row never cited in prose | draft dropped the claim, or the ledger is padded |
+| cited | finding | Bar K G1: no matching row | claim asserted in prose without a trace |
+| finding | grounded | owning level patches within 2 rounds | G1/G3 → draft; G2/G4/G9 → synthesis; G5/G6/G8 → the writing level |
+| finding | relabelled | user accepts via AskUserQuestion after 2 rounds | Type set to ASSUMPTION and phrased as a testable statement |
+| finding | dropped | user chooses to cut the claim | removed from BOTH ledger and prose, else G1 or G3 re-fires |
+| relabelled | grounded | Bar K re-run exit 0 | ASSUMPTION rows need no Source or Locator |
+
+```
+extracted ──> ledgered ──> cited ──> grounded
+                 │           │          ▲
+                 │ G3        │ G1       │ patch (<=2 rounds)
+                 └────> finding <───────┘
+                          ├──> relabelled ──> grounded
+                          └──> dropped
+```
+
+---
+
+## Shared Doc Publication (cfn-share)
+
+**Source:** `.claude/skills/cfn-share/resolve.sh` (state read), `.claude/skills/cfn-share/record-url.sh` (state write); sidecar `<dir>/.share-<basename>.url` holding `url`, `sha256`, `published`.
+
+**States:** `unresolved | resolved | published | stale | orphaned`
+
+State lives entirely in the sidecar. `resolve.sh` reports it as the `url` + `stale` pair; there is no in-memory session state, so a share picked up in a later session behaves identically.
+
+### States
+
+| State | Sidecar | Meaning |
+|-------|---------|---------|
+| `unresolved` | n/a | target missing, empty, or not `.md`; resolve.sh exits 1 |
+| `resolved` | absent | publishable, never published |
+| `published` | `sha256` matches file | live URL serves current bytes |
+| `stale` | `sha256` differs | file edited since publish; the reader's link is behind |
+| `orphaned` | points at a superseded artifact | a republish omitted `url:` and created a second artifact |
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| unresolved | resolved | file exists, non-empty, `.md` | no-arg form resolves newest `planning/PLAN_*.md` |
+| resolved | published | Artifact publish (no `url` param) + record-url.sh | full file read before publishing; no credentials or customer data in the doc |
+| published | stale | any edit to the file | detected on next resolve.sh by sha256 mismatch |
+| stale | published | Artifact publish **with** `url:` + record-url.sh | same URL updated in place; sidecar sha refreshed |
+| stale | orphaned | republish omits `url:` | failure mode; the reader's link keeps serving old bytes |
+| published | published | republish of unchanged bytes | resolve.sh reports `stale:false`; confirm with the user first |
+
+```
+unresolved ──> resolved ──> published <──────┐
+                               │             │ publish WITH url:
+                               │ file edit   │
+                               └──> stale ───┘
+                                      │ publish WITHOUT url:
+                                      └──> orphaned
+```
 
 ---
 
