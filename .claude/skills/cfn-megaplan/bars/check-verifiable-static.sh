@@ -3,7 +3,7 @@
 # Runs BEFORE the LLM gate report; a FAIL here means the VERIFY manifest is not
 # machine-decidable and cfn-loop-task could not mechanically decide "done".
 #
-# Usage:   check-verifiable-static.sh <planning/VERIFY_<slug>.md> [--stage plan|exit]
+# Usage:   check-verifiable-static.sh <planning/<slug>/VERIFY_<slug>.md> [--stage plan|exit]
 #          --stage plan (default) — the manifest is being blessed at planning
 #            time, before the code exists. `evidence: "PENDING: <reason>"` is
 #            accepted (warn), because a check for unwritten code cannot have run.
@@ -69,7 +69,7 @@ case "$STAGE" in
 esac
 
 if [ -z "$VERIFY" ]; then
-  echo 'usage: check-verifiable-static.sh <planning/VERIFY_<slug>.md> [--stage plan|exit]' >&2
+  echo 'usage: check-verifiable-static.sh <planning/<slug>/VERIFY_<slug>.md> [--stage plan|exit]' >&2
   exit 2
 fi
 if [ ! -f "$VERIFY" ]; then
@@ -257,8 +257,15 @@ while [ "$i" -lt "$AC_COUNT" ]; do
       *playwright*|e2e|ui|e2e/ui)                       echo "$CHECK" | grep -qiE '^playwright:' || tax_ok=0 ;;
       *db*)                                              echo "$CHECK" | grep -qiE '^db-query' || tax_ok=0 ;;
       *curl*|http)                                       echo "$CHECK" | grep -qiE '^curl' || tax_ok=0 ;;
-      *build*|*type*|*compile*)                          echo "$CHECK" | grep -qiE '(tsc|cargo check|go build|compile)' || tax_ok=0 ;;
-      *static*|*lint*)                                   echo "$CHECK" | grep -qiE '(grep|rg |ast|no occurrences|no free-text|snapshot)' || tax_ok=0 ;;
+      # WIDENED 2026-07-31: the two families below only knew Rust/Go/tsc verbs,
+      # so a check that ran the single most obvious tool for its own family --
+      # `next build` for a build, `eslint` for a lint -- was rejected as
+      # off-taxonomy. That is a vocabulary gap in this checker, not a defect in
+      # the manifest: 8 checks in planning/loan_intake_rebuild/VERIFY_loan_intake_rebuild.md all ran
+      # green by hand while being reported as errors here. Widening only ever
+      # ACCEPTS more, so no manifest that passes today can go red because of it.
+      *build*|*type*|*compile*)                          echo "$CHECK" | grep -qiE '(tsc|cargo check|go build|compile|next build|vite build|webpack|npm run|pnpm run|yarn run|sh -n|bash -n)' || tax_ok=0 ;;
+      *static*|*lint*)                                   echo "$CHECK" | grep -qiE '(grep|rg |ast|no occurrences|no free-text|snapshot|eslint|shellcheck|ruff|clippy|test -[defrsxz]|(^|[;&| ])ls |node -e)' || tax_ok=0 ;;
       *wiring-guard*)                                    echo "$CHECK" | grep -qiE '(grep|rg |ast)' || tax_ok=0 ;;
       *migration-rehearsal*)                             echo "$CHECK" | grep -qiE 'migration-rehearsal' || tax_ok=0 ;;
       *unit*|*integration*|*assembled*)                  echo "$CHECK" | grep -qiE '(vitest|jest|mocha|ava|cargo|pytest|go |golang|npx|npm|pnpm|node |bash |tsc)' || tax_ok=0 ;;

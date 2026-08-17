@@ -17,7 +17,7 @@ Run SPARC Specification + Pseudocode + Architecture phases as a chained orchestr
 1. Reads `.claude/skills/cfn-spa-plan/SKILL.md` and follows its protocol
 2. Spawns `specification-agent` (SPEC artifact)
 3. Spawns `pseudocode` + `system-architect` in parallel (PSEUDO + ARCH artifacts)
-4. Writes `planning/SPA_SUMMARY_<task>.md`
+4. Writes `planning/<slug>/SPA_SUMMARY_<slug>.md` (all four artifacts land in the plan's own directory)
 5. Surfaces open questions via `AskUserQuestion`
 6. Hands off to `/write-plan`
 

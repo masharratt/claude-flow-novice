@@ -25,13 +25,13 @@ Skip only for: single-line fixes, renames, or a bug fix that already has a repro
 ## Input
 
 Required:
-- `planning/SPEC_<slug>.md` — functional requirements (FR-n), edge cases (EC-n), NFRs with thresholds, pre/post conditions. This is what you turn into checks. **`[core]`-flagged FRs are the mechanisms that must fire end-to-end; each owes an assembled-path AC row (Phase 3).** If the spec marked nothing `[core]`, emit an `[OPEN]` back to spec rather than guessing which FR is core.
-- `planning/ARCH_<slug>.md` — component boundaries and interface contracts. Tells you what is a unit vs an integration seam vs a cross-service contract. **§9 (state-machine tables) supplies the SM-n valid + illegal transition rows; every SM-n row owes a transition AC in Phase 3, all tiers (ARCH Step 9 is not tier-gated).**
+- `planning/<slug>/SPEC_<slug>.md` — functional requirements (FR-n), edge cases (EC-n), NFRs with thresholds, pre/post conditions. This is what you turn into checks. **`[core]`-flagged FRs are the mechanisms that must fire end-to-end; each owes an assembled-path AC row (Phase 3).** If the spec marked nothing `[core]`, emit an `[OPEN]` back to spec rather than guessing which FR is core.
+- `planning/<slug>/ARCH_<slug>.md` — component boundaries and interface contracts. Tells you what is a unit vs an integration seam vs a cross-service contract. **§9 (state-machine tables) supplies the SM-n valid + illegal transition rows; every SM-n row owes a transition AC in Phase 3, all tiers (ARCH Step 9 is not tier-gated).**
 
 Optional but authoritative when present:
-- `planning/UX_<slug>.md` — the field->control map and screen state table. Every UI state (loading/empty/error/success/partial/disabled) needs a test row. The field->control map drives e2e assertions (a DB-backed dropdown asserts `<select>` options == query result).
-- `planning/DATA_<slug>.md` (the data-layer design). **§6 (concurrency table) supplies the CC-n rows (mechanism, entity, race scenario closed, enforcement, expected conflict behavior); every CC-n row owes a race-driving AC in Phase 3.** Present whenever the build has a concurrency mechanism (beta+ by profile, mvp when the race is inherent), presence-keyed, so those rows are charged regardless of tier. **§5 names the exact migration-rehearsal invocation** the `AC-mig` row (Phase 3) cites verbatim.
-- `planning/OPS_<slug>.md` (beta+, the operations design). **§2 (observability signals) supplies the OBS-n rows, each with a criticality and a `verify: required|exempt` flag; every `verify: required` OBS-n owes a signal-firing AC in Phase 3.**
+- `planning/<slug>/UX_<slug>.md` — the field->control map and screen state table. Every UI state (loading/empty/error/success/partial/disabled) needs a test row. The field->control map drives e2e assertions (a DB-backed dropdown asserts `<select>` options == query result).
+- `planning/<slug>/DATA_<slug>.md` (the data-layer design). **§6 (concurrency table) supplies the CC-n rows (mechanism, entity, race scenario closed, enforcement, expected conflict behavior); every CC-n row owes a race-driving AC in Phase 3.** Present whenever the build has a concurrency mechanism (beta+ by profile, mvp when the race is inherent), presence-keyed, so those rows are charged regardless of tier. **§5 names the exact migration-rehearsal invocation** the `AC-mig` row (Phase 3) cites verbatim.
+- `planning/<slug>/OPS_<slug>.md` (beta+, the operations design). **§2 (observability signals) supplies the OBS-n rows, each with a criticality and a `verify: required|exempt` flag; every `verify: required` OBS-n owes a signal-firing AC in Phase 3.**
 
 From the orchestrator you also receive:
 - **Tier** — `mvp` | `beta` | `enterprise`.
@@ -257,16 +257,18 @@ No implementation without a failing test. For each implementation step the plan 
 
 ## Output
 
-Write to: `planning/TEST_<slug>.md`
+**Artifact location.** Every artifact of one plan lives in that plan's own directory, `planning/<slug>/`. Under `/cfn-megaplan`, `/cfn-megaplan-lite`, or `/cfn-spa-plan` the orchestrator hands you the exact path plus a `Plan dir:` line — write there, and read the input paths it gives you verbatim. Invoked standalone, read with `.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> <basename>` (per-plan dir first, legacy flat `planning/` second) and write to `planning/<slug>/`. Never split one plan across two locations.
+
+Write to: `planning/<slug>/TEST_<slug>.md`
 
 Template:
 ```markdown
 # Test Plan: <task>
 
 **Date:** <YYYY-MM-DD>
-**Spec:** planning/SPEC_<slug>.md
-**Arch:** planning/ARCH_<slug>.md
-**UX:** planning/UX_<slug>.md (or "n/a — backend only")
+**Spec:** planning/<slug>/SPEC_<slug>.md
+**Arch:** planning/<slug>/ARCH_<slug>.md
+**UX:** planning/<slug>/UX_<slug>.md (or "n/a — backend only")
 **Tier:** <mvp|beta|enterprise>   **Directive:** <full|light>
 **Status:** draft | reviewed | locked
 
@@ -349,7 +351,7 @@ Coverage: FR 2/2 mapped, EC 2/2 mapped, UX states mapped, CC n/a (no concurrency
 ## Handoff
 
 `TEST_<slug>.md` feeds two consumers:
-- **Bar A** (`bars/verifiable-done.md`) at level 7 — parses the Phase 3 AC table directly. It emits `planning/VERIFY_<slug>.md` (the `done = all checks green` manifest). If any AC has no executable check, or any FR/EC is unmapped, Bar A fails the plan and loops back to this phase.
+- **Bar A** (`bars/verifiable-done.md`) at level 7 — parses the Phase 3 AC table directly. It emits `planning/<slug>/VERIFY_<slug>.md` (the `done = all checks green` manifest). If any AC has no executable check, or any FR/EC is unmapped, Bar A fails the plan and loops back to this phase.
 - **`/cfn-loop-task`** downstream — reads the VERIFY manifest, runs each check, and reports done only when every AC is green. It also enforces the Phase 6 TDD ordering (test-first per step).
 
 ## Return (to orchestrator)
@@ -357,7 +359,7 @@ Coverage: FR 2/2 mapped, EC 2/2 mapped, UX states mapped, CC n/a (no concurrency
 **Coverage self-check (self-enforcing floor).** Before returning, recompute coverage from the section 3 table. REFUSE to return unless every emitted category is fully mapped: FR `m/m`, EC `k/k`, CC `j/j` (DATA §6 rows), SM `k/k` (ARCH §9 rows), OBS-required `m/m` (OPS §2 `verify: required` rows), ADV `n/n` (Phase 1b rows). For a shortfall, either add the missing AC rows or convert each unmappable criterion into an `[OPEN]` item naming why no runnable check exists. A return with any emitted category mapped short is invalid output. Presence-keyed: a category with zero emitted rows is `n/a` and does not block; a category that emitted rows owes full coverage regardless of tier.
 
 Return exactly:
-- Artifact path: `planning/TEST_<slug>.md`
+- Artifact path: `planning/<slug>/TEST_<slug>.md`
 - A 3-line summary (fixtures + markers defined, levels assigned, AC rows with FR/EC coverage count).
 - Coverage line: `FR <m/m> mapped, EC <k/k> mapped, CC <j/j> mapped, SM <k/k> mapped, OBS-required <m/m> mapped, ADV <n/n> mapped, migration_rehearsal <AC-mig|warn:r|n/a:r>, viewport <ok|MISSING>` (each category full or accompanied by the `[OPEN]` items that explain the shortfall; report `n/a` for any category with no emitted rows). These feed the Bar A coverage keys `cc_total/cc_mapped`, `sm_total/sm_mapped`, `obs_required_total/obs_required_mapped`, `adv_total/adv_mapped`, `migration_rehearsal`, and the `viewport_missing` warn.
 - Any `[OPEN]` items needing a user decision (criterion with no runnable check, missing NFR threshold, ambiguous binding).

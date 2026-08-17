@@ -19,7 +19,7 @@ Skill: cfn-knowledge-plan
 Args:  $ARGUMENTS
 ```
 
-The rule that matters: **no drafting before `planning/KPLAN_<slug>.md` is approved.**
+The rule that matters: **no drafting before `planning/<slug>/KPLAN_<slug>.md` is approved.**
 Levels 1-3 (source intake, deliverable brief, extraction plan + outline) are the plan for
 the plan. Levels 4-6 (extract, synthesise, draft) execute it.
 
@@ -28,7 +28,7 @@ the plan. Levels 4-6 (extract, synthesise, draft) execute it.
 - `planning/KSOURCES_<slug>.md` gives every source an `SRC-n` id, and marks anything it
   could not actually read as `UNREADABLE`.
 - `planning/KBRIEF_<slug>.md` names the audience and the decision the doc must support.
-- `planning/KPLAN_<slug>.md` existed and was surfaced before any draft text was written.
+- `planning/<slug>/KPLAN_<slug>.md` existed and was surfaced before any draft text was written.
 - `KEVIDENCE_*` files hold verbatim quotes with locators, not paraphrase.
 - Bar K clean: `.claude/skills/cfn-knowledge-plan/bars/check-grounding.sh "planning/KDOC_<slug>.md" "planning/KSOURCES_<slug>.md"`
 - Bar B clean: `.claude/skills/cfn-megaplan/bars/check-haiku-static.sh "planning/KDOC_<slug>.md"`

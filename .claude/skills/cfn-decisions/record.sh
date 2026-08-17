@@ -2,7 +2,7 @@
 # .claude/skills/cfn-decisions/record.sh - the writer entrypoint.
 #
 # Records ONE resolved decision per invocation to the per-run JSON ledger
-# planning/.VERIFY_<slug>.decisions.json (atomic upsert-by-key) AND delegates
+# planning/<slug>/.VERIFY_<slug>.decisions.json (atomic upsert-by-key) AND delegates
 # the SQLite register sync to decision-log/record.sh (composition per D-1).
 #
 # Closes the gap where cfn-workbench/lib/section-decisions.sh:14,38-51 reads

@@ -8,7 +8,7 @@ allowed-tools: ["Read", "Bash", "Skill", "Artifact", "AskUserQuestion"]
 
 Turn a markdown planning artifact into a private hosted page with a stable URL.
 
-**Target:** $ARGUMENTS (empty resolves to the newest `planning/PLAN_*.md`)
+**Target:** $ARGUMENTS (empty resolves to the newest `PLAN_*.md` across `planning/<slug>/` and legacy flat `planning/`)
 
 ## Execute
 

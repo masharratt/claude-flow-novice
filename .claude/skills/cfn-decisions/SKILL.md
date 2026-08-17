@@ -3,7 +3,7 @@
 ## Purpose
 
 Records one resolved decision per invocation to the per-run JSON ledger
-`planning/.VERIFY_<slug>.decisions.json` (atomic upsert-by-key) and delegates
+`planning/<slug>/.VERIFY_<slug>.decisions.json` (atomic upsert-by-key) and delegates
 the SQLite register sync to the LOCKED `decision-log/record.sh` sink
 (composition per D-1, not duplication).
 
@@ -21,7 +21,8 @@ the per-run JSON but nothing writes it.
 - stderr: field NAMES, exit codes, target file PATHS. Never field VALUES.
 - exit code: `0..8` (code 6 RESERVED per D-7, never emitted). See "Exit
   taxonomy" below.
-- Filesystem: `planning/.VERIFY_<slug>.decisions.json` (atomic mv via mktemp).
+- Filesystem: `planning/<slug>/.VERIFY_<slug>.decisions.json` (atomic mv via mktemp);
+  legacy flat `planning/` when the plan has no per-plan dir.
 - SQLite: one row in `decisions` table (via `decision-log/record.sh`).
 
 ## Usage

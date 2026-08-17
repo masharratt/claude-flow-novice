@@ -36,6 +36,16 @@ echo "== resolve: no-arg picks newest plan =="
 sleep 1; printf '# Newer\n' > planning/PLAN_zzz.md
 check "newest wins" "$("$RESOLVE" | jget file)" "planning/PLAN_zzz.md"
 
+echo "== resolve: no-arg searches per-plan dirs, not just the flat root =="
+mkdir -p planning/checkout_rewrite
+sleep 1; printf '# Nested\n' > planning/checkout_rewrite/PLAN_checkout_rewrite.md
+check "nested plan discovered" "$("$RESOLVE" | jget file)" \
+  "planning/checkout_rewrite/PLAN_checkout_rewrite.md"
+check "sidecar sits beside the nested doc" "$("$RESOLVE" | jget sidecar)" \
+  "$TMP/planning/checkout_rewrite/.share-PLAN_checkout_rewrite.url"
+sleep 1; printf '# Flat again\n' > planning/PLAN_zzz.md
+check "flat plan still wins when newer" "$("$RESOLVE" | jget file)" "planning/PLAN_zzz.md"
+
 echo "== resolve: rejections =="
 "$RESOLVE" planning/missing.md >/dev/null 2>&1; check "exit 1 missing file" "$?" "1"
 : > planning/PLAN_empty.md

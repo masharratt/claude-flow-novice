@@ -15,7 +15,7 @@ assert_exit() { if [ "$1" -eq "$2" ]; then ok "$3"; else no "$3 (exit $1 wanted 
 # probe file for the predicate-unverified case
 echo "verifyprobe present" > "$WORK/pv.txt"
 
-mkvf() { # slug  <json-manifest-body-file-on-stdin>  -> writes planning/VERIFY_<slug>.md
+mkvf() { # slug  <json-manifest-body-file-on-stdin>  -> writes planning/<slug>/VERIFY_<slug>.md
   local slug="$1"; local f="$WORK/VERIFY_${slug}.md"
   { echo "# VERIFY $slug"; echo; echo '```json'; cat; echo '```'; } > "$f"
   echo "$f"
@@ -456,6 +456,99 @@ bless "$VF"
 echo "<!-- tampered after bless -->" >> "$VF"
 "$SCRIPT" run --verify "$VF" --out "$WORK/res-tamper.json" >/dev/null 2>&1
 assert_exit $? 4 "sha256 mismatch -> exit 4"
+
+# ---- S007: a NAME-FILTERED test run's "skipped" count is the selector doing
+# its job, not a disabled guard. `vitest run FILE -t "AC-FR1"` reports the
+# file's OTHER tests as skipped; the S002 skipped_present rule read that as
+# gaming and failed 7 genuinely-passing checks in the NSC loan-intake epic
+# (each "N passed | M skipped", zero failed). The relaxation is narrow: only
+# with a recognized name-filter flag for that runner, only when todo==0, and
+# only when passed>0 -- so the vacuous-selector hole S002 exists to close
+# (a check naming a test that no longer exists) still goes RED. ----
+VF=$(mkvf namefilterpass <<'JSON'
+{ "slug":"namefilterpass","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"unit","check":"bash -c 'npx vitest run gen.test.ts -t \"AC-FR1\"; printf \"\\n Test Files  1 passed (1)\\n      Tests  7 passed | 12 skipped (19)\\n\"; exit 0'","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-nfpass.json" >/dev/null 2>&1
+assert_exit $? 0 "S007: name-filtered run with passed>0, failed==0 -> green"
+jq -r '.results[0].reason' "$WORK/res-nfpass.json" | grep -q 'name-filtered' \
+  && ok "S007: reason names the name-filtered relaxation" || no "S007: reason names name-filtered"
+
+# A name filter that matched NOTHING is still red: 0 passed proves nothing.
+VF=$(mkvf namefiltervacuous <<'JSON'
+{ "slug":"namefiltervacuous","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"unit","check":"bash -c 'npx vitest run gen.test.ts -t \"AC-TYPO\"; printf \"\\n Test Files  1 passed (1)\\n      Tests  19 skipped (19)\\n\"; exit 0'","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-nfvac.json" >/dev/null 2>&1
+assert_exit $? 1 "S007: name-filtered run matching zero tests -> still red"
+jq -r '.results[0].reason' "$WORK/res-nfvac.json" | grep -q 'zero_tests_ran' \
+  && ok "S007: vacuous selector reason is zero_tests_ran" || no "S007: vacuous selector reason"
+
+# A name-filtered run with a real FAILURE is still red.
+VF=$(mkvf namefilterfail <<'JSON'
+{ "slug":"namefilterfail","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"unit","check":"bash -c 'npx vitest run gen.test.ts -t \"AC-FR1\"; printf \"\\n Test Files  1 failed (1)\\n      Tests  2 failed | 5 passed | 12 skipped (19)\\n\"; exit 1'","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-nffail.json" >/dev/null 2>&1
+assert_exit $? 1 "S007: name-filtered run with failures -> still red"
+
+# NO name filter + skips present -> unchanged S002 behavior (still red). This is
+# the regression guard that the relaxation did not leak into ordinary runs.
+VF=$(mkvf nofilterskip <<'JSON'
+{ "slug":"nofilterskip","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"unit","check":"bash -c 'npx vitest run gen.test.ts; printf \"\\n Test Files  1 passed (1)\\n      Tests  7 passed | 12 skipped (19)\\n\"; exit 0'","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-nofilt.json" >/dev/null 2>&1
+assert_exit $? 1 "S007: skips with NO name filter -> still skipped_present red"
+jq -r '.results[0].reason' "$WORK/res-nofilt.json" | grep -q 'skipped_present' \
+  && ok "S007: unfiltered skips keep the skipped_present reason" || no "S007: unfiltered skips keep skipped_present"
+
+# A `.todo(` is never selector-induced, so todo>0 stays red even under a filter.
+VF=$(mkvf namefiltertodo <<'JSON'
+{ "slug":"namefiltertodo","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"unit","check":"bash -c 'npx vitest run gen.test.ts -t \"AC-FR1\"; printf \"\\n Test Files  1 passed (1)\\n      Tests  7 passed | 11 skipped | 1 todo (19)\\n\"; exit 0'","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-nftodo.json" >/dev/null 2>&1
+assert_exit $? 1 "S007: todo>0 under a name filter -> still red"
+
+# The -t relaxation must NOT apply to a runner whose name-filter flag differs.
+# A bare ` -t ` in a pytest check (pytest's filter is -k) must not relax it.
+VF=$(mkvf wrongflagrunner <<'JSON'
+{ "slug":"wrongflagrunner","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"unit","check":"bash -c 'pytest -t bogus; printf \"\\n= 7 passed, 12 skipped in 0.4s =\\n\"; exit 0'","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-wrongflag.json" >/dev/null 2>&1
+assert_exit $? 1 "S007: -t against pytest (whose filter is -k) does not relax"
 
 # ---- usage ----
 "$SCRIPT" >/dev/null 2>&1; assert_exit $? 2 "no subcommand -> exit 2"

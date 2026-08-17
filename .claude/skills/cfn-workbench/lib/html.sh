@@ -1,6 +1,22 @@
 #!/bin/bash
 # lib/html.sh - shared HTML helpers for cfn-workbench.
-# Provides: html_escape, data_uri_png, default_style, record_gap, get_gap_count.
+# Provides: html_escape, data_uri_png, default_style, record_gap, get_gap_count,
+#           plan_path.
+
+# Planning artifacts live in a per-plan directory (planning/<slug>/) since
+# megaplan v1.3.0; plans older than that sit flat in planning/. plan-paths.sh
+# owns that resolution for every consumer - do not re-implement it here.
+# shellcheck source=../../cfn-megaplan/lib/plan-paths.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../cfn-megaplan/lib" && pwd)/plan-paths.sh"
+
+# plan_path ROOT SLUG BASENAME
+# Path to one planning artifact of SLUG under ROOT: per-plan dir first, legacy
+# flat second. Always prints a path; returns 1 when neither exists, and then
+# prints the canonical (nested) location so "missing X" messages name where it
+# should be. Callers that only test existence can ignore the status.
+plan_path() {
+  CFN_PLANNING_ROOT="$1/planning" plan_resolve "$2" "$3"
+}
 
 # html_escape STRING
 # Escapes &, <, >, ", ' for safe HTML interpolation.

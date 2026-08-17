@@ -6,9 +6,9 @@ allowed-tools: ["Task", "Read", "Write", "Bash", "Skill", "AskUserQuestion"]
 
 # CFN Arch (SPARC Phase 3)
 
-Standalone Architecture phase. Produces `planning/ARCH_<task>.md` with DRY audit (REUSE/EXTEND/NEW), component decomposition, typed interface contracts at every boundary, integration/storage/cross-cutting decisions, failure-mode inventory.
+Standalone Architecture phase. Produces `planning/<slug>/ARCH_<slug>.md` with DRY audit (REUSE/EXTEND/NEW), component decomposition, typed interface contracts at every boundary, integration/storage/cross-cutting decisions, failure-mode inventory.
 
-**Requires:** `planning/SPEC_<task>.md`. **Recommended:** `planning/PSEUDO_<task>.md` (used for operation enumeration if present).
+**Requires:** the plan's spec (`planning/<slug>/SPEC_<slug>.md`, or legacy flat). **Recommended:** `planning/<slug>/PSEUDO_<slug>.md` (used for operation enumeration if present).
 
 **Task:** $ARGUMENTS
 
@@ -16,13 +16,15 @@ Standalone Architecture phase. Produces `planning/ARCH_<task>.md` with DRY audit
 
 ```bash
 SLUG=$(echo "$ARGUMENTS" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
-SPEC="planning/SPEC_${SLUG}.md"
-PSEUDO="planning/PSEUDO_${SLUG}.md"
-if [ ! -f "$SPEC" ]; then
+PP=.claude/skills/cfn-megaplan/lib/plan-paths.sh
+PDIR=$("$PP" ensure "$SLUG")                          # planning/<slug>, created if absent
+# resolve = per-plan dir first, legacy flat planning/ second
+SPEC=$("$PP" resolve "$SLUG" "SPEC_${SLUG}.md") || {
   echo "HALT: $SPEC not found. Run /cfn-spec \"$ARGUMENTS\" first."
   exit 1
-fi
-[ -f "$PSEUDO" ] || echo "WARN: $PSEUDO not found. Proceeding with SPEC only; consider running /cfn-pseudo first for operation traces."
+}
+PSEUDO=$("$PP" resolve "$SLUG" "PSEUDO_${SLUG}.md") \
+  || echo "WARN: $PSEUDO not found. Proceeding with SPEC only; consider running /cfn-pseudo first for operation traces."
 ```
 
 ## Execute
@@ -34,7 +36,7 @@ Skill: cfn-arch
 Args:  $ARGUMENTS
 ```
 
-Spawn the `system-architect` agent (`.claude/agents/cfn-dev-team/architecture/system-architect.md`) with SPEC (and PSEUDO if present) as inputs. Write to `planning/ARCH_<sanitized-task>.md`.
+Spawn the `system-architect` agent (`.claude/agents/cfn-dev-team/architecture/system-architect.md`) with `$SPEC` (and `$PSEUDO` if present) as inputs. Pass it `Plan dir: $PDIR` and write to `$PDIR/ARCH_${SLUG}.md`.
 
 ## Mandatory output checks
 

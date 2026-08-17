@@ -1,12 +1,12 @@
 #!/bin/bash
-# lib/section-bless-ledger.sh - bless ledger from planning/.VERIFY_<slug>.bless.json.
+# lib/section-bless-ledger.sh - bless ledger from planning/<slug>/.VERIFY_<slug>.bless.json.
 #
 # Renders structure_changed and predicate_changed lists plus the verdict.
 
 section_bless_ledger() {
   local slug="${WORKBENCH_SLUG:-}"
   local root="${WORKBENCH_ROOT:-.}"
-  local bless="$root/planning/.VERIFY_${slug}.bless.json"
+  local bless; bless="$(plan_path "$root" "$slug" ".VERIFY_${slug}.bless.json")" || true
 
   if [[ ! -f "$bless" ]]; then
     record_gap "bless ledger (.VERIFY_${slug}.bless.json)"

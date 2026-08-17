@@ -84,4 +84,30 @@ if [ "$NOW_EPOCH" -ne 0 ] && [ "$TS_EPOCH" -ne 0 ]; then
     || fail "AC-57: timestamp drift" "delta=${DELTA}s"
 fi
 
+# AC-16b: default --root follows the plan layout. Megaplan writes each plan into
+# planning/<slug>/, and the renderer resolves nested-first : a default that always
+# pointed at flat planning/ would write a ledger nothing ever reads.
+CWD_TMP="$(mktemp -d "${TMPDIR:-/tmp}/cfn-dec-cwd-XXXXXX")"
+SLUG5="$(make_test_slug)"
+mkdir -p "$CWD_TMP/planning/$SLUG5"
+( cd "$CWD_TMP" && "$REPO_ROOT/.claude/skills/cfn-decisions/record.sh" \
+    --slug "$SLUG5" --id test-DNEST \
+    --title "T" --chosen "C" --actor human >/dev/null 2>&1 )
+[ -f "$CWD_TMP/planning/$SLUG5/.VERIFY_${SLUG5}.decisions.json" ] \
+  && ok "AC-16b: default root is the per-plan dir when planning/<slug>/ exists" \
+  || fail "AC-16b: default root is the per-plan dir when planning/<slug>/ exists"
+[ -f "$CWD_TMP/planning/.VERIFY_${SLUG5}.decisions.json" ] \
+  && fail "AC-16b: nested plan must NOT also write a flat ledger" \
+  || ok "AC-16b: nested plan writes no flat ledger"
+
+# Legacy flat plans (no per-plan dir) keep the old default.
+SLUG6="$(make_test_slug)"
+( cd "$CWD_TMP" && "$REPO_ROOT/.claude/skills/cfn-decisions/record.sh" \
+    --slug "$SLUG6" --id test-DFLAT \
+    --title "T" --chosen "C" --actor human >/dev/null 2>&1 )
+[ -f "$CWD_TMP/planning/.VERIFY_${SLUG6}.decisions.json" ] \
+  && ok "AC-16b: legacy flat layout still defaults to planning/" \
+  || fail "AC-16b: legacy flat layout still defaults to planning/"
+rm -rf "$CWD_TMP"
+
 print_summary "$NAME"

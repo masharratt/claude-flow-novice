@@ -306,7 +306,9 @@ Format:
 
 ## Output
 
-Write to: `planning/REVIEW_<slug>.md` with this required section order:
+**Artifact location.** Every artifact of one plan lives in that plan's own directory, `planning/<slug>/`. Under `/cfn-megaplan`, `/cfn-megaplan-lite`, or `/cfn-spa-plan` the orchestrator hands you the exact path plus a `Plan dir:` line — write there, and read the input paths it gives you verbatim. Invoked standalone, read with `.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> <basename>` (per-plan dir first, legacy flat `planning/` second) and write to `planning/<slug>/`. Never split one plan across two locations.
+
+Write to: `planning/<slug>/REVIEW_<slug>.md` with this required section order:
 
 1. **Assumptions verified table** (| # | Assumption | Verify command (executed) | Evidence | Verdict |)
 2. **Dependency Graph** (with pasted query/grep evidence per row)
@@ -318,7 +320,7 @@ Write to: `planning/REVIEW_<slug>.md` with this required section order:
 ## Return (to orchestrator)
 
 Return exactly:
-- Artifact path: `planning/REVIEW_<slug>.md`
+- Artifact path: `planning/<slug>/REVIEW_<slug>.md`
 - Finding count by severity: BLOCKER / GAP / NOTE
 - Alpha-ready: YES or NO
 - List of UNTESTED-assumption findings needing user input (empty list if all verified)

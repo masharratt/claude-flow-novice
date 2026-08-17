@@ -2,7 +2,8 @@
 # lib/upsert.sh - OP-W3 upsert_by_key_atomic.
 #
 # Sourced by record.sh. Exposes:
-#   upsert_by_key_atomic - atomic upsert to planning/.VERIFY_<slug>.decisions.json
+#   upsert_by_key_atomic - atomic upsert to <root>/.VERIFY_<slug>.decisions.json
+#   (<root> defaults to the plan's own dir planning/<slug>/, legacy flat planning/)
 #
 # Pattern reused from .claude/skills/cfn-megaplan/bars/bless-verify.sh:62-66,137-149
 # (DIR/BASE/mktemp+mv atomic-write). EXTENSION: upsert-by-key (replace by

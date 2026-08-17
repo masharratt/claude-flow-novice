@@ -1,7 +1,7 @@
 ---
 name: cfn-megaplan
 description: "Tiered planning orchestrator. Runs the full SPARC+ pipeline (research, spec, decide, pseudo, data, arch, ux, design, test, ops) as a parallel DAG, scaled by build stage (mvp/beta/enterprise) via inclusion profiles. Enforces two gates: every success criterion is executable (verifiable-done) and every step is unambiguous (haiku-executable). Use as the entry point for any non-trivial build instead of cfn-spa-plan."
-version: 1.2.0
+version: 1.3.0
 tags: [planning, orchestrator, sparc, tiered, mvp, beta, enterprise, dag]
 status: production
 ---
@@ -35,7 +35,7 @@ If `--tier` omitted, infer from the spec (see Step 2) and confirm with the user 
 2. `cfn-ux --review`: read shipped UI, diff each field's rendered control vs the affordance map (catches FK-field-as-textbox post-hoc). Consumes step 1's bindings, so it does not guess.
 3. `cfn-arch --review`: recover component boundaries + contracts, audit DRY / typed-boundary / retry-timeout / failure handling.
 
-Each emits `planning/AUDIT_<PHASE>_<slug>.md` (findings table, `file:line | issue | severity | fix`). Synthesis (Step 7) merges them into `planning/AUDIT_<slug>.md` with a single severity-ranked list. Skip a phase when its surface is absent (no UI → skip ux; no DB → skip data). This is the catch for defects that already shipped; the forward pipeline prevents them, this finds the ones that slipped.
+Each emits `planning/<slug>/AUDIT_<PHASE>_<slug>.md` (findings table, `file:line | issue | severity | fix`). Synthesis (Step 7) merges them into `planning/<slug>/AUDIT_<slug>.md` with a single severity-ranked list. Skip a phase when its surface is absent (no UI → skip ux; no DB → skip data). This is the catch for defects that already shipped; the forward pipeline prevents them, this finds the ones that slipped.
 
 ## Pipeline shape (8-level DAG)
 
@@ -133,9 +133,22 @@ LEDGER=".cfn-cache/tech-debt-ledger.json"
 
 ```bash
 SLUG=$(echo "$TASK" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
+PDIR=$(.claude/skills/cfn-megaplan/lib/plan-paths.sh ensure "$SLUG")   # planning/<slug>, created
 ```
 
-All artifacts land in `planning/` named `<PHASE>_<SLUG>.md` (e.g. `SPEC_<slug>.md`, `UX_<slug>.md`, `OPS_<slug>.md`).
+**Every artifact of this plan lands in ONE per-plan directory: `planning/<slug>/`.** Filenames keep the slug suffix (`$PDIR/SPEC_<slug>.md`, `$PDIR/UX_<slug>.md`, `$PDIR/OPS_<slug>.md`), because every sidecar and ledger name in the bars is derived from the basename and the suffix keeps a file self-identifying when it is copied out of its directory. Nothing this pipeline writes goes loose in `planning/`.
+
+Path rules for every step below and every phase prompt:
+
+- **Writes** always use `$PDIR/<NAME>` (nested). Never write to `planning/<NAME>`.
+- **Reads** resolve through the shared resolver, which checks `$PDIR/<NAME>` first and falls back to the legacy flat `planning/<NAME>` so plans written before this layout keep working:
+
+```bash
+SPEC=$(.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve "$SLUG" "SPEC_${SLUG}.md") \
+  || echo "FATAL: no SPEC artifact at $SPEC"
+```
+
+`plan-paths.sh` (`.claude/skills/cfn-megaplan/lib/plan-paths.sh`) is the single source of truth for this layout — `dir|ensure|resolve|write|newest|slug-of`, sourceable as `plan_dir`/`plan_resolve`/etc. Downstream (`/write-plan`, `/cfn-loop-task`, `cfn-workbench`, `cfn-share`) resolves through it too. Do not hand-roll the nested-then-flat lookup.
 
 ### Step 2: Run spec, read tier + build flags
 
@@ -143,7 +156,7 @@ Spawn `cfn-spec` (L2). It is the hard barrier: nothing else starts until it retu
 
 When the task has a user-facing surface, cfn-spec runs its **Interaction Intent Walk** (§1b) and may return `[OPEN]` intent items (richness ceiling, value-type inheritance, composition depth, lifecycle). These MUST be surfaced via `AskUserQuestion` and resolved BEFORE L4 `cfn-data` runs — a richness decision taken after the schema locks is a migration, not an edit. They ride the same `[OPEN]`-batching + 3-round bound as any spec open question (see the `spec has [OPEN]` failure-mode row).
 
-Parse the `## 8. Build Flags` block from `planning/SPEC_<slug>.md`. Do NOT re-infer flags from spec prose. The block has this exact format (cfn-spec's template emits it):
+Parse the `## 8. Build Flags` block from `$PDIR/SPEC_<slug>.md` (resolve it via `plan-paths.sh resolve`, Step 1). Do NOT re-infer flags from spec prose. The block has this exact format (cfn-spec's template emits it):
 
 ```
 ## 8. Build Flags
@@ -199,8 +212,9 @@ Follow .claude/skills/<phase-skill>/SKILL.md exactly. Read the skill file first.
 Task: <task>
 Tier: <tier>   Directive: <full|light>   Include extras: <extras>   Omit: <drops>
 Floor (forced on, never skip): <applicable floor items>
-Read inputs: <dep artifact paths>
-Write artifact: planning/<PHASE>_<slug>.md
+Plan dir: planning/<slug>/   (ALL your reads and writes live here; never write loose in planning/)
+Read inputs: <dep artifact paths, each already resolved to a real path by the orchestrator>
+Write artifact: planning/<slug>/<PHASE>_<slug>.md
 
 Open-item triage (apply to EVERY [OPEN] you would raise):
   Downstream-consumed sections of your artifact: <row from the Downstream-consumed table, or "none — terminal">
@@ -239,7 +253,7 @@ Because the wireframe is approved at L5, it never reaches Bar A/Bar B or the Ste
 
 ```
 Follow .claude/skills/<phase-skill>/SKILL.md exactly. Read the skill file first.
-PATCH MODE: planning/<PHASE>_<slug>.md already exists and already passed its own contract.
+PATCH MODE: planning/<slug>/<PHASE>_<slug>.md already exists and already passed its own contract.
 Read it. Fix ONLY these findings:
 <verbatim finding list — file:line | kind | detail>
 Rewrite only the rows/sections those findings name. Do not restructure, re-derive, or renumber
@@ -256,12 +270,12 @@ Patch mode does not apply to a phase that never ran (a dropped phase newly force
 
 `write_plan` and `plan_review` are slash commands run by the orchestrator in main chat via the Skill tool, never spawned as subagents.
 
-Run `/write-plan "<task>" --mode=<tier>`; it consumes every `planning/<PHASE>_<slug>.md` artifact. Then run **Bar A** (`bars/verifiable-done.md`): convert success criteria to executable AC rows, emit `planning/VERIFY_<slug>.md`. If Bar A fails (any non-executable AC, any unmapped FR/EC), loop back to the owning phase (usually `test_plan` or `spec`) in **patch mode** (see Loop-back protocol), not the whole pipeline and not a full phase re-run.
+Run `/write-plan "<task>" --mode=<tier>`; it consumes every `$PDIR/<PHASE>_<slug>.md` artifact (it resolves the plan dir itself via `plan-paths.sh`). Then run **Bar A** (`bars/verifiable-done.md`): convert success criteria to executable AC rows, emit `$PDIR/VERIFY_<slug>.md`. If Bar A fails (any non-executable AC, any unmapped FR/EC), loop back to the owning phase (usually `test_plan` or `spec`) in **patch mode** (see Loop-back protocol), not the whole pipeline and not a full phase re-run.
 
 **Mechanical static pass (Bar A step 1.5, REQUIRED).** After `VERIFY_<slug>.md` is emitted, run the static checker:
 
 ```bash
-.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh "planning/VERIFY_${SLUG}.md"
+.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh "${PDIR}/VERIFY_${SLUG}.md"
 ```
 
 Exit 1 (error findings — missing AC field, taxonomy mismatch, non-decidable/weasel pass, coverage-counter gap) routes back to the owning phase and counts against the same 3-round Bar A bound. Do not hand-write this scan. Only when it is clean (exit 0) do you proceed.
@@ -269,17 +283,19 @@ Exit 1 (error findings — missing AC field, taxonomy mismatch, non-decidable/we
 **Bless the integrity hash (W2).** After Bar A passes (static pass clean), bless the manifest. Use `bless-verify.sh` — **never write the sidecar by hand.** It re-runs the static checker and refuses to pin anything on an error finding, then writes the sidecar plus an append-only bless ledger naming which ACs moved:
 
 ```bash
-.claude/skills/cfn-megaplan/bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" --note "Bar A pass"
+.claude/skills/cfn-megaplan/bars/bless-verify.sh "${PDIR}/VERIFY_${SLUG}.md" --note "Bar A pass"
 ```
+
+The bars are path-agnostic (every sidecar is derived from the file's own directory + basename), so the sidecar, snapshot, and ledger land in `$PDIR` alongside the manifest — nothing extra to configure.
 
 Exit 1 = refused (Bar A findings remain, nothing pinned). On a re-bless it prints `structure_changed` / `predicate_changed`; a `predicate_changed: true` means a `pass` condition moved and needs a stated reason before you advance.
 
 This is the **plan-stage** bless (the default), which is why every AC's `evidence` field reads `PENDING: <reason>` here — the code it checks does not exist yet. `cfn-loop-task` 5E.3a backfills the real output from the exit-gate run and re-blesses with `--stage exit`, which rejects any surviving `PENDING`.
 
-**PLAN persistence gate (REQUIRED — downstream `/cfn-loop-task` hard-depends on it).** `/write-plan` writes `planning/PLAN_<slug>.md`; this is the lane-derivation source `cfn-loop-task` reads. After `/write-plan` returns, assert the file exists:
+**PLAN persistence gate (REQUIRED — downstream `/cfn-loop-task` hard-depends on it).** `/write-plan` writes `$PDIR/PLAN_<slug>.md`; this is the lane-derivation source `cfn-loop-task` reads. After `/write-plan` returns, assert the file exists **in the plan dir** (a `PLAN_` that landed loose in `planning/` means write-plan did not pick up the plan dir — move it into `$PDIR` and fix the invocation):
 
 ```bash
-[ -f "planning/PLAN_${SLUG}.md" ] || { echo "FATAL: write-plan did not persist planning/PLAN_${SLUG}.md"; }
+[ -f "${PDIR}/PLAN_${SLUG}.md" ] || { echo "FATAL: write-plan did not persist ${PDIR}/PLAN_${SLUG}.md"; }
 ```
 
 If it is missing, re-run `/write-plan` before advancing to L9. `MEGAPLAN_<slug>.md` (Step 7) is an INDEX/summary, NOT the plan — it cannot substitute for `PLAN_<slug>.md`. A megaplan that produces `VERIFY_` but no `PLAN_` will break `cfn-loop-task` at lane derivation (the plan file is the only source of lanes + exclusive file ownership).
@@ -310,30 +326,33 @@ Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readi
 | artifact prose only, no AC row and no plan step | the static passes (`check-verifiable-static.sh`, `check-haiku-static.sh`) |
 | an AC row (added/removed/rewritten), or a `[core]` FR, or a plan step's semantics | full Bar A + full Bar B, including the live haiku probe |
 
-Any edit to `VERIFY_<slug>.md` **must** re-bless via `bars/bless-verify.sh "planning/VERIFY_<slug>.md" --note "<why>"`, or `cfn-loop-task` Step 0 will correctly reject the manifest as tampered. The re-bless appends a ledger entry naming the moved ACs and fields; read its `predicate_changed` line before accepting an override that touched a `pass` condition.
+Any edit to `VERIFY_<slug>.md` **must** re-bless via `bars/bless-verify.sh "$PDIR/VERIFY_<slug>.md" --note "<why>"`, or `cfn-loop-task` Step 0 will correctly reject the manifest as tampered. The re-bless appends a ledger entry naming the moved ACs and fields; read its `predicate_changed` line before accepting an override that touched a `pass` condition.
 
 Override rounds are bounded at 2. Residual disagreement is a scope question, not a planning loop — surface it and stop.
 
-**Handoff-file gate (run BEFORE writing the synthesis).** `cfn-loop-task` needs BOTH `planning/PLAN_<slug>.md` (lane source) and `planning/VERIFY_<slug>.md` (completion gate). Assert both exist; if either is missing the megaplan is NOT done — re-run the owning step (`/write-plan` for PLAN_, Bar A for VERIFY_) before synthesis:
+**Handoff-file gate (run BEFORE writing the synthesis).** `cfn-loop-task` needs BOTH `$PDIR/PLAN_<slug>.md` (lane source) and `$PDIR/VERIFY_<slug>.md` (completion gate), in the plan dir. Assert both exist; if either is missing the megaplan is NOT done — re-run the owning step (`/write-plan` for PLAN_, Bar A for VERIFY_) before synthesis:
 
 ```bash
 for F in "PLAN_${SLUG}" "VERIFY_${SLUG}"; do
-  [ -f "planning/${F}.md" ] || echo "FATAL: missing planning/${F}.md — megaplan not build-ready"
+  [ -f "${PDIR}/${F}.md" ] || echo "FATAL: missing ${PDIR}/${F}.md — megaplan not build-ready"
 done
-[ -f "planning/.VERIFY_${SLUG}.sha256" ] || echo "FATAL: missing planning/.VERIFY_${SLUG}.sha256 — Bar A hash not blessed (re-run Step 5 static pass + hash)"
+[ -f "${PDIR}/.VERIFY_${SLUG}.sha256" ] || echo "FATAL: missing ${PDIR}/.VERIFY_${SLUG}.sha256 — Bar A hash not blessed (re-run Step 5 static pass + hash)"
+# nothing from this plan may sit loose in the planning root
+ls planning/*_"${SLUG}".md 2>/dev/null && echo "WARN: plan artifacts loose in planning/ — move them into ${PDIR}/"
 ```
 
-Write `planning/MEGAPLAN_<slug>.md`. **All eight `##` sections below are REQUIRED** — emit every one even if empty (write `_none_`); dropping a section is a template violation. Do NOT rename headings.
+Write `$PDIR/MEGAPLAN_<slug>.md`. **All eight `##` sections below are REQUIRED** — emit every one even if empty (write `_none_`); dropping a section is a template violation. Do NOT rename headings.
 
 ```markdown
 # MegaPlan: <task>
 Tier: <tier>   Build flags: <frontend? db? pii? unknowns?>   Generated: <date>
 
 ## Artifacts (active phases only)
-<list of planning/*_<slug>.md actually produced — MUST include PLAN_<slug>.md and VERIFY_<slug>.md>
+Plan dir: planning/<slug>/
+<list of planning/<slug>/*_<slug>.md actually produced — MUST include PLAN_<slug>.md and VERIFY_<slug>.md>
 
 ## Gates
-- Bar A verifiable-done: PASS (N ACs, FR <m/m>, EC <k/k> mapped) -> planning/VERIFY_<slug>.md
+- Bar A verifiable-done: PASS (N ACs, FR <m/m>, EC <k/k> mapped) -> planning/<slug>/VERIFY_<slug>.md
 - Bar B haiku-executable: PASS (0 findings after <r> rounds)
   # or, in a multi-plan program only: CONDITIONAL-PASS (see Cross-plan seams; blocked solely on
   # named sibling-plan items, all tracked below). CONDITIONAL-PASS is NOT a valid handoff state
@@ -360,7 +379,8 @@ Every PENDING row that this plan hard-depends on keeps Bar B at CONDITIONAL-PASS
 <this plan's position in the program DAG, e.g. MP1 -> MP2 -> [this] -> MP4>
 
 ## Next
-/cfn-loop-task "<task>" --mode=<mode>   (reads PLAN_<slug>.md for lanes + VERIFY_<slug>.md as completion gate)
+/cfn-loop-task "<task>" --mode=<mode>   (reads planning/<slug>/PLAN_<slug>.md for lanes
+                                        + planning/<slug>/VERIFY_<slug>.md as completion gate)
 ```
 
 Hand-off mode mapping: mode = `standard` if tier is `beta`, else the tier verbatim. Planning tier vocabulary is mvp|beta|enterprise; execution mode vocabulary is mvp|standard|enterprise; beta maps to standard.
@@ -369,9 +389,11 @@ Hand-off mode mapping: mode = `standard` if tier is `beta`, else the tier verbat
 
 When one build is too large for a single megaplan and is split into sibling plans (MP1…MPn) that share a schema / contracts package / decision log, the single-plan assumptions above bend. Extra rules:
 
-1. **Program index doc.** Write `planning/MEGAPLAN_program_<program-slug>.md` (or `_mp0_`) that owns what no single plan can: the build-order DAG across plans, the shared contracts/decision-register paths, and a consolidated cross-plan seam ledger (every row from every plan's `## Cross-plan seams`). Without it the reconciliation smears across each plan's prose and drifts. Each plan links back to it.
+**Program directory layout.** Each sibling plan keeps its own `planning/<mpN-slug>/`. Program-scoped files (index, shared register) get one more dir at the same level: `planning/<program-slug>/`. Nothing program-scoped goes loose in `planning/` either.
 
-2. **Shared decision register.** All plans append to ONE register (e.g. `planning/DECISIONS_<program>.md`) so a fork resolved in MP2 is visible to MP4. `cfn-decide` still owns the format; the register is program-scoped, not plan-scoped.
+1. **Program index doc.** Write `planning/<program-slug>/MEGAPLAN_program_<program-slug>.md` (or `_mp0_`) that owns what no single plan can: the build-order DAG across plans, the shared contracts/decision-register paths, and a consolidated cross-plan seam ledger (every row from every plan's `## Cross-plan seams`). Without it the reconciliation smears across each plan's prose and drifts. Each plan links back to it.
+
+2. **Shared decision register.** All plans append to ONE register (`planning/<program-slug>/DECISIONS_<program>.md`) so a fork resolved in MP2 is visible to MP4. `cfn-decide` still owns the format; the register is program-scoped, not plan-scoped.
 
 3. **Cross-plan seam ledger is first-class.** A seam = an item plan A needs that lives in plan B's artifacts (a column, RPC, enum member, edge). Each seam row: `owner | item | target migration/artifact | dependency-critical? | applied|PENDING`. A PENDING dependency-critical seam is a real blocker: it keeps the dependent plan's Bar B at **CONDITIONAL-PASS**.
 
@@ -385,6 +407,7 @@ When one build is too large for a single megaplan and is split into sibling plan
 
 ```
 Task: "coach dashboard with payout table"   --tier=beta
+Plan dir: planning/coach_dashboard_with_payout_table/   (every artifact below lands here)
 Build Flags (SPEC section 8): frontend=yes  db=yes  pii=yes  unknowns=no
 
 Profile resolution (profiles/beta.json):
@@ -413,7 +436,7 @@ L6  [design, ops]                 (one message)
 L7  test_plan                     (consumes OPS §2 + DATA §6; own level below ops at beta+)
 L8  write_plan                    (slash command, main chat) + Bar A
                                   static pass (check-verifiable-static.sh) + bless .VERIFY hash
-                                  ASSERT planning/PLAN_<slug>.md persisted (loop-task lane source)
+                                  ASSERT planning/<slug>/PLAN_<slug>.md persisted (loop-task lane source)
 L9  plan_review                   (slash command, main chat) + Bar B
 
 Open-item triage during the walk:
@@ -430,7 +453,7 @@ Net: 1 human stall on the critical path instead of 3.
 
 Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
           (tier beta maps to execution mode standard)
-          precondition: PLAN_<slug>.md + VERIFY_<slug>.md both on disk
+          precondition: planning/<slug>/{PLAN,VERIFY}_<slug>.md both on disk
 ```
 
 ## Failure modes
@@ -448,6 +471,8 @@ Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
 | tier ambiguous | `AskUserQuestion`, recommend from spec |
 | user downgrades tier | floor items stay on; warn if a downgrade drops a phase the build flags say is needed |
 | `write-plan` left no `PLAN_<slug>.md` | re-run `/write-plan`; never hand off with only `MEGAPLAN_`/`VERIFY_` — loop-task lane derivation hard-fails without `PLAN_` |
+| artifact landed loose in `planning/` instead of `planning/<slug>/` | move it into `$PDIR` (`git mv`), then re-run whatever reads it. A stale flat copy left behind still resolves via the legacy fallback and will be read instead of the nested one only when the nested file is absent — delete it, do not keep both |
+| reading a plan written before the per-plan dir landed | nothing to do: `plan-paths.sh resolve` falls back to flat `planning/<NAME>`. Migrate it with `mkdir -p planning/<slug> && git mv planning/*_<slug>.* planning/<slug>/` (include the dotfiles: `.VERIFY_<slug>.sha256`, `.bless.json`, `.blessed.json`) when convenient |
 | sibling plan forced an item into an already-done plan | apply it, re-run that plan's Bar A + Bar B, flip its seam row to `applied` (back-propagation rule); do not build the earlier plan while it lists forced items unapplied |
 | dependent plan blocked on sibling seam | Bar B = CONDITIONAL-PASS (multi-plan only); hold `cfn-loop-task` until blocking seams are `applied`, per program build order |
 
@@ -464,6 +489,9 @@ Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
 - Downgrading `spec` / `data` / `arch` / `decide`-at-full to a cheaper model. They decide the structure every later phase consumes; an error there is the most expensive kind.
 - Accepting a Step 7 override that rewrites an AC row without re-running Bar A/Bar B and re-blessing the `.VERIFY` hash. The gates passed against different bytes; `cfn-loop-task` will reject the manifest.
 - Editing planning artifacts during implementation without re-running Bar B.
+- Writing any artifact loose in `planning/` instead of `planning/<slug>/`. The per-plan dir is what keeps a project with 20 plans navigable; one loose file per plan is how the flat layout came back.
+- Hand-rolling the nested-then-flat lookup in a new consumer. Use `plan-paths.sh resolve` — a second copy of that logic is where the two layouts start disagreeing.
+- Splitting one plan across two dirs (e.g. VERIFY in `planning/<slug>/`, PLAN loose). The handoff gate checks both in `$PDIR` for exactly this reason.
 - Handing off to `cfn-loop-task` with only `MEGAPLAN_`/`VERIFY_` on disk. `MEGAPLAN_` is an index, not the lane source; loop-task needs `PLAN_<slug>.md`.
 - Shipping an earlier plan that still lists back-propagated sibling items as "NOT yet applied" — its artifacts contradict its own synthesis.
 - Using CONDITIONAL-PASS to hand off a standalone (non-program) megaplan. That state exists only for sibling-seam blocking in a multi-plan program.
@@ -472,6 +500,7 @@ Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
 
 - Phases: `cfn-research`, `cfn-spec`, `cfn-decide`, `cfn-pseudo`, `cfn-data`, `cfn-arch`, `cfn-ux`, `cfn-design`, `cfn-test-plan`, `cfn-ops`
 - Gates: `bars/verifiable-done.md`, `bars/haiku-executable.md`
+- Layout: `lib/plan-paths.sh` (per-plan directory resolver — nested writes, nested-then-flat reads; every consumer uses it). Tests: `lib/tests/test-plan-paths.sh`
 - Profiles: `profiles/{mvp,beta,enterprise}.json`
 - Inputs: `cfn-tech-debt` (Step 0 reads its `.cfn-cache/tech-debt-ledger.json` so open `cfn:` shortcuts in scope surface as backlog candidates)
 - Downstream: `/write-plan`, `/cfn-plan-review`, `/cfn-loop-task`

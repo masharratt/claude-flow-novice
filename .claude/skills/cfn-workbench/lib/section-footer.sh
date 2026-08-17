@@ -17,9 +17,9 @@ section_footer() {
   local screenshots_dir="$root/tests/screenshots"
   local lane_root="$root/tmp"
   [[ -d "$manifests_dir" ]] && input_count=$((input_count + $(ls "$manifests_dir"/cfn-*.json 2>/dev/null | wc -l)))
-  [[ -f "$root/planning/VERIFY_${slug}.md" ]] && input_count=$((input_count + 1))
-  [[ -f "$root/planning/VERIFY_RESULTS_${slug}.json" ]] && input_count=$((input_count + 1))
-  [[ -f "$root/planning/.VERIFY_${slug}.bless.json" ]] && input_count=$((input_count + 1))
+  [[ -f "$(plan_path "$root" "$slug" "VERIFY_${slug}.md")" ]] && input_count=$((input_count + 1))
+  [[ -f "$(plan_path "$root" "$slug" "VERIFY_RESULTS_${slug}.json")" ]] && input_count=$((input_count + 1))
+  [[ -f "$(plan_path "$root" "$slug" ".VERIFY_${slug}.bless.json")" ]] && input_count=$((input_count + 1))
   [[ -d "$screenshots_dir" ]] && input_count=$((input_count + $(ls "$screenshots_dir"/${slug}-iteration-*.png 2>/dev/null | wc -l)))
   [[ -d "$lane_root" ]] && input_count=$((input_count + $(ls "$lane_root"/lane-report-${slug}-*.json 2>/dev/null | wc -l)))
   input_count=$((input_count + $(ls /tmp/lane-report-${slug}-*.json 2>/dev/null | wc -l)))

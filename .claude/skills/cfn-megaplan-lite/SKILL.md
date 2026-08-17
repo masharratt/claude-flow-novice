@@ -1,7 +1,7 @@
 ---
 name: cfn-megaplan-lite
 description: "Balanced-cut planning mode for medium features (3-7 files, single shared-state surface). Runs a 7-level DAG at mvp depth but roughly half the wall-clock of full megaplan: both completion bars capped to 1 round, pseudo folded into arch, non-core phases on sonnet, and the live haiku probe dropped. Inherits megaplan's bar scripts and phase skills by relative path. Use as the balanced-cut alternative to /cfn-megaplan for medium features."
-version: 1.0.0
+version: 1.1.0
 tags: [planning, orchestrator, dag, mvp, lite, medium-features]
 status: production
 ---
@@ -37,7 +37,7 @@ Those need full `/cfn-megaplan --tier=beta|enterprise`. If you are unsure which 
 
 No `--tier`. Lite is a single mode (see No tiers, below).
 
-Hand-off: `/cfn-loop-task "<task>" --mode=mvp`. Lite is mvp-depth; the execution-mode vocabulary has no "lite", so `--mode=mvp` is correct. Precondition: `planning/PLAN_<slug>.md` + `planning/VERIFY_<slug>.md` + `planning/.VERIFY_<slug>.sha256` all on disk (same persistence gate as megaplan).
+Hand-off: `/cfn-loop-task "<task>" --mode=mvp`. Lite is mvp-depth; the execution-mode vocabulary has no "lite", so `--mode=mvp` is correct. Precondition: `planning/<slug>/PLAN_<slug>.md` + `planning/<slug>/VERIFY_<slug>.md` + `planning/<slug>/.VERIFY_<slug>.sha256` all on disk (same per-plan directory + persistence gate as megaplan).
 
 ## Pipeline shape (7-level DAG)
 
@@ -81,6 +81,7 @@ Lite references megaplan's bar scripts and the phase skills by relative path (`.
 - `.claude/skills/cfn-megaplan/bars/bless-verify.sh` (manifest hash bless)
 - `.claude/skills/cfn-megaplan/bars/check-haiku-static.sh` (Bar B static scan: weasel + optional-DI)
 - `.claude/skills/cfn-megaplan/bars/weasel-phrases.txt` (banned phrase list)
+- `.claude/skills/cfn-megaplan/lib/plan-paths.sh` (per-plan directory resolver: nested writes, nested-then-flat reads)
 
 **Phase skills (inherited):** `.claude/skills/cfn-spec`, `.claude/skills/cfn-decide`, `.claude/skills/cfn-data`, `.claude/skills/cfn-arch`, `.claude/skills/cfn-ux`, `.claude/skills/cfn-design`, `.claude/skills/cfn-test-plan`. Skipped: `cfn-research` (unknowns not allowed in lite), `cfn-ops` (ops concerns disqualify the task from lite).
 
@@ -148,13 +149,21 @@ The floor is still forced: `rls`, `auth_boundaries`, `secrets_handling`, `no_uns
 
 ```bash
 SLUG=$(echo "$TASK" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
+PDIR=$(.claude/skills/cfn-megaplan/lib/plan-paths.sh ensure "$SLUG")   # planning/<slug>, created
 ```
 
-All artifacts land in `planning/` named `<PHASE>_<SLUG>.md`.
+**Every artifact of this plan lands in ONE per-plan directory: `planning/<slug>/`**, named `<PHASE>_<SLUG>.md`. Nothing goes loose in `planning/`. Writes always use `$PDIR/<NAME>`; reads resolve nested-then-legacy-flat through the shared resolver:
+
+```bash
+SPEC=$(.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve "$SLUG" "SPEC_${SLUG}.md") \
+  || echo "FATAL: no SPEC artifact at $SPEC"
+```
+
+Layout rule and resolver are megaplan's (`.claude/skills/cfn-megaplan/lib/plan-paths.sh` + `cfn-megaplan/SKILL.md` §Step 1) — inherited verbatim, same as the bar scripts. Lite delta: none.
 
 ### Step 2: L1 spec (opus, HARD BARRIER)
 
-Spawn `cfn-spec` at `opus`. Nothing else starts until it returns. Parse the `## 8. Build Flags` block from `planning/SPEC_<slug>.md` (do not re-infer from prose).
+Spawn `cfn-spec` at `opus`, telling it the plan dir (`Plan dir: planning/<slug>/`; it writes `$PDIR/SPEC_<slug>.md`). Nothing else starts until it returns. Parse the `## 8. Build Flags` block from `$PDIR/SPEC_<slug>.md` (do not re-infer from prose).
 
 - If `frontend: yes` OR `db: yes`: require a `## 1a. Actors` section with at least one row, no blank cells, every FR touched by at least one actor. Missing -> re-run cfn-spec with a directive to emit §1a.
 - If `frontend: yes`: require a `## 1b. Interaction Intent` section, one row per interactive feature, no leverage dimension blank. Missing -> re-run cfn-spec to run the Interaction Intent Walk.
@@ -166,7 +175,7 @@ Spawn `cfn-decide` at `sonnet`. Resolve **BLOCKING forks only** (forks whose ans
 
 ### Step 4: walk L3 through L5
 
-Spawn each level in a single message (true parallel within a level); wait for the level to return before advancing.
+Spawn each level in a single message (true parallel within a level); wait for the level to return before advancing. Every phase prompt carries `Plan dir: planning/<slug>/` and states the artifact path as `planning/<slug>/<PHASE>_<slug>.md`; dep artifact paths are resolved by the orchestrator (`plan-paths.sh resolve`) and pasted in as real paths, so no phase searches for its inputs.
 
 - **L3 data** (sonnet, IF `db=yes`): `cfn-data` at `light`. Floor forced: RLS, auth boundaries, secrets handling, no-unscoped-delete, PII-if-present authored regardless of the light directive.
 - **L4 arch ∥ ux** (one message): `cfn-arch` at `opus` (consumes SPEC + DATA, writes `ARCH_<slug>.md`, AND writes `PSEUDO_<slug>.md` as a folded deliverable, not a separate phase). `cfn-ux` at `sonnet` IF `frontend=yes` (consumes SPEC + DATA field-bindings).
@@ -180,19 +189,19 @@ Each phase prompt carries the open-item triage block (below). Collect `[PARKED]`
 Run `/write-plan "<task>" --mode=mvp` in main chat (Skill tool). Then run Bar A:
 
 ```bash
-.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh "planning/VERIFY_${SLUG}.md"
+.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh "${PDIR}/VERIFY_${SLUG}.md"
 ```
 
 Exit 1 routes to the owning phase in patch mode within the 1-round budget (mechanical findings auto-patch; semantic findings surface via `AskUserQuestion`). Only when clean (exit 0) do you bless:
 
 ```bash
-.claude/skills/cfn-megaplan/bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" --note "Bar A pass (lite)"
+.claude/skills/cfn-megaplan/bars/bless-verify.sh "${PDIR}/VERIFY_${SLUG}.md" --note "Bar A pass (lite)"
 ```
 
 Then assert persistence (loop-task hard-depends on it):
 
 ```bash
-[ -f "planning/PLAN_${SLUG}.md" ] || echo "FATAL: write-plan did not persist planning/PLAN_${SLUG}.md"
+[ -f "${PDIR}/PLAN_${SLUG}.md" ] || echo "FATAL: write-plan did not persist ${PDIR}/PLAN_${SLUG}.md"
 ```
 
 `MEGAPLANLITE_<slug>.md` (Step 8) is an INDEX, NOT the plan; it cannot substitute for `PLAN_<slug>.md`.
@@ -213,12 +222,14 @@ Assert the handoff files are on disk:
 
 ```bash
 for F in "PLAN_${SLUG}" "VERIFY_${SLUG}"; do
-  [ -f "planning/${F}.md" ] || echo "FATAL: missing planning/${F}.md"
+  [ -f "${PDIR}/${F}.md" ] || echo "FATAL: missing ${PDIR}/${F}.md"
 done
-[ -f "planning/.VERIFY_${SLUG}.sha256" ] || echo "FATAL: missing planning/.VERIFY_${SLUG}.sha256 (re-run Bar A static + bless)"
+[ -f "${PDIR}/.VERIFY_${SLUG}.sha256" ] || echo "FATAL: missing ${PDIR}/.VERIFY_${SLUG}.sha256 (re-run Bar A static + bless)"
+# nothing from this plan may sit loose in the planning root
+ls planning/*_"${SLUG}".md 2>/dev/null && echo "WARN: plan artifacts loose in planning/ — move them into ${PDIR}/"
 ```
 
-Write `planning/MEGAPLANLITE_<slug>.md` (template below). Hand off:
+Write `$PDIR/MEGAPLANLITE_<slug>.md` (template below). Hand off:
 
 ```
 /cfn-loop-task "<task>" --mode=mvp
@@ -254,13 +265,14 @@ See `cfn-megaplan/SKILL.md` §Anti-patterns for the full list. Lite-specific:
 - Running lite on a feature that matches the hard exclusion list. Escalate to full megaplan instead.
 - Letting the 1-round cap become "skip the bar". The cap bounds iterations, not coverage; the single round still runs the full static + structural + coverage scan.
 - Looping a bar a second time "just to be sure". A second round means the task is too complex for lite; escalate.
+- Writing an artifact loose in `planning/` instead of `planning/<slug>/`, or hand-rolling the nested-then-flat lookup instead of calling `plan-paths.sh resolve`. Same rules as megaplan; lite has no delta here.
 
 ## Synthesis template: MEGAPLANLITE_<slug>.md
 
 The writing agent Reads `cfn-megaplan/SKILL.md` §Step 7: Deferred-decision batch, synthesis + hand-off (synthesis template block) for the canonical 8-section structure (all eight `##` sections REQUIRED, emit every one even if empty as `_none_`, do not rename headings) and emits the lite-named file instead. Same cite-and-Read pattern lite uses for the phase skills.
 
 **Lite deltas versus megaplan synthesis:**
-- Output file: `MEGAPLANLITE_<slug>.md` (not `MEGAPLAN_<slug>.md`).
+- Output file: `planning/<slug>/MEGAPLANLITE_<slug>.md` (not `MEGAPLAN_<slug>.md`); the `## Artifacts` section lists the plan dir plus the `planning/<slug>/*_<slug>.md` files actually produced.
 - Gates line: names "Bar B-static (no probe)" instead of the full haiku-executable bar.
 - Cross-plan seams and Build order: collapse to standalone (`_none - standalone plan_` / `_standalone_`) because lite has no ops/research phases and no multi-plan program. If either fills with real content, the task outgrew lite and must be re-run as full megaplan.
 

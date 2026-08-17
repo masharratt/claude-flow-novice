@@ -25,8 +25,8 @@ Skip only when: no new or changed persisted state (pure compute, pure UI, read-o
 ## Input
 
 Required:
-- `planning/SPEC_<slug>.md` — entities, success criteria, query patterns, NFRs.
-- `planning/DECISIONS_<slug>.md` — storage/tradeoff decisions already locked by `cfn-decide`.
+- `planning/<slug>/SPEC_<slug>.md` — entities, success criteria, query patterns, NFRs.
+- `planning/<slug>/DECISIONS_<slug>.md` — storage/tradeoff decisions already locked by `cfn-decide`.
 
 Refuse to run if `SPEC_<slug>.md` is missing or in `draft` status with unresolved `[OPEN]` gaps on the data model.
 
@@ -218,7 +218,9 @@ Run after the migration applies so the db-query skill and agent context reflect 
 
 ## Output
 
-Write to: `planning/DATA_<slug>.md`
+**Artifact location.** Every artifact of one plan lives in that plan's own directory, `planning/<slug>/`. Under `/cfn-megaplan`, `/cfn-megaplan-lite`, or `/cfn-spa-plan` the orchestrator hands you the exact path plus a `Plan dir:` line — write there, and read the input paths it gives you verbatim. Invoked standalone, read with `.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> <basename>` (per-plan dir first, legacy flat `planning/` second) and write to `planning/<slug>/`. Never split one plan across two locations.
+
+Write to: `planning/<slug>/DATA_<slug>.md`
 
 Template:
 
@@ -226,8 +228,8 @@ Template:
 # Data Layer: <task>
 
 **Date:** <YYYY-MM-DD>
-**Spec:** planning/SPEC_<slug>.md
-**Decisions:** planning/DECISIONS_<slug>.md
+**Spec:** planning/<slug>/SPEC_<slug>.md
+**Decisions:** planning/<slug>/DECISIONS_<slug>.md
 **Tier:** mvp | beta | enterprise   **Build flags:** db pii?
 **Status:** draft | reviewed | locked
 
@@ -340,7 +342,7 @@ Before returning: every new table appears in sections 1, 2, 3, 4 AND 5; counts m
 
 ## Return to orchestrator
 
-- Artifact path: `planning/DATA_<slug>.md`
+- Artifact path: `planning/<slug>/DATA_<slug>.md`
 - 3-line summary (tables created, RLS posture, migration reversibility)
 - `[OPEN]` items needing a user decision (ambiguous retention window, unclear tenant key, FK on-delete ambiguity)
 
@@ -365,7 +367,7 @@ No SPEC/DECISIONS required. Schema is the input. Source priority: `--live` (pull
 
 ### Output
 
-Write `planning/AUDIT_DATA_<slug>.md`: a floor/integrity findings table (`object | issue | severity | fix`) PLUS the recovered field-bindings table (so the trio chains). Empty findings = PASS, state it.
+Write `planning/<slug>/AUDIT_DATA_<slug>.md`: a floor/integrity findings table (`object | issue | severity | fix`) PLUS the recovered field-bindings table (so the trio chains). Empty findings = PASS, state it.
 
 ```
 | object | issue | severity | fix |

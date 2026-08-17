@@ -2,7 +2,8 @@
 # resolve.sh - resolve a markdown doc into publish metadata for cfn-share.
 #
 # Inputs:
-#   $1  path to a .md file (optional). Omitted -> newest planning/PLAN_*.md.
+#   $1  path to a .md file (optional). Omitted -> newest PLAN_*.md, searching the
+#       per-plan dirs (planning/<slug>/) and the legacy flat planning/ root.
 # Outputs:
 #   stdout: JSON { file, abs, slug, title, sidecar, url, stale, lines }
 #   exit 0 = resolved, 1 = no usable target, 2 = usage/parse error
@@ -16,9 +17,12 @@ die() { echo "cfn-share: $*" >&2; exit "${2:-2}"; }
 TARGET="${1:-}"
 
 if [[ -z "$TARGET" ]]; then
-  # newest plan first, then any planning artifact
-  TARGET=$(ls -t planning/PLAN_*.md planning/MEGAPLAN*_*.md 2>/dev/null | head -1 || true)
-  [[ -n "$TARGET" ]] || die "no target given and no planning/PLAN_*.md found" 1
+  # Newest plan first, then any planning artifact. Megaplan writes each plan into
+  # its own directory (planning/<slug>/); older plans sit flat in planning/. Search
+  # both, newest wins.
+  TARGET=$(ls -t planning/*/PLAN_*.md planning/PLAN_*.md \
+              planning/*/MEGAPLAN*_*.md planning/MEGAPLAN*_*.md 2>/dev/null | head -1 || true)
+  [[ -n "$TARGET" ]] || die "no target given and no PLAN_*.md found in planning/<slug>/ or planning/" 1
 fi
 
 [[ -f "$TARGET" ]] || die "not a file: $TARGET" 1

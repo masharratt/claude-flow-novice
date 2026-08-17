@@ -8,7 +8,7 @@ status: production
 
 # CFN Share (plan handoff to non-terminal humans)
 
-**Purpose:** Close the last gap in the plan-file workflow. A `planning/PLAN_*.md` is
+**Purpose:** Close the last gap in the plan-file workflow. A `planning/<slug>/PLAN_<slug>.md` is
 perfect for agents and useless to paste into Slack. This skill renders it as a private
 hosted page with a stable URL, so a colleague reads it cleanly and comments, and their
 comments come back into the loop.
@@ -20,15 +20,18 @@ comments come back into the loop.
 ## Invocation
 
 ```
-/cfn-share                      # newest planning/PLAN_*.md
-/cfn-share planning/SPEC_x.md   # explicit file
+/cfn-share                              # newest PLAN_*.md (per-plan dirs + legacy flat)
+/cfn-share planning/x/SPEC_x.md         # explicit file
 /cfn-share docs/BUG_12_auth.md  # any project .md
 ```
 
 ## Inputs
 
 - `$1` (optional): path to a `.md` file. Omitted resolves to the newest
-  `planning/PLAN_*.md`, then `planning/MEGAPLAN*_*.md`.
+  `PLAN_*.md` / `MEGAPLAN*_*.md`, searched across the per-plan directories
+  megaplan writes (`planning/<slug>/`) AND the legacy flat `planning/` root.
+  The sidecar that pins the artifact URL is always written beside the doc, so
+  re-sharing a doc from either layout updates the same link.
 
 ## Outputs
 

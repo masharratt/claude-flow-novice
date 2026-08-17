@@ -6,11 +6,20 @@ allowed-tools: ["Task", "Read", "Write", "Bash", "Skill", "AskUserQuestion"]
 
 # CFN Spec (SPARC Phase 1)
 
-Standalone Specification phase. Produces `planning/SPEC_<task>.md` with functional requirements, NFRs, Gherkin acceptance criteria, ≥5 enumerated edge cases, pre/post conditions.
+Standalone Specification phase. Produces `planning/<slug>/SPEC_<slug>.md` with functional requirements, NFRs, Gherkin acceptance criteria, ≥5 enumerated edge cases, pre/post conditions.
 
 For any non-trivial build, prefer `/cfn-megaplan` (canonical pipeline: research, spec, decide, pseudo, data, arch, ux, design, test-plan, ops, gated by verifiable-done + haiku-executable). For the lighter spec+pseudo+arch chain with no tiering, use `/cfn-spa-plan`. Use this command when you only need the spec phase (e.g. drafting requirements for human review before deciding to build).
 
 **Task:** $ARGUMENTS
+
+## Pre-flight
+
+```bash
+SLUG=$(echo "$ARGUMENTS" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
+PDIR=$(.claude/skills/cfn-megaplan/lib/plan-paths.sh ensure "$SLUG")   # planning/<slug>, created if absent
+```
+
+Every artifact of one plan lives in `$PDIR`. Never write a plan doc loose in `planning/`.
 
 ## Execute
 
@@ -21,7 +30,7 @@ Skill: cfn-spec
 Args:  $ARGUMENTS
 ```
 
-Spawn the `specification-agent` (defined in `.claude/agents/cfn-dev-team/sparc/specification.md`) to produce the artifact. Write to `planning/SPEC_<sanitized-task>.md`.
+Spawn the `specification-agent` (defined in `.claude/agents/cfn-dev-team/sparc/specification.md`) to produce the artifact. Pass it `Plan dir: $PDIR` and write to `$PDIR/SPEC_${SLUG}.md`.
 
 ## Mandatory output checks
 

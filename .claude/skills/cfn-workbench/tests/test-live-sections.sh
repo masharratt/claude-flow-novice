@@ -195,8 +195,10 @@ else
   ok "gap render exit 0"
   assert_contains "gap: roster section id still present" "$OUT_GAP" 'id="sec-roster"'
   assert_contains "gap: events section id still present" "$OUT_GAP" 'id="sec-events"'
+  # The gap names the canonical per-plan location (planning/<slug>/), which is where
+  # the file SHOULD be, so the message doubles as the fix instruction.
   assert_contains "gap: run-plan gap message" "$OUT_GAP" \
-    "run plan (planning/run-plan-workbench_5col.json missing; roster skipped)"
+    "planning/workbench_5col/run-plan-workbench_5col.json missing; roster skipped)"
   assert_contains "gap: events gap message" "$OUT_GAP" \
     "events feed (no cfn-events-workbench_5col.jsonl)"
   # Empty-state cards, not a bare empty table.

@@ -58,7 +58,8 @@ Agent(
   description: "SPARC Spec phase",
   prompt: "Follow .claude/skills/cfn-spec/SKILL.md protocol exactly.
            Task: <user task>
-           Write artifact to: planning/SPEC_<sanitized>.md
+           Plan dir: planning/<sanitized>/ (create it if absent)
+           Write artifact to: planning/<sanitized>/SPEC_<sanitized>.md
            Use Read on the skill file first.
            Mandatory: enumerate >=5 edge cases.
            Return: artifact path + summary of any [OPEN] questions."
@@ -78,8 +79,9 @@ Agent(
   subagent_type: "pseudocode",  // resurrect from backups if missing
   description: "SPARC Pseudo phase",
   prompt: "Follow .claude/skills/cfn-pseudo/SKILL.md protocol.
-           Read input: planning/SPEC_<sanitized>.md
-           Write artifact: planning/PSEUDO_<sanitized>.md
+           Plan dir: planning/<sanitized>/
+           Read input: planning/<sanitized>/SPEC_<sanitized>.md
+           Write artifact: planning/<sanitized>/PSEUDO_<sanitized>.md
            Mandatory: branch coverage map, no [UNMAPPED] entries.
            Return: artifact path + unmapped branch count."
 )
@@ -88,8 +90,9 @@ Agent(
   subagent_type: "system-architect",
   description: "SPARC Arch phase",
   prompt: "Follow .claude/skills/cfn-arch/SKILL.md protocol.
-           Read inputs: planning/SPEC_<sanitized>.md and (if exists) planning/PSEUDO_<sanitized>.md
-           Write artifact: planning/ARCH_<sanitized>.md
+           Plan dir: planning/<sanitized>/
+           Read inputs: planning/<sanitized>/SPEC_<sanitized>.md and (if exists) planning/<sanitized>/PSEUDO_<sanitized>.md
+           Write artifact: planning/<sanitized>/ARCH_<sanitized>.md
            Mandatory: DRY audit via /codebase-search BEFORE designing new components.
            Mandatory: typed contracts at every component boundary.
            Return: artifact path + DRY audit summary (reuse/extend/new counts)."
@@ -105,7 +108,7 @@ After both complete:
 
 ### Step 4: Synthesis Summary
 
-Write `planning/SPA_SUMMARY_<sanitized>.md`:
+Write `planning/<sanitized>/SPA_SUMMARY_<sanitized>.md`:
 
 ```markdown
 # SPA Bundle: <task>
@@ -113,9 +116,9 @@ Write `planning/SPA_SUMMARY_<sanitized>.md`:
 **Generated:** <date>
 
 ## Artifacts
-- Spec:  planning/SPEC_<sanitized>.md
-- Pseudo: planning/PSEUDO_<sanitized>.md
-- Arch:  planning/ARCH_<sanitized>.md
+- Spec:  planning/<sanitized>/SPEC_<sanitized>.md
+- Pseudo: planning/<sanitized>/PSEUDO_<sanitized>.md
+- Arch:  planning/<sanitized>/ARCH_<sanitized>.md
 
 ## Counts
 - Functional requirements: N

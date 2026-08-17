@@ -27,11 +27,11 @@ Skip only for: backend-only changes, CLI tools, or any surface with no visual ou
 ## Input
 
 Required:
-- `planning/UX_<slug>.md` — the interaction design. You build on its field-to-control map, screen state table, flows, and a11y hooks. Refuse to run without it: there is nothing to dress.
+- `planning/<slug>/UX_<slug>.md` — the interaction design. You build on its field-to-control map, screen state table, flows, and a11y hooks. Refuse to run without it: there is nothing to dress.
 
 Authoritative when present:
-- `planning/SPEC_<slug>.md` — screens, acceptance criteria, brand / audience constraints.
-- `planning/ARCH_<slug>.md` — internal component boundaries and any external integration declared there. The API contract you design here extends ARCH's external-integration section outward to the wire shape the UI calls.
+- `planning/<slug>/SPEC_<slug>.md` — screens, acceptance criteria, brand / audience constraints.
+- `planning/<slug>/ARCH_<slug>.md` — internal component boundaries and any external integration declared there. The API contract you design here extends ARCH's external-integration section outward to the wire shape the UI calls.
 
 From the orchestrator you also receive:
 - **Tier** — `mvp` | `beta` | `enterprise`.
@@ -183,15 +183,17 @@ Pinned output format (one row per string):
 
 ## Output
 
-Write to: `planning/DESIGN_<slug>.md`
+**Artifact location.** Every artifact of one plan lives in that plan's own directory, `planning/<slug>/`. Under `/cfn-megaplan`, `/cfn-megaplan-lite`, or `/cfn-spa-plan` the orchestrator hands you the exact path plus a `Plan dir:` line — write there, and read the input paths it gives you verbatim. Invoked standalone, read with `.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> <basename>` (per-plan dir first, legacy flat `planning/` second) and write to `planning/<slug>/`. Never split one plan across two locations.
+
+Write to: `planning/<slug>/DESIGN_<slug>.md`
 
 Template:
 ```markdown
 # Visual + System Design: <task>
 
 **Date:** <YYYY-MM-DD>
-**UX:** planning/UX_<slug>.md
-**Spec:** planning/SPEC_<slug>.md   **Arch:** planning/ARCH_<slug>.md
+**UX:** planning/<slug>/UX_<slug>.md
+**Spec:** planning/<slug>/SPEC_<slug>.md   **Arch:** planning/<slug>/ARCH_<slug>.md
 **Tier:** <mvp|beta|enterprise>   **Directive:** <full|light>
 **Status:** draft | reviewed | locked
 
@@ -285,7 +287,7 @@ Reuse 7 / extend 1 / new 0. Zero new components: the design system already cover
 ## Return (to orchestrator)
 
 Return exactly:
-- Artifact path: `planning/DESIGN_<slug>.md`
+- Artifact path: `planning/<slug>/DESIGN_<slug>.md`
 - A 3-line summary (reuse/extend/new counts, screens specced, a11y tier + whether i18n + the API contract path).
 - Any `[OPEN]` items needing a user decision (e.g. missing token, undecided breakpoint behavior, contract version strategy).
 

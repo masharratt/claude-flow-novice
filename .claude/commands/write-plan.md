@@ -10,14 +10,14 @@ Generate structured implementation plan BEFORE executing CFN Loop. Outputs plan 
 
 🎯 **Use this BEFORE /cfn-loop-task** (default CFN Loop execution)
 
-> **Invoked internally by `/cfn-megaplan`.** Megaplan is the canonical planning entry point: it runs the full tiered DAG (research, spec, decide, pseudo, data, arch, ux, design, test-plan, ops) and calls `/write-plan` plus `/cfn-plan-review` for you, so under megaplan the `planning/` dir also holds DATA/UX/DESIGN/OPS/TEST/DECISIONS/RESEARCH artifacts beyond SPEC/PSEUDO/ARCH. Run `/write-plan` standalone only when iterating an existing plan, or after the lighter `/cfn-spa-plan` sub-pipeline (spec+pseudo+arch only, no tiering).
+> **Invoked internally by `/cfn-megaplan`.** Megaplan is the canonical planning entry point: it runs the full tiered DAG (research, spec, decide, pseudo, data, arch, ux, design, test-plan, ops) and calls `/write-plan` plus `/cfn-plan-review` for you, so under megaplan the plan's own directory (`planning/<slug>/`) also holds DATA/UX/DESIGN/OPS/TEST/DECISIONS/RESEARCH artifacts beyond SPEC/PSEUDO/ARCH. Run `/write-plan` standalone only when iterating an existing plan, or after the lighter `/cfn-spa-plan` sub-pipeline (spec+pseudo+arch only, no tiering).
 
 **Task**: $ARGUMENTS
 
 ## What This Does
 
 **Pre-planning phase for CFN Loop:**
-0a. **Design pre-plan (REQUIRED for non-trivial work):** the design artifacts come from `/cfn-megaplan` (canonical) or the lighter `/cfn-spa-plan` (spec+pseudo+arch only). At minimum this command needs `planning/SPEC_*.md`, `PSEUDO_*.md`, `ARCH_*.md`; under megaplan additional artifacts (DATA/UX/DESIGN/OPS/TEST/DECISIONS/RESEARCH) also exist and are consumed when present. This command auto-detects all of them. If the core SPA trio is missing for non-trivial work (multi-file, shared state, new feature), warn and recommend running `/cfn-megaplan` (or `/cfn-spa-plan`) first.
+0a. **Design pre-plan (REQUIRED for non-trivial work):** the design artifacts come from `/cfn-megaplan` (canonical) or the lighter `/cfn-spa-plan` (spec+pseudo+arch only). At minimum this command needs `SPEC_<slug>.md`, `PSEUDO_<slug>.md`, `ARCH_<slug>.md` — resolved from `planning/<slug>/` first, then legacy flat `planning/` (Step 0); under megaplan additional artifacts (DATA/UX/DESIGN/OPS/TEST/DECISIONS/RESEARCH) also exist and are consumed when present. This command auto-detects all of them. If the core SPA trio is missing for non-trivial work (multi-file, shared state, new feature), warn and recommend running `/cfn-megaplan` (or `/cfn-spa-plan`) first.
 0b. **GOAP goal modeling** (optional): run `/cfn-goap-plan` to define goal state, derive optimal action sequence via A*, surface assumptions.
 1. Analyzes task complexity
 2. Selects appropriate agents
@@ -56,22 +56,27 @@ Use `/cfn-loop-cli` only when external API billing required (e.g. delegating to 
 
 Before analyzing, check for the design bundle. The core trio (SPEC/PSEUDO/ARCH) comes from either `/cfn-megaplan` (canonical) or the lighter `/cfn-spa-plan`. Under megaplan, additional artifacts (DATA/UX/DESIGN/OPS/TEST/DECISIONS/RESEARCH) also exist. Build sanitized task slug, then probe:
 
+**Where the artifacts live.** `/cfn-megaplan` and `/cfn-megaplan-lite` put every artifact of one plan in a per-plan directory, `planning/<slug>/`. Older plans (and `/cfn-spa-plan`) sit flat in `planning/`. Never probe for either layout by hand — `plan-paths.sh resolve` checks nested first, flat second, and is the single source of truth for the layout:
+
 ```bash
+PP=.claude/skills/cfn-megaplan/lib/plan-paths.sh
 SLUG=$(echo "$ARGUMENTS" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
-SPEC="planning/SPEC_${SLUG}.md"
-PSEUDO="planning/PSEUDO_${SLUG}.md"
-ARCH="planning/ARCH_${SLUG}.md"
+PDIR=$("$PP" dir "$SLUG")                 # planning/<slug> — where THIS run writes
+# prints the resolved path, or nothing + non-zero when neither layout has it
+find_art() { local p; p=$("$PP" resolve "$SLUG" "$1_${SLUG}.md" 2>/dev/null) || return 1; printf '%s\n' "$p"; }
+
+SPEC=$(find_art SPEC || true);  PSEUDO=$(find_art PSEUDO || true);  ARCH=$(find_art ARCH || true)
 
 SPA_FOUND=0
-[ -f "$SPEC" ]   && SPA_FOUND=$((SPA_FOUND+1))
-[ -f "$PSEUDO" ] && SPA_FOUND=$((SPA_FOUND+1))
-[ -f "$ARCH" ]   && SPA_FOUND=$((SPA_FOUND+1))
+for F in "$SPEC" "$PSEUDO" "$ARCH"; do [ -n "$F" ] && SPA_FOUND=$((SPA_FOUND+1)); done
 
 # Optional megaplan artifacts (present when invoked under /cfn-megaplan)
 for KIND in DATA UX DESIGN OPS TEST DECISIONS RESEARCH; do
-  [ -f "planning/${KIND}_${SLUG}.md" ] && echo "found planning/${KIND}_${SLUG}.md"
+  P=$(find_art "$KIND") && echo "found $P"
 done
 ```
+
+An absent optional artifact stays silent, exactly as before. `$SPEC`/`$PSEUDO`/`$ARCH` are empty when missing, so the three branches below read unchanged.
 
 **Three branches:**
 
@@ -112,11 +117,11 @@ Task("planner", "
 
   SPA BUNDLE (authoritative source of truth):
   --- SPEC ---
-  <contents of planning/SPEC_<slug>.md>
+  <contents of planning/<slug>/SPEC_<slug>.md>
   --- PSEUDO ---
-  <contents of planning/PSEUDO_<slug>.md>
+  <contents of planning/<slug>/PSEUDO_<slug>.md>
   --- ARCH ---
-  <contents of planning/ARCH_<slug>.md>
+  <contents of planning/<slug>/ARCH_<slug>.md>
   --- OPTIONAL MEGAPLAN ARTIFACTS (inject each found: DATA/UX/DESIGN/OPS/TEST/DECISIONS/RESEARCH) ---
   <contents>
 
@@ -132,7 +137,7 @@ Task("planner", "
        accessibility NFR -> accessibility-advocate-persona; observability NFR -> devops-engineer
 
   3. Test Binding (TDD):
-     - If planning/TEST_<slug>.md exists: inherit its Phase 6 table verbatim into the plan's TDD Sequence;
+     - If planning/<slug>/TEST_<slug>.md exists: inherit its Phase 6 table verbatim into the plan's TDD Sequence;
        do NOT invent new test cases.
      - Otherwise: ONE failing test per SPEC edge case (EC-1..EC-N) + ONE per acceptance criterion; no skipping.
      - Every implementation step binds to exactly one failing test (see plan structure, Step 2).
@@ -152,7 +157,7 @@ Task("planner", "
   6. Bar B self-check: verify every step against the 8-item specificity checklist (files, signatures,
      UI controls, value sources, branches, weasel words, states, errors) before writing the file.
 
-  OUTPUT: planning/PLAN_<slug>.md
+  OUTPUT: planning/<slug>/PLAN_<slug>.md
   CROSS-REFERENCE: Plan must cite SPEC/PSEUDO/ARCH file paths in every section.
 ")
 ```
@@ -202,7 +207,7 @@ Task("planner", "
   6. Bar B self-check: verify every step against the 8-item specificity checklist (files, signatures,
      UI controls, value sources, branches, weasel words, states, errors) before writing the file.
 
-  OUTPUT: planning/PLAN_<slug>.md
+  OUTPUT: planning/<slug>/PLAN_<slug>.md
 ")
 ```
 
@@ -235,7 +240,7 @@ Task("planner", "
 
 ## Assembly Rule
 
-When megaplan artifacts exist (TEST/OPS/etc. in planning/), this plan is an ASSEMBLY document: the step table below + the inherited TEST tables + the OPS integration rows + the risk register. Do not author freehand Red/Green/Refactor phases or prose deliverables; the tables below replace them entirely.
+When megaplan artifacts exist (TEST/OPS/etc. in the plan dir `planning/<slug>/`), this plan is an ASSEMBLY document: the step table below + the inherited TEST tables + the OPS integration rows + the risk register. Do not author freehand Red/Green/Refactor phases or prose deliverables; the tables below replace them entirely.
 
 ### Phase 2: Green (Implementation Steps)
 Every step MUST fill every column. A step missing a file path, signature, or verification command is invalid (Bar B haiku-executable rejects it). One step = one file where possible; never more than 3 files per step.
@@ -252,13 +257,13 @@ Every step MUST fill every column. A step missing a file path, signature, or ver
 
 Banned in any cell (Produces/Consumes included): "appropriately", "as needed", "handle", "the relevant file", "the relevant export", "a helper that", "TBD", "etc". A Produces/Consumes cell is either a concrete `<path>`/`<path>:<symbol>` list or `-`.
 
-## Ops Integration Tasks (required if planning/OPS_<slug>.md exists)
+## Ops Integration Tasks (required if planning/<slug>/OPS_<slug>.md exists)
 
 One implementation-step row (same schema as above) for each of: the feature flag wrapper (OPS section 3: flag name, default off); EVERY log line / metric from OPS section 2 (emit steps; runtime-observed ACs in TEST section 3 depend on them - an AC asserting a log line with no emit step here is a plan defect); the down-migration file (OPS section 6). If OPS exists and this section is empty, the plan is incomplete.
 
 ## TDD Sequence (per step, mechanical)
 
-If planning/TEST_<slug>.md exists: copy its Phase 6 table here verbatim and bind each row to a step # from Implementation Steps. Do NOT invent new test cases. If it does not exist, produce the same table shape yourself.
+If planning/<slug>/TEST_<slug>.md exists: copy its Phase 6 table here verbatim and bind each row to a step # from Implementation Steps. Do NOT invent new test cases. If it does not exist, produce the same table shape yourself.
 
 | Step # | Failing test written FIRST (file::case) | Red command (must exit non-zero) | Green command (must exit 0 after step) | Runnable-at (unit/wiring/assembled/runtime-observed) |
 |---|---|---|---|---|
@@ -277,7 +282,7 @@ Execution rule per step: (1) write test, (2) coordinator runs Red command, confi
 
 | Deliverable | Check command | Pass condition |
 |---|---|---|
-| all AC checks green | (inherit planning/TEST_<slug>.md section 3 table by reference) | every row green |
+| all AC checks green | (inherit planning/<slug>/TEST_<slug>.md section 3 table by reference) | every row green |
 | types compile | `tsc --noEmit 2>&1 | tee "$OUT"` | exit 0 |
 | security gate | /cfn-security-review manifest | 0 high findings |
 
@@ -321,8 +326,13 @@ Technical risks and dependency risks both live here. A risk with no mitigation A
 
 ### Step 3: Output Plan
 
+The plan is written into the plan's own directory, `planning/<slug>/PLAN_<slug>.md` — the same `$PDIR` every other artifact of this plan lives in (Step 0). Never write it loose in `planning/`: `/cfn-loop-task` and `/cfn-megaplan`'s persistence gate both look for it under the plan dir first, and a loose copy is what splits one plan across two locations.
+
 ```javascript
-const planPath = `planning/PLAN_${sanitize($ARGUMENTS)}.md`;
+const slug = sanitize($ARGUMENTS);
+// planning/<slug>/, created if absent — mirrors `plan-paths.sh write <slug> PLAN_<slug>.md`
+const planDir = `planning/${slug}`;
+const planPath = `${planDir}/PLAN_${slug}.md`;
 Write(planPath, planContent);
 
 console.log(`✅ Implementation plan generated: ${planPath}`);
@@ -346,21 +356,21 @@ console.log(`/cfn-loop-task "$ARGUMENTS" --mode=${mode}`);
     ↓ Tiered DAG: research → spec → decide/pseudo → data → arch/ux → design/test-plan/ops
     ↓ Calls /write-plan and /cfn-plan-review internally, gated by
     ↓ verifiable-done + haiku-executable bars
-    ↓ Emits planning/{RESEARCH,SPEC,DECISIONS,PSEUDO,DATA,ARCH,UX,DESIGN,TEST,OPS,PLAN}_*.md
+    ↓ Emits planning/<slug>/{RESEARCH,SPEC,DECISIONS,PSEUDO,DATA,ARCH,UX,DESIGN,TEST,OPS,PLAN}_<slug>.md
 
 (or the lighter no-tiering path, spec+pseudo+arch only:)
 
 0a. /cfn-spa-plan "Task description"  (lighter sub-pipeline; megaplan supersedes it)
-    ↓ Generates planning/SPEC_*.md, PSEUDO_*.md, ARCH_*.md
+    ↓ Generates planning/<slug>/SPEC_<slug>.md, PSEUDO_<slug>.md, ARCH_<slug>.md
     ↓ Edge cases enumerated, branch coverage mapped, DRY audited
 
 0b. /cfn-goap-plan  (optional bookend, for complex multi-step goals)
     ↓ Models goal state, derives A* action sequence
 
 1.  /write-plan "Task description" --mode=beta
-    ↓ Auto-detects design bundle in planning/ and consumes it
+    ↓ Auto-detects the design bundle (planning/<slug>/, then legacy flat planning/) and consumes it
     ↓ (standalone path: run when iterating an existing plan)
-    ↓ Generates planning/PLAN_task.md
+    ↓ Generates planning/task/PLAN_task.md
 
 2.  /cfn-plan-review  (data, APIs, shared state)
     ↓ Dependency trace, blast radius, gap analysis
@@ -389,7 +399,7 @@ Coverage is measured as AC-check rows green per the VERIFY manifest, never as a 
 ```
 Analyzing task...
 
-✅ Implementation plan generated: planning/PLAN_jwt_authentication.md
+✅ Implementation plan generated: planning/jwt_authentication/PLAN_jwt_authentication.md
 
 📋 Plan Summary:
 - Complexity: Standard

@@ -23,10 +23,12 @@
 #                        (loosen the predicate until the code satisfies it), so
 #                        it is never folded into "just check text".
 #
-# Usage:  bless-verify.sh <planning/VERIFY_<slug>.md> [--note "<why>"]
-# Writes: planning/.VERIFY_<slug>.sha256        (integrity sidecar)
-#         planning/.VERIFY_<slug>.blessed.json  (manifest snapshot, for diffing)
-#         planning/.VERIFY_<slug>.bless.json    (append-only bless ledger)
+# Usage:  bless-verify.sh <planning/<slug>/VERIFY_<slug>.md> [--note "<why>"]
+# Writes (always beside the manifest, derived from its own dir + basename, so this
+# works unchanged for a per-plan dir and for a legacy flat planning/ layout):
+#         <dir>/.VERIFY_<slug>.sha256        (integrity sidecar)
+#         <dir>/.VERIFY_<slug>.blessed.json  (manifest snapshot, for diffing)
+#         <dir>/.VERIFY_<slug>.bless.json    (append-only bless ledger)
 # Exit:   0 = blessed
 #         1 = refused (Bar A static findings) — sidecar left untouched
 #         2 = usage / file-not-found / jq-missing / no json manifest block
@@ -53,7 +55,7 @@ case "$STAGE" in
 esac
 
 if [ -z "$VERIFY" ]; then
-  echo 'usage: bless-verify.sh <planning/VERIFY_<slug>.md> [--stage plan|exit] [--note "<why>"]' >&2
+  echo 'usage: bless-verify.sh <planning/<slug>/VERIFY_<slug>.md> [--stage plan|exit] [--note "<why>"]' >&2
   exit 2
 fi
 [ -f "$VERIFY" ] || { echo "error: file not found: $VERIFY" >&2; exit 2; }

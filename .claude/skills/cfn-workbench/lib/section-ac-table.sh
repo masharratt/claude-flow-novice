@@ -1,5 +1,5 @@
 #!/bin/bash
-# lib/section-ac-table.sh - AC table from planning/VERIFY_<slug>.md.
+# lib/section-ac-table.sh - AC table from planning/<slug>/VERIFY_<slug>.md.
 #
 # F3 (REVIEW FINDING): workbench is the FIRST consumer of the markdown AC table.
 # Headers vary across the repo (3/5/8/9 cols). This parser reads by HEADER NAME,
@@ -27,17 +27,21 @@
 section_ac_table() {
   local slug="${WORKBENCH_SLUG:-}"
   local root="${WORKBENCH_ROOT:-.}"
-  local verify_md="$root/planning/VERIFY_${slug}.md"
-  local results_json="$root/planning/VERIFY_RESULTS_${slug}.json"
+  local verify_md results_json
+  verify_md="$(plan_path "$root" "$slug" "VERIFY_${slug}.md")" || true
+  results_json="$(plan_path "$root" "$slug" "VERIFY_RESULTS_${slug}.json")" || true
 
   if [[ ! -f "$verify_md" ]]; then
     record_gap "VERIFY_${slug}.md (AC table source)"
+    # Show the path root-relative: $root can be a mktemp scratch dir, and the page
+    # must never leak one (same rule as the recorded invocation in render.sh).
+    local verify_display="${verify_md#"$root"/}"
     cat <<EOF
 <section class="card" id="sec-ac">
 <span class="section-kicker">Definition of done</span>
 <h2>Acceptance criteria</h2>
 <hr class="hr"/>
-<p class="empty">No VERIFY doc found at $(html_escape "planning/VERIFY_${slug}.md").</p>
+<p class="empty">No VERIFY doc found at $(html_escape "${verify_display}").</p>
 </section>
 EOF
     return

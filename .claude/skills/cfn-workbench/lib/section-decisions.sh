@@ -2,7 +2,7 @@
 # lib/section-decisions.sh - Decisions ledger section for cfn-workbench.
 #
 # Renders decisions recorded for this run from a per-run ledger file:
-#   <root>/planning/.VERIFY_<slug>.decisions.json
+#   <root>/planning/<slug>/.VERIFY_<slug>.decisions.json (legacy: <root>/planning/)
 # Field names mirror the decision-log `decisions` table plus two run-scoped
 # fields (actor, iteration). A missing file or empty array is a normal empty
 # state, NOT a data gap (the source is fully optional).
@@ -11,7 +11,7 @@
 section_decisions() {
   local slug="${WORKBENCH_SLUG:-}"
   local root="${WORKBENCH_ROOT:-}"
-  local ledger="$root/planning/.VERIFY_${slug}.decisions.json"
+  local ledger; ledger="$(plan_path "$root" "$slug" ".VERIFY_${slug}.decisions.json")" || true
 
   printf '<section class="card" id="sec-decisions">'
   printf '<span class="section-kicker">Run log</span>'

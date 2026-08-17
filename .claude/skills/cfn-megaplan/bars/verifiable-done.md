@@ -140,9 +140,9 @@ Backfilling is mechanical, not a paste job — the exit-gate run already execute
 every check, so its recorded output is the evidence:
 
 ```bash
-verify-run.sh backfill-evidence --results planning/VERIFY_RESULTS_${SLUG}.json \
-                                --verify  planning/VERIFY_${SLUG}.md
-bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" --stage exit --note "exit gate: evidence backfilled"
+verify-run.sh backfill-evidence --results ${PDIR}/VERIFY_RESULTS_${SLUG}.json \
+                                --verify  ${PDIR}/VERIFY_${SLUG}.md
+bars/bless-verify.sh "${PDIR}/VERIFY_${SLUG}.md" --stage exit --note "exit gate: evidence backfilled"
 ```
 
 Only **green** rows are backfilled. A red row's output is evidence the check
@@ -187,7 +187,7 @@ migration-rehearsal  perf  a11y  security
 
 1. Parse every AC row from the plan.
 
-1.5. **Mechanical static pass (mandatory, BEFORE the LLM gate report).** After the VERIFY file is drafted, run `bars/check-verifiable-static.sh planning/VERIFY_<slug>.md`. It parses the LAST fenced json manifest and mechanically checks: every AC has id/check/kind/pass/maps_to; each `check` matches the taxonomy form for its `kind`; each `pass` is decidable (comparison op / quoted literal / row count / exit code / exact string) and not a banned weasel/shallow phrase; and coverage counters are internally consistent (see coverage keys below). Exit 0 = clean or warnings only, exit 1 = error findings, exit 2 = usage/parse. **Any error-severity finding FAILS the gate** and routes back to the owning phase — do not hand-write this scan, the script is the single source of the static pass. The LLM gate report (step 6a) runs only after the script is clean.
+1.5. **Mechanical static pass (mandatory, BEFORE the LLM gate report).** After the VERIFY file is drafted, run `bars/check-verifiable-static.sh planning/<slug>/VERIFY_<slug>.md`. It parses the LAST fenced json manifest and mechanically checks: every AC has id/check/kind/pass/maps_to; each `check` matches the taxonomy form for its `kind`; each `pass` is decidable (comparison op / quoted literal / row count / exit code / exact string) and not a banned weasel/shallow phrase; and coverage counters are internally consistent (see coverage keys below). Exit 0 = clean or warnings only, exit 1 = error findings, exit 2 = usage/parse. **Any error-severity finding FAILS the gate** and routes back to the owning phase — do not hand-write this scan, the script is the single source of the static pass. The LLM gate report (step 6a) runs only after the script is clean.
 
 2. For each AC: assert `check` is non-empty AND matches one check-taxonomy form AND `pass condition` is a decidable predicate (no "appropriately", "as needed", "etc").
 3. Assert every SPEC functional requirement (FR-n) and edge case (EC-n) maps to ≥1 AC.
@@ -204,7 +204,7 @@ migration-rehearsal  perf  a11y  security
    - If SPEC marks **no** FR `[core]`, FAIL with `no_core_flag` (spec must mark the mechanism, or explicitly declare "no core mechanism" with reason).
    - **Out-of-band core mechanisms** (a `[core]` FR whose trigger fires in a spawned worker, cron job, queue consumer, or any async path that a caller does not directly await) require the **runtime-observed** assembled-path form: the `signal` column must name a concrete runtime signal (log line, telemetry/metric event, or audit row) that the check asserts for the test's own input. This is the codified equivalent of watching the feature work in the logs. An empty `signal` is accepted for synchronous core paths but WARNs for out-of-band ones (`runtime_signal_missing`).
 5. **FAIL the plan** if any AC has no executable check, any FR/EC is unmapped, any pass condition is non-decidable, or any `[core]` FR lacks a clean assembled-path AC (step 4).
-6. Produce the **gate report** (step 6a), then emit `planning/VERIFY_<slug>.md` in the pinned layout below.
+6. Produce the **gate report** (step 6a), then emit `planning/<slug>/VERIFY_<slug>.md` (the plan's own directory, `$PDIR`) in the pinned layout below.
 
 6a. **Gate report (required before emitting VERIFY).** Produce a gate report table with exactly one row per AC:
 
@@ -212,7 +212,7 @@ migration-rehearsal  perf  a11y  security
 | AC-id | check_form_matched (taxonomy kind or NONE) | pass_decidable (Y/N + failing phrase) | maps_to | core_rule (ok/wiring_stub/self_seed/shallow/n-a) |
 ```
 
-Any non-clean cell (check_form_matched NONE, pass_decidable N, empty maps_to, core_rule other than ok or n-a) = FAIL. The report is appended to `planning/VERIFY_<slug>.md`. **A PASS verdict without this table is invalid.**
+Any non-clean cell (check_form_matched NONE, pass_decidable N, empty maps_to, core_rule other than ok or n-a) = FAIL. The report is appended to `planning/<slug>/VERIFY_<slug>.md`. **A PASS verdict without this table is invalid.**
 
 **Flag-tautology resolution (required whenever `check-verifiable-static.sh` emits a `warn`-severity finding on a `wiring-guard` AC).** For each such WARN, the gate report adds one line confirming, by reading the actual flag default in config/env: "flag `<NAME>` defaults `<value>`; guard runs unconditionally / guard is gated on this flag and therefore IS a tautology." A tautology found here is a hard FAIL of that AC's `core_rule` cell (mark it `wiring_stub`), even though the static script only warned — this is the one rule this bar deliberately keeps LLM-judged rather than mechanized (see rule (e) above).
 
@@ -220,14 +220,14 @@ Any non-clean cell (check_form_matched NONE, pass_decidable N, empty maps_to, co
 
 `VERIFY_<slug>.md` = (1) markdown AC table, (2) gate report table, (3) the JSON manifest in a fenced ```json block as the FINAL element of the file. Consumers parse the LAST fenced json block. `cfn-loop-task` Step 0 consumes this file as its completion gate.
 
-**Integrity sidecar `planning/.VERIFY_<slug>.sha256`.** After Bar A PASSES (including the mechanical static pass, step 1.5), the orchestrator blesses the validated file. **Blessing is done ONLY through `bars/bless-verify.sh`** — never by writing the sidecar by hand:
+**Integrity sidecar `planning/<slug>/.VERIFY_<slug>.sha256`** (always beside its manifest — `bless-verify.sh` derives every sidecar path from the file's own directory, so nothing changes for a legacy flat plan)**.** After Bar A PASSES (including the mechanical static pass, step 1.5), the orchestrator blesses the validated file. **Blessing is done ONLY through `bars/bless-verify.sh`** — never by writing the sidecar by hand:
 
 ```bash
-./.claude/skills/cfn-megaplan/bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" \
+./.claude/skills/cfn-megaplan/bars/bless-verify.sh "${PDIR}/VERIFY_${SLUG}.md" \
   --note "Bar A pass, first bless"
 ```
 
-The script (1) re-runs `check-verifiable-static.sh` and REFUSES to pin anything if there is a single error-severity finding, (2) writes the sha256 sidecar in the same path/format as before, and (3) appends a bless-ledger entry to `planning/.VERIFY_<slug>.bless.json` plus a manifest snapshot in `planning/.VERIFY_<slug>.blessed.json`.
+The script (1) re-runs `check-verifiable-static.sh` and REFUSES to pin anything if there is a single error-severity finding, (2) writes the sha256 sidecar in the same path/format as before, and (3) appends a bless-ledger entry to `planning/<slug>/.VERIFY_<slug>.bless.json` plus a manifest snapshot in `planning/<slug>/.VERIFY_<slug>.blessed.json`.
 
 The hash pins the exact validated bytes. `cfn-loop-task` Step 0 recomputes it and REFUSES to run if the manifest was edited after Bar A (a post-gate manifest edit is a way to game the done verdict); `verify-run.sh` enforces the same independently (exit 4 on mismatch, missing sidecar = warn for pre-hash-era files).
 

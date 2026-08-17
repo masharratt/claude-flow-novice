@@ -9,7 +9,7 @@
 #   - no identifier is Produced by two different steps (duplicate producer -> error)
 #   - each Consumes identifier matches some Produces identifier, else dangling (-> warn)
 #
-# Usage:  check-produce-consume.sh <planning/PLAN_<slug>.md>
+# Usage:  check-produce-consume.sh <planning/<slug>/PLAN_<slug>.md>
 # Output: JSON findings array on stdout:
 #           [{"file":"...","ac_id":"<step>","field":"produces|consumes","issue":"...","severity":"error|warn"}]
 #         Empty array [] when clean OR when the plan has no Produces/Consumes columns (pre-feature plan).
@@ -23,7 +23,7 @@ PHRASE_FILE="$SCRIPT_DIR/weasel-phrases.txt"
 
 PLAN="${1:-}"
 if [ -z "$PLAN" ]; then
-  echo 'usage: check-produce-consume.sh <planning/PLAN_<slug>.md>' >&2
+  echo 'usage: check-produce-consume.sh <planning/<slug>/PLAN_<slug>.md>' >&2
   exit 2
 fi
 if [ ! -f "$PLAN" ]; then

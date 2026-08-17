@@ -1,7 +1,7 @@
 #!/bin/bash
 # lib/section-roster.sh - lane roster section for cfn-workbench.
 #
-# Run-plan file: <root>/planning/run-plan-<slug>.json
+# Run-plan file: <root>/planning/<slug>/run-plan-<slug>.json (legacy: <root>/planning/)
 #   {"slug":"...","generated_at":"ISO8601","phases":["Phase 2","Phase 3"],
 #    "lanes":[{"id":"frontend","name":"Frontend UI","phase":"Phase 2"}]}
 # lanes[].id is required; name/phase are optional (fall back to id / "-").
@@ -44,7 +44,7 @@ _wb_lane_spawned_ts() {
 section_roster() {
   local slug="${WORKBENCH_SLUG:-}"
   local root="${WORKBENCH_ROOT:-.}"
-  local run_plan="${root}/planning/run-plan-${slug}.json"
+  local run_plan; run_plan="$(plan_path "$root" "$slug" "run-plan-${slug}.json")" || true
 
   printf '<style>'
   printf '.lane-landed,.lane-inflight,.lane-pending{display:inline-block;padding:2px 8px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;letter-spacing:.01em;border-left:3px solid transparent;white-space:nowrap;}'
@@ -60,7 +60,8 @@ section_roster() {
 
   if [[ -z "$slug" || ! -f "$run_plan" ]] \
      || ! jq -e '.lanes | type == "array"' "$run_plan" >/dev/null 2>&1; then
-    record_gap "run plan (planning/run-plan-${slug}.json missing; roster skipped)"
+    # Root-relative: $root can be a mktemp scratch dir and the page must not leak one.
+    record_gap "run plan (${run_plan#"$root"/} missing; roster skipped)"
     printf '<p class="empty">No lane roster available for this run.</p>'
     printf '</section>'
     return

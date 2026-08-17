@@ -23,8 +23,8 @@ Skip only for: tasks confined to a single existing function with no new interfac
 ## Input
 
 Required:
-- `planning/SPEC_<task>.md`
-- `planning/PSEUDO_<task>.md`
+- `planning/<slug>/SPEC_<slug>.md`
+- `planning/<slug>/PSEUDO_<slug>.md`
 
 Refuse to run if either missing or in `draft` status with unresolved gaps.
 
@@ -257,15 +257,17 @@ When run inside `cfn-megaplan`, defer detail to the dedicated phases to avoid du
 
 ## Output
 
-Write to: `planning/ARCH_<sanitized-task-name>.md`
+**Artifact location.** Every artifact of one plan lives in that plan's own directory, `planning/<slug>/`. Under `/cfn-megaplan`, `/cfn-megaplan-lite`, or `/cfn-spa-plan` the orchestrator hands you the exact path plus a `Plan dir:` line — write there, and read the input paths it gives you verbatim. Invoked standalone, read with `.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> <basename>` (per-plan dir first, legacy flat `planning/` second) and write to `planning/<slug>/`. Never split one plan across two locations.
+
+Write to: `planning/<slug>/ARCH_<slug>.md`
 
 Template:
 ```markdown
 # Architecture: <task>
 
 **Date:** <YYYY-MM-DD>
-**Spec:** planning/SPEC_<task>.md
-**Pseudo:** planning/PSEUDO_<task>.md
+**Spec:** planning/<slug>/SPEC_<slug>.md
+**Pseudo:** planning/<slug>/PSEUDO_<slug>.md
 **Status:** draft | reviewed | locked
 
 ## 0. DRY Audit
@@ -390,7 +392,7 @@ No SPEC/PSEUDO required. Code is the input.
 
 ### Output
 
-Write `planning/AUDIT_ARCH_<slug>.md`: findings table (`file:line | concern | rule | severity | fix`). Empty = PASS, state it. Third leg of the reverse trio after `cfn-data --review` and `cfn-ux --review`.
+Write `planning/<slug>/AUDIT_ARCH_<slug>.md`: findings table (`file:line | concern | rule | severity | fix`). Empty = PASS, state it. Third leg of the reverse trio after `cfn-data --review` and `cfn-ux --review`.
 
 ## Anti-Patterns
 

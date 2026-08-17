@@ -47,7 +47,7 @@ section_header() {
       verdict="aborted"
     else
       # Check for a bless ledger verdict.
-      local bless="$root/planning/.VERIFY_${slug}.bless.json"
+      local bless; bless="$(plan_path "$root" "$slug" ".VERIFY_${slug}.bless.json")" || true
       if [[ -f "$bless" ]]; then
         local bv
         bv="$(jq -r '.verdict // empty' "$bless" 2>/dev/null)"

@@ -1,7 +1,7 @@
 # State Machine: `decision` entity
 
 Entity: `decision`. One element of
-`planning/.VERIFY_<slug>.decisions.json#decisions[]`, mirrored as one row in
+`planning/<slug>/.VERIFY_<slug>.decisions.json#decisions[]`, mirrored as one row in
 the SQLite `decisions` table (LOCKED `decision-log/schema.sql`).
 
 This document mirrors ARCH §9 verbatim. It is the single source of truth for

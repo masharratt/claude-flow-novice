@@ -6,9 +6,9 @@ allowed-tools: ["Task", "Read", "Write", "Bash", "Skill", "AskUserQuestion"]
 
 # CFN Pseudo (SPARC Phase 2)
 
-Standalone Pseudocode phase. Produces `planning/PSEUDO_<task>.md` with operation map, language-neutral pseudocode, branch coverage map (no `[UNMAPPED]`), complexity annotations, failure path traces.
+Standalone Pseudocode phase. Produces `planning/<slug>/PSEUDO_<slug>.md` with operation map, language-neutral pseudocode, branch coverage map (no `[UNMAPPED]`), complexity annotations, failure path traces.
 
-**Requires:** `planning/SPEC_<task>.md` from `/cfn-spec`. Refuses to run if missing.
+**Requires:** the plan's spec (`planning/<slug>/SPEC_<slug>.md`, or legacy flat `planning/SPEC_<slug>.md`). Refuses to run if missing.
 
 **Task:** $ARGUMENTS
 
@@ -16,11 +16,13 @@ Standalone Pseudocode phase. Produces `planning/PSEUDO_<task>.md` with operation
 
 ```bash
 SLUG=$(echo "$ARGUMENTS" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
-SPEC="planning/SPEC_${SLUG}.md"
-if [ ! -f "$SPEC" ]; then
+PP=.claude/skills/cfn-megaplan/lib/plan-paths.sh
+PDIR=$("$PP" ensure "$SLUG")                       # planning/<slug>, created if absent
+# resolve = per-plan dir first, legacy flat planning/ second
+SPEC=$("$PP" resolve "$SLUG" "SPEC_${SLUG}.md") || {
   echo "HALT: $SPEC not found. Run /cfn-spec \"$ARGUMENTS\" first."
   exit 1
-fi
+}
 ```
 
 ## Execute
@@ -32,7 +34,7 @@ Skill: cfn-pseudo
 Args:  $ARGUMENTS
 ```
 
-Spawn the `pseudocode` agent (defined in `.claude/agents/cfn-dev-team/sparc/pseudocode.md`) with SPEC as input. Write to `planning/PSEUDO_<sanitized-task>.md`.
+Spawn the `pseudocode` agent (defined in `.claude/agents/cfn-dev-team/sparc/pseudocode.md`) with `$SPEC` as input. Pass it `Plan dir: $PDIR` and write to `$PDIR/PSEUDO_${SLUG}.md`.
 
 ## Mandatory output checks
 

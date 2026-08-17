@@ -43,7 +43,7 @@ or open it locally.
   `cfn-events-<slug>.jsonl`.
 
 ### Optional
-- `--out <path>`: Output HTML path. Default: `<root>/planning/workbench_<slug>.html`.
+- `--out <path>`: Output HTML path. Default: `<root>/planning/<slug>/workbench_<slug>.html` (the plan's own directory).
 - `--max-screenshots <N>`: Global cap on embedded screenshots. Default: `50`.
   When more screenshots exist than the cap, the first N are embedded (in
   iteration order) and the rest are listed in a single overflow card with file
@@ -58,17 +58,19 @@ or open it locally.
 | Source | Path | Purpose |
 |--------|------|---------|
 | Manifests | `<root>/.cfn-cache/manifests/cfn-*.json` | Gate timeline + suggestion vote ledger |
-| VERIFY doc | `<root>/planning/VERIFY_<slug>.md` | Markdown AC table (parsed by header name) + embedded manifest with `acs[]` |
-| Results JSON | `<root>/planning/VERIFY_RESULTS_<slug>.json` | Per-AC status/evidence overrides |
-| Bless ledger | `<root>/planning/.VERIFY_<slug>.bless.json` | structure_changed / predicate_changed / verdict |
+| VERIFY doc | `<root>/planning/<slug>/VERIFY_<slug>.md` | Markdown AC table (parsed by header name) + embedded manifest with `acs[]` |
+| Results JSON | `<root>/planning/<slug>/VERIFY_RESULTS_<slug>.json` | Per-AC status/evidence overrides |
+| Bless ledger | `<root>/planning/<slug>/.VERIFY_<slug>.bless.json` | structure_changed / predicate_changed / verdict |
 | Lane reports | `<root>/tmp/lane-report-<slug>-*.json` AND `/tmp/lane-report-<slug>-*.json` | Per-lane pass rate |
 | Test outputs | `<root>/tmp/test-output-<slug>-*.txt` AND `/tmp/test-output-<slug>-*.txt` | Test runner summary line |
 | Screenshots | `<root>/tests/screenshots/<slug>-iteration-*.png` | Base64-inlined as `data:image/png;base64,...` |
-| Run plan | `<root>/planning/run-plan-<slug>.json` | Lane roster (id/name/phase) for the Roster section |
+| Run plan | `<root>/planning/<slug>/run-plan-<slug>.json` | Lane roster (id/name/phase) for the Roster section |
 | Events feed | `/tmp/cfn-events-<slug>.jsonl` AND `<root>/tmp/cfn-events-<slug>.jsonl` | Live lifecycle events (written by `emit-event.sh`) for the Events section, and lane status (`lane_spawned`/`lane_landed`) in the Roster section |
 | Git log | git repo at `<root>` | Branch + commit count |
 
-### Run plan file (`planning/run-plan-<slug>.json`)
+Every `planning/<slug>/` row above is resolved through `.claude/skills/cfn-megaplan/lib/plan-paths.sh` (exposed to the section libs as `plan_path <root> <slug> <basename>`): the plan's own directory first, the legacy flat `<root>/planning/<basename>` second. Plans written before per-plan directories therefore still render, and a missing-source gap names the canonical per-plan location so the message doubles as the fix.
+
+### Run plan file (`planning/<slug>/run-plan-<slug>.json`)
 
 Written once per run (Phase 2, before lanes are spawned). Drives the Roster
 section's headline count and table rows.
@@ -97,7 +99,7 @@ are read and merged; malformed lines are skipped silently, never rendered raw.
 ## Outputs
 
 - stdout: three-line summary (rendered path, byte size, data-gap count).
-- HTML file at `--out` (default `<root>/planning/workbench_<slug>.html`).
+- HTML file at `--out` (default `<root>/planning/<slug>/workbench_<slug>.html`).
 
 ## Usage
 

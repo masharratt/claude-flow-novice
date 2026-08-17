@@ -75,7 +75,7 @@ Optional flags (FR-10 defaults):
   --blocking       <bool>   true | false (default: false; bare --blocking sent
                             to sink only when writer's --blocking=true)
   --timestamp      <iso>    default date -u +%Y-%m-%dT%H:%M:%SZ (UTC)
-  --root           <dir>    default $(pwd)/planning
+  --root           <dir>    default planning/<slug>/ when it exists, else planning/
 
 Reject flags (FR-8 floor; exit 2 with "unknown arg"):
   --delete, --remove, --purge, --supersede
@@ -98,7 +98,7 @@ exit codes, and target paths. Field VALUES (rationale, alternatives, title,
 chosen) never appear in stdout, stderr, or any log channel.
 
 Persistence (D-7 dual-write order):
-  1. Write JSON FIRST (planning/.VERIFY_<slug>.decisions.json, atomic mv).
+  1. Write JSON FIRST (planning/<slug>/.VERIFY_<slug>.decisions.json, atomic mv).
   2. Call decision-log/record.sh to sync SQLite (best-effort).
   3. On sink failure: KEEP the JSON, surface the failure via exit code.
 
@@ -111,6 +111,6 @@ directions (EC-16 mistake correction). There is no forward-only gate; the
 enum is the only validation. See lib/state-machine-doc.md.
 
 For the full contract see .claude/skills/cfn-decisions/SKILL.md and
-planning/ARCH_decisions_ledger.md.
+planning/<slug>/ARCH_decisions_ledger.md.
 HELP
 }

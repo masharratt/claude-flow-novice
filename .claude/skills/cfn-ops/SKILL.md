@@ -25,11 +25,11 @@ Active for beta+ is gated by **tier**, not a build flag. It always runs at beta+
 ## Input
 
 Required:
-- `planning/SPEC_<slug>.md` — success criteria, NFRs, audience.
-- `planning/ARCH_<slug>.md` — components, integration points, failure-mode inventory, cross-cutting (observability/auth hooks), data-flow diagram.
+- `planning/<slug>/SPEC_<slug>.md` — success criteria, NFRs, audience.
+- `planning/<slug>/ARCH_<slug>.md` — components, integration points, failure-mode inventory, cross-cutting (observability/auth hooks), data-flow diagram.
 
 Conditional:
-- `planning/DATA_<slug>.md` — present only if the build has a `db` flag. Source for tables touched, RLS, PII, retention (feeds threat model + rollback + capacity).
+- `planning/<slug>/DATA_<slug>.md` — present only if the build has a `db` flag. Source for tables touched, RLS, PII, retention (feeds threat model + rollback + capacity).
 
 Refuse to run if SPEC or ARCH is missing or still `draft` with unresolved `[OPEN]` items. Ops design built on an unstable arch is wasted.
 
@@ -237,7 +237,9 @@ enterprise — full on-call doc: each alert → owner, escalation path, the Phas
 
 ## Output
 
-Write to: `planning/OPS_<slug>.md`
+**Artifact location.** Every artifact of one plan lives in that plan's own directory, `planning/<slug>/`. Under `/cfn-megaplan`, `/cfn-megaplan-lite`, or `/cfn-spa-plan` the orchestrator hands you the exact path plus a `Plan dir:` line — write there, and read the input paths it gives you verbatim. Invoked standalone, read with `.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> <basename>` (per-plan dir first, legacy flat `planning/` second) and write to `planning/<slug>/`. Never split one plan across two locations.
+
+Write to: `planning/<slug>/OPS_<slug>.md`
 
 Template (include only the phases active for the tier; mark skipped phases `N/A (tier)`):
 
@@ -246,9 +248,9 @@ Template (include only the phases active for the tier; mark skipped phases `N/A 
 
 **Date:** <YYYY-MM-DD>
 **Tier:** beta | enterprise
-**Spec:** planning/SPEC_<slug>.md
-**Arch:** planning/ARCH_<slug>.md
-**Data:** planning/DATA_<slug>.md (if db)
+**Spec:** planning/<slug>/SPEC_<slug>.md
+**Arch:** planning/<slug>/ARCH_<slug>.md
+**Data:** planning/<slug>/DATA_<slug>.md (if db)
 **Status:** draft | reviewed | locked
 
 ## 1. Threat Model (STRIDE)
@@ -299,7 +301,7 @@ Template (include only the phases active for the tier; mark skipped phases `N/A 
 ## Return (to orchestrator)
 
 Return exactly:
-- Artifact path: `planning/OPS_<slug>.md`
+- Artifact path: `planning/<slug>/OPS_<slug>.md`
 - A 3-line summary (STRIDE edges covered with row count, flag name + rollout stages, rollback trigger + down-migration named).
 - Floors line: STRIDE floor met yes/no (every external edge has >=1 row, S/T/I evaluated), budget floor met yes/no (>=1 named-constant row; `--budget` row present if LLM in loop).
 - Any `[OPEN]` items needing a user decision (unmeasurable success criterion, banned provider, missing budget cap, header bypass).

@@ -30,10 +30,10 @@ Skip only for: backend-only changes, CLI-only tools, or tasks with no user-facin
 ## Input
 
 Required:
-- `planning/SPEC_<slug>.md` — the screens, tasks, and acceptance criteria. Includes the **§1b Interaction Intent** table: the richness ceiling, value-type inheritance, composition depth, and lifecycle decisions already resolved with the user at spec time. Read it as settled. Derive controls from the resolved intent; do NOT re-open a dimension the intent walk already answered (e.g. if §1b fixed the operator set, the affordance map builds those operators — it does not re-ask which operators exist).
+- `planning/<slug>/SPEC_<slug>.md` — the screens, tasks, and acceptance criteria. Includes the **§1b Interaction Intent** table: the richness ceiling, value-type inheritance, composition depth, and lifecycle decisions already resolved with the user at spec time. Read it as settled. Derive controls from the resolved intent; do NOT re-open a dimension the intent walk already answered (e.g. if §1b fixed the operator set, the affordance map builds those operators — it does not re-ask which operators exist).
 
 Optional but authoritative when present:
-- `planning/DATA_<slug>.md` — the data phase. Gives the field bindings: which fields are FK / enum / lookup / boolean / date / timestamp / free-text / numeric / multi-FK. This is the source of truth for control derivation. If it exists, you do not guess bindings — you read them.
+- `planning/<slug>/DATA_<slug>.md` — the data phase. Gives the field bindings: which fields are FK / enum / lookup / boolean / date / timestamp / free-text / numeric / multi-FK. This is the source of truth for control derivation. If it exists, you do not guess bindings — you read them.
 
 If `DATA_<slug>.md` is absent (no `db` flag), infer bindings from SPEC and mark each inferred binding `[OPEN]` for user confirmation. Never silently assume a field is free-text.
 
@@ -212,21 +212,23 @@ Emitting a colored, image-laden, or token-styled mockup is a Phase-6 defect (see
 wireframe: <artifact-url-or-path>
 ```
 
-**Degrade, never block.** If the Artifact publish fails, write the same HTML to `planning/wireframe_<slug>.html` and record `wireframe: planning/wireframe_<slug>.html`. If there are zero renderable screens, record `_skipped: no renderable screens_` instead — that is not a defect. Never stall on wireframe production; the approval gate that CAN stall is the orchestrator's, not this phase's.
+**Degrade, never block.** If the Artifact publish fails, write the same HTML to `planning/<slug>/wireframe_<slug>.html` and record `wireframe: planning/<slug>/wireframe_<slug>.html`. If there are zero renderable screens, record `_skipped: no renderable screens_` instead — that is not a defect. Never stall on wireframe production; the approval gate that CAN stall is the orchestrator's, not this phase's.
 
 **Approval is the orchestrator's, at the L5→L6 barrier.** You emit the wireframe and return its reference as a BLOCKING item. `cfn-megaplan` surfaces Approve / Revise before spawning L6, so a wrong structure is caught before design/test-plan/ops run on it. On Revise, you are re-spawned in patch mode with the user's note — you adjust the structure (a control, a screen, a flow) and re-render. A revision that would change an FR, an AC, or the schema is not a wireframe tweak: it routes back to `cfn-spec`/`cfn-data`, not here.
 
 ## Output
 
-Write to: `planning/UX_<slug>.md`
+**Artifact location.** Every artifact of one plan lives in that plan's own directory, `planning/<slug>/`. Under `/cfn-megaplan`, `/cfn-megaplan-lite`, or `/cfn-spa-plan` the orchestrator hands you the exact path plus a `Plan dir:` line — write there, and read the input paths it gives you verbatim. Invoked standalone, read with `.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> <basename>` (per-plan dir first, legacy flat `planning/` second) and write to `planning/<slug>/`. Never split one plan across two locations.
+
+Write to: `planning/<slug>/UX_<slug>.md`
 
 Template:
 ```markdown
 # UX Interaction Design: <task>
 
 **Date:** <YYYY-MM-DD>
-**Spec:** planning/SPEC_<slug>.md
-**Data:** planning/DATA_<slug>.md (or "inferred — no DATA artifact")
+**Spec:** planning/<slug>/SPEC_<slug>.md
+**Data:** planning/<slug>/DATA_<slug>.md (or "inferred — no DATA artifact")
 **Tier:** <mvp|beta|enterprise>   **Directive:** <full|light>
 **Status:** draft | reviewed | locked
 
@@ -319,14 +321,14 @@ Affordances: course/instructor/date/seats interactive; Submit disabled-when (no 
 ## Return (to orchestrator)
 
 Return exactly:
-- Artifact path: `planning/UX_<slug>.md`
+- Artifact path: `planning/<slug>/UX_<slug>.md`
 - A 3-line summary (fields mapped, screens with full state coverage, flows mapped).
 - The wireframe reference (`wireframe: <url|path>`, or `_skipped: no renderable screens_`), flagged as a BLOCKING approval item so the orchestrator gates on it at the L5→L6 barrier.
 - Any `[OPEN]` items needing a user decision (e.g. ambiguous binding, missing value source).
 
 ## Review Mode (audit implemented code)
 
-Invoked as `cfn-ux --review <path-to-ui-component(s)>` (optionally `--data planning/DATA_<slug>.md` or `--schema <migration|model>`). Runs the affordance map BACKWARD: instead of deriving controls from a data model to write a spec, it reads shipped UI, recovers each field's real control + real binding, and flags every mismatch. This is the post-hoc catch for the dropdown-as-textbox bug that already shipped.
+Invoked as `cfn-ux --review <path-to-ui-component(s)>` (optionally `--data planning/<slug>/DATA_<slug>.md` or `--schema <migration|model>`). Runs the affordance map BACKWARD: instead of deriving controls from a data model to write a spec, it reads shipped UI, recovers each field's real control + real binding, and flags every mismatch. This is the post-hoc catch for the dropdown-as-textbox bug that already shipped.
 
 No planning artifacts required here. Code is the input.
 
@@ -344,7 +346,7 @@ No planning artifacts required here. Code is the input.
 
 ### Output
 
-Write `planning/AUDIT_UX_<slug>.md`. Findings table — each row verifiable against the cited line:
+Write `planning/<slug>/AUDIT_UX_<slug>.md`. Findings table — each row verifiable against the cited line:
 
 ```
 | file:line | field | rendered | expected | binding | severity | fix |

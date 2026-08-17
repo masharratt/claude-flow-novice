@@ -24,13 +24,13 @@ Skip only if the orchestrator's tier profile sets `decide` to `skip` (it does no
 
 ## Input
 
-`planning/SPEC_<slug>.md` (required). Read it fully before extracting forks. If multiple `SPEC_*.md` exist, use the one whose slug matches; never regenerate the slug differently.
+`planning/<slug>/SPEC_<slug>.md` (required). Read it fully before extracting forks. If multiple `SPEC_*.md` exist, use the one whose slug matches; never regenerate the slug differently.
 
 Optional context the orchestrator may pass: prior decision-log hits for these entities (inject as "prior resolution" rows, status RESOLVED, so you do not re-ask a settled fork).
 
 ## Output
 
-1. `planning/DECISIONS_<slug>.md` — the decision register (table + any alternatives panel).
+1. `planning/<slug>/DECISIONS_<slug>.md` — the decision register (table + any alternatives panel).
 2. Structured records written to the decision-log SQLite store via `record.sh` for every RESOLVED decision (see Phase 5).
 
 ## Tier behavior (from orchestrator Directive)
@@ -91,7 +91,9 @@ Security carve-out: a build-vs-buy fork touching crypto, auth, token/JWT parsing
 
 ### Phase 2: Decision register
 
-Write the register as a table in `planning/DECISIONS_<slug>.md`:
+**Artifact location.** Every artifact of one plan lives in that plan's own directory, `planning/<slug>/`. Under `/cfn-megaplan`, `/cfn-megaplan-lite`, or `/cfn-spa-plan` the orchestrator hands you the exact path plus a `Plan dir:` line — write there, and read the input paths it gives you verbatim. Invoked standalone, read with `.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> <basename>` (per-plan dir first, legacy flat `planning/` second) and write to `planning/<slug>/`. Never split one plan across two locations.
+
+Write the register as a table in `planning/<slug>/DECISIONS_<slug>.md`:
 
 | id | decision | options | tradeoff (plain English) | recommendation | status | rationale |
 |----|----------|---------|--------------------------|----------------|--------|-----------|
@@ -138,7 +140,7 @@ Run only when `Include extras:` contains `alternatives_panel`. Pick the SINGLE b
 
 Two sinks, both written. They serve different readers and neither is optional.
 
-**Sink 1, repo artifact (`planning/DECISIONS_<slug>.md`):** produced in Phase 2, updated by Phase 4 when the alternatives panel runs. Versioned with the code, survives forever, human-readable. This is the canonical register.
+**Sink 1, repo artifact (`planning/<slug>/DECISIONS_<slug>.md`):** produced in Phase 2, updated by Phase 4 when the alternatives panel runs. Versioned with the code, survives forever, human-readable. This is the canonical register.
 
 **Sink 2 — structured decision store (`decision-log` SQLite):** for EVERY `RESOLVED` decision, call the structured write API so future plans query settled forks across sessions, separate from conversation noise.
 
@@ -164,7 +166,7 @@ Readers: `cfn-megaplan` Step 0 and `cfn-plan-review` Phase 1 query both — the 
 
 ## Concrete example register
 
-`planning/DECISIONS_realtime_notifications.md` (beta tier, `full`):
+`planning/realtime_notifications/DECISIONS_realtime_notifications.md` (beta tier, `full`):
 
 | id | decision | options | tradeoff | recommendation | status | rationale |
 |----|----------|---------|----------|----------------|--------|-----------|
@@ -173,18 +175,18 @@ Readers: `cfn-megaplan` Step 0 and `cfn-plan-review` Phase 1 query both — the 
 | D-3 | Markdown sanitizer for notification body | hand-roll regex; `dompurify` | hand-roll risks XSS holes | `dompurify` | RESOLVED | security floor, never hand-roll sanitization |
 | D-4 | Delivery timing | send inline on event; queue + worker | inline is simple but blocks the request and drops on crash | queue + worker | OPEN | needs user: added worker infra vs reliability |
 
-Footer: `Log: planning/DECISIONS_<slug>.md (repo) + decision-log SQLite via record.sh (RESOLVED rows D-2, D-3). Query: decisions.sh list --slug <slug>.`
+Footer: `Log: planning/<slug>/DECISIONS_<slug>.md (repo) + decision-log SQLite via record.sh (RESOLVED rows D-2, D-3). Query: decisions.sh list --slug <slug>.`
 
 AskUserQuestion payloads produced: D-1 and D-4 only (the two OPEN rows), one question each, SSE and queue flagged `(Recommended)`.
 
 ## Return to orchestrator
 
 ```
-artifact: planning/DECISIONS_<slug>.md
+artifact: planning/<slug>/DECISIONS_<slug>.md
 summary (3 lines):
   - <N> forks extracted (<b> blocking, <n> non-blocking); <r> resolved, <o> open
   - alternatives panel: <ran on D-x | skipped (tier)>
-  - decision log: <k> RESOLVED records written via record.sh (SQLite) + register in planning/DECISIONS_<slug>.md
+  - decision log: <k> RESOLVED records written via record.sh (SQLite) + register in planning/<slug>/DECISIONS_<slug>.md
 needs user: [D-1, D-4]   # the OPEN blocking decisions, with their AskUserQuestion payloads attached
 ```
 

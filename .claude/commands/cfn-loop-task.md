@@ -12,7 +12,18 @@ allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "Grep", "Glob"]
 
 ## STEP 0: VERIFY MANIFEST (run before anything else)
 
-Step 0: If `planning/VERIFY_<slug>.md` exists for this task, parse its JSON manifest (the LAST fenced ```json block in the file). The loop's final completion decision is the Phase 5 Exit gate (5E.0-5E.5): it is driven mechanically by `verify-run.sh` against this manifest, never by prose. Refuse to report done unless that gate reports all-green (or an explicit user-approved quarantine). If the file does not exist, proceed without it (task was not megaplanned).
+**Where planning artifacts live.** `/cfn-megaplan` and `/cfn-megaplan-lite` write every artifact of one plan into that plan's own directory, `planning/<slug>/`. Plans written before that layout sit flat in `planning/`. Resolve every planning file through the shared resolver, which checks nested first and falls back to flat — never hand-roll the two-layout probe:
+
+```bash
+PP=.claude/skills/cfn-megaplan/lib/plan-paths.sh
+PDIR=$("$PP" dir "$SLUG")                                        # planning/<slug> — where run outputs go
+VERIFY_FILE=$("$PP" resolve "$SLUG" "VERIFY_${SLUG}.md")  || VERIFY_FILE=""   # "" = not megaplanned
+PLAN_FILE=$("$PP"   resolve "$SLUG" "PLAN_${SLUG}.md")    || PLAN_FILE=""
+```
+
+`$PDIR` is also where this run writes its own outputs (`VERIFY_RESULTS_<run-id>.json`, `run-plan-<run-id>.json`), so a plan's inputs and its run artifacts stay in one directory.
+
+Step 0: If `$VERIFY_FILE` is non-empty (a `VERIFY_<slug>.md` resolved for this task), parse its JSON manifest (the LAST fenced ```json block in the file). The loop's final completion decision is the Phase 5 Exit gate (5E.0-5E.5): it is driven mechanically by `verify-run.sh` against this manifest, never by prose. Refuse to report done unless that gate reports all-green (or an explicit user-approved quarantine). If the file does not exist, proceed without it (task was not megaplanned).
 
 ### Step 0a: Manifest integrity (W2, run when VERIFY exists)
 
@@ -20,8 +31,9 @@ The VERIFY manifest is the done authority, so confirm it is byte-identical to th
 
 ```bash
 # Recompute the hash of the VERIFY file and compare to the sidecar megaplan wrote.
-VERIFY_FILE="planning/VERIFY_${SLUG}.md"
-SIDECAR="planning/.VERIFY_${SLUG}.sha256"
+# The sidecar always sits beside its manifest (bless-verify derives it from the file's own
+# directory), so derive it from $VERIFY_FILE rather than resolving it separately.
+SIDECAR="$(dirname "$VERIFY_FILE")/.$(basename "$VERIFY_FILE" .md).sha256"
 if [ -f "$SIDECAR" ]; then
   ACTUAL=$(sha256sum "$VERIFY_FILE" | cut -d' ' -f1)
   EXPECTED=$(cut -d' ' -f1 < "$SIDECAR")
@@ -43,7 +55,7 @@ Note: `verify-run.sh` (Phase 5) enforces the same hash independently and exits 4
 
 ### Step 0b: Parse SPEC build flags (W6)
 
-If `planning/SPEC_${SLUG}.md` exists, parse its `## 8. Build Flags` section into coordinator variables (`db`, `frontend`, etc.). If the section is absent (or the SPEC file is missing), treat EVERY flag as `no`. These flags drive the Phase 4 gate-wiring matrix (Step 4.0).
+If `$("$PP" resolve "$SLUG" "SPEC_${SLUG}.md")` resolves, parse its `## 8. Build Flags` section into coordinator variables (`db`, `frontend`, etc.). If the section is absent (or the SPEC file is missing), treat EVERY flag as `no`. These flags drive the Phase 4 gate-wiring matrix (Step 4.0).
 
 ---
 
@@ -220,11 +232,11 @@ Planning tier vocabulary is mvp|beta|enterprise (cfn-megaplan); execution mode v
 
 ### LANE DERIVATION (mechanical, do this before spawning)
 
-1. **Locate the plan.** Find the newest `planning/PLAN_*.md` whose name matches the task slug. If no `PLAN_` file exists, STOP and run `/write-plan` first. Never improvise lanes without a plan. **Note:** a `planning/MEGAPLAN_<slug>.md` is an index/summary, NOT a lane source — if only `MEGAPLAN_` (and/or `VERIFY_`) exists but no `PLAN_<slug>.md`, the megaplan run failed to persist its plan; run `/write-plan "<task>" --mode=<mode>` to regenerate `PLAN_<slug>.md` from the existing `planning/` artifacts, then continue. Do NOT derive lanes from `MEGAPLAN_` or `VERIFY_`.
+1. **Locate the plan.** Use `$PLAN_FILE` from Step 0 (`plan-paths.sh resolve "$SLUG" "PLAN_${SLUG}.md"` — the plan dir `planning/<slug>/` first, legacy flat `planning/` second). If the slug is not known exactly, `.claude/skills/cfn-megaplan/lib/plan-paths.sh newest 'PLAN_*.md'` returns the newest `PLAN_` across both layouts; confirm its name matches the task slug. If no `PLAN_` file resolves, STOP and run `/write-plan` first. Never improvise lanes without a plan. **Note:** a `MEGAPLAN_<slug>.md` is an index/summary, NOT a lane source — if only `MEGAPLAN_` (and/or `VERIFY_`) exists but no `PLAN_<slug>.md`, the megaplan run failed to persist its plan; run `/write-plan "<task>" --mode=<mode>` to regenerate `PLAN_<slug>.md` from the other artifacts in that plan dir, then continue. Do NOT derive lanes from `MEGAPLAN_` or `VERIFY_`.
 2. **One lane per phase.** Each top-level phase/workstream in the plan becomes one lane. **LANE_CAP = 8** (one constant, used here AND in wave scheduling step 6). If the plan has more phases than LANE_CAP, merge the smallest phases into neighboring lanes until at most LANE_CAP remain. (Lanes = phases, so most plans never reach the cap; it is a ceiling, not a target.)
 3. **Exclusive file ownership.** Each lane gets an exclusive file list derived from the plan. No file may appear in two lanes. If two phases touch the same file, put both phases in the SAME lane and run them sequentially inside it.
 4. **Ownership clause in every spawn prompt.** Each spawn prompt includes: "FILES YOU OWN: <list>. Do not create or edit any file outside this list. Files outside your lane needing changes go in out_of_scope_needs (array of \"path: why\"); blocked_on is only for a blocker that stops YOUR lane (scalar, one sentence, else null)."
-5. **Compute lane-dependency edges (from Produces/Consumes).** First run the static sanity gate: `.claude/skills/cfn-megaplan/bars/check-produce-consume.sh planning/PLAN_<slug>.md` — exit 1 (duplicate producer / weasel / empty / malformed cell) BLOCKS; resolve before deriving lanes (a duplicate-producer finding is the AskUserQuestion below). Warnings (dangling consume) are advisory. If the plan has no such columns the checker exits 0 and you skip to a single wave. Then collect every step's identifiers per lane. Draw a directed edge **A → E** whenever any step in lane E has a `Consumes` string-equal (exact, trimmed) to a `Produces` of any step in lane A, with A ≠ E. A Consumes matching no lane's Produces is a pre-existing symbol → no edge (log a one-line `warn: dangling consume <id>` so a typo is visible). **Duplicate producer** (the same identifier Produced by steps in two DIFFERENT lanes) is ambiguous ownership → STOP and surface one `AskUserQuestion` (which lane owns it); do not guess. If the columns are absent or every cell is `-`, the edge set is empty. **Cycle** (A → E and E → A): merge the cycle's lanes into one lane run sequentially — same resolution as the same-file rule in step 3 — and log `cycle-merge: <lanes>`.
+5. **Compute lane-dependency edges (from Produces/Consumes).** First run the static sanity gate: `.claude/skills/cfn-megaplan/bars/check-produce-consume.sh "$PLAN_FILE"` — exit 1 (duplicate producer / weasel / empty / malformed cell) BLOCKS; resolve before deriving lanes (a duplicate-producer finding is the AskUserQuestion below). Warnings (dangling consume) are advisory. If the plan has no such columns the checker exits 0 and you skip to a single wave. Then collect every step's identifiers per lane. Draw a directed edge **A → E** whenever any step in lane E has a `Consumes` string-equal (exact, trimmed) to a `Produces` of any step in lane A, with A ≠ E. A Consumes matching no lane's Produces is a pre-existing symbol → no edge (log a one-line `warn: dangling consume <id>` so a typo is visible). **Duplicate producer** (the same identifier Produced by steps in two DIFFERENT lanes) is ambiguous ownership → STOP and surface one `AskUserQuestion` (which lane owns it); do not guess. If the columns are absent or every cell is `-`, the edge set is empty. **Cycle** (A → E and E → A): merge the cycle's lanes into one lane run sequentially — same resolution as the same-file rule in step 3 — and log `cycle-merge: <lanes>`.
 6. **Order lanes into waves (topological).** WAVE_1 = every lane with no inbound edge. Each next wave = lanes whose inbound edges all originate in already-completed waves. Within a wave, run at most LANE_CAP lanes concurrently; ready-but-capped lanes defer to the next slot (never merge them just to fit the cap). Empty edge set ⇒ exactly one wave with all lanes ⇒ identical to the pre-feature single-wave behavior. Log `wave N: lanes [...]` per wave before spawning it.
 
 ### Write the run plan (workbench roster input)
@@ -232,11 +244,11 @@ Planning tier vocabulary is mvp|beta|enterprise (cfn-megaplan); execution mode v
 With lanes and waves derived (step 6), persist the lane roster so the workbench roster section can track lane status, then emit `phase_started`. Lane id = the lane name from the plan. Non-blocking.
 
 ```bash
-mkdir -p planning
+mkdir -p "$PDIR"
 jq -n --arg slug "$RUN_ID" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --argjson lanes "$(printf '%s\n' ${LANE_IDS} | jq -R . | jq -s 'map({id: ., name: ., phase: "Phase 2"})')" \
   '{slug: $slug, generated_at: $ts, phases: ["Phase 2"], lanes: $lanes}' \
-  > "planning/run-plan-${RUN_ID}.json" \
+  > "${PDIR}/run-plan-${RUN_ID}.json" \
   || echo "WARN: run-plan write skipped (non-blocking)" >&2
 ./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event phase_started --phase 2 || true
 ```
@@ -254,7 +266,7 @@ Immediately before each lane's Task spawn, emit its spawn event:
 ```
 TASK: Full epic implementation, iteration ${ITERATION}: ${TASK_DESCRIPTION}
 
-SCOPE: Complete every phase of the linked plan (planning/PLAN_${SLUG}.md)
+SCOPE: Complete every phase of the linked plan (${PLAN_FILE})
        assigned to your lane. Do NOT stop after a single sprint.
 
 FILES YOU OWN: ${LANE_FILE_LIST}. Do not create or edit any file outside
@@ -450,7 +462,7 @@ From the SPEC build flags parsed in Step 0b and the working diff, resolve which 
 | always | `/cfn-dry-review` | manifest | never |
 | `db=yes` OR diff touches migrations/auth/HTTP | `cfn-security-review --diff` + spawn a `security-specialist` to populate the skeleton | manifest | never (floor) |
 | `db=yes` AND migration files in diff | `cfn-migration-rehearsal --up/--down` | HARD exit-code gate | `CFN_SCRATCH_DATABASE_URL` unset -> WARN-skip in report |
-| `frontend=yes` | `cfn-a11y-gate` | manifest | URLs from `CFN_A11Y_URLS`, fallback the `A11y-URLs:` line in `planning/OPS_${SLUG}.md`; unreachable (2s curl probe) -> WARN-skip naming the exact env line. Never auto-start servers |
+| `frontend=yes` | `cfn-a11y-gate` | manifest | URLs from `CFN_A11Y_URLS`, fallback the `A11y-URLs:` line in `$("$PP" resolve "$SLUG" "OPS_${SLUG}.md")`; unreachable (2s curl probe) -> WARN-skip naming the exact env line. Never auto-start servers |
 | `frontend=yes` AND `.claude/skills/role-*/SKILL.md` exists | `cfn-persona-verify` | manifest | no role docs -> silent skip (project never opted in). Validator exit 3 -> WARN-skip naming the failing doc; never verify against a doc that failed its schema. Login creds or `$*_BASE_URL` unset, or target unreachable (2s curl probe) -> WARN-skip naming the exact env var. Never auto-start servers |
 | diff touches `package.json`/lockfile/`Cargo.toml`/`requirements*` | `cfn-dep-audit` | manifest | self-contained |
 | `CFN_PERF_BENCH_CMD` set | `cfn-perf-gate` | manifest | unset -> silent skip |
@@ -484,7 +496,7 @@ Only `implementation-wrong` findings enter the manifest and reach the vote. `doc
 
 ```bash
 # Extract the LAST fenced json block (same awk as verify-run.sh / bless-verify.sh).
-MANIFEST="$(awk '/^```json/{inblock=1;buf="";next} inblock&&/^```/{inblock=0;last=buf;next} inblock{buf=buf$0"\n"} END{printf "%s",last}' "planning/VERIFY_${SLUG}.md")"
+MANIFEST="$(awk '/^```json/{inblock=1;buf="";next} inblock&&/^```/{inblock=0;last=buf;next} inblock{buf=buf$0"\n"} END{printf "%s",last}' "$VERIFY_FILE")"
 REF_IDS=$(printf '%s' "$MANIFEST" | jq -r '.acs[] | select(has("reference")) | .id' | paste -sd, -)
 [ -n "$REF_IDS" ] && /cfn-ab-critic --ac "$REF_IDS"
 ```
@@ -609,7 +621,7 @@ Runs first so any residue a mutation leaves behind is caught by the later all-gr
    trap 'cp "/tmp/cfn-mutation-${TASK_ID}/$(basename "${IMPL_FILE}")" "${IMPL_FILE}" 2>/dev/null' EXIT
    ```
 3. Spawn a mutation agent that makes exactly ONE semantic mutation (invert a key conditional OR replace a body with a constant), emits a unified diff, and touches nothing else.
-4. Run `verify-run.sh run --verify planning/VERIFY_${SLUG}.md --only <that FR's AC ids>` and EXPECT red. A red result means the AC tests actually exercise the mutated logic.
+4. Run `verify-run.sh run --verify "$VERIFY_FILE" --only <that FR's AC ids>` and EXPECT red. A red result means the AC tests actually exercise the mutated logic.
 5. Restore the backup and assert the restored file's hash equals `BEFORE_SHA`:
    ```bash
    cp "/tmp/cfn-mutation-${TASK_ID}/$(basename "${IMPL_FILE}")" "${IMPL_FILE}"
@@ -626,8 +638,8 @@ Runs first so any residue a mutation leaves behind is caught by the later all-gr
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
   ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh run \
-  --verify planning/VERIFY_${SLUG}.md \
-  --out planning/VERIFY_RESULTS_${RUN_ID}.json
+  --verify "$VERIFY_FILE" \
+  --out "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json"
 ```
 
 This executes every executable/db-query AC and writes the results file (the single done authority).
@@ -640,7 +652,7 @@ For each results row with `mode: needs_agent` or `predicate_unverified: true` (`
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
   ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh resolve \
-  --results planning/VERIFY_RESULTS_${RUN_ID}.json \
+  --results "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json" \
   --ac <AC-id> --pass true|false --evidence-file <captured-evidence-file>
 ```
 
@@ -652,7 +664,7 @@ bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
   ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh summary \
-  --results planning/VERIFY_RESULTS_${RUN_ID}.json
+  --results "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json"
 SUMMARY_EXIT=$?
 ```
 
@@ -670,11 +682,11 @@ Runs only when 5E.3 exited 0. The manifest was blessed at plan stage with `evide
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
   ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh backfill-evidence \
-  --results planning/VERIFY_RESULTS_${RUN_ID}.json \
-  --verify  planning/VERIFY_${SLUG}.md
+  --results "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json" \
+  --verify  "$VERIFY_FILE"
 
 bash "$CFN_FAILLOG" wrap --tool bless-verify.sh -- \
-  .claude/skills/cfn-megaplan/bars/bless-verify.sh "planning/VERIFY_${SLUG}.md" \
+  .claude/skills/cfn-megaplan/bars/bless-verify.sh "$VERIFY_FILE" \
   --stage exit --note "exit gate: evidence backfilled from VERIFY_RESULTS"
 ```
 

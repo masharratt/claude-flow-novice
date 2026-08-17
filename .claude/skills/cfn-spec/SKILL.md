@@ -274,7 +274,9 @@ Build the slug with the canonical rule (identical in every planning phase; see `
 SLUG=$(echo "$TASK" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
 ```
 
-Write to: `planning/SPEC_<slug>.md`
+**Artifact location.** Every artifact of one plan lives in that plan's own directory, `planning/<slug>/`. Under `/cfn-megaplan`, `/cfn-megaplan-lite`, or `/cfn-spa-plan` the orchestrator hands you the exact path plus a `Plan dir:` line — write there, and read the input paths it gives you verbatim. Invoked standalone, read with `.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> <basename>` (per-plan dir first, legacy flat `planning/` second) and write to `planning/<slug>/`. Never split one plan across two locations.
+
+Write to: `planning/<slug>/SPEC_<slug>.md`
 
 Template (8 core sections required; section 1b required only when the task has a user-facing surface; Build Flags is always last):
 ```markdown
@@ -327,7 +329,7 @@ Operation: ...
 
 **Status field semantics:** the spec author always writes `draft`. A human reviewer may flip it to `reviewed`. The megaplan orchestrator flips it to `locked` after Bar A (verifiable-done) passes; only a `locked` spec feeds implementation.
 
-## Example (compact): planning/SPEC_realtime_notifications.md
+## Example (compact): planning/realtime_notifications/SPEC_realtime_notifications.md
 
 Same task as `cfn-decide`'s example register, so cross-skill examples cohere.
 
@@ -391,7 +393,7 @@ Operation: markRead
 ## Return to orchestrator
 
 ```
-artifact: planning/SPEC_<slug>.md
+artifact: planning/<slug>/SPEC_<slug>.md
 build_flags: frontend=<yes|no> db=<yes|no> pii=<yes|no> unknowns=<yes|no> tier-hint=<mvp|beta|enterprise>
 core_frs: [FR-2, FR-3]
 open_questions: <n> [OPEN], <m> [PARKED]

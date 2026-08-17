@@ -182,6 +182,11 @@ fingerprint() {
   shopt -s nullglob
   for g in \
     "$ROOT/.cfn-cache/manifests/cfn-"*.json \
+    "$ROOT/planning/${SLUG}/VERIFY_${SLUG}.md" \
+    "$ROOT/planning/${SLUG}/VERIFY_RESULTS_${SLUG}.json" \
+    "$ROOT/planning/${SLUG}/.VERIFY_${SLUG}.bless.json" \
+    "$ROOT/planning/${SLUG}/run-plan-${SLUG}.json" \
+    `# legacy flat layout: plans written before per-plan dirs existed` \
     "$ROOT/planning/VERIFY_${SLUG}.md" \
     "$ROOT/planning/VERIFY_RESULTS_${SLUG}.json" \
     "$ROOT/planning/.VERIFY_${SLUG}.bless.json" \

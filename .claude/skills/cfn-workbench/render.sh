@@ -49,7 +49,7 @@ Required:
   --slug <slug>            Run slug (matches VERIFY_<slug>.md, manifests, etc.).
 
 Optional:
-  --out <path>             Output HTML path. Default: <root>/planning/workbench_<slug>.html
+  --out <path>             Output HTML path. Default: <root>/planning/<slug>/workbench_<slug>.html
   --max-screenshots <N>    Cap on screenshots per iteration. Default: 50.
                            When more screenshots exist, the first N are rendered
                            and a placeholder card lists the overflow count + names.
@@ -69,9 +69,10 @@ Optional:
 
 Inputs (all optional except manifests; missing sources are recorded as data gaps):
   <root>/.cfn-cache/manifests/cfn-*.json         gate timeline + suggestions
-  <root>/planning/VERIFY_<slug>.md               AC table (markdown) + embedded manifest
-  <root>/planning/VERIFY_RESULTS_<slug>.json     per-AC status/evidence
-  <root>/planning/.VERIFY_<slug>.bless.json      bless ledger (structure/predicate changes)
+  <root>/planning/<slug>/VERIFY_<slug>.md           AC table (markdown) + embedded manifest
+  <root>/planning/<slug>/VERIFY_RESULTS_<slug>.json per-AC status/evidence
+  <root>/planning/<slug>/.VERIFY_<slug>.bless.json  bless ledger (structure/predicate changes)
+  (each also resolved from the legacy flat <root>/planning/ when the plan predates per-plan dirs)
   <root>/tmp/lane-report-<slug>-*.json           per-lane pass rate
   <root>/tmp/test-output-<slug>-*.txt            test runner summary line
   /tmp/lane-report-<slug>-*.json                 runtime lane reports (also scanned)
@@ -136,7 +137,8 @@ if [[ ! -d "$ROOT" ]]; then
   exit 2
 fi
 
-[[ -z "$OUT" ]] && OUT="$ROOT/planning/workbench_${SLUG}.html"
+# Default output lands in the plan's own directory alongside its VERIFY/PLAN docs.
+[[ -z "$OUT" ]] && OUT="$(CFN_PLANNING_ROOT="$ROOT/planning" plan_ensure "$SLUG")/workbench_${SLUG}.html"
 
 # Shared state for section libs.
 GAPS_FILE="$(mktemp -t cfn-workbench-gaps.XXXXXX)"

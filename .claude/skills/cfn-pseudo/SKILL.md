@@ -14,7 +14,7 @@ status: production
 
 ## When to Use
 
-- After `cfn-spec` produces `planning/SPEC_<slug>.md`
+- After `cfn-spec` produces `planning/<slug>/SPEC_<slug>.md`
 - Auto-invoked by `/cfn-megaplan` (canonical) and the lighter `/cfn-spa-plan` sub-pipeline
 - Standalone when reviewing existing code for logical completeness
 
@@ -22,7 +22,7 @@ Skip only for: pure config changes, declarative schema updates with no procedura
 
 ## Input
 
-Required: `planning/SPEC_<slug>.md` from `cfn-spec`. If multiple `SPEC_*.md` exist, use the one whose slug matches; never regenerate the slug differently.
+Required: `planning/<slug>/SPEC_<slug>.md` from `cfn-spec`. If multiple `SPEC_*.md` exist, use the one whose slug matches; never regenerate the slug differently.
 
 Refuse to run if the spec is missing or contains any unresolved `[OPEN]` question. Refuse only on `[OPEN]`. `[PARKED: <accepted default>]` items are acceptable; carry the accepted default into the pseudocode as a stated assumption.
 
@@ -137,14 +137,16 @@ If any entity has a lifecycle (draft → published → archived), draw a state m
 
 ## Output
 
-Use the same slug as the SPEC artifact (never regenerate it). Write to: `planning/PSEUDO_<slug>.md`
+**Artifact location.** Every artifact of one plan lives in that plan's own directory, `planning/<slug>/`. Under `/cfn-megaplan`, `/cfn-megaplan-lite`, or `/cfn-spa-plan` the orchestrator hands you the exact path plus a `Plan dir:` line — write there, and read the input paths it gives you verbatim. Invoked standalone, read with `.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> <basename>` (per-plan dir first, legacy flat `planning/` second) and write to `planning/<slug>/`. Never split one plan across two locations.
+
+Use the same slug as the SPEC artifact (never regenerate it). Write to: `planning/<slug>/PSEUDO_<slug>.md`
 
 Template:
 ```markdown
 # Pseudocode: <task>
 
 **Date:** <YYYY-MM-DD>
-**Spec:** planning/SPEC_<slug>.md
+**Spec:** planning/<slug>/SPEC_<slug>.md
 **Status:** draft | reviewed | locked
 
 ## 1. Operation Map
@@ -182,7 +184,7 @@ External Dep: <name>
 ## Return to orchestrator
 
 ```
-artifact: planning/PSEUDO_<slug>.md
+artifact: planning/<slug>/PSEUDO_<slug>.md
 operations: <count>
 unmapped_branches: <count>       # forward map [UNMAPPED] entries
 uncovered_spec_items: <count>    # reverse map [UNCOVERED] entries

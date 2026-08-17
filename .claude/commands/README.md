@@ -87,7 +87,7 @@ Need to automate something?
 ```bash
 # Step 1: Generate plan
 /write-plan "Implement JWT authentication" --mode=standard
-# Reviews: planning/PLAN_jwt_authentication.md
+# Reviews: planning/jwt_authentication/PLAN_jwt_authentication.md
 
 # Step 2: Execute
 /cfn-loop-cli "Implement JWT authentication" --mode=standard

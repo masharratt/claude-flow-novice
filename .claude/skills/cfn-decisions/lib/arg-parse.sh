@@ -58,7 +58,18 @@ parse_and_validate_args() {
 
   # Apply post-parse defaults for empty sentinels.
   [ -z "$TIMESTAMP" ] && TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  [ -z "$ROOT" ] && ROOT="$(pwd)/planning"
+  # Default root: the plan's OWN directory when megaplan has created one
+  # (planning/<slug>/), else the legacy flat planning/. The ledger is a sidecar
+  # of VERIFY_<slug>.md and must land beside it : the renderer resolves
+  # nested-first (section-decisions.sh:14), so a flat write under a nested plan
+  # would be silently invisible. An explicit --root always wins.
+  if [ -z "$ROOT" ]; then
+    if [ -n "$SLUG" ] && [ -d "$(pwd)/planning/$SLUG" ]; then
+      ROOT="$(pwd)/planning/$SLUG"
+    else
+      ROOT="$(pwd)/planning"
+    fi
+  fi
 
   # EC-19: caller-supplied --timestamp must match the ISO 8601 UTC pattern.
   # Plain string match via grep -E (no regex partial-match surprises).

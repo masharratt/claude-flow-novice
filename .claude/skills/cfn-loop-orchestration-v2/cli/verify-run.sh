@@ -162,6 +162,27 @@ is_authoritative() {
   return 1
 }
 
+# S007: does this check restrict the run to specific test NAMES?
+#
+# A name-filtered run reports the file's non-matching tests as "skipped" in the
+# same summary field that a real `.skip()` lands in -- vitest prints
+# "Tests  7 passed | 12 skipped (19)" for both. The runner cannot tell them
+# apart from the summary alone, so it reads the flag in the check itself, which
+# is unambiguous. Scoped per runner (a bare ` -t ` means nothing to pytest,
+# whose filter is -k) so an unrelated -t in some other command never relaxes
+# the S002 rule. Callers must still require passed>0 and failed==0; this
+# predicate only says "skips here are expected".
+has_name_filter() {
+  local check="$1" runner="$2"
+  case "$runner" in
+    vitest|jest)   echo "$check" | grep -qE '(^| )(-t|--testNamePattern)([= ]|$)' && return 0 ;;
+    playwright)    echo "$check" | grep -qE '(^| )(-g|--grep)([= ]|$)' && return 0 ;;
+    pytest)        echo "$check" | grep -qE '(^| )-k([= ]|$)' && return 0 ;;
+    go)            echo "$check" | grep -qE '(^| )-run([= ]|$)' && return 0 ;;
+  esac
+  return 1
+}
+
 json_str() { jq -Rn --arg s "$1" '$s'; }
 
 # ---------------- run ----------------
@@ -180,7 +201,9 @@ cmd_run() {
   [ -f "$VERIFY" ] || die2 "verify file not found: $VERIFY"
   need jq; need timeout
 
-  # sha256 integrity (W2): sidecar planning/.VERIFY_<slug>.sha256
+  # sha256 integrity (W2): sidecar sits beside the manifest, derived from its own
+  # dir + basename — planning/<slug>/.VERIFY_<slug>.sha256 for a per-plan dir, or
+  # planning/.VERIFY_<slug>.sha256 for a legacy flat layout.
   local dir base sidecar
   dir="$(dirname "$VERIFY")"; base="$(basename "$VERIFY" .md)"
   sidecar="$dir/.$base.sha256"
@@ -313,6 +336,24 @@ cmd_run() {
               pass_val="false"
               reason="zero_tests_ran: check ran 0 tests (runner=$PTS_RUNNER, filtered_out=$PTS_FILTERED) — the selector or flag in this check matched no test, so it proves nothing. Fix the check, not the feature."
               echo "  [$acid] zero_tests_ran (runner=$PTS_RUNNER, filtered_out=$PTS_FILTERED) — check selector/flag matched no test" >&2
+            elif [ "$PTS_TODO" -eq 0 ] && has_name_filter "$exec_check" "$PTS_RUNNER" \
+                 && { [ "$PTS_SKIP" -gt 0 ] || [ "$PTS_FAIL" -gt 0 ]; }; then
+              # S007: the check asked for specific test NAMES, so the file's
+              # other tests being "skipped" is the selector working, not a
+              # disabled guard. Judge on passed/failed instead of skipped.
+              # todo>0 is excluded above on purpose: a `.todo(` placeholder is
+              # never selector-induced, so it keeps failing under S002.
+              if [ "$PTS_PASS" -eq 0 ]; then
+                pass_val="false"
+                reason="zero_tests_ran: name-filtered run matched no test (0 passed, $PTS_SKIP skipped of $PTS_COLLECTED collected, runner=$PTS_RUNNER) — the selector in this check proves nothing. Fix the check, not the feature."
+                echo "  [$acid] zero_tests_ran (name filter matched 0 of $PTS_COLLECTED, runner=$PTS_RUNNER)" >&2
+              elif [ "$PTS_FAIL" -gt 0 ] || [ "$rc" -ne 0 ]; then
+                pass_val="false"
+                reason="runner_failed: exit $rc, $PTS_FAIL failed / $PTS_PASS passed (name-filtered, runner=$PTS_RUNNER)"
+              else
+                pass_val="true"
+                reason="ok: $PTS_PASS passed, 0 failed (name-filtered run; the $PTS_SKIP skipped are the file's other tests excluded by this check's own selector, runner=$PTS_RUNNER)"
+              fi
             elif [ "$PTS_SKIP" -gt 0 ] || [ "$PTS_TODO" -gt 0 ]; then
               pass_val="false"
               reason="skipped_present: $PTS_SKIP skipped / $PTS_TODO todo of $PTS_COLLECTED collected (runner=$PTS_RUNNER) — a skipped guard is not a guard"
@@ -487,15 +528,22 @@ cmd_backfill() {
   [ -n "${manifest//[[:space:]]/}" ] || die2 "no fenced json manifest block in $VERIFY"
   echo "$manifest" | jq -e . >/dev/null 2>&1 || die2 "manifest json does not parse"
 
+  # The manifest goes to jq through a FILE, not --argjson. A manifest with ~140
+  # ACs is well over 100KB, and --argjson puts every byte of it on the argv of
+  # the jq process: combined with the results file it blows past ARG_MAX and jq
+  # dies "Argument list too long" before reading anything.
+  local mtmp; mtmp="$(mktemp)"
+  printf '%s' "$manifest" > "$mtmp"
   local updated
-  updated="$(jq -n --argjson m "$manifest" --slurpfile r "$RESULTS" '
+  updated="$(jq -n --slurpfile m "$mtmp" --slurpfile r "$RESULTS" '
     ( [ $r[0].results[]
         | select(.pass == true)
         | { key: .ac_id,
             value: ( if (.evidence // "") != "" then .evidence else (.output_excerpt // "") end ) }
         | select(.value != "") ] | from_entries ) as $ev
-    | $m | .acs |= map( if $ev[.id] then .evidence = $ev[.id] else . end )
-  ')" || die2 "could not merge evidence into the manifest"
+    | $m[0] | .acs |= map( if $ev[.id] then .evidence = $ev[.id] else . end )
+  ')" || { rm -f "$mtmp"; die2 "could not merge evidence into the manifest"; }
+  rm -f "$mtmp"
 
   # Splice the new manifest into the LAST fenced json block, byte-preserving
   # everything else in the file (the AC table and gate report live above it).
