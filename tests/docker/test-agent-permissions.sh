@@ -10,7 +10,7 @@ echo "================================"
 # Test 1: Home directory exists and is writable
 echo ""
 echo "Test 1: Home directory permissions"
-docker run --rm claude-flow-novice:agent sh -c "ls -la /home/cfnagent && touch /home/cfnagent/test.txt && rm /home/cfnagent/test.txt" || {
+docker run --rm claude-flow-novice:agent sh -c "ls -la /home/cfnagent && touch /home/cfnagent/test.txt && rm /home/cfnagent/test.txt" || { # portability-ok: path inside the agent container image, not the host
   echo "❌ FAILED: Home directory not writable"
   exit 1
 }

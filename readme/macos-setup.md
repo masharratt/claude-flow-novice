@@ -1,7 +1,8 @@
 # macOS Setup (CFN Porting Guide)
 
 **Last Updated:** 2026-08-17
-**Status:** Unverified on hardware. This is a static-analysis port checklist, not a validated runbook.
+**Status:** Sections 4 and 6 (in-repo half) are fixed and gated in CI. Everything else is
+unverified on hardware: a static-analysis checklist, not a validated runbook.
 
 CFN is developed on WSL2 (Ubuntu) and assumes a GNU userland. A `git clone` on macOS gets
 you roughly half a working install. This document lists every gap found by auditing the
@@ -93,41 +94,30 @@ Docker Desktop only if you use docker mode.
 
 ---
 
-## 4. bash 3.2 is the hardest blocker
+## 4. bash 3.2
 
-macOS `/bin/bash` is 3.2 (2007, GPLv2 for licensing reasons). It has no associative arrays.
+macOS `/bin/bash` is 3.2 (2007, held there for GPLv2 licensing reasons). It has no
+associative arrays, no `mapfile`, no `readarray`. 33 files here use `declare -A` and 9 use
+`mapfile`/`readarray`.
 
-| Measurement | Count | Command |
-|---|---|---|
-| Scripts pinned to `#!/bin/bash` | 351 | `grep -rh '^#!' --include='*.sh' .claude/ \| grep -v /target/ \| sort \| uniq -c` |
-| Scripts using `#!/usr/bin/env bash` | 238 | (same) |
-| Files using `declare -A` | 33 | `grep -rlE --include='*.sh' 'declare -A' .claude/ \| grep -v /target/ \| wc -l` |
-| Files using `mapfile`/`readarray` | 9 | `grep -rlE --include='*.sh' 'mapfile\|readarray' .claude/ \| grep -v /target/ \| wc -l` |
+**This is already fixed in the repo.** Every tracked script a person executes now uses
+`#!/usr/bin/env bash`, which resolves whichever bash is first on `PATH`. `brew install bash`
+puts bash 5 at `/opt/homebrew/bin/bash` (Apple Silicon) or `/usr/local/bin/bash` (Intel).
+It cannot replace `/bin/bash`, because SIP blocks writes to `/bin`, which is why the shebang
+had to change rather than the `PATH`.
 
-`brew install bash` puts bash 5 at `/opt/homebrew/bin/bash` (Apple Silicon) or
-`/usr/local/bin/bash` (Intel). It does **not** replace `/bin/bash`, and SIP prevents that.
-So the 238 `env bash` scripts pick up bash 5 once brew's bin is ahead on `PATH`. The 351
-hard-pinned ones still get 3.2 and fail.
-
-**Remediation: normalize the shebangs.** Preferred over shimming because it is portable,
-reviewable, and fixes the problem for every future Mac.
+You only need to make sure brew's bin directory comes before `/bin`:
 
 ```bash
-# Dry run first. Inspect the list before running the second command.
-grep -rl '^#!/bin/bash' --include='*.sh' .claude/ | grep -v /target/
-
-# Apply (GNU sed, from brew, as `gsed` unless gnubin is on PATH)
-grep -rlZ '^#!/bin/bash' --include='*.sh' .claude/ | grep -zv /target/ \
-  | xargs -0 gsed -i '1s|^#!/bin/bash$|#!/usr/bin/env bash|'
+/usr/bin/env bash -c 'echo $BASH_VERSION'   # want 5.x, not 3.2
 ```
 
-Then confirm bash 5 actually wins:
+The `tests/test-shell-portability.sh` gate enforces this and runs in CI, so it cannot rot
+back. If you add a script, use `#!/usr/bin/env bash`.
 
-```bash
-/usr/bin/env bash -c 'echo $BASH_VERSION'   # want 5.x
-```
-
----
+Scripts under `docker/`, `legacy/`, `planning/`, `packages/` and the archive trees were left
+on `#!/bin/bash` deliberately. They are Linux-container-bound or dead, and are excluded from
+the gate.
 
 ## 5. GNU vs BSD userland
 
@@ -184,10 +174,10 @@ export the `PATH` from a place the GUI session reads, or make the hook resolve `
 
 ## 6. Hardcoded paths
 
-### Global settings
+### Global settings (still yours to do)
 
-`~/.claude/settings.json` pins 5 commands to a literal Linux home. On macOS the home is
-`/Users/<you>`, so all 5 break:
+`~/.claude/settings.json` is not in the repo, and it pins 5 commands to a literal Linux
+home. On macOS the home is `/Users/<you>`, so all 5 break:
 
 - `PreCompact` -> `cfn-precompact-task.sh`
 - `UserPromptSubmit` -> `cfn-autoset-task.sh`
@@ -195,32 +185,36 @@ export the `PATH` from a place the GUI session reads, or make the hook resolve `
 - `Notification` -> `cfn-notify.sh input`
 - `statusLine` -> `statusline-command.sh`
 
-Rewrite all of them to `$HOME`. Three `PostToolUse` hooks already use `$HOME` and need no
-change. This is the single highest-value fix: without it no hook fires at all.
+Rewrite all 5 to `$HOME`. Three `PostToolUse` hooks already use `$HOME` and need no change.
+This is the single highest-value fix you still have to make by hand: without it no hook
+fires at all.
 
 ```bash
 gsed -i 's|/home/[a-z]*/\.claude|$HOME/.claude|g' ~/.claude/settings.json
 jq . ~/.claude/settings.json >/dev/null && echo "valid json"
 ```
 
-### In-repo scripts
+### In-repo scripts (fixed)
 
-31 tracked scripts contain a hardcoded `/home/masha`. Notably:
+**Already fixed.** 198 hardcoded paths across 57 scripts were removed. They fell into
+four groups:
 
-- `.claude/skills/cfn-doc-lint/execute.sh`
-- `.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh`
+| Group | Count | Was | Now |
+|-------|-------|-----|-----|
+| Stale Windows-side repo copy | 95 | `/mnt/c/Users/<user>/Documents/claude-flow-novice/...` | `$PROJECT_ROOT`, derived from `BASH_SOURCE` |
+| Non-existent placeholder repo root | 89 | `/home/user/claude-flow-novice/...` | `$PROJECT_ROOT` |
+| One machine's projects directory | 9 | `/home/<user>/projects` | `${CFN_PROJECTS_ROOT:-$HOME/projects}` |
+| External tools and other checkouts | 5 | absolute paths to a memory monitor and another repo | env vars, with the destructive ones now skipping rather than guessing |
 
-Find the current set:
+The first two groups were not only Mac problems. `/home/user/claude-flow-novice` never
+existed on any machine, and the `/mnt/c/...` tree is a stale copy of this repo that still
+sits on the Windows filesystem, so those scripts were silently reading and writing the wrong
+checkout on WSL too.
 
-```bash
-grep -rl '/home/masha' .claude/ --include='*.sh' --include='*.json' --include='*.js' \
-  | grep -v /target/
-```
-
-These should become `$HOME` or repo-relative. Fixing them upstream benefits every machine,
-so prefer a PR over a local patch.
-
----
+A small number of absolute paths are legitimate and are exempted with an inline
+`# portability-ok: <reason>` marker: paths inside a container image, and literal strings fed
+to a log sanitizer under test. The reason is mandatory, so the exemption cannot be used as a
+silent mute.
 
 ## 7. Reverse symlinks
 
@@ -347,7 +341,7 @@ agent in the system. Do not leave it broken.
 4. Copy the untracked/gitignored set from a working machine (§2)
 5. Rewrite `~/.claude/settings.json` paths to `$HOME` (§6)
 6. Create the reverse symlinks (§7)
-7. Shebang sweep (§4)
+7. Confirm bash 5 wins: `/usr/bin/env bash -c 'echo $BASH_VERSION'` (§4)
 8. Start Claude Code, let the SessionStart hook build CodeSearch (§10)
 9. Run the verification checklist below
 
@@ -362,7 +356,7 @@ Do not declare the setup done until all of these pass.
 | 1 | bash 5 resolves | `/usr/bin/env bash -c 'echo $BASH_VERSION'` | starts with `5.` |
 | 2 | GNU sed first | `sed --version \| head -1` | says `GNU sed` |
 | 3 | `timeout` exists | `command -v timeout` | non-empty |
-| 4 | No stale shebangs | `grep -rl '^#!/bin/bash' --include='*.sh' .claude/ \| grep -v /target/ \| wc -l` | `0` |
+| 4 | Portability gate | `bash tests/test-shell-portability.sh` | both checks PASS |
 | 5 | Symlinks correct | `find ~/.claude -maxdepth 2 -type l \| wc -l` | 15 or more |
 | 6 | Global guide present | `head -1 ~/.claude/CLAUDE.md` | CFN Operating Guide header |
 | 7 | Settings valid | `jq -e '.hooks' ~/.claude/settings.json` | no `/home/` remains |
@@ -381,14 +375,17 @@ handling in one shot, with no database required.
 
 Not yet done. Pick these up if you are the one doing the port.
 
-- No Mac has run this. Every section is unverified.
-- 351 shebangs and 31 hardcoded paths are still Linux-shaped in the repo. Fixing them
-  upstream is better than every Mac patching locally.
+- No Mac has run this. Sections 4 and 6 are fixed in-repo and CI-gated, but the setup as a
+  whole is still unverified on hardware.
 - `cfn-notify.sh` and `cfn-workbench/render.sh` need macOS branches, not workarounds.
 - `root-claude-distribute/CFN-CLAUDE.md` is stale at v2.21.0 and should be resynced from
   the live global guide.
-- CI runs on Linux only. Nothing catches a macOS regression. A `macos-latest` job running
-  the skill self-tests would.
+- CI runs on Linux only. `tests/test-shell-portability.sh` catches the two mechanical
+  classes, but nothing exercises the code on macOS. A `macos-latest` job running the skill
+  self-tests would.
+- The GNU/BSD divergence in section 5 is still handled by `PATH`, not by the code. Porting
+  those call sites is the next mechanical win.
+- 9 scripts fail `bash -n` for unrelated heredoc and quoting bugs. Pre-existing, untouched.
 
 When you verify a section, update it here in the same commit and change the Status line at
 the top of this file.

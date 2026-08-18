@@ -6,7 +6,7 @@ set -euo pipefail
 
 set -euo pipefail
 
-PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "/mnt/c/Users/masha/Documents/claude-flow-novice")
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)"
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
 # Test configuration

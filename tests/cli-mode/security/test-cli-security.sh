@@ -372,14 +372,14 @@ test_error_message_sanitization() {
   log_step "GIVEN error messages that could leak sensitive data"
 
   # WHEN error message is generated with sensitive context
-  local test_error="Error: Failed to connect to /home/user/.config/secret.key with API_KEY=sk-12345"
+  local test_error="Error: Failed to connect to /home/user/.config/secret.key with API_KEY=sk-12345"  # portability-ok: literal input fed to the log sanitizer under test
 
   # THEN verify sanitization removes sensitive patterns
   local sanitized_error
   sanitized_error=$(echo "$test_error" | sed 's|/home/[^/]*/|/home/****/|g' | sed 's/API_KEY=[^ ]*/API_KEY=***/g')
 
   # Verify sensitive patterns removed
-  if [[ "$sanitized_error" =~ /home/user/ ]] || [[ "$sanitized_error" =~ sk-12345 ]]; then
+  if [[ "$sanitized_error" =~ /home/user/ ]] || [[ "$sanitized_error" =~ sk-12345 ]]; then  # portability-ok: asserts the sanitizer stripped that literal
     log_error "Error sanitization failed: $sanitized_error"
     return 1
   fi

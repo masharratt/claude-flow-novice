@@ -5,6 +5,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -17,7 +21,7 @@ TEST_DURATION=60
 COORDINATOR_CONTAINER="cfn-test-coordinator"
 AGENT_CONTAINERS=("cfn-agent-test-1" "cfn-agent-test-2" "cfn-agent-test-3")
 REDIS_CONTAINER="cfn-test-redis"
-TEST_DIR="/mnt/c/Users/masha/Documents/claude-flow-novice/tests/docker"
+TEST_DIR="$PROJECT_ROOT/tests/docker"
 
 # Results tracking
 RESULTS_FILE="/tmp/redis-coordination-results-$(date +%s).json"

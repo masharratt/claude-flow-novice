@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+
 # Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -18,7 +22,7 @@ FAILED_TESTS=0
 SKIPPED_TESTS=0
 
 # Results directory
-RESULTS_DIR="/home/user/claude-flow-novice/tests/integration/results"
+RESULTS_DIR="$PROJECT_ROOT/tests/integration/results"
 mkdir -p "$RESULTS_DIR"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RESULTS_FILE="$RESULTS_DIR/test-results-${TIMESTAMP}.log"
@@ -87,7 +91,7 @@ run_jest_test() {
     local start_time=$(date +%s)
     local output_file="$RESULTS_DIR/${test_name}-${TIMESTAMP}.log"
 
-    if npx jest "$test_file" --config=/home/user/claude-flow-novice/tests/integration/jest.config.cjs > "$output_file" 2>&1; then
+    if npx jest "$test_file" --config=$PROJECT_ROOT/tests/integration/jest.config.cjs > "$output_file" 2>&1; then
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))
         log_test_result "$test_name" "PASS" "$duration"
@@ -120,22 +124,22 @@ EOF
 echo -e "${BLUE}=== Shell-Based Tests ===${NC}\n"
 
 SHELL_TESTS=(
-    "/home/user/claude-flow-novice/tests/integration/test-connectivity.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-integration-simple.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-component.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-10-agent-concurrent.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-environment-sanitization.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-graceful-shutdown-comprehensive.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-memory-leak-prevention.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-orchestrator-load.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-parameter-standardization.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-priority-queue.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-priority-queue-unix.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-process-instrumentation.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-provider-routing.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-seo-pipeline-structure.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-standard-handoffs.sh"
-    "/home/user/claude-flow-novice/tests/integration/test-zai-routing.sh"
+    "$PROJECT_ROOT/tests/integration/test-connectivity.sh"
+    "$PROJECT_ROOT/tests/integration/test-integration-simple.sh"
+    "$PROJECT_ROOT/tests/integration/test-component.sh"
+    "$PROJECT_ROOT/tests/integration/test-10-agent-concurrent.sh"
+    "$PROJECT_ROOT/tests/integration/test-environment-sanitization.sh"
+    "$PROJECT_ROOT/tests/integration/test-graceful-shutdown-comprehensive.sh"
+    "$PROJECT_ROOT/tests/integration/test-memory-leak-prevention.sh"
+    "$PROJECT_ROOT/tests/integration/test-orchestrator-load.sh"
+    "$PROJECT_ROOT/tests/integration/test-parameter-standardization.sh"
+    "$PROJECT_ROOT/tests/integration/test-priority-queue.sh"
+    "$PROJECT_ROOT/tests/integration/test-priority-queue-unix.sh"
+    "$PROJECT_ROOT/tests/integration/test-process-instrumentation.sh"
+    "$PROJECT_ROOT/tests/integration/test-provider-routing.sh"
+    "$PROJECT_ROOT/tests/integration/test-seo-pipeline-structure.sh"
+    "$PROJECT_ROOT/tests/integration/test-standard-handoffs.sh"
+    "$PROJECT_ROOT/tests/integration/test-zai-routing.sh"
 )
 
 for test in "${SHELL_TESTS[@]}"; do
@@ -150,14 +154,14 @@ done
 echo -e "\n${BLUE}=== TypeScript/Jest Tests ===${NC}\n"
 
 JEST_TESTS=(
-    "/home/user/claude-flow-novice/tests/integration/backup-recovery.test.ts"
-    "/home/user/claude-flow-novice/tests/integration/coordination-protocols.test.ts"
-    "/home/user/claude-flow-novice/tests/integration/data-formats.test.ts"
-    "/home/user/claude-flow-novice/tests/integration/database-handoffs.test.ts"
-    "/home/user/claude-flow-novice/tests/integration/end-to-end-workflows.test.ts"
-    "/home/user/claude-flow-novice/tests/integration/redis-failure.test.ts"
-    "/home/user/claude-flow-novice/tests/integration/schema-validation-complete.test.ts"
-    "/home/user/claude-flow-novice/tests/integration/skill-lifecycle.test.ts"
+    "$PROJECT_ROOT/tests/integration/backup-recovery.test.ts"
+    "$PROJECT_ROOT/tests/integration/coordination-protocols.test.ts"
+    "$PROJECT_ROOT/tests/integration/data-formats.test.ts"
+    "$PROJECT_ROOT/tests/integration/database-handoffs.test.ts"
+    "$PROJECT_ROOT/tests/integration/end-to-end-workflows.test.ts"
+    "$PROJECT_ROOT/tests/integration/redis-failure.test.ts"
+    "$PROJECT_ROOT/tests/integration/schema-validation-complete.test.ts"
+    "$PROJECT_ROOT/tests/integration/skill-lifecycle.test.ts"
 )
 
 for test in "${JEST_TESTS[@]}"; do
@@ -172,11 +176,11 @@ done
 echo -e "\n${BLUE}=== Phase 1 Tests ===${NC}\n"
 
 PHASE1_TESTS=(
-    "/home/user/claude-flow-novice/tests/integration/phase-1/agents.test.js"
-    "/home/user/claude-flow-novice/tests/integration/phase-1/decisions.test.js"
-    "/home/user/claude-flow-novice/tests/integration/phase-1/filters.test.js"
-    "/home/user/claude-flow-novice/tests/integration/phase-1/messages.test.js"
-    "/home/user/claude-flow-novice/tests/integration/phase-1/websocket.test.js"
+    "$PROJECT_ROOT/tests/integration/phase-1/agents.test.js"
+    "$PROJECT_ROOT/tests/integration/phase-1/decisions.test.js"
+    "$PROJECT_ROOT/tests/integration/phase-1/filters.test.js"
+    "$PROJECT_ROOT/tests/integration/phase-1/messages.test.js"
+    "$PROJECT_ROOT/tests/integration/phase-1/websocket.test.js"
 )
 
 for test in "${PHASE1_TESTS[@]}"; do

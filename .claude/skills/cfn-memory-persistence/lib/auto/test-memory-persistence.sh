@@ -4,7 +4,7 @@
 set -e
 
 # Source parameterized query library for SQL injection prevention
-PROJECT_ROOT="/mnt/c/Users/masha/Documents/claude-flow-novice"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
 source "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh"
 
 # Temporary test database

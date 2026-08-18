@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -16,7 +20,7 @@ done
 case "$TRIGGER" in
     "confidence_plateau")
         # Use agent swap
-        SWAP_OUTPUT=$(/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-agent-swap/recommend-swap.sh \
+        SWAP_OUTPUT=$($PROJECT_ROOT/.claude/skills/cfn-agent-swap/recommend-swap.sh \
             --loop3-agents "$(IFS=,; echo "${AGENTS[*]}")" \
             --loop3-confidences "0.70,0.82" \
             --feedback-themes "$(IFS=,; echo "${THEMES[*]}")")
@@ -26,7 +30,7 @@ case "$TRIGGER" in
 
     "recurring_feedback")
         # Use specialist injection
-        SWAP_OUTPUT=$(/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-specialist-injection/recommend-specialist.sh \
+        SWAP_OUTPUT=$($PROJECT_ROOT/.claude/skills/cfn-specialist-injection/recommend-specialist.sh \
             --current-loop3 "$(IFS=,; echo "${AGENTS[*]}")" \
             --feedback-themes "$(IFS=,; echo "${THEMES[*]}")" \
             --recurring-count 3)
@@ -36,7 +40,7 @@ case "$TRIGGER" in
 
     "deliverables_stuck")
         # Use scope simplifier
-        SWAP_OUTPUT=$(/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-scope-simplifier/simplify-scope.sh \
+        SWAP_OUTPUT=$($PROJECT_ROOT/.claude/skills/cfn-scope-simplifier/simplify-scope.sh \
             --original-deliverables "src/auth/oauth2.ts,src/auth/sessions.ts,tests/auth.test.ts,docs/auth.md" \
             --files-created "none" \
             --iteration "$ITERATION")

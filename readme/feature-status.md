@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-17 (migration-rehearsal destructive-SQL guard anchored to statement start, +2 regression tests; added readme/macos-setup.md porting guide) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-17 (macOS port: 724 shebangs unpinned from /bin/bash, 198 hardcoded paths removed, shell-portability gate wired into CI) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -532,6 +532,8 @@ Consumer Project
 | cfn-ab-critic | ⚠️ Beta | n/a | `.claude/skills/cfn-ab-critic/` | Blind A/B critic gate: compares a build artifact against a reference artifact (labels shuffled so the critic cannot tell which is "ours"); emits a vote-manifest when ours loses or confidence < threshold. Triggered by an AC carrying a `reference` key. Deps: cfn-vote-implement, cfn-megaplan/bars (verifiable-done `reference` key). Known limitations: optional gate; only fires when an AC opts in via `reference`; the LLM judgment is a two-phase handoff (phase 1 emits a blinded prompt, the agent re-invokes with verdicts) until a non-Anthropic vision/text compare MCP is reachable in-process |
 | cfn-migration-rehearsal | ✅ Prod | ✅ 8/8 | `.claude/skills/cfn-migration-rehearsal/` | Rehearses migration up+down round-trip against CFN_SCRATCH_DATABASE_URL only; refuses prod. Destructive-SQL guard is statement-anchored, so GRANT/REVOKE privilege names are not flagged. Executes what cfn-ops designs |
 | docs-sync pre-commit check | ✅ Prod | ✅ 9/9 | `.claude/hooks/cfn-docs-sync-check.sh` | Warns (blocks if CFN_DOCS_SYNC_STRICT=1) when a code commit omits feature-status.md / state-machines.md |
+
+| shell-portability gate | ✅ Prod | ✅ 2/2 | `tests/test-shell-portability.sh` | CI gate (ci.yml lint job) blocking `#!/bin/bash` shebangs and hardcoded home paths in every tracked script that is actually executed. `# portability-ok: <reason>` exempts container-internal and sanitizer-fixture paths. Backs readme/macos-setup.md |
 
 **Gate dependencies:** cfn-security-review + cfn-dep-audit + cfn-perf-gate + cfn-a11y-gate emit manifests to `.cfn-cache/manifests/` consumed by cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user). cfn-migration-rehearsal pairs with cfn-ops (designs up+down) + supabase-schema-sync. docs-sync wired into `.git/hooks/pre-commit`.
 

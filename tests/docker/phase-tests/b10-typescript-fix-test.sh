@@ -13,7 +13,14 @@ REDIS_CONTAINER="cfn-b10-redis"
 AGENT_MEMORY="${AGENT_MEMORY:-1g}"
 
 # Frontend path
-FRONTEND_PATH="/mnt/c/Users/masha/Documents/ourstories-v2/frontend"
+# Path to the external frontend under test. Machine-specific, so it must
+# be supplied; the test skips rather than silently checking nothing.
+FRONTEND_PATH="${CFN_FRONTEND_PATH:-}"
+if [ -z "$FRONTEND_PATH" ] || [ ! -d "$FRONTEND_PATH" ]; then
+    echo "SKIP: set CFN_FRONTEND_PATH to the frontend checkout under test." >&2
+    echo "      This test MODIFIES files there, so it refuses to guess a path." >&2
+    exit 0
+fi
 
 echo "🧪 B10 TYPESCRIPT ERROR FIX TEST"
 echo "================================="

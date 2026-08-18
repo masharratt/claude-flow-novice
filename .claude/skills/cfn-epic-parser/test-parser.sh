@@ -5,6 +5,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -252,7 +256,7 @@ run_all_tests() {
     setup_test_dir
 
     # Copy parser script
-    cp /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-epic-parser/parse.sh ./
+    cp $PROJECT_ROOT/.claude/skills/cfn-epic-parser/parse.sh ./
 
     # Run tests
     test_help_output

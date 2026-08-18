@@ -5,6 +5,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -23,7 +27,7 @@ DB_HOST="${TEST_DB_HOST:-localhost}"
 DB_PORT="${TEST_DB_PORT:-5432}"
 
 # Migration directory
-MIGRATIONS_DIR="/home/user/claude-flow-novice/src/workflow-codification/migrations"
+MIGRATIONS_DIR="$PROJECT_ROOT/src/workflow-codification/migrations"
 
 # Utility functions
 log_info() {

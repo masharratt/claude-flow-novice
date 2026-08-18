@@ -5,6 +5,10 @@
 
 set -e
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+
 TASK_ID="orchestrator-test-$(date +%s)"
 TEST_DIR="/tmp/cfn-test-${TASK_ID}"
 
@@ -39,7 +43,7 @@ fi
 
 # Test 3: Orchestrator script availability
 echo "Test 3: Orchestrator script..."
-ORCHESTRATOR_SCRIPT="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-loop-orchestration/orchestrate.sh"
+ORCHESTRATOR_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate.sh"
 if [ -f "$ORCHESTRATOR_SCRIPT" ]; then
     echo "✅ Orchestrator script found"
 else
@@ -49,7 +53,7 @@ fi
 
 # Test 4: Waiting mode functionality
 echo "Test 4: Waiting mode functionality..."
-WAITING_MODE_SCRIPT="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/redis-coordination/invoke-waiting-mode.sh"
+WAITING_MODE_SCRIPT="$PROJECT_ROOT/.claude/skills/redis-coordination/invoke-waiting-mode.sh"
 if [ -f "$WAITING_MODE_SCRIPT" ]; then
     echo "✅ Waiting mode script available"
 else

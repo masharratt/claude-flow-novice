@@ -12,7 +12,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Paths
-PROJECT_ROOT="/home/user/claude-flow-novice"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 TEST_DB="/tmp/test-analytics-integration-$$.db"
 CLI_CMD="node $PROJECT_ROOT/src/cli/skill-cli.ts"
 

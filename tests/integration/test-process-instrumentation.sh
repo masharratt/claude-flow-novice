@@ -6,7 +6,7 @@ set -euo pipefail
 
 # Test configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 TEST_RESULTS_DIR="/tmp/cfn-test-results"
 INSTRUMENTATION_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
 
@@ -161,7 +161,7 @@ test_memory_limit_enforcement() {
     # Create a script that allocates memory
     cat > "$TEST_RESULTS_DIR/memory_test.sh" << 'EOF'
 #!/bin/bash
-source "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
 
 # Allocate memory gradually
 data=""

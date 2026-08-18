@@ -16,12 +16,16 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 # Configuration
-readonly ROOT_DOCKER_COMPOSE="/mnt/c/Users/masha/Documents/claude-flow-novice/docker-compose.yml"
-readonly COORDINATOR_DOCKER_COMPOSE="/mnt/c/Users/masha/Documents/claude-flow-novice/docker/docker-compose.yml"
-readonly AGENT_EXECUTOR="/mnt/c/Users/masha/Documents/claude-flow-novice/src/cli/agent-executor.ts"
-readonly ENV_FILE="/mnt/c/Users/masha/Documents/claude-flow-novice/.env"
-readonly WORK_DIR="/mnt/c/Users/masha/Documents/claude-flow-novice"
+readonly ROOT_DOCKER_COMPOSE="$PROJECT_ROOT/docker-compose.yml"
+readonly COORDINATOR_DOCKER_COMPOSE="$PROJECT_ROOT/docker/docker-compose.yml"
+readonly AGENT_EXECUTOR="$PROJECT_ROOT/src/cli/agent-executor.ts"
+readonly ENV_FILE="$PROJECT_ROOT/.env"
+readonly WORK_DIR="$PROJECT_ROOT"
 
 # Color output
 RED='\033[0;31m'

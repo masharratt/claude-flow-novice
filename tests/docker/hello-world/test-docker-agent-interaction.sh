@@ -17,7 +17,7 @@ IMAGE_TAG="latest"
 CONTAINER_NAME="cfn-agent-test-$$"  # Unique name per run
 TASK_ID="docker-test-$(date +%s)"
 AGENT_TYPE="test-docker-agent"
-PROJECT_ROOT="/mnt/c/Users/masha/Documents/claude-flow-novice"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 
 # Test results
 TEST_RESULTS=()

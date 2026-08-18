@@ -171,7 +171,7 @@ lint_dir() {
 }
 
 check_all() {
-  local f d iswt root="${1:-/home/masha/projects}"
+  local f d iswt root="${1:-${CFN_PROJECTS_ROOT:-$HOME/projects}}"
   while IFS= read -r f; do
     # skip files inside a git worktree (working tree whose .git is a file, not a dir)
     iswt=0; d="$f"
@@ -187,7 +187,7 @@ check_all() {
 
 main() {
   [ $# -eq 0 ] && { echo "usage: $0 <file.md|dir|--check-all root>" >&2; exit 2; }
-  if [ "$1" = "--check-all" ]; then shift; check_all "${1:-/home/masha/projects}"; else
+  if [ "$1" = "--check-all" ]; then shift; check_all "${1:-${CFN_PROJECTS_ROOT:-$HOME/projects}}"; else
     for arg in "$@"; do
       if [ -d "$arg" ]; then lint_dir "$arg"; else lint_one "$arg"; fi
     done

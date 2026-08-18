@@ -2,7 +2,11 @@
 # Playbook-Driven Execution for Reduced Iteration Cycles
 
 # Playbook configuration directory
-PLAYBOOK_DIR="/mnt/c/Users/masha/Documents/claude-flow-novice/deployment/playbooks"
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
+PLAYBOOK_DIR="$PROJECT_ROOT/deployment/playbooks"
 
 # Load playbook configuration
 load_playbook() {

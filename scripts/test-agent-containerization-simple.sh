@@ -9,7 +9,7 @@ echo "======================================"
 # Configuration
 AGENT_TYPE="${AGENT_TYPE:-react-frontend-engineer}"
 CONTAINER_NAME="agent-test-$(date +%s)"
-PROJECT_ROOT="/mnt/c/Users/masha/Documents/claude-flow-novice"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 # Colors
 GREEN='\033[0;32m'

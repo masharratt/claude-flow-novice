@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
+
 # Config Management CLI Wrapper with Nested Support
 
 # DISABLED: Use .claude directory instead of creating .claude-flow-config
 # CONFIG_FILE="${HOME}/.claude-flow-config.json"
 CONFIG_FILE="${HOME}/.claude/config.json"
-SCHEMA_FILE="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-config/lib/management/config.json"
+SCHEMA_FILE="$PROJECT_ROOT/.claude/skills/cfn-config/lib/management/config.json"
 
 # Validate JSON against schema
 validate_config() {

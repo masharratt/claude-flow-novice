@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
 # Path to the sync script
@@ -36,7 +36,7 @@ test_path_normalization() {
   fi
 
   # Test case 2: WSL path already normalized
-  cwd2="/mnt/c/Users/masha/Documents/claude-flow-novice"
+  cwd2="$PROJECT_ROOT"
   project2="claude-flow-novice"
   norm_cwd2=$(echo "$cwd2" | sed 's|\\|/|g' | tr '[:upper:]' '[:lower:]')
   norm_project2=$(echo "$project2" | tr '[:upper:]' '[:lower:]')
@@ -87,7 +87,7 @@ test_path_normalization() {
 test_hardcoded_path_removed() {
   log_info "Verifying hardcoded path was removed..."
 
-  if grep -q "/mnt/c/Users/masha/.codex/sessions" "$SYNC_SCRIPT"; then
+  if grep -q "/mnt/c/Users/masha/.codex/sessions" "$SYNC_SCRIPT"; then  # portability-ok: this test asserts that literal is ABSENT
     log_error "✗ Hardcoded path still exists in sync script"
     return 1
   else

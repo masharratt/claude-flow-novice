@@ -33,21 +33,21 @@ SENSITIVE_CMD=$(jq -r '.hooks.PreToolUse[]?
 if [ -z "$SENSITIVE_CMD" ]; then
     bad "T1 could not locate the sensitive-file hook in $SETTINGS"
 else
-    for path in "/home/masha/projects/x/.env" \
-                "/home/masha/projects/x/credentials.json" \
-                "/home/masha/projects/x/secrets.json" \
-                "/home/masha/projects/x/secrets.yaml" \
+    for path in "$HOME/projects/x/.env" \
+                "$HOME/projects/x/credentials.json" \
+                "$HOME/projects/x/secrets.json" \
+                "$HOME/projects/x/secrets.yaml" \
                 "/srv/app/private.pem" \
-                "/home/u/.ssh/id_rsa"; do
+                "/home/u/.ssh/id_rsa"; do  # portability-ok: synthetic fixture paths fed to the hook matcher
         printf '{"tool_input":{"file_path":"%s"}}' "$path" \
             | bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
         [ $? -eq 2 ] && ok "blocks $path" || bad "ALLOWS $path (should block)"
     done
 
     # Must not block ordinary source files.
-    printf '{"tool_input":{"file_path":"/home/masha/projects/x/src/app.ts"}}' \
+    printf '{"tool_input":{"file_path":"$HOME/projects/x/src/app.ts"}}' \
         | bash -c "$SENSITIVE_CMD" >/dev/null 2>&1
-    [ $? -eq 0 ] && ok "allows /home/masha/projects/x/src/app.ts" \
+    [ $? -eq 0 ] && ok "allows $HOME/projects/x/src/app.ts" \
                  || bad "blocks a normal source file (false positive)"
 fi
 
@@ -111,7 +111,7 @@ else
     bad "cfn-careful-guard.sh is NOT registered -- guard never runs"
 fi
 
-for cmd in "rm -rf /home/masha/projects/x/src" \
+for cmd in "rm -rf $HOME/projects/x/src" \
            "psql -c 'DROP TABLE users'" \
            "psql -c 'TRUNCATE cos_tasks'" \
            "git push --force origin main" \

@@ -4,6 +4,10 @@
 
 set -uo pipefail  # Don't exit on first error
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+
 # Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -18,7 +22,7 @@ FAILED=0
 SKIPPED=0
 
 # Results file
-REPORT="/home/user/claude-flow-novice/docs/INTEGRATION_TEST_RESULTS.md"
+REPORT="$PROJECT_ROOT/docs/INTEGRATION_TEST_RESULTS.md"
 
 echo "# Integration Test Execution Report" > "$REPORT"
 echo "" >> "$REPORT"
@@ -61,9 +65,9 @@ echo ""
 echo "## Shell-Based Integration Tests" >> "$REPORT"
 echo "" >> "$REPORT"
 
-test_file "/home/user/claude-flow-novice/tests/integration/test-connectivity.sh" 10
-test_file "/home/user/claude-flow-novice/tests/integration/test-priority-queue-unix.sh" 10
-test_file "/home/user/claude-flow-novice/tests/integration/test-component.sh" 30
+test_file "$PROJECT_ROOT/tests/integration/test-connectivity.sh" 10
+test_file "$PROJECT_ROOT/tests/integration/test-priority-queue-unix.sh" 10
+test_file "$PROJECT_ROOT/tests/integration/test-component.sh" 30
 
 # Summary
 echo "" >> "$REPORT"

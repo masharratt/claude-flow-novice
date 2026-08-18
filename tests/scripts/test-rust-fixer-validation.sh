@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 set -eu
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+
 echo "🧪 Rust Error Fixer Validation Tests"
 echo "===================================="
 
 # Test 1: Validate fixer can be parsed
 echo -e "\n✅ Test 1: Syntax Validation"
-cd /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-compilation-error-fixer/lib/fixer
+cd $PROJECT_ROOT/.claude/skills/cfn-compilation-error-fixer/lib/fixer
 
 # Check TypeScript syntax
 if npx tsc --noEmit cerebras-gated-fixer-v2.ts 2>/dev/null; then

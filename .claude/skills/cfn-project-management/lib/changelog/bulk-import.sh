@@ -5,6 +5,10 @@
 # Simplified two-pass approach: collect all entries, then deduplicate
 
 # Default values
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
+
 INPUT_FILE=""
 AUTO_SQUASH=false
 THRESHOLD=0.8
@@ -123,7 +127,7 @@ calculate_similarity() {
 # Check if entry exists in CHANGELOG
 entry_exists() {
   local summary="$1"
-  grep -qF "$summary" "/mnt/c/Users/masha/Documents/claude-flow-novice/readme/CHANGELOG.md" 2>/dev/null
+  grep -qF "$summary" "$PROJECT_ROOT/readme/CHANGELOG.md" 2>/dev/null
 }
 
 # Initialize files
@@ -240,7 +244,7 @@ while IFS='|' read -r date type summary impact files issue migration; do
     fi
 
     # Execute
-    if /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-changelog-management/add-changelog-entry.sh "${args[@]}" >/dev/null 2>&1; then
+    if $PROJECT_ROOT/.claude/skills/cfn-changelog-management/add-changelog-entry.sh "${args[@]}" >/dev/null 2>&1; then
       echo "  ✓ Added: $summary ($date)"
     else
       echo "  ✗ Failed: $summary ($date)" >&2

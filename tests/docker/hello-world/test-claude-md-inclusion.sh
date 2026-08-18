@@ -4,8 +4,12 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 IMAGE_NAME="cfn-agent-test-$(date +%s)"
-BUILD_CONTEXT="/mnt/c/Users/masha/Documents/claude-flow-novice"
+BUILD_CONTEXT="$PROJECT_ROOT"
 
 echo "=========================================="
 echo "Docker CLAUDE.md Inclusion Test"

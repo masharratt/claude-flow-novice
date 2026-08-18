@@ -24,8 +24,12 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 # Configuration
-PARSER_SCRIPT="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh"
+PARSER_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh"
 TEST_OUTPUT_DIR="/tmp/test-parser-$$"
 TEST_COUNT=0
 PASS_COUNT=0

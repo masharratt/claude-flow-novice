@@ -14,11 +14,15 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+
 # Test configuration
 readonly TEST_DIR="/tmp/shell-security-test-$$"
 readonly LOG_FILE="${TEST_DIR}/test-results.log"
-readonly COORDINATOR_SCRIPT="/mnt/c/Users/masha/Documents/claude-flow-novice/docker/coordinator-entrypoint.sh"
-readonly ORCHESTRATE_SCRIPT="/mnt/c/Users/masha/Documents/claude-flow-novice/claude-assets/skills/cfn-loop-orchestration/orchestrate.sh"
+readonly COORDINATOR_SCRIPT="$PROJECT_ROOT/docker/coordinator-entrypoint.sh"
+readonly ORCHESTRATE_SCRIPT="$PROJECT_ROOT/claude-assets/skills/cfn-loop-orchestration/orchestrate.sh"
 
 # Test metrics
 TOTAL_TESTS=0

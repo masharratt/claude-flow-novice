@@ -32,8 +32,8 @@ Options:
 
 Examples:
   $0
-  $0 --project-dir /home/user/my-project
-  $0 --project-dir /home/user/my-project --schemas public,analytics
+  $0 --project-dir /path/to/project
+  $0 --project-dir /path/to/project --schemas public,analytics
   $0 --include-auth
 EOF
 }

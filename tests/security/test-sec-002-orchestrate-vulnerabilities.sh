@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../" && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 ORCHESTRATE_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate.sh"
 SECURITY_UTILS="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/security_utils.sh"
 
@@ -373,7 +373,7 @@ test_iterations_boundary_values() {
     cat > "$test_script" << 'EOF'
 #!/bin/bash
 source "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/security_utils.sh"
-PROJECT_ROOT="/mnt/c/Users/masha/Documents/claude-flow-novice"
+PROJECT_ROOT="$PROJECT_ROOT"
 
 # Test 1: Zero should fail
 if grep -A30 "--max-iterations)" "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate.sh" | grep -q '\$2 -lt 1'; then

@@ -6,7 +6,7 @@ set -e
 
 # Source shared validation utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-changelog-management/lib/validation.sh"
+source "$PROJECT_ROOT/.claude/skills/cfn-changelog-management/lib/validation.sh"
 
 # Default values
 PRIORITY="P2"
@@ -87,7 +87,7 @@ validate_enum "$CATEGORY" "category" "Feature|Bug|Technical-Debt|Optimization" |
 
 # Path to backlog file
 BACKLOG_FILE="readme/BACKLOG.md"
-PROJECT_ROOT="/mnt/c/Users/masha/Documents/claude-flow-novice"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
 BACKLOG_PATH="$PROJECT_ROOT/$BACKLOG_FILE"
 
 # Create backlog file if it doesn't exist

@@ -2,6 +2,10 @@
 # Skill Invocation Logging Hook
 
 # Ensure required arguments are provided
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
+
 if [ $# -lt 5 ]; then
     echo "Usage: $0 <skill_name> <user_prompt> <outcome> <input_tokens> <output_tokens> [confidence_score] [context_reduction_percentage]"
     exit 1
@@ -12,7 +16,7 @@ CONFIDENCE_SCORE=${6:-0.0}
 CONTEXT_REDUCTION=${7:-0.0}
 
 # Path to the logging script (adjust as needed)
-LOGGING_SCRIPT="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-analytics/log-skill-invocation.js"
+LOGGING_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-analytics/log-skill-invocation.js"
 
 # Execute logging script
 node "$LOGGING_SCRIPT" \

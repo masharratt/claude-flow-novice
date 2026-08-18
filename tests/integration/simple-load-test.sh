@@ -151,7 +151,7 @@ check_prerequisites() {
     fi
     log "Node.js found"
 
-    if [ ! -f "/mnt/c/Users/masha/Documents/external-memory-monitor.sh" ]; then
+    if [ ! -f "${CFN_MEMORY_MONITOR:-$HOME/external-memory-monitor.sh}" ]; then
         log "ERROR: Monitor script not found"
         return 1
     fi
@@ -170,8 +170,8 @@ check_prerequisites() {
 analyze_results() {
     log "=== Analyzing Monitor Logs ==="
 
-    local monitor_log="/mnt/c/Users/masha/Documents/memory-monitor-external.log"
-    local kill_log="/mnt/c/Users/masha/Documents/memory-kills.log"
+    local monitor_log="${CFN_MEMORY_MONITOR_LOG:-$HOME/memory-monitor-external.log}"
+    local kill_log="${CFN_MEMORY_KILL_LOG:-$HOME/memory-kills.log}"
 
     if [ -f "$monitor_log" ]; then
         log "Recent monitor activity:"
@@ -208,8 +208,8 @@ main() {
 
     log "Simple load testing completed"
     log "Check logs for detailed results:"
-    log "  Monitor: /mnt/c/Users/masha/Documents/memory-monitor-external.log"
-    log "  Kills:   /mnt/c/Users/masha/Documents/memory-kills.log"
+    log "  Monitor: ${CFN_MEMORY_MONITOR_LOG:-$HOME/memory-monitor-external.log}"
+    log "  Kills:   ${CFN_MEMORY_KILL_LOG:-$HOME/memory-kills.log}"
 }
 
 # Cleanup on script exit

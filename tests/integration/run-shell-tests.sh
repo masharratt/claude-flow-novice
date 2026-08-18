@@ -3,6 +3,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+
 # Color codes
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -16,7 +20,7 @@ PASSED_TESTS=0
 FAILED_TESTS=0
 
 # Results directory
-RESULTS_DIR="/home/user/claude-flow-novice/tests/integration/results"
+RESULTS_DIR="$PROJECT_ROOT/tests/integration/results"
 mkdir -p "$RESULTS_DIR"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RESULTS_FILE="$RESULTS_DIR/shell-tests-${TIMESTAMP}.log"
@@ -55,16 +59,16 @@ export CFN_TEST_MODE=true
 export NODE_ENV=test
 
 # Run shell tests
-run_test "/home/user/claude-flow-novice/tests/integration/test-connectivity.sh"
-run_test "/home/user/claude-flow-novice/tests/integration/test-integration-simple.sh"
-run_test "/home/user/claude-flow-novice/tests/integration/test-component.sh"
-run_test "/home/user/claude-flow-novice/tests/integration/test-environment-sanitization.sh"
-run_test "/home/user/claude-flow-novice/tests/integration/test-parameter-standardization.sh"
-run_test "/home/user/claude-flow-novice/tests/integration/test-priority-queue-unix.sh"
-run_test "/home/user/claude-flow-novice/tests/integration/test-provider-routing.sh"
-run_test "/home/user/claude-flow-novice/tests/integration/test-seo-pipeline-structure.sh"
-run_test "/home/user/claude-flow-novice/tests/integration/test-standard-handoffs.sh"
-run_test "/home/user/claude-flow-novice/tests/integration/test-zai-routing.sh"
+run_test "$PROJECT_ROOT/tests/integration/test-connectivity.sh"
+run_test "$PROJECT_ROOT/tests/integration/test-integration-simple.sh"
+run_test "$PROJECT_ROOT/tests/integration/test-component.sh"
+run_test "$PROJECT_ROOT/tests/integration/test-environment-sanitization.sh"
+run_test "$PROJECT_ROOT/tests/integration/test-parameter-standardization.sh"
+run_test "$PROJECT_ROOT/tests/integration/test-priority-queue-unix.sh"
+run_test "$PROJECT_ROOT/tests/integration/test-provider-routing.sh"
+run_test "$PROJECT_ROOT/tests/integration/test-seo-pipeline-structure.sh"
+run_test "$PROJECT_ROOT/tests/integration/test-standard-handoffs.sh"
+run_test "$PROJECT_ROOT/tests/integration/test-zai-routing.sh"
 
 # Summary
 echo "" | tee -a "$RESULTS_FILE"

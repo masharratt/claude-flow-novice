@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT="/home/user/claude-flow-novice"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 
 echo "================================================================"
 echo "Security Remediation Patches - Phase 4 Docker Integration"

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -eu
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+
 echo "🚀 Rust Error Fixer Integration Tests"
 echo "===================================="
 
@@ -137,7 +141,7 @@ echo "   Found $initial_errors compilation errors"
 # Run fixer if environment is set up
 if [ -n "${CEREBRAS_API_KEY:-}" ]; then
     echo -e "\n🔧 Running Rust error fixer..."
-    cd /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-compilation-error-fixer/lib/fixer
+    cd $PROJECT_ROOT/.claude/skills/cfn-compilation-error-fixer/lib/fixer
     
     # Update project path to test directory
     sed -i.bak "s|projectPath: .*|projectPath: '$test_dir',|" cerebras-gated-fixer-v2.ts
@@ -153,7 +157,7 @@ if [ -n "${CEREBRAS_API_KEY:-}" ]; then
     echo "   $final_errors errors after fix attempt"
     
     # Restore backup
-    cd /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-compilation-error-fixer/lib/fixer
+    cd $PROJECT_ROOT/.claude/skills/cfn-compilation-error-fixer/lib/fixer
     mv cerebras-gated-fixer-v2.ts.bak cerebras-gated-fixer-v2.ts
 else
     echo -e "\n⚠️  CEREBRAS_API_KEY not set, skipping fixer execution"

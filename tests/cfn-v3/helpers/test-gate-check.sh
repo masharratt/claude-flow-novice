@@ -25,11 +25,15 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 # Configuration
 TEST_ID="gate-check-$(date +%s)"
 TASK_ID="test-${TEST_ID}"
-GATE_SCRIPT="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
-PARSER_SCRIPT="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh"
+GATE_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
+PARSER_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh"
 
 # Test thresholds
 GATE_THRESHOLD_MVP=0.80

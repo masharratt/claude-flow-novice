@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -13,7 +17,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 DRY_RUN=false
-ROOT_DIR="/mnt/c/Users/masha/Documents/claude-flow-novice"
+ROOT_DIR="$PROJECT_ROOT"
 
 # Functions
 log_info() {

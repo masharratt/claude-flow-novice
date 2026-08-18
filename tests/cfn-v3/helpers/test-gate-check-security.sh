@@ -7,6 +7,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -49,7 +53,7 @@ test_path_traversal_prevention() {
     echo ""
     echo "=== Testing: Fix 1: Path Traversal Prevention (CWE-22) ==="
 
-    local GATE_SCRIPT="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
+    local GATE_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
 
     # Test 1.1: Runtime test - Create symlink outside allowed prefix and verify it's blocked
     local OUTSIDE_DIR="/tmp/outside-allowed-prefix-$$"
@@ -87,7 +91,7 @@ test_path_traversal_prevention() {
 
     # Test 1.4: Runtime test - Verify normal execution from allowed path works
     EXIT_CODE=0
-    OUTPUT=$(cd /home/user/claude-flow-novice && "$GATE_SCRIPT" --task-id "test" --agents "agent1" --threshold "0.95" --min-quorum "1" --success-criteria '{"test_suites":[]}' 2>&1) || EXIT_CODE=$?
+    OUTPUT=$(cd $PROJECT_ROOT && "$GATE_SCRIPT" --task-id "test" --agents "agent1" --threshold "0.95" --min-quorum "1" --success-criteria '{"test_suites":[]}' 2>&1) || EXIT_CODE=$?
 
     # Should fail for missing data but NOT for path security
     if ! echo "$OUTPUT" | grep -q "SECURITY ERROR.*path"; then
@@ -105,7 +109,7 @@ test_json_field_validation() {
     echo ""
     echo "=== Testing: Fix 2: JSON Schema Validation (CWE-400) ==="
 
-    local GATE_CHECK="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
+    local GATE_CHECK="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
 
     # Test 2.1: Verify MAX_TEST_SUITES constant is defined AND enforced
     local HAS_CONSTANT=0
@@ -192,7 +196,7 @@ test_total_time_limit() {
     echo ""
     echo "=== Testing: Fix 3: DoS Prevention - Total Time Limit ==="
 
-    local GATE_CHECK="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
+    local GATE_CHECK="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
 
     # Test 3.1: Verify MAX_TOTAL_TIME is defined
     if grep -q "MAX_TOTAL_TIME=\${CFN_MAX_GATE_TIME:-1800}" "$GATE_CHECK"; then
@@ -232,7 +236,7 @@ test_temp_file_permissions() {
     echo ""
     echo "=== Testing: Fix 4: Secure Temp File Permissions ==="
 
-    local GATE_CHECK="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
+    local GATE_CHECK="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
 
     # Test 4.1: Verify chmod 600 after mktemp
     if grep -A1 "RESULTS_FILE=\$(mktemp)" "$GATE_CHECK" | grep -q "chmod 600"; then
@@ -278,7 +282,7 @@ test_all_fixes_present() {
     echo ""
     echo "=== Testing: Integration - All Fixes Present ==="
 
-    local GATE_CHECK="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
+    local GATE_CHECK="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
 
     # Count security fixes
     local FIX_COUNT

@@ -5,6 +5,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+
 # Logging and output functions
 log() {
     echo "[CFN RESTRUCTURE] $*" >&2
@@ -16,7 +20,7 @@ error() {
 }
 
 # Configuration
-BASE_DIR="/mnt/c/Users/masha/Documents/claude-flow-novice"
+BASE_DIR="$PROJECT_ROOT"
 BACKUP_DIR="${BASE_DIR}/.claude/backups/namespace-restructure-$(date +%Y%m%d-%H%M%S)"
 DRY_RUN=false
 VERBOSE=false

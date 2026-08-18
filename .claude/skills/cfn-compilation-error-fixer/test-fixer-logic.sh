@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 set -eu
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 echo "🧪 Testing TypeScript Error Fixer Logic"
 echo "======================================="
 
 # Test 1: Verify gate functions exist
 echo -e "\n✅ Test 1: Gate Function Verification"
-cd /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-compilation-error-fixer/lib/gates
+cd $PROJECT_ROOT/.claude/skills/cfn-compilation-error-fixer/lib/gates
 
 # Check for key functions
 echo "   Checking required gate functions..."
@@ -19,7 +23,7 @@ done
 
 # Test 2: Verify error classification
 echo -e "\n✅ Test 2: Error Classification"
-cd /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-compilation-error-fixer/lib/fixer
+cd $PROJECT_ROOT/.claude/skills/cfn-compilation-error-fixer/lib/fixer
 
 echo "   Checking error classifications in fixer..."
 error_codes=("TS2307" "TS2322" "TS2339" "TS2304" "TS1192")
@@ -34,7 +38,7 @@ done
 
 # Test 3: Check gate validation logic
 echo -e "\n✅ Test 3: Gate Validation Structure"
-cd /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-compilation-error-fixer/lib/gates
+cd $PROJECT_ROOT/.claude/skills/cfn-compilation-error-fixer/lib/gates
 
 if grep -q "riskLevel.*[1-5]" typescript-gates.ts; then
   echo "   ✓ Risk level validation present"
@@ -50,7 +54,7 @@ fi
 
 # Test 4: Check main fixer structure
 echo -e "\n✅ Test 4: Main Fixer Structure"
-cd /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-compilation-error-fixer/lib/fixer
+cd $PROJECT_ROOT/.claude/skills/cfn-compilation-error-fixer/lib/fixer
 
 if grep -q "async.*main" typescript-gated-fixer-v2.ts; then
   echo "   ✓ Main async function present"

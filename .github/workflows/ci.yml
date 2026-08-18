@@ -26,6 +26,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Shell portability gate
+        run: bash tests/test-shell-portability.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

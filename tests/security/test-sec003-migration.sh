@@ -5,6 +5,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -58,82 +62,82 @@ run_test() {
 # Test 1: Verify store-task-audit.sh imports sqlite-params.sh
 run_test \
     "store-task-audit.sh imports sqlite-params.sh" \
-    "grep -q 'source.*sqlite-params.sh' /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-task-audit/store-task-audit.sh"
+    "grep -q 'source.*sqlite-params.sh' $PROJECT_ROOT/.claude/skills/cfn-task-audit/store-task-audit.sh"
 
 # Test 2: Verify query-playbook.sh imports sqlite-params.sh
 run_test \
     "query-playbook.sh imports sqlite-params.sh" \
-    "grep -q 'source.*sqlite-params.sh' /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-playbook/query-playbook.sh"
+    "grep -q 'source.*sqlite-params.sh' $PROJECT_ROOT/.claude/skills/cfn-playbook/query-playbook.sh"
 
 # Test 3: Verify no direct $TASK_ID interpolation in SQL in store-task-audit.sh
 run_test \
     "store-task-audit.sh has no direct \$TASK_ID in SQL" \
-    "! grep -E \"sqlite.*\\'\\\$TASK_ID\" /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-task-audit/store-task-audit.sh"
+    "! grep -E \"sqlite.*\\'\\\$TASK_ID\" $PROJECT_ROOT/.claude/skills/cfn-task-audit/store-task-audit.sh"
 
 # Test 4: Verify no direct $TASK_TYPE interpolation in SQL in query-playbook.sh
 run_test \
     "query-playbook.sh has no direct \$TASK_TYPE in SQL" \
-    "! grep -E \"sqlite3.*\\'\\\$TASK_TYPE\" /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-playbook/query-playbook.sh"
+    "! grep -E \"sqlite3.*\\'\\\$TASK_TYPE\" $PROJECT_ROOT/.claude/skills/cfn-playbook/query-playbook.sh"
 
 # Test 5: Verify sqlite_insert is used in store-task-audit.sh
 run_test \
     "store-task-audit.sh uses sqlite_insert function" \
-    "grep -q 'sqlite_insert' /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-task-audit/store-task-audit.sh"
+    "grep -q 'sqlite_insert' $PROJECT_ROOT/.claude/skills/cfn-task-audit/store-task-audit.sh"
 
 # Test 6: Verify sqlite_select is used in query-playbook.sh
 run_test \
     "query-playbook.sh uses sqlite_select function" \
-    "grep -q 'sqlite_select' /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-playbook/query-playbook.sh"
+    "grep -q 'sqlite_select' $PROJECT_ROOT/.claude/skills/cfn-playbook/query-playbook.sh"
 
 # Test 7: Verify parameterized placeholders (?1, ?2, etc.) are used
 run_test \
     "store-task-audit.sh uses parameterized placeholders" \
-    "grep -q '?[0-9]' /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-task-audit/store-task-audit.sh"
+    "grep -q '?[0-9]' $PROJECT_ROOT/.claude/skills/cfn-task-audit/store-task-audit.sh"
 
 # Test 8: Verify parameterized placeholders (?1, ?2, etc.) are used
 run_test \
     "query-playbook.sh uses parameterized placeholders" \
-    "grep -q '?[0-9]' /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-playbook/query-playbook.sh"
+    "grep -q '?[0-9]' $PROJECT_ROOT/.claude/skills/cfn-playbook/query-playbook.sh"
 
 # Test 9: Test store-task-audit.sh syntax validation
 run_test \
     "store-task-audit.sh has valid bash syntax" \
-    "bash -n /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-task-audit/store-task-audit.sh"
+    "bash -n $PROJECT_ROOT/.claude/skills/cfn-task-audit/store-task-audit.sh"
 
 # Test 10: Test query-playbook.sh syntax validation
 run_test \
     "query-playbook.sh has valid bash syntax" \
-    "bash -n /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-playbook/query-playbook.sh"
+    "bash -n $PROJECT_ROOT/.claude/skills/cfn-playbook/query-playbook.sh"
 
 # Test 11: Verify no unquoted EOF (vulnerable pattern)
 run_test \
     "store-task-audit.sh uses quoted EOF for safe heredocs" \
-    "grep -q \"<<'EOF'\" /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-task-audit/store-task-audit.sh"
+    "grep -q \"<<'EOF'\" $PROJECT_ROOT/.claude/skills/cfn-task-audit/store-task-audit.sh"
 
 # Test 12: SQL injection test - verify escaped quotes are handled
 run_test \
     "store-task-audit.sh properly escapes quotes in JSON metadata" \
-    "grep -q '\\\\\"stored_via\\\\\"' /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-task-audit/store-task-audit.sh"
+    "grep -q '\\\\\"stored_via\\\\\"' $PROJECT_ROOT/.claude/skills/cfn-task-audit/store-task-audit.sh"
 
 # Test 13: Functional test - verify store-task-audit.sh runs without errors
 run_test \
     "store-task-audit.sh processes valid input correctly" \
-    "bash /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-task-audit/store-task-audit.sh --task-id 'test-123' --agent-type 'tester' --output '{\"decision\": \"PASS\", \"confidence\": 0.95}'"
+    "bash $PROJECT_ROOT/.claude/skills/cfn-task-audit/store-task-audit.sh --task-id 'test-123' --agent-type 'tester' --output '{\"decision\": \"PASS\", \"confidence\": 0.95}'"
 
 # Test 14: Functional test - verify query-playbook.sh can be sourced
 run_test \
     "query-playbook.sh can be sourced without errors" \
-    "bash -c 'source /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-playbook/query-playbook.sh --help 2>&1 | grep -q Usage || true'"
+    "bash -c 'source $PROJECT_ROOT/.claude/skills/cfn-playbook/query-playbook.sh --help 2>&1 | grep -q Usage || true'"
 
 # Test 15: Code review - verify all user inputs are parameterized
 run_test \
     "store-task-audit.sh parameterizes all user inputs (TASK_ID, AGENT_TYPE, etc.)" \
-    "[ \$(grep -c 'sqlite_insert.*\\\$' /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-task-audit/store-task-audit.sh) -ge 1 ]"
+    "[ \$(grep -c 'sqlite_insert.*\\\$' $PROJECT_ROOT/.claude/skills/cfn-task-audit/store-task-audit.sh) -ge 1 ]"
 
 # Test 16: Code review - verify all user inputs are parameterized in query-playbook.sh
 run_test \
     "query-playbook.sh parameterizes all user inputs (TASK_TYPE)" \
-    "grep -q '\$TASK_TYPE' /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-playbook/query-playbook.sh && grep -q 'sqlite_select' /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-playbook/query-playbook.sh"
+    "grep -q '\$TASK_TYPE' $PROJECT_ROOT/.claude/skills/cfn-playbook/query-playbook.sh && grep -q 'sqlite_select' $PROJECT_ROOT/.claude/skills/cfn-playbook/query-playbook.sh"
 
 # Print summary
 echo -e "\n${YELLOW}=== TEST SUMMARY ===${NC}"

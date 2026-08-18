@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 # Hardcoded Budget Constraints (Non-Configurable)
 readonly MIN_DAILY_BUDGET=1
 readonly MAX_DAILY_BUDGET=500
@@ -102,9 +106,9 @@ test_budget_validation() {
     echo "Total Tests: $total_tests, Failures: $failures"
 
     # Detailed Security Report
-    mkdir -p /mnt/c/Users/masha/Documents/claude-flow-novice/tests/security/budget-audit
+    mkdir -p $PROJECT_ROOT/tests/security/budget-audit
 
-    cat > /mnt/c/Users/masha/Documents/claude-flow-novice/tests/security/budget-audit/security-audit-report.md << EOF
+    cat > $PROJECT_ROOT/tests/security/budget-audit/security-audit-report.md << EOF
 # Budget Security Audit Report
 
 ## Validation Summary

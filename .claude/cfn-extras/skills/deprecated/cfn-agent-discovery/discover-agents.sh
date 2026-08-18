@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
+
 # Logging function
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" >&2
@@ -17,10 +21,10 @@ handle_error() {
 trap 'handle_error $LINENO' ERR
 
 # Path to Python script
-PYTHON_SCRIPT="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-agent-discovery/discover-agents.py"
+PYTHON_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-agent-discovery/discover-agents.py"
 
 # Output file
-OUTPUT_FILE="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-agent-discovery/agents-registry.json"
+OUTPUT_FILE="$PROJECT_ROOT/.claude/skills/cfn-agent-discovery/agents-registry.json"
 
 # Logging file
 LOG_FILE="/tmp/agent-discovery.log"

@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../../../.." && pwd -P)"
+
 # Validate input
 [[ $# -ne 2 ]] && { echo "Usage: $0 --retrospective-json JSON --task-id TASK_ID"; exit 1; }
 
@@ -31,8 +35,8 @@ done
 [[ -z "${TASK_ID:-}" ]] && { echo "Error: task-id is required"; exit 1; }
 
 # Playbook path
-PLAYBOOK_PATH="/mnt/c/Users/masha/Documents/claude-flow-novice/docs/PLAYBOOK.json"
-BACKUP_PATH="/mnt/c/Users/masha/Documents/claude-flow-novice/docs/playbook-backups/PLAYBOOK_${TASK_ID}_$(date +%Y%m%d_%H%M%S).json"
+PLAYBOOK_PATH="$PROJECT_ROOT/docs/PLAYBOOK.json"
+BACKUP_PATH="$PROJECT_ROOT/docs/playbook-backups/PLAYBOOK_${TASK_ID}_$(date +%Y%m%d_%H%M%S).json"
 
 # Ensure backup directory exists
 mkdir -p "$(dirname "$BACKUP_PATH")"

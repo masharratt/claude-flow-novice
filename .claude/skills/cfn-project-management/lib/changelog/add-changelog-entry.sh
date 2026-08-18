@@ -94,7 +94,7 @@ fi
 
 # Path to changelog
 CHANGELOG_FILE="readme/CHANGELOG.md"
-PROJECT_ROOT="/mnt/c/Users/masha/Documents/claude-flow-novice"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
 CHANGELOG_PATH="$PROJECT_ROOT/$CHANGELOG_FILE"
 
 # Check if changelog exists

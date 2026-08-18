@@ -5,6 +5,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -78,7 +82,7 @@ fi
 echo -e "\n${YELLOW}Test 4: Testing backlog skill invocation (dry run)...${NC}"
 
 # Check if backlog skill exists
-BACKLOG_SKILL="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-backlog-management/add-backlog-item.sh"
+BACKLOG_SKILL="$PROJECT_ROOT/.claude/skills/cfn-backlog-management/add-backlog-item.sh"
 
 if [ -f "$BACKLOG_SKILL" ]; then
   echo -e "${GREEN}✅ Backlog skill found: $BACKLOG_SKILL${NC}"
@@ -105,7 +109,7 @@ fi
 # Test 5: Integration point verification
 echo -e "\n${YELLOW}Test 5: Verifying integration point in execute-decision.sh...${NC}"
 
-SCRIPT_PATH="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-product-owner-decision/execute-decision.sh"
+SCRIPT_PATH="$PROJECT_ROOT/.claude/skills/cfn-product-owner-decision/execute-decision.sh"
 
 if grep -q "Processing deferred items for backlog" "$SCRIPT_PATH"; then
   echo -e "${GREEN}✅ Integration point found in execute-decision.sh${NC}"

@@ -7,7 +7,7 @@ set -euo pipefail
 
 # Test configuration
 TEST_DIR="/tmp/rapid-spawn-test"
-MONITOR_SCRIPT="/mnt/c/Users/masha/Documents/external-memory-monitor.sh"
+MONITOR_SCRIPT="${CFN_MEMORY_MONITOR:-$HOME/external-memory-monitor.sh}"
 TEST_DURATION=120  # 2 minutes
 SPAWN_INTERVAL=5   # Spawn a process every 5 seconds
 MAX_TEST_PROCESSES=8
@@ -229,15 +229,15 @@ main() {
         log "${GREEN}🎉 All tests passed!${NC}"
         log ""
         log "To verify the logs:"
-        log "  tail -f /mnt/c/Users/masha/Documents/memory-monitor-external.log"
-        log "  grep 'RAPID SPAWN' /mnt/c/Users/masha/Documents/memory-kills.log"
+        log "  tail -f ${CFN_MEMORY_MONITOR_LOG:-$HOME/memory-monitor-external.log}"
+        log "  grep 'RAPID SPAWN' ${CFN_MEMORY_KILL_LOG:-$HOME/memory-kills.log}"
         exit 0
     else
         log "${RED}❌ Tests failed!${NC}"
         log ""
         log "Troubleshooting:"
         log "  1. Ensure memory monitor is running: $MONITOR_SCRIPT"
-        log "  2. Check monitor logs: tail -f /mnt/c/Users/masha/Documents/memory-monitor-external.log"
+        log "  2. Check monitor logs: tail -f ${CFN_MEMORY_MONITOR_LOG:-$HOME/memory-monitor-external.log}"
         log "  3. Verify configuration settings in the monitor script"
         exit 1
     fi

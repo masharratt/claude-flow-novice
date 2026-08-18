@@ -7,8 +7,8 @@ set -euo pipefail
 
 # Test configuration
 TEST_DIR="/tmp/synthetic-load-test"
-MONITOR_LOG="/mnt/c/Users/masha/Documents/memory-monitor-external.log"
-KILL_LOG="/mnt/c/Users/masha/Documents/memory-kills.log"
+MONITOR_LOG="${CFN_MEMORY_MONITOR_LOG:-$HOME/memory-monitor-external.log}"
+KILL_LOG="${CFN_MEMORY_KILL_LOG:-$HOME/memory-kills.log}"
 
 # Colors
 RED='\033[0;31m'
@@ -269,7 +269,7 @@ check_prerequisites() {
     log "${GREEN}✅ Node.js found${NC}"
 
     # Check monitor script
-    if [ ! -f "/mnt/c/Users/masha/Documents/external-memory-monitor.sh" ]; then
+    if [ ! -f "${CFN_MEMORY_MONITOR:-$HOME/external-memory-monitor.sh}" ]; then
         log "${RED}❌ ERROR: Monitor script not found${NC}"
         return 1
     fi
@@ -280,7 +280,7 @@ check_prerequisites() {
         log "${GREEN}✅ Memory monitor is running${NC}"
     else
         log "${YELLOW}⚠️  Memory monitor not running - start it before running tests${NC}"
-        log "Run: /mnt/c/Users/masha/Documents/external-memory-monitor.sh"
+        log "Run: ${CFN_MEMORY_MONITOR:-$HOME/external-memory-monitor.sh}"
         return 1
     fi
 

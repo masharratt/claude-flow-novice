@@ -6,7 +6,7 @@ set -euo pipefail
 
 # Test configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 TEST_RESULTS_DIR="/tmp/cfn-test-results"
 
 # Test tracking
@@ -83,7 +83,7 @@ test_memory_allocation_leak() {
 #!/bin/bash
 
 # Source instrumentation
-source "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
 
 # Simulate memory leak by continuously allocating memory
 leak_array=()
@@ -181,7 +181,7 @@ test_file_handle_leak() {
 #!/bin/bash
 
 # Source instrumentation
-source "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
 
 # Simulate file handle leak
 file_handles=()
@@ -242,7 +242,7 @@ test_cpu_resource_exhaustion() {
 #!/bin/bash
 
 # Source instrumentation
-source "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
 
 # Infinite CPU-intensive loop
 echo "Starting CPU exhaustion test..."
@@ -284,7 +284,7 @@ test_agent_process_cleanup() {
 #!/bin/bash
 
 # Source instrumentation
-source "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
 
 # Spawn child processes
 children_pids=()
@@ -436,7 +436,7 @@ test_telemetry_during_leak() {
 #!/bin/bash
 
 # Source instrumentation
-source "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
 
 # Gradual memory allocation
 data=""

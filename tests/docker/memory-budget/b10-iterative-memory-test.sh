@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 REDIS_HOST="${REDIS_HOST:-localhost}"
 REDIS_PORT="${REDIS_PORT:-6381}"
 NETWORK_NAME="${NETWORK_NAME:-cfn-b10-fix}"
@@ -11,8 +15,13 @@ AGENT_MEMORY="${AGENT_MEMORY:-1g}"
 NUM_AGENTS=32
 MAX_ITERATIONS=5
 
-# Path to ourstories-v2 frontend
-FRONTEND_PATH="${FRONTEND_PATH:-/mnt/c/Users/masha/Documents/ourstories-v2/frontend}"
+# Path to the external frontend under test. Machine-specific, so it must be
+# supplied; this test MODIFIES files there and refuses to guess a path.
+FRONTEND_PATH="${FRONTEND_PATH:-}"
+if [ -z "$FRONTEND_PATH" ] || [ ! -d "$FRONTEND_PATH" ]; then
+  echo "SKIP: set FRONTEND_PATH to the frontend checkout under test." >&2
+  exit 0
+fi
 BATCHES_JSON="${BATCHES_JSON:-${FRONTEND_PATH}/planning/frontend/frontend-error-batches.json}"
 
 # Agents connect via container name
@@ -162,7 +171,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
             --name "b10-agent-$i" \
             --network "$NETWORK_NAME" \
             --memory="$AGENT_MEMORY" \
-            --env-file /mnt/c/Users/masha/Documents/claude-flow-novice/.env \
+            --env-file $PROJECT_ROOT/.env \
             -v "$WORKER_SCRIPT_PATH:/tmp/worker.sh:ro" \
             -v "$FRONTEND_PATH:/workspace:rw" \
             -e REDIS_HOST="$AGENT_REDIS_HOST" \

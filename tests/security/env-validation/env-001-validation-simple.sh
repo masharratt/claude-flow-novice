@@ -5,7 +5,11 @@
 
 set -eu
 
-WORK_DIR="/mnt/c/Users/masha/Documents/claude-flow-novice"
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
+WORK_DIR="$PROJECT_ROOT"
 PASS=0
 FAIL=0
 

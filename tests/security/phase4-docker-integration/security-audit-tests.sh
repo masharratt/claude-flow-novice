@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Repo root, derived from this script's own location so the script
+# works from any checkout on any machine.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+
 # Test results tracking
 TOTAL_TESTS=0
 PASSED_TESTS=0
@@ -73,7 +77,7 @@ test_json_size_limit_coordinator() {
     local large_json=$(printf '{"test_suites":[%s]}' "$(for i in {1..200000}; do echo -n '{"name":"suite'$i'","tests":[]},'; done)")
 
     # Check if entrypoint validates size BEFORE parsing
-    if grep -q "MAX_JSON_SIZE" /home/user/claude-flow-novice/docker/coordinator-entrypoint.sh; then
+    if grep -q "MAX_JSON_SIZE" $PROJECT_ROOT/docker/coordinator-entrypoint.sh; then
         return 0
     else
         log_fail "HIGH" "coordinator-entrypoint.sh missing JSON size validation (DoS risk)"
@@ -84,7 +88,7 @@ test_json_size_limit_coordinator() {
 test_json_size_limit_orchestrator() {
     # Test: orchestrate.sh validates JSON size
 
-    if grep -q "MAX_JSON_SIZE=10485760" /home/user/claude-flow-novice/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
+    if grep -q "MAX_JSON_SIZE=10485760" $PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
         return 0
     else
         log_fail "HIGH" "orchestrate.sh missing JSON size limit"
@@ -95,7 +99,7 @@ test_json_size_limit_orchestrator() {
 test_test_suite_bounds_checking() {
     # Test: orchestrate.sh validates test suite array size
 
-    if grep -q "MAX_TEST_SUITES=50" /home/user/claude-flow-novice/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
+    if grep -q "MAX_TEST_SUITES=50" $PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
         return 0
     else
         log_fail "MEDIUM" "orchestrate.sh missing test suite bounds check"
@@ -106,7 +110,7 @@ test_test_suite_bounds_checking() {
 test_input_sanitization_function() {
     # Test: orchestrate.sh has sanitize_input function
 
-    if grep -q "sanitize_input()" /home/user/claude-flow-novice/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
+    if grep -q "sanitize_input()" $PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
         return 0
     else
         log_fail "HIGH" "orchestrate.sh missing input sanitization"
@@ -120,12 +124,12 @@ test_file_path_validation() {
     local has_path_validation=false
 
     # Check for path canonicalization or validation
-    if grep -E "(realpath|readlink -f)" /home/user/claude-flow-novice/docker/coordinator-entrypoint.sh > /dev/null 2>&1; then
+    if grep -E "(realpath|readlink -f)" $PROJECT_ROOT/docker/coordinator-entrypoint.sh > /dev/null 2>&1; then
         has_path_validation=true
     fi
 
     # Check for ".." rejection
-    if grep -E '\.\.' /home/user/claude-flow-novice/docker/coordinator-entrypoint.sh | grep -q "error\|exit"; then
+    if grep -E '\.\.' $PROJECT_ROOT/docker/coordinator-entrypoint.sh | grep -q "error\|exit"; then
         has_path_validation=true
     fi
 
@@ -143,11 +147,11 @@ test_json_validation_before_use() {
     local coordinator_validates=false
     local orchestrator_validates=false
 
-    if grep -q 'jq empty' /home/user/claude-flow-novice/docker/coordinator-entrypoint.sh; then
+    if grep -q 'jq empty' $PROJECT_ROOT/docker/coordinator-entrypoint.sh; then
         coordinator_validates=true
     fi
 
-    if grep -q 'validate_json_context' /home/user/claude-flow-novice/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
+    if grep -q 'validate_json_context' $PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
         orchestrator_validates=true
     fi
 
@@ -166,7 +170,7 @@ test_json_validation_before_use() {
 test_base64_encoding_for_env_vars() {
     # Test: Base64 encoding used for complex data in env vars
 
-    if grep -q "base64" /home/user/claude-flow-novice/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
+    if grep -q "base64" $PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
         return 0
     else
         log_fail "HIGH" "orchestrate.sh not using base64 encoding for success criteria"
@@ -178,7 +182,7 @@ test_docker_command_injection_prevention() {
     # Test: Docker commands use safe parameterization
 
     # Check for direct variable interpolation in docker run
-    if grep -E 'docker run.*\$\{?[A-Z_]+\}?' /home/user/claude-flow-novice/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh | grep -v '\-\-env' > /dev/null 2>&1; then
+    if grep -E 'docker run.*\$\{?[A-Z_]+\}?' $PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh | grep -v '\-\-env' > /dev/null 2>&1; then
         log_fail "CRITICAL" "orchestrate.sh may have command injection vulnerability in docker commands"
         return 1
     else
@@ -189,7 +193,7 @@ test_docker_command_injection_prevention() {
 test_shell_metacharacter_sanitization() {
     # Test: sanitize_input removes dangerous shell metacharacters
 
-    local sanitize_func=$(grep -A 10 "sanitize_input()" /home/user/claude-flow-novice/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh || echo "")
+    local sanitize_func=$(grep -A 10 "sanitize_input()" $PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh || echo "")
 
     if echo "$sanitize_func" | grep -q "tr -cd"; then
         return 0
@@ -202,7 +206,7 @@ test_shell_metacharacter_sanitization() {
 test_environment_variable_quoting() {
     # Test: Environment variables properly quoted in scripts
 
-    local unquoted_vars=$(grep -E '\$[A-Z_]+[^}]' /home/user/claude-flow-novice/docker/coordinator-entrypoint.sh | grep -v ':-' | grep -v '${' | wc -l)
+    local unquoted_vars=$(grep -E '\$[A-Z_]+[^}]' $PROJECT_ROOT/docker/coordinator-entrypoint.sh | grep -v ':-' | grep -v '${' | wc -l)
 
     if [ "$unquoted_vars" -lt 5 ]; then
         return 0
@@ -219,7 +223,7 @@ test_environment_variable_quoting() {
 test_memory_limits_in_compose() {
     # Test: docker-compose.yml has memory limits
 
-    if grep -q "mem_limit:" /home/user/claude-flow-novice/docker/docker-compose.yml; then
+    if grep -q "mem_limit:" $PROJECT_ROOT/docker/docker-compose.yml; then
         return 0
     else
         log_fail "MEDIUM" "docker-compose.yml missing memory limits (DoS risk)"
@@ -230,7 +234,7 @@ test_memory_limits_in_compose() {
 test_coordinator_memory_limit() {
     # Test: Coordinator has reasonable memory limit
 
-    local coordinator_mem=$(grep -A 20 "cfn-coordinator:" /home/user/claude-flow-novice/docker/docker-compose.yml | grep "mem_limit:" | awk '{print $2}')
+    local coordinator_mem=$(grep -A 20 "cfn-coordinator:" $PROJECT_ROOT/docker/docker-compose.yml | grep "mem_limit:" | awk '{print $2}')
 
     if [[ "$coordinator_mem" == "2g" ]]; then
         return 0
@@ -243,7 +247,7 @@ test_coordinator_memory_limit() {
 test_input_length_bounds() {
     # Test: sanitize_input has max_length parameter
 
-    if grep -q 'max_length="${2:-256}"' /home/user/claude-flow-novice/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
+    if grep -q 'max_length="${2:-256}"' $PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
         return 0
     else
         log_fail "MEDIUM" "sanitize_input missing max_length bounds check"
@@ -255,7 +259,7 @@ test_iteration_limit_validation() {
     # Test: MAX_ITERATIONS has upper bound
 
     # Check if there's validation that MAX_ITERATIONS doesn't exceed reasonable value
-    if grep -E "MAX_ITERATIONS.*[0-9]{3,}" /home/user/claude-flow-novice/docker/coordinator-entrypoint.sh > /dev/null 2>&1; then
+    if grep -E "MAX_ITERATIONS.*[0-9]{3,}" $PROJECT_ROOT/docker/coordinator-entrypoint.sh > /dev/null 2>&1; then
         log_fail "LOW" "No upper bound validation on MAX_ITERATIONS"
         return 1
     else
@@ -271,7 +275,7 @@ test_volume_mount_safety() {
     # Test: Volume mounts don't expose sensitive paths
 
     # Check for dangerous mounts like /etc, /root, /home
-    if grep -E ":/etc:|:/root:|:/home:" /home/user/claude-flow-novice/docker/docker-compose.yml > /dev/null 2>&1; then
+    if grep -E ":/etc:|:/root:|:/home:" $PROJECT_ROOT/docker/docker-compose.yml > /dev/null 2>&1; then
         log_fail "CRITICAL" "docker-compose.yml mounts sensitive system directories"
         return 1
     else
@@ -282,7 +286,7 @@ test_volume_mount_safety() {
 test_docker_socket_mount_isolation() {
     # Test: Docker socket mount only on coordinator
 
-    local socket_mounts=$(grep -c "/var/run/docker.sock" /home/user/claude-flow-novice/docker/docker-compose.yml)
+    local socket_mounts=$(grep -c "/var/run/docker.sock" $PROJECT_ROOT/docker/docker-compose.yml)
 
     # Should be mounted only once (on coordinator)
     if [ "$socket_mounts" -eq 1 ]; then
@@ -299,7 +303,7 @@ test_docker_socket_mount_isolation() {
 test_secrets_not_in_environment() {
     # Test: No hardcoded secrets in docker-compose.yml
 
-    if grep -E "(password|secret|key|token).*:" /home/user/claude-flow-novice/docker/docker-compose.yml | grep -v "CFN_" | grep -v "REDIS_PASSWORD:-" > /dev/null 2>&1; then
+    if grep -E "(password|secret|key|token).*:" $PROJECT_ROOT/docker/docker-compose.yml | grep -v "CFN_" | grep -v "REDIS_PASSWORD:-" > /dev/null 2>&1; then
         log_fail "CRITICAL" "docker-compose.yml may contain hardcoded secrets"
         return 1
     else
@@ -310,7 +314,7 @@ test_secrets_not_in_environment() {
 test_success_criteria_file_mount_readonly() {
     # Test: Success criteria file mounted as read-only
 
-    if grep -q "success-criteria.json:ro" /home/user/claude-flow-novice/docker/docker-compose.yml; then
+    if grep -q "success-criteria.json:ro" $PROJECT_ROOT/docker/docker-compose.yml; then
         return 0
     else
         log_fail "LOW" "Success criteria file not mounted read-only"
@@ -321,7 +325,7 @@ test_success_criteria_file_mount_readonly() {
 test_network_isolation() {
     # Test: Custom network used (not default bridge)
 
-    if grep -q "networks:" /home/user/claude-flow-novice/docker/docker-compose.yml && grep -q "mcp-network:" /home/user/claude-flow-novice/docker/docker-compose.yml; then
+    if grep -q "networks:" $PROJECT_ROOT/docker/docker-compose.yml && grep -q "mcp-network:" $PROJECT_ROOT/docker/docker-compose.yml; then
         return 0
     else
         log_fail "MEDIUM" "docker-compose.yml not using isolated network"
@@ -333,7 +337,7 @@ test_container_auto_remove() {
     # Test: Containers configured to clean up
 
     # Check coordinator-entrypoint.sh spawns agents with --rm or AutoRemove
-    if grep -q "AutoRemove" /home/user/claude-flow-novice/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
+    if grep -q "AutoRemove" $PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh; then
         return 0
     else
         log_fail "LOW" "Agent containers may not auto-remove (resource leak)"
@@ -344,7 +348,7 @@ test_container_auto_remove() {
 test_redis_password_protection() {
     # Test: Redis password configured in production
 
-    if grep -q "CFN_REDIS_PASSWORD:-" /home/user/claude-flow-novice/docker/docker-compose.yml; then
+    if grep -q "CFN_REDIS_PASSWORD:-" $PROJECT_ROOT/docker/docker-compose.yml; then
         return 0
     else
         log_fail "HIGH" "Redis lacks password protection configuration"
@@ -360,8 +364,8 @@ test_no_eval_usage() {
     # Test: No eval or dangerous exec usage
 
     local files=(
-        "/home/user/claude-flow-novice/docker/coordinator-entrypoint.sh"
-        "/home/user/claude-flow-novice/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh"
+        "$PROJECT_ROOT/docker/coordinator-entrypoint.sh"
+        "$PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh"
     )
 
     for file in "${files[@]}"; do
@@ -378,8 +382,8 @@ test_strict_mode_enabled() {
     # Test: Scripts use set -euo pipefail
 
     local files=(
-        "/home/user/claude-flow-novice/docker/coordinator-entrypoint.sh"
-        "/home/user/claude-flow-novice/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh"
+        "$PROJECT_ROOT/docker/coordinator-entrypoint.sh"
+        "$PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh"
     )
 
     for file in "${files[@]}"; do
@@ -396,7 +400,7 @@ test_temp_file_safety() {
     # Test: Temp files use secure creation
 
     # Check for unsafe temp file patterns
-    if grep -E "/tmp/[^$]" /home/user/claude-flow-novice/docker/coordinator-entrypoint.sh | grep -v "mktemp" > /dev/null 2>&1; then
+    if grep -E "/tmp/[^$]" $PROJECT_ROOT/docker/coordinator-entrypoint.sh | grep -v "mktemp" > /dev/null 2>&1; then
         log_fail "MEDIUM" "coordinator-entrypoint.sh uses potentially insecure temp file creation"
         return 1
     else
