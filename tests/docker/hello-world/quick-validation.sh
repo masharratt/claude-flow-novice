@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Quick Validation of Core Docker-Native Stabilization Features
 
 set -eo pipefail

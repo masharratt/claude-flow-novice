@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Simple Functional Verification for Skill Deployment Pipeline
 # Part of Task 1.1: Automated Skill Deployment Pipeline
 

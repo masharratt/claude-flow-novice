@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # query-agent-patterns.sh - Query agent lifecycle patterns and failures
 #
 # Purpose: Search historical agent transcripts, failure patterns, and tool usage

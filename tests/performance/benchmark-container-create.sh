@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/performance/benchmark-container-create.sh
 # Benchmark: Container create latency (direct vs proxy)
 

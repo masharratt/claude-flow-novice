@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/run-wave-4a-tests.sh
 # Phase 5 Wave 4A :: Master test runner for IMPL-003
 # Executes all 38 tests and generates coverage report

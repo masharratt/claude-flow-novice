@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "=== TESTING SQLITE LIFECYCLE HOOKS ==="
 

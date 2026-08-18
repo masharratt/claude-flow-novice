@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/test-helpers.sh
 # Docker-specific test utilities for CFN Loop Docker agent testing
 # Extends tests/test-utils.sh with Docker-focused helpers

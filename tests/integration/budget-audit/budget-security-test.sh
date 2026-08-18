@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Budget Security Audit Test Suite
 # Validates budget management security constraints
 

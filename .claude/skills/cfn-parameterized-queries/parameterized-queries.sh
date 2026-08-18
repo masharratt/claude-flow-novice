@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cfn-parameterized-queries: Secure SQLite parameterized query execution
 set -euo pipefail
 

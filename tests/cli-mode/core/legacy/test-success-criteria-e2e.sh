@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/test-success-criteria-e2e.sh
 # Phase 3 :: End-to-end test for success criteria flow from coordinator to agents (Bug #TBD)
 # Tests JSON parsing, Redis storage/retrieval, and agent environment injection

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Loop 5 Iteration 2: SQL Injection Validation Report
 # Comprehensive validation of 13 scripts for SQL injection fixes
 # Tests Pattern B implementation and OWASP attack vectors

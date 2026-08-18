@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Claude Flow: Enhanced Security Scanning Hook
 # Version: 2.0.0
 #

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/section-iteration-detail.sh - per-iteration detail: lanes, test summary, screenshot grid, gate events.
 #
 # Reuses the same iteration-discovery logic as timeline. For each iteration:

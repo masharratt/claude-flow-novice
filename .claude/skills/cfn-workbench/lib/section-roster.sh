@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/section-roster.sh - lane roster section for cfn-workbench.
 #
 # Run-plan file: <root>/planning/<slug>/run-plan-<slug>.json (legacy: <root>/planning/)

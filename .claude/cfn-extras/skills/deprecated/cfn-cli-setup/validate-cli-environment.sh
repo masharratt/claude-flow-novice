@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CLI Environment Validation Script
 # Ensures required tools are available before agent deployment
 

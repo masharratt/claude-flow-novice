@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Fix the redact_pattern function in lib.rs
 
 # Find the function and replace it

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # CFN Log Operations - Main Entry Point
 # Task 4.4: Distributed Logging Standardization

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Comprehensive SQL Injection Prevention Tests
 # Tests parameterized queries in agent-lifecycle and skill-loader scripts
 

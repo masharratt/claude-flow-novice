@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Auto-Resolve Wrapper - Convenience script for feedback resolution
 # Part of Hook Pipeline Skill v1.3.0

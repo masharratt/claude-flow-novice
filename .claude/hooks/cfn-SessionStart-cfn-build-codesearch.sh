@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SessionStart hook: Ensure CodeSearch binary is available (global or local)
 GLOBAL_BINARY="$HOME/.local/bin/local-codesearch"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"

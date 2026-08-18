@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test for cfn-docs-sync-check.sh
 # Feeds staged file lists via stdin (CFN_DOCS_SYNC_STDIN=1) and asserts warn/block behavior.
 set -uo pipefail

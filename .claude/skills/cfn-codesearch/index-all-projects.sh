@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # index-all-projects.sh - Index all git/node/cargo projects sequentially
 # Sequential to avoid WSL2 memory pressure
 

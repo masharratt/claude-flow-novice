@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -eu
 
 export MARKETING_COORDINATOR_API_KEY="${MARKETING_COORDINATOR_API_KEY:-undefined}"

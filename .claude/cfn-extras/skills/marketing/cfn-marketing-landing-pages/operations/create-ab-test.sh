@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Landing Pages - Create A/B Test Operation
 # Set up A/B test with statistical validation requirements
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing SMS Campaigns - Create Campaign Operation
 # Version: 1.0.0
 # Purpose: Create SMS campaign configuration

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker-mode/test-coordinator-spawning.sh
 # Docker Mode Coordinator Spawning Test Suite (23 tests)
 

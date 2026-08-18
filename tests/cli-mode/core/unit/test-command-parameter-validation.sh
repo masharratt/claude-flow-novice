@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/test-command-parameter-validation.sh
 # Phase CLI :: Test comprehensive parameter validation for CFN Loop commands
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Tests for cfn-tech-debt harvest.sh
 set -uo pipefail
 

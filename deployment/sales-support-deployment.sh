@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Sales + Support Deployment Script
 # Week 5 Deployment - Cross-Team Escalation Testing
 

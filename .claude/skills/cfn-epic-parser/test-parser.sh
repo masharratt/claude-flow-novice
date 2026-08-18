@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Test script for cfn-epic-parser
 # Runs various tests to verify parser functionality

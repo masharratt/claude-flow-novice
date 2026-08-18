@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Quick start guide for Claude Flow
 
 echo "🚀 Claude Flow Quick Start"

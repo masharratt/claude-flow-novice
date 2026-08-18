@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-command-injection-fix.sh
 # Phase 2 :: Command injection vulnerability fix validation (CWE-78)
 # Tests the security fixes in src/cli/agent-executor.ts

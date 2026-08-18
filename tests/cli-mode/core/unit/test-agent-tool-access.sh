@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/test-agent-tool-access.sh
 # Phase 2 :: Validates agent tool access configuration in CLI mode (Priority 2)
 

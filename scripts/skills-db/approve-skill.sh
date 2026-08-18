@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # approve-skill.sh - Skills Database v2 Approval Workflow Engine
 # Implements three-tier approval system (auto/escalate/human) with risk-based routing
 

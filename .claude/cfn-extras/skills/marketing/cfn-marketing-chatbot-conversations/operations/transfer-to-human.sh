@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Chatbot Conversations - Transfer to Human Operation
 # Version: 1.0.0
 # Purpose: Escalate conversation to human agent

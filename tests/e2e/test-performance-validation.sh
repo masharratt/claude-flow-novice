@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test Suite 4: Performance Validation
 # Tests performance benchmarks for key operations
 

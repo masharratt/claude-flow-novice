@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/integration/test-cfn-loop-workflows.sh
 # Phase 5 Wave 4A :: Integration tests (IMPL-003)
 # End-to-end workflows: spawn agent, execute task, collect results

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/section-bless-ledger.sh - bless ledger from planning/<slug>/.VERIFY_<slug>.bless.json.
 #
 # Renders structure_changed and predicate_changed lists plus the verdict.

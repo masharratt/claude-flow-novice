@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/core/test-wave-orchestration.sh
 # Phase 4 :: Wave-based orchestration integration tests
 # Purpose: Comprehensive testing of unified orchestrator pattern (spawn, monitor, cleanup waves)

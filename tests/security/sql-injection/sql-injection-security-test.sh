@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SQL Injection Security Test Suite
 # Validates parameterized query implementation against 8 OWASP injection vectors
 # Ensures zero false positives and 100% injection blocking

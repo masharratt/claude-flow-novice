@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # query-local.sh - Query local CodeSearch for patterns using Rust binary
 # This is a wrapper around the Rust binary for convenience
 

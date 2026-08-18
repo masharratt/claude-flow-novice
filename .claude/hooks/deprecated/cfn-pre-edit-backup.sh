@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Pre-Edit Backup Hook
 # Automatically backs up files before Edit/Write operations
 

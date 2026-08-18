@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/redis-coordination-tests.sh
 # Phase 3 :: Redis coordination validation with Node.js client connectivity (Bug #6 fix validation)
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/provider-auth-tests.sh
 # Phase 4 :: P2 - Multi-provider authentication and routing validation
 

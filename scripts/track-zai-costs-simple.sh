@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Mock Cost Tracker
 duration=$1
 worker_type=$2

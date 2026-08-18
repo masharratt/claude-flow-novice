@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/credential-loading/test-env-loading-behavior.sh
 # Phase 1.3b :: Validate .env loading behavior with mock scenarios
 

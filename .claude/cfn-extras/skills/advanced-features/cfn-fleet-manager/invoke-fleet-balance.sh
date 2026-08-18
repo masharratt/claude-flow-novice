@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Fleet Manager - Load Balancing CLI Wrapper
 #

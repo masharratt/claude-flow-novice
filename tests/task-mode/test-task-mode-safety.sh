@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Task Mode Safety - Comprehensive Test Suite
 # Tests ANTI-023 Memory Leak Protection System
 

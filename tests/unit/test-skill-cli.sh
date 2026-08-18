@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Skills Database CLI Integration Test Suite
 # Tests Phase 4 CLI implementation
 

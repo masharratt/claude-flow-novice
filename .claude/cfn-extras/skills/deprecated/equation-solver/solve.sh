@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # equation-solver/solve.sh
 # Securely solves algebraic equations using nerdamer

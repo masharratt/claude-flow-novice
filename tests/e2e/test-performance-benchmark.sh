@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Performance Benchmark Suite
 # Tests Phase 5 performance requirements
 

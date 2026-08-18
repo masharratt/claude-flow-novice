@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Ad Campaigns - Update Bid Strategy Operation
 # Modifies campaign bidding strategy
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/01-agent-spawning/test-cli-commands.sh
 # Phase 1 :: Validate CFN Loop CLI command execution and agent spawning
 

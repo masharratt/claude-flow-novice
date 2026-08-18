@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Connection Leak Diagnostic Test Suite
 # Tests to isolate Task() tool connection leak issues

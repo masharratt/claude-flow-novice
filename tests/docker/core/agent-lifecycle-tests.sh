@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/agent-lifecycle-tests.sh
 # Phase 3 :: Agent lifecycle management (spawn-to-exit, metadata capture, auto-removal, orphan detection)
 

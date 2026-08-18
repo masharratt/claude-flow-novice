@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # Test Suite: Bug Fix Validation - Container ID Validation
 # Purpose: Validate container ID validation before checkpoint save

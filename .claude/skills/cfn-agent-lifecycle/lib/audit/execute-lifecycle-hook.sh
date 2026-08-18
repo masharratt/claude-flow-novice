@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Agent Lifecycle Hook Execution Script
 # Provides SQLite-based lifecycle management for agent auditing

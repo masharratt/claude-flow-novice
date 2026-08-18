@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/reorganize-tests.sh
 # Reorganize tests/ directory structure - Option 3 Full Reorganization
 # Safe, reversible migration with verification

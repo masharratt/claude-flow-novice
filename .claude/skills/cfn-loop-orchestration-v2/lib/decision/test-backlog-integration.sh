@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test script for backlog integration in execute-decision.sh
 # Version: 1.0.0
 # Purpose: Verify deferred items are correctly extracted and added to backlog

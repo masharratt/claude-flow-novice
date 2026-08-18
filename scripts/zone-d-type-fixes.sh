@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Zone D Type Fixes - TypeScript Error Resolution Script
 # This script systematically addresses TypeScript compilation errors

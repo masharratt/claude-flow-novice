@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Competitive Intel - Search Brand Mentions Operation
 # Search for brand mentions across multiple sources
 

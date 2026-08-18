@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ingest-agent-transcript.sh - Extract and index agent transcript data for CodeSearch
 #
 # Purpose: Process agent transcripts to extract searchable decision points,

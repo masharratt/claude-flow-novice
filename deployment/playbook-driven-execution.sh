@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Playbook-Driven Execution for Reduced Iteration Cycles
 
 # Playbook configuration directory

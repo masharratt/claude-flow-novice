@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Comprehensive SQL Injection Test Suite
 # Tests OWASP Top 10 attack vectors against all audited scripts
 #

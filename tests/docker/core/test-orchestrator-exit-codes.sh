@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/core/test-orchestrator-exit-codes.sh
 # Phase 2 :: Docker Orchestrator Exit Code Validation (Priority 1)
 # Validates exit codes for PROCEED, ABORT, and failure scenarios

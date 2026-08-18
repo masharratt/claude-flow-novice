@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Shared wall-clock budget for the PreToolUse search hooks.
 #
 # Both search hooks are registered with "timeout": 5 in ~/.claude/settings.local.json.

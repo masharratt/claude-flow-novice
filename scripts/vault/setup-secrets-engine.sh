@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/vault/setup-secrets-engine.sh
 # Part of IMPL-001 Security Hardening - Stream 1
 # Configure KV v2 and Transit secrets engines

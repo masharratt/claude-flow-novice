@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Query: Show all gate check results
 
 set -euo pipefail

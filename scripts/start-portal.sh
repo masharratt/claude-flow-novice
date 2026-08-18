@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Auto-start web portal if not already running
 # Used by session-start hook for seamless portal availability
 

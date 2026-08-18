@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../" && pwd)"
 ORCHESTRATE="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate.sh"
 SECURITY_UTILS="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/security_utils.sh"

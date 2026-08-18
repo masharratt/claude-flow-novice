@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # CFN Distributed Log Monitor
 # Task 4.4: Distributed Logging Standardization

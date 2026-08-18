@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Event Bus - Publish Event CLI Wrapper
 #

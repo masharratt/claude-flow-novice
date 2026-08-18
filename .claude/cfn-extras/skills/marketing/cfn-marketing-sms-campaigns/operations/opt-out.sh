@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing SMS Campaigns - Opt-Out Operation
 # Version: 1.0.0
 # Purpose: Process opt-out request (CRITICAL - must execute within seconds)

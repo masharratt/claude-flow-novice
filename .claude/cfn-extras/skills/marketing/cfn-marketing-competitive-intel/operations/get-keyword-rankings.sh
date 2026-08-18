@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Competitive Intel - Get Keyword Rankings Operation
 # Monitor keyword rankings for domain vs competitors
 

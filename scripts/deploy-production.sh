@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Production CFN Loop Deployment Script
 # Deploys the complete production stack with validation

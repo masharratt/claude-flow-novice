@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # cost-allocation-tracker.sh - Container cost tracking and allocation
 #

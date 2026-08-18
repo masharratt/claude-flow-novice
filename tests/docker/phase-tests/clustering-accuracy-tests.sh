@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/clustering-accuracy-tests.sh
 # Phase 3 :: Dependency clustering validation (tier distribution, import graph, coordinated batching)
 

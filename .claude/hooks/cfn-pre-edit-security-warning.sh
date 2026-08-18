@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cfn-selftest: not-a-hook helper for cfn-invoke-pre-edit.sh (positional args, no stdin JSON, cannot block)
 #
 # Pre-Edit Security Warning Helper

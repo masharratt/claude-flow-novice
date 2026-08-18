@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Pre-commit Hook: Detect Hardcoded Credentials
 # Version: 1.0.0

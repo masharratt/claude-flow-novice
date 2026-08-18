@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/phase2-compose-syntax-validation.sh
 # Phase 2 :: Docker Compose Syntax Validation - Network Aliases (Phase 2 CLI_TRIGGER_COLLISION_ANALYSIS.md)
 

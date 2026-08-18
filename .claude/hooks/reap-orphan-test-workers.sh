@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Reap leaked background workers that hang and burn CPU/RAM.
 #
 # Two independent leak classes, two rules:

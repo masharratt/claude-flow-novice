@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SEC-003 Iteration 3: SQL Injection Migration Validation Test Suite
 # Tests that parameterized query migration eliminates SQL injection vulnerabilities
 # and maintains functionality

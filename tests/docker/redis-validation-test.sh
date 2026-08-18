@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # tests/docker/redis-validation-test.sh
 # Phase 3 :: Redis infrastructure validation for CFN Loop (Loop 3 Investigation)

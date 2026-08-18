@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/06-integration/test-ultimate-cfn-loop.sh
 # Phase 6 :: Ultimate CFN Loop test with coordinator -> loops -> agents -> iterations (3 iterations)
 

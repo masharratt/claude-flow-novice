@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/coordinator-atomic-task-tests.sh
 # Phase 8.4 :: P1 - Atomic Task Assignment (Coordinator V3)
 # Tests coordinator's ability to assign single atomic tasks to each agent

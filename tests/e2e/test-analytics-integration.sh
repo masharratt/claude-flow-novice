@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test Suite 2: Analytics Integration
 # Tests analytics commands with different approval levels and usage patterns
 

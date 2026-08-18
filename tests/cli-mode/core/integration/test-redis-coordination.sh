@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/test-redis-coordination.sh
 # Phase 1 :: Validates Redis availability check in CLI mode (CRITICAL-003)
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/core/e2e/test-full-loop3-agent-spawning.sh
 # Phase 2 :: TRUE E2E test validating complete Loop 3 agent spawning chain (Priority 0)
 # This test validates: Coordinator → Orchestrator → Loop 3 Agent (actual process running)

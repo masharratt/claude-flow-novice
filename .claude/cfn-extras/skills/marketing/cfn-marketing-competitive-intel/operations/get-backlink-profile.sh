@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Competitive Intel - Get Backlink Profile Operation
 # Analyze competitor backlink profiles
 

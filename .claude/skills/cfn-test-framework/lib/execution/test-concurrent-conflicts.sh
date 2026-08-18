@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 RESULTS_FILE=".artifacts/analytics/test-conflict-results.json"

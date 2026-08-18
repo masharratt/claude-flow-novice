@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/SEC-003-ITERATION-2-VALIDATION.sh
 # Phase 2 :: SEC-003 SQL Injection Validation - Iteration 2 (1/10)
 # Comprehensive validation of SQL injection migration status

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/load/test-network-policy-stress.sh
 # Phase 6 Wave 5 :: Network policy stress testing with cross-team access simulation (3-layer isolation)
 

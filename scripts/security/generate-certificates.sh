@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Phase 6 #4: mTLS Certificate Generation Script
 #
 # Generates CA and service certificates for mutual TLS authentication

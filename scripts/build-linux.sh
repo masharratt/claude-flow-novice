@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ============================================================================
 # build-linux.sh - Compile TypeScript to JavaScript for CFN Agent

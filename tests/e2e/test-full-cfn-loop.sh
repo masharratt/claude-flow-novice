@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/e2e/test-full-cfn-loop.sh
 # Phase 5 Wave 4A :: E2E tests (IMPL-003)
 # Full CFN Loop execution with multiple agents

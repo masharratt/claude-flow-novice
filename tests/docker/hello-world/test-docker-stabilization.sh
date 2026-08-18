@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Comprehensive Docker Integration Test for CFN Stabilization
 
 set -eo pipefail

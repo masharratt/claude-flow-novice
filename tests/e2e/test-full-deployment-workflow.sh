@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test Suite 1: Full Deployment Workflow
 # Tests complete lifecycle: deploy → verify → load → log → update → verify
 

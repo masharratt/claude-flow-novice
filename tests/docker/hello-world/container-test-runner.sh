@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # CFN Loop Container Test Runner
 # Phase 1: Container Integration Validation

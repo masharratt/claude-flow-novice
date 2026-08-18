@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-vault-integration.sh
 # Phase 6.3 :: Vault Integration Test Suite (IMPL-001)
 

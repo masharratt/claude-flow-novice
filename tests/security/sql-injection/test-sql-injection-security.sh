@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # SQL Injection Security Tests
 # Tests parameterized query implementation and injection protection

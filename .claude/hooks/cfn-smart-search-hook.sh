@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -uo pipefail
 
 # Claude Code surfaces STDERR (not stdout) as the reason for a blocking exit 2.

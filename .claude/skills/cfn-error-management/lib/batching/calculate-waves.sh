@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # CFN Error Batching Strategy - Phase 5: Calculate Spawn Waves
 # Plans memory-aware spawning waves respecting budget and parallelism constraints

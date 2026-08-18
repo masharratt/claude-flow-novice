@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/section-tech-debt.sh - tech-debt ledger (suggestions with category=tech-debt
 # or tag containing cfn:).
 #

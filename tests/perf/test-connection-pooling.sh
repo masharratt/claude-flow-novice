@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/perf/test-connection-pooling.sh
 # Phase 6 :: Connection Pooling Performance Tests
 #

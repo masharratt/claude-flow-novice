@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-agent-executor-bidirectional-messaging.sh
 # Security Test Suite: Agent Executor Bidirectional Messaging
 # Tests AgentCommandProcessor security, command validation, and Redis coordination

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing SMS Campaigns - Send SMS Operation
 # Version: 1.0.0
 # Purpose: Send single SMS message with TCPA compliance checks

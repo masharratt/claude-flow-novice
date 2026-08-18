@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/performance/benchmark-socket-overhead.sh
 # Benchmark: Socket communication overhead analysis
 

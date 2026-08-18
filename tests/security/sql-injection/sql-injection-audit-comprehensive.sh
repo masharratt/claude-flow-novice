@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Comprehensive SQL Injection Security Test Suite
 # Tests Pattern B parameterized query implementation across all CFN scripts
 # Covers OWASP Top 10 SQL injection attack vectors

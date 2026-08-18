@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Webapp Testing Skill - Test Suite
 # Purpose: Validate webapp-testing skill functionality
 

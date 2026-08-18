@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/lib/validation.sh - Shell input validation and sanitization framework
 #
 # Purpose: Provide comprehensive validation and sanitization functions for shell scripts

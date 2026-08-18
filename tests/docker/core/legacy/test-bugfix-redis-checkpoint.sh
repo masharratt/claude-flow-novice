@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # Test Suite: Bug Fix Validation - Redis Checkpoint Operations
 # Purpose: Validate Redis SADD/EXPIRE command syntax fix

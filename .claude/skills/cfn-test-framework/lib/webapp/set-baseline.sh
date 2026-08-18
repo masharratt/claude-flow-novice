@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Webapp Testing Skill - Set Baseline
 # Purpose: Set a captured screenshot as the baseline reference for future comparisons
 

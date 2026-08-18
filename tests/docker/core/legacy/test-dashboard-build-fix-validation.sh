@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # Test Suite: Dashboard Build Fix Validation
 # Purpose: Validate that fixes for dashboard build errors are properly applied

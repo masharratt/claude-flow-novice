@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Full Organizational Coordinator Test
 # Validates 5-Team Mesh Communication
 

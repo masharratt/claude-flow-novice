@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Task Config Initialization Script
 # Generates structured task configuration for Task Mode
 

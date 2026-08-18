@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Mock Z.ai Cost Tracking Script
 
 # Default cost calculation

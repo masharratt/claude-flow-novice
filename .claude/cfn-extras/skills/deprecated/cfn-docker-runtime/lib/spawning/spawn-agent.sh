@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # CFN Docker Agent Spawning Implementation
 # Usage: ./spawn-agent.sh [AGENT_TYPE] [TASK_ID] [AGENT_ID] [OPTIONS]

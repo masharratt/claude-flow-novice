@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/section-decisions.sh - Decisions ledger section for cfn-workbench.
 #
 # Renders decisions recorded for this run from a per-run ledger file:

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/impl-002/test-cost-script-error-handling.sh
 # Phase 5 :: Test Suite 2 - Arithmetic Error Handling in Cost Scripts (IMPL-002)
 

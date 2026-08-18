@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # Test Suite: Bug Fix Validation Summary
 # Purpose: Validate all 4 bug fixes from CFN Loop Iteration 2

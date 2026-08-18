@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Skill Invocation Logging Hook
 
 # Ensure required arguments are provided

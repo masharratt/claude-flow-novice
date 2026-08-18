@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Orchestrator Test Script
 # Tests basic CFN Loop orchestration functionality

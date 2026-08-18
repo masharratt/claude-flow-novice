@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Test Provider Routing System
 # Tests the new custom provider routing functionality

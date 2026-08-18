@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Run all 45 Docker test implementations and report results
 # tests/docker-mode/run-all-implementations.sh
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Sprint 2.2: Engineering Deployment - Test Execution Workflow
 # Simulates engineering coordinator + Z.ai workers running test suite
 

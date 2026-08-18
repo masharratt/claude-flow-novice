@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # CFN Expert Update Skill
 # Updates CFN system expert agent with relevant git commits

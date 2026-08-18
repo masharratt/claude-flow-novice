@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Run Marketing Infrastructure Integration Tests
 
 set -e

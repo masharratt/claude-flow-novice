@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Docker Agent Interaction POC Test
 # Tests if we can deploy a Claude agent via Docker and interact with it
 

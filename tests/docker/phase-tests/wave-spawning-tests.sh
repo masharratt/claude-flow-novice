@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/wave-spawning-tests.sh
 # Phase 4 :: P1 - Wave spawning and parallelism validation
 

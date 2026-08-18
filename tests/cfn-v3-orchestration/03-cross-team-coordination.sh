@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Hybrid Routing Validation Test
 # Cross-Team Coordination Integration Test
 

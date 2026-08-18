@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/impl-002/run-all-tests.sh
 # Phase 5 :: IMPL-002 Complete Test Suite Runner
 

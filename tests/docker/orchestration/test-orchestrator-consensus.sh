@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/orchestration/test-orchestrator-consensus.sh
 # Phase 3 :: CFN Loop Orchestrator Consensus - Loop 2 validation and product owner decisions
 

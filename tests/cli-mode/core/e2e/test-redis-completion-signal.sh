@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/core/e2e/test-redis-completion-signal.sh
 # Phase 1 :: Validates Redis completion signaling for CLI mode coordination
 #

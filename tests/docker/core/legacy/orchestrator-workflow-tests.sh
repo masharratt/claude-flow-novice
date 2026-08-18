@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker-mode/test-orchestrator-workflow.sh
 # Docker Mode Orchestrator Workflow Test Suite (21 tests)
 

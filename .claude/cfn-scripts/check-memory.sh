@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Memory Leak Prevention Script (ANTI-024)
 # Detects and kills orphaned test processes (jest, vitest, node test runners)
 #

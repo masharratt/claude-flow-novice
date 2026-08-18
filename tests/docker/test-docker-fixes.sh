@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test Script: Docker Environment Fixes Validation
 # Tests Redis authentication and coordinator entrypoint
 

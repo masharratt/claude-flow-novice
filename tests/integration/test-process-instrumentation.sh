@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Process Instrumentation Validation Tests
 # Part of ANTI-023 Memory Leak Protection System Integration Tests
 

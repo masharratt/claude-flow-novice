@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Implementation test for cfn-parameterized-queries skill
 set -euo pipefail
 

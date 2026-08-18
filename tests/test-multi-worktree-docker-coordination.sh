@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/test-multi-worktree-docker-coordination.sh
 # Comprehensive test suite for Docker Multi-Worktree Wrapper functionality
 # Tests port isolation, container isolation, volume isolation, and coordination patterns

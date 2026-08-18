@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Query: Show validator consensus over iterations
 
 set -euo pipefail

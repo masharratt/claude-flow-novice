@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cfn-tech-debt harvest: collect `cfn:` shortcut markers into a ledger.
 # Valid marker:   cfn: <ceiling>[,|;] <upgrade trigger>
 #                 (comma OR semicolon separates ceiling from trigger; both are

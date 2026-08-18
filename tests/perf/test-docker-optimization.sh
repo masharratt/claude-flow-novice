@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/perf/test-docker-optimization.sh
 # Phase 6 :: Docker Image Optimization Tests
 #

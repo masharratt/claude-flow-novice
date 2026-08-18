@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Pre-Publish Security Verification: Detect Hardcoded Secrets
 # Version: 1.0.0 - CVSS 9.0 Critical Vulnerability Prevention

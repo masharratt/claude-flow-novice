@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Pattern Analyzer for Workflow Codification System
 # Analyzes ACE reflections to detect repeated workflow patterns suitable for codification

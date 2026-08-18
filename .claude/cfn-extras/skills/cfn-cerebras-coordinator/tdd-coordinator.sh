@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # TDD-driven Cerebras coordinator - Tests first, then implementation

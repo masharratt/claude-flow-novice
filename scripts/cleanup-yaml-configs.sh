@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ###############################################################################
 # YAML Configuration Cleanup Script
 # Part of Task 2.4: Configuration File Cleanup

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # B10 Setup Validation Script
 # Verifies all prerequisites before running batch test
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Redis Server Authentication Validation Test
 # Purpose: Verify that Redis server REJECTS unauthenticated connections

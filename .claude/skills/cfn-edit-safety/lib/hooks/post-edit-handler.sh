@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Post-Edit Hook Handler - Sprint 2.2
 # Reusable wrapper for post-edit-pipeline.js with automatic feedback capture

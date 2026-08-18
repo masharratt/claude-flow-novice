@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/07-load-testing/load-test-simple-concurrent.sh
 # Phase 7 :: Simple concurrent test using direct agent spawning
 

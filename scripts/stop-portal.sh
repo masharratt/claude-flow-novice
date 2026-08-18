@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Stop the web portal server
 
 PORTAL_PID="/tmp/claude-flow-portal.pid"

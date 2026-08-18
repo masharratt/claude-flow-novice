@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/integration/test-cost-tracking.sh
 # Phase 5 Wave 4A :: Cost tracking validation (IMPL-003)
 # Validates label-based cost calculation accuracy

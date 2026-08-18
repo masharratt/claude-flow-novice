@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Landing Pages - Create Landing Page Operation
 # Create new landing page from template
 

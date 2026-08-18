@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/section-ac-table.sh - AC table from planning/<slug>/VERIFY_<slug>.md.
 #
 # F3 (REVIEW FINDING): workbench is the FIRST consumer of the markdown AC table.

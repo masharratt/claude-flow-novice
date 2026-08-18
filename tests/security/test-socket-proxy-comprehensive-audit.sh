@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-socket-proxy-comprehensive-audit.sh
 # Phase 4 Security Validation :: Comprehensive socket proxy security audit
 # Reference: planning/trigger/PHASE_4_SECURITY_VALIDATION_REPORT.md

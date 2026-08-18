@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Event Bus - Agent Lifecycle Tracking CLI Wrapper
 #

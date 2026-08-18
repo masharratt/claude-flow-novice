@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Real-time Connection Monitor
 # Captures detailed connection behavior during Task() agent spawning

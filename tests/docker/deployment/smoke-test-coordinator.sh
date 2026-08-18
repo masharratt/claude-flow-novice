@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Smoke Test: Coordinator Deployment Validation
 # Minimal end-to-end task execution to validate deployment readiness
 # Expected runtime: <60 seconds

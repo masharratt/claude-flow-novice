@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-comprehensive-security.sh
 # Phase 5 Wave 4A :: Security tests (IMPL-003)
 # Label injection, secret leakage, CVE scanning, mTLS validation

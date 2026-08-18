@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/validate-bug6-redis-vars.sh
 # Phase 0 :: Validate Bug #6 Fix - CFN_REDIS_HOST/CFN_REDIS_PORT Standardization
 # Tests that agents connect to Redis using CFN_REDIS_HOST and CFN_REDIS_PORT

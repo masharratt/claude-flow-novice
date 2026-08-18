@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/lifecycle/test-agent-state-transitions.sh
 # Phase 3 :: Agent Lifecycle State Transition Integration Tests
 # Coverage: Real agent spawning, SQLite lifecycle audit, state validation

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/build-sync-tests.sh
 # Phase 4 :: P2 - Build freshness and sync validation
 

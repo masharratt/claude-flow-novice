@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # emit-event.sh - append one CFN Loop lifecycle event for cfn-workbench's live
 # events feed (lib/section-events.sh).
 #

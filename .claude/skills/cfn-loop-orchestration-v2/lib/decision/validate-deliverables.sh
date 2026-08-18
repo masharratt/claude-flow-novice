@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Deliverable Verification - Prevent "consensus on vapor"
 
 set -euo pipefail

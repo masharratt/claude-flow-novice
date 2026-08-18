@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing SMS Campaigns - Schedule Campaign Operation
 # Version: 1.0.0
 # Purpose: Schedule bulk SMS campaign

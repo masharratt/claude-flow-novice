@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/run-critical-tests.sh
 # Critical CFN Loop component tests for rapid validation (< 2 minutes)
 

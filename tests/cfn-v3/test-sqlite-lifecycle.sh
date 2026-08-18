@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Experiment: Test 10 agents with SQLite lifecycle hooks in parallel
 # Each agent will: start (SQLite), read LICENSE, end (SQLite)

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: TDD Violation Detection and Gate Enforcement
 # Purpose: Validate that the gate check FAILS when agents don't follow TDD,
 #          then PASSES when proper test-first development is used.

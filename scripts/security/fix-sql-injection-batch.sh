@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Batch SQL injection fix script
 # Applies Pattern B parameterized queries to multiple scripts
 set -euo pipefail

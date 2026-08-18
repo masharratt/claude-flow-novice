@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ################################################################################
 # CFN Wave Checkpoint - Cleanup Orphaned Containers

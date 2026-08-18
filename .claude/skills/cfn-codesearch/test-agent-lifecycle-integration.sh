@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # test-agent-lifecycle-integration.sh - Test CodeSearch agent lifecycle integration
 #
 # Purpose: Verify that transcript ingestion and failure analysis work correctly

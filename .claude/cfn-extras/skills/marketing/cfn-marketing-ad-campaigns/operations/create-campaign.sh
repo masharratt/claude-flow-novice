@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Ad Campaigns - Create Campaign Operation
 # Creates new advertising campaign with budget validation
 

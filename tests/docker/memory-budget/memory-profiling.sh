@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Docker Agent Memory Profiling
 # Determines minimal viable memory allocation for agent containers
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/test-docker-build-isolation.sh
 # Tests Docker build isolation for multi-worktree environments
 # Verifies Linux storage requirements and build script compliance

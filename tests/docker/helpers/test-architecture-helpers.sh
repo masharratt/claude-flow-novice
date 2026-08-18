@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/test-architecture-helpers.sh
 # Phase 4 :: Unit tests for architecture-test-helpers.sh
 # Validates P1 helper functions work correctly

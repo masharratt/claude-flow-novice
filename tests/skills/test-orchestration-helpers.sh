@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/skills/test-orchestration-helpers.sh
 # Phase 1 :: Orchestration Helper Tests - validates CFN Loop orchestration helper scripts
 

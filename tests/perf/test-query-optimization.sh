@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/perf/test-query-optimization.sh
 # Phase 6 :: Query Optimization Performance Tests (BUG #21 Compliant)
 #

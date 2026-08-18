@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/credential-loading/test-validate-secrets.sh
 # Phase 1.3b :: Validate credential loading in validate-secrets.sh
 

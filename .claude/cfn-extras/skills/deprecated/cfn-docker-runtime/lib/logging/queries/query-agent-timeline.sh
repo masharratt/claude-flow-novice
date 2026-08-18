@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Query: Show timeline for specific agent
 
 set -euo pipefail

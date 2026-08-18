@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ##############################################################################
 # ⚠️  DEPRECATED - This bash script is deprecated

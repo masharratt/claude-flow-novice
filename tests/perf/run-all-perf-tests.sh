@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/perf/run-all-perf-tests.sh
 # Phase 6 :: Master Performance Test Runner
 #

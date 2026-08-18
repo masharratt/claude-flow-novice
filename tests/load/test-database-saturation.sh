@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/load/test-database-saturation.sh
 # Phase 6 Wave 5 :: PostgreSQL/Redis saturation testing with latency validation (<100ms p95)
 

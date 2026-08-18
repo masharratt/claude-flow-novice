@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # analyze-agent-failures.sh - Analyze agent failures and extract reusable patterns
 #
 # Purpose: Query failed agents from the lifecycle database, extract error patterns,

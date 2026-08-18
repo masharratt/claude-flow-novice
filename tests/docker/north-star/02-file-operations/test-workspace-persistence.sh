@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/02-file-operations/test-workspace-persistence.sh
 # Phase 2 :: Validate workspace persistence and iterative file operations
 

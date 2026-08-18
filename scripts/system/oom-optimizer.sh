@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # OOM Killer Optimizer - Advanced OOM Prevention and System Tuning
 #OOM 杀手优化器 - 高级 OOM 预防和系统调优

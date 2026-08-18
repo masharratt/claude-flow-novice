@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Webapp Testing Skill - Initialize Storage
 # Purpose: Create SQLite schema and directory structure for screenshot management
 

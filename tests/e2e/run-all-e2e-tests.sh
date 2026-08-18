@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Run All E2E Test Suites
 # Executes all Phase 7 end-to-end integration tests and generates summary
 

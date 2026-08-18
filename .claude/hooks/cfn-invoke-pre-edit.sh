@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ##############################################################################
 # LIVE IMPLEMENTATION, do not remove. A 2025-11-20 header marked this deprecated

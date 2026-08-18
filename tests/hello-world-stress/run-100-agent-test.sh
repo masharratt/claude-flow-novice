@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/hello-world-stress/run-100-agent-test.sh
 # Hello World 100-Agent Stress Test - Standalone Runner
 #

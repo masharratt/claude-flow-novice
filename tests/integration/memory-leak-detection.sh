@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Memory Leak Detection Test Suite
 # Tests for memory leak patterns identified in the analysis

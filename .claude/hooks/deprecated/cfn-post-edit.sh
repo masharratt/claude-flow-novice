@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Minimal post-edit hook for validation
 
 for file in "$@"; do

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Test Memory Guard Hook
 # Blocks npm/npx test runs that don't include memory limits
 # to prevent memory leaks from killing the system

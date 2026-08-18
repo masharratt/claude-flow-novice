@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/section-timeline.sh - iteration timeline (pass rate, gate verdict, commit count per iter).
 #
 # Iteration numbers are derived from three sources, unioned:

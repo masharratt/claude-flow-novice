@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Real implementations for orchestrator-workflow-tests.sh placeholders (Tests 9-21)
 # These functions replace the test_placeholder_9_to_21() function
 

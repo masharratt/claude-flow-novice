@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Slack Integration Script for CFN Loop Alerting
 # Supports multi-channel routing and rich message formatting
 

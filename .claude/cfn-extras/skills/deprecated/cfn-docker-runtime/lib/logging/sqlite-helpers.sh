@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SQLite Helper Functions for CFN Docker Logging
 # Provides reusable functions for database operations
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/lifecycle/test-lifecycle-dependencies.sh
 # Phase 3 :: Agent Dependency Resolution Integration Tests
 # Coverage: Dependency tracking, blocking, circular detection, execution order

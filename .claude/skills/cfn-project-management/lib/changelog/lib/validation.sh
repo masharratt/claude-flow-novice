@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # validation.sh - Shared validation utilities for changelog and backlog management
 # Part of claude-flow-novice cfn-changelog-management skill
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Query: Generate analytics report for task
 
 set -euo pipefail

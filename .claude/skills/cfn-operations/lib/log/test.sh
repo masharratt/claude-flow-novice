@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # CFN Log Operations - Test Suite
 # Task 4.4: Distributed Logging Standardization

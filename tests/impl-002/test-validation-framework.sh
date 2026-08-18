@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/impl-002/test-validation-framework.sh
 # Phase 5 :: Test Suite 3 - Input Validation Framework (IMPL-002)
 

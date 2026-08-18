@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Z.ai Worker Model Tiering for Cost Optimization
 
 # Function to determine appropriate model based on task complexity

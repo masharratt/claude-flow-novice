@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Quick test to verify CLAUDE.md inclusion fix
 
 set -e

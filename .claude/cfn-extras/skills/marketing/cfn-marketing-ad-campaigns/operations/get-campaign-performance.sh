@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Ad Campaigns - Get Campaign Performance Operation
 # Fetches campaign performance metrics and analytics
 

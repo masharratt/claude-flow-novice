@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/vault/create-policies.sh
 # Part of IMPL-001 Security Hardening - Stream 1
 # Create team isolation policies for Vault

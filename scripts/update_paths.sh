@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Path replacements
 SKILL_REPLACEMENTS=(

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Combined Audit Data Retrieval Script
 # Retrieves audit trails from both Task Mode and CLI Mode agents
 #

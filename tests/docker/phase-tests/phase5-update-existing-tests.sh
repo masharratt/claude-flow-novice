@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/phase5-update-existing-tests.sh
 # Phase 5 Iteration 1 :: Update 12 existing test files with architecture helper adoption
 

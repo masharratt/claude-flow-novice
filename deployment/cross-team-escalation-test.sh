@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Cross-Team Escalation Test Script
 # Validates Sales → Support → Engineering Communication
 

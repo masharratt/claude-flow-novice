@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Security Remediation Patches for Phase 4 Docker Mode Integration
 # This script contains fixes for all HIGH severity vulnerabilities
 

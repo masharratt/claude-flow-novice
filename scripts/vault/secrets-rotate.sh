@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/vault/secrets-rotate.sh
 # Part of IMPL-001 Security Hardening - Stream 1
 # Rotate API keys and certificates in Vault

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/core/e2e/test-main-chat-wait-exit.sh
 # Phase 1 :: Validates main chat BLPOP wait/exit pattern
 #

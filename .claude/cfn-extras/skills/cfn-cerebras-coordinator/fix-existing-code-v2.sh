@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Fix existing code with errors using TDD and CodeSearch patterns - Version 2
 # Compatible with bash/shell environments
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Remediation Helper Functions for Docker Pattern Validation
 # Append to: tests/docker/architecture-test-helpers.sh
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Competitive Intel - Get Trending Topics Operation
 # Discover trending topics in industry
 

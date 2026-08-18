@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Finance Team Coordinator Deployment Script
 # Phase 2 Final Sprint - Team Mesh Validation
 

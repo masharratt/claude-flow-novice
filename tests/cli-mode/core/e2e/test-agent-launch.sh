@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/core/e2e/test-agent-launch.sh
 # Phase 1 :: Validates agents can be spawned via npx claude-flow-novice agent
 #

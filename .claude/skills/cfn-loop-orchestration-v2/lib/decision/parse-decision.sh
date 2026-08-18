@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Product Owner Decision Parser - Robust pattern matching with fallbacks
 
 set -euo pipefail

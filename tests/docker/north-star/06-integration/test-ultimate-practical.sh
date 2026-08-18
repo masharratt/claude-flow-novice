@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/06-integration/test-ultimate-practical.sh
 # Phase 6 :: Practical CFN Loop test with coordinator → loops → agents → iterations
 

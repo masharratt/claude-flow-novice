@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Fleet Manager - Resource Allocation CLI Wrapper
 #

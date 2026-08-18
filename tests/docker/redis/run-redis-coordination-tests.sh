@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Redis Coordination Test Script
 # Tests agent-to-agent communication via Redis pub/sub from within Docker containers

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Agent Selection Skill
 # Selects appropriate agents based on task classification and mode
 

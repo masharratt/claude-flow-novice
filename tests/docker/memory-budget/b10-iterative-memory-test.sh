@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # B10 Iterative TypeScript Fix Test with Memory Monitoring
 # Iterates until all errors are gone, tracking memory usage per agent
 

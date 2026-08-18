@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Chatbot Conversations - Qualify Lead Operation
 # Version: 1.0.0
 # Purpose: Score lead using BANT framework

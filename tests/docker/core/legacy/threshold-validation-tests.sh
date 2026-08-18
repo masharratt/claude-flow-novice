@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker-mode/test-threshold-validation.sh
 # Docker Mode Threshold Validation Test Suite (6 tests)
 

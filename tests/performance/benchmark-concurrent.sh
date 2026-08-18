@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/performance/benchmark-concurrent.sh
 # Benchmark: Concurrent container operations throughput
 

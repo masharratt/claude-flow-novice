@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Memory Leak Detection and Prevention Script
 # Implements recommendations from memory leak analysis

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/cfn-loop-compliance-tests.sh
 # Phase 4 :: P1 - CFN Loop pattern compliance validation
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # MDAP Context Injection Script
 # Injects full MDAP workflow code for troubleshooting
 #

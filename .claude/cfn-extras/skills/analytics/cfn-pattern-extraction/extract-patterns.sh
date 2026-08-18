@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Pattern Extraction Script for CFN Loop Retrospective
 

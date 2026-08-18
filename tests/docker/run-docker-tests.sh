@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##############################################################################
 # Docker Test Suite Runner
 # Phase 4: Docker Mode Integration - Comprehensive Test Execution

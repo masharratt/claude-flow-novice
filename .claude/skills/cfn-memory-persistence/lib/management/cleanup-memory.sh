@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Memory Cleanup Script for CFN Operations
 # Post-execution hook to clean up memory resources

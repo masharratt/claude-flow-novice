@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # validate-redis-connection.sh
 # Comprehensive Redis connection validation for CFN Docker agents
 

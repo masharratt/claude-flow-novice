@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Rapid Spawn Detection Test Script
 # Tests the rapid spawn detection mechanism

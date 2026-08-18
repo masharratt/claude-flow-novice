@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Prometheus Metric Exporter for Z.ai Team Costs
 
 set -euo pipefail

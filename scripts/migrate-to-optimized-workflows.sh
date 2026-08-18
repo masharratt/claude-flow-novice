@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CI/CD Pipeline Migration Script
 # Migrates from current workflows to optimized versions
 

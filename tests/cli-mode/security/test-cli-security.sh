@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/security/test-cli-security.sh
 # Phase 3 :: Security test coverage for CLI mode (command injection, input validation, DoS prevention)
 

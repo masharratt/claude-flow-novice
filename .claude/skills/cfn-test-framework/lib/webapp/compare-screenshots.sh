@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Webapp Testing Skill - Screenshot Comparison
 # Purpose: Compare captured screenshot to baseline using pixelmatch, store results in Redis
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Feedback Resolver - Sprint 2.2
 # Intelligent feedback resolution with auto-fix capabilities

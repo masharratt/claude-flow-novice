@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cfn-docs-sync-check.sh
 # Enforces the CLAUDE.md commit-time documentation rule:
 #   Every commit that changes code MUST update readme/feature-status.md

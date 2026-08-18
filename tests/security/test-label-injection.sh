@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-label-injection.sh
 # Phase 5 :: Label injection vulnerability tests (CVSS 7.5 mitigation)
 

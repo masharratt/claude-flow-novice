@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Reap orphaned MCP server processes left over from dead claude sessions.
 #
 # Each `claude` session spawns its own MCP stack (playwright-mcp, supabase-mcp,

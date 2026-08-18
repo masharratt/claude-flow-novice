@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Post-Edit Credential Scanner
 # Scans files for exposed credentials before commit
 # Integrated with cfn-post-edit.config.json

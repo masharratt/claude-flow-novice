@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Epic Decomposition Script
 # Takes epic description and generates sprint breakdown

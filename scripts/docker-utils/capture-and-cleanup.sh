@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Docker Container Metadata Capture and Cleanup
 # Captures container metadata before removal for debugging while keeping environment clean
 set -euo pipefail

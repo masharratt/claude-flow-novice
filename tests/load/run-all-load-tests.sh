@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/load/run-all-load-tests.sh
 # Phase 6 Wave 5 :: Master runner for all load testing suites
 #

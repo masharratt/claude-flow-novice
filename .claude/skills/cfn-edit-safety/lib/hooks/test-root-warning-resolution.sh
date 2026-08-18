@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # Resolve the canonical pipeline by absolute path. This script is reached from

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Batch Worker Spawning Optimization
 
 # Maximum concurrent workers

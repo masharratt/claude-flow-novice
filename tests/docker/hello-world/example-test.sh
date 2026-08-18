@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/example-test.sh
 # Phase 3 :: Example test demonstrating test utilities usage
 # This test shows how to use the shared test utilities and Docker helpers

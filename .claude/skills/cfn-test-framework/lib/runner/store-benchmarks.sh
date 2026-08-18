@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Store test benchmarks in SQLite
 # SECURITY: Uses Pattern B parameterized queries to prevent SQL injection
 set -euo pipefail

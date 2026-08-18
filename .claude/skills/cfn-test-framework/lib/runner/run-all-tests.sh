@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Unified Test Runner
 # Version: 1.0.0
 # Purpose: Run all test suites with benchmarking and regression detection

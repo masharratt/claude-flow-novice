@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Event Bus - Subscribe to Events CLI Wrapper
 #

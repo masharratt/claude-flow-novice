@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Integration Script for Local CodeSearch Accelerator
 # Works for both source repo and npm-installed packages
 

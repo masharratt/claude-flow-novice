@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Edge Case Test Suite for CFN Loop Orchestration
 
 set -e

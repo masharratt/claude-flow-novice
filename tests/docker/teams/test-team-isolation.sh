@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/teams/test-team-isolation.sh
 # Phase 5 Wave 4A :: Team isolation validation (IMPL-003)
 # Validates that teams cannot access each other's containers/data

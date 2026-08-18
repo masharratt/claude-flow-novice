@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Edit Safety Main Workflow
 # Coordinates backup, edit, and validation with rollback capability
 #

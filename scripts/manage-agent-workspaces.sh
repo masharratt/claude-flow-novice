@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Manage Agent Workspaces
 # Part of Task 2.1: Persistent Agent Output Workspace (Integration)
 #

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Integration Test Framework
 # Comprehensive testing for deployment handoff points
 # Part of: DEPLOYMENT_PIPELINE_STANDARDS.md

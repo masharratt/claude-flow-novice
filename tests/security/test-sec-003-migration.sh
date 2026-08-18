@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-sec-003-migration.sh
 # Phase 1 :: SEC-003 SQL Injection Prevention - Comprehensive Test Suite
 # Validates migration of 13 vulnerable scripts to parameterized queries

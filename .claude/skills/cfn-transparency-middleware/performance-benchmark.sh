@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Performance Benchmarking for Transparency Middleware
 # Version: 1.0.0

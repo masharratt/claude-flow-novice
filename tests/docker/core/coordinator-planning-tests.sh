@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/coordinator-planning-tests.sh
 # Phase 8.1 :: P0 - Dynamic Planning via Anthropic API (Coordinator V3)
 # Tests coordinator's ability to decompose tasks into atomic units via API calls

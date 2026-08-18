@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/skills/test-pre-edit-backup.sh
 # Phase 1 :: Pre-Edit Backup Tests - validates backup system functionality
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Automated implementation script for 45 placeholder Docker tests
 # This script provides scaffolding for implementing real Docker test logic
 

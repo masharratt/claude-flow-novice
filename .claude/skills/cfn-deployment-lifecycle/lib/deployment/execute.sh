@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Deployment Skill - Execute Script
 # Part of Task 1.1: Automated Skill Deployment Pipeline
 

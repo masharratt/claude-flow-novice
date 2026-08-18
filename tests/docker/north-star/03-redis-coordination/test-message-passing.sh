@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/03-redis-coordination/test-message-passing.sh
 # Phase 3 :: Validate Redis coordination and message passing between agents
 

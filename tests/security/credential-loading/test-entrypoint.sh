@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/credential-loading/test-entrypoint.sh
 # Phase 1.3b :: Validate credential loading in docker/trigger-dev/entrypoint.sh
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # CFN Error Batching Strategy - Main CLI Entry Point
 # Orchestrates all phases of error batching: analysis → clustering → batching → wave planning

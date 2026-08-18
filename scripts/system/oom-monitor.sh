@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # OOM Monitor Daemon - Advanced Out of Memory Detection and Prevention
 # Comprehensive Linux memory watchdog for troubleshooting and leak analytics

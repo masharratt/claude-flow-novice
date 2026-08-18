@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SubagentStop Hook - Claude Code v2.0.43+
 # Automatically invoked when Task() agent completes
 #

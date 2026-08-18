@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: Redis password environment variable consistency
 # Critical Security Fix: Iteration 2 - Environment variable mismatch
 # 

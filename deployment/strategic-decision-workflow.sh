@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # C-Suite Strategic Decision Workflow
 # Implements GOAP-based decision framework for strategic choices

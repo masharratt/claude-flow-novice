@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/performance/run-all-benchmarks.sh
 # Socket Proxy Performance Benchmark Suite
 # Measures overhead of Docker socket proxy vs direct socket access

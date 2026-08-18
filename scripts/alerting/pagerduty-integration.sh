@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # PagerDuty Events API v2 Integration for CFN Loop Alerting
 # This script sends alerts to PagerDuty using the Events API v2
 

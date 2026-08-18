@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/01-agent-spawning/test-basic-validation.sh
 # Phase 1 :: Basic validation of CFN Loop test framework and environment
 

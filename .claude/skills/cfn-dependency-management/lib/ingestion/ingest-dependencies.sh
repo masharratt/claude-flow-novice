@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Dependency Ingestion - Dynamic file discovery from dependency diagram
 # Parses readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt and outputs Read commands
 # Usage: ./ingest-dependencies.sh [--priority P0,P1] [--type TS,SH] [--include-deprecated]

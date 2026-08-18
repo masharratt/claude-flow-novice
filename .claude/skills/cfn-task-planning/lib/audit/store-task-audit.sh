@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Task Mode Audit Storage Script
 # Stores Task Mode agent output in Redis/SQLite for complete audit trail
 #

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Run command with memory limit enforcement (ANTI-024)
 # Uses systemd-run when available, falls back to ulimit
 #

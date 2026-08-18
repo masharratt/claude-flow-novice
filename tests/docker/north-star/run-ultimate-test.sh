@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/run-ultimate-test.sh
 # Run the ultimate CFN Loop test that puts it all together
 

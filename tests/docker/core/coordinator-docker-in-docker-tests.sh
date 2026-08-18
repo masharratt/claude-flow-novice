@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/coordinator-docker-in-docker-tests.sh
 # Phase 8.2 :: P0 - Docker-in-Docker Worker Spawning (Coordinator V3)
 # Tests coordinator's ability to spawn worker containers via Docker socket

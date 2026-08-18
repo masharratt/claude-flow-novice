@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##############################################################################
 # Test 1: Docker Network Connectivity
 # Phase 4: Docker Mode Integration - Infrastructure Validation

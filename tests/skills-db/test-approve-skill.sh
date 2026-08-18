@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # test-approve-skill.sh - Comprehensive test suite for approve-skill.sh
 # Tests risk assessment, approval routing, and workflow execution
 

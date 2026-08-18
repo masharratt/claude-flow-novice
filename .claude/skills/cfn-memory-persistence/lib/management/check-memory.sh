@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Memory Check Script for CFN Operations
 # Pre-execution hook to ensure sufficient memory is available

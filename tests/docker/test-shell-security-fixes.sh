@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/test-shell-security-fixes.sh
 # Phase: Security Hardening :: Validates P2 shell scripting security fixes
 # Related: Shell Security Issues #1 #2 #3

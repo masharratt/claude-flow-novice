@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/templates/auth-header-tests.sh
 # Template :: Authentication header validation tests per AUTH_PATTERN_SPEC.md
 # Copy and adapt this template for your API endpoints

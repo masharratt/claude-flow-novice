@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/redis/validate-server-auth.sh
 # SEC-001 :: Redis server-side authentication validation (Bug #11)
 #

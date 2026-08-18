@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Task Mode Safety - Mode Detection and Enforcement
 # Part of ANTI-023 Memory Leak Protection System
 

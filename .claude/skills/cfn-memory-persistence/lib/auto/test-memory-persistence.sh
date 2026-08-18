@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Comprehensive Test Suite for Automatic Memory Persistence Skill
 
 set -e

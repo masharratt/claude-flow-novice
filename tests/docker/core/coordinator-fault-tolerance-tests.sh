@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/coordinator-fault-tolerance-tests.sh
 # Phase 4 :: P2 - Coordinator fault tolerance and recovery validation
 

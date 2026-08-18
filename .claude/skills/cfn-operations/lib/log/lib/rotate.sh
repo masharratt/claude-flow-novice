@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # CFN Log Operations - Rotation and Cleanup Library
 # Task 4.4: Distributed Logging Standardization

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # Test Suite: Bug Fix Validation - Security Sanitization
 # Purpose: Validate control character removal and shell metacharacter stripping

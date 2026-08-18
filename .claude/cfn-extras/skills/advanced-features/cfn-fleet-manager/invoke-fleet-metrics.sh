@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Fleet Manager - Performance Metrics CLI Wrapper
 #

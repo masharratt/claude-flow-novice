@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Transparency Middleware Configuration
 # Version: 1.0.0

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Post-commit hook: incrementally update CodeSearch index for changed files.
 # - Re-indexes modified/added files
 # - Removes entities for deleted files from SQLite + Qdrant + Memgraph

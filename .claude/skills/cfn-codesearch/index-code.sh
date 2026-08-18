@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # index-code.sh - Index codebase using local-codesearch Rust binary
 # This is a wrapper around the Rust binary for convenience
 

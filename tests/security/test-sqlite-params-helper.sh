@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Comprehensive test suite for sqlite-params.sh helper library
 # Tests all functions with edge cases, injection attempts, and integration scenarios
 #

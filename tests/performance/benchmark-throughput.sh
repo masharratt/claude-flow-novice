@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/performance/benchmark-throughput.sh
 # Phase 4 :: Measure throughput impact of socket proxy on concurrent operations
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/html.sh - shared HTML helpers for cfn-workbench.
 # Provides: html_escape, data_uri_png, default_style, record_gap, get_gap_count,
 #           plan_path.

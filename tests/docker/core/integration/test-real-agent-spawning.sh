@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test actual CFN agent image spawning via spawn-agent.sh
 # This test validates that spawn-agent.sh uses correct CLI syntax
 

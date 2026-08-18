@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/performance/benchmark-container-remove.sh
 # Benchmark: Container remove latency (direct vs proxy)
 

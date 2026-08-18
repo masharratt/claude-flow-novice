@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing SMS Campaigns - Get Delivery Status Operation
 # Version: 1.0.0
 # Purpose: Check SMS delivery status

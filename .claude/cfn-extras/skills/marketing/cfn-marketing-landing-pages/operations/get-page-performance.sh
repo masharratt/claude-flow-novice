@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Landing Pages - Get Page Performance Operation
 # Get conversion metrics and A/B test results
 

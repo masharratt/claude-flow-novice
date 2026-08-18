@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Query: Find all failed containers (exit_code != 0)
 
 set -euo pipefail

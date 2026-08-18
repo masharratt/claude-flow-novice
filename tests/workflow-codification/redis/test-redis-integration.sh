@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Comprehensive Redis Integration Test Suite
 # Tests: Connection, Health Score Cache, Circuit Breaker, Trace Context
 # Coverage Target: 100% of all Redis operations

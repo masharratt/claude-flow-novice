@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/socket-proxy/test-phase4-socket-proxy-smoke.sh
 # Phase 4 :: Socket Proxy Smoke Test (Planning Reference: CLI_TRIGGER_COLLISION_ANALYSIS.md)
 # Tests socket-proxy deployment and basic security features without requiring full stack

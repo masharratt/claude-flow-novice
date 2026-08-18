@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # test-live-sections.sh - TDD coverage for the cfn-workbench live-transparency
 # features: staleness banner (F2), roster section (F3), events feed (F4),
 # and their wiring into render.sh nav/output.

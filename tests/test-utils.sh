@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/test-utils.sh
 # Shared test utilities for CFN Loop test suite
 # Provides: logging, assertions, Redis helpers, Docker helpers, test scaffolding

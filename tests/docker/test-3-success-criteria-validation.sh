@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##############################################################################
 # Test 3: Success Criteria Loading Logic (Standalone)
 # Phase 4: Docker Mode Integration - Test-Driven Gates

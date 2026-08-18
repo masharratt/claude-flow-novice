@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/test-path-resolution-fix.sh
 # Phase 3 :: Validates CRITICAL-001 fix - Product Owner decision script path resolution (Priority 3)
 

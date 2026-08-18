@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "Final Agent Containerization Validation Test"
 echo "=========================================="

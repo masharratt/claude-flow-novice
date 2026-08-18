@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/orchestrator/test-pre-flight-validation.sh
 # Phase 3 :: Pre-flight validation prevents agent spawning on dependency failures (Bug #TBD)
 # Tests orchestrator dependency checks before spawning agents

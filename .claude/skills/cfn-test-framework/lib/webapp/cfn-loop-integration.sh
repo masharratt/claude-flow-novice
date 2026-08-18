@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Webapp Testing Skill - CFN Loop Integration Helper
 # Purpose: Helper functions for integrating visual regression testing into CFN Loop workflows
 

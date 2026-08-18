@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Capture container logs to both text files and SQLite database
 # Hybrid approach: Human-readable text + powerful SQL queries
 

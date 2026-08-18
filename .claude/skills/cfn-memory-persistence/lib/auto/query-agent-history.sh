@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Query agent output history from SQLite
 
 # Enable strict error handling

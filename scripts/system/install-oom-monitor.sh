@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # OOM Monitor Installation Script
 # One-click installer for all Linux distributions

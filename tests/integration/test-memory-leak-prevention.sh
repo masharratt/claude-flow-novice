@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Memory Leak Prevention Simulation Tests
 # Part of ANTI-023 Memory Leak Protection System Integration Tests
 

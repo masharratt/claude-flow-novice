@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # B10 TypeScript Error Fix Test
 # Deploys 32 agents to fix TypeScript errors in batch 10 files
 

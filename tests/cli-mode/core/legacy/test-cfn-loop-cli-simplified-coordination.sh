@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/core/e2e/test-cfn-loop-cli-simplified-coordination.sh
 # Phase 1 :: Simplified CLI Mode Test - Main Chat Direct Coordination
 #

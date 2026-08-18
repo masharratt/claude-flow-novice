@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Build TypeScript implementation to JavaScript
 set -euo pipefail
 

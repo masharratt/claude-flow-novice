@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Sprint 2.2: Engineering Code Review Workflow Test
 # Simulates engineering coordinator → Z.ai workers (reviewer, tester, security-specialist)
 

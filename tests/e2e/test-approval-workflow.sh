@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # End-to-End Approval Workflow Test Suite
 # Tests complete workflow: create → approve → agent usage → analytics
 

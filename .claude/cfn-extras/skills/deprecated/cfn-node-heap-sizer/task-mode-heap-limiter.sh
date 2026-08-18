@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Node.js Heap Size Limiter for Task Mode
 # Dynamically adjusts NODE_OPTIONS based on execution mode to prevent memory bloat
 

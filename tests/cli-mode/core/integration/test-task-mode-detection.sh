@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/test-task-mode-detection.sh
 # Phase 3 :: Validates CRITICAL-004 fix - Task mode detection and TASK_ID sanitization (Priority 3)
 

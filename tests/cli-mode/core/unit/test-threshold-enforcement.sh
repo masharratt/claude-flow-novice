@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/test-threshold-enforcement.sh
 # Phase 1 :: Validates gate thresholds match CLAUDE.md v3.0+ standards (CRITICAL-002)
 

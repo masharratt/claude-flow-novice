@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SQL Injection Production Script Audit
 # Tests actual production scripts (not library functions) for SQL injection vulnerabilities
 # CFN Loop 5 Iteration 2 - Comprehensive Production Script Testing

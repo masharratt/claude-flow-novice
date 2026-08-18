@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Saves agent output to SQLite via TypeScript adapter
 
 # Enable strict error handling

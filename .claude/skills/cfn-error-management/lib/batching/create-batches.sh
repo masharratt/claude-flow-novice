@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # CFN Error Batching Strategy - Phase 4: Create Batches with Tier Assignment
 # Assigns memory tiers to clusters and creates agent-ready batches

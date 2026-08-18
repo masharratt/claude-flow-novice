@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ENV-001: Redis Password Standardization - Simple Validation
 # Tests core standardization without external dependencies

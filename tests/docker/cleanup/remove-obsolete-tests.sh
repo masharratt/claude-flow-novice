@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/cleanup/remove-obsolete-tests.sh
 # Phase 1 Iteration 1: Test Cleanup with Safety Validations
 #

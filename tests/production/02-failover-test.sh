@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Production Failover Test
 # Sprint 4.1 - Production Testing & Operational Hardening
 # Tests coordinator restart and Redis connection recovery

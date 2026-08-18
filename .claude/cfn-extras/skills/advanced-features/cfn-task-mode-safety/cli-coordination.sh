@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN CLI Mode Coordination - Safe Redis Operations for CLI Mode Only
 # Part of ANTI-023 Memory Leak Protection System
 

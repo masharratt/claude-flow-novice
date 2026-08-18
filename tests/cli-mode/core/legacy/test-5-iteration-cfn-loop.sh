@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/core/e2e/test-5-iteration-cfn-loop.sh
 # Phase 2 :: Validates complete 5-iteration CFN Loop workflow (Priority 0)
 # Coverage: Iteration loop, ITERATE decisions, retry logic, convergence, Product Owner decisions

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/security/scan-docker-images.sh
 # Phase 6.2 :: CVE Scanner for Docker Images (IMPL-001 Stream 2)
 # Scans all team Docker images for HIGH/CRITICAL CVEs using Trivy

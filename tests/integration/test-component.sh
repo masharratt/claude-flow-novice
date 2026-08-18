@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # CFN Loop Validation Workflow Test Component
 # This script demonstrates the complete CFN Loop validation workflow

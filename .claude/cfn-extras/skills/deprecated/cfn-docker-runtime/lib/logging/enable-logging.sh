@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##
 ## CFN Docker Logging - Quick Fix Script
 ## Enables verbose Docker logging with container stdout/stderr capture

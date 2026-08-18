@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # test-render.sh - STRAT-005 coverage for cfn-workbench render.sh
 # Asserts: rendering, self-containment, HTML escaping, column-tolerant AC parser,
 # screenshot caps, data-gap recording, empty-state, exit codes, no em dashes.

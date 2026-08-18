@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Comprehensive Integration Test Runner
 # Executes ALL integration tests and logs results
 

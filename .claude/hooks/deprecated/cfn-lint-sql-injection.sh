@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SQL Injection Linting Script
 # Detects vulnerable SQL query patterns in shell scripts
 # Part of SEC-003 SQL injection prevention

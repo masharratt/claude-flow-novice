@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/memory-budget-tests.sh
 # Phase 3 :: Memory budget enforcement (wave spawning, tier allocation, OOM prevention)
 

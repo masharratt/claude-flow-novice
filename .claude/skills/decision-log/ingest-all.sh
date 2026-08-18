@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Backfill: ingest all existing session files across all projects
 set -euo pipefail
 

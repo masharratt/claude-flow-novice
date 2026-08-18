@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Phase 4 Docker Mode Integration - Security Audit Test Suite
 # Tests input validation, injection prevention, resource limits, and Docker security
 

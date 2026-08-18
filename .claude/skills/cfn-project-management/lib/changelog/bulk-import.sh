@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # cfn-changelog-management/bulk-import.sh
 # Batch changelog imports with fuzzy deduplication and auto-squashing

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/env-propagation-tests.sh
 # Phase 4 :: P1 - Environment variable propagation validation (Bug #4 / Bug #6 fix validation)
 

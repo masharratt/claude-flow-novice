@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Mock Worker Spawner
 worker_type=$1
 worker_count=$2

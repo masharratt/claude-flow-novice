@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/typescript-analysis-tests.sh
 # Phase 4 :: P1 - TypeScript error analysis validation (Bug #10 TypeScript iteration support)
 

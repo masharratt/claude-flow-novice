@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/performance/benchmark-container-lifecycle.sh
 # Phase 4 :: Measure full container lifecycle overhead (create, start, stop, remove)
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Edit Safety CLI Interface
 # Provides command-line interface for the edit safety workflow
 

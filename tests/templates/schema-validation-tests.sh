@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/templates/schema-validation-tests.sh
 # Template :: Schema validation tests for API request/response contracts
 # Copy and adapt this template for your API endpoints

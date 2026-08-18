@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Start Telemetry Collection for CFN Stabilization System
 # This script initializes and starts telemetry monitoring for agent execution

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Transparency Middleware Test Suite
 # Version: 1.0.0

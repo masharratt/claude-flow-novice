@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/run-socket-proxy-tests.sh
 # Phase 4 Security Validation :: Master test runner for all socket proxy security tests
 # Reference: planning/trigger/PHASE_4_SECURITY_VALIDATION_REPORT.md

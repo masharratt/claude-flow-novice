@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Task Decomposition for Complex Operations
 # Breaks down complex tasks into smaller, tool-budget-efficient subtasks
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-socket-proxy-privileged-block.sh
 # Phase 4 Security Validation :: Confirm --privileged mode is blocked by socket proxy
 # Reference: planning/trigger/PHASE_4_SECURITY_VALIDATION_REPORT.md

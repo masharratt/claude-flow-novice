@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/orchestration/test-orchestrator-gate-failures.sh
 # Phase 3 :: CFN Loop Orchestrator Gate Failures - Threshold enforcement and retry logic
 

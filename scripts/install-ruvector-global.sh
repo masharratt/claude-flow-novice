@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Install RuVector binary to ~/.local/bin for global access
 # Usage: ./scripts/install-ruvector-global.sh
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Real implementations for coordinator-spawning-tests.sh placeholders (Tests 11-23)
 # These functions replace the test_placeholder_11_to_23() function
 

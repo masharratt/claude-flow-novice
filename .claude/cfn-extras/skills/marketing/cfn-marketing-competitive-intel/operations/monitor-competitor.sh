@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Competitive Intel - Monitor Competitor Operation
 # Track competitor activity including content, ads, and keywords
 

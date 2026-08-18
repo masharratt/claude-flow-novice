@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/load/test-100-agent-sustained.sh
 # Phase 6 Wave 5 :: Validate agent sustained load with production spawning (BUG #21 Compliant)
 #

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/performance/benchmark-container-start.sh
 # Benchmark: Container start latency (direct vs proxy)
 

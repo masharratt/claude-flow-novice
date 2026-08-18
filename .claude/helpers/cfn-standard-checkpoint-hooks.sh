@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Standard checkpoint hook functions for Claude settings.json (without GitHub features)
 
 # Function to handle pre-edit checkpoints

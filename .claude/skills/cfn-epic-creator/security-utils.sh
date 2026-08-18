@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Security utilities for CFN Epic Creator v2
 # Provides input validation, path sanitization, and secure file operations

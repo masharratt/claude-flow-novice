@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Comprehensive Database Schema Test Suite
 # Tests all 6 feature tables with 100% coverage
 # TDD Protocol: Write tests first, then implement

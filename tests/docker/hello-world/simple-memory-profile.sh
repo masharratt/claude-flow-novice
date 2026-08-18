@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Simple Docker Agent Memory Profiling
 
 set -euo pipefail

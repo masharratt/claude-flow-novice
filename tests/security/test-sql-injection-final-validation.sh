@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Final SQL Injection Validation - CFN Loop 5 Iteration 4
 # Tests both propagate-skill-update.sh and deploy-approved-skill.sh
 # OWASP SQL Injection Test Suite with 28 vectors

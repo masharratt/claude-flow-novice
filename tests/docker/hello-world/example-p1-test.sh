@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/example-p1-test.sh
 # Phase 4 :: Example P1 test using architecture-test-helpers.sh
 # Demonstrates integration patterns for CFN Loop validation

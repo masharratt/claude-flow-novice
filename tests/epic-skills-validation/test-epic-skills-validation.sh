@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Comprehensive validation tests for skills fixed in the epic
 # Tests all phases of fixes: Infrastructure, Working Skills, New/Updated, and Complex Skills
 

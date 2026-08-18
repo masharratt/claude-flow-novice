@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/test-cfn-loop-cli-real-execution.sh
 # Phase 1 :: TRUE End-to-End CLI Mode Test - NO Simulations or Bypasses
 #

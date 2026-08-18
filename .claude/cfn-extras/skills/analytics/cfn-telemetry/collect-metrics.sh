@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Telemetry Collection System
 # Real-time metrics collection for agent monitoring
 

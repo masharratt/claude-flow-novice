@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/test-prompt-delivery.sh
 # Phase 1 :: End-to-end test for CLI mode agent completion signaling protocol
 # Integration Test: Validates Redis coordination for agent completion messages

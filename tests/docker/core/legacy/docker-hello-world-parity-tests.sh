@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Docker Hello-World Parity Tests
 # Container-based versions of CLI hello-world tests for parity validation

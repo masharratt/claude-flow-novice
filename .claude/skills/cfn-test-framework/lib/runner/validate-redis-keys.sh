@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Redis Key Validator
 # Version: 1.0.0
 # Purpose: Validate Redis key consistency across codebase

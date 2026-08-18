@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ==============================================================================
 # Environment Validation Script - trigger.dev Multi-Environment Deployment
 # ==============================================================================

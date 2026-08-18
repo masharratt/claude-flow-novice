@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Loop Hello-World End-to-End Integration Test
 # Tests complete workflow: Loop 3 (implementers + tests) → Loop 2 (validators) → corrections
 set -euo pipefail

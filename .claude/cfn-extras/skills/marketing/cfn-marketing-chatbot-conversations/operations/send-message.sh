@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Chatbot Conversations - Send Message Operation
 # Version: 1.0.0
 # Purpose: Send chatbot message to visitor

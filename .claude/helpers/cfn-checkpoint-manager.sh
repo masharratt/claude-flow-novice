@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Claude Checkpoint Manager
 # Provides easy rollback and management of Claude Code checkpoints
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # sync-all-memgraph.sh - Sync all indexed projects from SQLite to Memgraph
 # Uses sync-memgraph.py for each project root found in SQLite
 

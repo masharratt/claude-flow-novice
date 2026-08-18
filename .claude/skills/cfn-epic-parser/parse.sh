@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # cfn-epic-parser/parse.sh
 # Parses natural language epic documents from markdown files and converts them to structured JSON

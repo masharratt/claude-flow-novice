@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/test-success-criteria-loading.sh
 # Phase 4 :: Success Criteria Loading & Validation (Standalone)
 # Tests security fixes and JSON validation without requiring coordinator context

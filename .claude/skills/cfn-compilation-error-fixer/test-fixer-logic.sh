@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -eu
 
 echo "🧪 Testing TypeScript Error Fixer Logic"

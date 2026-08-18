@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Clean agent profiles: Remove CLI-mode-only commands that cause Exit 127 in Task Mode
 # These profiles get copied to npm package via copy-claude-assets script
 

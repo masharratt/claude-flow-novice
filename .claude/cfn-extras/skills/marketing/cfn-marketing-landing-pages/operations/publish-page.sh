@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Landing Pages - Publish Page Operation
 # Publish landing page to production
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -eu
 
 # Test script for Rust error fixer (cerebras-gated-fixer-v2.ts)

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # SessionStart hook: Load OpenAI API key from root .env file
 # This ensures OPENAI_API_KEY is available for embedding generation

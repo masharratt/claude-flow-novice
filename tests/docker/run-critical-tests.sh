@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/run-critical-tests.sh
 # Phase 4 :: Automated Test Runner for Critical Docker Tests
 # Runs all critical test suites and provides consolidated reporting

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/orchestration/test-orchestrator-happy-path.sh
 # Phase 3 :: CFN Loop Orchestrator Happy Path - Complete workflow validation
 

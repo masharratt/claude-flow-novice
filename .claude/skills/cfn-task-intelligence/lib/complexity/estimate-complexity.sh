@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Task Complexity Estimator for CFN v3
 # Removed set -o pipefail for compatibility

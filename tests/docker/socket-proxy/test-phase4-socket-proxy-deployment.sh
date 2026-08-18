@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/socket-proxy/test-phase4-socket-proxy-deployment.sh
 # Phase 4 :: Socket Proxy Deployment Validation (Planning Reference: CLI_TRIGGER_COLLISION_ANALYSIS.md)
 

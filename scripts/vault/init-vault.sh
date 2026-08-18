@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/vault/init-vault.sh
 # Part of IMPL-001 Security Hardening - Stream 1
 # Initialize HashiCorp Vault and create root token

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/core/test-wave-security-edgecases.sh
 # Phase 4 :: Wave Security & Edge Case Tests
 # Purpose: Validate security fixes and edge case handling in spawn-wave.sh

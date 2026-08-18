@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/coordinator-validation-tests.sh
 # Phase 8.5 :: P1 - Coordinator Validation and Error Handling
 # Tests coordinator's validation logic and entrypoint checks

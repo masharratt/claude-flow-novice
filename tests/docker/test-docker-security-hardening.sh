@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/test-docker-security-hardening.sh
 # Phase 2 :: Validate Docker security hardening (Iteration 2/10)
 # Tests least-privilege principles, capability restrictions, and network isolation

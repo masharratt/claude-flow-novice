@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/run-all-tests.sh
 # CLI Mode Comprehensive Test Runner
 # Runs: Unit tests + Integration tests + E2E tests

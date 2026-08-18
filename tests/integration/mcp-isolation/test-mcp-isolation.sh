@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "🚀 End-to-End Skill-Based MCP Isolation Test"
 echo "============================================="

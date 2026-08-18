@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # B10 Single Agent Debug Test
 # Runs ONE agent interactively to capture actual CLI errors
 

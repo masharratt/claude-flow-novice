@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Verify CFN Stabilization Integration
 set -euo pipefail
 

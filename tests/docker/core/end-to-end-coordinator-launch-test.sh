@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/core/end-to-end-coordinator-launch-test.sh
 # Phase 1 :: End-to-end coordinator launch sequence validation (Bug #4)
 #

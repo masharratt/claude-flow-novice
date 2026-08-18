@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Integration Test: Dual Logging System (Phase 7.2)
 #
 # Tests the skill-execution-logger in a real scenario:

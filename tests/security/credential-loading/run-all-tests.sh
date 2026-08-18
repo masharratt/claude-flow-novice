@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/credential-loading/run-all-tests.sh
 # Phase 1.3b :: Test runner for credential loading test suite
 

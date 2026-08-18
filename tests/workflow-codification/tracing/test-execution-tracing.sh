@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ============================================================
 # EXECUTION TRACING TEST SUITE
 # Sprint 1.3 - TDD Protocol (Tests Written First)

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-iteration4-fixes.sh
 # Iteration 4 :: Validate SQL injection fixes for propagate-skill-update.sh and deploy-approved-skill.sh
 

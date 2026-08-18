@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # CFN Loop Scaling Test: 10 Concurrent Agents
 #

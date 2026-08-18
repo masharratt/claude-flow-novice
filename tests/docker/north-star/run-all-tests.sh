@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/run-all-tests.sh
 # Comprehensive CFN Loop North Star test runner
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ==============================================================================
 # Secret Rotation Test Suite
 # Phase 1.3 :: Validate secret rotation, validation, and rollback procedures

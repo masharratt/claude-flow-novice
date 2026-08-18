@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/credential-loading/test-credential-loading-pattern.sh
 # Phase 1.3b :: Validate credential loading pattern across all refactored scripts
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SubagentStart Hook - Claude Code v2.0.43+
 # Automatically invoked when Main Chat spawns a Task() agent
 #

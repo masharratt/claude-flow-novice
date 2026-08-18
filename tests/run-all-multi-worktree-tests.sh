@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/run-all-multi-worktree-tests.sh
 # Comprehensive test runner for multi-worktree Docker coordination
 # Runs all related test suites and provides combined reporting

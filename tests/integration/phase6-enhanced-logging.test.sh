@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Phase 6.1: Enhanced Usage Logging Integration Test
 # Tests approval metadata tracking in skill usage logs
 

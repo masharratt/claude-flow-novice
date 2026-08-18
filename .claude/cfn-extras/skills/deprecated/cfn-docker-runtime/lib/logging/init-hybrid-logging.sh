@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Initialize hybrid logging: Text files + SQLite database
 # Provides both human-readable logs and powerful SQL querying
 

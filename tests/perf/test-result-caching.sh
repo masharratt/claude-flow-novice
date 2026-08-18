@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/perf/test-result-caching.sh
 # Phase 6 :: Agent Result Caching Tests (BUG #21 Compliant)
 #

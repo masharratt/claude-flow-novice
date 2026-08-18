@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Unit test for spawn-agent.sh Docker command construction
 # Phase: Docker Mode :: Validates correct CLI syntax to prevent BUG #21 recurrence
 

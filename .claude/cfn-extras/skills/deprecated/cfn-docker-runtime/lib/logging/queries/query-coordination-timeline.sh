@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Query: Show coordination event timeline
 
 set -euo pipefail

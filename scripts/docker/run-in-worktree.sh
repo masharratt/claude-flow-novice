@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Docker Multi-Worktree Wrapper
 # Enables running docker-compose in multiple git worktrees simultaneously
 # without port/container/volume conflicts

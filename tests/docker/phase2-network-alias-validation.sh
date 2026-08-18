@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/phase2-network-alias-validation.sh
 # Phase 2 :: Network Alias Validation - CLI/Trigger.dev Service Discovery (Phase 2 CLI_TRIGGER_COLLISION_ANALYSIS.md)
 

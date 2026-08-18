@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SkillLoader Integration Test Suite
 # Validates Phase 3 implementation functionality
 

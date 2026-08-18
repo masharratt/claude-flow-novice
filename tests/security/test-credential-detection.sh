@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Test: Credential Detection Hook
 # Validates that the pre-commit hook catches API keys in all file types

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Ad Campaigns - Pause/Resume Campaign Operation
 # Controls campaign active status
 

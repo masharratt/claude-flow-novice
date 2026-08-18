@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "Skill-Based MCP Selection System Test"
 echo "====================================="

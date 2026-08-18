@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Unified CFN Dependency Ingestion
 # Supports both manifest-based and diagram-based ingestion
 # Version: 2.0.0

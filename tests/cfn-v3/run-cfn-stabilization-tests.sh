@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Memory Leak Stabilization System - Integration Test Runner
 # Executes all validation tests and generates comprehensive report
 

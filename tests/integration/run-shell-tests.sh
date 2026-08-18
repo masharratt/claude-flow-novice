@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Quick Shell Test Runner - focuses on shell-based integration tests only
 
 set -euo pipefail

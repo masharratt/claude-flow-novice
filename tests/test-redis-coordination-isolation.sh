@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/test-redis-coordination-isolation.sh
 # Tests Redis coordination isolation for multi-worktree environments
 # Verifies namespace isolation, key separation, and coordination patterns

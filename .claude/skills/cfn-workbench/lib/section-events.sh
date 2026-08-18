@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/section-events.sh - live events feed for cfn-workbench.
 #
 # Reads BOTH /tmp/cfn-events-<slug>.jsonl and <root>/tmp/cfn-events-<slug>.jsonl

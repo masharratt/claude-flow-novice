@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cfn-selftest: not-a-hook manually-invoked CLI, never fires on an event
 # Quick CLI for CodeSearch usage reports
 # Usage: cs-report [--project <name>] [--days <n>] [--raw]

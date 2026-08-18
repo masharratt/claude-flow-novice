@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Git Hooks Installation Script
 # Installs security-focused git hooks to prevent credential exposure
 # Usage: bash .claude/hooks/install-git-hooks.sh [--force]

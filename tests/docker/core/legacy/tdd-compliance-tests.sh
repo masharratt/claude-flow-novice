@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker-mode/test-tdd-compliance.sh
 # Docker Mode TDD Compliance Test Suite (24 tests)
 

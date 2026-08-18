@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/06-integration/test-real-agents.sh
 # Phase 6 :: Ultimate CFN Loop test with REAL agent spawning (not simulation)
 

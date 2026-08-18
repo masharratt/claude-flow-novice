@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test script to verify CLAUDE.md inclusion in Docker image
 # Expected: CLAUDE.md, agent/*.md (76), skill/*.md (72), README.md included
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: Coordinator → Orchestrate.sh Parameter Handoff Validation
 # Purpose: Ensure coordinator-entrypoint.sh passes TASK_ID as positional arg (not --task-id flag)
 # Bug: #5 - Parameter format mismatch caused "Unknown option: --task-id" errors

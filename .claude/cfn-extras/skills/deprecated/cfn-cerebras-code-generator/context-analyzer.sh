@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 DB_PATH="${CONTEXT_DB_PATH:-./contexts.db}"

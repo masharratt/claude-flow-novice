@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/templates/env-var-fallback-tests.sh
 # Template :: Environment variable fallback and validation tests per ENV_VAR_STANDARDS.md
 # Copy and adapt this template for your application

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # CFN Log Operations - Search Library
 # Task 4.4: Distributed Logging Standardization

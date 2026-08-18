@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-phase-6-hardening.sh
 # Phase 6 Security Hardening Audit
 # Validates connection pooling, query optimization, Docker security, caching security, and credential handling

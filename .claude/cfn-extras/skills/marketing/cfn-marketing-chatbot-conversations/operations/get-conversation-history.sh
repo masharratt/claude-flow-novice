@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Chatbot Conversations - Get Conversation History Operation
 # Version: 1.0.0
 # Purpose: Retrieve conversation transcript

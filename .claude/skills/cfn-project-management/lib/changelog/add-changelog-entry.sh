@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # cfn-changelog-management/add-changelog-entry.sh

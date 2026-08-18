@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/core/test-wave-orchestration-recovery.sh
 # Phase 4 :: Multi-wave orchestration with crash recovery and memory validation
 

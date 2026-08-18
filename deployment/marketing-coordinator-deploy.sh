@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Marketing Coordinator Deployment Script
 # Sprint 2.1: Marketing Pilot - Secure Deployment
 

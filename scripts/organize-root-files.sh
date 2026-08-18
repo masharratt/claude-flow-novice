@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Root Directory File Organization Script
 # This script organizes files in the root directory according to the plan in ROOT_FILE_ORGANIZATION_PLAN.md
 

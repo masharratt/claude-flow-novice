@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 echo "=== SEC-003 ITERATION 2 VALIDATION REPORT ==="

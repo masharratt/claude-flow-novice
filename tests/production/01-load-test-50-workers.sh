@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Production Load Test: 50 Concurrent Workers
 # Sprint 4.1 - Production Testing & Operational Hardening
 # Tests system under realistic load (10 workers per team)

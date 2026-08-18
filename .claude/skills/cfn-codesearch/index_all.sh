@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Index all files in the project
 
 echo "Starting comprehensive indexing of all files..."

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Phase 6 #4: mTLS Certificate Rotation Script
 #
 # Checks certificate expiration and automatically rotates certificates

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # render.sh - cfn-workbench entry point.
 #
 # Renders a self-contained HTML progress page for a CFN Loop run from scattered

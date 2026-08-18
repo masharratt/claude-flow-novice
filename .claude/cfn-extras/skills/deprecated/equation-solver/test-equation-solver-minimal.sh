@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # test-equation-solver-minimal.sh
 # Quick security and functional test suite for equation-solver skill

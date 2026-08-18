@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Cold Start Performance Testing for Docker Agents
 # Tests container startup times and agent spawn performance
 

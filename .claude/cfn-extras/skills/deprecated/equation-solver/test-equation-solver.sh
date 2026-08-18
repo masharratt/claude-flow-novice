@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # test-equation-solver.sh
 # Comprehensive security and functional tests for equation-solver skill

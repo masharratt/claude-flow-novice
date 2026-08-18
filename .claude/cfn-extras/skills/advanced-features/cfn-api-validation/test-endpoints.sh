@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # API Endpoint Validation Script
 # Usage: ./test-endpoints.sh <base-url> <endpoint> [request-count]
 

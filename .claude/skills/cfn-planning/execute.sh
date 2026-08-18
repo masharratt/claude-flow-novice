@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # cfn-planning skill execution script
 # Version: 1.0.0

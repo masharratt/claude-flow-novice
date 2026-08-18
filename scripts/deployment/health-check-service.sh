@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Health Check Service Implementation
 # Implements comprehensive dependency health checks and monitoring
 # Part of: DEPLOYMENT_PIPELINE_STANDARDS.md

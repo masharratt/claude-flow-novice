@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/core/e2e/test-agent-tool-access.sh
 # Phase 1 :: Validates agents have access to tools and can create files
 #

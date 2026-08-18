@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Chatbot Conversations - Schedule Demo Operation
 # Version: 1.0.0
 # Purpose: Book demo appointment

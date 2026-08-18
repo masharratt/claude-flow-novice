@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Test script for cfn-expert-update skill
 # Validates the skill functionality and edge cases

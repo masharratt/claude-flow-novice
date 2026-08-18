@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/section-header.sh - sticky Nocturne header band (slug, branch, iteration count, verdict, generated_at).
 
 section_header() {

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/north-star/07-load-testing/load-test-concurrent-cfn.sh
 # Phase 7 :: TRUE concurrent CFN Loop test using CLI mode with parallel execution
 

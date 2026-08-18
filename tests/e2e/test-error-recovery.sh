@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test Suite 3: Error Recovery
 # Tests graceful error handling and recovery scenarios
 

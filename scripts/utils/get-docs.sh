@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Read key planning documents
 echo "=== DECOMPOSITION SWARM RUVECTOR PLAN ==="

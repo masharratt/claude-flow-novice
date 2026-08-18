@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Webapp Testing Skill - Screenshot Capture
 # Purpose: Capture screenshots with Playwright, store metadata in SQLite, coordinate via Redis
 

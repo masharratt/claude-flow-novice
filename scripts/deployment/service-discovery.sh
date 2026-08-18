@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Service Discovery Utility
 # Implements convention-based and environment-driven service discovery
 # Part of: DEPLOYMENT_PIPELINE_STANDARDS.md

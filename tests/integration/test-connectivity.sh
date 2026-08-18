@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Simple connectivity test script
 # Tests basic network and system connectivity

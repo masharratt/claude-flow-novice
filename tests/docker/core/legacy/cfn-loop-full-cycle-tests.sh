@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker-mode/test-cfn-loop-full-cycle.sh
 # Docker Mode Full CFN Loop Test Suite (6 scenarios)
 

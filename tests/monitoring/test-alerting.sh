@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/monitoring/test-alerting.sh
 # Comprehensive Alerting Infrastructure Integration Test Suite
 # Phase 6 #2: Alerting Infrastructure Implementation

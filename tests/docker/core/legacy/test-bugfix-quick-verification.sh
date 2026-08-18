@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Quick static verification of all 4 bug fixes
 set -euo pipefail
 

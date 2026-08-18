@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Dependency checker for Hook Pipeline
 
 check_command() {

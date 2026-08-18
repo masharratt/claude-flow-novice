@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/architecture-test-helpers.sh
 # Phase 4 :: Architecture-specific test helpers for P1 tests
 # Extends test-helpers.sh with CFN Loop, coordinator, and provider validation utilities

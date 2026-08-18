@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Synthetic Load Test for Memory Monitor
 # Tests rapid spawn detection and cohort kill mechanisms

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # CFN Dependency Management - Skill Wrapper
 # Main entry point for the CFN Loop system

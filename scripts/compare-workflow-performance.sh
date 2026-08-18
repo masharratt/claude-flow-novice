@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CI/CD Pipeline Performance Comparison Tool
 
 set -euo pipefail

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # init-local-codesearch.sh - Verify and setup local CodeSearch
 # Ensures the Rust binary is installed and PATH is configured
 

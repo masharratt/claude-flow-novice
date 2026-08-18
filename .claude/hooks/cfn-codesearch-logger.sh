@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Structured logging for CodeSearch indexing and search operations.
 # All hooks source this file for unified, persistent, queryable logs.
 #

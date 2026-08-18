@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ################################################################################
 # Test Suite: Dashboard Build Error Detection
 # Purpose: Validate fixes for errors discovered during dashboard build

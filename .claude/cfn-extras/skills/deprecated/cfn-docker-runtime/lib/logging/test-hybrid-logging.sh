@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test hybrid logging system: Text files + SQLite
 # Validates both logging mechanisms work correctly
 

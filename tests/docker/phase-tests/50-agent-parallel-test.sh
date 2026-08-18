@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 50-Agent Parallel Spawn Test
 # Tests coordinator-based task assignment with 50 parallel agent containers
 # NOTE: Agents have random delays (60-300s) for Docker Desktop observation

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/teams/test-deployment-automation.sh
 # Phase 5 Wave 4A :: Deployment automation validation (IMPL-003)
 # Tests build scripts, validation, and registry push operations

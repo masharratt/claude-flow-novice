@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-socket-proxy-allowed-operations.sh
 # Phase 4 Security Validation :: Confirm allowed Docker operations work correctly
 # Reference: planning/trigger/PHASE_4_SECURITY_VALIDATION_REPORT.md

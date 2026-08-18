@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Production Security Audit
 # Sprint 4.1 - Production Testing & Operational Hardening
 # Tests container isolation, MCP permissions, secret management

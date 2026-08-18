@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Real implementations for tdd-compliance-tests.sh placeholders (Tests 6-24)
 # These functions replace the test_placeholder_6_to_24() function
 

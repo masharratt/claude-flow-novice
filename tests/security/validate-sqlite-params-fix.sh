@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Quick validation script for sqlite-params.sh fix
 # Demonstrates correct .parameter syntax and security features
 

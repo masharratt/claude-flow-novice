@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/section-vote-ledger.sh - vote ledger (every suggestion + vote outcome).
 #
 # Reads all manifests in .cfn-cache/manifests/cfn-*.json and emits one row per

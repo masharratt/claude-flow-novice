@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -eu
 
 # Add CodeSearch instructions to all agent profiles with Post-Edit Pipeline

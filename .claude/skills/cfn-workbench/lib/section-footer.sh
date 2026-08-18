@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/section-footer.sh - footer (command, input count, size, data-gap warnings).
 
 section_footer() {

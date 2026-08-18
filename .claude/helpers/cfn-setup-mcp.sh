@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Setup MCP server for Claude Flow
 
 echo "🚀 Setting up Claude Flow MCP server..."

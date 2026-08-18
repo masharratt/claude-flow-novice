@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/deployment/test-production-readiness.sh
 # Phase 1.3 :: Deployment automation validation tests
 # Reference: Phase 1.3 Production Deployment - Requirement 4 (Deployment Validation Tests)

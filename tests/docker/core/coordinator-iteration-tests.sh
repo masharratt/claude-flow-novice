@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/docker/coordinator-iteration-tests.sh
 # Phase 3 :: Coordinator iteration loop validation (convergence, max iterations, error delta, decisions)
 

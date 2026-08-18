@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Test script for Phase 4 Query API
 # This script tests the new query functionality

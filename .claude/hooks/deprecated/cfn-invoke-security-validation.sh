@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Security Validation Hook for Docker Hybrid Routing
 
 set -euo pipefail

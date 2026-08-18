@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Task Type Classifier for CFN v3
 # Usage: classify-task.sh "task description" [--format=json|simple]

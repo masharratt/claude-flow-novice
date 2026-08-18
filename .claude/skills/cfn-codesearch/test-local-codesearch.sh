@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # test-local-codesearch.sh - Test Local CodeSearch implementation
 
 set -e

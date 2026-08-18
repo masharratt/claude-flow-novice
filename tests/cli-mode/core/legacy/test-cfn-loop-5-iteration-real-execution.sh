@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/cli-mode/core/e2e/test-cfn-loop-5-iteration-real-execution.sh
 # Phase 3 :: North Star Extended - 5 Iteration CFN Loop with Real Workflow (Priority 1)
 #

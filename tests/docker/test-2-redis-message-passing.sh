@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##############################################################################
 # Test 2: Redis Message Passing and Coordination
 # Phase 4: Docker Mode Integration - Coordination Protocol

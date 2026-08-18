@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Check web portal status
 
 PORTAL_PORT=${PORTAL_PORT:-3456}

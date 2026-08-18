@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Sync existing SQLite entities into Memgraph.
 # Uses UNWIND batches for speed (~720 queries instead of ~360k).
 # Use after bulk indexing with --skip-memgraph.

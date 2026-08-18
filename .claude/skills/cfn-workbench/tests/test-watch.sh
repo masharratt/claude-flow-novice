@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # test-watch.sh - TDD coverage for cfn-workbench watch.sh (F1: re-render loop).
 #
 # Asserts against workbench-live-contracts.md F1. Written before watch.sh

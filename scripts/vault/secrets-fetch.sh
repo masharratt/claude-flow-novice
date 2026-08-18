@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/vault/secrets-fetch.sh
 # Part of IMPL-001 Security Hardening - Stream 1
 # Fetch secrets from Vault for application use

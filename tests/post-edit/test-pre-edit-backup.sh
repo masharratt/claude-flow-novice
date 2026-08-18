@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Pre-Edit Backup System Test
 # Tests backup, restore, and cleanup functionality

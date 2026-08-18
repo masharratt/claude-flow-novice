@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/security/test-store-benchmarks-security.sh
 # Phase 2 :: Validate store-benchmarks.sh SQL injection protection (Iteration 2/10)
 # Tests Pattern B parameterized query implementation against OWASP attack vectors

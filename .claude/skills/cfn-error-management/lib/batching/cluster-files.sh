@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # CFN Error Batching Strategy - Phase 2-3: Cluster Files by Dependencies
 # Groups files into logical clusters based on directory proximity or AST analysis

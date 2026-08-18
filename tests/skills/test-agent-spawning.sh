@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/skills/test-agent-spawning.sh
 # Phase 1 :: Agent Spawning Tests - validates spawn-agent.sh functionality
 

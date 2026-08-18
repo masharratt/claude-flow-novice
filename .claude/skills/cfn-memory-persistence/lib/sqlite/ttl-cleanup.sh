@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # SQLite TTL Cleanup Script
 # Automated cleanup of expired memory entries based on ACL levels

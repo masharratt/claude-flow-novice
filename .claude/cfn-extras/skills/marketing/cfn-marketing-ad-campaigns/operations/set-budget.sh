@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Ad Campaigns - Set Budget Operation
 # Updates campaign budget with validation
 

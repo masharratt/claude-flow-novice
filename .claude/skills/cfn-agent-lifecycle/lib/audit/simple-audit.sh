@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Simple Agent Audit Trail Script
 # Usage: ./simple-audit.sh <agent_id> <agent_type> <confidence> <status>

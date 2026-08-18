@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Tests for cfn-smart-search-hook.sh and cfn-bash-search-hook.sh
 set -uo pipefail
 

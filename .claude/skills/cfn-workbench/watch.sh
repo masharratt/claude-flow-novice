@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # watch.sh - cfn-workbench re-render loop (F1: live transparency).
 #
 # Watches a set of data-source globs for a run slug and re-renders the

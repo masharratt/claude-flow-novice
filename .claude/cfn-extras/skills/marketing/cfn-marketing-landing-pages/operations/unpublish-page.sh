@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # CFN Marketing Landing Pages - Unpublish Page Operation
 # Take landing page offline
 

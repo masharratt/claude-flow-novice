@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/test-windows-wsl-path-fix.sh
 # Verify Windows/WSL path compatibility fix in cfn-conversation-sync
 

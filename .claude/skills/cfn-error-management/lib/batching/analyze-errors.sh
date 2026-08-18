@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # CFN Error Batching Strategy - Phase 1: Analyze Errors
 # Parses error output from multiple languages and tools
