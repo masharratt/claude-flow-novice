@@ -268,6 +268,18 @@ A small number of absolute paths are legitimate and are exempted with an inline
 to a log sanitizer under test. The reason is mandatory, so the exemption cannot be used as a
 silent mute.
 
+### Executable bits
+
+`core.fileMode` is false in this repo, so git ignores the disk permission bit and
+records newly added scripts as `100644`. The working copy keeps its `755` and nobody
+notices; a fresh clone gets `644`, and `./script.sh` exits 126. 933 scripts were in that
+state on 2026-08-18, including every hook CLAUDE.md tells agents to invoke directly. They
+are fixed, and the syntax gate now fails the build if a shebang script is committed
+non-executable. If you hit a 126 after cloning, that is the check to run first.
+
+Do not set `core.fileMode = true` to "fix" this locally. It surfaces roughly 4300 unrelated
+mode mismatches on a WSL-created checkout.
+
 ## 7. Reverse symlinks
 
 CFN's model: this repo is the source of truth, and `~/.claude/<dir>` symlinks back into it,
@@ -418,7 +430,7 @@ Do not declare the setup done until all of these pass.
 |---|-------|---------|----------------|
 | 1 | bash 5 resolves | `/usr/bin/env bash -c 'echo $BASH_VERSION'` | starts with `5.` |
 | 2 | Portability gate | `bash tests/test-shell-portability.sh` | both checks PASS |
-| 3 | Syntax gate | `bash tests/test-shell-syntax.sh` | all in-scope scripts parse |
+| 3 | Syntax gate | `bash tests/test-shell-syntax.sh` | all in-scope scripts parse and are executable in git |
 | 4 | Shims work here | `bash tests/test-portable-shims.sh` | `0 failed` |
 | 5 | Shims are active | `bash -c '. .claude/helpers/cfn-portable.sh; type -t stat sed'` | `function` twice, unless GNU tools are first on `PATH` |
 | 6 | Symlinks correct | `find ~/.claude -maxdepth 2 -type l \| wc -l` | 15 or more |

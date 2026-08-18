@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-18 (global CFN config layer moved into `.claude/global/` and reverse-symlinked into `~/.claude/`; stale npm-era `root-claude-distribute/CFN-CLAUDE.md` deleted) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-18 (global CFN config layer moved into `.claude/global/` and reverse-symlinked into `~/.claude/`; stale npm-era `root-claude-distribute/CFN-CLAUDE.md` deleted; 933 scripts marked executable in the index and the syntax gate extended to hold that line) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -535,7 +535,7 @@ Consumer Project
 
 | shell-portability gate | ✅ Prod | ✅ 2/2 | `tests/test-shell-portability.sh` | CI gate (ci.yml lint job) blocking `#!/bin/bash` shebangs and hardcoded home paths in every tracked script that is actually executed. `# portability-ok: <reason>` exempts container-internal and sanitizer-fixture paths. Backs readme/macos-setup.md |
 | GNU-tool shim library | ✅ Prod | ✅ 58/58 | `.claude/helpers/cfn-portable.sh` | Shell functions shadowing timeout/stat/date/sed/free/nproc/readlink, defined only when the GNU behavior is absent so it is a no-op on Linux. Sourced by 182 scripts. Removes the PATH dependency that broke hooks spawned outside a login shell |
-| shell-syntax gate | ✅ Prod | ✅ 1/1 | `tests/test-shell-syntax.sh` | CI gate running `bash -n` over every in-scope script. Borrows scope from the portability gate. Added after 9 committed scripts were found unparseable, meaning they aborted on line 1 and had never run |
+| shell-syntax gate | ✅ Prod | ✅ 2/2 | `tests/test-shell-syntax.sh` | Two CI checks per in-scope script: `bash -n` parses it, and a shebang requires index mode 100755. Added after 9 scripts were found unparseable, extended after 933 were non-executable in git, where a fresh clone gets 644 and `./script` exits 126 |
 | macOS Portability CI job | ✅ Prod | ✅ 3 gates | `.github/workflows/ci.yml` | macos-latest runner installing only bash 5, deliberately not coreutils or gnu-sed, so the BSD shim paths are exercised for real. Blocks the quality gate. Also asserts shims are active and every shim source path resolves |
 | global config layer | ✅ Prod | ✅ 8/8 | `.claude/global/` | The CFN operating guide, RTK.md, model-pricing.md, rules/ and references/ were untracked local files on one machine. Now tracked and reverse-symlinked into `~/.claude/`, so a clone carries the rules, not just the tooling |
 | link-global-config | ✅ Prod | ✅ 8/8 | `.claude/cfn-scripts/link-global-config.sh` | Idempotent linker for the 5 `~/.claude/` entries. Backs up anything it replaces to a timestamped dir rather than deleting. `--check` verifies without writing and is checklist item 7 in readme/macos-setup.md |
