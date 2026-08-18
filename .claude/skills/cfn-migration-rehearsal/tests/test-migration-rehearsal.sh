@@ -62,6 +62,25 @@ else
   echo "FAIL: safe URL was wrongly refused as unsafe"; echo "  got: $OUT"; FAIL=$((FAIL+1))
 fi
 
+# Case 7 (regression): DELETE/TRUNCATE as GRANT/REVOKE PRIVILEGE NAMES are not
+# destructive statements. `REVOKE DELETE, TRUNCATE ... FROM postgres;` REMOVES
+# the ability to delete -- the safest possible migration. An anywhere-in-line
+# match refused it, pushing authors to drop the REVOKE to get the gate green.
+printf 'revoke delete, truncate on all tables in schema public from postgres;\n' > revoke_up.sql
+printf 'grant delete, truncate on all tables in schema public to postgres;\n' > revoke_down.sql
+OUT=$(env CFN_SCRATCH_DATABASE_URL="$SAFE" bash "$SCRIPT" --up revoke_up.sql --down revoke_down.sql 2>&1); RC=$?
+if [[ "$RC" -ne 2 ]] && ! echo "$OUT" | grep -qi "destructive"; then
+  echo "PASS: REVOKE DELETE/TRUNCATE not flagged destructive (rc=$RC)"; PASS=$((PASS+1))
+else
+  echo "FAIL: REVOKE DELETE/TRUNCATE wrongly refused as destructive"; echo "  got: $OUT"; FAIL=$((FAIL+1))
+fi
+
+# Case 8 (regression): a real unscoped TRUNCATE mid-file still refuses, so
+# case 7 did not simply defang the guard.
+printf 'alter table public.t add column c int;\ntruncate table public.t;\n' > trunc_up.sql
+check_refuse "still refuses a real TRUNCATE statement" "destructive" \
+  env CFN_SCRATCH_DATABASE_URL="$SAFE" bash "$SCRIPT" --up trunc_up.sql --down down.sql
+
 echo "---"
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

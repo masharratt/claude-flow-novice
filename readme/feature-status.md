@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-17 (planning artifacts moved to per-plan `planning/<slug>/` directories; fixed cfn-decisions orphaned-ledger bug) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-17 (migration-rehearsal destructive-SQL guard anchored to statement start, +2 regression tests) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -530,7 +530,7 @@ Consumer Project
 | cfn-perf-gate | ✅ Prod | ✅ 29/29 | `.claude/skills/cfn-perf-gate/` | Runs CFN_PERF_BENCH_CMD, diffs vs `.cfn-cache/perf-baseline.json`, emits manifest per path regressed beyond CFN_PERF_THRESHOLD_PCT (default 10). Never auto-fixes |
 | cfn-a11y-gate | ✅ Prod | ✅ 5/5 | `.claude/skills/cfn-a11y-gate/` | Local WCAG gate: axe-core via Playwright against CFN_A11Y_URLS, emits manifest per violation. Not a GitHub Action. v1.0.1 (2026-07-24): runner moved to .cjs for CommonJS require() support under ESM parent packages; NODE_PATH built from project's node_modules walk (both invocation dir and git root); dependency check now distinguishes genuine module-not-found (exit 3 with install instruction) from other runtime errors (exit 4 with full error); exit codes and error messages now fully deterministic |
 | cfn-ab-critic | ⚠️ Beta | n/a | `.claude/skills/cfn-ab-critic/` | Blind A/B critic gate: compares a build artifact against a reference artifact (labels shuffled so the critic cannot tell which is "ours"); emits a vote-manifest when ours loses or confidence < threshold. Triggered by an AC carrying a `reference` key. Deps: cfn-vote-implement, cfn-megaplan/bars (verifiable-done `reference` key). Known limitations: optional gate; only fires when an AC opts in via `reference`; the LLM judgment is a two-phase handoff (phase 1 emits a blinded prompt, the agent re-invokes with verdicts) until a non-Anthropic vision/text compare MCP is reachable in-process |
-| cfn-migration-rehearsal | ✅ Prod | ✅ 6/6 | `.claude/skills/cfn-migration-rehearsal/` | Rehearses migration up+down round-trip against CFN_SCRATCH_DATABASE_URL only; refuses prod. Executes what cfn-ops designs |
+| cfn-migration-rehearsal | ✅ Prod | ✅ 8/8 | `.claude/skills/cfn-migration-rehearsal/` | Rehearses migration up+down round-trip against CFN_SCRATCH_DATABASE_URL only; refuses prod. Destructive-SQL guard is statement-anchored, so GRANT/REVOKE privilege names are not flagged. Executes what cfn-ops designs |
 | docs-sync pre-commit check | ✅ Prod | ✅ 9/9 | `.claude/hooks/cfn-docs-sync-check.sh` | Warns (blocks if CFN_DOCS_SYNC_STRICT=1) when a code commit omits feature-status.md / state-machines.md |
 
 **Gate dependencies:** cfn-security-review + cfn-dep-audit + cfn-perf-gate + cfn-a11y-gate emit manifests to `.cfn-cache/manifests/` consumed by cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user). cfn-migration-rehearsal pairs with cfn-ops (designs up+down) + supabase-schema-sync. docs-sync wired into `.git/hooks/pre-commit`.

@@ -62,10 +62,20 @@ fi
 [[ -n "$DOWN" && -f "$DOWN" ]] || die "down migration file not found: '${DOWN:-<none>}'. Pass --down <file>. A migration with no down is not rehearsable."
 
 # Refuse to run a migration file containing an unscoped destructive statement.
-if grep -iEn '(delete[[:space:]]+from[[:space:]]+[a-z0-9_."]+[[:space:]]*;)|truncate[[:space:]]' "$UP" "$DOWN" >/dev/null 2>&1; then
+#
+# DELETE and TRUNCATE only count when they START a statement (beginning of a
+# line, or right after a `;`). The keywords also appear as PRIVILEGE NAMES in
+# GRANT/REVOKE, where they are declarative and, in the REVOKE case, the exact
+# opposite of destructive: `REVOKE DELETE, TRUNCATE ON ALL TABLES IN SCHEMA x
+# FROM postgres;` is a migration REMOVING the ability to delete. An
+# anywhere-in-the-line match refused that file, which would have pushed authors
+# toward dropping the REVOKE to get the gate green -- the guard punishing the
+# safest possible migration.
+DESTRUCTIVE_RE='(^|;)[[:space:]]*(delete[[:space:]]+from[[:space:]]+[a-z0-9_."]+[[:space:]]*;|truncate[[:space:]])'
+if grep -iEn "$DESTRUCTIVE_RE" "$UP" "$DOWN" >/dev/null 2>&1; then
   echo "cfn-migration-rehearsal: WARNING: a migration file contains DELETE-without-WHERE or TRUNCATE." >&2
   echo "Lines:" >&2
-  grep -iEn '(delete[[:space:]]+from[[:space:]]+[a-z0-9_."]+[[:space:]]*;)|truncate[[:space:]]' "$UP" "$DOWN" >&2 || true
+  grep -iEn "$DESTRUCTIVE_RE" "$UP" "$DOWN" >&2 || true
   die "destructive unscoped SQL in a migration. Scope it with a WHERE clause or confirm intent before rehearsing."
 fi
 
