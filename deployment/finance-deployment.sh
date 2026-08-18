@@ -22,7 +22,7 @@ validate_coordinator_startup() {
     else
         echo "❌ Coordinator Startup Failed"
         return 1
-    }
+    fi
 }
 
 validate_mesh_communication() {
@@ -39,7 +39,7 @@ validate_mesh_communication() {
     else
         echo "❌ Mesh Communication Failed"
         return 1
-    }
+    fi
 }
 
 # Main Deployment Workflow

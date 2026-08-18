@@ -16,7 +16,7 @@ load_playbook() {
     if [[ ! -f "$playbook_file" ]]; then
         echo "Error: No playbook found for $task_type"
         return 1
-    }
+    fi
 
     cat "$playbook_file"
 }

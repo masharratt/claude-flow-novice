@@ -170,7 +170,7 @@ match map.entry(key) {
 }
 EOF
                     ;;
-                *"trait not implemented"*|*missing trait*)
+                *"trait not implemented"*|*"missing trait"*)
                     cat <<'EOF'
 # Rust Trait Implementation Fix Pattern
 # Success Rate: 92%

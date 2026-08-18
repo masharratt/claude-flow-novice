@@ -267,7 +267,7 @@ if [[ -n "$CONTEXT_FILES" ]]; then
 
 ### $file
 \`\`\`
-$(cat "$file)
+$(cat "$file")
 \`\`\`"
         fi
     done

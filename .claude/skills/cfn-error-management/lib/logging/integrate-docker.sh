@@ -96,7 +96,7 @@ cfn_capture_docker_logs() {
 
     log "INFO Capturing Docker logs for container: $container_name"
 
-    docker logs --tail "$lines" "$container_name" 2>" "$log_file" || true
+    docker logs --tail "$lines" "$container_name" > "$log_file" 2>&1 || true
 
     log "Docker logs captured: $log_file"
   fi

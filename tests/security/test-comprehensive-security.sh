@@ -65,6 +65,9 @@ test_label_injection_prevention() {
         # THEN verify label was sanitized
         ACTUAL_LABEL=$(docker inspect "$TEST_CONTAINER" --format '{{index .Config.Labels "cfn.team"}}' 2>/dev/null || echo "")
 
+        # THEN the injected command must not survive into the stored label
+        if [[ "$ACTUAL_LABEL" == *"docker exec"* ]]; then
+            fail "Label injection was not sanitized: $ACTUAL_LABEL"
         fi
 
         docker rm -f "$TEST_CONTAINER" >/dev/null 2>&1

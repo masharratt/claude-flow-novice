@@ -31,7 +31,7 @@ validate_budget() {
     if [[ ! "$lifetime_budget" =~ ^[0-9]+(\.[0-9]{1,2})?$ ]]; then
         echo "ERROR: Invalid lifetime budget format: $lifetime_budget"
         return 3
-    }
+    fi
 
     # Convert to numeric for comparison
     daily_budget=$(printf "%.2f" "$daily_budget")

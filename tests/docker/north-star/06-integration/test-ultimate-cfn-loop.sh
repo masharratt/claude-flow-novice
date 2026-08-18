@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
@@ -172,7 +176,7 @@ monitor_cfn_execution() {
           local iter_duration=$(($(date +%s) - ITERATION_START_TIMES[current_iteration-1]))
           ITERATION_DURATIONS[current_iteration-1]=$iter_duration
 
-          log_info "🔄 Iteration $current_iteration detected (duration: ${iter_duration)s)"
+          log_info "🔄 Iteration $current_iteration detected (duration: ${iter_duration}s)"
         fi
       fi
     fi
@@ -330,7 +334,7 @@ analyze_iterative_progression() {
     find "$workspace_dir" -name "iteration-*" -type d | sort | while read -r iter_dir; do
       local iter_name=$(basename "$iter_dir")
       local file_count=$(find "$iter_dir" -type f | wc -l || echo "0")
-      local total_size=$(find "$iter_dir" -type f -exec stat -c%s {} + 2>/dev/null || echo "0")
+      local total_size=$(find "$iter_dir" -type f -exec cat {} + 2>/dev/null | wc -c | tr -d " " || echo "0")
 
       log_info "  📁 $iter_name: $file_count files, ${total_size} bytes"
 
@@ -345,7 +349,7 @@ analyze_iterative_progression() {
   local final_deliverable_dir="/tmp/trigger-dev-deliverables/$ULTIMATE_TASK_ID"
   if [ -d "$final_deliverable_dir" ]; then
     local final_file_count=$(find "$final_deliverable_dir" -type f | wc -l || echo "0")
-    local final_total_size=$(find "$final_deliverable_dir" -type f -exec stat -c%s {} + 2>/dev/null || echo "0")
+    local final_total_size=$(find "$final_deliverable_dir" -type f -exec cat {} + 2>/dev/null | wc -c | tr -d " " || echo "0")
 
     log_info "Final deliverables: $final_file_count files, ${final_total_size} bytes"
 

@@ -194,7 +194,7 @@ EOF
     
     # Add environment info
     fields+='{"title": "Environment", "value": "'"${ENVIRONMENT:-development}"'", "short": true},'
-    fields+='{"title": "Timestamp", "value": "'"$(date '+%Y-%m-%d %H:%M:%S UTC")"'", "short": true}'
+    fields+='{"title": "Timestamp", "value": "'"$(date '+%Y-%m-%d %H:%M:%S UTC')"'", "short": true}'
     
     # Insert fields into JSON
     if [[ -n "$fields" ]]; then
@@ -235,7 +235,7 @@ send_message() {
     
     # Extract HTTP code and response body
     http_code=$(echo "$response" | tail -n1)
-    response_body=$(echo "$response" | head -n -1)
+    response_body=$(echo "$response" | sed '$d')  # head -n -N is GNU-only
     
     # Check response
     if [[ "$http_code" == "200" ]]; then
