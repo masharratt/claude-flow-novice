@@ -36,10 +36,6 @@ never tracked. They must be copied from a working machine or recreated by hand.
 
 | Item | Why it is missing | Consequence if skipped |
 |------|-------------------|------------------------|
-| `~/.claude/CLAUDE.md` | untracked, global only | No CFN operating guide. Agents lose all CFN rules. |
-| `~/.claude/RTK.md` | untracked | RTK token proxy conventions unavailable |
-| `~/.claude/rules/code-quality.md` | untracked | Auto-loaded quality rules missing |
-| `~/.claude/references/*.md` (6 files) | untracked | On-demand reference table dead-links |
 | `~/.claude/settings.json` | untracked | No hooks, no statusline, no plugins |
 | `.claude/settings.json` | gitignored (`.gitignore:230`) | No provider/env config |
 | `.claude/settings.local.json` | gitignored (`.gitignore:228`) | No local permissions |
@@ -48,10 +44,14 @@ never tracked. They must be copied from a working machine or recreated by hand.
 | `.claude/skills/cfn-codesearch/target/` | gitignored (`.gitignore:3`) | CodeSearch binary must be compiled |
 | `.claude/cfn-data/*.db` | gitignored (`.gitignore:9`) | Empty memory/decision stores (expected, they rebuild) |
 
-### Do not use `root-claude-distribute/CFN-CLAUDE.md`
+### The operating guide now ships with the clone
 
-That in-repo copy is **stale (v2.21.0)**. The live global guide is v2.25.0+. Copy the real
-`~/.claude/CLAUDE.md` across. Resyncing the distributed copy is a separate open task.
+`~/.claude/CLAUDE.md`, `RTK.md`, `model-pricing.md`, `rules/` and `references/` were
+untracked local files until 2026-08-18. They are now tracked at `.claude/global/` and
+symlinked into `~/.claude/`, so a clone carries the rules, not just the tooling. Link them
+with `.claude/cfn-scripts/link-global-config.sh` (§7). The stale
+`root-claude-distribute/CFN-CLAUDE.md` copy was deleted in the same commit: it was a
+v2.21.0 snapshot kept for npm packaging that is no longer done.
 
 ### Transfer manifest
 
@@ -60,13 +60,12 @@ From the source machine:
 ```bash
 tar czf cfn-untracked.tgz \
   -C "$HOME" \
-  .claude/CLAUDE.md \
-  .claude/RTK.md \
-  .claude/rules \
-  .claude/references \
-  .claude/model-pricing.md \
   .claude/settings.json
 ```
+
+That is the whole manifest now. `~/.claude/settings.json` holds hooks, statusline and
+plugin config; the guide and references come from the clone. The project-local
+`.claude/settings.json` and `.env` hold live credentials and are handled separately in §8.
 
 `.env`, `.claude/settings.json` (project) and `.claude/settings.local.json` hold live
 credentials. Move them over a secure channel, one at a time, and never into a tracked file.
@@ -304,6 +303,17 @@ src="$REPO/.claude/agents/cfn-dev-team"; dst="$G/agents/cfn-dev-team"
 ln -s "$src" "$dst"; echo "linked agents/cfn-dev-team"
 ```
 
+Then link the global config layer. That one has its own tracked script because the entries
+are individual files, not whole directories:
+
+```bash
+.claude/cfn-scripts/link-global-config.sh          # idempotent; backs up anything it replaces
+.claude/cfn-scripts/link-global-config.sh --check  # verify only, no writes
+```
+
+It links `CLAUDE.md`, `RTK.md`, `model-pricing.md`, `rules/` and `references/`. Nothing it
+overwrites is deleted: pre-existing files move to `~/.claude-global-config-backup-<ts>/`.
+
 Verify against the reference layout (14 top-level links plus `agents/cfn-dev-team`):
 
 ```bash
@@ -412,7 +422,7 @@ Do not declare the setup done until all of these pass.
 | 4 | Shims work here | `bash tests/test-portable-shims.sh` | `0 failed` |
 | 5 | Shims are active | `bash -c '. .claude/helpers/cfn-portable.sh; type -t stat sed'` | `function` twice, unless GNU tools are first on `PATH` |
 | 6 | Symlinks correct | `find ~/.claude -maxdepth 2 -type l \| wc -l` | 15 or more |
-| 7 | Global guide present | `head -1 ~/.claude/CLAUDE.md` | CFN Operating Guide header |
+| 7 | Global config linked | `.claude/cfn-scripts/link-global-config.sh --check` | `OK (5 of 5 linked)` |
 | 8 | Settings valid | `jq -e '.hooks' ~/.claude/settings.json` | no `/home/` remains |
 | 9 | Hooks fire | edit any file in Claude Code | pre/post-edit backup written to `.claude/backups/` |
 | 10 | Hook self-test | `bash .claude/hooks/cfn-hook-selftest.sh` | `all hook checks passed` |
@@ -445,8 +455,6 @@ Not yet done. Pick these up if you are the one doing the port.
   creates the reverse symlinks, never builds CodeSearch, and never runs a hook under
   Claude Code.
 - `cfn-notify.sh` and `cfn-workbench/render.sh` need macOS branches, not workarounds.
-- `root-claude-distribute/CFN-CLAUDE.md` is stale at v2.21.0 and should be resynced from
-  the live global guide.
 - CodeSearch is a Rust build with `openssl-sys` and `fastembed` (ONNX) dependencies. Nobody
   has compiled it on Apple Silicon. Section 10 is the least-tested part of this document.
 - `systemd-run` in `.claude/cfn-scripts/run-with-memory-limit.sh` has no macOS equivalent.

@@ -35,6 +35,9 @@ jobs:
       - name: Portable shim unit tests
         run: bash tests/test-portable-shims.sh
 
+      - name: Global config linker tests
+        run: bash tests/test-link-global-config.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -188,6 +191,9 @@ jobs:
       # nothing, so its BSD translation paths are only ever executed here.
       - name: Portable shim unit tests
         run: bash tests/test-portable-shims.sh
+
+      - name: Global config linker tests
+        run: bash tests/test-link-global-config.sh
 
       # Guards against the shim library quietly becoming a no-op on macOS --
       # a broken capability probe would leave every test above passing against

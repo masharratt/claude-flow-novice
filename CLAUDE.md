@@ -14,6 +14,29 @@ This project is the source of truth for CFN infrastructure. `~/.claude/` dirs ar
 
 Each `~/.claude/<dir>/` is a reverse symlink to `.claude/<dir>/` in this project, so all projects share one source. Symlinked dirs: `skills/`, `hooks/`, `commands/`, `agents/cfn-dev-team/`, `core/`, `helpers/`, `cfn-config/`, `cfn-data/`, `cfn-extras/`, `cfn-scripts/`, `adaptive-context/`, `agent-principles/`, `prompts/`, `tooling/`.
 
+### Global Config Layer (`.claude/global/`)
+
+The CFN operating guide and its supporting docs live in `.claude/global/` and are
+symlinked into `~/.claude/` as individual entries, not as one directory:
+
+| Repo path | Linked to |
+|-----------|-----------|
+| `.claude/global/CLAUDE.md` | `~/.claude/CLAUDE.md` |
+| `.claude/global/RTK.md` | `~/.claude/RTK.md` |
+| `.claude/global/model-pricing.md` | `~/.claude/model-pricing.md` |
+| `.claude/global/rules/` | `~/.claude/rules/` |
+| `.claude/global/references/` | `~/.claude/references/` |
+
+Edit them here. They were untracked local files until 2026-08-18, which meant a clone
+gave you the tooling but none of the rules it runs on.
+
+Set up or verify the links with:
+
+```bash
+.claude/cfn-scripts/link-global-config.sh          # link (idempotent, backs up what it replaces)
+.claude/cfn-scripts/link-global-config.sh --check  # verify only
+```
+
 ### Project-Local (not symlinked)
 
 | Path | Purpose |

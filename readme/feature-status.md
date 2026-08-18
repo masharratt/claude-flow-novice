@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-18 (macOS port: GNU-tool shim library added and sourced by 182 scripts, 9 unparseable scripts fixed, shell-syntax gate and a macos-latest CI job added) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-18 (global CFN config layer moved into `.claude/global/` and reverse-symlinked into `~/.claude/`; stale npm-era `root-claude-distribute/CFN-CLAUDE.md` deleted) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -537,6 +537,8 @@ Consumer Project
 | GNU-tool shim library | ✅ Prod | ✅ 58/58 | `.claude/helpers/cfn-portable.sh` | Shell functions shadowing timeout/stat/date/sed/free/nproc/readlink, defined only when the GNU behavior is absent so it is a no-op on Linux. Sourced by 182 scripts. Removes the PATH dependency that broke hooks spawned outside a login shell |
 | shell-syntax gate | ✅ Prod | ✅ 1/1 | `tests/test-shell-syntax.sh` | CI gate running `bash -n` over every in-scope script. Borrows scope from the portability gate. Added after 9 committed scripts were found unparseable, meaning they aborted on line 1 and had never run |
 | macOS Portability CI job | ✅ Prod | ✅ 3 gates | `.github/workflows/ci.yml` | macos-latest runner installing only bash 5, deliberately not coreutils or gnu-sed, so the BSD shim paths are exercised for real. Blocks the quality gate. Also asserts shims are active and every shim source path resolves |
+| global config layer | ✅ Prod | ✅ 8/8 | `.claude/global/` | The CFN operating guide, RTK.md, model-pricing.md, rules/ and references/ were untracked local files on one machine. Now tracked and reverse-symlinked into `~/.claude/`, so a clone carries the rules, not just the tooling |
+| link-global-config | ✅ Prod | ✅ 8/8 | `.claude/cfn-scripts/link-global-config.sh` | Idempotent linker for the 5 `~/.claude/` entries. Backs up anything it replaces to a timestamped dir rather than deleting. `--check` verifies without writing and is checklist item 7 in readme/macos-setup.md |
 
 **Gate dependencies:** cfn-security-review + cfn-dep-audit + cfn-perf-gate + cfn-a11y-gate emit manifests to `.cfn-cache/manifests/` consumed by cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user). cfn-migration-rehearsal pairs with cfn-ops (designs up+down) + supabase-schema-sync. docs-sync wired into `.git/hooks/pre-commit`.
 

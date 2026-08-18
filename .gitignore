@@ -97,8 +97,10 @@ test-results/
 
 # Legacy test artifacts
 playwright-report/
+.artifacts/playwright-report/
+.playwright-mcp/*.log
+.playwright-mcp/*.yml
 .nyc_output/
-*playwright*
 
 # Test output directories
 tests/results/
