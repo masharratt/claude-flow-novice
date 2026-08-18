@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-17 (migration-rehearsal destructive-SQL guard anchored to statement start, +2 regression tests) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-17 (migration-rehearsal destructive-SQL guard anchored to statement start, +2 regression tests; added readme/macos-setup.md porting guide) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 

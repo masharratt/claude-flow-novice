@@ -35,6 +35,10 @@ Annotated catalog of docs in `readme/`. Filenames are kebab-case, category-prefi
 - **npm-distribution-summary.md** — package config (15.3MB, 1401 files), publishing workflow, version management.
 - **installation-process.md** — install workflow, postinstall hooks, install methods, troubleshooting (permissions, better-sqlite3, Redis).
 
+## Platform
+
+- **macos-setup.md** — porting CFN to macOS: what the clone omits, bash 3.2 and GNU userland gaps, hardcoded-path rewrites, reverse-symlink layout, verification checklist. Unverified on hardware.
+
 ## Indexes & Meta
 
 - **logs-documentation-index.md** — master index / documentation map, overlap analysis, merger recommendations.

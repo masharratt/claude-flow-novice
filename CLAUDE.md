@@ -65,3 +65,14 @@ Background process kills test runner memory leaks. Runs on session start.
 - Never kills: bash, sh, zsh (even if running tests)
 - Status: `~/.local/bin/wsl-memory-monitor.sh --status`
 - Log: `/tmp/wsl-memory-monitor.log`
+
+WSL2 only. Not present on macOS.
+
+## Platform
+
+CFN is developed on WSL2 and assumes a GNU userland (bash 4+, GNU coreutils/sed/grep).
+Setting up on macOS needs a documented porting pass: `readme/macos-setup.md`.
+
+## CI
+
+GitHub Actions CI enabled. Confirm green before pushing to `main`.
