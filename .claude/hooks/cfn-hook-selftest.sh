@@ -30,6 +30,10 @@
 
 set -uo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 # This script lives at <repo>/.claude/hooks/, so the repo root is two levels
 # up -- and ~/.claude/hooks is a reverse symlink into the project, so resolve
 # the real path first or we land in $HOME. Prefer git for the answer.

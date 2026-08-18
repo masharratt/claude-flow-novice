@@ -2,6 +2,10 @@
 # Tests for cfn-smart-search-hook.sh and cfn-bash-search-hook.sh
 set -uo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 HOOK_DIR="$(cd "$(dirname "$0")/../../.claude/hooks" && pwd)"
 SMART_HOOK="$HOOK_DIR/cfn-smart-search-hook.sh"
 BASH_HOOK="$HOOK_DIR/cfn-bash-search-hook.sh"

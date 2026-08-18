@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -eu
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 # google-sheets-api-coordinator/api-call.sh
 # Coordinates Google Sheets API calls with rate limiting
 # Version: 1.0.0

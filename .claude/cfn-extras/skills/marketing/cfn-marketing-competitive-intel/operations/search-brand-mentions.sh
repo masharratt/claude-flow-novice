@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 # Default values
 SOURCES="twitter,reddit,news,blogs"
 DATE_FROM=$(date -d '7 days ago' +%Y-%m-%d 2>/dev/null || date -v-7d +%Y-%m-%d)

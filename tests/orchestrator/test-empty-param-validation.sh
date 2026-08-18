@@ -16,6 +16,10 @@
 
 set -euo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 # Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'

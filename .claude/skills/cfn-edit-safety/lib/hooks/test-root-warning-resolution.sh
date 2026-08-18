@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 # Resolve the canonical pipeline by absolute path. This script is reached from
 # every project through the ~/.claude/skills reverse symlink, so readlink -f
 # first or SCRIPT_DIR lands in $HOME; then prefer git for the repo root and fall

@@ -17,6 +17,10 @@
 # the pre-compaction context, so the summary carries the task forward.
 set -euo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 input=$(timeout 2s cat 2>/dev/null || echo "{}")
 sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null || true)
 cwd=$(printf '%s' "$input" | jq -r '.cwd // .workspace.current_dir // empty' 2>/dev/null || true)

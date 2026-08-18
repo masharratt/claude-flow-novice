@@ -59,7 +59,7 @@ run_tests() {
     log "Raw Results: $RESULTS"
 
     # Attempt to parse full results string, using grep to ensure valid JSON
-    PARSED_REASONS=$(echo "$RESULTS" | xargs -n1 | grep -P '^\{.*"reason":.*\}$' | jq -r '.reason' 2>/dev/null)
+    PARSED_REASONS=$(echo "$RESULTS" | xargs -n1 | grep -E '^\{.*"reason":.*\}$' | jq -r '.reason' 2>/dev/null)
 
     log "Parsed Reasons: $PARSED_REASONS"
 

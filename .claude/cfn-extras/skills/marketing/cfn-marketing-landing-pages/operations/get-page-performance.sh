@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 # Default values
 DATE_FROM=$(date -d '30 days ago' +%Y-%m-%d 2>/dev/null || date -v-30d +%Y-%m-%d)
 DATE_TO=$(date +%Y-%m-%d)

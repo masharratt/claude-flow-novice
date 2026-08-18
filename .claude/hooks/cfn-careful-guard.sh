@@ -3,6 +3,10 @@
 # Intercepts Bash tool calls and blocks dangerous patterns
 # NOTE: POSIX sh only. No jq dependency (may not be installed).
 
+
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 INPUT=$(timeout 1 cat 2>/dev/null || echo "")
 
 # Extract command from JSON without jq.

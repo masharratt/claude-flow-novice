@@ -4,6 +4,10 @@
 # Phase 1: Container Integration Validation
 
 set -euo pipefail
+
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 \nPROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
 source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"

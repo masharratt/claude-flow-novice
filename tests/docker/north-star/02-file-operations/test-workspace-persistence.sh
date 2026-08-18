@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
@@ -206,7 +210,7 @@ test_file_content_evolution() {
     if [ -d "$iteration_dir" ]; then
       local iteration_name=$(basename "$iteration_dir")
       local file_count=$(find "$iteration_dir" -type f -name "*.md" | wc -l || echo "0")
-      local total_size=$(find "$iteration_dir" -type f -name "*.md" -exec stat -f%z {} + 2>/dev/null || find "$iteration_dir" -type f -name "*.md" -exec stat -c%s {} + 2>/dev/null || echo "0")
+      local total_size=$(find "$iteration_dir" -type f -name "*.md" -exec cat {} + 2>/dev/null | wc -c | tr -d " " || echo "0")
 
       log_info "  📊 $iteration_name: $file_count files, ${total_size} bytes total"
 

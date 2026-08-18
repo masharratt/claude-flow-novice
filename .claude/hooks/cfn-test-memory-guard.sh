@@ -29,6 +29,10 @@
 # Removed -e flag to prevent hook failures on expected errors
 set -uo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 # Read command from stdin (passed as JSON) with safe error handling
 INPUT=$(timeout 1 cat 2>/dev/null || echo "{}")
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")

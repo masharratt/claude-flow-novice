@@ -25,7 +25,7 @@ for i in $(seq 1 "$COUNT"); do
 
   HTTP_STATUS=$(echo "$RESPONSE" | tail -1)
   RESPONSE_TIME=$(echo "$RESPONSE" | tail -2 | head -1)
-  BODY=$(echo "$RESPONSE" | head -n -2)
+  BODY=$(echo "$RESPONSE" | sed '$d' | sed '$d')  # head -n -N is GNU-only
 
   if [ "$HTTP_STATUS" = "200" ]; then
     echo "✅ Request $i: 200 OK (Response Time: ${RESPONSE_TIME}s)"

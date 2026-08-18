@@ -25,6 +25,10 @@
 # Deps: jq, timeout(1); psql only when CFN_VERIFY_DATABASE_URL is set.
 set -uo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 DEFAULT_TIMEOUT="${CFN_VERIFY_TIMEOUT_S:-300}"
 
 PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"

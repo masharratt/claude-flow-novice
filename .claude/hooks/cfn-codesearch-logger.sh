@@ -13,6 +13,10 @@
 #   index:delete   - File removed from index
 #   index:complete - Indexing batch finished
 
+
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 LOG_DIR="${HOME}/.local/share/codesearch/logs"
 mkdir -p "$LOG_DIR"
 
@@ -72,7 +76,12 @@ cs_report() {
     [[ -z "$log_files" ]] && { echo "No logs found."; return; }
 
     local filter_cmd="cat"
-    [[ -n "$project" ]] && filter_cmd="grep -P \"\t${project}\t\""
+    if [[ -n "$project" ]]; then
+        # grep -P is GNU-only (BSD grep has no PCRE). Build the literal tabs
+        # here instead, and match them fixed-string.
+        local tab; tab=$(printf '\t')
+        filter_cmd="grep -F -- \"${tab}${project}${tab}\""
+    fi
 
     if $raw; then
         tail -n +2 $log_files | awk -F'\t' -v cutoff="$cutoff" '$1 >= cutoff' | eval "$filter_cmd"

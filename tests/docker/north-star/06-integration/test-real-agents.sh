@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
@@ -452,7 +456,7 @@ EOF
 
   # Final deliverable summary
   total_files=$(find "$deliverable_dir" -type f | wc -l || echo "0")
-  total_size=$(find "$deliverable_dir" -type f -exec stat -c%s {} + 2>/dev/null || echo "0")
+  total_size=$(find "$deliverable_dir" -type f -exec cat {} + 2>/dev/null | wc -c | tr -d " " || echo "0")
 
   log_info "✅ Real deliverables created:"
   log_info "  Location: $deliverable_dir"

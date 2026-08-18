@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 # CFN Migration to Global ~/.claude/
 # Moves agents, skills, commands, hooks, and supporting infrastructure to universal location
 # Creates symlinks in project for continued development

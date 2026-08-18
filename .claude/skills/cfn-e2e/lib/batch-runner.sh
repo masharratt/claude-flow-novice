@@ -5,6 +5,10 @@
 #######################################################################
 
 # Run a batch with retry support
+
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 run_batch_with_retry() {
     local test_file="$1"
     local max_retries="${2:-2}"

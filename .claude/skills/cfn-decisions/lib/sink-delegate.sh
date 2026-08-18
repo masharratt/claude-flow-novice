@@ -18,6 +18,10 @@
 
 # delegate_to_record_sh - calls decision-log/record.sh; exits 7 or 8 on failure.
 # PRECONDITION: OP-W3 (upsert_by_key_atomic) already committed TARGET.
+
+# GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
+# Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 delegate_to_record_sh() {
   local rc=0
 
