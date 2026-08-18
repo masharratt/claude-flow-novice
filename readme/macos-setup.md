@@ -1,8 +1,9 @@
 # macOS Setup (CFN Porting Guide)
 
-**Last Updated:** 2026-08-17
-**Status:** Sections 4 and 6 (in-repo half) are fixed and gated in CI. Everything else is
-unverified on hardware: a static-analysis checklist, not a validated runbook.
+**Last Updated:** 2026-08-18
+**Status:** Sections 4, 5 and 6 (in-repo half) are fixed and gated in CI, and CI now runs
+the shell gates on a `macos-latest` runner with a deliberately BSD userland. Everything
+else is unverified on real hardware: a static-analysis checklist, not a validated runbook.
 
 CFN is developed on WSL2 (Ubuntu) and assumes a GNU userland. A `git clone` on macOS gets
 you roughly half a working install. This document lists every gap found by auditing the
@@ -11,8 +12,10 @@ repo, so the next person setting up a Mac does not rediscover them one broken ho
 Every count below was measured against this repo. The measuring command is included so you
 can re-run it and see whether the number has moved.
 
-> **Nothing here has been executed on a Mac.** Treat each section as a hypothesis to verify.
-> When you do run it, correct this file in the same commit.
+> **No human has run this on a Mac.** CI exercises the shell layer on a macOS runner, which
+> is not the same as a working install: it never touches Homebrew's GNU tools, the reverse
+> symlinks, CodeSearch, or a signed-in Claude Code. Treat the rest as a hypothesis to
+> verify, and correct this file in the same commit when you do.
 
 ---
 
@@ -121,29 +124,93 @@ the gate.
 
 ## 5. GNU vs BSD userland
 
-Measured across `.claude/` (excluding `target/`):
+**Status: handled in the repo.** You do not have to install GNU tools to make CFN's own
+scripts work. This section explains what was done and what it still does not cover.
 
-| Call | Files | macOS behavior without GNU tools |
+### The problem
+
+macOS ships a BSD userland. A script that is correct on WSL2 fails on a Mac in one of two
+ways: the command does not exist at all, or it exists with incompatible flags. Measured
+across the 1007 scripts in the portability gate's scope:
+
+| Call | Sites | macOS behavior without GNU tools |
 |------|-------|----------------------------------|
-| `timeout` | 138 | Not installed. Silent degradation, hooks lose their input |
-| `stat -c` | 25 | BSD `stat` uses `-f`. Wrong output, not an error |
-| `sed -i ` | 22 | BSD `sed -i` consumes the next arg as a backup suffix. **Corrupts files** |
-| `readlink -f` | 20 | Works on macOS 13+. Broken below |
-| `realpath` | 14 | Works on recent macOS |
-| `free -m` | 5 | Does not exist. Use `vm_stat` |
-| `nproc` | 2 | Does not exist. Use `sysctl -n hw.ncpu` |
-| `grep -P` | 1 | BSD grep has no PCRE. `.claude/hooks/cfn-codesearch-logger.sh` |
+| `timeout` | 283 | Not installed. Command not found |
+| `stat -c` | 90 | BSD `stat` has no `-c`. Errors out |
+| `sed -i ` | 38 | BSD `sed -i` takes the next arg as a backup suffix. **Corrupts files** |
+| `date -d ` | 38 | BSD `date` has no `-d`. Errors out |
+| `free -m` | 31 | Does not exist |
+| `readlink -f` | 17 | Arrived in macOS 12.3. Broken below that |
+| `realpath` | 15 | Arrived in macOS 12.3 |
+| `nproc` | 4 | Does not exist |
+| `grep -P` | 4 | BSD grep has no PCRE |
 
-Re-measure any row with:
+Re-measure with:
 
 ```bash
-grep -rlE --include='*.sh' '<pattern>' .claude/ | grep -v /target/ | wc -l
+bash tests/test-shell-portability.sh --list | xargs grep -hnE '<pattern>' | wc -l
 ```
 
-**Remediation: put GNU tools first on `PATH`.** Cheaper and lower-risk than patching 200
-scripts, and it makes the Mac behave like CI.
+### The fix: `.claude/helpers/cfn-portable.sh`
 
-Add to `~/.zshrc`:
+The obvious remedy is "install coreutils and put gnubin first on `PATH`". That works in a
+login shell and fails in the places that matter most: hooks spawned by Claude Code, cron,
+launchd, and any non-interactive shell that never reads a profile. A CFN hook that silently
+runs BSD `sed -i` corrupts the file it was asked to edit.
+
+So the `PATH` dependency was removed instead. `.claude/helpers/cfn-portable.sh` defines
+shell functions that shadow the missing or incompatible commands, and 182 scripts source it
+with one line placed after their `set -e`:
+
+```bash
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+```
+
+Three properties make this safe to apply at that scale:
+
+1. **Every shim is defined only when the GNU behavior is absent.** On Linux the file defines
+   nothing at all, so the injection cannot change WSL2 behavior. `tests/test-portable-shims.sh`
+   asserts this directly.
+2. **Every shim delegates through `command`,** so it can never recurse into itself.
+3. **Untranslated forms pass through to the real binary** and fail visibly, rather than
+   being guessed at and silently producing a wrong answer.
+
+What each shim does:
+
+| Command | Trigger | Behavior |
+|---------|---------|----------|
+| `timeout` | not on `PATH` | uses `gtimeout` if present, else a `perl -e 'alarm'` fallback |
+| `stat` | `stat -c` rejected | translates the GNU format string to BSD (`%Y`->`%m`, `%s`->`%z`, `%a`->`%Lp`, ...) |
+| `date` | `date -d @0` rejected | `-d @EPOCH` becomes `-r EPOCH`; `-d 'N units ago'` becomes `-v-Nu` |
+| `sed` | `sed --version` rejected | inserts the empty backup suffix BSD `-i` requires |
+| `free` | not on `PATH` | synthesizes the procps `free -m` layout from `vm_stat` and `sysctl` |
+| `nproc` | not on `PATH` | `sysctl -n hw.ncpu` |
+| `readlink` | `readlink -f` rejected | resolves via `perl -MCwd` |
+
+The `timeout` fallback exits **142** (128 + SIGALRM) on expiry, not GNU's **124**. Do not
+compare against 124 in portable code.
+
+### What this does not cover
+
+A shell function is not inherited by a separate binary. A GNU-ism inside `find -exec`,
+`xargs`, `sudo`, or a `#!/bin/sh` subscript still runs the real BSD tool. Those call sites
+were fixed in place instead, by rewriting them to POSIX equivalents:
+
+- `find ... -exec stat -c%s {} +` became `find ... -exec cat {} + | wc -c` (which also fixed
+  a real bug: the original emitted one size per line rather than the total it was assigned to)
+- `grep -P "\t..."` became `grep -F` against a `printf`-built literal tab
+- `head -n -N` (drop last N lines, GNU only) became `sed '$d'`
+
+`systemd-run` in `.claude/cfn-scripts/run-with-memory-limit.sh` is Linux-only and is not
+shimmed. It already falls back to `ulimit`, so it degrades rather than breaking.
+
+### You may still want the GNU tools
+
+Nothing above stops you installing them, and your own shell one-liners will want them:
+
+```bash
+brew install coreutils gnu-sed grep findutils
+```
 
 ```bash
 export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
@@ -153,22 +220,8 @@ export PATH="/opt/homebrew/opt/findutils/libexec/gnubin:$PATH"
 export PATH="/opt/homebrew/bin:$PATH"   # bash 5 ahead of /bin
 ```
 
-Verify:
-
-```bash
-sed --version | head -1     # want "GNU sed"
-stat --version | head -1    # want "GNU coreutils"
-grep --version | head -1    # want "GNU grep"
-command -v timeout          # want a gnubin path
-```
-
-`sed -i` is the dangerous one. If GNU sed is not first, in-place edits silently mangle
-files instead of erroring.
-
-**Known limitation of this approach:** hooks launched by Claude Code inherit the login
-environment, not your interactive shell. If a hook behaves as though GNU tools are absent,
-export the `PATH` from a place the GUI session reads, or make the hook resolve `gsed`/
-`gstat` explicitly.
+The shims probe for capability rather than checking `uname`, so if GNU tools are first on
+`PATH` they step aside and the real binaries are used.
 
 ---
 
@@ -354,20 +407,30 @@ Do not declare the setup done until all of these pass.
 | # | Check | Command | Pass condition |
 |---|-------|---------|----------------|
 | 1 | bash 5 resolves | `/usr/bin/env bash -c 'echo $BASH_VERSION'` | starts with `5.` |
-| 2 | GNU sed first | `sed --version \| head -1` | says `GNU sed` |
-| 3 | `timeout` exists | `command -v timeout` | non-empty |
-| 4 | Portability gate | `bash tests/test-shell-portability.sh` | both checks PASS |
-| 5 | Symlinks correct | `find ~/.claude -maxdepth 2 -type l \| wc -l` | 15 or more |
-| 6 | Global guide present | `head -1 ~/.claude/CLAUDE.md` | CFN Operating Guide header |
-| 7 | Settings valid | `jq -e '.hooks' ~/.claude/settings.json` | no `/home/` remains |
-| 8 | Hooks fire | edit any file in Claude Code | pre/post-edit backup written to `.claude/backups/` |
-| 9 | Doc lint runs | `/cfn-doc-lint` | completes, no interpreter error |
-| 10 | CodeSearch works | `/codebase-search "cfn loop"` | returns results, not "index missing" |
-| 11 | A skill self-test | `bash .claude/skills/cfn-migration-rehearsal/tests/test-migration-rehearsal.sh` | `8 passed, 0 failed` |
-| 12 | Node build | `npm run typecheck` | matches the result on a known-good machine |
+| 2 | Portability gate | `bash tests/test-shell-portability.sh` | both checks PASS |
+| 3 | Syntax gate | `bash tests/test-shell-syntax.sh` | all in-scope scripts parse |
+| 4 | Shims work here | `bash tests/test-portable-shims.sh` | `0 failed` |
+| 5 | Shims are active | `bash -c '. .claude/helpers/cfn-portable.sh; type -t stat sed'` | `function` twice, unless GNU tools are first on `PATH` |
+| 6 | Symlinks correct | `find ~/.claude -maxdepth 2 -type l \| wc -l` | 15 or more |
+| 7 | Global guide present | `head -1 ~/.claude/CLAUDE.md` | CFN Operating Guide header |
+| 8 | Settings valid | `jq -e '.hooks' ~/.claude/settings.json` | no `/home/` remains |
+| 9 | Hooks fire | edit any file in Claude Code | pre/post-edit backup written to `.claude/backups/` |
+| 10 | Hook self-test | `bash .claude/hooks/cfn-hook-selftest.sh` | `all hook checks passed` |
+| 11 | Doc lint runs | `/cfn-doc-lint` | completes, no interpreter error |
+| 12 | CodeSearch works | `/codebase-search "cfn loop"` | returns results, not "index missing" |
+| 13 | A skill self-test | `bash .claude/skills/cfn-migration-rehearsal/tests/test-migration-rehearsal.sh` | `8 passed, 0 failed` |
+| 14 | Node build | `npm run typecheck` | matches the result on a known-good machine |
 
-Check 11 is a good canary: it exercises `grep -iE`, `mktemp -d`, `git init`, and env
-handling in one shot, with no database required.
+Checks 1 to 5 are what the `macOS Portability` CI job already runs on every push, so they
+should pass before you touch anything. If one of them fails on your Mac but passes in CI,
+the difference is your machine, not the repo.
+
+Check 13 is a good canary for the rest: it exercises `grep -iE`, `mktemp -d`, `git init`,
+and env handling in one shot, with no database required.
+
+Note that checks 2 and 4 no longer require GNU sed or a `timeout` binary. That is the point
+of section 5. If you install the GNU tools anyway, the shims step aside and the checks still
+pass.
 
 ---
 
@@ -375,17 +438,19 @@ handling in one shot, with no database required.
 
 Not yet done. Pick these up if you are the one doing the port.
 
-- No Mac has run this. Sections 4 and 6 are fixed in-repo and CI-gated, but the setup as a
-  whole is still unverified on hardware.
+- **No human has run this on a Mac.** CI covers the shell layer only. Sections 7 (reverse
+  symlinks), 10 (CodeSearch) and the Claude Code integration itself are still unverified.
+- The `macOS Portability` CI job deliberately installs only bash 5, so it proves the shims
+  work against a stock BSD userland. It does **not** prove a full install works: it never
+  creates the reverse symlinks, never builds CodeSearch, and never runs a hook under
+  Claude Code.
 - `cfn-notify.sh` and `cfn-workbench/render.sh` need macOS branches, not workarounds.
 - `root-claude-distribute/CFN-CLAUDE.md` is stale at v2.21.0 and should be resynced from
   the live global guide.
-- CI runs on Linux only. `tests/test-shell-portability.sh` catches the two mechanical
-  classes, but nothing exercises the code on macOS. A `macos-latest` job running the skill
-  self-tests would.
-- The GNU/BSD divergence in section 5 is still handled by `PATH`, not by the code. Porting
-  those call sites is the next mechanical win.
-- 9 scripts fail `bash -n` for unrelated heredoc and quoting bugs. Pre-existing, untouched.
+- CodeSearch is a Rust build with `openssl-sys` and `fastembed` (ONNX) dependencies. Nobody
+  has compiled it on Apple Silicon. Section 10 is the least-tested part of this document.
+- `systemd-run` in `.claude/cfn-scripts/run-with-memory-limit.sh` has no macOS equivalent.
+  It falls back to `ulimit`, so memory caps are softer there than on WSL2.
 
 When you verify a section, update it here in the same commit and change the Status line at
 the top of this file.

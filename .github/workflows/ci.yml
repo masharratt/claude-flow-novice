@@ -29,6 +29,12 @@ jobs:
       - name: Shell portability gate
         run: bash tests/test-shell-portability.sh
 
+      - name: Shell syntax gate
+        run: bash tests/test-shell-syntax.sh
+
+      - name: Portable shim unit tests
+        run: bash tests/test-portable-shims.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -135,10 +141,88 @@ jobs:
           path: dist/
           retention-days: 7
 
+  macos:
+    name: macOS Portability
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # CFN uses associative arrays and mapfile, so bash 4+ is a hard
+      # requirement. macOS ships bash 3.2 (2007) at /bin/bash and SIP prevents
+      # replacing it, which is why every CFN script uses `#!/usr/bin/env bash`.
+      - name: Install bash 5
+        run: brew install bash
+
+      # Deliberately NOT installing coreutils, gnu-sed or grep. Everything
+      # below has to pass against the BSD userland macOS actually ships,
+      # because that is what .claude/helpers/cfn-portable.sh exists to handle.
+      # Installing the GNU tools here would make this job green without
+      # testing anything.
+      - name: Show the userland under test
+        run: |
+          echo "bash on PATH:  $(bash --version | head -1)"
+          echo "/bin/bash:     $(/bin/bash --version | head -1)"
+          echo "sed:           $(command -v sed)"
+          echo "stat:          $(command -v stat)"
+          echo "gtimeout:      $(command -v gtimeout || echo 'absent (perl fallback will be used)')"
+          echo "coreutils:     $(brew list --formula 2>/dev/null | grep -c '^coreutils$') installed"
+
+      - name: Require bash 4+ on PATH
+        run: |
+          MAJOR=$(bash -c 'echo "${BASH_VERSINFO[0]}"')
+          echo "bash major version: $MAJOR"
+          if [ "$MAJOR" -lt 4 ]; then
+            echo "::error::bash $MAJOR is on PATH. CFN needs 4+; brew install bash did not take effect."
+            exit 1
+          fi
+
+      - name: Shell portability gate
+        run: bash tests/test-shell-portability.sh
+
+      - name: Shell syntax gate
+        run: bash tests/test-shell-syntax.sh
+
+      # This is the job's real payload. On Linux the shim library defines
+      # nothing, so its BSD translation paths are only ever executed here.
+      - name: Portable shim unit tests
+        run: bash tests/test-portable-shims.sh
+
+      # Guards against the shim library quietly becoming a no-op on macOS --
+      # a broken capability probe would leave every test above passing against
+      # the GNU-shaped assertions while real scripts still failed.
+      - name: Assert shims are actually active on macOS
+        run: |
+          SHIMMED=$(bash -c '. .claude/helpers/cfn-portable.sh; type -t timeout stat date sed 2>/dev/null' | grep -c function || true)
+          echo "shimmed commands: $SHIMMED of 4 (timeout stat date sed)"
+          if [ "$SHIMMED" -eq 0 ]; then
+            echo "::error::cfn-portable.sh defined no shims on macOS. A capability probe is wrong."
+            exit 1
+          fi
+
+      # Every script that sources the shim library must be able to find it from
+      # its own location. A wrong relative path is silent (the source line ends
+      # in `|| true`), so it has to be checked rather than waited for.
+      - name: Verify every shim source path resolves
+        run: |
+          FAILED=0
+          while IFS= read -r f; do
+            rel=$(sed -n 's|^\. "\$(cd "\$(dirname "\${BASH_SOURCE\[0\]}")/\(.*\)" && pwd -P)/\.claude/helpers/cfn-portable\.sh".*|\1|p' "$f" | head -1)
+            [ -n "$rel" ] || continue
+            if [ ! -r "$(cd "$(dirname "$f")/$rel" 2>/dev/null && pwd -P)/.claude/helpers/cfn-portable.sh" ]; then
+              echo "::error file=$f::shim source path does not resolve (rel=$rel)"
+              FAILED=$((FAILED + 1))
+            fi
+          done < <(grep -rl 'cfn-portable\.sh' --include='*.sh' . | grep -v '^\./\.git/')
+          echo "unresolved: $FAILED"
+          [ "$FAILED" -eq 0 ]
+
+
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [ lint, unit-tests, build-verification ]
+    needs: [ lint, unit-tests, build-verification, macos ]
     timeout-minutes: 5
     if: always()
     steps:
@@ -148,10 +232,12 @@ jobs:
           echo "  Lint: ${{ needs.lint.result }}"
           echo "  Unit Tests: ${{ needs.unit-tests.result }}"
           echo "  Build Verification: ${{ needs.build-verification.result }}"
+          echo "  macOS Portability: ${{ needs.macos.result }}"
 
           if [[ "${{ needs.lint.result }}" == "failure" || \
                 "${{ needs.unit-tests.result }}" == "failure" || \
-                "${{ needs.build-verification.result }}" == "failure" ]]; then
+                "${{ needs.build-verification.result }}" == "failure" || \
+                "${{ needs.macos.result }}" == "failure" ]]; then
             echo "❌ Quality gate failed"
             exit 1
           fi
@@ -180,5 +266,6 @@ jobs:
           - Lint & Type Check: Completed
           - Unit Tests: Completed
           - Build Verification: Completed
+          - macOS Portability: Completed
 
           EOF
