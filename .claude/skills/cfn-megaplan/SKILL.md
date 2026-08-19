@@ -21,11 +21,13 @@ Medium features (3-7 files, single shared-state surface): use `/cfn-megaplan-lit
 ## Invocation
 
 ```
-/cfn-megaplan "<task>" [--tier=mvp|beta|enterprise] [--bar-b=full|sonnet]   # forward: plan a build
+/cfn-megaplan "<task>" [--tier=mvp|beta|enterprise] [--bar-b=full|sonnet] [--unattended]   # forward: plan a build
 /cfn-megaplan --review <path(s)>                          # reverse: audit shipped code
 ```
 
 If `--tier` omitted, infer from the spec (see Step 2) and confirm with the user via `AskUserQuestion` when ambiguous.
+
+`--unattended` (also `CFN_MEGAPLAN_UNATTENDED=1`): no human is watching. Every gate that would stall on `AskUserQuestion` takes its recorded default instead of stopping (tier inference takes the inferred tier; BLOCKING `[OPEN]` items take the conservative side and are re-marked `[AUTO: <default> | unattended]`; the wireframe gate auto-approves, see the gate rule). Every auto-taken decision is recorded with `decided_by: auto-unattended` so Step 7 can list them as one batch for the human to overturn. Unattended never widens scope, never loosens a boundary, and never skips a bar; it only removes the wait.
 
 ### Reverse mode (audit already-implemented work)
 
@@ -238,6 +240,7 @@ If any phase returns **BLOCKING** `[OPEN]` items, batch them and surface via `As
 - **Revise** → route to `cfn-ux` in **patch mode** with the user's note as the finding; it adjusts the structure (a control, a screen, a flow) and re-renders. Re-surface. This rides the same **3-BLOCKING-cycle-per-level bound** as any L5 blocking item; after round 3, surface residual via `AskUserQuestion` (accept as-is / keep iterating / descope).
 - A revision that would change an FR, an AC, or the schema is NOT a wireframe tweak — route it to `cfn-spec`/`cfn-data` and re-run the affected levels, not a `cfn-ux` patch.
 - A `_skipped: no renderable screens_` reference raises no gate.
+- **Unattended runs (`--unattended` / `CFN_MEGAPLAN_UNATTENDED=1`).** The gate still fires but does not stop. Auto-approval means exactly: record the approval to the decision log as `wireframe: <ref> | approved_by: auto-unattended | reason: no reviewer present`, write the same line into the `[PARKED]` running list so it reaches the Step 7 batch as a "re-open?" item, and proceed to L6 with the wireframe AS EMITTED (no auto-revise, no structure guess). An orchestrator that invents its own approval wording, or proceeds without recording, is off-protocol: a later human must be able to see that nobody looked at this picture. Attended runs never auto-approve.
 
 Because the wireframe is approved at L5, it never reaches Bar A/Bar B or the Step 7 batch: the structure the plan is built on was signed off before the plan existed.
 
