@@ -36,6 +36,9 @@ if [ -f "$FAST" ]; then
   [ "$(jq -r '.caps.PARTSPEC < .caps.SPEC' "$FAST")" = "true" ] && ok "fast: PARTSPEC cap below SPEC cap" || no "fast: PARTSPEC cap not below SPEC"
   [ "$(jq -r '.part_specs.mode' "$FAST")" = "auto" ] && ok "fast: part_specs.mode defaults to auto" || no "fast: part_specs.mode != auto"
   [ "$(jq -r '[.part_specs.auto_min_parts, .part_specs.auto_min_extract_bytes] | all(type=="number" and . > 0)' "$FAST")" = "true" ] && ok "fast: part_specs auto thresholds present" || no "fast: part_specs auto thresholds missing"
+  # 2026-08-19 incident: 3-part 30-FR program (curve_speaker_listing) blew the 24KB SPEC cap
+  # because auto stayed off at 3 parts. Threshold lowered 4 -> 3.
+  [ "$(jq -r '.part_specs.auto_min_parts' "$FAST")" = "3" ] && ok "fast: auto_min_parts is 3" || no "fast: auto_min_parts must be 3 (regression: 3-part program cap blowout)"
 else
   no "fast: profile missing at $FAST"
 fi
