@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-18 (megaplan re-gate loosened at the right seams: per-AC scoped re-bless via `regate`, Bar B executor tier `sonnet` default at mvp/beta, bounded HOW-amendments in cfn-loop-task lanes) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-18 (run-ledger.sh: per-run signal row + FLAG lines so the Bar B `sonnet` tier and HOW-amendments are observable; cfn-loop-task 5E.6) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -55,6 +55,7 @@ This file MUST be updated when:
 | verify-run.sh | ✅ Prod | ✅ 63/63 | `.claude/skills/cfn-loop-orchestration-v2/cli/` | VERIFY-manifest executor (run/resolve/summary/backfill-evidence). Classifies each AC executable/db-query/needs_agent, refuses <3-line agent evidence, hash-checks manifest (exit 4 on tamper), forces red on skipped/todo/zero-collected ACs. Drives Phase 5 Exit gate. (CHANGELOG.md) |
 | check-test-hygiene.sh | ✅ Prod | ✅ 23/23 | `.claude/skills/cfn-loop-orchestration-v2/cli/` | Flags focused/skipped/todo markers and conditional skip patterns: `.only`, `.skip`, `.skipIf(`, `.runIf(`, `.concurrent.skip`, `fit`, `@pytest.mark.skipif` (S001, 2026-07-11). Detects `.skipIf(!FLAG)` pattern-skips that silently self-skip. Same-line `cfn-allow-skip:` = recorded quarantine. Findings = Phase 3 gate FAIL |
 | parse-test-summary.sh | ✅ Prod | ✅ 44/44 | `.claude/skills/cfn-loop-orchestration-v2/cli/lib/` | Shared lib for gate-check.sh + verify-run.sh AC-verdict parsing. Zero-collected or any skipped/todo forces red. Runners: jest, vitest, pytest, node:test, cargo, cargo-nextest, go. Known limit: `go test` without `-v` stays unknown. (CHANGELOG.md) |
+| run-ledger.sh | ✅ Prod | ✅ 47/47 | `.claude/skills/cfn-loop-orchestration-v2/cli/` | One JSONL row per cfn-loop-task run (`~/.claude/cfn-data/loop-task-runs.jsonl`, global): tier, `bar_b_tier` (from MEGAPLAN Gates `tier=` token), iterations, lanes, blocked_on + spec-gap classification, out_of_scope count, amendment count, amendments naming a PLAN `Produces` symbol. Prints FLAG lines (`sonnet` + spec gap → re-gate `--bar-b=full`; amendment touches Produces → run check-produce-consume). `stats [--slug] [--last N]` groups by tier. Wired at 5E.6, never gates. | Regex spec-gap classifier (`cfn:` marker) |
 | deferrals.sh | ✅ Prod | ✅ 37/37 | `.claude/skills/cfn-loop-orchestration-v2/cli/` | Lane deferrals lifecycle (S006, 2026-07-11). New tool for record/gate/resolve: persists blocking items to `.deferrals_<slug>.json`, gates Phase 5 (5E.4a no-open-deferrals check), resolves on backlog. Fail-closed (zero deferrals required by default); cfn-loop-task.md Phase 5 exit gate reads and enforces it. |
 | THRESHOLDS.md | ✅ Prod | n/a | `.claude/skills/cfn-loop-orchestration-v2/` | Single source of truth for gate/consensus/max-iter per mode |
 | VERIFY manifest gate | ✅ Prod | ✅ 55/55 | `cfn-loop-task.md` Phase 5 (5E) + `cfn-megaplan/bars/verifiable-done.md` | Loop done requires verify-run.sh proving every AC green mechanically, manifest unedited since Bar A (sha256 sidecar), no gamed tests, core FRs surviving a mutation probe, and all applicable gate skills run. Re-bless is per-AC scoped: `bless-verify.sh` emits a `regate` line naming only the rows/steps owed (probe only on an added AC); `--force-full` for whole-plan re-gate |
@@ -242,7 +243,7 @@ This file MUST be updated when:
 
 | Command | Status | Tests | Location | Description |
 |---------|--------|-------|----------|-------------|
-| /cfn-loop-task | ✅ Prod | ✅ | `cfn-loop-task.md` (3.4.0) | Task mode execution: derives lanes from planning/PLAN_<slug>.md (lane source), checks completion via planning/VERIFY_<slug>.md. Mechanical Phase 5 Exit gate (5E.0-5E.5 via verify-run.sh), Phase 4 gate-wiring matrix, manifest hash check, deferrals gate (S006). 3.4.0: bounded step amendment (lanes may change HOW when files+AC+done predicate hold; `step_amendments` audited in run-plan, Step 3.01a) and per-AC scoped re-gate on hash mismatch (Step 0a). |
+| /cfn-loop-task | ✅ Prod | ✅ | `cfn-loop-task.md` (3.5.0) | Task mode execution: derives lanes from planning/PLAN_<slug>.md (lane source), checks completion via planning/VERIFY_<slug>.md. Mechanical Phase 5 Exit gate (5E.0-5E.5 via verify-run.sh, 5E.6 run ledger), Phase 4 gate-wiring matrix, manifest hash check, deferrals gate (S006). 3.5.0: 5E.6 run-ledger row + FLAG lines on every exit path. 3.4.0: bounded step amendment (lanes may change HOW when files+AC+done predicate hold; `step_amendments` audited in run-plan, Step 3.01a) and per-AC scoped re-gate on hash mismatch (Step 0a). |
 | /cfn-loop-cli | ✅ Prod | ✅ | `cfn-loop-cli.md` | CLI mode execution |
 | /cfn-fix-errors | ✅ Prod | ✅ | `cfn-fix-errors.md` | Automated error fixing |
 | /cfn-check-errors | ✅ Prod | ✅ | `cfn-check-errors.md` | Error detection |

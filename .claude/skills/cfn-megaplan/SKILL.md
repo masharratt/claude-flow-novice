@@ -177,7 +177,7 @@ Tier = `tier-hint` unless the user passed `--tier`; if tier-hint is absent or th
 
 Load the matching profile: `.claude/skills/cfn-megaplan/profiles/<tier>.json`.
 
-**Bar B executor tier.** `profile.bars.haiku_executable` is `sonnet` at mvp/beta and `full` at enterprise; `--bar-b=full|sonnet` overrides it. `sonnet` models the real executor (opus coordinator + sonnet lanes): steps name file + symbol + done predicate, typed signatures optional, no live haiku probe. `full` is the haiku-literal bar with the probe. Rules and rationale: `bars/haiku-executable.md` "Executor tier". Pass the resolved tier into `/write-plan` (it changes the step-row validity rule) and record it in the Bar B gate report as `bar_b_tier`. `bars.verifiable_done` is always `full`; there is no lower tier for Bar A.
+**Bar B executor tier.** `profile.bars.haiku_executable` is `sonnet` at mvp/beta and `full` at enterprise; `--bar-b=full|sonnet` overrides it. `sonnet` models the real executor (opus coordinator + sonnet lanes): steps name file + symbol + done predicate, typed signatures optional, no live haiku probe. `full` is the haiku-literal bar with the probe. Rules and rationale: `bars/haiku-executable.md` "Executor tier". Pass the resolved tier into `/write-plan` (it changes the step-row validity rule) and record it in the Bar B gate report as `bar_b_tier` and in the synthesis Gates line as `tier=<sonnet|full>` (cfn-loop-task 5E.6 reads that token into the run ledger, which is how a too-loose `sonnet` bar becomes visible: `cli/run-ledger.sh stats`). `bars.verifiable_done` is always `full`; there is no lower tier for Bar A.
 
 ### Step 3: Resolve the active phase set
 
@@ -357,7 +357,8 @@ Plan dir: planning/<slug>/
 
 ## Gates
 - Bar A verifiable-done: PASS (N ACs, FR <m/m>, EC <k/k> mapped) -> planning/<slug>/VERIFY_<slug>.md
-- Bar B haiku-executable: PASS (0 findings after <r> rounds)
+- Bar B haiku-executable: PASS (0 findings after <r> rounds, tier=<sonnet|full>)
+  # tier= is read back by cfn-loop-task 5E.6 (cli/run-ledger.sh); keep the token exact.
   # or, in a multi-plan program only: CONDITIONAL-PASS (see Cross-plan seams; blocked solely on
   # named sibling-plan items, all tracked below). CONDITIONAL-PASS is NOT a valid handoff state
   # for a standalone megaplan — a standalone plan loops its owning phase until PASS.

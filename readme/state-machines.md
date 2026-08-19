@@ -72,6 +72,8 @@ Mechanical done-verdict gate. Replaces the pre-3.2.0 honor-system single-pass ru
 
 Done requires: all ACs mechanically green, manifest unedited since Bar A, no gamed tests, core FRs surviving the mutation probe, all applicable Phase 4 gate skills run, and (frontend) a passing prod build. 0.95 is never a done state; only all-green or an explicit user-approved quarantine.
 
+Every terminal state (`done`, `stopped`) is followed by 5E.6 `run-ledger.sh record --outcome done|not_done|escalated`: one ledger row + FLAG lines. It observes the exit; it never changes it.
+
 ---
 
 ## GOAP Planner

@@ -132,7 +132,7 @@ The 0/0 policy (zero compile errors in scoped work and scoped tests, zero remain
 2. [pending] LOOP 3: Full epic implementation (all phases, TDD)
 3. [pending] GATE CHECK: hygiene scan + tests + gate-check.sh (baseline/flaky)
 4. [pending] GATE WIRING + VOTE: resolve gate set, hard gates, cfn-vote-implement per manifest
-5. [pending] EXIT GATE: 1/3 batched prompts + 5E.0-5E.5 mechanical VERIFY gate
+5. [pending] EXIT GATE: 1/3 batched prompts + 5E.0-5E.5 mechanical VERIFY gate + 5E.6 run ledger
 ```
 
 **You MUST update todo status as you complete each phase. Do NOT skip phases.**
@@ -174,7 +174,8 @@ The 0/0 policy (zero compile errors in scoped work and scoped tests, zero remain
 │    ├── 5E.3a backfill evidence + bless --stage exit         │
 │    ├── 5E.4 all-green final gate (--threshold 1.0)          │
 │    ├── 5E.4a deferrals.sh gate (no open blocking needs)     │
-│    └── 5E.5 prod-build smoke (frontend + build script)      │
+│    ├── 5E.5 prod-build smoke (frontend + build script)      │
+│    └── 5E.6 run ledger row + FLAG lines (never gates)       │
 │                                                             │
 │  EXIT - Phase 5 gate all-green (or user-approved quarantine)│
 └─────────────────────────────────────────────────────────────┘
@@ -824,7 +825,22 @@ npm run build 2>&1 | tee /tmp/build-smoke-${TASK_ID}.txt
   || echo "WARN: workbench render skipped (non-blocking)" >&2
 ```
 
-After 5E.5 (or 5E.4 for non-frontend tasks) reports done, mark todo #5 completed, report summary, EXIT.
+#### 5E.6 Run ledger (signal row, non-blocking, runs on EVERY exit path)
+
+Append one row for this run to the global run ledger and print its summary + FLAG lines. This is the only place the two loosening seams (Bar B `sonnet` tier, bounded HOW amendments) get a signal: a `sonnet`-tier plan whose lane hit a spec-gap `blocked_on` ("underspecified", "which symbol", "plan drift") flags "re-gate with `--bar-b=full`"; an amendment whose `what` names a `Produces` symbol flags "run check-produce-consume". Run it on done, on not-done escalation, and on MAX_ITERATIONS exit alike; `--outcome` says which. Never gates.
+
+```bash
+REPORT_ARGS=""; for LANE_ID in ${LANE_IDS}; do REPORT_ARGS="$REPORT_ARGS --report /tmp/lane-report-${RUN_ID}-${LANE_ID}.json"; done
+./.claude/skills/cfn-loop-orchestration-v2/cli/run-ledger.sh record \
+  --slug "${SLUG:-$RUN_ID}" --plan-dir "$PDIR" --run-plan "${PDIR}/run-plan-${RUN_ID}.json" \
+  $REPORT_ARGS --iterations "${ITERATION}" --outcome "${OUTCOME}" \
+  || echo "WARN: run ledger skipped (non-blocking)" >&2
+# OUTCOME: done | not_done (5E red and MAX_ITERATIONS hit) | escalated (Stop For)
+```
+
+Copy every `FLAG:` line it prints into the summary report verbatim. Trend over runs: `run-ledger.sh stats [--slug <slug>] [--last N]` (JSON, grouped by `bar_b_tier`; `spec_gap_runs` climbing on `sonnet` while flat on `full` is the "tier too loose" answer with numbers).
+
+After 5E.5 (or 5E.4 for non-frontend tasks) reports done and 5E.6 has written its row, mark todo #5 completed, report summary, EXIT.
 
 ```
 Summary report:
@@ -836,6 +852,7 @@ Summary report:
   Skipped (0/3):             ${COUNT_0_OF_3}
   Quarantined:               ${QUARANTINED_TESTS}
   Flaky:                     ${FLAKY_TESTS}
+  Run ledger:                <the run-ledger.sh summary line, then any FLAG: lines verbatim>
 ```
 
 **No vote iteration after Phase 5; the Phase 5 Exit gate (5E.0-5E.5) MAY iterate back to Phase 2, bounded by MAX_ITERATIONS.** If the user wants another round beyond MAX_ITERATIONS, they re-run `/cfn-loop-task`.
@@ -923,7 +940,7 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 | 2. Loop 3 | Full epic implementation | → Phase 3 | Retry |
 | 3. Gate | typecheck + deferral capture (3.01) + hygiene + gate-check.sh (+baseline, +flaky re-run) | → Phase 4 | → Phase 2 (iterate) |
 | 4. Gate wiring + Vote | resolve gate set, hard gates first, cfn-vote-implement per manifest | → Phase 5 | → Phase 2 (migration-rehearsal fail) / Re-vote |
-| 5. Exit gate | 5E.0 mutation → 5E.1-5E.3 verify-run.sh → 5E.3a evidence backfill + exit bless → 5E.4 all-green → 5E.4a deferrals gate → 5E.5 build smoke; 1/3 batched prompts resolved first | EXIT (all-green or quarantine) | → Phase 2 (red AC / surviving mutation / open blocking deferral, bounded by MAX_ITERATIONS) |
+| 5. Exit gate | 5E.0 mutation → 5E.1-5E.3 verify-run.sh → 5E.3a evidence backfill + exit bless → 5E.4 all-green → 5E.4a deferrals gate → 5E.5 build smoke → 5E.6 run ledger; 1/3 batched prompts resolved first | EXIT (all-green or quarantine) | → Phase 2 (red AC / surviving mutation / open blocking deferral, bounded by MAX_ITERATIONS) |
 
 **Routing matrix:**
 
@@ -959,4 +976,4 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 
 ---
 
-**Version:** 3.4.0 | **Date:** 2026-08-18 | Standard CFN Loop. 3.4.0: bounded step amendment (Phase 2, Step 3.01a) + per-AC scoped re-gate at Step 0a. Full-epic Phase 2; mechanical gate via cli/gate-check.sh; thresholds pinned in THRESHOLDS.md; Phase 3 now captures lane `out_of_scope_needs` into a side-manifest (Step 3.01, cli/deferrals.sh record); Phase 4 is the gate-wiring matrix (dry-review + conditional security/migration/a11y/dep-audit/perf gates) routed through cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user prompts); Phase 5 Exit is a mechanical VERIFY gate (5E.0 mutation probe, 5E.1-5E.3 verify-run.sh, 5E.4 all-green, 5E.4a deferrals gate — cli/deferrals.sh gate, S006 — 5E.5 prod-build smoke) that MAY iterate back to Phase 2 bounded by MAX_ITERATIONS.
+**Version:** 3.5.0 | **Date:** 2026-08-18 | Standard CFN Loop. 3.5.0: 5E.6 run ledger (cli/run-ledger.sh; Bar B tier + amendment signal row, FLAG lines). 3.4.0: bounded step amendment (Phase 2, Step 3.01a) + per-AC scoped re-gate at Step 0a. Full-epic Phase 2; mechanical gate via cli/gate-check.sh; thresholds pinned in THRESHOLDS.md; Phase 3 now captures lane `out_of_scope_needs` into a side-manifest (Step 3.01, cli/deferrals.sh record); Phase 4 is the gate-wiring matrix (dry-review + conditional security/migration/a11y/dep-audit/perf gates) routed through cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user prompts); Phase 5 Exit is a mechanical VERIFY gate (5E.0 mutation probe, 5E.1-5E.3 verify-run.sh, 5E.4 all-green, 5E.4a deferrals gate — cli/deferrals.sh gate, S006 — 5E.5 prod-build smoke) that MAY iterate back to Phase 2 bounded by MAX_ITERATIONS.

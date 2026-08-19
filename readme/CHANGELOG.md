@@ -5,6 +5,12 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-08-18: run ledger makes the loosened seams observable
+
+- New `cfn-loop-orchestration-v2/cli/run-ledger.sh` (`record`, `stats`). cfn-loop-task 5E.6 appends one row per run to `~/.claude/cfn-data/loop-task-runs.jsonl` and prints FLAG lines: `bar_b_tier=sonnet` + a spec-gap `blocked_on` ("underspecified", "which symbol", "plan drift") → "re-gate with `--bar-b=full`"; a `step_amendments` entry naming a PLAN `Produces` symbol → "run check-produce-consume". Neither seam had a signal before; both went to files nobody read.
+- megaplan synthesis Gates line now carries `tier=<sonnet|full>` on the Bar B row (the token 5E.6 reads).
+- 47 tests: `cli/tests/test-run-ledger.sh`.
+
 ## 2026-08-18: megaplan re-gate loosened at three seams
 
 Symptom: a 5-hour planning session followed by a 1-hour re-bless for a small change. Root cause was not "requirements too tight" but three places that priced a scoped change as a whole-plan change.
