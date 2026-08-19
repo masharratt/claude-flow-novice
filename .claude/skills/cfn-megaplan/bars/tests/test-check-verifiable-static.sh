@@ -247,3 +247,48 @@ assert_has '"severity":"error"' "reference-missing-path: error severity at exit 
 echo "----"
 echo "W9 static checker: $PASS/$RUN passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
+
+# ---- Change 2: absence-assertion pairing ----
+# absence-only: ! grep with no population assertion -> error
+run absence-only.md
+assert_exit 1 "absence-only: exit 1"
+assert_has 'absence-only check' "absence-only: flags absence-only"
+assert_has '"severity":"error"' "absence-only: error severity"
+
+# absence-paired: [ -d src ] && ! grep -> clean (has population assertion)
+run absence-paired.md
+assert_exit 0 "absence-paired: exit 0 (has population assertion)"
+if [ "$OUT" = "[]" ]; then ok "absence-paired: empty findings"; else no "absence-paired: expected [] got $OUT"; fi
+
+# absence-grepc: grep -c with -eq 0 and no population -> error
+run absence-grepc.md
+assert_exit 1 "absence-grepc: exit 1"
+assert_has 'absence-only check' "absence-grepc: flags absence-only (grep -c pattern)"
+
+# absence-db: db check with -eq 0 and no population -> error
+run absence-db.md
+assert_exit 1 "absence-db: exit 1"
+assert_has 'absence-only check' "absence-db: flags absence-only (db check)"
+
+# positive-check: grep -q (positive check) -> clean (not absence-only)
+run positive-check.md
+assert_exit 0 "positive-check: exit 0 (positive check not affected)"
+if [ "$OUT" = "[]" ]; then ok "positive-check: empty findings"; else no "positive-check: expected [] got $OUT"; fi
+
+# ---- Change 3: stale-literal count warning ----
+# stale-literal-count: manifest description with "4 tables" -> warn
+run stale-literal-count.md
+assert_exit 0 "stale-literal-count: exit 0 (warn only)"
+assert_has 'stale-literal' "stale-literal-count: flags stale-literal"
+assert_has '"severity":"warn"' "stale-literal-count: warn severity"
+
+# stale-no-noun: count without enumerable noun -> clean
+run stale-no-noun.md
+assert_exit 0 "stale-no-noun: exit 0"
+if [ "$OUT" = "[]" ]; then ok "stale-no-noun: empty findings"; else no "stale-no-noun: expected [] got $OUT"; fi
+
+# stale-backtick: count inside backticks (code span) -> clean (excluded)
+run stale-backtick.md
+assert_exit 0 "stale-backtick: exit 0 (backtick excluded)"
+if [ "$OUT" = "[]" ]; then ok "stale-backtick: empty findings"; else no "stale-backtick: expected [] got $OUT"; fi
+

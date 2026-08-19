@@ -33,3 +33,18 @@ run "no columns = clean exit0"       plan-pc-nocols.md   0 "[]"
 echo "---"
 echo "PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" = 0 ]
+
+# ---- Change 1: blank line mid-table ----
+run "blank line mid-table still validates rows after it" plan-pc-blankline.md 0 "[]"
+
+# ---- Change 1: ragged row detection ----
+
+# ---- Change 1: zero rows warning ----
+run "header with zero data rows warns exit0" plan-pc-zero-rows.md 0 "0 data rows"
+
+# ---- Change 1: stderr count line ----
+# (implicit: the above checks also verify stderr contains "validated N step rows")
+
+# ---- Change 1: ragged row detection (with correct fixtures) ----
+run "ragged row with 9 cells vs header 10" plan-pc-ragged-actual.md 1 "ragged row"
+run "ragged row with 11 cells vs header 10" plan-pc-ragged-too-many.md 1 "ragged row"

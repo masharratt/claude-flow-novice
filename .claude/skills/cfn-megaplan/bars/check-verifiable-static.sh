@@ -17,6 +17,12 @@
 #          1 = one or more error-severity findings
 #          2 = usage / bad --stage / file-not-found / jq-missing / no json manifest block
 # Deps:    jq
+#
+# Additional checks (beyond core validation):
+#   - absence-assertion pairing: negative checks (grep -c ... -eq 0, ! grep, etc.)
+#     must be paired with a population assertion (test -s <file>, ls | grep, etc.)
+#   - stale-literal count warning: bare counts (2..999) followed by plural nouns
+#     (tables, columns, endpoints, etc.) are warned - enumerate sets instead
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -45,6 +51,27 @@ fi
 # sailed through, because a kind that matches no case matches no rule either.
 VALID_KINDS="unit integration e2e ui e2e/ui assembled-path wiring-guard db db-query http curl build type compile static lint migration-rehearsal perf a11y security"
 
+# NEGATIVE and POPULATION assertion patterns (absence-assertion pairing, field report 2026-08-19)
+# A check whose pass condition is "grep found nothing" passes on a scan that looked at nothing.
+# Rule: every negative check must pair with a presence assertion on the population scanned.
+# SQL-shaped absence idioms are added because they are the dominant form in this
+# program and none of the shell-shaped patterns above reach them: a check reading
+# `SELECT count(*) FROM violations` piped to `grep -q "^0$"`, or a boolean
+# `SELECT NOT EXISTS (...)`, is an absence assertion in exactly the sense this gate
+# exists to catch, and was passing through unflagged.
+NEGATIVE_PATTERNS="!(grep)|grep -c.*-eq 0|grep -c.*== 0|-eq 0 |== 0 |wc -l.*(-eq|==) 0|-z [$][(]|test ! -e|\[ ! -[efsd] |! test|grep -L|not (exist|found|present|match)|returns? (0 rows|nothing|empty)|grep -q[a-z]* .?\^?0[$]|count\([^)]*\) *= *0|= *0;|NOT EXISTS|IS NULL *\)? *AS|no rows"
+# Byte/size/non-empty idioms added 2026-08-19: an absence check often proves its
+# population by emitting a size (wc -c, sha256sum, a dump byte count) and comparing
+# it above zero in the pass condition. Those are presence assertions and were being
+# read as absent.
+# Equality-to-a-nonzero idiom added 2026-08-19, third widening of this gate. Two more
+# presence halves were being read as absent: a shell guard spelled `[ "$t" -eq 41 ]`, and a
+# command that prints `present=1 tables=41 violations=0` with the pass condition demanding
+# exact equality. Both are strictly stronger presence assertions than `-gt 0`, because they
+# pin the population to an exact expected size instead of merely non-empty. The nonzero
+# restriction is the whole point: `-eq 0` and `violations=0` are ABSENCE halves and must not
+# match here, or the gate would accept an absence check as its own presence pairing.
+POPULATION_PATTERNS="-gt 0|-ge 1|> 0|>= 1|scanned|population|count(ed)?.*(-gt|-ge|>)|test -s|\[ -s |\[ -e |\[ -f |\[ -d |test -[efd] |wc -l.*(-gt|-ge) |ls .*grep -q|jq -e|expect(ed)? (files|rows|tables|count)|wc -c|sha256sum|non-?empty|(size|bytes?|rows?|files?|lines?|tables?|entries|digests?) +(of [^ ]+ +)?[><]=? *[0-9][0-9,]*|-eq +[1-9][0-9,]*|(present|found|scanned|applied|tables?|rows?|files?|lines?|entries|count)=[1-9][0-9,]*"
 # Kinds whose check must drive a test runner, so whose evidence must show a
 # runner summary with a non-zero collected count.
 RUNNER_KINDS="unit integration e2e ui e2e/ui assembled-path"
@@ -255,7 +282,16 @@ while [ "$i" -lt "$AC_COUNT" ]; do
     tax_ok=1
     case "$KIND" in
       *playwright*|e2e|ui|e2e/ui)                       echo "$CHECK" | grep -qiE '^playwright:' || tax_ok=0 ;;
-      *db*)                                              echo "$CHECK" | grep -qiE '^db-query' || tax_ok=0 ;;
+      # WIDENED 2026-08-19: this family only knew `db-query`, the repo skill that
+      # reads DATABASE_URL from root .env unconditionally and therefore resolves to
+      # the SHARED production project. A plan that correctly moves its db checks onto
+      # an explicitly-named local endpoint (`psql "$CURVE26_LOCAL_DATABASE_URL"`) was
+      # then reported off-taxonomy for doing the safe thing: 5 checks in
+      # planning/mp0_foundations_curve2026/VERIFY_mp0_foundations_curve2026.md went red
+      # for exactly that reason. Vocabulary gap in this checker, not a defect in the
+      # manifest. Widening only ever ACCEPTS more, so no manifest that passes today
+      # can go red because of it.
+      *db*)                                              echo "$CHECK" | grep -qiE '^(db-query|psql |psql")' || tax_ok=0 ;;
       *curl*|http)                                       echo "$CHECK" | grep -qiE '^curl' || tax_ok=0 ;;
       # WIDENED 2026-07-31: the two families below only knew Rust/Go/tsc verbs,
       # so a check that ran the single most obvious tool for its own family --
@@ -342,6 +378,32 @@ while [ "$i" -lt "$AC_COUNT" ]; do
     done
   fi
 
+  # 2e: absence-assertion pairing (field report 2026-08-19)
+  # A check whose pass condition is "grep found nothing" passes on a scan that looked at nothing.
+  # Rule: every negative check must pair with a presence assertion on the population scanned.
+  if [ -n "$CHECK" ]; then
+    # Check if this is a NEGATIVE check (pass condition is "nothing found")
+    is_negative=0
+    if echo "$CHECK" | grep -qiE "$NEGATIVE_PATTERNS"; then
+      is_negative=1
+    fi
+    
+    if [ "$is_negative" -eq 1 ]; then
+      # NEGATIVE check requires a population assertion in the same check body
+      # -e is required: POPULATION_PATTERNS begins with "-gt 0|..." and without it
+      # GNU grep parses the leading -g as an option, errors out, and the population
+      # half of this absence-pairing gate can never succeed. The gate that exists to
+      # catch vacuous absence assertions was itself dead.
+      # Scan check AND pass together. The presence half is frequently expressed as the
+      # pass condition over a number the check emits ("dump byte size > 10,000"), which
+      # is the pairing this gate asks for. Scanning only the check body read those as
+      # absence-only and produced a false positive on every correctly-paired AC.
+      # Negative detection above deliberately still reads only $CHECK.
+      if ! printf '%s\n%s' "$CHECK" "$PASS" | grep -qiE -e "$POPULATION_PATTERNS"; then
+        add_finding "$ACID" "check" "absence-only check: pass condition is 'nothing found' with no assertion that the scanned population is non-empty; pair it with a presence check on files/rows/tables scanned (e.g. test -s <file> && ! grep ...)" "error"
+      fi
+    fi
+  fi
   i=$((i + 1))
 done
 
@@ -487,9 +549,14 @@ else
 fi
 
 # migration_rehearsal shape
+# WIDENED 2026-08-19: the AC-id half was '^AC-[A-Za-z0-9]+$', which rejects any id
+# carrying a second hyphen group. That is the normal shape for a category-plus-number
+# id: AC-MIG-1, AC-BP-TABLET-1, AC-FR-56-TIMING. A manifest was forced to either name
+# the coverage field something its own AC table does not contain, or drop the field.
+# Widening only ACCEPTS more, so no manifest that passes today can go red because of it.
 if cov_has migration_rehearsal; then
   MR=$(cov_num migration_rehearsal)
-  if ! echo "$MR" | grep -qE '^(AC-[A-Za-z0-9]+|warn:.+|n/a:.+)$'; then
+  if ! echo "$MR" | grep -qE '^(AC-[A-Za-z0-9]+(-[A-Za-z0-9]+)*|warn:.+|n/a:.+)$'; then
     add_finding "coverage" "migration_rehearsal" "value '$MR' not one of AC-<id> | warn:<reason> | n/a:<reason>" "error"
   fi
 fi
@@ -499,4 +566,36 @@ if [ "$(echo "$COV" | jq -r 'if has("viewport_missing") then .viewport_missing e
   add_finding "coverage" "viewport_missing" "user-flow e2e AC(s) missing --project=<viewport> (viewport_missing)" "warn"
 fi
 
+
+# ---- Check 6: stale-literal count warning (field report 2026-08-19) ----
+# House rule: enumerate, never count. Warn on bare counts that must match enumerations.
+# Scan all string values in the manifest for bare counts 2..999 followed by plural nouns.
+STALE_FINDINGS=()
+STALE_COUNT=0
+STALE_CAP=10
+
+# Extract all string values from the manifest and scan for stale literals
+ALL_STRINGS=$(echo "$MANIFEST" | jq -r '.. | strings' | grep -oP '(?<![A-Za-z0-9_-])([2-9]|[1-9][0-9]|[1-9][0-9]{2})[[:space:]]+(?:[A-Za-z]+[[:space:]]+){0,2}(tables|columns|policies|migrations|endpoints|routes|screens|features|steps|checks|files|tests|roles|fields|states|transitions|events|jobs|queues|flags)\b' | sort -u || true)
+
+if [ -n "$ALL_STRINGS" ]; then
+  while IFS= read -r stale_match; do
+    [ -z "$stale_match" ] && continue
+    if [ "$STALE_COUNT" -lt "$STALE_CAP" ]; then
+      STALE_FINDINGS+=("$stale_match")
+      STALE_COUNT=$((STALE_COUNT + 1))
+    fi
+  done <<< "$ALL_STRINGS"
+  
+  if [ "$STALE_COUNT" -gt 0 ]; then
+    for stale in "${STALE_FINDINGS[@]}"; do
+      add_finding "manifest" "stale-literal" "bare count '$stale' in manifest text: counts drift from enumerations; enumerate the set and derive both sides, compare as sets both directions (field report 2026-08-19)" "warn"
+    done
+    
+    # Add capped message if needed
+    total_matches=$(echo "$ALL_STRINGS" | wc -l)
+    if [ "$total_matches" -gt "$STALE_CAP" ]; then
+      add_finding "manifest" "stale-literal" "... and $((total_matches - STALE_CAP)) more stale-literal matches (capped at $STALE_CAP)" "warn"
+    fi
+  fi
+fi
 emit_and_exit

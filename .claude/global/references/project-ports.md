@@ -16,11 +16,27 @@ Load when starting a dev server or debugging a port conflict. Extracted from `~/
 | daily-dashboards | 3700-3709 | |
 | keystone | 3810-3819 (3810 = Next.js web) | |
 | daily-drones | 3900-3909 (3900 = vite viewer, 3901 = viewer WS / axum) | |
-| ggi-work | 4100-4109 (4100 = invite-builder vite + Playwright, 4101 = docs site) | |
+| ggi-work | 4100-4109 (4100 = invite-builder vite + Playwright, 4101 = docs site, 4102 = gg-all-projects apps/attendee + Playwright, 4103 = gg-all-projects apps/internal) | |
+
+## Supabase local stack port bands
+
+`supabase start` claims a contiguous band per project, keyed off `project_id` in that project's `supabase/config.toml`. Two projects sharing a band cannot both run. Observed on this machine 2026-08-19 by scanning running containers and every `config.toml` in `~/projects*`:
+
+| Band | Project | Notes |
+|---|---|---|
+| 54321-54327 | keystone | default band, claimed by whichever project omits an explicit band |
+| 54341-54347 | gg-app (The Loop) | `apps/attendee/supabase/config.toml` in gg-all-projects is a stale copy that also declares this band and would collide |
+| 54421-54427 | NYSDRA | |
+| 54532 | gg-slack-scratch-pg | bare `postgres:17` container, not a Supabase stack: no auth, storage or extensions schema, no anon/authenticated/service_role roles, no citext. Cannot host a migration rehearsal |
+| 54533 | da-scratch | same shape as above |
+| 54641-54647 | gg-loop-old | a real local Supabase stack, used to confirm what a full stack provides |
+| 54721-54729 | ggi-curve26 (gg-all-projects `packages/db`) | reserved. 54721 api, 54722 db, 54723 studio, 54724 inbucket, 54727 analytics. This is the migration-rehearsal and integration-test target for the Curve 2026 build |
+
+A bare Postgres container is not a substitute for a local Supabase stack when the migration under test creates policies, storage buckets or role grants. It fails on the first statement that names `auth`, `storage` or `service_role`.
 
 ## Graph DB (Memgraph) bolt/web port assignments
 
-Multiple projects run their own Memgraph container. Bolt defaults to 7687 — assign distinct host ports to avoid the wrong-DB hang (codesearch silently connected to fireside-memgraph for 7 weeks because both used 7687, leaking memory on every commit).
+Multiple projects run their own Memgraph container. Bolt defaults to 7687. Assign distinct host ports to avoid the wrong-DB hang (codesearch silently connected to fireside-memgraph for 7 weeks because both used 7687, leaking memory on every commit).
 
 | Container | Bolt (host) | Web (host) | Owner |
 |-----------|-------------|------------|-------|

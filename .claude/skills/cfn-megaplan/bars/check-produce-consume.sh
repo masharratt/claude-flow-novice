@@ -8,6 +8,10 @@
 #   - each Produces/Consumes cell is `-` or a concrete <path>[:<symbol>] list (no weasel, not empty)
 #   - no identifier is Produced by two different steps (duplicate producer -> error)
 #   - each Consumes identifier matches some Produces identifier, else dangling (-> warn)
+#   - blank lines inside tables are tolerated (not treated as table end)
+#   - ragged rows (cell count != header count) are detected as errors
+#   - row validation count is reported to stderr
+#   - tables with zero data rows emit a warning (vacuous pass)
 #
 # Usage:  check-produce-consume.sh <planning/<slug>/PLAN_<slug>.md>
 # Output: JSON findings array on stdout:
@@ -55,6 +59,15 @@ add_finding() { # step field issue severity
   findings+=("{\"file\":\"${FILE_JSON}\",\"ac_id\":\"$(json_escape "$1")\",\"field\":\"$(json_escape "$2")\",\"issue\":\"$(json_escape "$3")\",\"severity\":\"$4\"}")
 }
 emit_and_exit() {
+  local error_count=0 warn_count=0
+  for f in "${findings[@]}"; do
+    case "$f" in
+      *'"severity":"error"'*) error_count=$((error_count+1)) ;;
+      *'"severity":"warn"'*)  warn_count=$((warn_count+1)) ;;
+    esac
+  done
+  echo "check-produce-consume: validated $ROWS_VALIDATED of $ROWS_SEEN step rows across $TABLES_SEEN table(s) ($error_count errors, $warn_count warns)" >&2
+
   if [ "${#findings[@]}" -eq 0 ]; then echo '[]'; exit 0; fi
   printf '[%s]\n' "$(IFS=,; echo "${findings[*]}")"
   for f in "${findings[@]}"; do
@@ -70,6 +83,13 @@ split_row() { # row -> one trimmed cell per line
   for (( i=0; i<len; i++ )); do
     ch=${line:i:1}
     if [ "$ch" = '`' ]; then inbt=$((1-inbt)); cell+="$ch"; continue; fi
+    # A markdown backslash-escaped pipe is literal content, not a cell boundary.
+    # Without this, a Verify-command cell holding `... 2>&1 \| tee "$OUT"` outside a
+    # backtick span splits into an extra cell and the whole row is reported ragged,
+    # which skips validation of its Produces/Consumes cells entirely.
+    if [ "$ch" = '\' ] && [ "$inbt" -eq 0 ] && [ "${line:i+1:1}" = '|' ]; then
+      cell+='|'; i=$((i+1)); continue
+    fi
     if [ "$ch" = '|' ] && [ "$inbt" -eq 0 ]; then
       printf '%s\n' "$(printf '%s' "$cell" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
       cell=""; continue
@@ -82,13 +102,30 @@ split_row() { # row -> one trimmed cell per line
 # strip surrounding backticks from a token
 debacktick() { local s="$1"; s="${s//\`/}"; printf '%s' "$s"; }
 
-ID_RE='^[A-Za-z0-9._/-]+(:[A-Za-z0-9_.]+)?$'
+# WIDENED 2026-08-18: the path half now admits '[' and ']' so file-routing frameworks
+# (Next.js App Router, SvelteKit, Nuxt) can name their real dynamic-segment files, e.g.
+# apps/attendee/app/p/[handle]/page.tsx. Rejecting those forced a plan to either name a
+# file that does not exist or drop the ordering edge. Widening only ACCEPTS more, so no
+# plan that passes today can go red because of it.
+# <path>[:<symbol>], plus <path>:<kind>:<name> for an observable signal, where kind
+# is the closed set emit|metric|obs. The kind-qualified form is required because
+# write-plan's Ops Integration section mandates one step per log line and per metric,
+# so a step's product is often a signal rather than an exported symbol, and collapsing
+# it to <path>:<name> makes a log event indistinguishable from an export. That is the
+# exact ambiguity this contract exists to prevent. Anything outside the closed set is
+# still rejected, so the grammar does not become open-ended.
+ID_RE='^[][A-Za-z0-9._/-]+(:(emit|metric|obs))?(:[A-Za-z0-9_.-]+)?$'
 
 declare -A PRODUCER_STEP   # identifier -> step that produces it (dup detection)
 CONSUMES=()                # "step<TAB>id"
+HEADER_CELL_COUNT=0        # number of cells in header row (for ragged detection)
+ROWS_VALIDATED=0           # count of data rows validated (ragged rows excluded)
 
 header_found=0
-IDX_PROD=-1; IDX_CONS=-1; IDX_NUM=0
+ANY_HEADER_FOUND=0         # sticky: at least one Produces/Consumes table was seen
+TABLES_SEEN=0              # how many such tables were scanned
+ROWS_SEEN=0                # data rows encountered, ragged included. ROWS_VALIDATED excludes ragged
+IDX_PROD=-1; IDX_CONS=-1; IDX_NUM=0; HEADER_CELL_COUNT=0
 
 validate_cell() { # step field rawcell
   local step="$1" field="$2" raw="$3"
@@ -112,7 +149,7 @@ validate_cell() { # step field rawcell
     tok=$(printf '%s' "$tok" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
     [ -z "$tok" ] && continue
     if ! printf '%s' "$tok" | grep -qE "$ID_RE"; then
-      add_finding "$step" "$field" "identifier '$tok' is not a <path>[:<symbol>] token" "error"; continue
+      add_finding "$step" "$field" "identifier '$tok' is not a <path>[:<symbol>] or <path>:(emit|metric|obs):<name> token" "error"; continue
     fi
     if [ "$field" = "produces" ]; then
       if [ -n "${PRODUCER_STEP[$tok]:-}" ] && [ "${PRODUCER_STEP[$tok]}" != "$step" ]; then
@@ -128,15 +165,32 @@ validate_cell() { # step field rawcell
 
 while IFS= read -r line; do
   case "$line" in \|*) ;; *)
-    if [ "$header_found" = 1 ]; then break; fi
+    # After header found, only a non-blank non-pipe line ends the CURRENT table.
+    if [ "$header_found" = 1 ]; then
+      # Blank/whitespace-only line does NOT end the table
+      if [ -n "$(printf '%s' "$line" | tr -d '[:space:]')" ]; then
+        # End of this table. Do NOT stop scanning: a plan carries more than one
+        # Produces/Consumes table (Implementation Steps, then Ops Integration
+        # Tasks), and stopping here silently left every later table unexamined
+        # while still printing a plausible validated-row count.
+        header_found=0; IDX_PROD=-1; IDX_CONS=-1; IDX_NUM=0; HEADER_CELL_COUNT=0
+      fi
+      continue
+    fi
     continue ;;
   esac
+
   # skip separator rows |---|---|
   if printf '%s' "$line" | grep -qE '^\|[[:space:][:punct:]]*-{2,}'; then continue; fi
+
   mapfile -t cells < <(split_row "$line")
+
   if [ "$header_found" = 0 ]; then
     if printf '%s\n' "${cells[@]}" | grep -qx "Produces" && printf '%s\n' "${cells[@]}" | grep -qx "Consumes"; then
       header_found=1
+      ANY_HEADER_FOUND=1
+      TABLES_SEEN=$((TABLES_SEEN + 1))
+      HEADER_CELL_COUNT=${#cells[@]}
       for j in "${!cells[@]}"; do
         case "${cells[$j]}" in
           Produces) IDX_PROD=$j ;;
@@ -147,13 +201,35 @@ while IFS= read -r line; do
     fi
     continue
   fi
-  STEP="${cells[$IDX_NUM]:-?}"; [ -z "$STEP" ] && STEP="?"
+
+  ROWS_SEEN=$((ROWS_SEEN + 1))
+
+  # Ragged row detection: cell count must match header
+  if [ "${#cells[@]}" -ne "$HEADER_CELL_COUNT" ]; then
+    STEP="${cells[$IDX_NUM]:-?}"
+    [ -z "$STEP" ] && STEP="?"
+    add_finding "$STEP" "row" "ragged row: ${#cells[@]} cells, header has $HEADER_CELL_COUNT (unescaped pipe or missing cell)" "error"
+    continue  # don't validate cells of ragged rows
+  fi
+
+  ROWS_VALIDATED=$((ROWS_VALIDATED + 1))
+  STEP="${cells[$IDX_NUM]:-?}"
+  [ -z "$STEP" ] && STEP="?"
   validate_cell "$STEP" "produces" "${cells[$IDX_PROD]:-}"
   validate_cell "$STEP" "consumes" "${cells[$IDX_CONS]:-}"
 done < "$PLAN"
 
 # Pre-feature plan (no such columns) -> clean, backward compatible.
-if [ "$header_found" = 0 ]; then echo '[]'; exit 0; fi
+if [ "$ANY_HEADER_FOUND" = 0 ]; then
+  echo '[]'
+  echo "check-produce-consume: validated 0 step rows (no Produces/Consumes table)" >&2
+  exit 0
+fi
+
+# Zero data rows warning
+if [ "$ROWS_VALIDATED" -eq 0 ]; then
+  add_finding "table" "rows" "Produces/Consumes table has 0 data rows; checker passed vacuously" "warn"
+fi
 
 # Dangling-consume pass (warn): a consumed id matching no producer is a pre-existing symbol or a typo.
 for entry in "${CONSUMES[@]:-}"; do
