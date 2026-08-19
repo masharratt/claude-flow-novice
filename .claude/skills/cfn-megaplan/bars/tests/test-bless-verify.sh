@@ -34,6 +34,11 @@ assert_exit $? 0 "first bless: exit 0 on a Bar-A-clean manifest"
 [ -f "$LEDGER" ] && ok "first bless: ledger created" || no "first bless: ledger created"
 [ "$(jq -r '.blessings | length' "$LEDGER")" = "1" ] && ok "first bless: one ledger entry" || no "first bless: one ledger entry"
 [ "$(jq -r '.blessings[0].first' "$LEDGER")" = "true" ] && ok "first bless: marked first" || no "first bless: marked first"
+# Per-AC bless (regate scope): first bless is post-gate, nothing owed.
+[ "$(jq -r '.blessings[0].regate.bar_a' "$LEDGER")" = "none" ] && ok "first bless: regate.bar_a none" || no "first bless: regate.bar_a none"
+[ "$(jq -r '.blessings[0].regate.bar_b' "$LEDGER")" = "none" ] && ok "first bless: regate.bar_b none" || no "first bless: regate.bar_b none"
+[ "$(jq -r '.ac_bless["AC-1"].bless_no' "$LEDGER")" = "1" ] && ok "first bless: ac_bless map seeded (AC-1 @ #1)" || no "first bless: ac_bless map seeded"
+[ "$(jq -r '.ac_bless["AC-2"].bless_no' "$LEDGER")" = "1" ] && ok "first bless: ac_bless map seeded (AC-2 @ #1)" || no "first bless: ac_bless map seeded AC-2"
 
 # ---- refuse to bless a manifest that fails the static bar ----
 BAD="$WORK/VERIFY_weasel.md"
@@ -64,6 +69,12 @@ jq -e '.blessings[1].changed[0].fields | index("check")' "$LEDGER" >/dev/null 2>
 [ "$(jq -r '.blessings[1].structure_changed' "$LEDGER")" = "false" ] && ok "re-bless: structure_changed false" || no "re-bless: structure_changed false"
 [ "$(jq -r '.blessings[1].predicate_changed' "$LEDGER")" = "false" ] && ok "re-bless: predicate_changed false" || no "re-bless: predicate_changed false"
 [ "$(cat "$SIDECAR")" = "$(sha256sum "$VF" | awk '{print $1}')" ] && ok "re-bless: sidecar re-pinned to new bytes" || no "re-bless: sidecar re-pinned"
+# check/evidence are mechanical fields: the static gate this bless just ran is the whole re-gate.
+[ "$(jq -r '.blessings[1].regate.bar_a' "$LEDGER")" = "none" ] && ok "re-bless (check only): regate.bar_a none" || no "re-bless (check only): regate.bar_a none (got $(jq -r '.blessings[1].regate.bar_a' "$LEDGER"))"
+[ "$(jq -r '.blessings[1].regate.bar_b' "$LEDGER")" = "none" ] && ok "re-bless (check only): regate.bar_b none" || no "re-bless (check only): regate.bar_b none"
+[ "$(jq -r '.blessings[1].regate.probe' "$LEDGER")" = "false" ] && ok "re-bless (check only): probe false" || no "re-bless (check only): probe false"
+[ "$(jq -r '.ac_bless["AC-1"].bless_no' "$LEDGER")" = "2" ] && ok "re-bless: ac_bless AC-1 bumped to #2" || no "re-bless: ac_bless AC-1 bumped to #2"
+[ "$(jq -r '.ac_bless["AC-2"].bless_no' "$LEDGER")" = "1" ] && ok "re-bless: ac_bless AC-2 untouched (#1)" || no "re-bless: ac_bless AC-2 untouched"
 
 # ---- re-bless after loosening a pass predicate ----
 # The gaming vector: a `pass` rewritten to match whatever the code does. It is
@@ -80,6 +91,37 @@ PY
 "$SCRIPT" "$VF" >/dev/null 2>&1
 assert_exit $? 0 "re-bless (pass edit): exit 0"
 [ "$(jq -r '.blessings[2].predicate_changed' "$LEDGER")" = "true" ] && ok "re-bless: predicate_changed true when pass moves" || no "re-bless: predicate_changed true when pass moves"
+# Semantic field on one AC: re-gate is scoped to that AC, not the whole manifest.
+[ "$(jq -r '.blessings[2].regate.bar_a' "$LEDGER")" = "acs" ] && ok "re-bless (pass edit): regate.bar_a acs" || no "re-bless (pass edit): regate.bar_a acs (got $(jq -r '.blessings[2].regate.bar_a' "$LEDGER"))"
+[ "$(jq -c '.blessings[2].regate.bar_a_acs' "$LEDGER")" = '["AC-1"]' ] && ok "re-bless (pass edit): bar_a_acs == [AC-1]" || no "re-bless (pass edit): bar_a_acs == [AC-1]"
+[ "$(jq -r '.blessings[2].regate.bar_b' "$LEDGER")" = "steps" ] && ok "re-bless (pass edit): regate.bar_b steps" || no "re-bless (pass edit): regate.bar_b steps"
+[ "$(jq -c '.blessings[2].regate.bar_b_acs' "$LEDGER")" = '["AC-1"]' ] && ok "re-bless (pass edit): bar_b_acs == [AC-1]" || no "re-bless (pass edit): bar_b_acs == [AC-1]"
+[ "$(jq -r '.blessings[2].regate.probe' "$LEDGER")" = "false" ] && ok "re-bless (pass edit): probe false (no new AC)" || no "re-bless (pass edit): probe false"
+[ "$(jq -r '.ac_bless["AC-2"].bless_no' "$LEDGER")" = "1" ] && ok "re-bless (pass edit): AC-2 keeps bless #1" || no "re-bless (pass edit): AC-2 keeps bless #1"
+
+# ---- re-bless after ADDING an AC: only case that owes a probe ----
+python3 - "$VF" <<'PY2'
+import json, re, sys, copy
+p = sys.argv[1]; t = open(p).read()
+raw = re.findall(r'```json\n(.*?)```', t, re.S)[-1]
+m = json.loads(raw)
+new_ac = copy.deepcopy(m['acs'][0]); new_ac['id'] = 'AC-9'
+m['acs'].append(new_ac)
+new = json.dumps(m, indent=2) + "\n"
+open(p,'w').write(t[:t.rindex(raw)] + new + t[t.rindex(raw)+len(raw):])
+PY2
+"$SCRIPT" "$VF" >/dev/null 2>&1
+assert_exit $? 0 "re-bless (AC added): exit 0"
+[ "$(jq -r '.blessings[3].regate.probe' "$LEDGER")" = "true" ] && ok "re-bless (AC added): probe true" || no "re-bless (AC added): probe true"
+[ "$(jq -c '.blessings[3].regate.bar_a_acs' "$LEDGER")" = '["AC-9"]' ] && ok "re-bless (AC added): bar_a_acs == [AC-9]" || no "re-bless (AC added): bar_a_acs == [AC-9] (got $(jq -c '.blessings[3].regate.bar_a_acs' "$LEDGER"))"
+[ "$(jq -r '.ac_bless["AC-9"].bless_no' "$LEDGER")" = "4" ] && ok "re-bless (AC added): AC-9 enters ac_bless at #4" || no "re-bless (AC added): AC-9 enters ac_bless at #4"
+
+# ---- --force-full overrides the scoped re-gate ----
+"$SCRIPT" "$VF" --force-full >/dev/null 2>&1
+assert_exit $? 0 "re-bless (--force-full): exit 0"
+[ "$(jq -r '.blessings[4].regate.bar_a' "$LEDGER")" = "full" ] && ok "--force-full: regate.bar_a full" || no "--force-full: regate.bar_a full"
+[ "$(jq -r '.blessings[4].regate.bar_b' "$LEDGER")" = "full" ] && ok "--force-full: regate.bar_b full" || no "--force-full: regate.bar_b full"
+[ "$(jq -r '.blessings[4].regate.probe' "$LEDGER")" = "true" ] && ok "--force-full: probe true" || no "--force-full: probe true"
 
 # ---- re-bless after removing an AC ----
 python3 - "$VF" <<'PY'
@@ -87,7 +129,7 @@ import json, re, sys
 p = sys.argv[1]; t = open(p).read()
 raw = re.findall(r'```json\n(.*?)```', t, re.S)[-1]
 m = json.loads(raw)
-m['acs'] = [a for a in m['acs'] if a['id'] != 'AC-2']
+m['acs'] = [a for a in m['acs'] if a['id'] not in ('AC-2','AC-9')]
 m['coverage']['fr_total'] = 0; m['coverage']['fr_mapped'] = 0
 m['coverage']['core_fr'] = []; m['coverage']['core_fr_assembled_path_ok'] = []
 m['coverage']['out_of_band_core_fr'] = []; m['coverage']['core_fr_runtime_observed'] = []
@@ -97,8 +139,11 @@ open(p,'w').write(t[:t.rindex(raw)] + new + t[t.rindex(raw)+len(raw):])
 PY
 "$SCRIPT" "$VF" >/dev/null 2>&1
 assert_exit $? 0 "re-bless (AC removed): exit 0"
-[ "$(jq -r '.blessings[3].structure_changed' "$LEDGER")" = "true" ] && ok "re-bless: structure_changed true when an AC disappears" || no "re-bless: structure_changed true when an AC disappears"
-[ "$(jq -r '.blessings[3].removed[0]' "$LEDGER")" = "AC-2" ] && ok "re-bless: names the removed AC" || no "re-bless: names the removed AC"
+[ "$(jq -r '.blessings[5].structure_changed' "$LEDGER")" = "true" ] && ok "re-bless: structure_changed true when an AC disappears" || no "re-bless: structure_changed true when an AC disappears"
+jq -e '.blessings[5].removed | index("AC-2")' "$LEDGER" >/dev/null 2>&1 && ok "re-bless: names the removed AC" || no "re-bless: names the removed AC"
+[ "$(jq -r '.blessings[5].regate.bar_a' "$LEDGER")" = "acs" ] && ok "re-bless (AC removed): regate.bar_a acs (coverage re-read)" || no "re-bless (AC removed): regate.bar_a acs"
+[ "$(jq -r '.blessings[5].regate.probe' "$LEDGER")" = "false" ] && ok "re-bless (AC removed): probe false" || no "re-bless (AC removed): probe false"
+[ "$(jq -r '.ac_bless["AC-2"] // "gone"' "$LEDGER")" = "gone" ] && ok "re-bless (AC removed): AC-2 dropped from ac_bless" || no "re-bless (AC removed): AC-2 dropped from ac_bless"
 
 # ---- stage: plan-time bless of a not-yet-implemented manifest ----
 # The canonical pipeline blesses VERIFY during megaplan, before any code exists,

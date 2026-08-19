@@ -23,7 +23,31 @@
 #                        (loosen the predicate until the code satisfies it), so
 #                        it is never folded into "just check text".
 #
-# Usage:  bless-verify.sh <planning/<slug>/VERIFY_<slug>.md> [--note "<why>"]
+# Per-AC re-gate scope (added 2026-08-18). A re-bless used to owe "full Bar A +
+# full Bar B + live probe" whenever any AC row moved, so a one-row edit cost as
+# much as the whole plan. The ledger already knows exactly which ACs moved, so
+# each entry now also carries a `regate` object telling the orchestrator what
+# is still owed AFTER this bless (the static gate is already paid by the bless
+# itself):
+#
+#   regate.bar_a   none | acs | full     LLM Bar A review scope
+#   regate.bar_a_acs [ids]               rows to re-review (plus the coverage block)
+#   regate.bar_b   none | steps | full   Bar B scope: static+structural on PLAN
+#   regate.bar_b_acs [ids]               steps bound to these AC ids
+#   regate.probe   bool                  live haiku probe owed (only when an AC
+#                                        was ADDED, or --force-full)
+#
+# Field classes: MECHANICAL = check evidence seeds signal trigger requires
+# (a move here owes nothing beyond the static gate). Every other AC field
+# (pass, criterion, kind, maps_to, reference, binding, unknown keys) is SEMANTIC
+# and scopes the re-gate to that AC. Added/removed ids and a changed coverage
+# block are structural: bar_a covers the added/changed rows + coverage.
+#
+# The ledger also keeps a top-level `ac_bless` map: per AC id, the bless number
+# and timestamp of the last bless in which that row moved (or first appeared).
+# Untouched rows keep their original bless provenance across re-blesses.
+#
+# Usage:  bless-verify.sh <planning/<slug>/VERIFY_<slug>.md> [--stage plan|exit] [--note "<why>"] [--force-full]
 # Writes (always beside the manifest, derived from its own dir + basename, so this
 # works unchanged for a per-plan dir and for a legacy flat planning/ layout):
 #         <dir>/.VERIFY_<slug>.sha256        (integrity sidecar)
@@ -41,11 +65,13 @@ STATIC_CHECK="$SCRIPT_DIR/check-verifiable-static.sh"
 VERIFY="${1:-}"
 NOTE=""
 STAGE="plan"
+FORCE_FULL=false
 shift || true
 while [ $# -gt 0 ]; do
   case "$1" in
     --note) NOTE="${2:-}"; shift 2 ;;
     --stage) STAGE="${2:-}"; shift 2 ;;
+    --force-full) FORCE_FULL=true; shift ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -55,7 +81,7 @@ case "$STAGE" in
 esac
 
 if [ -z "$VERIFY" ]; then
-  echo 'usage: bless-verify.sh <planning/<slug>/VERIFY_<slug>.md> [--stage plan|exit] [--note "<why>"]' >&2
+  echo 'usage: bless-verify.sh <planning/<slug>/VERIFY_<slug>.md> [--stage plan|exit] [--note "<why>"] [--force-full]' >&2
   exit 2
 fi
 [ -f "$VERIFY" ] || { echo "error: file not found: $VERIFY" >&2; exit 2; }
@@ -103,7 +129,7 @@ TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 # Compared field-by-field per AC id rather than as a text diff: a text diff of a
 # reformatted manifest is unreadable, and the question a reviewer actually has
 # is "which ACs moved, and did their criteria move or only their commands".
-DIFF_JSON='{"changed":[],"added":[],"removed":[],"structure_changed":false,"predicate_changed":false,"first":true}'
+DIFF_JSON='{"changed":[],"added":[],"removed":[],"structure_changed":false,"predicate_changed":false,"coverage_changed":false,"first":true}'
 # ARG_MAX guard: --argjson new "$MANIFEST" blows the ~128KB kernel limit on a
 # large manifest (backfilled evidence fields). Write to a temp file and read via
 # --slurpfile instead (same fix verify-run.sh uses). $new is then [[<manifest>]],
@@ -129,6 +155,8 @@ if [ -f "$SNAPSHOT" ]; then
           or ([ $changed[] | select(.fields | any(. as $f | $structural | index($f))) ] | length) > 0 ),
       predicate_changed:
         ( ( [ $changed[] | select(.fields | index("pass")) ] | length ) > 0 ),
+      coverage_changed:
+        ( ($old[0].coverage // null) != ($new[0].coverage // null) ),
       first: false }
   ')"
   # Never pin on a diff we could not compute: a silently-empty diff would
@@ -141,20 +169,63 @@ if [ -f "$SNAPSHOT" ]; then
 fi
 rm -f "$NEWTMP"
 
+# ---- re-gate scope (what is still owed AFTER this bless) ----
+# The static gate already ran above, so "none" means "nothing beyond what this
+# bless just did". Only semantic/structural movement scopes an LLM re-review,
+# and only an ADDED row (new work the probe never saw) owes the live probe.
+REGATE_JSON="$(jq -n --argjson d "$DIFF_JSON" --argjson force "$FORCE_FULL" '
+  (["check","evidence","seeds","signal","trigger","requires"]) as $mech |
+  [ $d.changed[] | select(.fields | any(. as $f | ($mech | index($f)) == null)) | .id ] as $sem |
+  (($sem + $d.added) | unique) as $touched |
+  if $force then
+    { bar_a:"full", bar_a_acs:[], bar_b:"full", bar_b_acs:[], probe:true,
+      reason:"--force-full" }
+  elif $d.first then
+    { bar_a:"none", bar_a_acs:[], bar_b:"none", bar_b_acs:[], probe:false,
+      reason:"first bless (post-gate)" }
+  elif (($touched|length)==0 and ($d.removed|length)==0 and ($d.coverage_changed|not)) then
+    { bar_a:"none", bar_a_acs:[], bar_b:"none", bar_b_acs:[], probe:false,
+      reason:(if ($d.changed|length)==0 then "no AC moved" else "mechanical fields only (check/evidence/seeds/signal/trigger/requires)" end) }
+  else
+    { bar_a:"acs", bar_a_acs:$touched,
+      bar_b:(if ($touched|length)>0 then "steps" else "none" end), bar_b_acs:$touched,
+      probe:(($d.added|length)>0),
+      reason:( [ (if ($sem|length)>0 then "semantic field moved on \($sem|join(","))" else empty end),
+                 (if ($d.added|length)>0 then "added \($d.added|join(","))" else empty end),
+                 (if ($d.removed|length)>0 then "removed \($d.removed|join(","))" else empty end),
+                 (if $d.coverage_changed then "coverage block changed" else empty end) ] | join("; ") ) }
+  end')"
+
 # ---- append the ledger entry ----
 ENTRY="$(jq -n \
   --arg ts "$TS" --arg sha "$SHA" --arg note "$NOTE" --arg stage "$STAGE" \
   --argjson acs "$(echo "$MANIFEST" | jq '.acs | length')" \
-  --argjson d "$DIFF_JSON" \
-  '$d + {timestamp:$ts, sha256:$sha, ac_count:$acs, stage:$stage, note:$note}')"
+  --argjson d "$DIFF_JSON" --argjson r "$REGATE_JSON" \
+  '$d + {timestamp:$ts, sha256:$sha, ac_count:$acs, stage:$stage, note:$note, regate:$r}')"
 
+# Per-AC bless map: rows that moved (any field) or appeared take this bless
+# number; untouched rows keep their prior provenance; removed rows drop out.
+# On the first bless every row is seeded at #1.
+NEWTMP2="$(mktemp)"; printf '%s\n' "$MANIFEST" > "$NEWTMP2"
 if [ -f "$LEDGER" ]; then
   TMP="$(mktemp)"
-  jq --argjson e "$ENTRY" '.blessings += [$e]' "$LEDGER" > "$TMP" && mv "$TMP" "$LEDGER"
+  jq --argjson e "$ENTRY" --arg ts "$TS" --slurpfile new "$NEWTMP2" '
+    .blessings += [$e] |
+    (.blessings | length) as $n |
+    ([$e.changed[].id] + $e.added) as $moved |
+    ([$new[0].acs[].id]) as $ids |
+    .ac_bless = ( (.ac_bless // {})
+      | with_entries(select(.key as $k | $ids | index($k)))
+      | reduce $ids[] as $id (.;
+          if (($moved | index($id)) != null) or (.[$id] == null)
+          then .[$id] = {bless_no:$n, timestamp:$ts} else . end) )
+  ' "$LEDGER" > "$TMP" && mv "$TMP" "$LEDGER"
 else
-  jq -n --arg slug "$SLUG" --arg vf "$VERIFY" --argjson e "$ENTRY" \
-    '{slug:$slug, verify_file:$vf, blessings:[$e]}' > "$LEDGER"
+  jq -n --arg slug "$SLUG" --arg vf "$VERIFY" --argjson e "$ENTRY" --arg ts "$TS" --slurpfile new "$NEWTMP2" \
+    '{slug:$slug, verify_file:$vf, blessings:[$e],
+      ac_bless: ([$new[0].acs[].id] | map({key:., value:{bless_no:1, timestamp:$ts}}) | from_entries)}' > "$LEDGER"
 fi
+rm -f "$NEWTMP2"
 
 # ---- pin ----
 printf '%s\n' "$SHA" > "$SIDECAR"
@@ -167,7 +238,12 @@ else
   echo "blessed $VERIFY (bless #$N) sha256=${SHA:0:12}"
   echo "$DIFF_JSON" | jq -r '
     "  changed: \(.changed | length) AC(s)  added: \(.added | length)  removed: \(.removed | length)",
-    "  structure_changed: \(.structure_changed)   predicate_changed: \(.predicate_changed)",
+    "  structure_changed: \(.structure_changed)   predicate_changed: \(.predicate_changed)   coverage_changed: \(.coverage_changed)",
     (.changed[] | "    \(.id): \(.fields | join(", "))")'
 fi
+echo "$REGATE_JSON" | jq -r '
+  "  regate: bar_a=\(.bar_a)\(if (.bar_a_acs|length)>0 then "[\(.bar_a_acs|join(","))]" else "" end)" +
+  " bar_b=\(.bar_b)\(if (.bar_b_acs|length)>0 then "[\(.bar_b_acs|join(","))]" else "" end)" +
+  " probe=\(.probe)  (\(.reason))"'
+
 exit 0

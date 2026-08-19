@@ -21,7 +21,7 @@ Medium features (3-7 files, single shared-state surface): use `/cfn-megaplan-lit
 ## Invocation
 
 ```
-/cfn-megaplan "<task>" [--tier=mvp|beta|enterprise]      # forward: plan a build
+/cfn-megaplan "<task>" [--tier=mvp|beta|enterprise] [--bar-b=full|sonnet]   # forward: plan a build
 /cfn-megaplan --review <path(s)>                          # reverse: audit shipped code
 ```
 
@@ -177,6 +177,8 @@ Tier = `tier-hint` unless the user passed `--tier`; if tier-hint is absent or th
 
 Load the matching profile: `.claude/skills/cfn-megaplan/profiles/<tier>.json`.
 
+**Bar B executor tier.** `profile.bars.haiku_executable` is `sonnet` at mvp/beta and `full` at enterprise; `--bar-b=full|sonnet` overrides it. `sonnet` models the real executor (opus coordinator + sonnet lanes): steps name file + symbol + done predicate, typed signatures optional, no live haiku probe. `full` is the haiku-literal bar with the probe. Rules and rationale: `bars/haiku-executable.md` "Executor tier". Pass the resolved tier into `/write-plan` (it changes the step-row validity rule) and record it in the Bar B gate report as `bar_b_tier`. `bars.verifiable_done` is always `full`; there is no lower tier for Bar A.
+
 ### Step 3: Resolve the active phase set
 
 For each phase in the profile, mechanical resolution: if `condition` is present and the named build flag is false, drop the phase; else use `directive` verbatim.
@@ -304,7 +306,7 @@ If it is missing, re-run `/write-plan` before advancing to L9. `MEGAPLAN_<slug>.
 
 ### Step 6: L9: plan_review + Bar B
 
-Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readiness scaled to tier) in main chat via the Skill tool. Then run **Bar B** (`bars/haiku-executable.md`): static + structural + coverage scans, then the live haiku probe. Any finding routes to the owning phase (ui_control → `cfn-ux`, value source → `cfn-data`/`cfn-arch`, branch → `cfn-pseudo`), which fixes it in **patch mode** (see Loop-back protocol). Re-run Bar B after each fix round.
+Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readiness scaled to tier) in main chat via the Skill tool. Then run **Bar B** (`bars/haiku-executable.md`) at the resolved executor tier: static + structural + coverage scans, then the live haiku probe **only at `full`** (`sonnet` skips it; the structural scan accepts file + symbol name in place of a typed signature). Any finding routes to the owning phase (ui_control → `cfn-ux`, value source → `cfn-data`/`cfn-arch`, branch → `cfn-pseudo`), which fixes it in **patch mode** (see Loop-back protocol). Re-run Bar B after each fix round.
 
 **Bound: max 3 Bar B rounds.** If findings remain after round 3, stop and surface residual findings via `AskUserQuestion` (accept as-is / keep iterating / descope).
 
@@ -324,9 +326,11 @@ Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readi
 |---|---|
 | nothing (default accepted) | nothing |
 | artifact prose only, no AC row and no plan step | the static passes (`check-verifiable-static.sh`, `check-haiku-static.sh`) |
-| an AC row (added/removed/rewritten), or a `[core]` FR, or a plan step's semantics | full Bar A + full Bar B, including the live haiku probe |
+| one or more AC rows (added/removed/rewritten) | re-bless; then exactly what the bless's `regate` line says (per-AC scope, see `bars/verifiable-done.md` "Per-AC re-gate scope"). Typical: LLM Bar A on the named rows + coverage block, Bar B static+structural on the steps bound to them, no probe unless a row was **added** |
+| a plan step's semantics, no AC change | Bar B static + structural on the changed steps only; live probe only if the change added a step or a new file/component |
+| a `[core]` FR (SPEC), or `--force-full` | full Bar A + full Bar B, including the live haiku probe |
 
-Any edit to `VERIFY_<slug>.md` **must** re-bless via `bars/bless-verify.sh "$PDIR/VERIFY_<slug>.md" --note "<why>"`, or `cfn-loop-task` Step 0 will correctly reject the manifest as tampered. The re-bless appends a ledger entry naming the moved ACs and fields; read its `predicate_changed` line before accepting an override that touched a `pass` condition.
+Any edit to `VERIFY_<slug>.md` **must** re-bless via `bars/bless-verify.sh "$PDIR/VERIFY_<slug>.md" --note "<why>"`, or `cfn-loop-task` Step 0 will correctly reject the manifest as tampered. The re-bless appends a ledger entry naming the moved ACs and fields plus a `regate` scope; read its `predicate_changed` line before accepting an override that touched a `pass` condition, and do the `regate` work before handing off. Never re-run the whole gate for a one-row change; never skip a row `regate` names.
 
 Override rounds are bounded at 2. Residual disagreement is a scope question, not a planning loop — surface it and stop.
 
@@ -467,13 +471,14 @@ Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
 | Bar A fails | patch the owning phase only — not the pipeline, not a full phase re-run |
 | Bar B probe returns questions | route each to its owning phase, patch it, re-probe |
 | same finding survives 2 patch rounds | escalate to a full phase re-run; if that phase was downgraded in Step 3a, re-run it at `opus` |
-| Step 7 override changed an AC row or a `[core]` FR | re-run full Bar A + Bar B (the bars passed against the old bytes), then re-bless `.VERIFY_<slug>.sha256` |
+| Step 7 override changed an AC row | re-bless with `bars/bless-verify.sh`, then do what its `regate` line owes (scoped Bar A on the named rows, Bar B on their steps, probe only on an added row) |
+| Step 7 override changed a `[core]` FR | re-run full Bar A + Bar B (the bars passed against the old bytes), then re-bless with `--force-full` |
 | tier ambiguous | `AskUserQuestion`, recommend from spec |
 | user downgrades tier | floor items stay on; warn if a downgrade drops a phase the build flags say is needed |
 | `write-plan` left no `PLAN_<slug>.md` | re-run `/write-plan`; never hand off with only `MEGAPLAN_`/`VERIFY_` — loop-task lane derivation hard-fails without `PLAN_` |
 | artifact landed loose in `planning/` instead of `planning/<slug>/` | move it into `$PDIR` (`git mv`), then re-run whatever reads it. A stale flat copy left behind still resolves via the legacy fallback and will be read instead of the nested one only when the nested file is absent — delete it, do not keep both |
 | reading a plan written before the per-plan dir landed | nothing to do: `plan-paths.sh resolve` falls back to flat `planning/<NAME>`. Migrate it with `mkdir -p planning/<slug> && git mv planning/*_<slug>.* planning/<slug>/` (include the dotfiles: `.VERIFY_<slug>.sha256`, `.bless.json`, `.blessed.json`) when convenient |
-| sibling plan forced an item into an already-done plan | apply it, re-run that plan's Bar A + Bar B, flip its seam row to `applied` (back-propagation rule); do not build the earlier plan while it lists forced items unapplied |
+| sibling plan forced an item into an already-done plan | apply it, re-bless that plan's VERIFY and do its `regate` scope (Bar A on the touched rows, Bar B on their steps; probe if a row was added), flip its seam row to `applied` (back-propagation rule); do not build the earlier plan while it lists forced items unapplied |
 | dependent plan blocked on sibling seam | Bar B = CONDITIONAL-PASS (multi-plan only); hold `cfn-loop-task` until blocking seams are `applied`, per program build order |
 
 ## Anti-patterns
@@ -487,8 +492,9 @@ Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
 - Judging an `[OPEN]` by how important it feels. Triage is mechanical: is the section downstream-consumed, yes or no.
 - Full-re-running a phase to fix two Bar findings. Patch mode exists; a re-run also churns ids downstream artifacts already cite.
 - Downgrading `spec` / `data` / `arch` / `decide`-at-full to a cheaper model. They decide the structure every later phase consumes; an error there is the most expensive kind.
-- Accepting a Step 7 override that rewrites an AC row without re-running Bar A/Bar B and re-blessing the `.VERIFY` hash. The gates passed against different bytes; `cfn-loop-task` will reject the manifest.
-- Editing planning artifacts during implementation without re-running Bar B.
+- Accepting a Step 7 override that rewrites an AC row without re-blessing and doing the `regate` work. The gates passed against different bytes; `cfn-loop-task` will reject the manifest.
+- Re-running the WHOLE Bar A + Bar B + probe for a one-row AC change. The bless ledger's `regate` scope names the rows and steps that are owed; a full re-gate for a scoped change is the 1-hour rebless tax this scope exists to remove.
+- Editing a plan step's semantics (files, done predicate, AC binding) during implementation without re-running Bar B on that step. Amendments that keep files + AC binding + done predicate are the sanctioned adaptation channel in `cfn-loop-task` (Step 2 "Bounded step amendment") and do not re-open Bar B.
 - Writing any artifact loose in `planning/` instead of `planning/<slug>/`. The per-plan dir is what keeps a project with 20 plans navigable; one loose file per plan is how the flat layout came back.
 - Hand-rolling the nested-then-flat lookup in a new consumer. Use `plan-paths.sh resolve` — a second copy of that logic is where the two layouts start disagreeing.
 - Splitting one plan across two dirs (e.g. VERIFY in `planning/<slug>/`, PLAN loose). The handoff gate checks both in `$PDIR` for exactly this reason.

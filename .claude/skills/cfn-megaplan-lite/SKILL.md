@@ -116,7 +116,7 @@ Bar B-lite runs three scans only:
 2. **Structural:** every FR/EC id in `SPEC_<slug>.md` appears in at least one plan step; every plan step cites the artifact and section it implements.
 3. **Coverage:** every `[core]` FR has an executable AC in `VERIFY_<slug>.md`; every branch in `PSEUDO_<slug>.md` maps to a step or is explicitly marked out-of-scope.
 
-**DO NOT spawn the live haiku probe.** Rationale: lite's execution model is an opus coordinator driving sonnet-level subagents with clear scoped steps. That coordinator is the clarifying layer the live probe simulated in full megaplan. Spawning the probe here would re-introduce the serial-tail cost lite exists to cut, without adding signal the coordinator does not already supply at execution time. The static/structural/coverage scans still catch gross defects (missing paths, weasel words, unmapped branches, optional-DI on core FRs); the probe's marginal catch does not justify its wall-clock on a medium feature.
+**DO NOT spawn the live haiku probe.** (Full megaplan now has the same behavior at its `sonnet` Bar B tier, the mvp/beta default; lite is always at that tier.) Rationale: lite's execution model is an opus coordinator driving sonnet-level subagents with clear scoped steps. That coordinator is the clarifying layer the live probe simulated in full megaplan. Spawning the probe here would re-introduce the serial-tail cost lite exists to cut, without adding signal the coordinator does not already supply at execution time. The static/structural/coverage scans still catch gross defects (missing paths, weasel words, unmapped branches, optional-DI on core FRs); the probe's marginal catch does not justify its wall-clock on a medium feature.
 
 ## Round caps with mechanical/semantic split (fix G1)
 

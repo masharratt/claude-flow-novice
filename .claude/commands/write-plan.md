@@ -243,7 +243,7 @@ Task("planner", "
 When megaplan artifacts exist (TEST/OPS/etc. in the plan dir `planning/<slug>/`), this plan is an ASSEMBLY document: the step table below + the inherited TEST tables + the OPS integration rows + the risk register. Do not author freehand Red/Green/Refactor phases or prose deliverables; the tables below replace them entirely.
 
 ### Phase 2: Green (Implementation Steps)
-Every step MUST fill every column. A step missing a file path, signature, or verification command is invalid (Bar B haiku-executable rejects it). One step = one file where possible; never more than 3 files per step.
+Every step MUST fill every column. A step missing a file path, a Change cell, or a verification command is invalid (Bar B haiku-executable rejects it). The Change cell's required precision follows the Bar B executor tier the megaplan resolved (`bars.haiku_executable`): at `full`, a typed signature; at `sonnet` (mvp/beta default), a named symbol (function/method/type/config key) is enough when the Failing test + Done predicate pin the behavior. Never "a helper that does X" at either tier. One step = one file where possible; never more than 3 files per step.
 
 | # | File (full path) | Change (exact: function name, typed signature, or config key) | Produces | Consumes | Failing test (from TEST_<slug> Phase 6) | Verify command (exits 0/1) | Done predicate |
 |---|---|---|---|---|---|---|---|

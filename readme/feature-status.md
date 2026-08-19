@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-18 (global CFN config layer moved into `.claude/global/` and reverse-symlinked into `~/.claude/`; stale npm-era `root-claude-distribute/CFN-CLAUDE.md` deleted; 933 scripts marked executable in the index and the syntax gate extended to hold that line) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-18 (megaplan re-gate loosened at the right seams: per-AC scoped re-bless via `regate`, Bar B executor tier `sonnet` default at mvp/beta, bounded HOW-amendments in cfn-loop-task lanes) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -57,7 +57,7 @@ This file MUST be updated when:
 | parse-test-summary.sh | ✅ Prod | ✅ 44/44 | `.claude/skills/cfn-loop-orchestration-v2/cli/lib/` | Shared lib for gate-check.sh + verify-run.sh AC-verdict parsing. Zero-collected or any skipped/todo forces red. Runners: jest, vitest, pytest, node:test, cargo, cargo-nextest, go. Known limit: `go test` without `-v` stays unknown. (CHANGELOG.md) |
 | deferrals.sh | ✅ Prod | ✅ 37/37 | `.claude/skills/cfn-loop-orchestration-v2/cli/` | Lane deferrals lifecycle (S006, 2026-07-11). New tool for record/gate/resolve: persists blocking items to `.deferrals_<slug>.json`, gates Phase 5 (5E.4a no-open-deferrals check), resolves on backlog. Fail-closed (zero deferrals required by default); cfn-loop-task.md Phase 5 exit gate reads and enforces it. |
 | THRESHOLDS.md | ✅ Prod | n/a | `.claude/skills/cfn-loop-orchestration-v2/` | Single source of truth for gate/consensus/max-iter per mode |
-| VERIFY manifest gate | ✅ Prod | ✅ | `cfn-loop-task.md` Phase 5 (5E) + `cfn-megaplan/bars/verifiable-done.md` | Loop done requires verify-run.sh proving every AC green mechanically, manifest unedited since Bar A (sha256 sidecar), no gamed tests, core FRs surviving a mutation probe, and all applicable gate skills run |
+| VERIFY manifest gate | ✅ Prod | ✅ 55/55 | `cfn-loop-task.md` Phase 5 (5E) + `cfn-megaplan/bars/verifiable-done.md` | Loop done requires verify-run.sh proving every AC green mechanically, manifest unedited since Bar A (sha256 sidecar), no gamed tests, core FRs surviving a mutation probe, and all applicable gate skills run. Re-bless is per-AC scoped: `bless-verify.sh` emits a `regate` line naming only the rows/steps owed (probe only on an added AC); `--force-full` for whole-plan re-gate |
 | Sonnet-hardened prompts | ✅ Prod | n/a | commands, skills, `agents/cfn-dev-team/` | Opus/Sonnet migration: mechanical gates, pinned contracts, shared agent prelude, dead-ref quarantine (docs/PROMPT_AUDIT_OPUS_SONNET_MIGRATION.md). 2026-07-03 follow-up: agent-builder rewritten as template enforcer (4-section template, validation checklist, never-change-model rule); remaining 17 profiles restructured to conform; full roster now conforming. 2026-07-03 (phase 2): 5 judgment-heavy profiles pinned to opus (root-cause-analyst, goal-planner, system-architect, product-owner, simplifier) for enhanced reasoning on complex decisions |
 
 ### Execution Modes
@@ -242,7 +242,7 @@ This file MUST be updated when:
 
 | Command | Status | Tests | Location | Description |
 |---------|--------|-------|----------|-------------|
-| /cfn-loop-task | ✅ Prod | ✅ | `cfn-loop-task.md` (3.2.0) | Task mode execution: derives lanes from planning/PLAN_<slug>.md (lane source), checks completion via planning/VERIFY_<slug>.md. MEGAPLAN_<slug>.md is an index/summary, never a lane source. 3.2.0 (2026-07-11): mechanical Phase 5 Exit gate (5E.0-5E.5 via verify-run.sh, MAY iterate to Phase 2 bounded by MAX_ITERATIONS), Phase 4 gate-wiring matrix (S004), Phase 3 hygiene scan + shrink-baseline + flaky protocol (S001), manifest hash check, deferrals gate (S006: 5E.4a enforces no-open-deferrals). |
+| /cfn-loop-task | ✅ Prod | ✅ | `cfn-loop-task.md` (3.4.0) | Task mode execution: derives lanes from planning/PLAN_<slug>.md (lane source), checks completion via planning/VERIFY_<slug>.md. Mechanical Phase 5 Exit gate (5E.0-5E.5 via verify-run.sh), Phase 4 gate-wiring matrix, manifest hash check, deferrals gate (S006). 3.4.0: bounded step amendment (lanes may change HOW when files+AC+done predicate hold; `step_amendments` audited in run-plan, Step 3.01a) and per-AC scoped re-gate on hash mismatch (Step 0a). |
 | /cfn-loop-cli | ✅ Prod | ✅ | `cfn-loop-cli.md` | CLI mode execution |
 | /cfn-fix-errors | ✅ Prod | ✅ | `cfn-fix-errors.md` | Automated error fixing |
 | /cfn-check-errors | ✅ Prod | ✅ | `cfn-check-errors.md` | Error detection |
@@ -496,7 +496,7 @@ Consumer Project
 | bless-verify.sh | ✅ Prod | ✅ 29/29 | `.claude/skills/cfn-megaplan/bars/` | The only supported way to bless a VERIFY manifest (S007, 2026-07-22). Replaces the hand-run `sha256sum > sidecar` one-liner: gates on `check-verifiable-static.sh` (refuses to pin anything on an error finding — blessing was previously self-service), writes the sidecar, snapshots the manifest, and appends a per-bless ledger entry naming which ACs moved in which fields. Reports `structure_changed` (AC set / id / kind / maps_to moved) and `predicate_changed` (a `pass` condition moved — the gaming vector) on separate axes so a reviewer never infers one from the other. `--stage plan\|exit` passes through to the static checker. |
 | Manifest integrity hash | ✅ Prod | ✅ | `planning/<slug>/.VERIFY_<slug>.sha256` (legacy flat `planning/.VERIFY_<slug>.sha256` still resolves) + `.bless.json` + `.blessed.json` (bless-verify.sh / verify-run.sh) | Sidecar sha256 of the Bar A-blessed VERIFY file (W2/G38, 2026-07-09). cfn-loop-task Step 0 + verify-run.sh refuse a manifest edited since Bar A; missing sidecar = warn (pre-hash-era). S007: the sidecar is now written only by `bless-verify.sh`, alongside an append-only bless ledger and a manifest snapshot for diffing. |
 | check-haiku-static.sh | ✅ Prod | ✅ 13/13 | `.claude/skills/cfn-megaplan/bars/` | Bar B weasel/structure scan (S005, 2026-07-11). Weasel patterns sourced from shared `bars/weasel-phrases.txt`. New scoped warn-only optional-DI scan: core-FR components must use non-optional DI at composition root (compile-error if omitted, not silent no-op); exceptions require DECISIONS register entry, not inline comment. |
-| Bar B: haiku-executable | ⚠️ Beta | ✅ | `.claude/skills/cfn-megaplan/bars/haiku-executable.md` | Every step unambiguous. Rejects optional-DI for core-FR components on compilation bar; optional dependencies allowed only for non-core, with exception registered in DECISIONS. Static + probe scan. |
+| Bar B: haiku-executable | ⚠️ Beta | ✅ | `.claude/skills/cfn-megaplan/bars/haiku-executable.md` | Every step unambiguous for the executor tier. `bars.haiku_executable` profile knob: `sonnet` (mvp/beta default: file+symbol+done predicate, no live probe) or `full` (enterprise: typed signature + haiku probe); `--bar-b=` overrides. Rejects optional-DI for core-FR components at both tiers. |
 
 ### Planning Phase Skills
 

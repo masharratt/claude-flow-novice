@@ -469,13 +469,13 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 |---|---|---|---|
 | draft | refused | `bless-verify.sh` run with Bar A error findings | Sidecar is NOT written; nothing is pinned |
 | draft | blessed(plan) | `bless-verify.sh <file>` (default `--stage plan`) | `check-verifiable-static.sh --stage plan` clean. `evidence: "PENDING: <reason>"` allowed (warn) because the code does not exist yet |
-| blessed(plan) | blessed(plan) | manifest edited, re-blessed | Ledger appends an entry naming changed ACs + fields; `structure_changed` / `predicate_changed` reported separately |
+| blessed(plan) | blessed(plan) | manifest edited, re-blessed | Ledger appends an entry naming changed ACs + fields; `structure_changed` / `predicate_changed` / `coverage_changed` reported separately; `regate` names the per-AC LLM re-gate still owed (`bar_a: none\|acs\|full`, `bar_b: none\|steps\|full`, `probe` only when an AC was added or `--force-full`). `ac_bless` map keeps untouched rows on their prior bless number |
 | blessed(plan) | blessed(exit) | `verify-run.sh backfill-evidence` then `bless-verify.sh --stage exit` (cfn-loop-task 5E.3a) | `--stage exit` errors on any surviving `PENDING`. Only green rows are backfilled |
 | blessed(*) | draft | any edit to the file | Sidecar goes stale; `verify-run.sh` exits 4 until re-blessed |
 
 **Why two stages:** a manifest is authored during planning, so "run the check once and paste its output" is impossible for code that does not exist. `PENDING` is the honest plan-time value, and the exit stage is where the loop collects on it. A single-stage rule would be unsatisfiable at plan time and therefore routed around.
 
-**Ledger (`planning/.VERIFY_<slug>.bless.json`, append-only):** each entry records `timestamp`, `sha256`, `stage`, `ac_count`, `note`, `changed[]`, `added`, `removed`, `structure_changed`, `predicate_changed`. `predicate_changed: true` is the gaming vector (a `pass` loosened until the code satisfies it) and never folds into "just check text".
+**Ledger (`planning/.VERIFY_<slug>.bless.json`, append-only):** each entry records `timestamp`, `sha256`, `stage`, `ac_count`, `note`, `changed[]`, `added`, `removed`, `structure_changed`, `predicate_changed`, `coverage_changed`, `regate{bar_a,bar_a_acs,bar_b,bar_b_acs,probe,reason}`; top-level `ac_bless{<id>:{bless_no,timestamp}}`. `predicate_changed: true` is the gaming vector (a `pass` loosened until the code satisfies it) and never folds into "just check text". Mechanical fields (`check evidence seeds signal trigger requires`) owe nothing beyond the static gate; any other field scopes the re-gate to that AC.
 
 **Mutation-probe gate (5E.0):** Before verdict finalization, mutation probe on each core FR: inject semantic bug, expect red verdict, restore. If mutation survives (verify-run still green), AC is strengthened by cfn-loop-task Phase 2 re-run (S-series findings force loop iteration).
 

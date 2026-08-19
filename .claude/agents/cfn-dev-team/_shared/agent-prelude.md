@@ -55,6 +55,15 @@ OUT=/tmp/test-${PWD##*/}-$(date +%s).txt
   ROOTCAUSE_mpa_thread_wiring_gap.md). Do not use this field to quietly punt
   work you suspect nobody will revisit — it now stops the loop until someone
   does.
+- **Bounded step amendment (HOW, not WHAT).** The plan pins files, AC binding,
+  and done predicate; it does not have to pin implementation shape. When a
+  better approach keeps the SAME files, the SAME failing test / AC id, and the
+  SAME done predicate as the plan step, take it and record it in
+  `step_amendments` (`{"step","kind":"how","what","why"}`); do not stop and do
+  not file it under out_of_scope_needs. Another file, a different AC, or a
+  different done predicate is NOT an amendment: file -> out_of_scope_needs,
+  AC/predicate -> blocked_on "plan drift: <one sentence>". Never edit PLAN_ or
+  VERIFY_ files.
 - No drive-by refactors, renames, or formatting-only changes.
 - No new dependencies. If stdlib/existing deps are insufficient, stop and report.
 - Every DELETE in test code needs a WHERE clause scoped to test-marker rows.
@@ -88,6 +97,6 @@ fi
 ## 7. Final Message Contract (implementers)
 Canonical implementer contract JSON, reported as the last block of your final message:
 ```json
-{"lane": "<lane>", "tests_written": N, "scoped_tests_passed": N, "scoped_tests_total": M, "files_modified": [], "phases_complete": [], "out_of_scope_needs": [], "blocked_on": null | "<one sentence>", "confidence": 0.0}
+{"lane": "<lane>", "tests_written": N, "scoped_tests_passed": N, "scoped_tests_total": M, "files_modified": [], "phases_complete": [], "out_of_scope_needs": [], "step_amendments": [], "blocked_on": null | "<one sentence>", "confidence": 0.0}
 ```
-out_of_scope_needs = out-of-lane file needs ("path: why") — BLOCKING until resolved (see §5); blocked_on = own-lane blocker only (one sentence, else null).
+out_of_scope_needs = out-of-lane file needs ("path: why") — BLOCKING until resolved (see §5); step_amendments = sanctioned HOW deviations, same files/AC/predicate (see §5, audit only); blocked_on = own-lane blocker only (one sentence, else null).

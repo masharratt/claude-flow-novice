@@ -1,8 +1,8 @@
 {
   "tier": "beta",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Alpha-ready: real users behind a feature flag, no on-call paging, no data loss. Adds observability, rollout, success metrics, full tests, concurrency, privacy.",
-  "bars": { "verifiable_done": "full", "haiku_executable": "full" },
+  "bars": { "verifiable_done": "full", "haiku_executable": "sonnet" },
   "floor": ["rls", "auth_boundaries", "secrets_handling", "no_unscoped_delete", "pii_if_present"],
   "_model_policy": "Structure-deciding phases (spec/data/arch/decide-at-full) and ux stay opus — see SKILL.md Step 3a. ops stays opus: it carries security-floor checks (headers, budget cap, banned provider). Downgrades are limited to the terminal artifacts (design, test_plan) and pseudo, whose output arch re-derives.",
   "phases": {

@@ -5,6 +5,14 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-08-18: megaplan re-gate loosened at three seams
+
+Symptom: a 5-hour planning session followed by a 1-hour re-bless for a small change. Root cause was not "requirements too tight" but three places that priced a scoped change as a whole-plan change.
+
+1. **Per-AC scoped re-bless** (`cfn-megaplan/bars/bless-verify.sh`, 55/55 tests). Each ledger entry now carries `regate` (`bar_a: none|acs|full`, `bar_b: none|steps|full`, `probe`) computed from which AC fields moved: mechanical fields (`check evidence seeds signal trigger requires`) owe nothing beyond the static gate the bless already ran; semantic fields scope LLM Bar A to those rows + coverage and Bar B to the steps bound to them; only an ADDED row owes the live probe. `--force-full` restores whole-plan re-gate. Top-level `ac_bless` map keeps untouched rows on their original bless number. `SKILL.md` Step 7 re-gate table, escalation rows, and `cfn-loop-task` Step 0a follow the `regate` line instead of "full Bar A + Bar B + probe".
+2. **Bar B executor tier** (`bars/haiku-executable.md`, `profiles/*.json` 1.4.0). `bars.haiku_executable: sonnet` (new mvp/beta default) models the real executor (opus coordinator + sonnet lanes): steps need file + symbol + done predicate, typed signature optional, no live haiku probe. `full` (enterprise) keeps the haiku-literal bar + probe. `--bar-b=` overrides. What-is-built items (control types, value sources, branches, states, errors, core-FR DI, weasel) unchanged at both tiers. `write-plan` step-row validity follows the tier.
+3. **Bounded step amendment** (`cfn-loop-task.md` 3.4.0, `agent-prelude.md` §5/§7). Lanes may change HOW a step is built when files, AC binding, and done predicate all hold; recorded in `step_amendments`, persisted to `run-plan-<id>.json` (Step 3.01a), audit only. Another file stays `out_of_scope_needs`; a different AC/predicate is `blocked_on: "plan drift"` and routes to re-bless + `regate`.
+
 ## Relocated from feature-status.md (2026-08-03)
 
 Narrative and audit detail moved out of `feature-status.md` description cells

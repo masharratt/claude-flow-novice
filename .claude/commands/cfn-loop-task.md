@@ -45,9 +45,9 @@ fi
 ```
 
 - **Match:** proceed normally.
-- **Mismatch:** REFUSE to run. The VERIFY manifest was edited since Bar A blessed it, which can silently move the goalposts. Surface via `AskUserQuestion` (one decision):
-  - **Re-run Bar A**: re-validate the manifest through `check-verifiable-static.sh` + the verifiable-done gate, which re-blesses a fresh hash.
-  - **Approve the edit and re-bless the hash**: accept the current VERIFY file as intentional and overwrite the sidecar with the recomputed hash.
+- **Mismatch:** REFUSE to run. The VERIFY manifest was edited since Bar A blessed it, which can silently move the goalposts. Run `.claude/skills/cfn-megaplan/bars/bless-verify.sh "$VERIFY_FILE" --note "<why>"` (the only bless path; it refuses on any static finding) and read the ledger entry it appends: `changed[]`, `predicate_changed`, and the `regate` scope. Then surface via `AskUserQuestion` (one decision):
+  - **Do the scoped re-gate the ledger owes**: exactly what `regate` says: LLM Bar A on the `bar_a_acs` rows + coverage block, Bar B static+structural on the PLAN steps bound to `bar_b_acs`, live probe only if `probe:true`. Default for a one-or-few-row edit. Then continue.
+  - **Accept as-is, no re-gate**: legitimate only when `regate.bar_a` is `none` (mechanical fields only). A `predicate_changed: true` accepted with no re-gate is a fabricated green.
   This is the `VERIFY manifest hash mismatch` row in the Stop For table.
 - **Missing sidecar:** WARN only and continue (the manifest predates the hash era). Do not block.
 
@@ -235,9 +235,23 @@ Planning tier vocabulary is mvp|beta|enterprise (cfn-megaplan); execution mode v
 1. **Locate the plan.** Use `$PLAN_FILE` from Step 0 (`plan-paths.sh resolve "$SLUG" "PLAN_${SLUG}.md"` — the plan dir `planning/<slug>/` first, legacy flat `planning/` second). If the slug is not known exactly, `.claude/skills/cfn-megaplan/lib/plan-paths.sh newest 'PLAN_*.md'` returns the newest `PLAN_` across both layouts; confirm its name matches the task slug. If no `PLAN_` file resolves, STOP and run `/write-plan` first. Never improvise lanes without a plan. **Note:** a `MEGAPLAN_<slug>.md` is an index/summary, NOT a lane source — if only `MEGAPLAN_` (and/or `VERIFY_`) exists but no `PLAN_<slug>.md`, the megaplan run failed to persist its plan; run `/write-plan "<task>" --mode=<mode>` to regenerate `PLAN_<slug>.md` from the other artifacts in that plan dir, then continue. Do NOT derive lanes from `MEGAPLAN_` or `VERIFY_`.
 2. **One lane per phase.** Each top-level phase/workstream in the plan becomes one lane. **LANE_CAP = 8** (one constant, used here AND in wave scheduling step 6). If the plan has more phases than LANE_CAP, merge the smallest phases into neighboring lanes until at most LANE_CAP remain. (Lanes = phases, so most plans never reach the cap; it is a ceiling, not a target.)
 3. **Exclusive file ownership.** Each lane gets an exclusive file list derived from the plan. No file may appear in two lanes. If two phases touch the same file, put both phases in the SAME lane and run them sequentially inside it.
-4. **Ownership clause in every spawn prompt.** Each spawn prompt includes: "FILES YOU OWN: <list>. Do not create or edit any file outside this list. Files outside your lane needing changes go in out_of_scope_needs (array of \"path: why\"); blocked_on is only for a blocker that stops YOUR lane (scalar, one sentence, else null)."
+4. **Ownership clause in every spawn prompt.** Each spawn prompt includes: "FILES YOU OWN: <list>. Do not create or edit any file outside this list. Files outside your lane needing changes go in out_of_scope_needs (array of \"path: why\"); blocked_on is only for a blocker that stops YOUR lane (scalar, one sentence, else null). You may amend HOW a step is built (same files, same AC, same done predicate) and record it in step_amendments; you may not amend WHAT."
 5. **Compute lane-dependency edges (from Produces/Consumes).** First run the static sanity gate: `.claude/skills/cfn-megaplan/bars/check-produce-consume.sh "$PLAN_FILE"` — exit 1 (duplicate producer / weasel / empty / malformed cell) BLOCKS; resolve before deriving lanes (a duplicate-producer finding is the AskUserQuestion below). Warnings (dangling consume) are advisory. If the plan has no such columns the checker exits 0 and you skip to a single wave. Then collect every step's identifiers per lane. Draw a directed edge **A → E** whenever any step in lane E has a `Consumes` string-equal (exact, trimmed) to a `Produces` of any step in lane A, with A ≠ E. A Consumes matching no lane's Produces is a pre-existing symbol → no edge (log a one-line `warn: dangling consume <id>` so a typo is visible). **Duplicate producer** (the same identifier Produced by steps in two DIFFERENT lanes) is ambiguous ownership → STOP and surface one `AskUserQuestion` (which lane owns it); do not guess. If the columns are absent or every cell is `-`, the edge set is empty. **Cycle** (A → E and E → A): merge the cycle's lanes into one lane run sequentially — same resolution as the same-file rule in step 3 — and log `cycle-merge: <lanes>`.
 6. **Order lanes into waves (topological).** WAVE_1 = every lane with no inbound edge. Each next wave = lanes whose inbound edges all originate in already-completed waves. Within a wave, run at most LANE_CAP lanes concurrently; ready-but-capped lanes defer to the next slot (never merge them just to fit the cap). Empty edge set ⇒ exactly one wave with all lanes ⇒ identical to the pre-feature single-wave behavior. Log `wave N: lanes [...]` per wave before spawning it.
+
+### Bounded step amendment (sanctioned adaptation, no re-gate)
+
+The plan pins WHAT (files, AC binding, done predicate). It does not have to pin HOW. A lane MAY amend a step's implementation approach without stopping, without `out_of_scope_needs`, and without re-opening Bar B, when ALL THREE hold:
+
+1. **Same files.** The amended step touches only the File cell(s) of that step (all inside the lane's owned list).
+2. **Same AC binding.** The step still satisfies the same `Failing test` / VERIFY AC id(s). No AC is added, dropped, or re-mapped.
+3. **Same done predicate.** The Done predicate and Verify command are unchanged and still exit 0/1 as written.
+
+Amendments inside that box are `kind: "how"`: a different signature than the Change cell spelled, a different internal algorithm, an extra private helper in the same file, a library call the plan did not name. The lane records each one in `step_amendments` in its final JSON (below) and continues. The coordinator persists them to `run-plan-<run-id>.json` (Step 3.01a) for audit; nothing else reads them as a gate.
+
+Anything outside the box is NOT an amendment and uses the existing channels: another file → `out_of_scope_needs`; a different AC, predicate, or verify command → `blocked_on: "plan drift: <one sentence>"` (the coordinator routes it to a VERIFY/PLAN edit + `bless-verify.sh` and does what its `regate` scope owes; see megaplan Step 7 re-gating). A lane never edits `PLAN_` or `VERIFY_` itself.
+
+Why this exists: before it, "how" learning mid-run had two bad exits: silently deviate (invisible drift) or stop and re-bless the whole manifest (the 1-hour tax). This gives the coordinator an audited middle path and keeps re-bless for changes to what is verified.
 
 ### Write the run plan (workbench roster input)
 
@@ -277,6 +291,15 @@ Read ONLY: the plan file, your owned files, and test output excerpts given
 to you. Do NOT read other lanes' files, prior iteration transcripts, or any
 SKILL.md.
 
+ADAPTATION: The plan pins WHAT (files, AC binding, done predicate), not HOW.
+If a better implementation approach than the step's Change cell keeps the
+same files, the same failing test / AC id, and the same done predicate,
+take it and record it in step_amendments ({"step","kind":"how","what","why"}).
+Do not stop, do not put it in out_of_scope_needs. Anything that needs another
+file, a different AC, or a different done predicate is NOT an amendment:
+other file -> out_of_scope_needs; different AC/predicate -> blocked_on
+"plan drift: <one sentence>". Never edit PLAN_ or VERIFY_ files.
+
 REQUIREMENTS:
 1. Write failing tests FIRST (TDD red phase) for every acceptance criterion
 2. Implement to satisfy tests (green phase)
@@ -284,7 +307,8 @@ REQUIREMENTS:
 4. Run ONLY your own test files: npx vitest run <your-test-files> --reporter=verbose
    Never run `npm test` or any repo-wide test command.
 5. Report exactly this JSON as the last block of your output:
-   {"lane": "<lane>", "tests_written": N, "scoped_tests_passed": N, "scoped_tests_total": M, "files_modified": [], "phases_complete": [], "out_of_scope_needs": [], "blocked_on": null | "<one sentence>", "tests_removed_reason": null | "<why you intentionally removed or renamed tests>", "confidence": 0.0}
+   {"lane": "<lane>", "tests_written": N, "scoped_tests_passed": N, "scoped_tests_total": M, "files_modified": [], "phases_complete": [], "out_of_scope_needs": [], "step_amendments": [], "blocked_on": null | "<one sentence>", "tests_removed_reason": null | "<why you intentionally removed or renamed tests>", "confidence": 0.0}
+   `step_amendments` items: {"step": "<plan step #>", "kind": "how", "what": "<one sentence: what differs from the Change cell>", "why": "<one sentence>"}; empty array when none.
    Set `tests_removed_reason` to a non-null string ONLY when you deliberately deleted or renamed existing tests (e.g. consolidated a duplicated suite); leave it null otherwise. The coordinator uses it to distinguish an intentional suite shrink from an accidental one (Phase 3, W3 baseline check).
 
 AGENT_ID: loop3-impl-${TASK_ID}-iter${ITERATION}-<lane>
@@ -354,6 +378,24 @@ Run this every iteration, even when a lane's `out_of_scope_needs` is empty:
 a lane that resolved its own deferral and now reports `[]` clears its block
 instead of leaving a stale blocker. This step has no pass/fail branch of its
 own; the gate lives at Phase 5 (5E.4a).
+
+### Step 3.01a: Amendment capture (audit only, non-blocking)
+
+Persist every lane's `step_amendments` into this run's plan file so a reviewer can see where the build diverged in HOW from the plan's Change cells. Nothing gates on this: an amendment inside the bounded box (same files, AC, done predicate) is sanctioned. A lane report with no `step_amendments` key counts as empty.
+
+```bash
+RUNPLAN="${PDIR}/run-plan-${RUN_ID}.json"
+for LANE_ID in ${LANE_IDS}; do
+  R="/tmp/lane-report-${RUN_ID}-${LANE_ID}.json"; [ -f "$R" ] || continue
+  A="$(jq -c --arg lane "$LANE_ID" --argjson it "${ITERATION}" \
+        '[(.step_amendments // [])[] | . + {lane:$lane, iteration:$it}]' "$R" 2>/dev/null || echo '[]')"
+  [ "$A" != "[]" ] && [ -f "$RUNPLAN" ] && {
+    TMP="$(mktemp)"; jq --argjson a "$A" '.amendments = ((.amendments // []) + $a)' "$RUNPLAN" > "$TMP" && mv "$TMP" "$RUNPLAN"; } \
+    || true
+done
+```
+
+Review rule for the coordinator (one glance, not a gate): an amendment whose `what` names a different file, AC id, or done predicate was mis-filed and is really `out_of_scope_needs` or `blocked_on: "plan drift"`; treat it as such and re-route. Otherwise proceed.
 
 ### Step 3.05: Test-hygiene scan (W3, run BEFORE gate-check)
 
@@ -917,4 +959,4 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 
 ---
 
-**Version:** 3.3.0 | **Date:** 2026-07-11 | Standard CFN Loop. Full-epic Phase 2; mechanical gate via cli/gate-check.sh; thresholds pinned in THRESHOLDS.md; Phase 3 now captures lane `out_of_scope_needs` into a side-manifest (Step 3.01, cli/deferrals.sh record); Phase 4 is the gate-wiring matrix (dry-review + conditional security/migration/a11y/dep-audit/perf gates) routed through cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user prompts); Phase 5 Exit is a mechanical VERIFY gate (5E.0 mutation probe, 5E.1-5E.3 verify-run.sh, 5E.4 all-green, 5E.4a deferrals gate — cli/deferrals.sh gate, S006 — 5E.5 prod-build smoke) that MAY iterate back to Phase 2 bounded by MAX_ITERATIONS.
+**Version:** 3.4.0 | **Date:** 2026-08-18 | Standard CFN Loop. 3.4.0: bounded step amendment (Phase 2, Step 3.01a) + per-AC scoped re-gate at Step 0a. Full-epic Phase 2; mechanical gate via cli/gate-check.sh; thresholds pinned in THRESHOLDS.md; Phase 3 now captures lane `out_of_scope_needs` into a side-manifest (Step 3.01, cli/deferrals.sh record); Phase 4 is the gate-wiring matrix (dry-review + conditional security/migration/a11y/dep-audit/perf gates) routed through cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user prompts); Phase 5 Exit is a mechanical VERIFY gate (5E.0 mutation probe, 5E.1-5E.3 verify-run.sh, 5E.4 all-green, 5E.4a deferrals gate — cli/deferrals.sh gate, S006 — 5E.5 prod-build smoke) that MAY iterate back to Phase 2 bounded by MAX_ITERATIONS.

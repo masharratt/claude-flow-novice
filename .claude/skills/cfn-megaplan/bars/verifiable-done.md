@@ -239,8 +239,28 @@ The hash pins the exact validated bytes. `cfn-loop-task` Step 0 recomputes it an
 | `added` / `removed` | AC ids that appeared or disappeared | Any `removed` needs a stated reason — an AC deleted after Bar A is scope reduction. |
 | `structure_changed` | An AC was added/removed, or an `id`/`kind`/`maps_to` moved | The criteria set itself changed. Re-read the coverage block. |
 | `predicate_changed` | A `pass` condition moved | **The gaming vector.** A `pass` loosened until the code satisfies it is a fabricated green. Never approve without reading the before/after. |
+| `coverage_changed` | The `coverage` block moved | Re-read it: a coverage counter that dropped is scope reduction. |
+| `regate` | What is still owed **after** this bless (see below) | Do exactly what it says. Not less, not more. |
 
 A re-bless with `predicate_changed: true` is legitimate only when the original predicate was wrong (untestable, or it encoded a misread requirement). "The code does X, so the predicate now says X" is not a reason.
+
+**Per-AC re-gate scope (`regate`).** The bless already re-ran the static gate on the whole manifest; `regate` names the LLM work still owed, scoped to the rows that moved instead of the whole plan. Untouched rows keep their bless (the ledger's top-level `ac_bless` map records, per AC id, the bless number in which that row last moved or first appeared).
+
+| `regate.bar_a` | Meaning | Orchestrator does |
+|---|---|---|
+| `none` | no AC moved, or only mechanical fields moved (`check`, `evidence`, `seeds`, `signal`, `trigger`, `requires`) | nothing further; the static pass in this bless is the whole re-gate |
+| `acs` | a semantic field (`pass`, `criterion`, `kind`, `maps_to`, `reference`, any other key) moved on `bar_a_acs`, or an AC was added/removed, or `coverage` changed | LLM Bar A review of ONLY the `bar_a_acs` rows plus the coverage block; other rows are not re-reviewed |
+| `full` | `--force-full` was passed | the whole Bar A gate, as if first bless |
+
+| `regate.bar_b` | Orchestrator does |
+|---|---|
+| `none` | nothing |
+| `steps` | Bar B static + structural scans on ONLY the `PLAN_<slug>.md` steps whose `Failing test` / AC binding names an id in `bar_b_acs` |
+| `full` | the whole Bar B gate |
+
+`regate.probe` is `true` only when an AC was **added** (new work the last probe never saw) or `--force-full` was passed. A `pass` rewrite, a removal, or a coverage move never owes the live probe: the probe tests *executability of steps*, and those cases change what is verified, not how it is built.
+
+Pass `--force-full` when the edit is broad enough that scoping would hide drift (a rename sweep, a re-numbering, or when a reviewer cannot tell which rows a change touched).
 
 ## Output contract (consumed by cfn-loop-task)
 
