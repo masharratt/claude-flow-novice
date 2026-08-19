@@ -177,6 +177,8 @@ Spawn `cfn-decide` at `sonnet`. Resolve **BLOCKING forks only** (forks whose ans
 
 Spawn each level in a single message (true parallel within a level); wait for the level to return before advancing. Every phase prompt carries `Plan dir: planning/<slug>/` and states the artifact path as `planning/<slug>/<PHASE>_<slug>.md`; dep artifact paths are resolved by the orchestrator (`plan-paths.sh resolve`) and pasted in as real paths, so no phase searches for its inputs.
 
+**Size gate at every join (L3 through L7).** After each level returns, before the next is spawned: `.claude/skills/cfn-megaplan/bars/check-size.sh --all "$PDIR"` (no `--profile`; lite has no profile, so the script's built-in caps apply, which are the `cfn-megaplan-fast` caps: a medium feature should fit them). `OVER` → one sonnet compress spawn for that artifact (prompt: "remove prose, keep every id/table/contract/check/AC row; target <= <cap> bytes; do not drop or renumber ids"), re-check once, still OVER → `[PARKED] size-over: <artifact> <bytes>/<cap>` and advance. Never blocks, never a second compress. Paste `Byte cap for this artifact: <cap>` into each phase prompt so the phase aims under it.
+
 - **L3 data** (sonnet, IF `db=yes`): `cfn-data` at `light`. Floor forced: RLS, auth boundaries, secrets handling, no-unscoped-delete, PII-if-present authored regardless of the light directive.
 - **L4 arch ∥ ux** (one message): `cfn-arch` at `opus` (consumes SPEC + DATA, writes `ARCH_<slug>.md`, AND writes `PSEUDO_<slug>.md` as a folded deliverable, not a separate phase). `cfn-ux` at `sonnet` IF `frontend=yes` (consumes SPEC + DATA field-bindings).
   - **WIREFRAME GATE (frontend only):** at the L4 join, before L5, surface the ux wireframe with one `AskUserQuestion`: Approve / Revise. Bound: 1 cycle. Approve -> L5. Revise -> `cfn-ux` patch with the note as finding, re-render, re-surface. After 1 revise cycle, advance (residual surfaces at Step 8). A revision that would change an FR, an AC, or the schema is NOT a wireframe tweak; route it to spec/data and re-run the affected levels. Unattended (`--unattended` / `CFN_MEGAPLAN_UNATTENDED=1`): same rule as full megaplan, auto-approve AS EMITTED, record `approved_by: auto-unattended`, carry to Step 7 as a re-open item.
@@ -192,7 +194,7 @@ Run `/write-plan "<task>" --mode=mvp` in main chat (Skill tool). Then run Bar A:
 .claude/skills/cfn-megaplan/bars/check-verifiable-static.sh "${PDIR}/VERIFY_${SLUG}.md"
 ```
 
-Exit 1 routes to the owning phase in patch mode within the 1-round budget (mechanical findings auto-patch; semantic findings surface via `AskUserQuestion`). Only when clean (exit 0) do you bless:
+Exit 1 routes to the owning phase in patch mode within the 1-round budget (mechanical findings auto-patch; semantic findings surface via `AskUserQuestion`). Also run the Step 4 size gate over `PLAN_<slug>.md` and `VERIFY_<slug>.md` (compress once before blessing so the hash pins the compact form). Only when clean (exit 0) do you bless:
 
 ```bash
 .claude/skills/cfn-megaplan/bars/bless-verify.sh "${PDIR}/VERIFY_${SLUG}.md" --note "Bar A pass (lite)"
@@ -280,5 +282,5 @@ The writing agent Reads `cfn-megaplan/SKILL.md` §Step 7: Deferred-decision batc
 
 - Full-strength sibling (canonical entry point): `cfn-megaplan` (tiered DAG, both bars full-strength, live haiku probe, research + ops phases). Lite inherits its bar scripts and phase skills by path.
 - Phase skills: `cfn-spec`, `cfn-decide`, `cfn-data`, `cfn-arch`, `cfn-ux`, `cfn-design`, `cfn-test-plan`.
-- Gates: `cfn-megaplan/bars/check-verifiable-static.sh`, `cfn-megaplan/bars/bless-verify.sh`, `cfn-megaplan/bars/check-haiku-static.sh`.
+- Gates: `cfn-megaplan/bars/check-verifiable-static.sh`, `cfn-megaplan/bars/bless-verify.sh`, `cfn-megaplan/bars/check-haiku-static.sh`, `cfn-megaplan/bars/check-size.sh` (byte caps at every join).
 - Downstream: `/write-plan`, `/cfn-plan-review`, `/cfn-loop-task`.

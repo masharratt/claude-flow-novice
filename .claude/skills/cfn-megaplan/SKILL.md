@@ -207,6 +207,14 @@ Rules:
 
 For levels L3 → L7, spawn every active phase at that level **in a single message** (true parallel; they are independent within a level). Wait for the whole level to return before advancing (join). Note `test_plan` (L7) depends on `ops` (L6) at beta+; at mvp `ops` is skipped and test_plan joins the L6 message.
 
+**Size gate at every join (L2 through L9).** After each level returns and before the next is spawned, run the byte-cap check against the plan dir with the tier profile:
+
+```bash
+.claude/skills/cfn-megaplan/bars/check-size.sh --all "$PDIR" --profile .claude/skills/cfn-megaplan/profiles/<tier>.json   # the profile loaded at Step 2
+```
+
+Caps live in the profile's `.caps` (mvp = 2x, beta = 3x, enterprise = 4x the `cfn-megaplan-fast` caps; see `_caps_note`). An `OVER` line means that artifact will be re-read in full by every downstream phase, which is the measured #1 cost driver (SPECs at 110-136KB and VERIFYs at 545KB in the curve2026 run). Rule: one sonnet compress spawn per OVER artifact (`general-purpose`, prompt: "remove prose, keep every id/table/contract/check/AC row; target <= <cap> bytes; do not drop or renumber ids"), re-run the check once; still OVER → record `[PARKED] size-over: <artifact> <bytes>/<cap>` and advance. The gate never blocks a level and never spawns a second compress. Cap the phase prompt too: paste `Byte cap for this artifact: <cap>` from the same profile so the phase aims under it instead of being compressed after.
+
 Agent selection: spawn each phase as the profile's `agent` key. A phase with no `agent` key → spawn `general-purpose` with the SKILL.md path in the prompt. Pass the profile's `model` key as the spawn model when present; a phase with no `model` key inherits the session model (see Step 3a).
 
 Each phase prompt carries:
@@ -284,6 +292,8 @@ Run `/write-plan "<task>" --mode=<tier>`; it consumes every `$PDIR/<PHASE>_<slug
 ```
 
 Exit 1 (error findings — missing AC field, taxonomy mismatch, non-decidable/weasel pass, coverage-counter gap) routes back to the owning phase and counts against the same 3-round Bar A bound. Do not hand-write this scan. Only when it is clean (exit 0) do you proceed.
+
+Run the size gate (Step 4) here too, over `PLAN_<slug>.md` and `VERIFY_<slug>.md`: a VERIFY over cap is usually duplicated evidence prose, not extra ACs; compress once per the Step 4 rule before blessing so the hash pins the compact form.
 
 **Bless the integrity hash (W2).** After Bar A passes (static pass clean), bless the manifest. Use `bless-verify.sh` — **never write the sidecar by hand.** It re-runs the static checker and refuses to pin anything on an error finding, then writes the sidecar plus an append-only bless ledger naming which ACs moved:
 
@@ -509,7 +519,7 @@ Hand-off: /cfn-loop-task "coach dashboard with payout table" --mode=standard
 ## Related
 
 - Phases: `cfn-research`, `cfn-spec`, `cfn-decide`, `cfn-pseudo`, `cfn-data`, `cfn-arch`, `cfn-ux`, `cfn-design`, `cfn-test-plan`, `cfn-ops`
-- Gates: `bars/verifiable-done.md`, `bars/haiku-executable.md`
+- Gates: `bars/verifiable-done.md`, `bars/haiku-executable.md`, `bars/check-size.sh` (byte caps per `profiles/<tier>.json` `.caps`, every join)
 - Layout: `lib/plan-paths.sh` (per-plan directory resolver — nested writes, nested-then-flat reads; every consumer uses it). Tests: `lib/tests/test-plan-paths.sh`
 - Profiles: `profiles/{mvp,beta,enterprise}.json`
 - Inputs: `cfn-tech-debt` (Step 0 reads its `.cfn-cache/tech-debt-ledger.json` so open `cfn:` shortcuts in scope surface as backlog candidates)

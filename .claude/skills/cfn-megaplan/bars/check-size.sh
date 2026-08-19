@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Bar checker — enforces per-artifact-kind byte size caps for cfn-megaplan-fast
-# planning artifacts, so a phase output cannot silently balloon and get re-read
+# planning artifacts (also run by cfn-megaplan + cfn-megaplan-lite at every level
+# join, with the tier profile caps), so a phase output cannot silently balloon and get re-read
 # in full by every downstream phase (the #1 cost driver in
 # planning/cfn_megaplan_fast/PLAN_cfn_megaplan_fast.md §1).
 #
@@ -46,6 +47,7 @@ declare -A DEFAULT_CAPS=(
   [OPS]=16384
   [RESEARCH]=16384
   [MEGAPLANFAST]=16384
+  [MEGAPLAN]=16384
 )
 
 usage() {

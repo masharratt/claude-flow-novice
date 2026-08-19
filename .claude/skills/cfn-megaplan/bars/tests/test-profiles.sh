@@ -33,4 +33,13 @@ if [ -f "$FAST" ]; then
 else
   no "fast: profile missing at $FAST"
 fi
+# ---- tier profiles carry artifact byte caps (check-size.sh --all at level joins) ----
+for t in mvp beta enterprise; do
+  [ "$(jq -r '[.caps.SPEC,.caps.DATA,.caps.ARCH,.caps.UX,.caps.REVIEW,.caps.TEST,.caps.PLAN,.caps.VERIFY,.caps.MEGAPLAN] | all(type=="number" and . > 0)' "$P/$t.json")" = "true" ] && ok "$t: caps present for all artifact kinds" || no "$t: caps missing"
+done
+FASTSPEC="$(jq -r '.caps.SPEC' "$DIR/../../../cfn-megaplan-fast/profiles/fast.json" 2>/dev/null || echo 0)"
+[ "$(jq -r '.caps.SPEC' "$P/mvp.json")" -ge "$FASTSPEC" ] && ok "mvp caps >= fast caps (fast is the tightest profile)" || no "mvp caps tighter than fast"
+[ "$(jq -r '.caps.SPEC' "$P/beta.json")" -ge "$(jq -r '.caps.SPEC' "$P/mvp.json")" ] && ok "beta caps >= mvp caps" || no "beta caps < mvp"
+[ "$(jq -r '.caps.SPEC' "$P/enterprise.json")" -ge "$(jq -r '.caps.SPEC' "$P/beta.json")" ] && ok "enterprise caps >= beta caps" || no "enterprise caps < beta"
+
 echo "----"; echo "profiles: $PASS/$RUN passed, $FAIL failed"; [ "$FAIL" -eq 0 ]

@@ -42,6 +42,15 @@ run "--kind override to known kind: exit 0"   "$FIX/SPEC_under.md" --kind SPEC -
 # ---- --profile override changes verdict ----
 run "cap override via --profile flips OK to OVER" "$FIX/SPEC_under.md" --profile "$FIX/profile-small.json" -- 1 "OVER"
 
+# ---- MEGAPLAN kind (full-megaplan synthesis artifact) is a known kind ----
+run "MEGAPLAN_ prefix is a known kind: exit 0" "$FIX/MEGAPLAN_tiny.md" -- 0 "OK MEGAPLAN"
+
+# ---- full-megaplan tier profiles carry caps that check-size honors ----
+TIERS="$SCRIPT_DIR/../../profiles"
+run "mvp.json caps: SPEC cap read from tier profile"  "$FIX/SPEC_under.md" --profile "$TIERS/mvp.json" -- 0 "/49152"
+run "beta.json caps: SPEC cap read from tier profile" "$FIX/SPEC_under.md" --profile "$TIERS/beta.json" -- 0 "/73728"
+run "enterprise.json caps: SPEC cap read from tier profile" "$FIX/SPEC_under.md" --profile "$TIERS/enterprise.json" -- 0 "/98304"
+
 # ---- --all directory mode ----
 run "--all: exits 1 if any recognized file over cap" --all "$FIX/all-dir" -- 1 "OVER"
 run "--all: prints a line for each recognized artifact (DECISIONS_ok)" --all "$FIX/all-dir" -- 1 "DECISIONS_ok.md"

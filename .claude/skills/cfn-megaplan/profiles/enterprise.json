@@ -4,6 +4,8 @@
   "description": "Critical / compliance / scale. Everything full + threat model, capacity, multi-tenancy, i18n, plan judge, risk register. All 36 gaps active.",
   "bars": { "verifiable_done": "full", "haiku_executable": "full" },
   "floor": ["rls", "auth_boundaries", "secrets_handling", "no_unscoped_delete", "pii_if_present"],
+  "_caps_note": "Artifact byte caps, 4x cfn-megaplan-fast/profiles/fast.json. Checked by bars/check-size.sh --all at every level join (SKILL.md Step 4); OVER = one sonnet compress spawn then advance, never blocks.",
+  "caps": { "SPEC": 98304, "DECISIONS": 32768, "DATA": 131072, "ARCH": 131072, "UX": 131072, "REVIEW": 65536, "TEST": 98304, "PLAN": 163840, "VERIFY": 163840, "PSEUDO": 65536, "DESIGN": 65536, "OPS": 65536, "RESEARCH": 65536, "MEGAPLAN": 65536 },
   "_model_policy": "Enterprise buys thoroughness, not wall-clock. No phase is downgraded except research (evidence-gathering, and spec re-reads its output at opus). The terminal artifacts are NOT downgrade candidates here the way they are at beta: design carries i18n + a11y_full and test_plan carries load/soak/nonfunctional — both are compliance surface at this tier. If an enterprise megaplan is too slow, the lever is the tier, not the model.",
   "phases": {
     "research":    { "directive": "full", "level": 1, "agent": "researcher", "model": "sonnet" },

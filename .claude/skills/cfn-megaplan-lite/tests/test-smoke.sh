@@ -44,6 +44,7 @@ check_path "cfn-megaplan/bars/check-verifiable-static.sh"
 check_path "cfn-megaplan/bars/bless-verify.sh"
 check_path "cfn-megaplan/bars/check-haiku-static.sh"
 check_path "cfn-megaplan/bars/weasel-phrases.txt"
+check_path "cfn-megaplan/bars/check-size.sh"
 
 # phase skills referenced by the lite DAG
 check_path "cfn-spec/SKILL.md"
