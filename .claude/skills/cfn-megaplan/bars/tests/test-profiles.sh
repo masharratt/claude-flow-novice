@@ -32,7 +32,11 @@ if [ -f "$FAST" ]; then
   [ "$(jq -r '[.phases[] | select(.scope=="part")] | length' "$FAST")" = "4" ] && ok "fast: exactly 4 per-part phases (part_spec, test_plan, write_plan, bar_b)" || no "fast: per-part phase count != 4"
   [ "$(jq -r '.phases.part_spec.condition' "$FAST")" = "part_specs" ] && ok "fast: part_spec is conditional on part_specs" || no "fast: part_spec must be conditional (condition=part_specs)"
   [ "$(jq -r '.phases.part_spec.model' "$FAST")" = "sonnet" ] && ok "fast: part_spec runs on sonnet" || no "fast: part_spec must be sonnet"
-  [ "$(jq -r '.caps.PARTSPEC' "$FAST")" = "12288" ] && ok "fast: PARTSPEC cap 12288" || no "fast: PARTSPEC cap missing/wrong"
+  # 2026-08-19 recalibration from first real run (curve_speaker_listing): measured
+  # natural sizes ARCH 49KB, DATA 40KB, PARTSPEC 14-16KB vs old 32K/32K/12K caps.
+  [ "$(jq -r '.caps.PARTSPEC' "$FAST")" = "16384" ] && ok "fast: PARTSPEC cap 16384" || no "fast: PARTSPEC cap must be 16384 (measured 14-16KB)"
+  [ "$(jq -r '.caps.ARCH' "$FAST")" = "49152" ] && ok "fast: ARCH cap 49152" || no "fast: ARCH cap must be 49152 (measured 49KB)"
+  [ "$(jq -r '.caps.DATA' "$FAST")" = "40960" ] && ok "fast: DATA cap 40960" || no "fast: DATA cap must be 40960 (measured ~40KB pre-trim)"
   [ "$(jq -r '.caps.PARTSPEC < .caps.SPEC' "$FAST")" = "true" ] && ok "fast: PARTSPEC cap below SPEC cap" || no "fast: PARTSPEC cap not below SPEC"
   [ "$(jq -r '.part_specs.mode' "$FAST")" = "auto" ] && ok "fast: part_specs.mode defaults to auto" || no "fast: part_specs.mode != auto"
   [ "$(jq -r '[.part_specs.auto_min_parts, .part_specs.auto_min_extract_bytes] | all(type=="number" and . > 0)' "$FAST")" = "true" ] && ok "fast: part_specs auto thresholds present" || no "fast: part_specs auto thresholds missing"

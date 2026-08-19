@@ -4,7 +4,7 @@
   "description": "Prove it works. Correctness + security floor + buildability. No ops/rollout/compliance. Ugly-but-functional ok. Still gets ux (the dropdown bug is correctness, not polish).",
   "bars": { "verifiable_done": "full", "haiku_executable": "sonnet" },
   "floor": ["rls", "auth_boundaries", "secrets_handling", "no_unscoped_delete", "pii_if_present"],
-  "_caps_note": "Artifact byte caps, 2x cfn-megaplan-fast/profiles/fast.json. Checked by bars/check-size.sh --all at every level join (SKILL.md Step 4); OVER = one sonnet compress spawn then advance, never blocks.",
+  "_caps_note": "Artifact byte caps, roughly 2x cfn-megaplan-fast/profiles/fast.json (fast recalibrated 2026-08-19; tier caps stand on their own). Checked by bars/check-size.sh --all at every level join (SKILL.md Step 4); OVER = one sonnet compress spawn then advance, never blocks.",
   "caps": { "SPEC": 49152, "DECISIONS": 16384, "DATA": 65536, "ARCH": 65536, "UX": 65536, "REVIEW": 32768, "TEST": 49152, "PLAN": 81920, "VERIFY": 81920, "PSEUDO": 32768, "DESIGN": 32768, "OPS": 32768, "RESEARCH": 32768, "MEGAPLAN": 32768 },
   "_model_policy": "Structure-deciding phases (spec/data/arch/decide-at-full) stay opus in every tier — see SKILL.md Step 3a. Absent key = inherit session model. Downgrade candidates are directive:light phases only.",
   "phases": {

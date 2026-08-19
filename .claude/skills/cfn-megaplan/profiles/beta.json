@@ -4,7 +4,7 @@
   "description": "Alpha-ready: real users behind a feature flag, no on-call paging, no data loss. Adds observability, rollout, success metrics, full tests, concurrency, privacy.",
   "bars": { "verifiable_done": "full", "haiku_executable": "sonnet" },
   "floor": ["rls", "auth_boundaries", "secrets_handling", "no_unscoped_delete", "pii_if_present"],
-  "_caps_note": "Artifact byte caps, 3x cfn-megaplan-fast/profiles/fast.json. Checked by bars/check-size.sh --all at every level join (SKILL.md Step 4); OVER = one sonnet compress spawn then advance, never blocks.",
+  "_caps_note": "Artifact byte caps, roughly 3x cfn-megaplan-fast/profiles/fast.json (fast recalibrated 2026-08-19; tier caps stand on their own). Checked by bars/check-size.sh --all at every level join (SKILL.md Step 4); OVER = one sonnet compress spawn then advance, never blocks.",
   "caps": { "SPEC": 73728, "DECISIONS": 24576, "DATA": 98304, "ARCH": 98304, "UX": 98304, "REVIEW": 49152, "TEST": 73728, "PLAN": 122880, "VERIFY": 122880, "PSEUDO": 49152, "DESIGN": 49152, "OPS": 49152, "RESEARCH": 49152, "MEGAPLAN": 49152 },
   "_model_policy": "Structure-deciding phases (spec/data/arch/decide-at-full) and ux stay opus — see SKILL.md Step 3a. ops stays opus: it carries security-floor checks (headers, budget cap, banned provider). Downgrades are limited to the terminal artifacts (design, test_plan) and pseudo, whose output arch re-derives.",
   "phases": {

@@ -1,13 +1,13 @@
 {
   "tier": "fast",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Single fixed profile for cfn-megaplan-fast. Not a tier: caps + agents + models are canonical constants read by check-size.sh and the orchestrator. Program mode: shared phases once, per-part only test_plan + write_plan + bars.",
   "bars": { "verifiable_done": "full", "haiku_executable": "static" },
   "floor": ["rls", "auth_boundaries", "secrets_handling", "no_unscoped_delete", "pii_if_present"],
   "caps": {
-    "SPEC": 24576, "DECISIONS": 8192, "DATA": 32768, "ARCH": 32768, "UX": 32768,
+    "SPEC": 24576, "DECISIONS": 8192, "DATA": 40960, "ARCH": 49152, "UX": 32768,
     "REVIEW": 16384, "TEST": 24576, "PLAN": 40960, "VERIFY": 40960,
-    "PSEUDO": 16384, "DESIGN": 16384, "OPS": 16384, "RESEARCH": 16384, "MEGAPLANFAST": 16384, "PARTSPEC": 12288
+    "PSEUDO": 16384, "DESIGN": 16384, "OPS": 16384, "RESEARCH": 16384, "MEGAPLANFAST": 16384, "PARTSPEC": 16384
   },
   "part_specs": { "mode": "auto", "auto_min_parts": 3, "auto_min_extract_bytes": 3072, "_note": "auto = on when parts >= auto_min_parts OR any part's SPEC extract < auto_min_extract_bytes. on/off via --part-specs. One sonnet PARTSPEC per part, parallel, before L2." },
   "loop": { "bar_rounds": 1, "inline_patch_max_lines": 8, "repair_spawn_max": 1, "compress_spawn_max": 1 },

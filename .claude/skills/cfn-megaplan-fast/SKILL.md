@@ -18,7 +18,7 @@ status: beta
 /cfn-megaplan-fast "<program or feature task>" [--parts=auto|<n>|"B0,B1,B2"] [--part-specs=auto|on|off] [--unattended]
 ```
 - `--parts` absent or `auto`: spec decides (§9 Part Ownership). `1` or omitted on a small task = single-feature mode.
-- `--part-specs` (default `auto`): failsafe for programs whose parts are distinct domains (curve2026: ci-monitoring, identity, bookings, kiosk). One 24KB program SPEC over 7 domains is ~3KB per part, too thin for a per-part test_plan/write_plan. `on` = one short sonnet `PARTSPEC_<prog>__<part>.md` per part (cap 12288) after L1, before L2. `auto` turns on when parts ≥ `part_specs.auto_min_parts` (3) OR any part's SPEC extract is < `part_specs.auto_min_extract_bytes` (3072). `off` = never. Thresholds in `profiles/fast.json` `.part_specs`.
+- `--part-specs` (default `auto`): failsafe for programs whose parts are distinct domains (curve2026: ci-monitoring, identity, bookings, kiosk). One 24KB program SPEC over 7 domains is ~3KB per part, too thin for a per-part test_plan/write_plan. `on` = one short sonnet `PARTSPEC_<prog>__<part>.md` per part (cap 16384) after L1, before L2. `auto` turns on when parts ≥ `part_specs.auto_min_parts` (3) OR any part's SPEC extract is < `part_specs.auto_min_extract_bytes` (3072). `off` = never. Thresholds in `profiles/fast.json` `.part_specs`.
 - Optional unattended driver (saves human turns, not tokens):
   `/goal "planning/<prog>/MEGAPLANFAST_<prog>.md exists and every part row shows bars=green, or stop after 40 turns"`
   `/goal` is a prompt Stop hook; its evaluator reads ONLY the transcript. So every level below MUST echo bar results and artifact paths to stdout (the `log` lines).
@@ -61,17 +61,19 @@ Node deps: spec → [part_spec ×N] → data → (arch ∥ ux) → plan_review �
 
 | SPEC | PARTSPEC | DATA | ARCH | UX | REVIEW | TEST | PLAN | VERIFY | MEGAPLANFAST |
 |---|---|---|---|---|---|---|---|---|---|
-| 24576 | 12288 | 32768 | 32768 | 32768 | 16384 | 24576 | 40960 | 40960 | 16384 |
+| 24576 | 16384 | 40960 | 49152 | 32768 | 16384 | 24576 | 40960 | 40960 | 16384 |
 
-Rationale: the baseline's SPECs were 110-136KB and VERIFYs up to 545KB, each re-read by every downstream phase. Caps go in the phase prompt AND are enforced at the level join: `bars/check-size.sh <artifact>`. OVER → one sonnet compress pass (prompt: "remove prose, keep ids/tables/contracts/checks; target ≤ cap"). Still OVER → stop, one AskUserQuestion (raise cap for this run / descope / run full megaplan). Never a second compress spawn.
+Rationale: the baseline's SPECs were 110-136KB and VERIFYs up to 545KB, each re-read by every downstream phase. DATA/ARCH/PARTSPEC recalibrated 2026-08-19 from the first real run's measured natural sizes (ARCH 49KB, DATA 40KB, PARTSPEC 14-16KB); a cap ~25% under natural size buys nothing but trim passes. Caps go in the phase prompt AND are enforced at the level join: `bars/check-size.sh <artifact>`. OVER → one sonnet compress pass (prompt: "remove prose, keep ids/tables/contracts/checks; target ≤ cap"). Still OVER → stop, one AskUserQuestion (raise cap for this run / descope / run full megaplan). Never a second compress spawn.
+
+**Per-run cap override.** When a raise-for-this-run is accepted (or late measured findings would be cut to make weight), record it in `planning/<prog>/.cap-override.md`: artifact, new cap, reason, scope (this run, this program, that artifact). `fast.json` is never edited to make one run pass. Subsequent `check-size.sh` OVER lines for an overridden artifact are logged, not repaired.
 
 ## Protocol
 
 **Step 0: scope + preflight.** Reject enterprise signals (compliance, PII-heavy, multi-tenant, external API integration, schema migration rehearsal, capacity) → route to `/cfn-megaplan`. Build slug from task (same rule as megaplan Step 1). `mkdir -p planning/<prog>`. Check `/goal` availability only if `--unattended` requested (needs Claude Code ≥ 2.1.234 + hooks enabled); warn and continue manually if absent. Read open tech debt in scope (`cfn-tech-debt`) as megaplan does.
 
-**Step 1: spec (L1).** Spawn `specification-agent`, model opus, prompt template below with phase skill `.claude/skills/cfn-spec/SKILL.md`. Extra instructions: write §9 Part Ownership when `--parts` ≠ 1 (table: id, name, one-line scope, deps, plus `[part: id]` tags on FR/EC/entity/screen rows); fold decide: list BLOCKING forks only (schema / contract / FR-set / floor), return them as `[OPEN]`; park the rest conservatively with `[PARKED: <default>]` as in megaplan; include the floor checklist as §floor with each item `present | n/a: <why>`. After return: `check-size.sh SPEC_...` (compress rule), then ONE `AskUserQuestion` batch for `[OPEN]` forks; record via `.claude/skills/cfn-decisions/record.sh`. Parse §8 Build Flags (`db`, `frontend`, `unknowns`) and §9 part list. When `--parts` names ≥ 3 parts up front (part-specs will be on), tell the spec agent: "program SPEC carries headline FRs per part (one line each, tagged); detail goes to part specs". Log: `L1 spec ok: <path> <bytes>/<cap> parts=<list>`.
+**Step 1: spec (L1).** Spawn `specification-agent`, model opus, prompt template below with phase skill `.claude/skills/cfn-spec/SKILL.md`. Extra instructions: write §9 Part Ownership when `--parts` ≠ 1 (table: id, name, one-line scope, deps, plus `[part: id]` tags on FR/EC/entity/screen rows); fold decide: list BLOCKING forks only (schema / contract / FR-set / floor), return them as `[OPEN]`; park the rest conservatively with `[PARKED: <default>]` as in megaplan; include the floor checklist as §floor with each item `present | n/a: <why>`. After return: `check-size.sh SPEC_...` (compress rule), then ONE `AskUserQuestion` batch for `[OPEN]` forks; record via `.claude/skills/cfn-decisions/record.sh`. Parse §8 Build Flags (`db`, `frontend`, `unknowns`) and §9 part list. Always tell the spec agent: "if §9 ends up with ≥ 3 parts (named up front OR discovered while writing), the program SPEC carries headline FRs per part (one line each, tagged); detail goes to part specs" — otherwise the SPEC carries full detail AND the PARTSPECs duplicate it, paying twice (measured 2026-08-19: 37KB SPEC + 3 PARTSPECs). Log: `L1 spec ok: <path> <bytes>/<cap> parts=<list>`.
 
-**Step 1b: part specs (L1b, if part-specs on).** Resolve the mode: `--part-specs=on|off` wins; `auto` → on when `parts ≥ 3` or `extract-sections.sh SPEC_<prog>.md <part> | wc -c` < 3072 for any part. Log `part-specs: <on|off> (reason: flag|parts=N|thin=<part>:<bytes>)`. When on: ONE message, one `specification-agent` sonnet spawn per part, `cfn-spec` skill in **part SPEC mode** (cfn-spec Step 9). Inputs (paths): the part's SPEC extract written to `planning/<prog>__<part>/.in/SPEC.md`, plus the program SPEC §1a Actors, §8 flags, §floor, and this part's §9 row. Output `planning/<prog>__<part>/PARTSPEC_<prog>__<part>.md`, cap 12288: FR/EC/AC for this part only (`FR-<part>-n`), entities/screens it owns, interfaces it consumes/produces from other parts by part id, `[OPEN]` BLOCKING forks only. No §8, §9, actors, or floor sections (inherited). Size-check each (compress rule). One `AskUserQuestion` batch for all parts' `[OPEN]` forks. Log per part: `L1b partspec <id>: <path> <bytes>/<cap>`. Every later phase that reads SPEC also reads the PARTSPECs: L2–L4 read all of them (N × ≤12KB), P1/P2 read only their own.
+**Step 1b: part specs (L1b, if part-specs on).** Resolve the mode: `--part-specs=on|off` wins; `auto` → on when `parts ≥ 3` or `extract-sections.sh SPEC_<prog>.md <part> | wc -c` < 3072 for any part. Log `part-specs: <on|off> (reason: flag|parts=N|thin=<part>:<bytes>)`. When on: ONE message, one `specification-agent` sonnet spawn per part, `cfn-spec` skill in **part SPEC mode** (cfn-spec Step 9). Inputs (paths): the part's SPEC extract written to `planning/<prog>__<part>/.in/SPEC.md`, plus the program SPEC §1a Actors, §8 flags, §floor, and this part's §9 row. Output `planning/<prog>__<part>/PARTSPEC_<prog>__<part>.md`, cap 16384: FR/EC/AC for this part only (`FR-<part>-n`), entities/screens it owns, interfaces it consumes/produces from other parts by part id, `[OPEN]` BLOCKING forks only. No §8, §9, actors, or floor sections (inherited). Size-check each (compress rule). One `AskUserQuestion` batch for all parts' `[OPEN]` forks. Log per part: `L1b partspec <id>: <path> <bytes>/<cap>`. Every later phase that reads SPEC also reads the PARTSPECs: L2–L4 read all of them (N × ≤16KB), P1/P2 read only their own.
 
 **Step 2: data (L2, if db=yes).** `database-architect`, sonnet, `cfn-data` skill, directive light, floor forced. Input: SPEC in full (it is capped) + all PARTSPECs when present. Size-check. Log.
 
@@ -118,7 +120,7 @@ Return: artifact path, byte count, 3-line summary, [OPEN] list, [PARKED] list.
 | decide | folded into spec: BLOCKING forks only, one batch |
 | pseudo / design | folded into arch / ux |
 | research | inline in spec when unknowns=yes |
-| per-part spec detail | `--part-specs` (auto): one 12KB sonnet PARTSPEC per part; shared DATA/ARCH/UX unchanged |
+| per-part spec detail | `--part-specs` (auto): one 16KB sonnet PARTSPEC per part; shared DATA/ARCH/UX unchanged |
 | ops, tiers, reverse mode, multi-plan seams, back-prop queue, probe | dropped (full megaplan) |
 | plan_review | once, program level, sonnet, light |
 
@@ -134,7 +136,7 @@ Return: artifact path, byte count, 3-line summary, [OPEN] list, [PARKED] list.
 
 ## Anti-patterns
 
-- Re-running spec/arch per part. That is the 60% the baseline wasted. (A PARTSPEC is not a re-run: 12KB, sonnet, FR detail only, no actors/flags/floor/schema.)
+- Re-running spec/arch per part. That is the 60% the baseline wasted. (A PARTSPEC is not a re-run: 16KB, sonnet, FR detail only, no actors/flags/floor/schema.)
 - Adding a probe, a second bar round, tiers, or an ops phase "just for this one". Route to full megaplan instead.
 - Raising a cap in `fast.json` to make one run pass. Raise per-run via AskUserQuestion, leave the constant.
 - Deriving lanes from MEGAPLANFAST_ or VERIFY_. Only PLAN_ is a lane source (loop-task rule).
