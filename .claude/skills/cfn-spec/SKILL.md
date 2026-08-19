@@ -266,6 +266,15 @@ The orchestrator routes conditional phases off four flags derived from the spec,
 
 The flags are emitted as the final section of the spec artifact, in the exact format shown in the template below. The megaplan orchestrator parses that block verbatim; do not rename keys, reorder lines, or add prose inside it.
 
+### Step 9: Part Ownership (program mode ONLY; `cfn-megaplan-fast --parts` != 1)
+
+When the orchestrator says the task is a multi-part program, the spec is written ONCE for the whole program and every downstream part reads only its slice through `cfn-megaplan/lib/extract-sections.sh`. Two obligations:
+
+1. Emit `## 9. Part Ownership`: a table `id | name | scope (one line) | deps (ids)`. Ids match `[A-Za-z0-9_-]+`. Choose 2..N parts by seam (shared-state surface, actor, or deploy unit), never by file count. Deps form a DAG.
+2. Tag every FR/EC/entity/screen row (or heading) that belongs to one part with `[part: <id>]` (multi: `[part: B0, B2]`). Untagged rows and headings are shared and reach every part; use `[part: shared]` only when you need to say so explicitly. A row that names a table or screen one part owns MUST be tagged.
+
+Omit this step and the section entirely in single-feature mode. The grammar is the `extract-sections.sh` contract; do not invent variants.
+
 ## Output
 
 Build the slug with the canonical rule (identical in every planning phase; see `cfn-megaplan` Step 1):
@@ -325,6 +334,12 @@ Operation: ...
 - pii: yes|no
 - unknowns: yes|no
 - tier-hint: mvp|beta|enterprise
+
+## 9. Part Ownership   (program mode only; omit otherwise)
+| id | name | scope | deps |
+|---|---|---|---|
+| B0 | <name> | <one line> | - |
+| B1 | <name> | <one line> | B0 |
 ```
 
 **Status field semantics:** the spec author always writes `draft`. A human reviewer may flip it to `reviewed`. The megaplan orchestrator flips it to `locked` after Bar A (verifiable-done) passes; only a `locked` spec feeds implementation.

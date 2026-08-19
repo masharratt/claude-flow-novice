@@ -121,7 +121,7 @@ Replacement map (`anthropic:* -> xai:*`) and cost/reasoning-model rules: `~/.cla
 - **One decision per question:** Surface ONE decision per question with genuine tradeoffs and a recommendation.
 - **Escape hatch:** Obvious fix with no real tradeoff — state what you'll do and move on.
 - **Scope challenge (Step 0):** Verify: (1) minimum viable scope, (2) existing solutions, (3) 8+ files = smell test.
-- **Megaplan pre-plan (REQUIRED for non-trivial work):** Before plan mode or `/write-plan`, run `/cfn-megaplan "<task>" [--tier=mvp|beta|enterprise]` — see *Planning Pipeline* below for the DAG, gates, and outputs. Required for: multi-file changes, shared-state changes (DB/API/types), new features, security/auth changes, cross-project work. Skip only for single-line fixes, renames, or bug fixes with a reproducing test. Medium features (3-7 files, single shared-state surface) route to `/cfn-megaplan-lite` instead of skipping planning.
+- **Megaplan pre-plan (REQUIRED for non-trivial work):** Before plan mode or `/write-plan`, run `/cfn-megaplan "<task>" [--tier=mvp|beta|enterprise]` — see *Planning Pipeline* below for the DAG, gates, and outputs. Required for: multi-file changes, shared-state changes (DB/API/types), new features, security/auth changes, cross-project work. Skip only for single-line fixes, renames, or bug fixes with a reproducing test. Medium features (3-7 files, single shared-state surface) route to `/cfn-megaplan-lite` instead of skipping planning. Multi-part mvp/beta programs route to `/cfn-megaplan-fast` (one shared plan, thin per-part plans).
 - **Investigate before planning:** Dump actual schema/imports/config and trace dependencies before writing any plan that touches data or shared state.
 - **Assumption registry:** Every plan must list assumptions as explicit, testable statements. See `code-quality.md` for full rules.
 - **plan review:** For migrations, schema changes, or cross-project work, run the plan review skill "/cfn-plan-review" (dependency trace, blast radius, gap analysis) in the same session. Merge results into the plan.
@@ -134,6 +134,11 @@ Replacement map (`anthropic:* -> xai:*`) and cost/reasoning-model rules: `~/.cla
                     gated by Verifiable-done + Haiku-executable bars; --tier=mvp|beta|enterprise)
    ├─ /cfn-megaplan-lite  (medium-feature branch: balanced cut, both bars 1-round, no live probe,
                           pseudo folded into arch, sonnet non-core phases; for 3-7 file features)
+   ├─ /cfn-megaplan-fast  (token-lean branch, DEFAULT for mvp/beta multi-part programs: spec/data/arch/ux
+                          ONCE, per-part only test-plan + write-plan + Bar A from section extracts; hard
+                          artifact byte caps; static bars, 1 round; opus only spec+arch; no nested spawns.
+                          Optional /goal wrapper drives it + loop-task unattended. Full megaplan for
+                          enterprise/compliance/ops/migration-rehearsal)
    ↓  (megaplan internally runs write-plan and cfn-plan-review; only invoke them
        standalone when iterating on an existing plan)
 /cfn-goap-plan     (optional: goal-state modeling + A* action sequence)
@@ -156,6 +161,7 @@ Sub-pipelines megaplan composes (run standalone only for narrow/iterative work):
 - `/write-plan` — implementation roadmap, agent dispatch, TDD phases.
 - `/cfn-plan-review` — assumption extraction, dependency trace, blast radius.
 - `/cfn-megaplan-lite`: balanced cut of megaplan for medium features (3-7 files, single shared-state surface); both bars 1-round, no live probe, pseudo folded into arch, sonnet non-core phases.
+- `/cfn-megaplan-fast`: token-lean planner for multi-part programs (and cheapest safe path for single features). One program-level spec/data/arch/ux, then per-part test-plan + write-plan + Bar A over `extract-sections.sh` slices; `check-size.sh` caps every artifact; Bar B static lint only. Same loop-task hand-off. Measured reason: a 7-part megaplan program cost ~10M output tokens.
 - `/cfn-knowledge-plan`: non-code deliverables. Route here when the output is prose, not code. A doc that specifies a build still goes to `/cfn-megaplan`. Hand raw sources (full transcript, whole PDF) to intake — summarising first destroys the signal extraction mines.
 - `/cfn-share`: hand a plan to someone who does not live in a terminal. Always pass the recorded `url` on re-shares or the reader's link is orphaned.
 

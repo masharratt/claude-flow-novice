@@ -1,0 +1,110 @@
+{
+  "slug": "cfn_megaplan_fast",
+  "verify_file": "planning/cfn_megaplan_fast/VERIFY_cfn_megaplan_fast.md",
+  "verify_sha256": "44db59df22b18037b066807aaa9d592a305e89b6f8edb17cea89e45ed844be77",
+  "timestamp": "2026-08-19T16:36:54Z",
+  "results": [
+    {
+      "ac_id": "AC-1",
+      "kind": "unit",
+      "check": "bash .claude/skills/cfn-megaplan/bars/tests/test-check-size.sh",
+      "mode": "executed",
+      "exit_code": 0,
+      "pass": true,
+      "predicate_unverified": false,
+      "reason": "exit_code_only: runner summary unrecognized, trusting exit 0 — no proof any test ran",
+      "output_excerpt": "ok   under cap: exit 0, OK line\nok   exact cap: exit 0\nok   over cap: exit 1, OVER line\nok   no-arg exits 2\nok   missing file: exit 2\nok   unknown kind (unrecognized prefix): exit 2\nok   --kind override to unknown kind: exit 2\nok   --kind override to known kind: exit 0\nok   cap override via --profile flips OK to OVER\nok   --all: exits 1 if any recognized file over cap\nok   --all: prints a line for each recognized artifact (DECISIONS_ok)\nok   --all: prints a line for each recognized artifact (SPEC_ok)\nok   --all: unrecognized files ignored\nok   --json on clean file emits []\nok   --json on over-cap file emits finding with KIND ac_id\nok   --json on over-cap file names the issue\n---\nPASS=16 FAIL=0",
+      "evidence": "",
+      "timestamp": "2026-08-19T16:36:53Z"
+    },
+    {
+      "ac_id": "AC-2",
+      "kind": "unit",
+      "check": "bash .claude/skills/cfn-megaplan/lib/tests/test-extract-sections.sh",
+      "mode": "executed",
+      "exit_code": 0,
+      "pass": true,
+      "predicate_unverified": false,
+      "reason": "exit_code_only: runner summary unrecognized, trusting exit 0 — no proof any test ran",
+      "output_excerpt": "ok   e: table header kept for B0\nok   e: table separator kept for B2\nok   e: untagged table row kept for B1\nok   f: unknown part id exits 2\nok   f: 'shared' alone is not a known part id, exits 2\nok   g: --list-parts sorted distinct ids\nok   h: Migration Notes (child of B0/B2) kept for B0\nok   h: Migration Notes (child of B0/B2) kept for B2\nok   h: Migration Notes (child of B0/B2) dropped for B1\nok   h: Error Codes (child of B1) kept for B1\nok   h: Error Codes (child of B1) dropped for B0\nok   h: Error Codes (child of B1) dropped for B2\nok   full extract B0 matches fixture\nok   full extract B1 matches fixture\nok   full extract B2 matches fixture\nok   no-arg exits 2\nok   missing part-id arg exits 2\nok   missing-file exits 2\n---\nPASS=32 FAIL=0",
+      "evidence": "",
+      "timestamp": "2026-08-19T16:36:53Z"
+    },
+    {
+      "ac_id": "AC-3",
+      "kind": "unit",
+      "check": "bash .claude/skills/cfn-megaplan/bars/tests/test-profiles.sh",
+      "mode": "executed",
+      "exit_code": 0,
+      "pass": true,
+      "predicate_unverified": false,
+      "reason": "exit_code_only: runner summary unrecognized, trusting exit 0 — no proof any test ran",
+      "output_excerpt": "PASS: mvp: verifiable_done stays full\nPASS: beta: haiku_executable is a known tier (sonnet)\nPASS: beta: verifiable_done stays full\nPASS: enterprise: haiku_executable is a known tier (full)\nPASS: enterprise: verifiable_done stays full\nPASS: mvp defaults to sonnet\nPASS: beta defaults to sonnet\nPASS: enterprise stays full\nPASS: fast: verifiable_done full\nPASS: fast: haiku_executable static\nPASS: fast: no_nested_spawns true\nPASS: fast: caps present for SPEC/DATA/ARCH/UX/REVIEW/TEST/PLAN/VERIFY\nPASS: fast: every spawned phase model in {opus,sonnet}\nPASS: fast: every spawned phase has an agent\nPASS: fast: no probe key anywhere\nPASS: fast: bar_rounds 1\nPASS: fast: spec+arch on opus\nPASS: fast: exactly 3 per-part phases (test_plan, write_plan, bar_b)\n----\nprofiles: 19/19 passed, 0 failed",
+      "evidence": "",
+      "timestamp": "2026-08-19T16:36:53Z"
+    },
+    {
+      "ac_id": "AC-4",
+      "kind": "static",
+      "check": "bash -c 'F=.claude/skills/cfn-megaplan-fast/SKILL.md; L=$(wc -l < \"$F\"); [ \"$L\" -le 300 ] && grep -q \"Do not spawn subagents\" \"$F\" && grep -q \"/goal \" \"$F\" && grep -qi \"check-size.sh\" \"$F\" && grep -qi \"extract-sections.sh\" \"$F\" && grep -qi \"inline\" \"$F\" && echo \"AC-4: SKILL.md $L lines, has no-nesting rule, /goal lines, caps, extracts, inline loop policy\"'",
+      "mode": "executed",
+      "exit_code": 0,
+      "pass": true,
+      "predicate_unverified": false,
+      "reason": "exit_code_only: runner summary unrecognized, trusting exit 0 — no proof any test ran",
+      "output_excerpt": "AC-4: SKILL.md 132 lines, has no-nesting rule, /goal lines, caps, extracts, inline loop policy",
+      "evidence": "",
+      "timestamp": "2026-08-19T16:36:53Z"
+    },
+    {
+      "ac_id": "AC-5",
+      "kind": "static",
+      "check": "bash -c 'grep -q \"Part Ownership\" .claude/skills/cfn-spec/SKILL.md && grep -q \"\\[part: \" .claude/skills/cfn-spec/SKILL.md && echo \"AC-5: cfn-spec has Part Ownership section + [part: ] tag contract\"'",
+      "mode": "executed",
+      "exit_code": 0,
+      "pass": true,
+      "predicate_unverified": false,
+      "reason": "exit_code_only: runner summary unrecognized, trusting exit 0 — no proof any test ran",
+      "output_excerpt": "AC-5: cfn-spec has Part Ownership section + [part: ] tag contract",
+      "evidence": "",
+      "timestamp": "2026-08-19T16:36:54Z"
+    },
+    {
+      "ac_id": "AC-6",
+      "kind": "static",
+      "check": "bash -c 'grep -q \"cfn-megaplan-fast\" .claude/global/CLAUDE.md && grep -q \"cfn-megaplan-fast\" .claude/skills/CLAUDE.md && grep -q \"cfn-megaplan-fast\" readme/feature-status.md && .claude/skills/cfn-doc-lint/execute.sh readme/feature-status.md >/dev/null && echo \"AC-6: routing line in global CLAUDE.md, skills/CLAUDE.md, feature-status; doc-lint green\"'",
+      "mode": "executed",
+      "exit_code": 0,
+      "pass": true,
+      "predicate_unverified": false,
+      "reason": "exit_code_only: runner summary unrecognized, trusting exit 0 — no proof any test ran",
+      "output_excerpt": "AC-6: routing line in global CLAUDE.md, skills/CLAUDE.md, feature-status; doc-lint green",
+      "evidence": "",
+      "timestamp": "2026-08-19T16:36:54Z"
+    },
+    {
+      "ac_id": "AC-7",
+      "kind": "integration",
+      "check": "bash planning/cfn_megaplan_fast/dryrun.sh",
+      "mode": "executed",
+      "exit_code": 0,
+      "pass": true,
+      "predicate_unverified": false,
+      "reason": "exit_code_only: runner summary unrecognized, trusting exit 0 — no proof any test ran",
+      "output_excerpt": "OVER DECISIONS 60814/8192 (+52622) b1_identity_access_profiles_curve2026/DECISIONS_b1_identity_access_profiles_curve2026.md\nOVER DESIGN 72422/16384 (+56038) b1_identity_access_profiles_curve2026/DESIGN_b1_identity_access_profiles_curve2026.md\nOVER OPS 53224/16384 (+36840) b1_identity_access_profiles_curve2026/OPS_b1_identity_access_profiles_curve2026.md\nOVER PLAN 246812/40960 (+205852) b1_identity_access_profiles_curve2026/PLAN_b1_identity_access_profiles_curve2026.md\nOVER PSEUDO 120582/16384 (+104198) b1_identity_access_profiles_curve2026/PSEUDO_b1_identity_access_profiles_curve2026.md\nOVER RESEARCH 24929/16384 (+8545) b1_identity_access_profiles_curve2026/RESEARCH_b1_identity_access_profiles_curve2026.md\nOVER REVIEW 39727/16384 (+23343) b1_identity_access_profiles_curve2026/REVIEW_b1_identity_access_profiles_curve2026.md\nOVER SPEC 136386/24576 (+111810) b1_identity_access_profiles_curve2026/SPEC_b1_identity_access_profiles_curve2026.md\nOVER TEST 160358/24576 (+135782) b1_identity_access_profiles_curve2026/TEST_b1_identity_access_profiles_curve2026.md\nOVER UX 144051/32768 (+111283) b1_identity_access_profiles_curve2026/UX_b1_identity_access_profiles_curve2026.md\nOVER VERIFY 327615/40960 (+286655) b1_identity_access_profiles_curve2026/VERIFY_b1_identity_access_profiles_curve2026.md\n   (exit=1 for b1_identity_access_profiles_curve2026)\n== 2. extract-sections on fixture\n   parts: B0 B1 B2 ; extract(B0)=744B of 980B full (exit=0)\n== 3. projection (output tokens, 7 parts)\n   program: spec 47569 data 30623 arch 45179 ux 27619 review 54568 = 205560\n   per part: test_plan 25702 write_plan 44497 bars-inline 5000 repair-allowance 14832 = 90032  x7 = 630229\n   main chat: 130 turns x 944 tok x 2 = 245440\n   baseline measured: 10,056,000 output (main 1,466,811 + subagents 8,589,000)\nPROJECTED_OUTPUT_TOKENS_7_PARTS=1081230",
+      "evidence": "",
+      "timestamp": "2026-08-19T16:36:54Z"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "executed": 7,
+    "needs_agent": 0,
+    "blocked": 0,
+    "green": 7,
+    "red": 0,
+    "unresolved": 0,
+    "zero_ran": 0,
+    "all_green": true
+  }
+}
