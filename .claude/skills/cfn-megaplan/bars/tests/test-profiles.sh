@@ -29,7 +29,13 @@ if [ -f "$FAST" ]; then
   [ "$(jq -r '[paths(..) | .[-1]] | index("probe")' "$FAST")" = "null" ] && ok "fast: no probe key anywhere" || no "fast: probe key present"
   [ "$(jq -r '.loop.bar_rounds' "$FAST")" = "1" ] && ok "fast: bar_rounds 1" || no "fast: bar_rounds must be 1"
   [ "$(jq -r '[.phases.spec,.phases.arch] | all(.model=="opus")' "$FAST")" = "true" ] && ok "fast: spec+arch on opus" || no "fast: spec/arch must be opus"
-  [ "$(jq -r '[.phases[] | select(.scope=="part")] | length' "$FAST")" = "3" ] && ok "fast: exactly 3 per-part phases (test_plan, write_plan, bar_b)" || no "fast: per-part phase count != 3"
+  [ "$(jq -r '[.phases[] | select(.scope=="part")] | length' "$FAST")" = "4" ] && ok "fast: exactly 4 per-part phases (part_spec, test_plan, write_plan, bar_b)" || no "fast: per-part phase count != 4"
+  [ "$(jq -r '.phases.part_spec.condition' "$FAST")" = "part_specs" ] && ok "fast: part_spec is conditional on part_specs" || no "fast: part_spec must be conditional (condition=part_specs)"
+  [ "$(jq -r '.phases.part_spec.model' "$FAST")" = "sonnet" ] && ok "fast: part_spec runs on sonnet" || no "fast: part_spec must be sonnet"
+  [ "$(jq -r '.caps.PARTSPEC' "$FAST")" = "12288" ] && ok "fast: PARTSPEC cap 12288" || no "fast: PARTSPEC cap missing/wrong"
+  [ "$(jq -r '.caps.PARTSPEC < .caps.SPEC' "$FAST")" = "true" ] && ok "fast: PARTSPEC cap below SPEC cap" || no "fast: PARTSPEC cap not below SPEC"
+  [ "$(jq -r '.part_specs.mode' "$FAST")" = "auto" ] && ok "fast: part_specs.mode defaults to auto" || no "fast: part_specs.mode != auto"
+  [ "$(jq -r '[.part_specs.auto_min_parts, .part_specs.auto_min_extract_bytes] | all(type=="number" and . > 0)' "$FAST")" = "true" ] && ok "fast: part_specs auto thresholds present" || no "fast: part_specs auto thresholds missing"
 else
   no "fast: profile missing at $FAST"
 fi

@@ -161,7 +161,7 @@ Sub-pipelines megaplan composes (run standalone only for narrow/iterative work):
 - `/write-plan` — implementation roadmap, agent dispatch, TDD phases.
 - `/cfn-plan-review` — assumption extraction, dependency trace, blast radius.
 - `/cfn-megaplan-lite`: balanced cut of megaplan for medium features (3-7 files, single shared-state surface); both bars 1-round, no live probe, pseudo folded into arch, sonnet non-core phases.
-- `/cfn-megaplan-fast`: token-lean planner for multi-part programs (and cheapest safe path for single features). One program-level spec/data/arch/ux, then per-part test-plan + write-plan + Bar A over `extract-sections.sh` slices; `check-size.sh` caps every artifact; Bar B static lint only. Same loop-task hand-off. Measured reason: a 7-part megaplan program cost ~10M output tokens.
+- `/cfn-megaplan-fast`: token-lean planner for multi-part programs (and cheapest safe path for single features). One program-level spec/data/arch/ux, then per-part test-plan + write-plan + Bar A over `extract-sections.sh` slices (`--part-specs` auto-adds a 12KB per-part SPEC when parts are distinct domains); `check-size.sh` caps every artifact; Bar B static lint only. Same loop-task hand-off. Measured reason: a 7-part megaplan program cost ~10M output tokens.
 - `/cfn-knowledge-plan`: non-code deliverables. Route here when the output is prose, not code. A doc that specifies a build still goes to `/cfn-megaplan`. Hand raw sources (full transcript, whole PDF) to intake — summarising first destroys the signal extraction mines.
 - `/cfn-share`: hand a plan to someone who does not live in a terminal. Always pass the recorded `url` on re-shares or the reader's link is orphaned.
 

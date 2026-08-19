@@ -45,6 +45,9 @@ run "cap override via --profile flips OK to OVER" "$FIX/SPEC_under.md" --profile
 # ---- MEGAPLAN kind (full-megaplan synthesis artifact) is a known kind ----
 run "MEGAPLAN_ prefix is a known kind: exit 0" "$FIX/MEGAPLAN_tiny.md" -- 0 "OK MEGAPLAN"
 
+run "PARTSPEC_ prefix is a known kind: exit 0" "$FIX/PARTSPEC_tiny.md" -- 0 "OK PARTSPEC"
+run "PARTSPEC cap from fast.json is 12288" "$FIX/PARTSPEC_tiny.md" --profile "$SCRIPT_DIR/../../../cfn-megaplan-fast/profiles/fast.json" -- 0 "/12288"
+
 # ---- full-megaplan tier profiles carry caps that check-size honors ----
 TIERS="$SCRIPT_DIR/../../profiles"
 run "mvp.json caps: SPEC cap read from tier profile"  "$FIX/SPEC_under.md" --profile "$TIERS/mvp.json" -- 0 "/49152"
