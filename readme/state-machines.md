@@ -2,7 +2,7 @@
 
 Entity lifecycle documentation for stateful CFN systems.
 
-**Last Updated:** 2026-08-11 (cfn-workbench watcher + roster lane lifecycles added)
+**Last Updated:** 2026-08-19 (runtime link target lifecycle added for link-runtime-dirs.sh)
 
 ## Contents
 
@@ -32,6 +32,7 @@ Entity lifecycle documentation for stateful CFN systems.
 - [Implementation Wave (cfn-loop-task LANE DERIVATION)](#implementation-wave-cfn-loop-task-lane-derivation)
 - [Workbench Watcher (cfn-workbench watch.sh)](#workbench-watcher-cfn-workbench-watchsh)
 - [Roster Lane (cfn-workbench section-roster)](#roster-lane-cfn-workbench-section-roster)
+- [Runtime Link Target (link-runtime-dirs.sh)](#runtime-link-target-link-runtime-dirssh)
 - [Post-Edit Validation Pipeline (cfn-invoke-post-edit.sh / post-edit-pipeline.js, S016/S018/S020)](#post-edit-validation-pipeline-cfn-invoke-post-editsh-post-edit-pipelinejs-s016s018s020)
 - [Subagent Lifecycle Hooks (cfn-subagent-start.sh / cfn-subagent-stop.sh, S015)](#subagent-lifecycle-hooks-cfn-subagent-startsh-cfn-subagent-stopsh-s015)
 - [Pre-Edit Backup Lifecycle (cfn-invoke-pre-edit.sh / restore.sh / cleanup.sh, S014 + S017)](#pre-edit-backup-lifecycle-cfn-invoke-pre-editsh-restoresh-cleanupsh-s014-s017)
@@ -825,3 +826,39 @@ not-running --start--> running --tick--> running
 pending --lane_spawned--> in-flight --report/landed event--> landed
     \_______________________report file________________________/
 ```
+
+## Runtime Link Target (link-runtime-dirs.sh)
+
+**Source:** `.claude/cfn-scripts/link-runtime-dirs.sh` (`RUNTIME_DIRS` list, one pass per entry); verified by `tests/test-link-runtime-dirs.sh`
+
+Each of the 14 `~/.claude/<dir>` entries is classified independently on every run.
+The links are load-bearing: without them every `$HOME/.claude/skills/cfn-*`
+invocation fails outside this repo.
+
+### States
+
+`absent | linked | mislinked | occupied-file | occupied-empty-dir | occupied-populated-dir | refused`
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| absent | linked | run without `--check` | parent `~/.claude` exists or is created first |
+| absent | absent | run with `--check` | check mode never writes; reports the entry as missing and exits non-zero |
+| linked | linked | any run | readlink already resolves to the repo path; reported `ok`, no write |
+| mislinked | linked | run without `--check` | existing symlink points elsewhere; old target recorded in the backup dir, then relinked |
+| occupied-file | linked | run without `--check` | real file moved to `~/.claude-runtime-links-backup-<ts>/`, never deleted |
+| occupied-empty-dir | linked | run without `--check` | `rmdir` succeeds, so nothing is discarded |
+| occupied-populated-dir | refused | run without `--force` | refuses and exits non-zero rather than risk data loss; the dir is left untouched |
+| occupied-populated-dir | linked | run with `--force` | whole dir moved to the timestamped backup dir first |
+| refused | linked | re-run with `--force` | operator has seen the refusal and opted in |
+
+```
+absent ─────────────────────────────> linked <──── mislinked
+occupied-file ──backup+replace───────>   ^
+occupied-empty-dir ──rmdir───────────>   |
+occupied-populated-dir ──no --force──> refused ──--force+backup──┘
+```
+
+`~/.claude/agents` is deliberately not in this set: it stays a real directory so
+project-local agents survive, and only `agents/cfn-dev-team` is linked.
