@@ -1,4 +1,4 @@
-# CFN Operating Guide v2.25.0
+# CFN Operating Guide v2.26.0
 
 ## 1. Edit Safety (REQUIRED)
 
@@ -24,6 +24,28 @@ CFN rules override Claude Code defaults when they conflict.
 Agent descriptions are the dispatch table.
 
 **Solo work only for:** Single-file edits with no research, direct questions answerable from context
+
+### Fork Subagents (`subagent_type: "fork"`) - TOKEN HAZARD
+
+A fork inherits the **entire main-chat conversation** as its prompt and always runs on the parent model. Cost per fork = current context size, re-sent. Three forks at 100k context = 300k input tokens before the fork does any work. A fresh agent (any other `subagent_type`, or omitted) starts near-empty and costs a fraction.
+
+**Default: do NOT fork. Spawn a fresh agent and pass the 5-20 lines of context it actually needs.**
+
+Fork ONLY when all three hold:
+1. The task depends on reasoning built up in this conversation that cannot be restated in a short brief (a long debugging trail, an accumulated design rationale, many interlocking decisions).
+2. Writing that brief would cost more effort than it saves, or would lose fidelity that changes the answer.
+3. Exactly ONE fork is needed. Never fan out forks in parallel: N forks = N x full context.
+
+Hard rules:
+- **Never fork for search, file reading, or research.** Use `Explore` or `general-purpose` with an explicit query.
+- **Never fork for a mechanical edit, test run, lint, or commit.** Fresh agent or solo.
+- **Never fork early in a session** when context is small enough to restate. Cheap to brief, so brief it.
+- **Never fork from inside a fork.** A fork executes directly, it does not re-delegate.
+- **Fork late, once, and only when context IS the payload.** Late-session handoffs, "continue this exact investigation in isolation", or a verification pass that must see everything already reasoned about.
+- **Check context size first.** Past ~50k tokens of conversation, a fork is expensive enough to require the same justification as any other large spend. State the reason out loud before spawning.
+- **Prefer `SendMessage` to an existing agent** over a new fork when the context you need already lives in that agent.
+
+Cheaper substitutes, in order: restate context in a fresh agent prompt, point the agent at a file/plan artifact, `SendMessage` to a live agent, then fork as last resort.
 
 ### Operations
 - **Batch operations**: one message per related batch (spawns, edits, bash, todos)

@@ -49,7 +49,6 @@ npx cfn-init
    ✅ Copied 43 cfn-* skills
    ✅ Copied 7 cfn-* hooks
    ✅ Copied 45 commands to cfn/
-   ✅ CFN-CLAUDE.md copied to project root
    ```
 
 **Installation time:** ~6-10 seconds for npm install, ~2 seconds for cfn-init
@@ -172,7 +171,6 @@ node_modules/claude-flow-novice/
 │   └── ... (essential scripts)
 ├── package.json                    # Package metadata
 ├── README.md                       # User documentation
-├── CFN-CLAUDE.md                   # Project instructions (renamed)
 └── LICENSE                         # MIT License
 ```
 
@@ -199,7 +197,6 @@ your-project/
 │   │
 │   └── cfn-data/                  # ✅ Copied
 │
-├── CFN-CLAUDE.md                   # ✅ Copied (reference file)
 └── CLAUDE.md                       # ⚠️ Preserved (user's existing file)
 ```
 

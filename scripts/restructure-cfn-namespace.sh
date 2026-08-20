@@ -152,9 +152,6 @@ restructure_namespace() {
         safe_move "$cmd_file" "${BASE_DIR}/.claude/commands/cfn/"
     done
 
-    # 6. Rename root CLAUDE.md
-    safe_rename "${BASE_DIR}/CLAUDE.md" "${BASE_DIR}/CFN-CLAUDE.md"
-
     log "CFN namespace restructuring complete!"
 }
 

@@ -191,23 +191,6 @@ async function copyFiles(src, dest, pattern, forceOverwrite = true, selectiveCop
   }
 }
 
-async function copyCfnClaudeMarkdown() {
-  const cfnClaudeMdPath = path.join(cfnRoot, '.claude/root-claude-distribute/CFN-CLAUDE.md');
-  const destPath = path.resolve(process.cwd(), 'CFN-CLAUDE.md');
-
-  if (fs.existsSync(cfnClaudeMdPath)) {
-    try {
-      await cpAsync(cfnClaudeMdPath, destPath);
-      console.log(chalk.green('📄 CFN-CLAUDE.md copied to project root'));
-      console.log(chalk.yellow('💡 Activate CFN workflows: cp CFN-CLAUDE.md CLAUDE.md'));
-    } catch (error) {
-      console.error(chalk.red(`❌ Failed to copy CFN-CLAUDE.md: ${error.message}`));
-    }
-  } else {
-    console.warn(chalk.yellow('⚠️ CFN-CLAUDE.md not found in source'));
-  }
-}
-
 async function installLizard() {
   console.log(chalk.blue('\n🔧 Installing lizard (complexity analyzer)...'));
 
@@ -345,9 +328,6 @@ async function initializeCfnProject() {
       copyResults.push(result);
     }
 
-    // Copy CFN-CLAUDE.md
-    await copyCfnClaudeMarkdown();
-
     // Summary
     const successCount = copyResults.filter(Boolean).length;
     const totalPaths = Object.keys(CFN_PATHS).length;
@@ -391,9 +371,8 @@ async function initializeCfnProject() {
     fs.writeFileSync('.claude/.cfn-initialized', new Date().toISOString());
 
     console.log(chalk.yellow('\n🔍 Next Steps:'));
-    console.log('   1. Review CFN-CLAUDE.md in project root');
-    console.log('   2. Run your first CFN Loop: npx cfn-loop "Task description"');
-    console.log('   3. Check available agents: ls .claude/agents/cfn-dev-team/*/\n');
+    console.log('   1. Run your first CFN Loop: npx cfn-loop "Task description"');
+    console.log('   2. Check available agents: ls .claude/agents/cfn-dev-team/*/\n');
 
   } catch (error) {
     console.error(chalk.red('❌ CFN Initialization Failed'), error);

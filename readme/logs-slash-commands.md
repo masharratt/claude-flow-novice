@@ -492,7 +492,6 @@ npx cfn-init
 - Copies 43 skills to `.claude/skills/cfn-*/`
 - Copies 7 hooks to `.claude/hooks/cfn-*`
 - Copies 45+ commands to `.claude/commands/cfn/`
-- Copies CFN-CLAUDE.md reference file
 
 **Namespace isolation**:
 - Only `cfn-*` prefixed files copied/overwritten
