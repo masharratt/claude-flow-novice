@@ -235,6 +235,7 @@ Planning tier vocabulary is mvp|beta|enterprise (cfn-megaplan); execution mode v
 
 1. **Locate the plan.** Use `$PLAN_FILE` from Step 0 (`plan-paths.sh resolve "$SLUG" "PLAN_${SLUG}.md"` — the plan dir `planning/<slug>/` first, legacy flat `planning/` second). If the slug is not known exactly, `.claude/skills/cfn-megaplan/lib/plan-paths.sh newest 'PLAN_*.md'` returns the newest `PLAN_` across both layouts; confirm its name matches the task slug. If no `PLAN_` file resolves, STOP and run `/write-plan` first. Never improvise lanes without a plan. **Note:** a `MEGAPLAN_<slug>.md` is an index/summary, NOT a lane source — if only `MEGAPLAN_` (and/or `VERIFY_`) exists but no `PLAN_<slug>.md`, the megaplan run failed to persist its plan; run `/write-plan "<task>" --mode=<mode>` to regenerate `PLAN_<slug>.md` from the other artifacts in that plan dir, then continue. Do NOT derive lanes from `MEGAPLAN_` or `VERIFY_`.
 2. **One lane per phase.** Each top-level phase/workstream in the plan becomes one lane. **LANE_CAP = 8** (one constant, used here AND in wave scheduling step 6). If the plan has more phases than LANE_CAP, merge the smallest phases into neighboring lanes until at most LANE_CAP remain. (Lanes = phases, so most plans never reach the cap; it is a ceiling, not a target.)
+2b. **Wide-phase split (mandatory check, backstop for plans predating the width cap).** Run `.claude/skills/cfn-megaplan/bars/check-phase-width.sh "$PLAN_FILE"` (caps: 15 steps / 8 distinct files per phase; new plans arrive clean because write-plan gates on it). For each flagged phase: cluster its steps by File cell — steps sharing ANY file land in the same cluster (transitively). If ≥ 2 clusters result, split the phase into sub-lanes `<phase>-a`, `<phase>-b`, ... one per cluster; first merge any cluster under 5 steps into the cluster it exchanges the most Consumes edges with (never split below ~5 steps per sub-lane — serial learning and coordination overhead eat the win). Cross-cluster Consumes edges are ordering, not merging: sub-lanes enter steps 5/6 as ordinary lanes and the wave scheduler orders them. If clustering yields 1 cluster (every step transitively co-writes), the phase legitimately stays one lane; log `phase-split: <phase> unsplittable (co-write chain)`. Otherwise log `phase-split: <phase> -> <sub-lane>:<steps> ...`. LANE_CAP still applies at wave time — a deferred-to-next-slot sub-lane still beats 48 serial steps (measured 2026-08-19: one 48-step lane ran 2+ hours; a legal 4-way file-cluster split was worth ~3x).
 3. **Exclusive file ownership.** Each lane gets an exclusive file list derived from the plan. No file may appear in two lanes. If two phases touch the same file, put both phases in the SAME lane and run them sequentially inside it.
 4. **Ownership clause in every spawn prompt.** Each spawn prompt includes: "FILES YOU OWN: <list>. Do not create or edit any file outside this list. Files outside your lane needing changes go in out_of_scope_needs (array of \"path: why\"); blocked_on is only for a blocker that stops YOUR lane (scalar, one sentence, else null). You may amend HOW a step is built (same files, same AC, same done predicate) and record it in step_amendments; you may not amend WHAT."
 5. **Compute lane-dependency edges (from Produces/Consumes).** First run the static sanity gate: `.claude/skills/cfn-megaplan/bars/check-produce-consume.sh "$PLAN_FILE"` — exit 1 (duplicate producer / weasel / empty / malformed cell) BLOCKS; resolve before deriving lanes (a duplicate-producer finding is the AskUserQuestion below). Warnings (dangling consume) are advisory. If the plan has no such columns the checker exits 0 and you skip to a single wave. Then collect every step's identifiers per lane. Draw a directed edge **A → E** whenever any step in lane E has a `Consumes` string-equal (exact, trimmed) to a `Produces` of any step in lane A, with A ≠ E. A Consumes matching no lane's Produces is a pre-existing symbol → no edge (log a one-line `warn: dangling consume <id>` so a typo is visible). **Duplicate producer** (the same identifier Produced by steps in two DIFFERENT lanes) is ambiguous ownership → STOP and surface one `AskUserQuestion` (which lane owns it); do not guess. If the columns are absent or every cell is `-`, the edge set is empty. **Cycle** (A → E and E → A): merge the cycle's lanes into one lane run sequentially — same resolution as the same-file rule in step 3 — and log `cycle-merge: <lanes>`.
@@ -272,6 +273,15 @@ jq -n --arg slug "$RUN_ID" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
 
 Iterate the waves from step 6 in order. For each wave: spawn its lanes in parallel (single message, one Task per lane, up to LANE_CAP), using the prompt below. A single-wave plan (empty edge set) is the common case and spawns exactly once — identical to prior behavior.
 
+**`${PRIOR_LEARNINGS_BLOCK}` (cross-wave learning channel).** Wave 1 and single-wave plans: empty string (omit the block entirely). Later waves and repair respawns: collect every completed lane report's `learnings` arrays, dedup (exact string match), keep the 10 most recent, and render:
+```
+LEARNINGS FROM PRIOR WAVES (hints from other lanes — verify before relying,
+they are observations, not plan amendments):
+- <learning 1>
+- ...
+```
+Rationale (measured 2026-08-19): one lane debugged an auth.users FK once and reused the insight two steps later; split into 4 lanes, each would have re-debugged it. This channel is the split rule's counterweight. Wave boundaries only — no mid-wave passing; the coordination overhead is not worth it.
+
 Immediately before each lane's Task spawn, emit its spawn event:
 
 ```bash
@@ -292,6 +302,8 @@ Read ONLY: the plan file, your owned files, and test output excerpts given
 to you. Do NOT read other lanes' files, prior iteration transcripts, or any
 SKILL.md.
 
+${PRIOR_LEARNINGS_BLOCK}
+
 ADAPTATION: The plan pins WHAT (files, AC binding, done predicate), not HOW.
 If a better implementation approach than the step's Change cell keeps the
 same files, the same failing test / AC id, and the same done predicate,
@@ -308,8 +320,13 @@ REQUIREMENTS:
 4. Run ONLY your own test files: npx vitest run <your-test-files> --reporter=verbose
    Never run `npm test` or any repo-wide test command.
 5. Report exactly this JSON as the last block of your output:
-   {"lane": "<lane>", "tests_written": N, "scoped_tests_passed": N, "scoped_tests_total": M, "files_modified": [], "phases_complete": [], "out_of_scope_needs": [], "step_amendments": [], "blocked_on": null | "<one sentence>", "tests_removed_reason": null | "<why you intentionally removed or renamed tests>", "confidence": 0.0}
+   {"lane": "<lane>", "tests_written": N, "scoped_tests_passed": N, "scoped_tests_total": M, "files_modified": [], "phases_complete": [], "out_of_scope_needs": [], "step_amendments": [], "learnings": [], "blocked_on": null | "<one sentence>", "tests_removed_reason": null | "<why you intentionally removed or renamed tests>", "confidence": 0.0}
    `step_amendments` items: {"step": "<plan step #>", "kind": "how", "what": "<one sentence: what differs from the Change cell>", "why": "<one sentence>"}; empty array when none.
+   `learnings`: max 5 one-line strings, ONLY cross-cutting facts another lane
+   would otherwise re-discover the hard way: schema/environment/tooling gotchas
+   ("auth.users FK needs ON DELETE CASCADE via public.profiles", "vitest needs
+   --pool=forks under WSL2"). NOT code style, NOT progress notes, NOT anything
+   the plan already states. Empty array when none — most lanes have none.
    Set `tests_removed_reason` to a non-null string ONLY when you deliberately deleted or renamed existing tests (e.g. consolidated a duplicated suite); leave it null otherwise. The coordinator uses it to distinguish an intentional suite shrink from an accidental one (Phase 3, W3 baseline check).
 
 AGENT_ID: loop3-impl-${TASK_ID}-iter${ITERATION}-<lane>
@@ -380,9 +397,9 @@ a lane that resolved its own deferral and now reports `[]` clears its block
 instead of leaving a stale blocker. This step has no pass/fail branch of its
 own; the gate lives at Phase 5 (5E.4a).
 
-### Step 3.01a: Amendment capture (audit only, non-blocking)
+### Step 3.01a: Amendment + learnings capture (audit only, non-blocking)
 
-Persist every lane's `step_amendments` into this run's plan file so a reviewer can see where the build diverged in HOW from the plan's Change cells. Nothing gates on this: an amendment inside the bounded box (same files, AC, done predicate) is sanctioned. A lane report with no `step_amendments` key counts as empty.
+Persist every lane's `step_amendments` into this run's plan file so a reviewer can see where the build diverged in HOW from the plan's Change cells. Nothing gates on this: an amendment inside the bounded box (same files, AC, done predicate) is sanctioned. Same pass persists `learnings` (the cross-wave hint channel) so later waves, repair respawns, and the NEXT iteration's wave 1 can inject them. A lane report missing either key counts as empty.
 
 ```bash
 RUNPLAN="${PDIR}/run-plan-${RUN_ID}.json"
@@ -392,6 +409,11 @@ for LANE_ID in ${LANE_IDS}; do
         '[(.step_amendments // [])[] | . + {lane:$lane, iteration:$it}]' "$R" 2>/dev/null || echo '[]')"
   [ "$A" != "[]" ] && [ -f "$RUNPLAN" ] && {
     TMP="$(mktemp)"; jq --argjson a "$A" '.amendments = ((.amendments // []) + $a)' "$RUNPLAN" > "$TMP" && mv "$TMP" "$RUNPLAN"; } \
+    || true
+  L="$(jq -c --arg lane "$LANE_ID" --argjson it "${ITERATION}" \
+        '[(.learnings // [])[] | {lane:$lane, iteration:$it, text:.}]' "$R" 2>/dev/null || echo '[]')"
+  [ "$L" != "[]" ] && [ -f "$RUNPLAN" ] && {
+    TMP="$(mktemp)"; jq --argjson l "$L" '.learnings = ((.learnings // []) + $l | unique_by(.text))' "$RUNPLAN" > "$TMP" && mv "$TMP" "$RUNPLAN"; } \
     || true
 done
 ```
@@ -976,4 +998,4 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 
 ---
 
-**Version:** 3.5.0 | **Date:** 2026-08-18 | Standard CFN Loop. 3.5.0: 5E.6 run ledger (cli/run-ledger.sh; Bar B tier + amendment signal row, FLAG lines). 3.4.0: bounded step amendment (Phase 2, Step 3.01a) + per-AC scoped re-gate at Step 0a. Full-epic Phase 2; mechanical gate via cli/gate-check.sh; thresholds pinned in THRESHOLDS.md; Phase 3 now captures lane `out_of_scope_needs` into a side-manifest (Step 3.01, cli/deferrals.sh record); Phase 4 is the gate-wiring matrix (dry-review + conditional security/migration/a11y/dep-audit/perf gates) routed through cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user prompts); Phase 5 Exit is a mechanical VERIFY gate (5E.0 mutation probe, 5E.1-5E.3 verify-run.sh, 5E.4 all-green, 5E.4a deferrals gate — cli/deferrals.sh gate, S006 — 5E.5 prod-build smoke) that MAY iterate back to Phase 2 bounded by MAX_ITERATIONS.
+**Version:** 3.6.0 | **Date:** 2026-08-19 | Standard CFN Loop. 3.6.0: wide-phase split (lane derivation 2b, check-phase-width.sh backstop) + cross-wave learnings channel (lane report `learnings`, `${PRIOR_LEARNINGS_BLOCK}` injection, 3.01a persistence). 3.5.0: 5E.6 run ledger (cli/run-ledger.sh; Bar B tier + amendment signal row, FLAG lines). 3.4.0: bounded step amendment (Phase 2, Step 3.01a) + per-AC scoped re-gate at Step 0a. Full-epic Phase 2; mechanical gate via cli/gate-check.sh; thresholds pinned in THRESHOLDS.md; Phase 3 now captures lane `out_of_scope_needs` into a side-manifest (Step 3.01, cli/deferrals.sh record); Phase 4 is the gate-wiring matrix (dry-review + conditional security/migration/a11y/dep-audit/perf gates) routed through cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user prompts); Phase 5 Exit is a mechanical VERIFY gate (5E.0 mutation probe, 5E.1-5E.3 verify-run.sh, 5E.4 all-green, 5E.4a deferrals gate — cli/deferrals.sh gate, S006 — 5E.5 prod-build smoke) that MAY iterate back to Phase 2 bounded by MAX_ITERATIONS.

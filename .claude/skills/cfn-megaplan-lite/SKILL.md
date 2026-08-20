@@ -112,7 +112,7 @@ The committed smoke test (`tests/test-smoke.sh`) asserts these paths resolve at 
 
 Bar B-lite runs three scans only:
 
-1. **Static:** `.claude/skills/cfn-megaplan/bars/check-haiku-static.sh` against the assembled plan (weasel phrases via `.claude/skills/cfn-megaplan/bars/weasel-phrases.txt`, plus optional-decision-input on core FRs).
+1. **Static:** `.claude/skills/cfn-megaplan/bars/check-haiku-static.sh` against the assembled plan (weasel phrases via `.claude/skills/cfn-megaplan/bars/weasel-phrases.txt`, plus optional-decision-input on core FRs), and `.claude/skills/cfn-megaplan/bars/check-phase-width.sh` (<=15 steps, <=8 distinct files per step-number major; over = split the phase by file cluster so loop-task lanes stay parallelizable).
 2. **Structural:** every FR/EC id in `SPEC_<slug>.md` appears in at least one plan step; every plan step cites the artifact and section it implements.
 3. **Coverage:** every `[core]` FR has an executable AC in `VERIFY_<slug>.md`; every branch in `PSEUDO_<slug>.md` maps to a step or is explicitly marked out-of-scope.
 

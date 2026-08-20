@@ -319,7 +319,7 @@ If it is missing, re-run `/write-plan` before advancing to L9. `MEGAPLAN_<slug>.
 
 ### Step 6: L9: plan_review + Bar B
 
-Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readiness scaled to tier) in main chat via the Skill tool. Then run **Bar B** (`bars/haiku-executable.md`) at the resolved executor tier: static + structural + coverage scans, then the live haiku probe **only at `full`** (`sonnet` skips it; the structural scan accepts file + symbol name in place of a typed signature). Any finding routes to the owning phase (ui_control → `cfn-ux`, value source → `cfn-data`/`cfn-arch`, branch → `cfn-pseudo`), which fixes it in **patch mode** (see Loop-back protocol). Re-run Bar B after each fix round.
+Run `/cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readiness scaled to tier) in main chat via the Skill tool. Then run **Bar B** (`bars/haiku-executable.md`) at the resolved executor tier: static + structural + coverage scans (the static set includes `bars/check-phase-width.sh` — <=15 steps, <=8 distinct files per step-number major, so loop-task's one-lane-per-phase rule yields parallelizable lanes; over = split the phase by file cluster in the step table), then the live haiku probe **only at `full`** (`sonnet` skips it; the structural scan accepts file + symbol name in place of a typed signature). Any finding routes to the owning phase (ui_control → `cfn-ux`, value source → `cfn-data`/`cfn-arch`, branch → `cfn-pseudo`), which fixes it in **patch mode** (see Loop-back protocol). Re-run Bar B after each fix round.
 
 **Bound: max 3 Bar B rounds.** If findings remain after round 3, stop and surface residual findings via `AskUserQuestion` (accept as-is / keep iterating / descope).
 

@@ -52,7 +52,7 @@ L4 plan_review  sonnet  REVIEW_<prog>.md      once, program artifacts only: assu
 P1 test_plan    sonnet  TEST_<slug>.md        input = extract-sections.sh <artifact> <part> for SPEC/DATA/ARCH/UX
                                                + the part's PARTSPEC in full when present
 P2 write_plan   sonnet  PLAN_<slug>.md + VERIFY_<slug>.md   then Bar A static + bless
-P3 bar_b        static  check-haiku-static.sh + weasel scan, 1 round, inline fix
+P3 bar_b        static  check-haiku-static.sh + check-phase-width.sh + weasel scan, 1 round, inline fix
 synthesis       main    MEGAPLANFAST_<prog>.md  per-part table + build order + hand-off lines
 ```
 Node deps: spec → [part_spec ×N] → data → (arch ∥ ux) → plan_review → per part: test_plan → write_plan → bar_b. `data`/`ux` skipped when their flag is `no`: substitute the literal `Input DATA: ABSENT (db=no)` in downstream prompts.
@@ -84,7 +84,7 @@ Rationale: the baseline's SPECs were 110-136KB and VERIFYs up to 545KB, each re-
 **Step 5: per part.** For each part whose §9 deps are done (run independent parts in one message):
 - **P1 test_plan:** `tester`, sonnet, `cfn-test-plan` light. Inputs = `lib/extract-sections.sh planning/<prog>/SPEC_<prog>.md <part>` (and DATA/ARCH/UX likewise), written to `planning/<prog>__<part>/.in/` so the agent reads files, not pasted blobs, plus `PARTSPEC_<slug>.md` in full when present (its FR-<part>-n ids are the ones VERIFY coverage maps). Output TEST_<slug>.md. Size-check.
 - **P2 write_plan + Bar A:** `general-purpose`, sonnet, follow `.claude/commands/write-plan.md` `--mode=mvp` with inputs = the same extracts + TEST + REVIEW. Output PLAN_<slug>.md + VERIFY_<slug>.md. Then in main chat: `check-verifiable-static.sh`, `check-produce-consume.sh`, `check-size.sh` (all three). Loop policy below. Then `bless-verify.sh VERIFY_<slug>.md --note "fast plan-stage"`.
-- **P3 Bar B static:** `check-haiku-static.sh PLAN_<slug>.md` + weasel scan. Loop policy below. No probe. No repair agent. Rationale: lanes run on sonnet and report `blocked_on` for residual ambiguity; Bar B here is lint, not a guarantee.
+- **P3 Bar B static:** `check-haiku-static.sh PLAN_<slug>.md` + `check-phase-width.sh PLAN_<slug>.md` (phase width: <=15 steps, <=8 files per step-number major; over = split the phase by file cluster, an inline table edit) + weasel scan. Loop policy below. No probe. No repair agent. Rationale: lanes run on sonnet and report `blocked_on` for residual ambiguity; Bar B here is lint, not a guarantee.
 - Log per part: `part <id>: PLAN <bytes>/<cap> VERIFY <bytes>/<cap> barA=<green|n findings> barB=<green|n findings> blessed=<sha12>`.
 
 **Loop policy (every bar, every level).** One round. Findings ≤ `loop.inline_patch_max_lines` (8) lines of change → the orchestrator edits the artifact inline in main chat (edit-safety hooks apply), re-runs the check. Larger → exactly one sonnet repair spawn that receives ONLY the findings JSON + that one artifact path, then re-run. Still failing → stop that part, AskUserQuestion (accept with quarantine / descope / full megaplan). Never loop a second time, never re-run an upstream phase. A bless whose `regate` scope names `bar_a` after an inline edit is honored by re-running the static checks, not by re-spawning.
