@@ -81,15 +81,15 @@ WCAG level:
 ```bash
 # env-driven targets
 CFN_A11Y_URLS="http://localhost:3000,http://localhost:3000/about" \
-  ./.claude/skills/cfn-a11y-gate/execute.sh
+  $HOME/.claude/skills/cfn-a11y-gate/execute.sh
 
 # flag-driven targets
-./.claude/skills/cfn-a11y-gate/execute.sh \
+$HOME/.claude/skills/cfn-a11y-gate/execute.sh \
   --url http://localhost:3000 --url http://localhost:3000/about
 
 # widen WCAG level
 CFN_A11Y_TAGS="wcag2a,wcag2aa,wcag21aa" \
-  ./.claude/skills/cfn-a11y-gate/execute.sh --url http://localhost:3000
+  $HOME/.claude/skills/cfn-a11y-gate/execute.sh --url http://localhost:3000
 
 # route any findings through voting
 /cfn-vote-implement latest

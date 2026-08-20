@@ -76,7 +76,7 @@ interface ValidationResult {
 
 ```bash
 # Install dependencies
-cd .claude/skills/cfn-loop-validation
+cd $HOME/.claude/skills/cfn-loop-validation
 npm install
 
 # Build TypeScript

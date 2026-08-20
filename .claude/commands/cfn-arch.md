@@ -16,7 +16,7 @@ Standalone Architecture phase. Produces `planning/<slug>/ARCH_<slug>.md` with DR
 
 ```bash
 SLUG=$(echo "$ARGUMENTS" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
-PP=.claude/skills/cfn-megaplan/lib/plan-paths.sh
+PP=$HOME/.claude/skills/cfn-megaplan/lib/plan-paths.sh
 PDIR=$("$PP" ensure "$SLUG")                          # planning/<slug>, created if absent
 # resolve = per-plan dir first, legacy flat planning/ second
 SPEC=$("$PP" resolve "$SLUG" "SPEC_${SLUG}.md") || {
@@ -29,7 +29,7 @@ PSEUDO=$("$PP" resolve "$SLUG" "PSEUDO_${SLUG}.md") \
 
 ## Execute
 
-Invoke the arch skill and follow `.claude/skills/cfn-arch/SKILL.md` protocol exactly.
+Invoke the arch skill and follow `$HOME/.claude/skills/cfn-arch/SKILL.md` protocol exactly.
 
 ```
 Skill: cfn-arch

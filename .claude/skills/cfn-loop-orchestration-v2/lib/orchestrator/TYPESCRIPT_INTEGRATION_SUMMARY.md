@@ -96,7 +96,7 @@ npm run build:orchestrator
 ### Run Tests
 
 ```bash
-cd .claude/skills/cfn-loop-orchestration
+cd $HOME/.claude/skills/cfn-loop-orchestration
 
 # Run integration tests
 ./test-typescript-integration.sh

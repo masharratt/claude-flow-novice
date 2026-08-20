@@ -47,7 +47,7 @@ main() {
     echo "🚀 Deploying Finance Team Coordinator - Phase 2"
 
     # Spawn Coordinator
-    ./.claude/skills/cfn-agent-spawning/spawn-coordinator.sh \
+    $HOME/.claude/skills/cfn-agent-spawning/spawn-coordinator.sh \
         --team finance \
         --phase phase-2 \
         --task-id "${TASK_ID}" &

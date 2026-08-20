@@ -32,7 +32,7 @@ The system is organized into modular, testable components:
 ## Installation
 
 ```bash
-cd .claude/skills/cfn-skill-propagation
+cd $HOME/.claude/skills/cfn-skill-propagation
 npm install
 npm run build
 ```
@@ -61,7 +61,7 @@ console.log(result); // PropagationResult
 
 ```bash
 # Using the bash wrapper
-./.claude/skills/cfn-skill-propagation/propagate-skill-update.sh \
+$HOME/.claude/skills/cfn-skill-propagation/propagate-skill-update.sh \
   jwt-authentication \
   1.0.1 \
   ./skill-v1.0.1.md \

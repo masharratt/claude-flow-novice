@@ -38,6 +38,12 @@ jobs:
       - name: Global config linker tests
         run: bash tests/test-link-global-config.sh
 
+      - name: Runtime dir linker tests
+        run: bash tests/test-link-runtime-dirs.sh
+
+      - name: Portability skill-ref unit tests
+        run: bash tests/test-portability-skill-refs.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -194,6 +200,12 @@ jobs:
 
       - name: Global config linker tests
         run: bash tests/test-link-global-config.sh
+
+      - name: Runtime dir linker tests
+        run: bash tests/test-link-runtime-dirs.sh
+
+      - name: Portability skill-ref unit tests
+        run: bash tests/test-portability-skill-refs.sh
 
       # Guards against the shim library quietly becoming a no-op on macOS --
       # a broken capability probe would leave every test above passing against

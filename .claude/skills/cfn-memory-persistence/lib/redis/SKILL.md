@@ -30,13 +30,13 @@ status: production
 
 ```bash
 # Invoke waiting mode
-./.claude/skills/cfn-memory-persistence/lib/redis/bash-wrappers/invoke-waiting-mode.sh \
+$HOME/.claude/skills/cfn-memory-persistence/lib/redis/bash-wrappers/invoke-waiting-mode.sh \
   --task-id "task-123" \
   --agent-id "agent-456" \
   --action wait
 
 # Store context
-./.claude/skills/cfn-memory-persistence/lib/redis/bash-wrappers/store-context.sh \
+$HOME/.claude/skills/cfn-memory-persistence/lib/redis/bash-wrappers/store-context.sh \
   --task-id "task-123" \
   --context "implementation context"
 ```

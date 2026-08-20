@@ -8,7 +8,7 @@ status: production
 
 ## Build
 
-Requires Rust toolchain. Build with: `cd .claude/skills/cfn-transparency-middleware && cargo build --release`. The binary must be compiled before first use.
+Requires Rust toolchain. Build with: `cd $HOME/.claude/skills/cfn-transparency-middleware && cargo build --release`. The binary must be compiled before first use.
 
 ## Transparency Middleware (Rust Implementation)
 
@@ -165,7 +165,7 @@ Stop tracking and cleanup.
 Run the comprehensive unit test suite:
 
 ```bash
-cd .claude/skills/cfn-transparency-middleware
+cd $HOME/.claude/skills/cfn-transparency-middleware
 cargo test
 ```
 
@@ -173,21 +173,21 @@ cargo test
 Test middleware with CFN Loop orchestrator:
 
 ```bash
-./.claude/skills/cfn-transparency-middleware/test-e2e.sh
+$HOME/.claude/skills/cfn-transparency-middleware/test-e2e.sh
 ```
 
 ### End-to-End Tests
 Full lifecycle test with sample agent:
 
 ```bash
-./.claude/skills/cfn-transparency-middleware/test-e2e.sh
+$HOME/.claude/skills/cfn-transparency-middleware/test-e2e.sh
 ```
 
 ### Performance Benchmarks
 Measure performance impact:
 
 ```bash
-./.claude/skills/cfn-transparency-middleware/performance-benchmark.sh
+$HOME/.claude/skills/cfn-transparency-middleware/performance-benchmark.sh
 ```
 
 ## Configuration

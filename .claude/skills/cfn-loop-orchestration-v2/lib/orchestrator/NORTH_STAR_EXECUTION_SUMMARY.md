@@ -383,7 +383,7 @@ The CFN Loop orchestration engine has been comprehensively validated with:
 
 ```bash
 # Run North Star E2E test
-cd .claude/skills/cfn-loop-orchestration
+cd $HOME/.claude/skills/cfn-loop-orchestration
 npm test -- north-star-e2e.test.ts
 
 # Run standalone with full output

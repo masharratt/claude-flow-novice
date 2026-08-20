@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Source configuration
-source .claude/skills/cfn-transparency-middleware/middleware-config.sh
+source $HOME/.claude/skills/cfn-transparency-middleware/middleware-config.sh
 
 # Benchmarking results file
 BENCHMARK_RESULTS="/tmp/transparency_benchmark_$(date +%Y%m%d_%H%M%S).json"

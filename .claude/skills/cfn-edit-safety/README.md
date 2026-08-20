@@ -17,35 +17,35 @@ A mega-skill that consolidates pre-edit backup and post-edit validation into a u
 
 ```bash
 # Simple safe edit
-bash .claude/skills/cfn-edit-safety/edit-safety.sh edit file.txt "sed 's/old/new/g' file.txt"
+bash $HOME/.claude/skills/cfn-edit-safety/edit-safety.sh edit file.txt "sed 's/old/new/g' file.txt"
 
 # With custom agent ID
-bash .claude/skills/cfn-edit-safety/edit-safety.sh edit file.py "cp new.py file.py" "agent-123"
+bash $HOME/.claude/skills/cfn-edit-safety/edit-safety.sh edit file.py "cp new.py file.py" "agent-123"
 
 # Rollback a file
-bash .claude/skills/cfn-edit-safety/edit-safety.sh rollback file.txt
+bash $HOME/.claude/skills/cfn-edit-safety/edit-safety.sh rollback file.txt
 
 # List backups
-bash .claude/skills/cfn-edit-safety/edit-safety.sh list
+bash $HOME/.claude/skills/cfn-edit-safety/edit-safety.sh list
 ```
 
 ### CLI Interface
 
 ```bash
 # Interactive edit mode
-bash .claude/skills/cfn-edit-safety/cli/edit-safety-cli.sh edit
+bash $HOME/.claude/skills/cfn-edit-safety/cli/edit-safety-cli.sh edit
 
 # Direct edit
-bash .claude/skills/cfn-edit-safety/cli/edit-safety-cli.sh edit file.txt "command"
+bash $HOME/.claude/skills/cfn-edit-safety/cli/edit-safety-cli.sh edit file.txt "command"
 
 # Batch edit from JSON config
-bash .claude/skills/cfn-edit-safety/cli/edit-safety-cli.sh batch edits.json
+bash $HOME/.claude/skills/cfn-edit-safety/cli/edit-safety-cli.sh batch edits.json
 
 # Status and info
-bash .claude/skills/cfn-edit-safety/cli/edit-safety-cli.sh status
+bash $HOME/.claude/skills/cfn-edit-safety/cli/edit-safety-cli.sh status
 
 # Generate template
-bash .claude/skills/cfn-edit-safety/cli/edit-safety-cli.sh template my-edits.json
+bash $HOME/.claude/skills/cfn-edit-safety/cli/edit-safety-cli.sh template my-edits.json
 ```
 
 ## Workflow

@@ -105,19 +105,19 @@ are read and merged; malformed lines are skipped silently, never rendered raw.
 
 ```bash
 # Manual render at any checkpoint
-./.claude/skills/cfn-workbench/render.sh --slug 1.18.x
+$HOME/.claude/skills/cfn-workbench/render.sh --slug 1.18.x
 
 # Custom output path
-./.claude/skills/cfn-workbench/render.sh --slug 1.18.x --out /tmp/wb.html
+$HOME/.claude/skills/cfn-workbench/render.sh --slug 1.18.x --out /tmp/wb.html
 
 # Text-only (no screenshots)
-./.claude/skills/cfn-workbench/render.sh --slug 1.18.x --no-screenshots
+$HOME/.claude/skills/cfn-workbench/render.sh --slug 1.18.x --no-screenshots
 
 # Cap screenshots
-./.claude/skills/cfn-workbench/render.sh --slug 1.18.x --max-screenshots 10
+$HOME/.claude/skills/cfn-workbench/render.sh --slug 1.18.x --max-screenshots 10
 
 # Point at a fixture root (used by tests)
-./.claude/skills/cfn-workbench/render.sh --slug workbench_9col \
+$HOME/.claude/skills/cfn-workbench/render.sh --slug workbench_9col \
   --root .claude/skills/cfn-workbench/tests/fixtures \
   --out /tmp/wb.html
 ```
@@ -130,14 +130,14 @@ manual re-run.
 
 ```bash
 # Start a background watcher for a run, polling every 10s (default)
-./.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --interval 10
+$HOME/.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --interval 10
 
 # Check status / stop it
-./.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --status
-./.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --stop
+$HOME/.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --status
+$HOME/.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --stop
 
 # Run the poll loop in the foreground (used by tests)
-./.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --foreground
+$HOME/.claude/skills/cfn-workbench/watch.sh --slug 1.18.x --foreground
 ```
 
 Each tick fingerprints the run's data sources (manifests, VERIFY doc/results,
@@ -153,10 +153,10 @@ Appends one event to the run's live events feed, read by the Events section
 and the Roster section's lane-status derivation.
 
 ```bash
-./.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event loop_started
-./.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event lane_spawned --lane frontend --phase "Phase 2"
-./.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event lane_landed --lane frontend --detail "pass_rate=100%"
-./.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event gate_verdict --detail "9/10 pass"
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event loop_started
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event lane_spawned --lane frontend --phase "Phase 2"
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event lane_landed --lane frontend --detail "pass_rate=100%"
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug 1.18.x --event gate_verdict --detail "9/10 pass"
 ```
 
 Closed event-type set: `loop_started phase_started lane_spawned lane_landed
@@ -232,9 +232,9 @@ missing `reference` column renders as `-` in the display. Tests cover both a
 ## Testing
 
 ```bash
-bash .claude/skills/cfn-workbench/tests/test-render.sh
-bash .claude/skills/cfn-workbench/tests/test-live-sections.sh
-bash .claude/skills/cfn-workbench/tests/test-watch.sh
+bash $HOME/.claude/skills/cfn-workbench/tests/test-render.sh
+bash $HOME/.claude/skills/cfn-workbench/tests/test-live-sections.sh
+bash $HOME/.claude/skills/cfn-workbench/tests/test-watch.sh
 ```
 
 `test-render.sh`: 75 assertions cover arg parsing, empty-state, 5/9-column AC

@@ -11,8 +11,8 @@ set -euo pipefail
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 
 # Import testing utilities
-source .claude/skills/cfn-common/test-utils.sh
-source .claude/skills/cfn-transparency-middleware/middleware-config.sh
+source $HOME/.claude/skills/cfn-common/test-utils.sh
+source $HOME/.claude/skills/cfn-transparency-middleware/middleware-config.sh
 
 # Logging configuration
 LOG_FILE="/tmp/transparency-middleware-tests.log"

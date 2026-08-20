@@ -59,7 +59,7 @@ Before analyzing, check for the design bundle. The core trio (SPEC/PSEUDO/ARCH) 
 **Where the artifacts live.** `/cfn-megaplan` and `/cfn-megaplan-lite` put every artifact of one plan in a per-plan directory, `planning/<slug>/`. Older plans (and `/cfn-spa-plan`) sit flat in `planning/`. Never probe for either layout by hand — `plan-paths.sh resolve` checks nested first, flat second, and is the single source of truth for the layout:
 
 ```bash
-PP=.claude/skills/cfn-megaplan/lib/plan-paths.sh
+PP=$HOME/.claude/skills/cfn-megaplan/lib/plan-paths.sh
 SLUG=$(echo "$ARGUMENTS" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
 PDIR=$("$PP" dir "$SLUG")                 # planning/<slug> — where THIS run writes
 # prints the resolved path, or nothing + non-zero when neither layout has it
@@ -91,7 +91,7 @@ An absent optional artifact stays silent, exactly as before. `$SPEC`/`$PSEUDO`/`
 
 ### Step 1: Analyze Task
 
-**Planner self-check (Bar B, run BEFORE writing the plan file).** Whether or not this command runs under megaplan, the planner must verify every implementation step against the Bar B specificity checklist (`.claude/skills/cfn-megaplan/bars/haiku-executable.md`) before the plan is written:
+**Planner self-check (Bar B, run BEFORE writing the plan file).** Whether or not this command runs under megaplan, the planner must verify every implementation step against the Bar B specificity checklist (`$HOME/.claude/skills/cfn-megaplan/bars/haiku-executable.md`) before the plan is written:
 
 1. **Files**: every step names a full path. No "the relevant component", "the auth module", "wherever X lives".
 2. **Signatures**: every function/method to add or change is given typed args + return. No "a helper that does X".
@@ -243,7 +243,7 @@ Task("planner", "
 When megaplan artifacts exist (TEST/OPS/etc. in the plan dir `planning/<slug>/`), this plan is an ASSEMBLY document: the step table below + the inherited TEST tables + the OPS integration rows + the risk register. Do not author freehand Red/Green/Refactor phases or prose deliverables; the tables below replace them entirely.
 
 ### Phase 2: Green (Implementation Steps)
-**Phase width cap (lane-derivation contract).** `cfn-loop-task` derives one lane per phase, where a phase is a step-number major (all `2.x` rows = phase 2). A phase wider than one agent can execute serialises silently: measured 2026-08-19, a 48-step single-phase lane ran 2+ hours on one agent when a by-file split into 4 lanes was legal (~3x faster). Caps: **≤ 15 steps and ≤ 8 distinct File paths per major.** Wider work MUST be split into multiple majors clustered by owned file (near-disjoint file sets, steps sharing a file stay in one major); cross-cluster needs become Produces/Consumes rows — ordering, never merging. Gate: `.claude/skills/cfn-megaplan/bars/check-phase-width.sh PLAN_<slug>.md` must exit 0 before the plan is done; run it and split until clean.
+**Phase width cap (lane-derivation contract).** `cfn-loop-task` derives one lane per phase, where a phase is a step-number major (all `2.x` rows = phase 2). A phase wider than one agent can execute serialises silently: measured 2026-08-19, a 48-step single-phase lane ran 2+ hours on one agent when a by-file split into 4 lanes was legal (~3x faster). Caps: **≤ 15 steps and ≤ 8 distinct File paths per major.** Wider work MUST be split into multiple majors clustered by owned file (near-disjoint file sets, steps sharing a file stay in one major); cross-cluster needs become Produces/Consumes rows — ordering, never merging. Gate: `$HOME/.claude/skills/cfn-megaplan/bars/check-phase-width.sh PLAN_<slug>.md` must exit 0 before the plan is done; run it and split until clean.
 
 Every step MUST fill every column. A step missing a file path, a Change cell, or a verification command is invalid (Bar B haiku-executable rejects it). The Change cell's required precision follows the Bar B executor tier the megaplan resolved (`bars.haiku_executable`): at `full`, a typed signature; at `sonnet` (mvp/beta default), a named symbol (function/method/type/config key) is enough when the Failing test + Done predicate pin the behavior. Never "a helper that does X" at either tier. One step = one file where possible; never more than 3 files per step.
 

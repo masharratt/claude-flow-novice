@@ -52,7 +52,7 @@ fi
 
 if [[ "${OPENAI_API_KEY:-}" == sk-* ]]; then
     CODESEARCH_BIN="${HOME}/.local/bin/local-codesearch"
-    [ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="./.claude/skills/cfn-codesearch/target/release/local-codesearch"
+    [ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="$HOME/.claude/skills/cfn-codesearch/target/release/local-codesearch"
     if [ -x "$CODESEARCH_BIN" ]; then
         echo "=== CodeSearch Semantic Results ==="
         "$CODESEARCH_BIN" query "$QUERY" --max-results "$MAX_RESULTS" --threshold 0.1 2>/dev/null || true

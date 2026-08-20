@@ -45,7 +45,7 @@ fi
 
 # Semantic fallback
 CODESEARCH_BIN="${HOME}/.local/bin/local-codesearch"
-[ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="./.claude/skills/cfn-codesearch/target/release/local-codesearch"
+[ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="$HOME/.claude/skills/cfn-codesearch/target/release/local-codesearch"
 if [ -x "$CODESEARCH_BIN" ]; then
     if [[ "${OPENAI_API_KEY:-}" != sk-* ]] && [[ -f ".env" ]]; then
         export OPENAI_API_KEY=$(grep "^OPENAI_API_KEY=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || true)

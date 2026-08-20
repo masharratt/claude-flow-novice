@@ -138,7 +138,7 @@ ASSIGNMENT = (0xHASH[0:8]) % 2       # 0 -> A=ours,B=reference ; 1 -> A=referenc
 Same `(ac_id, iteration)` ALWAYS reproduces the assignment. `lib/shuffle.sh` is sourceable so any reviewer can re-derive it:
 
 ```bash
-source .claude/skills/cfn-ab-critic/lib/shuffle.sh
+source $HOME/.claude/skills/cfn-ab-critic/lib/shuffle.sh
 label_assignment AC-7 0     # -> A=ours,B=reference
 ```
 

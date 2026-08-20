@@ -27,10 +27,10 @@ Absorbed cfn-task-intelligence (now a deprecated redirect): classification, comp
 
 ## How to use
 Step 1 Classify: `./cli/classify-task.sh "Create REST API..." --format=json`
-Step 2 Estimate complexity + iterations: `.claude/skills/cfn-task-intelligence/lib/complexity/estimate-complexity.sh --description "..."`
+Step 2 Estimate complexity + iterations: `$HOME/.claude/skills/cfn-task-intelligence/lib/complexity/estimate-complexity.sh --description "..."`
 Step 3 Init: `./cli/init-config.sh --task-id cfn-phase-123 --task-description "..." --mode standard`
 Step 4 Decompose: `./cli/decompose-task.sh --task-id ... --description "..." --complexity high`
-Step 5 (after recurring feedback) Recommend specialist: `.claude/skills/cfn-task-intelligence/lib/specialist/recommend-specialist.sh --current-loop3 "..." --feedback-themes "security,auth" --recurring-count 3`
+Step 5 (after recurring feedback) Recommend specialist: `$HOME/.claude/skills/cfn-task-intelligence/lib/specialist/recommend-specialist.sh --current-loop3 "..." --feedback-themes "security,auth" --recurring-count 3`
 
 ## Canonical script locations
 Classification, config, decomposition, and audit live in this skill (`cli/` + `lib/`). Complexity/iteration estimation and specialist recommendation are absorbed from the deprecated cfn-task-intelligence skill; its scripts stay runnable in place and are the canonical implementations:

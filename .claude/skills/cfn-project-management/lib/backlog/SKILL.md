@@ -38,7 +38,7 @@ During CFN Loop execution, agents frequently identify improvements, optimization
 
 **Usage:**
 ```bash
-./.claude/skills/cfn-backlog-management/add-backlog-item.sh \
+$HOME/.claude/skills/cfn-backlog-management/add-backlog-item.sh \
   --sprint "Sprint 10" \
   --item "Implement Redis connection pooling for multi-agent coordination" \
   --why "Current single-connection model causes bottlenecks with 10+ agents, but Sprint 10 scope limited to 3-agent validation" \
@@ -105,7 +105,7 @@ The skill enforces:
 When validators identify improvements outside current scope:
 ```bash
 # In validator agent
-./.claude/skills/cfn-backlog-management/add-backlog-item.sh \
+$HOME/.claude/skills/cfn-backlog-management/add-backlog-item.sh \
   --item "Add integration tests for Redis failure scenarios" \
   --why "Current sprint validates happy path only; failure testing requires additional test infrastructure" \
   --solution "Create test-redis-failures.sh with Docker-based Redis crash simulation" \
@@ -116,7 +116,7 @@ When validators identify improvements outside current scope:
 When Product Owner defers work for future sprint:
 ```bash
 # In product-owner agent
-./.claude/skills/cfn-backlog-management/add-backlog-item.sh \
+$HOME/.claude/skills/cfn-backlog-management/add-backlog-item.sh \
   --item "Migrate coordination from Redis to etcd for production scale" \
   --why "Redis sufficient for current 10-agent limit; etcd needed for 100+ agent deployments" \
   --solution "Abstract coordination layer behind interface, implement etcd adapter" \

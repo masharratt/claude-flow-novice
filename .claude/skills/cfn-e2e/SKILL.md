@@ -40,7 +40,7 @@ Smart parallel E2E test execution with automatic batching optimization. Reduces 
 
 ```bash
 # Run all E2E tests with smart batching
-./.claude/skills/cfn-e2e/run-e2e-smart.sh
+$HOME/.claude/skills/cfn-e2e/run-e2e-smart.sh
 
 # Run only smoke tests
 BATCH_SIZE=smoke ./.claude/skills/cfn-e2e/run-e2e-smart.sh
@@ -56,7 +56,7 @@ PARALLELISM=2 WORKERS=2 HEAP_SIZE_MB=4096 ./.claude/skills/cfn-e2e/run-e2e-smart
 
 ```bash
 # Discover and categorize tests without running
-./.claude/skills/cfn-e2e/analyze-batches.sh tests/e2e
+$HOME/.claude/skills/cfn-e2e/analyze-batches.sh tests/e2e
 ```
 
 ## Console / Network Guard (strict mode)
@@ -96,7 +96,7 @@ test('renders the client-side error banner',
 
 ```bash
 # Fail the run if no spec imports the console-guard fixture.
-./.claude/skills/cfn-e2e/run-e2e-smart.sh --strict-console
+$HOME/.claude/skills/cfn-e2e/run-e2e-smart.sh --strict-console
 # Equivalent via env:
 CFN_E2E_STRICT_CONSOLE=1 ./.claude/skills/cfn-e2e/run-e2e-smart.sh
 ```
@@ -221,7 +221,7 @@ This triggers the pipeline execution engine:
 **For simple test execution without CFN orchestration:**
 
 ```bash
-./.claude/skills/cfn-e2e/run-e2e-smart.sh
+$HOME/.claude/skills/cfn-e2e/run-e2e-smart.sh
 ```
 
 ## Integration

@@ -42,9 +42,9 @@ If a change touches none of those, this gate is optional.
 
 ```bash
 # 1. Scaffold: capture the diff + write the manifest skeleton
-./.claude/skills/cfn-security-review/execute.sh            # working tree vs HEAD
-./.claude/skills/cfn-security-review/execute.sh --staged   # staged only
-./.claude/skills/cfn-security-review/execute.sh --diff=main
+$HOME/.claude/skills/cfn-security-review/execute.sh            # working tree vs HEAD
+$HOME/.claude/skills/cfn-security-review/execute.sh --staged   # staged only
+$HOME/.claude/skills/cfn-security-review/execute.sh --diff=main
 
 # 2. Spawn a security-specialist agent (see prompt below) to fill the manifest
 

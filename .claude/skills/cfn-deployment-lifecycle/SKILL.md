@@ -57,16 +57,16 @@ deployment-lifecycle/
 
 Deploy a skill after it has been approved:
 ```bash
-bash .claude/skills/cfn-deployment-lifecycle/lib/deployment/deploy.sh --skill <skill-name> --status APPROVED
+bash $HOME/.claude/skills/cfn-deployment-lifecycle/lib/deployment/deploy.sh --skill <skill-name> --status APPROVED
 ```
 
 Promote a skill from staging to production with SLA checks:
 ```bash
-bash .claude/skills/cfn-deployment-lifecycle/lib/promotion/promote.sh --skill <skill-name> --from staging --to production
+bash $HOME/.claude/skills/cfn-deployment-lifecycle/lib/promotion/promote.sh --skill <skill-name> --from staging --to production
 ```
 
 Check deployment status for a skill:
 ```bash
-bash .claude/skills/cfn-deployment-lifecycle/lib/deployment/deploy.sh --skill <skill-name> --status-check
+bash $HOME/.claude/skills/cfn-deployment-lifecycle/lib/deployment/deploy.sh --skill <skill-name> --status-check
 ```
 

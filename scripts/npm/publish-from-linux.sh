@@ -109,10 +109,9 @@ if [[ "$USE_LINUX_STORAGE" == true ]]; then
     npm install --production=false
 
     # Install orchestrator dependencies if it exists
-    if [[ -f ".claude/skills/cfn-loop-orchestration/package.json" ]]; then
+    if [[ -f ".claude/skills/cfn-loop-orchestration/package.json" ]]; then  # portability-ok: TEMP_DIR-relative copy of the repo; $HOME would npm install into the shared source tree
         print_status "Installing orchestrator dependencies..."
-        (cd .claude/skills/cfn-loop-orchestration && npm install --production=false) || \
-            print_warning "Orchestrator dependencies install failed (non-critical)"
+        (cd .claude/skills/cfn-loop-orchestration && npm install --production=false) || print_warning "Orchestrator dependencies install failed (non-critical)"  # portability-ok: TEMP_DIR-relative copy of the repo; $HOME would npm install into the shared source tree
     fi
 else
     print_status "Using current directory for npm publish"

@@ -223,7 +223,7 @@ Also ensure:
 - riskAssessment documents identified risks
 
 Read the epic, add missing structural elements, then re-run validation:
-./.claude/skills/cfn-epic-creator/structural-gate.sh $EPIC_FILE
+$HOME/.claude/skills/cfn-epic-creator/structural-gate.sh $EPIC_FILE
 ")
 EOF
         echo ""

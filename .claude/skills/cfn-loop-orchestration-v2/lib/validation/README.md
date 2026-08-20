@@ -72,7 +72,7 @@ sqlite3 --version  # Should show version info
 redis-cli ping  # Should return "PONG"
 
 # Test CFN validation CLI
-./.claude/skills/cfn-loop-validation/validate-iteration.sh --help
+$HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh --help
 ```
 
 ## Quick Start
@@ -81,21 +81,21 @@ redis-cli ping  # Should return "PONG"
 
 ```bash
 # MVP mode (low threshold, fast iteration)
-./.claude/skills/cfn-loop-validation/validate-iteration.sh \
+$HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh \
   --mode mvp \
   --iteration 1 \
   --confidence 0.75 \
   --task-id feature-auth
 
 # Standard mode (balanced quality)
-./.claude/skills/cfn-loop-validation/validate-iteration.sh \
+$HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh \
   --mode standard \
   --iteration 2 \
   --confidence 0.85 \
   --task-id feature-auth
 
 # Enterprise mode (high quality, strict validation)
-./.claude/skills/cfn-loop-validation/validate-iteration.sh \
+$HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh \
   --mode enterprise \
   --iteration 1 \
   --confidence 0.92 \
@@ -106,7 +106,7 @@ redis-cli ping  # Should return "PONG"
 
 ```bash
 # Validate consensus from validator swarm
-./.claude/skills/cfn-loop-validation/validate-iteration.sh \
+$HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh \
   --mode standard \
   --iteration 2 \
   --confidence 0.85 \

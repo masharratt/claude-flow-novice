@@ -48,7 +48,7 @@ Without explicit scope configuration:
 ## Usage
 
 ```bash
-./.claude/skills/cfn-task-config-init/initialize-config.sh \
+$HOME/.claude/skills/cfn-task-config-init/initialize-config.sh \
   --task-description "Implement JWT authentication" \
   --mode "standard" \
   --task-id "cfn-phase-1730545678"

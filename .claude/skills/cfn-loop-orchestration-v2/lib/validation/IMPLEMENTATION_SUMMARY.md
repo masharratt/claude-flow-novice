@@ -529,7 +529,7 @@ try {
 
 ### Build Process
 ```bash
-cd .claude/skills/cfn-loop-validation
+cd $HOME/.claude/skills/cfn-loop-validation
 npm install
 npm run build          # Compile TypeScript
 npm run type-check     # Check only, no build

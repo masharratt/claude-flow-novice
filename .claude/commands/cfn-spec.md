@@ -16,14 +16,14 @@ For any non-trivial build, prefer `/cfn-megaplan` (canonical pipeline: research,
 
 ```bash
 SLUG=$(echo "$ARGUMENTS" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
-PDIR=$(.claude/skills/cfn-megaplan/lib/plan-paths.sh ensure "$SLUG")   # planning/<slug>, created if absent
+PDIR=$($HOME/.claude/skills/cfn-megaplan/lib/plan-paths.sh ensure "$SLUG")   # planning/<slug>, created if absent
 ```
 
 Every artifact of one plan lives in `$PDIR`. Never write a plan doc loose in `planning/`.
 
 ## Execute
 
-Invoke the spec skill and follow `.claude/skills/cfn-spec/SKILL.md` protocol exactly.
+Invoke the spec skill and follow `$HOME/.claude/skills/cfn-spec/SKILL.md` protocol exactly.
 
 ```
 Skill: cfn-spec

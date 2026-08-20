@@ -143,7 +143,7 @@ sqlite3 ~/.local/share/codesearch/index_v2.db "SELECT project_root, COUNT(*) FRO
 sqlite3 ~/.local/share/codesearch/index_v2.db "SELECT file_path, line_number FROM entities WHERE name LIKE '%keyword%';"
 
 # STEP 2: Query past errors/patterns
-./.claude/skills/cfn-codesearch/query-agent-patterns.sh "description"
+$HOME/.claude/skills/cfn-codesearch/query-agent-patterns.sh "description"
 
 # STEP 3: Only if CodeSearch returns nothing, then use grep
 ```

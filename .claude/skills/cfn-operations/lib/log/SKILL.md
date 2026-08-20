@@ -17,7 +17,7 @@ The CFN Log Operations skill provides comprehensive logging capabilities for the
 ## Usage
 
 ```bash
-./.claude/skills/cfn-log-operations/execute.sh [COMMAND] [OPTIONS]
+$HOME/.claude/skills/cfn-log-operations/execute.sh [COMMAND] [OPTIONS]
 ```
 
 ### Commands

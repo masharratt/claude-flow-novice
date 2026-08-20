@@ -13,32 +13,32 @@ tags: [cfn-loop, dependency-management, dynamic-ingestion, cli-mode]
 
 ```bash
 # List available manifests
-bash .claude/skills/cfn-dependency-ingestion/ingest.sh --list-manifests
+bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --list-manifests
 
 # CLI mode dependencies
-bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest cli-mode --inject-content --skip-validation
+bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --manifest cli-mode --inject-content --skip-validation
 
 # Shared dependencies
-bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest shared --inject-content
+bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --manifest shared --inject-content
 
 # Filter by type (TypeScript only)
-bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest cli-mode --type TS --inject-content
+bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --manifest cli-mode --type TS --inject-content
 ```
 
 ### Legacy: Diagram-Based Ingestion
 
 ```bash
 # CLI mode from diagram
-bash .claude/skills/cfn-dependency-ingestion/ingest.sh --diagram cli
+bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --diagram cli
 
 # Docker mode from diagram
-bash .claude/skills/cfn-dependency-ingestion/ingest.sh --diagram docker
+bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --diagram docker
 ```
 
 ### TypeScript Version (Legacy)
 
 ```bash
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
+node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
   --manifest .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt \
   --inject-content
 ```
@@ -66,67 +66,67 @@ node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
 
 **Basic ingestion with content injection:**
 ```bash
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content
+node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content
 ```
 
 **Priority-filtered ingestion:**
 ```bash
 # P0 only (critical path)
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --priority P0
+node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --priority P0
 
 # P0 + P1 (exclude deferred)
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --priority P0,P1
+node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --priority P0,P1
 ```
 
 **Type-filtered ingestion:**
 ```bash
 # TypeScript only
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --type TS
+node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --type TS
 
 # Shell scripts only
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --type SH
+node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --type SH
 
 # Both TypeScript and shell
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --type TS,SH
+node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --type TS,SH
 ```
 
 **Traditional Read command output:**
 ```bash
 # Output Read commands instead of injecting content
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js
+node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js
 ```
 
 **Skip validation (faster, useful when files are known to exist):**
 ```bash
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --skip-validation
+node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --skip-validation
 ```
 
 ### Shell Script Version (Legacy)
 
 **Basic ingestion (all files):**
 ```bash
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
 ```
 
 **Priority-filtered ingestion:**
 ```bash
 # P0 only (critical path)
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --priority P0
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --priority P0
 
 # P0 + P1 (exclude deferred)
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --priority P0,P1
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --priority P0,P1
 ```
 
 **Type-filtered ingestion:**
 ```bash
 # TypeScript only
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS
 
 # Shell scripts only
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type SH
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type SH
 
 # Both TypeScript and shell
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS,SH
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS,SH
 ```
 
 ## Progressive Disclosure
@@ -216,7 +216,7 @@ The `cfn-loops-cli-expert` agent MUST use this skill in Step 2 instead of hardco
 Run the dynamic ingestion script to load all CFN Loop CLI dependencies:
 
 ```bash
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
 ```
 
 This automatically discovers and reads all files referenced in the dependency diagram.

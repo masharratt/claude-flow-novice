@@ -52,7 +52,7 @@ Every check is best-effort. If a tool is missing or the network is unavailable, 
 ## Usage
 
 ```bash
-./.claude/skills/cfn-dep-audit/execute.sh
+$HOME/.claude/skills/cfn-dep-audit/execute.sh
 CFN_DEP_COOLDOWN_DAYS=120 ./.claude/skills/cfn-dep-audit/execute.sh
 
 # route any findings through voting

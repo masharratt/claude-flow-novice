@@ -272,7 +272,7 @@ class CFNValidator {
 
 ```bash
 # 1. Install dependencies
-cd .claude/skills/cfn-loop-validation
+cd $HOME/.claude/skills/cfn-loop-validation
 npm install
 
 # 2. Build TypeScript

@@ -41,7 +41,7 @@ cat > zone-config.json << 'EOF'
 EOF
 
 # Execute planning
-./.claude/skills/cfn-multi-coordinator-planning/plan-multi-coordinator-work.sh zone-config.json
+$HOME/.claude/skills/cfn-multi-coordinator-planning/plan-multi-coordinator-work.sh zone-config.json
 ```
 
 ## Components

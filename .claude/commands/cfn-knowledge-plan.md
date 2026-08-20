@@ -12,7 +12,7 @@ Non-code branch of the planning pipeline. `cfn-megaplan` plans builds; this plan
 
 ## Execute
 
-Follow `.claude/skills/cfn-knowledge-plan/SKILL.md` protocol exactly.
+Follow `$HOME/.claude/skills/cfn-knowledge-plan/SKILL.md` protocol exactly.
 
 ```
 Skill: cfn-knowledge-plan
@@ -30,12 +30,12 @@ the plan. Levels 4-6 (extract, synthesise, draft) execute it.
 - `planning/KBRIEF_<slug>.md` names the audience and the decision the doc must support.
 - `planning/<slug>/KPLAN_<slug>.md` existed and was surfaced before any draft text was written.
 - `KEVIDENCE_*` files hold verbatim quotes with locators, not paraphrase.
-- Bar K clean: `.claude/skills/cfn-knowledge-plan/bars/check-grounding.sh "planning/KDOC_<slug>.md" "planning/KSOURCES_<slug>.md"`
-- Bar B clean: `.claude/skills/cfn-megaplan/bars/check-haiku-static.sh "planning/KDOC_<slug>.md"`
+- Bar K clean: `$HOME/.claude/skills/cfn-knowledge-plan/bars/check-grounding.sh "planning/KDOC_<slug>.md" "planning/KSOURCES_<slug>.md"`
+- Bar B clean: `$HOME/.claude/skills/cfn-megaplan/bars/check-haiku-static.sh "planning/KDOC_<slug>.md"`
 
 ## Next steps
 
 - Share with the humans who need to read it: `/cfn-share planning/KDOC_<slug>.md`
 - If the doc concludes in a build: feed its conclusions to `/cfn-megaplan "<build task>"`, and
-  record resolved forks via `.claude/skills/cfn-decisions/record.sh` so the build plan does not
+  record resolved forks via `$HOME/.claude/skills/cfn-decisions/record.sh` so the build plan does not
   re-open them.

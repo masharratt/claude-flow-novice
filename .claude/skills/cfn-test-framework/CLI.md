@@ -9,7 +9,7 @@ The unified command-line interface for the CFN Test Framework, providing simple 
 ./.claude/commands/cfn-test-framework
 
 # Or directly
-./.claude/skills/cfn-test-framework/execute.sh
+$HOME/.claude/skills/cfn-test-framework/execute.sh
 ```
 
 ## Commands

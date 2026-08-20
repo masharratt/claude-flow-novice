@@ -9,7 +9,7 @@
 
 ```bash
 # Direct skill invocation
-./.claude/skills/cfn-agent-spawning/spawn-agent.sh \
+$HOME/.claude/skills/cfn-agent-spawning/spawn-agent.sh \
   --task-id "task-123" \
   --agent-id "coder-1"
 ```
@@ -76,7 +76,7 @@ Need to automate something?
 **Goal:** Spawn an agent for a task
 
 ```bash
-./.claude/skills/cfn-agent-spawning/spawn-agent.sh \
+$HOME/.claude/skills/cfn-agent-spawning/spawn-agent.sh \
   --task-id "task-123" --agent-id "coder-1"
 ```
 

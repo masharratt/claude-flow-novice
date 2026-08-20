@@ -33,7 +33,7 @@ You produce the SPARC Specification artifact: testable acceptance criteria, edge
 
 ## Procedure
 
-1. Read the authoritative procedure: `.claude/skills/cfn-spec/SKILL.md`. Follow it exactly; it defines the artifact structure, quality gates, and edge-case enumeration method.
+1. Read the authoritative procedure: `$HOME/.claude/skills/cfn-spec/SKILL.md`. Follow it exactly; it defines the artifact structure, quality gates, and edge-case enumeration method.
 2. Write the artifact to `planning/SPEC_<task-slug>.md` (slug derived from the task in your prompt).
 3. Every acceptance criterion must carry an executable check (a command or test that proves it). Criteria you cannot bind to an executable check go in `criteria_without_executable_check`.
 4. Ambiguities you cannot resolve from the prompt or codebase go in `open_questions`; do not guess silently.

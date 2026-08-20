@@ -262,7 +262,7 @@ getSummary(): {taskId, mode, iteration, totalAgentsCompleted, totalAgentsFailed,
 
 ### Run All Tests
 ```bash
-cd .claude/skills/cfn-loop-orchestration
+cd $HOME/.claude/skills/cfn-loop-orchestration
 npm test
 ```
 

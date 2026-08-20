@@ -29,7 +29,7 @@ This guide helps migrate from the old bash-based output processing scripts to th
 ### Step 1: Install and Build
 
 ```bash
-cd .claude/skills/cfn-loop-output-processing
+cd $HOME/.claude/skills/cfn-loop-output-processing
 
 # Install dependencies
 npm install

@@ -9,7 +9,7 @@ Complete TypeScript validation framework for CFN Loop critical path with compreh
 ### Installation
 
 ```bash
-cd .claude/skills/cfn-loop-validation
+cd $HOME/.claude/skills/cfn-loop-validation
 npm install
 npm run build
 npm test -- --coverage

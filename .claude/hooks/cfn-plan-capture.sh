@@ -79,7 +79,7 @@ fi
 # Resolve bars via $HOME/.claude (reverse symlink to the CFN source project) so the
 # chain works from any project, not just the one holding .claude/skills/cfn-megaplan.
 BARS="${HOME}/.claude/skills/cfn-megaplan/bars"
-[ -d "$BARS" ] || BARS=".claude/skills/cfn-megaplan/bars"
+[ -d "$BARS" ] || BARS=".claude/skills/cfn-megaplan/bars"  # portability-ok: deliberate cwd fallback for a clone whose ~/.claude runtime links are not made yet; the $HOME primary above is the normal path
 
 emit "Plan approved and persisted to ${TARGET}. Before implementing anything, build the cfn-loop-task manifests. Do not start coding until step 6.
 

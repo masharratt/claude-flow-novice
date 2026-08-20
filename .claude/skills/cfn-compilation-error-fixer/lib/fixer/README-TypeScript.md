@@ -12,7 +12,7 @@ A local CFN skill that automatically fixes TypeScript compilation errors through
 
 ```bash
 # Navigate to the fixer directory
-cd .claude/skills/cfn-compilation-error-fixer/lib/fixer
+cd $HOME/.claude/skills/cfn-compilation-error-fixer/lib/fixer
 
 # Install dependencies
 npm install

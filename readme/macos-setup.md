@@ -285,53 +285,56 @@ mode mismatches on a WSL-created checkout.
 CFN's model: this repo is the source of truth, and `~/.claude/<dir>` symlinks back into it,
 so every project on the machine shares one copy. Recreate that layout after cloning.
 
-`migrate-cfn-to-global.sh` in the repo root moves-then-links. That is the wrong direction
-for a fresh clone (the repo is already authoritative). Use the link-only form below.
+**These links are load-bearing, not a convenience.** CFN skills run with the working
+directory set to whatever project invoked them, so they reach their own helper scripts
+through `$HOME/.claude/skills/...`. Without the `skills` link, `/cfn-loop-task` and every
+other skill that shells out will report its gate scripts as missing in every project except
+this one. Before 2026-08-19 these links existed only because someone made them by hand on
+the dev machine; nothing in the repo created them, so a clone got the tooling and none of
+the wiring.
+
+One command creates both halves:
 
 ```bash
-#!/usr/bin/env bash
-# UNVERIFIED on macOS. Read it before running it.
-set -euo pipefail
-REPO="${1:?usage: link-cfn.sh /path/to/claude-flow-novice}"
-REPO="$(cd "$REPO" && pwd -P)"
-G="$HOME/.claude"
-mkdir -p "$G" "$G/agents"
-
-LINKS=(skills hooks commands core helpers cfn-config cfn-data cfn-extras
-       cfn-scripts adaptive-context agent-principles prompts tooling
-       statusline-command.sh)
-
-for name in "${LINKS[@]}"; do
-  src="$REPO/.claude/$name"; dst="$G/$name"
-  [ -e "$src" ] || { echo "SKIP missing: $src"; continue; }
-  if [ -L "$dst" ]; then rm "$dst"
-  elif [ -e "$dst" ]; then mv "$dst" "$dst.pre-cfn.$(date +%s)"; fi
-  ln -s "$src" "$dst"; echo "linked $name"
-done
-
-# agents/ stays a real directory. Only the cfn-dev-team subdir is linked.
-src="$REPO/.claude/agents/cfn-dev-team"; dst="$G/agents/cfn-dev-team"
-[ -L "$dst" ] && rm "$dst"
-ln -s "$src" "$dst"; echo "linked agents/cfn-dev-team"
-```
-
-Then link the global config layer. That one has its own tracked script because the entries
-are individual files, not whole directories:
-
-```bash
-.claude/cfn-scripts/link-global-config.sh          # idempotent; backs up anything it replaces
+.claude/cfn-scripts/link-global-config.sh          # config layer + runtime dirs
 .claude/cfn-scripts/link-global-config.sh --check  # verify only, no writes
+.claude/cfn-scripts/link-global-config.sh --force  # also replace populated real dirs
 ```
 
-It links `CLAUDE.md`, `RTK.md`, `model-pricing.md`, `rules/` and `references/`. Nothing it
-overwrites is deleted: pre-existing files move to `~/.claude-global-config-backup-<ts>/`.
+It links the config layer itself (`CLAUDE.md`, `RTK.md`, `model-pricing.md`, `rules/`,
+`references/` -- individual files, not directories) and then delegates the 14 runtime
+directories to `.claude/cfn-scripts/link-runtime-dirs.sh`, which can also be run alone.
 
-Verify against the reference layout (14 top-level links plus `agents/cfn-dev-team`):
+Runtime dirs linked: `skills/`, `hooks/`, `commands/`, `agents/cfn-dev-team/`, `core/`,
+`helpers/`, `cfn-config/`, `cfn-data/`, `cfn-extras/`, `cfn-scripts/`, `adaptive-context/`,
+`agent-principles/`, `prompts/`, `tooling/`. `~/.claude/agents` stays a real directory and
+only the `cfn-dev-team` child is linked.
+
+Nothing is ever deleted. Whatever gets replaced moves to a timestamped backup
+(`~/.claude-global-config-backup-<ts>/`, `~/.claude-runtime-links-backup-<ts>/`), and a
+`~/.claude/<dir>` that already exists as a **populated real directory** is refused outright
+until you pass `--force`, because that directory may be your own skills tree.
+
+`migrate-cfn-to-global.sh` in the repo root moves-then-links. That is the wrong direction
+for a fresh clone (the repo is already authoritative). Do not use it.
+
+Verify:
+
+```bash
+.claude/cfn-scripts/link-global-config.sh --check   # exits non-zero on any missing/wrong link
+```
+
+On a machine with GNU findutils you can also eyeball the layout (14 top-level links plus
+`agents/cfn-dev-team`); BSD `find` has no `-printf`:
 
 ```bash
 find ~/.claude -maxdepth 2 -type l -printf '%P -> %l\n' 2>/dev/null | sort
-# GNU find via findutils. BSD find has no -printf.
 ```
+
+### Windows note
+
+`ln -s` needs Developer Mode or an elevated shell on native Windows. The linker detects the
+failure and stops with guidance rather than leaving a half-linked set. WSL2 is unaffected.
 
 ---
 

@@ -310,7 +310,7 @@ node dist/coordination/spawn-agent.js \
 
 **CLI Interface**:
 ```bash
-node .claude/skills/cfn-agent-selection-with-fallback/dist/cli.cjs \
+node .claude/skills/cfn-agent-selection-with-fallback/dist/cli.cjs \  # portability-ok: historical report, commands as run from the repo root at the time
   "Implement JWT authentication" \
   --min-validators 3 \
   --format json
@@ -542,7 +542,7 @@ Create standalone CLI scripts for all TypeScript modules:
 Replace bash orchestrator entirely with TypeScript:
 
 ```bash
-node .claude/skills/cfn-loop-orchestration/dist/cli/orchestrator-cli.js \
+node .claude/skills/cfn-loop-orchestration/dist/cli/orchestrator-cli.js \  # portability-ok: historical report, commands as run from the repo root at the time
   --task-id task123 \
   --mode standard \
   --max-iterations 10
@@ -694,14 +694,14 @@ npm run build:coordination
 ls -la dist/coordination/spawn-agent.js
 
 # Agent selector
-ls -la .claude/skills/cfn-agent-selection-with-fallback/dist/cli.cjs
+ls -la .claude/skills/cfn-agent-selection-with-fallback/dist/cli.cjs  # portability-ok: historical report, commands as run from the repo root at the time
 
 # Coordination wrapper
 ls -la dist/coordination/coordination-wrapper.js
 
 # Orchestrator helpers
-ls -la .claude/skills/cfn-loop-orchestration/dist/helpers/gate-check.js
-ls -la .claude/skills/cfn-loop-orchestration/dist/helpers/consensus.js
+ls -la .claude/skills/cfn-loop-orchestration/dist/helpers/gate-check.js  # portability-ok: historical report, commands as run from the repo root at the time
+ls -la .claude/skills/cfn-loop-orchestration/dist/helpers/consensus.js  # portability-ok: historical report, commands as run from the repo root at the time
 ```
 
 ---

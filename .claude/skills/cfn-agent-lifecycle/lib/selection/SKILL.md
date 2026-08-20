@@ -22,8 +22,8 @@ status: production
 
 ```bash
 # Basic selection
-./.claude/skills/cfn-agent-lifecycle/lib/selection/select-agents.sh --task "implement feature"
+$HOME/.claude/skills/cfn-agent-lifecycle/lib/selection/select-agents.sh --task "implement feature"
 
 # With fallback
-./.claude/skills/cfn-agent-lifecycle/lib/selection/select-agents-with-fallback.sh --task "implement feature"
+$HOME/.claude/skills/cfn-agent-lifecycle/lib/selection/select-agents-with-fallback.sh --task "implement feature"
 ```

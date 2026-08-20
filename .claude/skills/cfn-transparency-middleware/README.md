@@ -27,7 +27,7 @@ transparency-middleware = "0.1.0"
 Or build from source:
 
 ```bash
-cd .claude/skills/cfn-transparency-middleware
+cd $HOME/.claude/skills/cfn-transparency-middleware
 cargo build --release
 ```
 
@@ -122,7 +122,7 @@ Initialize transparency tracking:
 
 ```bash
 # Build the CLI first
-cd .claude/skills/cfn-transparency-middleware
+cd $HOME/.claude/skills/cfn-transparency-middleware
 cargo build --release
 
 # Initialize tracking
@@ -165,7 +165,7 @@ The skill includes several shell scripts for common operations:
 ### invoke-transparency-init.sh
 Initialize transparency middleware for a new agent session:
 ```bash
-./.claude/skills/cfn-transparency-middleware/invoke-transparency-init.sh \
+$HOME/.claude/skills/cfn-transparency-middleware/invoke-transparency-init.sh \
   --level detailed \
   --performance-monitoring yes \
   --context-filtering yes \
@@ -176,7 +176,7 @@ Initialize transparency middleware for a new agent session:
 ### invoke-transparency-observe.sh
 Monitor agent interactions in real-time:
 ```bash
-./.claude/skills/cfn-transparency-middleware/invoke-transparency-observe.sh \
+$HOME/.claude/skills/cfn-transparency-middleware/invoke-transparency-observe.sh \
   --agent-id my-agent \
   --real-time yes
 ```
@@ -184,7 +184,7 @@ Monitor agent interactions in real-time:
 ### invoke-transparency-filter.sh
 Filter and analyze captured interactions:
 ```bash
-./.claude/skills/cfn-transparency-middleware/invoke-transparency-filter.sh \
+$HOME/.claude/skills/cfn-transparency-middleware/invoke-transparency-filter.sh \
   --agent-id my-agent \
   --start-time "2024-01-01T00:00:00Z" \
   --end-time "2024-01-02T00:00:00Z" \
@@ -194,7 +194,7 @@ Filter and analyze captured interactions:
 ### invoke-transparency-metrics.sh
 Get performance and usage metrics:
 ```bash
-./.claude/skills/cfn-transparency-middleware/invoke-transparency-metrics.sh \
+$HOME/.claude/skills/cfn-transparency-middleware/invoke-transparency-metrics.sh \
   --agent-id my-agent \
   --output json
 ```
@@ -202,7 +202,7 @@ Get performance and usage metrics:
 ### invoke-transparency-stop.sh
 Stop transparency tracking for a session:
 ```bash
-./.claude/skills/cfn-transparency-middleware/invoke-transparency-stop.sh \
+$HOME/.claude/skills/cfn-transparency-middleware/invoke-transparency-stop.sh \
   --agent-id my-agent \
   --task-id my-task-123 \
   --cleanup yes
@@ -281,7 +281,7 @@ The main struct for managing transparency tracking.
 Run the test suite:
 
 ```bash
-cd .claude/skills/cfn-transparency-middleware
+cd $HOME/.claude/skills/cfn-transparency-middleware
 
 # Unit tests
 cargo test

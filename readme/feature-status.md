@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-19 (phase-width gate + loop-task wide-phase split + cross-wave learnings channel) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-19 (shared-skill invocations moved to $HOME so the toolchain resolves from any project) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -536,12 +536,14 @@ Consumer Project
 | cfn-migration-rehearsal | ✅ Prod | ✅ 8/8 | `.claude/skills/cfn-migration-rehearsal/` | Rehearses migration up+down round-trip against CFN_SCRATCH_DATABASE_URL only; refuses prod. Destructive-SQL guard is statement-anchored, so GRANT/REVOKE privilege names are not flagged. Executes what cfn-ops designs |
 | docs-sync pre-commit check | ✅ Prod | ✅ 9/9 | `.claude/hooks/cfn-docs-sync-check.sh` | Warns (blocks if CFN_DOCS_SYNC_STRICT=1) when a code commit omits feature-status.md / state-machines.md |
 
-| shell-portability gate | ✅ Prod | ✅ 2/2 | `tests/test-shell-portability.sh` | CI gate (ci.yml lint job) blocking `#!/bin/bash` shebangs and hardcoded home paths in every tracked script that is actually executed. `# portability-ok: <reason>` exempts container-internal and sanitizer-fixture paths. Backs readme/macos-setup.md |
+| shell-portability gate | ✅ Prod | ✅ 3/3 + 43/43 | `tests/test-shell-portability.sh` | CI gate (ci.yml lint + macos jobs) blocking `#!/bin/bash` shebangs, hardcoded home paths, and cwd-relative `.claude/skills/cfn-*` refs in executable position. `# portability-ok: <reason>` (reason mandatory) exempts a genuine repo-root-only call. `--list-refs` lists in-scope refs. Unit tests: tests/test-portability-skill-refs.sh |
 | GNU-tool shim library | ✅ Prod | ✅ 58/58 | `.claude/helpers/cfn-portable.sh` | Shell functions shadowing timeout/stat/date/sed/free/nproc/readlink, defined only when the GNU behavior is absent so it is a no-op on Linux. Sourced by 182 scripts. Removes the PATH dependency that broke hooks spawned outside a login shell |
 | shell-syntax gate | ✅ Prod | ✅ 2/2 | `tests/test-shell-syntax.sh` | Two CI checks per in-scope script: `bash -n` parses it, and a shebang requires index mode 100755. Added after 9 scripts were found unparseable, extended after 933 were non-executable in git, where a fresh clone gets 644 and `./script` exits 126 |
 | macOS Portability CI job | ✅ Prod | ✅ 3 gates | `.github/workflows/ci.yml` | macos-latest runner installing only bash 5, deliberately not coreutils or gnu-sed, so the BSD shim paths are exercised for real. Blocks the quality gate. Also asserts shims are active and every shim source path resolves |
 | global config layer | ✅ Prod | ✅ 8/8 | `.claude/global/` | The CFN operating guide, RTK.md, model-pricing.md, rules/ and references/ were untracked local files on one machine. Now tracked and reverse-symlinked into `~/.claude/`, so a clone carries the rules, not just the tooling |
-| link-global-config | ✅ Prod | ✅ 8/8 | `.claude/cfn-scripts/link-global-config.sh` | Idempotent linker for the 5 `~/.claude/` entries. Backs up anything it replaces to a timestamped dir rather than deleting. `--check` verifies without writing and is checklist item 7 in readme/macos-setup.md |
+| link-global-config | ✅ Prod | ✅ 8/8 | `.claude/cfn-scripts/link-global-config.sh` | Idempotent linker for the 5 `~/.claude/` config entries, and delegates to link-runtime-dirs.sh so one command makes both halves. Backs up anything it replaces to a timestamped dir rather than deleting. `--check` verifies without writing, `--force` overrides a refusal. Checklist item 7 in readme/macos-setup.md |
+| link-runtime-dirs | ✅ Prod | ✅ 20/20 | `.claude/cfn-scripts/link-runtime-dirs.sh` | Creates the 14 `~/.claude/` runtime reverse symlinks (skills, hooks, commands, core, helpers, agents/cfn-dev-team, ...). These are load-bearing, not a convenience: without them every shared skill invocation fails outside this repo. Refuses to touch a populated real dir unless `--force`, and moves rather than deletes. `--check` verifies without writing |
+| $HOME skill invocation | ✅ Prod | ✅ gated | `.claude/commands/`, `.claude/skills/`, `.claude/agents/` | 297 shared-skill invocations rewritten from cwd-relative `.claude/skills/cfn-*` to `$HOME/.claude/skills/cfn-*` (71 in commands/agents, 226 in skills). Chosen over a symlink bootstrap because `$HOME` expands in Git Bash, WSL2 and macOS while `ln -s` needs elevation on native Windows. 21 repo-root-only sites carry `portability-ok` |
 
 **Gate dependencies:** cfn-security-review + cfn-dep-audit + cfn-perf-gate + cfn-a11y-gate emit manifests to `.cfn-cache/manifests/` consumed by cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user). cfn-migration-rehearsal pairs with cfn-ops (designs up+down) + supabase-schema-sync. docs-sync wired into `.git/hooks/pre-commit`.
 

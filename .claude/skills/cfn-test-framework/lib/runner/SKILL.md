@@ -45,7 +45,7 @@ Provides comprehensive test execution across all CFN test suites:
 ### Run All Tests
 
 ```bash
-./.claude/skills/cfn-test-runner/run-all-tests.sh \
+$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh \
   --suite all \
   --benchmark \
   --detect-regressions
@@ -55,19 +55,19 @@ Provides comprehensive test execution across all CFN test suites:
 
 ```bash
 # Hello World only
-./.claude/skills/cfn-test-runner/run-all-tests.sh --suite hello-world
+$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh --suite hello-world
 
 # CFN E2E only
-./.claude/skills/cfn-test-runner/run-all-tests.sh --suite cfn-e2e
+$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh --suite cfn-e2e
 
 # Both
-./.claude/skills/cfn-test-runner/run-all-tests.sh --suite all
+$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh --suite all
 ```
 
 ### With Regression Detection
 
 ```bash
-./.claude/skills/cfn-test-runner/run-all-tests.sh \
+$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh \
   --suite all \
   --benchmark \
   --detect-regressions \
@@ -281,7 +281,7 @@ Generates interactive HTML report with:
 
 ```bash
 # First run establishes baseline
-./.claude/skills/cfn-test-runner/run-all-tests.sh --suite all --benchmark
+$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh --suite all --benchmark
 
 # Mark as baseline
 sqlite3 .artifacts/test-benchmarks.db << EOF

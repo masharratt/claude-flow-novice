@@ -81,7 +81,7 @@ The **product-owner AGENT makes the decision in Task Mode.** Spawn it with the T
 If you must mechanically parse a captured product-owner output file:
 
 ```bash
-./.claude/skills/cfn-loop-orchestration-v2/lib/decision/parse-decision.sh <output-file>
+$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/decision/parse-decision.sh <output-file>
 ```
 
 There is no `execute-decision.sh` and no TypeScript CLI on disk; do not invoke them.

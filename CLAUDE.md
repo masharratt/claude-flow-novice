@@ -14,6 +14,22 @@ This project is the source of truth for CFN infrastructure. `~/.claude/` dirs ar
 
 Each `~/.claude/<dir>/` is a reverse symlink to `.claude/<dir>/` in this project, so all projects share one source. Symlinked dirs: `skills/`, `hooks/`, `commands/`, `agents/cfn-dev-team/`, `core/`, `helpers/`, `cfn-config/`, `cfn-data/`, `cfn-extras/`, `cfn-scripts/`, `adaptive-context/`, `agent-principles/`, `prompts/`, `tooling/`.
 
+**These links are load-bearing.** Skills run with the cwd set to whatever project invoked
+them, so they reach their own helper scripts through `$HOME/.claude/skills/...`. Miss the
+`skills` link and every skill that shells out reports its scripts as missing in every
+project but this one. Create or verify them with:
+
+```bash
+.claude/cfn-scripts/link-runtime-dirs.sh          # the 14 runtime dirs (idempotent)
+.claude/cfn-scripts/link-runtime-dirs.sh --check  # verify only
+```
+
+`link-global-config.sh` (below) calls this for you, so one command does both halves. A
+populated real `~/.claude/<dir>` is refused until you pass `--force`; nothing is deleted.
+
+When writing a skill or command that shells out, always invoke via `$HOME/.claude/skills/...`,
+never a cwd-relative `.claude/skills/...`. `tests/test-shell-portability.sh` enforces this.
+
 ### Global Config Layer (`.claude/global/`)
 
 The CFN operating guide and its supporting docs live in `.claude/global/` and are

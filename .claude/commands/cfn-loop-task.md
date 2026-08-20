@@ -15,7 +15,7 @@ allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "Grep", "Glob"]
 **Where planning artifacts live.** `/cfn-megaplan` and `/cfn-megaplan-lite` write every artifact of one plan into that plan's own directory, `planning/<slug>/`. Plans written before that layout sit flat in `planning/`. Resolve every planning file through the shared resolver, which checks nested first and falls back to flat — never hand-roll the two-layout probe:
 
 ```bash
-PP=.claude/skills/cfn-megaplan/lib/plan-paths.sh
+PP=$HOME/.claude/skills/cfn-megaplan/lib/plan-paths.sh
 PDIR=$("$PP" dir "$SLUG")                                        # planning/<slug> — where run outputs go
 VERIFY_FILE=$("$PP" resolve "$SLUG" "VERIFY_${SLUG}.md")  || VERIFY_FILE=""   # "" = not megaplanned
 PLAN_FILE=$("$PP"   resolve "$SLUG" "PLAN_${SLUG}.md")    || PLAN_FILE=""
@@ -45,7 +45,7 @@ fi
 ```
 
 - **Match:** proceed normally.
-- **Mismatch:** REFUSE to run. The VERIFY manifest was edited since Bar A blessed it, which can silently move the goalposts. Run `.claude/skills/cfn-megaplan/bars/bless-verify.sh "$VERIFY_FILE" --note "<why>"` (the only bless path; it refuses on any static finding) and read the ledger entry it appends: `changed[]`, `predicate_changed`, and the `regate` scope. Then surface via `AskUserQuestion` (one decision):
+- **Mismatch:** REFUSE to run. The VERIFY manifest was edited since Bar A blessed it, which can silently move the goalposts. Run `$HOME/.claude/skills/cfn-megaplan/bars/bless-verify.sh "$VERIFY_FILE" --note "<why>"` (the only bless path; it refuses on any static finding) and read the ledger entry it appends: `changed[]`, `predicate_changed`, and the `regate` scope. Then surface via `AskUserQuestion` (one decision):
   - **Do the scoped re-gate the ledger owes**: exactly what `regate` says: LLM Bar A on the `bar_a_acs` rows + coverage block, Bar B static+structural on the PLAN steps bound to `bar_b_acs`, live probe only if `probe:true`. Default for a one-or-few-row edit. Then continue.
   - **Accept as-is, no re-gate**: legitimate only when `regate.bar_a` is `none` (mechanical fields only). A `predicate_changed: true` accepted with no re-gate is a fabricated green.
   This is the `VERIFY manifest hash mismatch` row in the Stop For table.
@@ -72,7 +72,7 @@ The logger auto-captures timestamp, host, cwd, git branch/commit/dirty, provider
    ```bash
    CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
    bash "$CFN_FAILLOG" wrap --tool gate-check.sh -- \
-     ./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh --out /tmp/x.txt --threshold 0.95
+     $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh --out /tmp/x.txt --threshold 0.95
    GATE_EXIT=$?   # 0/1/2/3 preserved exactly
    ```
    Every `cfn-*/cli/*.sh` invocation in Phase 3 and Phase 5 below is already wrapped this way (including the `tee`-piped ones: `check-test-hygiene.sh`, `harvest.sh`). For a piped call, keep the `2>&1 | tee` outside the wrapper and read the tool's real exit via `${PIPESTATUS[0]}` (a bare `$?` after a pipe captures `tee`'s exit, not the tool's).
@@ -214,11 +214,11 @@ Planning tier vocabulary is mvp|beta|enterprise (cfn-megaplan); execution mode v
 **Open the workbench dashboard (loop start).** Render once and open it in the browser. `--live 10` makes the open tab re-read the file every 10s. Then start the watcher: it re-renders on data change so the open tab (meta-refresh) stays live between phase boundaries; the phase-boundary re-renders at end of Phase 2 / Phase 3 / Phase 5 remain as belt-and-suspenders. `--open` is marker-tracked (idempotent): only this first call launches a browser. The workbench is a reporting artifact, so a render/watcher failure is non-blocking. Finally emit the `loop_started` event for the workbench events feed.
 
 ```bash
-./.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
+$HOME/.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
   || echo "WARN: workbench render/open skipped (non-blocking)" >&2
-./.claude/skills/cfn-workbench/watch.sh --slug "$RUN_ID" --interval 10 \
+$HOME/.claude/skills/cfn-workbench/watch.sh --slug "$RUN_ID" --interval 10 \
   || echo "WARN: workbench watcher not started (non-blocking)" >&2
-./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event loop_started || true
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event loop_started || true
 ```
 
 **Mark todo #1 as completed. Proceed to Phase 2.**
@@ -233,12 +233,12 @@ Planning tier vocabulary is mvp|beta|enterprise (cfn-megaplan); execution mode v
 
 ### LANE DERIVATION (mechanical, do this before spawning)
 
-1. **Locate the plan.** Use `$PLAN_FILE` from Step 0 (`plan-paths.sh resolve "$SLUG" "PLAN_${SLUG}.md"` — the plan dir `planning/<slug>/` first, legacy flat `planning/` second). If the slug is not known exactly, `.claude/skills/cfn-megaplan/lib/plan-paths.sh newest 'PLAN_*.md'` returns the newest `PLAN_` across both layouts; confirm its name matches the task slug. If no `PLAN_` file resolves, STOP and run `/write-plan` first. Never improvise lanes without a plan. **Note:** a `MEGAPLAN_<slug>.md` is an index/summary, NOT a lane source — if only `MEGAPLAN_` (and/or `VERIFY_`) exists but no `PLAN_<slug>.md`, the megaplan run failed to persist its plan; run `/write-plan "<task>" --mode=<mode>` to regenerate `PLAN_<slug>.md` from the other artifacts in that plan dir, then continue. Do NOT derive lanes from `MEGAPLAN_` or `VERIFY_`.
+1. **Locate the plan.** Use `$PLAN_FILE` from Step 0 (`plan-paths.sh resolve "$SLUG" "PLAN_${SLUG}.md"` — the plan dir `planning/<slug>/` first, legacy flat `planning/` second). If the slug is not known exactly, `$HOME/.claude/skills/cfn-megaplan/lib/plan-paths.sh newest 'PLAN_*.md'` returns the newest `PLAN_` across both layouts; confirm its name matches the task slug. If no `PLAN_` file resolves, STOP and run `/write-plan` first. Never improvise lanes without a plan. **Note:** a `MEGAPLAN_<slug>.md` is an index/summary, NOT a lane source — if only `MEGAPLAN_` (and/or `VERIFY_`) exists but no `PLAN_<slug>.md`, the megaplan run failed to persist its plan; run `/write-plan "<task>" --mode=<mode>` to regenerate `PLAN_<slug>.md` from the other artifacts in that plan dir, then continue. Do NOT derive lanes from `MEGAPLAN_` or `VERIFY_`.
 2. **One lane per phase.** Each top-level phase/workstream in the plan becomes one lane. **LANE_CAP = 8** (one constant, used here AND in wave scheduling step 6). If the plan has more phases than LANE_CAP, merge the smallest phases into neighboring lanes until at most LANE_CAP remain. (Lanes = phases, so most plans never reach the cap; it is a ceiling, not a target.)
-2b. **Wide-phase split (mandatory check, backstop for plans predating the width cap).** Run `.claude/skills/cfn-megaplan/bars/check-phase-width.sh "$PLAN_FILE"` (caps: 15 steps / 8 distinct files per phase; new plans arrive clean because write-plan gates on it). For each flagged phase: cluster its steps by File cell — steps sharing ANY file land in the same cluster (transitively). If ≥ 2 clusters result, split the phase into sub-lanes `<phase>-a`, `<phase>-b`, ... one per cluster; first merge any cluster under 5 steps into the cluster it exchanges the most Consumes edges with (never split below ~5 steps per sub-lane — serial learning and coordination overhead eat the win). Cross-cluster Consumes edges are ordering, not merging: sub-lanes enter steps 5/6 as ordinary lanes and the wave scheduler orders them. If clustering yields 1 cluster (every step transitively co-writes), the phase legitimately stays one lane; log `phase-split: <phase> unsplittable (co-write chain)`. Otherwise log `phase-split: <phase> -> <sub-lane>:<steps> ...`. LANE_CAP still applies at wave time — a deferred-to-next-slot sub-lane still beats 48 serial steps (measured 2026-08-19: one 48-step lane ran 2+ hours; a legal 4-way file-cluster split was worth ~3x).
+2b. **Wide-phase split (mandatory check, backstop for plans predating the width cap).** Run `$HOME/.claude/skills/cfn-megaplan/bars/check-phase-width.sh "$PLAN_FILE"` (caps: 15 steps / 8 distinct files per phase; new plans arrive clean because write-plan gates on it). For each flagged phase: cluster its steps by File cell — steps sharing ANY file land in the same cluster (transitively). If ≥ 2 clusters result, split the phase into sub-lanes `<phase>-a`, `<phase>-b`, ... one per cluster; first merge any cluster under 5 steps into the cluster it exchanges the most Consumes edges with (never split below ~5 steps per sub-lane — serial learning and coordination overhead eat the win). Cross-cluster Consumes edges are ordering, not merging: sub-lanes enter steps 5/6 as ordinary lanes and the wave scheduler orders them. If clustering yields 1 cluster (every step transitively co-writes), the phase legitimately stays one lane; log `phase-split: <phase> unsplittable (co-write chain)`. Otherwise log `phase-split: <phase> -> <sub-lane>:<steps> ...`. LANE_CAP still applies at wave time — a deferred-to-next-slot sub-lane still beats 48 serial steps (measured 2026-08-19: one 48-step lane ran 2+ hours; a legal 4-way file-cluster split was worth ~3x).
 3. **Exclusive file ownership.** Each lane gets an exclusive file list derived from the plan. No file may appear in two lanes. If two phases touch the same file, put both phases in the SAME lane and run them sequentially inside it.
 4. **Ownership clause in every spawn prompt.** Each spawn prompt includes: "FILES YOU OWN: <list>. Do not create or edit any file outside this list. Files outside your lane needing changes go in out_of_scope_needs (array of \"path: why\"); blocked_on is only for a blocker that stops YOUR lane (scalar, one sentence, else null). You may amend HOW a step is built (same files, same AC, same done predicate) and record it in step_amendments; you may not amend WHAT."
-5. **Compute lane-dependency edges (from Produces/Consumes).** First run the static sanity gate: `.claude/skills/cfn-megaplan/bars/check-produce-consume.sh "$PLAN_FILE"` — exit 1 (duplicate producer / weasel / empty / malformed cell) BLOCKS; resolve before deriving lanes (a duplicate-producer finding is the AskUserQuestion below). Warnings (dangling consume) are advisory. If the plan has no such columns the checker exits 0 and you skip to a single wave. Then collect every step's identifiers per lane. Draw a directed edge **A → E** whenever any step in lane E has a `Consumes` string-equal (exact, trimmed) to a `Produces` of any step in lane A, with A ≠ E. A Consumes matching no lane's Produces is a pre-existing symbol → no edge (log a one-line `warn: dangling consume <id>` so a typo is visible). **Duplicate producer** (the same identifier Produced by steps in two DIFFERENT lanes) is ambiguous ownership → STOP and surface one `AskUserQuestion` (which lane owns it); do not guess. If the columns are absent or every cell is `-`, the edge set is empty. **Cycle** (A → E and E → A): merge the cycle's lanes into one lane run sequentially — same resolution as the same-file rule in step 3 — and log `cycle-merge: <lanes>`.
+5. **Compute lane-dependency edges (from Produces/Consumes).** First run the static sanity gate: `$HOME/.claude/skills/cfn-megaplan/bars/check-produce-consume.sh "$PLAN_FILE"` — exit 1 (duplicate producer / weasel / empty / malformed cell) BLOCKS; resolve before deriving lanes (a duplicate-producer finding is the AskUserQuestion below). Warnings (dangling consume) are advisory. If the plan has no such columns the checker exits 0 and you skip to a single wave. Then collect every step's identifiers per lane. Draw a directed edge **A → E** whenever any step in lane E has a `Consumes` string-equal (exact, trimmed) to a `Produces` of any step in lane A, with A ≠ E. A Consumes matching no lane's Produces is a pre-existing symbol → no edge (log a one-line `warn: dangling consume <id>` so a typo is visible). **Duplicate producer** (the same identifier Produced by steps in two DIFFERENT lanes) is ambiguous ownership → STOP and surface one `AskUserQuestion` (which lane owns it); do not guess. If the columns are absent or every cell is `-`, the edge set is empty. **Cycle** (A → E and E → A): merge the cycle's lanes into one lane run sequentially — same resolution as the same-file rule in step 3 — and log `cycle-merge: <lanes>`.
 6. **Order lanes into waves (topological).** WAVE_1 = every lane with no inbound edge. Each next wave = lanes whose inbound edges all originate in already-completed waves. Within a wave, run at most LANE_CAP lanes concurrently; ready-but-capped lanes defer to the next slot (never merge them just to fit the cap). Empty edge set ⇒ exactly one wave with all lanes ⇒ identical to the pre-feature single-wave behavior. Log `wave N: lanes [...]` per wave before spawning it.
 
 ### Bounded step amendment (sanctioned adaptation, no re-gate)
@@ -266,7 +266,7 @@ jq -n --arg slug "$RUN_ID" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   '{slug: $slug, generated_at: $ts, phases: ["Phase 2"], lanes: $lanes}' \
   > "${PDIR}/run-plan-${RUN_ID}.json" \
   || echo "WARN: run-plan write skipped (non-blocking)" >&2
-./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event phase_started --phase 2 || true
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event phase_started --phase 2 || true
 ```
 
 ### Spawn implementer agents in waves using Task tool (one per lane)
@@ -285,7 +285,7 @@ Rationale (measured 2026-08-19): one lane debugged an auth.users FK once and reu
 Immediately before each lane's Task spawn, emit its spawn event:
 
 ```bash
-./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event lane_spawned --lane "<lane>" || true
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event lane_spawned --lane "<lane>" || true
 ```
 
 ```
@@ -335,7 +335,7 @@ AGENT_ID: loop3-impl-${TASK_ID}-iter${ITERATION}-<lane>
 **WAIT for the wave's agents to complete and aggregate results.** As each lane's trailing JSON block is saved to `/tmp/lane-report-${RUN_ID}-<lane>.json` (the file Step 3.01 reads), emit its landing:
 
 ```bash
-./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event lane_landed --lane "<lane>" || true
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event lane_landed --lane "<lane>" || true
 ```
 
 **Inter-wave producer guard (only when a NEXT wave exists).** Before spawning the next wave, cheaply confirm the just-completed wave actually created what downstream lanes consume: for each `Produces` identifier a later wave `Consumes`, assert it now resolves — `npm run typecheck` scoped to those files, or `grep -RnF "<symbol>"` on the produced path. This is NOT the full Phase-3 gate (no test suite, no gate-check.sh); it is a symbol-existence check so a consumer wave never builds on an absent export. If a claimed symbol is missing, respawn ONLY the producing lane with that as the finding, re-run the guard, then proceed. When no further wave exists, skip the guard — the full Phase-3 gate below covers it.
@@ -345,7 +345,7 @@ AGENT_ID: loop3-impl-${TASK_ID}-iter${ITERATION}-<lane>
 **Re-render the workbench dashboard** with this iteration's implementation progress (lane reports now on disk). Same tab refreshes via the `--live` meta from Phase 1; `--open` no-ops (marker already set).
 
 ```bash
-./.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
+$HOME/.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
   || echo "WARN: workbench render skipped (non-blocking)" >&2
 ```
 
@@ -385,7 +385,7 @@ surface; the Phase 5 gate (5E.4a) is what enforces it.
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 for LANE_ID in ${LANE_IDS}; do
   bash "$CFN_FAILLOG" wrap --tool deferrals.sh -- \
-    ./.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh record \
+    $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh record \
     --slug "${SLUG:-$TASK_ID}" --lane "${LANE_ID}" \
     --json "/tmp/lane-report-${RUN_ID}-${LANE_ID}.json"
 done
@@ -428,7 +428,7 @@ Before computing any pass rate, confirm no test was silently disabled to game th
 # No args = changed test files via git diff. Exit 0 clean / 1 findings / 2 usage.
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool check-test-hygiene.sh -- \
-  ./.claude/skills/cfn-loop-orchestration-v2/cli/check-test-hygiene.sh \
+  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/check-test-hygiene.sh \
   2>&1 | tee /tmp/hygiene-${TASK_ID}.txt
 HYGIENE_EXIT=${PIPESTATUS[0]}
 ```
@@ -440,7 +440,7 @@ HYGIENE_EXIT=${PIPESTATUS[0]}
 ### Step 3.1: Run tests and check the gate mechanically
 
 ```bash
-./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event gate_started || true
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event gate_started || true
 
 # Run the full suite (coordinator only; agents never do this)
 npm test 2>&1 | tee /tmp/test-output-${RUN_ID}.txt
@@ -455,7 +455,7 @@ fi
 # Mechanical gate check (THRESHOLD from THRESHOLDS.md, e.g. 0.95 for standard)
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool gate-check.sh -- \
-  ./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
+  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
   --out /tmp/test-output-${RUN_ID}.txt \
   --threshold ${THRESHOLD} \
   ${BASELINE_ARG}
@@ -465,9 +465,9 @@ GATE_EXIT=$?
 **Re-render the workbench dashboard (iteration boundary).** The test output and gate verdict for the iteration just completed are now on disk, so this render reflects the current pass rate and gate result. Fires every iteration, pass or fail. Emit the `gate_verdict` event first (pass/total from the gate-check JSON) so this render includes it.
 
 ```bash
-./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event gate_verdict \
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event gate_verdict \
   --detail "${PASS_COUNT}/${TOTAL_COUNT} exit ${GATE_EXIT}" || true
-./.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
+$HOME/.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
   || echo "WARN: workbench render skipped (non-blocking)" >&2
 ```
 
@@ -501,7 +501,7 @@ After the gate passes, inventory the deliberate shortcuts implementers took so t
 ```bash
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool harvest.sh -- \
-  ./.claude/skills/cfn-tech-debt/harvest.sh \
+  $HOME/.claude/skills/cfn-tech-debt/harvest.sh \
   2>&1 | tee /tmp/cfn-debt-${TASK_ID}.txt
 ```
 
@@ -591,7 +591,7 @@ Each cfn-vote-implement call runs the 3 voting agents in parallel and routes eac
 After each suggestion's patch lands (a 3/3 auto-implement or a 2/3 IMPLEMENT verdict), emit it:
 
 ```bash
-./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event patch_applied --detail "<suggestion id>" || true
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event patch_applied --detail "<suggestion id>" || true
 ```
 
 **FR-7 SITE 1 (Phase 4.2 product-owner 2/3) decisions-ledger capture.** Each 2/3 product-owner verdict is final BEFORE this hook fires. Per resolved 2/3 item, set the per-item variables (`DEC_ID`, `DEC_TITLE`, `DEC_CHOSEN`, `DEC_RATIONALE`, `DEC_ALTS`, `DEC_STATUS`, `DEC_BLOCKING`) and invoke the writer once. Status mapping: `IMPLEMENT -> accepted`, `DEFER -> proposed`, `REJECT -> superseded`. Blocking mapping: `true` if the vote was block-severity, else `false`. `actor=ai` (the product-owner agent resolves 2/3 items). D-8 isolation: the writer's non-zero exit is logged and the loop continues (the decision was made by the product-owner agent; a missing ledger row is a coverage gap, not a wrong decision).
@@ -600,7 +600,7 @@ After each suggestion's patch lands (a 3/3 auto-implement or a 2/3 IMPLEMENT ver
 # FR-7 SITE 1: record the resolved 2/3 product-owner decision (actor=ai, D-8 isolated).
 # hook.sh owns the D-8 isolation envelope + per-site marker (DRY across sites 1/2/3).
 export RUN_LOG="${RUN_LOG:-/tmp/decisions-ledger-${TASK_ID:-unknown}.log}"
-bash .claude/skills/cfn-decisions/hook.sh \
+bash $HOME/.claude/skills/cfn-decisions/hook.sh \
     --site phase-4.2-po \
     --slug "${SLUG:-$TASK_ID}" \
     --id "$DEC_ID" \
@@ -644,7 +644,7 @@ Each 1/3 item is one AskUserQuestion entry:
 # Per resolved 1/3 item, set: DEC_ID, DEC_TITLE, DEC_CHOSEN, DEC_RATIONALE, DEC_ALTS, DEC_STATUS
 # hook.sh owns the D-8 isolation envelope + per-site marker (DRY across sites 1/2/3).
 export RUN_LOG="${RUN_LOG:-/tmp/decisions-ledger-${TASK_ID:-unknown}.log}"
-bash .claude/skills/cfn-decisions/hook.sh \
+bash $HOME/.claude/skills/cfn-decisions/hook.sh \
     --site phase-5-batch \
     --slug "${SLUG:-$TASK_ID}" \
     --id "$DEC_ID" \
@@ -669,7 +669,7 @@ The done verdict is mechanical, not honor-system. `verify-run.sh` reads the resu
 At entry, emit the verify phase event:
 
 ```bash
-./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event verify_started || true
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event verify_started || true
 ```
 
 Runs first so any residue a mutation leaves behind is caught by the later all-green gate (5E.4). Per `[core]` FR in the manifest, capped at 3:
@@ -702,7 +702,7 @@ Runs first so any residue a mutation leaves behind is caught by the later all-gr
 ```bash
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
-  ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh run \
+  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh run \
   --verify "$VERIFY_FILE" \
   --out "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json"
 ```
@@ -716,7 +716,7 @@ For each results row with `mode: needs_agent` or `predicate_unverified: true` (`
 ```bash
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
-  ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh resolve \
+  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh resolve \
   --results "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json" \
   --ac <AC-id> --pass true|false --evidence-file <captured-evidence-file>
 ```
@@ -728,7 +728,7 @@ bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
 ```bash
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
-  ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh summary \
+  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh summary \
   --results "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json"
 SUMMARY_EXIT=$?
 ```
@@ -746,12 +746,12 @@ Runs only when 5E.3 exited 0. The manifest was blessed at plan stage with `evide
 ```bash
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
-  ./.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh backfill-evidence \
+  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh backfill-evidence \
   --results "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json" \
   --verify  "$VERIFY_FILE"
 
 bash "$CFN_FAILLOG" wrap --tool bless-verify.sh -- \
-  .claude/skills/cfn-megaplan/bars/bless-verify.sh "$VERIFY_FILE" \
+  $HOME/.claude/skills/cfn-megaplan/bars/bless-verify.sh "$VERIFY_FILE" \
   --stage exit --note "exit gate: evidence backfilled from VERIFY_RESULTS"
 ```
 
@@ -765,7 +765,7 @@ Code changed since Phase 3 (vote-applied 3/3, 2/3, 1/3 items), so a mandatory fi
 npm test 2>&1 | tee /tmp/test-final-${TASK_ID}.txt
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool gate-check.sh -- \
-  ./.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
+  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
   --out /tmp/test-final-${TASK_ID}.txt --threshold 1.0
 ```
 
@@ -780,7 +780,7 @@ bash "$CFN_FAILLOG" wrap --tool gate-check.sh -- \
   # Set DEC_ID, DEC_TITLE, DEC_CHOSEN, DEC_RATIONALE, DEC_ALTS, DEC_STATUS per the user's choice.
   # hook.sh owns the D-8 isolation envelope + per-site marker (DRY across sites 1/2/3).
   export RUN_LOG="${RUN_LOG:-/tmp/decisions-ledger-${TASK_ID:-unknown}.log}"
-  bash .claude/skills/cfn-decisions/hook.sh \
+  bash $HOME/.claude/skills/cfn-decisions/hook.sh \
       --site phase-5E.4-quarantine \
       --slug "${SLUG:-$TASK_ID}" \
       --id "$DEC_ID" \
@@ -813,7 +813,7 @@ from `src/index.ts`.
 ```bash
 CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
 bash "$CFN_FAILLOG" wrap --tool deferrals.sh -- \
-  ./.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh gate --slug "${SLUG:-$TASK_ID}"
+  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh gate --slug "${SLUG:-$TASK_ID}"
 DEFERRALS_GATE_EXIT=$?
 ```
 
@@ -840,10 +840,10 @@ npm run build 2>&1 | tee /tmp/build-smoke-${TASK_ID}.txt
 **Final workbench render.** VERIFY_RESULTS is now on disk, so this render shows the populated AC/verify table and final verdict. Order matters: emit `loop_finished` first, stop the watcher second, render last so the page ends on complete data. One last refresh of the open tab.
 
 ```bash
-./.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event loop_finished || true
-./.claude/skills/cfn-workbench/watch.sh --slug "$RUN_ID" --stop \
+$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event loop_finished || true
+$HOME/.claude/skills/cfn-workbench/watch.sh --slug "$RUN_ID" --stop \
   || echo "WARN: workbench watcher stop skipped (non-blocking)" >&2
-./.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
+$HOME/.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
   || echo "WARN: workbench render skipped (non-blocking)" >&2
 ```
 
@@ -853,7 +853,7 @@ Append one row for this run to the global run ledger and print its summary + FLA
 
 ```bash
 REPORT_ARGS=""; for LANE_ID in ${LANE_IDS}; do REPORT_ARGS="$REPORT_ARGS --report /tmp/lane-report-${RUN_ID}-${LANE_ID}.json"; done
-./.claude/skills/cfn-loop-orchestration-v2/cli/run-ledger.sh record \
+$HOME/.claude/skills/cfn-loop-orchestration-v2/cli/run-ledger.sh record \
   --slug "${SLUG:-$RUN_ID}" --plan-dir "$PDIR" --run-plan "${PDIR}/run-plan-${RUN_ID}.json" \
   $REPORT_ARGS --iterations "${ITERATION}" --outcome "${OUTCOME}" \
   || echo "WARN: run ledger skipped (non-blocking)" >&2

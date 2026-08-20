@@ -41,7 +41,7 @@ echo "✅ OpenAI key: ${OPENAI_API_KEY:0:12}..."
 
 # --- Setup ---
 CODESEARCH_BIN="${HOME}/.local/bin/local-codesearch"
-[ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="./.claude/skills/cfn-codesearch/target/release/local-codesearch"
+[ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="$HOME/.claude/skills/cfn-codesearch/target/release/local-codesearch"
 LOG_FILE="/tmp/codesearch-index.log"
 
 echo "📝 Logging to: $LOG_FILE"

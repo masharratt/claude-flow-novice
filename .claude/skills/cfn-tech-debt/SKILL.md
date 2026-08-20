@@ -60,10 +60,10 @@ The JSON ledger closes the "later means never" loop. `cfn-megaplan` reads `.cfn-
 
 ```bash
 # Report only (default)
-./.claude/skills/cfn-tech-debt/harvest.sh
+$HOME/.claude/skills/cfn-tech-debt/harvest.sh
 
 # Write/refresh the ledger file
-./.claude/skills/cfn-tech-debt/harvest.sh --persist
+$HOME/.claude/skills/cfn-tech-debt/harvest.sh --persist
 ```
 
 ## How Harvest Works

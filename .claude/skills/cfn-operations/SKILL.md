@@ -56,18 +56,18 @@ operations/
 
 Read or write files with safety checks:
 ```bash
-bash .claude/skills/cfn-operations/lib/file/file-ops.sh --read <path>
-bash .claude/skills/cfn-operations/lib/file/file-ops.sh --write <path> --content "data"
+bash $HOME/.claude/skills/cfn-operations/lib/file/file-ops.sh --read <path>
+bash $HOME/.claude/skills/cfn-operations/lib/file/file-ops.sh --write <path> --content "data"
 ```
 
 Manage log files (view, rotate, clean):
 ```bash
-bash .claude/skills/cfn-operations/lib/log/log-ops.sh --tail <log-path> --lines 100
-bash .claude/skills/cfn-operations/lib/log/log-ops.sh --rotate <log-path> --max-size 10M
+bash $HOME/.claude/skills/cfn-operations/lib/log/log-ops.sh --tail <log-path> --lines 100
+bash $HOME/.claude/skills/cfn-operations/lib/log/log-ops.sh --rotate <log-path> --max-size 10M
 ```
 
 Copy files with backup:
 ```bash
-bash .claude/skills/cfn-operations/lib/file/file-ops.sh --copy <source> <dest> --backup
+bash $HOME/.claude/skills/cfn-operations/lib/file/file-ops.sh --copy <source> <dest> --backup
 ```
 

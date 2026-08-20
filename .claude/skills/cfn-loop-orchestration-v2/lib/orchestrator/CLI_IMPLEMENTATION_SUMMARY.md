@@ -295,7 +295,7 @@ For future enhancements:
 
 ### Build CLI
 ```bash
-cd .claude/skills/cfn-loop-orchestration
+cd $HOME/.claude/skills/cfn-loop-orchestration
 npm run build
 ```
 

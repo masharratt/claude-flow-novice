@@ -36,13 +36,13 @@ This skill provides:
 
 ```bash
 # Basic usage
-./.claude/skills/cfn-file-operations/execute.sh acquire-lock /path/to/file.txt
+$HOME/.claude/skills/cfn-file-operations/execute.sh acquire-lock /path/to/file.txt
 
 # With agent ID tracking
-./.claude/skills/cfn-file-operations/execute.sh acquire-lock /path/to/file.txt --agent-id agent-001
+$HOME/.claude/skills/cfn-file-operations/execute.sh acquire-lock /path/to/file.txt --agent-id agent-001
 
 # With custom timeout (30 seconds)
-./.claude/skills/cfn-file-operations/execute.sh acquire-lock /path/to/file.txt --timeout 30000
+$HOME/.claude/skills/cfn-file-operations/execute.sh acquire-lock /path/to/file.txt --timeout 30000
 
 # Output: LOCK_ID:LOCK_PATH (e.g., "lock-1234567890-999:/tmp/cfn-locks/abc123.lock")
 ```

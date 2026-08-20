@@ -26,7 +26,7 @@ export TS_PROJECT_PATH="/path/to/typescript/project"
 
 #### Rust Error Fixer
 ```bash
-cd .claude/skills/cfn-compilation-error-fixer/lib/fixer
+cd $HOME/.claude/skills/cfn-compilation-error-fixer/lib/fixer
 
 # Fix Rust compilation errors
 npx tsx cerebras-gated-fixer-v2.ts
@@ -40,7 +40,7 @@ npx tsx cerebras-gated-fixer-v2.ts --verbose
 
 #### TypeScript Error Fixer
 ```bash
-cd .claude/skills/cfn-compilation-error-fixer/lib/fixer
+cd $HOME/.claude/skills/cfn-compilation-error-fixer/lib/fixer
 
 # Fix TypeScript compilation errors
 npx tsx typescript-gated-fixer-v2.ts
@@ -120,7 +120,7 @@ Common configuration options in fixer files:
 
 Run comprehensive test suites:
 ```bash
-cd .claude/skills/cfn-compilation-error-fixer
+cd $HOME/.claude/skills/cfn-compilation-error-fixer
 
 # Rust fixer tests
 ./test-rust-fixer.sh

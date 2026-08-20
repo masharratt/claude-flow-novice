@@ -134,8 +134,8 @@ if [[ "$CUSTOM_ROUTING_ENABLED" != "true" ]]; then
 fi
 
 # Step 2: Custom routing enabled - check agent profile for PROVIDER_PARAMETERS
-AGENT_PROVIDER=$(bash .claude/skills/cfn-agent-spawning/parse-agent-provider.sh "$AGENT_TYPE" --field provider)
-AGENT_MODEL=$(bash .claude/skills/cfn-agent-spawning/parse-agent-provider.sh "$AGENT_TYPE" --field model)
+AGENT_PROVIDER=$(bash $HOME/.claude/skills/cfn-agent-spawning/parse-agent-provider.sh "$AGENT_TYPE" --field provider)
+AGENT_MODEL=$(bash $HOME/.claude/skills/cfn-agent-spawning/parse-agent-provider.sh "$AGENT_TYPE" --field model)
 
 if [[ -n "$AGENT_PROVIDER" ]]; then
     # Agent has provider parameters - use them

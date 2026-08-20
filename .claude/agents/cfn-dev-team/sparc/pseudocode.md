@@ -37,7 +37,7 @@ You produce the SPARC Pseudocode artifact: operation-level logic traces, branch 
 
 ## Procedure
 
-1. Read the authoritative procedure: `.claude/skills/cfn-pseudo/SKILL.md`. Follow it exactly; it defines the artifact structure, branch-coverage method, and the PASS/FAIL gate.
+1. Read the authoritative procedure: `$HOME/.claude/skills/cfn-pseudo/SKILL.md`. Follow it exactly; it defines the artifact structure, branch-coverage method, and the PASS/FAIL gate.
 2. Read the SPEC artifact referenced in your prompt. Every spec item must map to at least one operation in your pseudocode; unmapped items go in `uncovered_spec_items`.
 3. Write the artifact to `planning/PSEUDO_<task-slug>.md`.
 4. Enumerate every branch (success, error, boundary) per operation. Branches you identify but cannot resolve go in `unmapped_branches`; do not guess silently.

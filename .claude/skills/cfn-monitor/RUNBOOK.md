@@ -11,7 +11,7 @@ Steps are ordered. Work top to bottom. Stop when you find the cause.
 
 ```bash
 # Re-run the health check against all known targets
-./.claude/skills/cfn-monitor/execute.sh \
+$HOME/.claude/skills/cfn-monitor/execute.sh \
   --target https://<app>.fly.dev/health:200:3000 \
   --target https://<app>.fly.dev/api/status:200:3000 \
   | jq '.'
@@ -165,7 +165,7 @@ For Fly deploys, `fly releases rollback <version> -a <app-name>` is the correct 
 **After recovery:**
 ```bash
 # Run a full health check to confirm clean state
-./.claude/skills/cfn-monitor/execute.sh \
+$HOME/.claude/skills/cfn-monitor/execute.sh \
   --target https://<app>.fly.dev/health:200:2000 \
   | jq '.targets_fail'
 # Must be 0

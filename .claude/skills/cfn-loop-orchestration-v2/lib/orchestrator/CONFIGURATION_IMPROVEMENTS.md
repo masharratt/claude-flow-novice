@@ -197,7 +197,7 @@ const orchestrator = new Orchestrator({
 ### CLI Mode Integration
 ```bash
 # Execute decision with custom timeout
-./.claude/skills/cfn-product-owner-decision/execute-decision.sh \
+$HOME/.claude/skills/cfn-product-owner-decision/execute-decision.sh \
   --task-id "task-123" \
   --agent-id "po-agent-1" \
   --consensus "0.92" \

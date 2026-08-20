@@ -187,7 +187,7 @@ analyze_task_complexity() {
 decompose_typescript_task() {
     local task_id="$1"
     local description="$2"
-    local output_file=".claude/skills/cfn-task-decomposition/${task_id}-subtasks.json"
+    local output_file=".claude/skills/cfn-task-decomposition/${task_id}-subtasks.json"  # portability-ok: cwd-relative output path; cfn: needs a real artifacts dir, fix when this script is revived
 
     echo -e "${YELLOW}Decomposing TypeScript task...${NC}" >&2
 
@@ -263,7 +263,7 @@ EOF
 decompose_exploration_task() {
     local task_id="$1"
     local description="$2"
-    local output_file=".claude/skills/cfn-task-decomposition/${task_id}-subtasks.json"
+    local output_file=".claude/skills/cfn-task-decomposition/${task_id}-subtasks.json"  # portability-ok: cwd-relative output path; cfn: needs a real artifacts dir, fix when this script is revived
 
     echo -e "${YELLOW}Decomposing exploration task...${NC}" >&2
 
@@ -304,7 +304,7 @@ EOF
 # Function to create task-specific agent prompts
 create_agent_prompts() {
     local subtasks_file="$1"
-    local prompts_dir=".claude/skills/cfn-task-decomposition/prompts"
+    local prompts_dir=".claude/skills/cfn-task-decomposition/prompts"  # portability-ok: cwd-relative output path; cfn: needs a real artifacts dir, fix when this script is revived
 
     mkdir -p "$prompts_dir"
 

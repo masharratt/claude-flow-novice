@@ -16,19 +16,19 @@ Updates the CFN system expert agent's knowledge base with relevant git commits a
 
 ```bash
 # Basic usage (scan last 10 commits or since last update)
-bash .claude/skills/cfn-expert-update/update-expert.sh
+bash .claude/skills/cfn-expert-update/update-expert.sh  # portability-ok: repo-root-only; $HOME path breaks find_project_root
 
 # Dry run to see what would be updated
-bash .claude/skills/cfn-expert-update/update-expert.sh --dry-run
+bash .claude/skills/cfn-expert-update/update-expert.sh --dry-run  # portability-ok: repo-root-only; $HOME path breaks find_project_root
 
 # Scan commits since specific hash
-bash .claude/skills/cfn-expert-update/update-expert.sh --since=<commit_hash>
+bash .claude/skills/cfn-expert-update/update-expert.sh --since=<commit_hash>  # portability-ok: repo-root-only; $HOME path breaks find_project_root
 
 # Force update even if no changes detected
-bash .claude/skills/cfn-expert-update/update-expert.sh --force
+bash .claude/skills/cfn-expert-update/update-expert.sh --force  # portability-ok: repo-root-only; $HOME path breaks find_project_root
 
 # Combine options
-bash .claude/skills/cfn-expert-update/update-expert.sh --dry-run --since=HEAD~5 --force
+bash .claude/skills/cfn-expert-update/update-expert.sh --dry-run --since=HEAD~5 --force  # portability-ok: repo-root-only; $HOME path breaks find_project_root
 ```
 
 ## Options
@@ -135,22 +135,22 @@ The skill maintains state in `.claude/state/cfn-expert-last-commit` to track the
 
 ### Check for updates without applying them
 ```bash
-bash .claude/skills/cfn-expert-update/update-expert.sh --dry-run
+bash .claude/skills/cfn-expert-update/update-expert.sh --dry-run  # portability-ok: repo-root-only; $HOME path breaks find_project_root
 ```
 
 ### Update from a specific commit
 ```bash
-bash .claude/skills/cfn-expert-update/update-expert.sh --since=abc123
+bash .claude/skills/cfn-expert-update/update-expert.sh --since=abc123  # portability-ok: repo-root-only; $HOME path breaks find_project_root
 ```
 
 ### Force full rescan of recent history
 ```bash
-bash .claude/skills/cfn-expert-update/update-expert.sh --force
+bash .claude/skills/cfn-expert-update/update-expert.sh --force  # portability-ok: repo-root-only; $HOME path breaks find_project_root
 ```
 
 ### See what would be updated from last 5 commits
 ```bash
-bash .claude/skills/cfn-expert-update/update-expert.sh --dry-run --since=HEAD~5
+bash .claude/skills/cfn-expert-update/update-expert.sh --dry-run --since=HEAD~5  # portability-ok: repo-root-only; $HOME path breaks find_project_root
 ```
 
 ## Limitations

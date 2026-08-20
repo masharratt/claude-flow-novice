@@ -76,7 +76,7 @@ Example:
 
 Why this matters: without structural output, implementation agents receive vague requirements like "Build authentication" instead of concrete components, interactions, and dependencies. That causes design decisions mid-implementation, inconsistent architecture across agents, and failed structural validation.
 
-Reference: `.claude/skills/cfn-epic-creator/SKILL.md:452-479` for full validation criteria.
+Reference: `$HOME/.claude/skills/cfn-epic-creator/SKILL.md:452-479` for full validation criteria.
 
 ## Hard Constraints
 

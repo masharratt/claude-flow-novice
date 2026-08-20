@@ -177,7 +177,7 @@ test_pattern_matching() {
     cd "$TEST_DIR"
 
     # Create a CFN-relevant commit
-    mkdir -p .claude/skills/cfn-test
+    mkdir -p .claude/skills/cfn-test  # portability-ok: creates a fixture inside $TEST_DIR, not a real skill path
     echo "test skill" > .claude/skills/cfn-test/test.md
     git add .claude/skills/cfn-test/test.md
     git commit -m "feat: Add CFN test skill" >/dev/null 2>&1

@@ -624,7 +624,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   echo "This script provides reusable templates for common multi-agent spawning patterns."
   echo ""
   echo "Usage:"
-  echo "  source .claude/skills/cfn-agent-spawning/spawn-templates.sh"
+  echo "  source $HOME/.claude/skills/cfn-agent-spawning/spawn-templates.sh"
   echo "  spawn_feature_development 'Implement user authentication'"
   echo ""
   echo "For a complete list of templates:"

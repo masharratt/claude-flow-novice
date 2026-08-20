@@ -46,7 +46,7 @@ A `## How to verify` section inside a role doc is this protocol, copy-pasted. Th
 
 1. Enumerate `.claude/skills/role-*/SKILL.md` in the current project.
 2. Validate them: `./.claude/skills/cfn-persona-verify/validate-role-skills.sh`. Any violation exits `3`. Do not verify against a doc that failed the schema.
-3. Where the plan's spec (`planning/<slug>/SPEC_<slug>.md`, or legacy flat `planning/SPEC_*.md`; resolve with `.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> SPEC_<slug>.md`) has a `1a. Actors` section, use it as the actor list and resolve each actor to the role doc whose frontmatter `actor:` matches verbatim. Report, do not guess:
+3. Where the plan's spec (`planning/<slug>/SPEC_<slug>.md`, or legacy flat `planning/SPEC_*.md`; resolve with `$HOME/.claude/skills/cfn-megaplan/lib/plan-paths.sh resolve <slug> SPEC_<slug>.md`) has a `1a. Actors` section, use it as the actor list and resolve each actor to the role doc whose frontmatter `actor:` matches verbatim. Report, do not guess:
    - Actor in 1a with no role skill: gap. That actor cannot be verified.
    - Role skill matching no 1a actor: dead doc. Flag for deletion or for a missing 1a row.
 4. Where no SPEC exists, the role docs are the actor list. Scoping comes from `--ref` instead (Step 2).
@@ -184,7 +184,7 @@ The propose-never-write rule is the point. Auto-writing observed behavior into g
 
 ```bash
 # validate the project's role docs against the schema first
-./.claude/skills/cfn-persona-verify/validate-role-skills.sh
+$HOME/.claude/skills/cfn-persona-verify/validate-role-skills.sh
 
 # spec-backed project: scoping is automatic from SPEC 1a
 /cfn-persona-verify --fr FR-12,FR-13

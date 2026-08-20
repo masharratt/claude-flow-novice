@@ -223,7 +223,7 @@ Any non-clean cell (check_form_matched NONE, pass_decidable N, empty maps_to, co
 **Integrity sidecar `planning/<slug>/.VERIFY_<slug>.sha256`** (always beside its manifest — `bless-verify.sh` derives every sidecar path from the file's own directory, so nothing changes for a legacy flat plan)**.** After Bar A PASSES (including the mechanical static pass, step 1.5), the orchestrator blesses the validated file. **Blessing is done ONLY through `bars/bless-verify.sh`** — never by writing the sidecar by hand:
 
 ```bash
-./.claude/skills/cfn-megaplan/bars/bless-verify.sh "${PDIR}/VERIFY_${SLUG}.md" \
+$HOME/.claude/skills/cfn-megaplan/bars/bless-verify.sh "${PDIR}/VERIFY_${SLUG}.md" \
   --note "Bar A pass, first bless"
 ```
 

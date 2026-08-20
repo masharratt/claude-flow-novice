@@ -6,16 +6,16 @@ Dynamic ingestion of CFN Loop CLI dependency files by parsing the dependency dia
 
 ```bash
 # Ingest all dependencies
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
 
 # Ingest P0 critical path only
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --priority P0
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --priority P0
 
 # Ingest TypeScript files only
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS
 
 # Include deprecated files
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --include-deprecated
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --include-deprecated
 ```
 
 ## Output
@@ -86,7 +86,7 @@ The `cfn-loops-cli-expert` agent uses this skill for dynamic dependency loading:
 ## Step 2: Execute Dependency Ingestion
 
 ```bash
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
+$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
 ```
 
 This automatically discovers and reads all files referenced in the dependency diagram.

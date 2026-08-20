@@ -4,7 +4,7 @@
 
 **Usage:**
 ```bash
-./.claude/skills/cfn-multi-coordinator-planning/plan-multi-coordinator-work.sh [zone-config-file]
+$HOME/.claude/skills/cfn-multi-coordinator-planning/plan-multi-coordinator-work.sh [zone-config-file]
 ```
 
 ## Overview

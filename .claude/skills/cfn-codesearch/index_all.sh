@@ -2,7 +2,7 @@
 # Index all files in the project
 
 echo "Starting comprehensive indexing of all files..."
-cd .claude/skills/cfn-local-codesearch-accelerator
+cd .claude/skills/cfn-local-codesearch-accelerator  # portability-ok: cds relative then scans ../../; target skill cfn-local-codesearch-accelerator no longer exists so this script is already dead, dead-ref cleanup tracked separately
 
 # Clear existing index
 rm -rf index/

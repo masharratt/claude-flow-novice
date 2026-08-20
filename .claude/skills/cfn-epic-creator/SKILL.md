@@ -486,7 +486,7 @@ Step 1-2:   Main Chat creates JSON, Simplifier reviews scope
 Step 3-12:  9 Personas review (Architect adds structural data)
 Step 13-14: Final Simplifier review, user approves
 Step 15:    ⬇️ STRUCTURAL VALIDATION GATE ⬇️
-            ./.claude/skills/cfn-epic-creator/validate-epic.sh $EPIC -v
+            $HOME/.claude/skills/cfn-epic-creator/validate-epic.sh $EPIC -v
 
             ├─ PASS (≥71%): Proceed to implementation
             └─ FAIL (<71%): Loop back to Architect for structural review
@@ -527,10 +527,10 @@ Score = (passed_checks / 7) × 100%
 
 ```bash
 # Standard validation (warnings only)
-./.claude/skills/cfn-epic-creator/validate-epic.sh epic.json -v
+$HOME/.claude/skills/cfn-epic-creator/validate-epic.sh epic.json -v
 
 # Strict mode (>2 warnings = FAIL, blocks implementation)
-./.claude/skills/cfn-epic-creator/validate-epic.sh epic.json -v -s
+$HOME/.claude/skills/cfn-epic-creator/validate-epic.sh epic.json -v -s
 ```
 
 ### Strict Mode (`-s` flag)

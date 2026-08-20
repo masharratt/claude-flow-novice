@@ -25,7 +25,7 @@ validate_string_length "$string" "$min" "$max" "$field_name"
 
 **Example:**
 ```bash
-source ".claude/skills/cfn-changelog-management/lib/validation.sh"
+source "$HOME/.claude/skills/cfn-changelog-management/lib/validation.sh"
 validate_string_length "$SUMMARY" 10 100 "summary" || exit 1
 ```
 
@@ -55,7 +55,7 @@ validate_date "$date_string"
 
 **Example:**
 ```bash
-source ".claude/skills/cfn-changelog-management/lib/validation.sh"
+source "$HOME/.claude/skills/cfn-changelog-management/lib/validation.sh"
 validate_date "$CUSTOM_DATE" || exit 1
 ```
 
@@ -92,7 +92,7 @@ validate_enum "$value" "$field_name" "$valid_options"
 
 **Example:**
 ```bash
-source ".claude/skills/cfn-changelog-management/lib/validation.sh"
+source "$HOME/.claude/skills/cfn-changelog-management/lib/validation.sh"
 validate_enum "$TYPE" "type" "feature|bugfix|breaking" || exit 1
 validate_enum "$PRIORITY" "priority" "P0|P1|P2|P3" || exit 1
 ```

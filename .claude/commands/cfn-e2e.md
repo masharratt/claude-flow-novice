@@ -75,7 +75,7 @@ Invoke the Fix Errors command:
 
 ```bash
 # Create E2E task list
-./.claude/skills/cfn-e2e/analyze-batches.sh tests/e2e --json /tmp/e2e-batches.json
+$HOME/.claude/skills/cfn-e2e/analyze-batches.sh tests/e2e --json /tmp/e2e-batches.json
 ```
 
 2. Convert to parallel execute format:
@@ -112,11 +112,11 @@ Run the smart batching script directly:
 
 ```bash
 # Default: run all tests
-./.claude/skills/cfn-e2e/run-e2e-smart.sh
+$HOME/.claude/skills/cfn-e2e/run-e2e-smart.sh
 
 # With options
 BATCH_SIZE={{batch:-all}} PARALLELISM={{parallelism:-3}} WORKERS={{workers:-3}} \
-  ./.claude/skills/cfn-e2e/run-e2e-smart.sh
+  $HOME/.claude/skills/cfn-e2e/run-e2e-smart.sh
 ```
 
 ---
@@ -147,7 +147,7 @@ User Request
     │   └── Invoke: cfn-parallel-execute --tasks=e2e-tasks.md --agents=3
     │
     └── "run e2e" / "run tests" / "--mode=direct" / (default)
-        └── Execute: ./.claude/skills/cfn-e2e/run-e2e-smart.sh
+        └── Execute: $HOME/.claude/skills/cfn-e2e/run-e2e-smart.sh
 ```
 
 ---

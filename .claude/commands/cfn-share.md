@@ -12,7 +12,7 @@ Turn a markdown planning artifact into a private hosted page with a stable URL.
 
 ## Execute
 
-Follow `.claude/skills/cfn-share/SKILL.md` protocol exactly.
+Follow `$HOME/.claude/skills/cfn-share/SKILL.md` protocol exactly.
 
 ```
 Skill: cfn-share
@@ -21,10 +21,10 @@ Args:  $ARGUMENTS
 
 Short form of the protocol:
 
-1. `.claude/skills/cfn-share/resolve.sh $ARGUMENTS` -> JSON with `abs`, `title`, `url`, `stale`.
+1. `$HOME/.claude/skills/cfn-share/resolve.sh $ARGUMENTS` -> JSON with `abs`, `title`, `url`, `stale`.
 2. Read the resolved file end to end. Refuse to publish if it contains credentials, tokens, or customer data.
 3. Load `artifact-design`, then `Artifact` with `file_path` = the `.md` itself. Pass `url:` when the sidecar has one, so the existing link updates in place.
-4. `.claude/skills/cfn-share/record-url.sh "<abs>" "<url>"` on every publish.
+4. `$HOME/.claude/skills/cfn-share/record-url.sh "<abs>" "<url>"` on every publish.
 
 ## Mandatory output checks
 

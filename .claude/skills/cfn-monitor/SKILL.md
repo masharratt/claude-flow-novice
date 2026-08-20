@@ -124,22 +124,22 @@ cfn: single-shot probe only, no consecutive-failure tracking. Upgrade trigger: n
 
 ```bash
 # Single target
-./.claude/skills/cfn-monitor/execute.sh --target https://myapp.fly.dev/health:200:2000
+$HOME/.claude/skills/cfn-monitor/execute.sh --target https://myapp.fly.dev/health:200:2000
 
 # Multiple targets via flags
-./.claude/skills/cfn-monitor/execute.sh \
+$HOME/.claude/skills/cfn-monitor/execute.sh \
   --target https://myapp.fly.dev/health:200:2000 \
   --target https://myapp.fly.dev/api/users:200:1500
 
 # From env
 export CFN_MONITOR_TARGETS='[{"url":"https://myapp.fly.dev/health","expected_status":200,"latency_budget_ms":2000}]'
-./.claude/skills/cfn-monitor/execute.sh
+$HOME/.claude/skills/cfn-monitor/execute.sh
 
 # Parse the JSON output
-./.claude/skills/cfn-monitor/execute.sh --target https://myapp.fly.dev/health | jq '.results[]'
+$HOME/.claude/skills/cfn-monitor/execute.sh --target https://myapp.fly.dev/health | jq '.results[]'
 
 # Fail-fast in a deploy pipeline
-./.claude/skills/cfn-monitor/execute.sh --target https://myapp.fly.dev/health:200:3000 || { echo "Deploy gate failed. Check output above."; exit 1; }
+$HOME/.claude/skills/cfn-monitor/execute.sh --target https://myapp.fly.dev/health:200:3000 || { echo "Deploy gate failed. Check output above."; exit 1; }
 ```
 
 ## Dependencies

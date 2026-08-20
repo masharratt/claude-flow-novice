@@ -4,7 +4,7 @@ No coordinator agent profiles live in this directory. Coordination is done by th
 
 ## Actual Entry Points
 
-- **Orchestrator script (enhanced orchestrator v3.0):** `./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`
+- **Orchestrator script (enhanced orchestrator v3.0):** `$HOME/.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`
 - **Task-mode flow:** see `.claude/CLAUDE.md`. Loop 3 executes and tests -> gate check -> Loop 2 validators -> Product Owner decision (PROCEED/ITERATE/ABORT) -> iterate or finish. Task mode agents return output directly; no Redis signaling.
 - **Coordination patterns** (chain, broadcast, mesh, consensus collection): `.claude/skills/cfn-coordination/SKILL.md`
 

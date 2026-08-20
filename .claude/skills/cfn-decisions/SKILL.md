@@ -151,7 +151,7 @@ the caller's data, not the writer's code (EC-22 carve-out).
 ## Tests
 
 ```bash
-bash .claude/skills/cfn-decisions/tests/run-all.sh
+bash $HOME/.claude/skills/cfn-decisions/tests/run-all.sh
 ```
 
 One `.sh` file per AC group. TDD ordering (TEST Phase 6) puts AC-2 (upsert

@@ -52,7 +52,7 @@ Traditional changelogs require manual curation and often become stale or inconsi
 
 **Usage:**
 ```bash
-./.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
+$HOME/.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
   --type "feature" \
   --summary "Add backlog management skill for deferred work tracking" \
   --impact "Agents can now systematically capture deferred items with structured metadata instead of losing context in chat history" \
@@ -204,7 +204,7 @@ Impact: "There was an issue that has been resolved"
 Edit: file_path="src/new-feature.ts" ...
 
 # Document change
-./.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
+$HOME/.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
   --type "feature" \
   --summary "JWT authentication middleware" \
   --impact "Stateless auth reduces session storage by 80%" \
@@ -214,7 +214,7 @@ Edit: file_path="src/new-feature.ts" ...
 ### Loop 2 Validator (After Identifying Bug Fix)
 ```bash
 # Validator reviews fix
-./.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
+$HOME/.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
   --type "bugfix" \
   --summary "Prevent null pointer in Redis connection retry" \
   --impact "Eliminates crashes during Redis unavailability" \
@@ -225,7 +225,7 @@ Edit: file_path="src/new-feature.ts" ...
 ### Product Owner (After Architectural Decision)
 ```bash
 # Product Owner approves design change
-./.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
+$HOME/.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
   --type "architecture" \
   --summary "Split orchestrator into modular helper scripts" \
   --impact "78% code reduction, improved testability" \

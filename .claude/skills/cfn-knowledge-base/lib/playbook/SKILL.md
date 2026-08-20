@@ -119,7 +119,7 @@ Automatically update playbook with insights from sprint retrospectives.
 
 ### Auto-Update Usage
 ```bash
-./.claude/skills/cfn-playbook/lib/auto-update/auto-update-playbook.sh \
+$HOME/.claude/skills/cfn-playbook/lib/auto-update/auto-update-playbook.sh \
   --retrospective-json "$RETROSPECTIVE_JSON" \
   --task-id "$TASK_ID"
 ```

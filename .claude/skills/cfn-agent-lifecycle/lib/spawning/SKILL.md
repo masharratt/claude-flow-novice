@@ -26,13 +26,13 @@ status: production
 
 ```bash
 # Spawn an agent
-./.claude/skills/cfn-agent-lifecycle/lib/spawning/spawn-agent.sh \
+$HOME/.claude/skills/cfn-agent-lifecycle/lib/spawning/spawn-agent.sh \
   --agent-type backend-dev \
   --task-id "task-123" \
   --provider kimi
 
 # Execute agent directly
-./.claude/skills/cfn-agent-lifecycle/lib/spawning/execute-agent.sh \
+$HOME/.claude/skills/cfn-agent-lifecycle/lib/spawning/execute-agent.sh \
   --agent-id "agent-123" \
   --task "implement feature"
 ```

@@ -16,7 +16,7 @@ Standalone Pseudocode phase. Produces `planning/<slug>/PSEUDO_<slug>.md` with op
 
 ```bash
 SLUG=$(echo "$ARGUMENTS" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
-PP=.claude/skills/cfn-megaplan/lib/plan-paths.sh
+PP=$HOME/.claude/skills/cfn-megaplan/lib/plan-paths.sh
 PDIR=$("$PP" ensure "$SLUG")                       # planning/<slug>, created if absent
 # resolve = per-plan dir first, legacy flat planning/ second
 SPEC=$("$PP" resolve "$SLUG" "SPEC_${SLUG}.md") || {
@@ -27,7 +27,7 @@ SPEC=$("$PP" resolve "$SLUG" "SPEC_${SLUG}.md") || {
 
 ## Execute
 
-Invoke the pseudo skill and follow `.claude/skills/cfn-pseudo/SKILL.md` protocol exactly.
+Invoke the pseudo skill and follow `$HOME/.claude/skills/cfn-pseudo/SKILL.md` protocol exactly.
 
 ```
 Skill: cfn-pseudo

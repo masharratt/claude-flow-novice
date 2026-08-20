@@ -20,19 +20,19 @@ The cfn-epic-parser skill converts natural language epic documents written in ma
 
 ```bash
 # Parse with auto-detected mode
-./.claude/skills/cfn-epic-parser/parse.sh planning/my-epic.md
+$HOME/.claude/skills/cfn-epic-parser/parse.sh planning/my-epic.md
 
 # Force MDAP mode
-./.claude/skills/cfn-epic-parser/parse.sh planning/my-epic.md --mode mdap
+$HOME/.claude/skills/cfn-epic-parser/parse.sh planning/my-epic.md --mode mdap
 
 # Force CFN Loop mode with output file
-./.claude/skills/cfn-epic-parser/parse.sh planning/my-epic.md --mode cfn-loop --output epic-config.json
+$HOME/.claude/skills/cfn-epic-parser/parse.sh planning/my-epic.md --mode cfn-loop --output epic-config.json
 
 # Validate epic structure without generating output
-./.claude/skills/cfn-epic-parser/parse.sh planning/my-epic.md --validate
+$HOME/.claude/skills/cfn-epic-parser/parse.sh planning/my-epic.md --validate
 
 # Enable verbose logging
-./.claude/skills/cfn-epic-parser/parse.sh planning/my-epic.md --verbose
+$HOME/.claude/skills/cfn-epic-parser/parse.sh planning/my-epic.md --verbose
 ```
 
 ### Command Line Options
@@ -159,7 +159,7 @@ Description of phase goals.
 Run the test suite to verify parser functionality:
 
 ```bash
-./.claude/skills/cfn-epic-parser/test-parser.sh
+$HOME/.claude/skills/cfn-epic-parser/test-parser.sh
 ```
 
 The test suite validates:
@@ -182,7 +182,7 @@ The test suite validates:
 ### Parse Marketing Epic
 
 ```bash
-./.claude/skills/cfn-epic-parser/parse.sh \
+$HOME/.claude/skills/cfn-epic-parser/parse.sh \
   planning/global/marketing/EPIC_OVERVIEW.md \
   --mode cfn-loop \
   --output marketing-epic-config.json
@@ -191,7 +191,7 @@ The test suite validates:
 ### Validate Epic Structure
 
 ```bash
-./.claude/skills/cfn-epic-parser/parse.sh \
+$HOME/.claude/skills/cfn-epic-parser/parse.sh \
   planning/my-new-epic.md \
   --validate --verbose
 ```
@@ -199,7 +199,7 @@ The test suite validates:
 ### Generate MDAP Configuration
 
 ```bash
-./.claude/skills/cfn-epic-parser/parse.sh \
+$HOME/.claude/skills/cfn-epic-parser/parse.sh \
   planning/simple-feature-epic.md \
   --mode mdap \
   --output simple-feature-config.json

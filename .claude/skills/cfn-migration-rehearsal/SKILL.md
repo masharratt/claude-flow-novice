@@ -52,7 +52,7 @@ The scratch database is YOUR responsibility to provision and dispose. A good pat
 ```bash
 export CFN_SCRATCH_DATABASE_URL="postgres://user:pass@localhost:5433/scratch"
 
-./.claude/skills/cfn-migration-rehearsal/execute.sh \
+$HOME/.claude/skills/cfn-migration-rehearsal/execute.sh \
   --up   supabase/migrations/0007_orders.up.sql \
   --down supabase/migrations/0007_orders.down.sql
 ```

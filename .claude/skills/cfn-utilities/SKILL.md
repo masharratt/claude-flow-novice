@@ -44,7 +44,7 @@ atomic_write "/path/to/file.txt" "content here"
 
 ```bash
 # Execute specific function
-./.claude/skills/cfn-utilities/execute.sh log_json "info" "Message" '{"key":"value"}'
+$HOME/.claude/skills/cfn-utilities/execute.sh log_json "info" "Message" '{"key":"value"}'
 
 # Source and call
 source ./.claude/skills/cfn-utilities/execute.sh
@@ -177,7 +177,7 @@ log_info "Request started" '{"correlation_id":"'$CORRELATION_ID'"}'
 
 ```bash
 # Run all tests
-./.claude/skills/cfn-utilities/test.sh
+$HOME/.claude/skills/cfn-utilities/test.sh
 
 # Expected output:
 # PASS: log_json outputs valid JSON

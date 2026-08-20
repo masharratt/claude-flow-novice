@@ -30,7 +30,7 @@
 
 ```bash
 # Navigate to the fixer directory
-cd .claude/skills/cfn-compilation-error-fixer
+cd $HOME/.claude/skills/cfn-compilation-error-fixer
 
 # Install (no dependencies required)
 npm install
