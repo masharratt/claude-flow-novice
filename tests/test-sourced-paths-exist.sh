@@ -235,6 +235,21 @@ while IFS= read -r f; do
       *) resolved="$ROOT/$resolved" ;;
     esac
 
+    # $HOME/.claude/<x> and <repo>/.claude/<x> are the SAME file: every runtime
+    # dir under ~/.claude is a reverse symlink into this checkout, and the
+    # project rule requires shared skills to be invoked via $HOME/.claude/...
+    # (tests/test-shell-portability.sh enforces that). So a target under
+    # $HOME/.claude is graded against the repo, which is the source of truth.
+    # Without this the gate only passes on a machine where link-runtime-dirs.sh
+    # has already been run: CI resolved $HOME/.claude/... to
+    # /home/runner/.claude/... and failed on both runners while passing locally
+    # (2026-08-20, ci.yml run 32447485351).
+    if [ ! -f "$resolved" ] && [ -n "${HOME:-}" ]; then
+      case "$resolved" in
+        "$HOME"/.claude/*) resolved="$ROOT/.claude/${resolved#"$HOME"/.claude/}" ;;
+      esac
+    fi
+
     if [ -f "$resolved" ]; then
       pass
     else
