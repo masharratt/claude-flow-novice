@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
 # Test database path
@@ -20,7 +20,7 @@ trap cleanup EXIT
 test_library_loading() {
     log_step "TEST 1: Verify sqlite-params library loading"
 
-    local library_path="$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    local library_path="$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     if [[ ! -f "$library_path" ]]; then
         log_error "sqlite-params library not found at $library_path"
@@ -299,7 +299,7 @@ EOF
 test_functional_injection_prevention() {
     log_step "TEST 9: Functional test - parameterized queries prevent injection"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     # Create test database
     sqlite3 "$TEST_DB" << 'EOF'

@@ -1,7 +1,7 @@
 ---
 name: cfn-alpha-launch
-description: "MUST BE USED before any alpha or production release. Do not deploy without passing this check. Alpha readiness analysis plus fix execution: scores 8 readiness areas in parallel, delegates fixes to cfn-parallel-execute. Use when preparing to ship."
-version: 1.7.0
+description: "MUST BE USED before any alpha or production release. Do not deploy without passing this check. Alpha readiness analysis plus fix execution: scores 8 readiness areas in parallel, emits a fix manifest and hands off to /cfn-vote-implement. Use when preparing to ship."
+version: 1.7.1
 tags: [alpha, launch, readiness, gap-analysis, tdd, parallel, supabase, contract, consistency, scoring, regression]
 status: production
 ---
@@ -64,18 +64,22 @@ Then run:
 ### Phase 2b: Fix Execution (direct)
 
 ```bash
-/cfn-alpha-launch:fix [--agents=N]
+/cfn-alpha-launch:fix
 ```
 
-Delegates to `cfn-parallel-execute` for parallel task execution.
+Converts `docs/alpha/fix-list.md` to a `cfn-vote-implement`-compatible manifest and prints
+the exact hand-off command to run: `/cfn-vote-implement latest`. The `--agents` flag has
+no effect on this mode. `fix` mode does not spawn agents itself: a shell script cannot
+spawn Claude agents, so it stops at "manifest ready" and exits 3 (distinct from 0 success
+/ 1 error) to signal that execution is still pending.
 
-**Pipeline maintenance**:
-- Spawns N agents (default: 3) to work through fix-list.md
-- When 1 agent finishes, spawns 1 replacement
-- **CRITICAL**: After each spawn, STOP and wait for exit notifications
-- Exit notifications drive execution - no polling, preserves context
+`/cfn-vote-implement latest` is what actually processes the manifest:
+- 3 agents vote YES/NO on every finding
+- 3/3 agreement: auto-implemented with TDD
+- 2/3 agreement: routed to a `product-owner` agent (IMPLEMENT/DEFER/REJECT)
+- 1/3 agreement: surfaced to the user via AskUserQuestion
 
-See `cfn-parallel-execute` documentation for full execution protocol.
+See `/cfn-vote-implement` documentation for full execution protocol.
 
 ## Mode: Analysis (cfn-alpha-launch:analyze)
 
@@ -213,22 +217,27 @@ docs/alpha/fix-list-20260116-091545.md    # Two runs ago
 
 ## Mode: Fix Execution (cfn-alpha-launch:fix)
 
-**Delegates to `cfn-parallel-execute`** for parallel task execution.
+**Builds the manifest, then hands off to `/cfn-vote-implement`.** A shell script cannot
+spawn Claude agents, so this skill's job ends at "manifest ready."
 
 After analysis creates `docs/alpha/fix-list.md`, fix mode:
-1. Validates fix-list.md exists
-2. Delegates to `cfn-parallel-execute --tasks=fix-list.md --agents=N`
-3. Follows pipeline maintenance protocol (exit notifications drive execution)
+1. Calls the same `mode_manifest` logic that `manifest` mode uses (fix-list existence
+   check, converter existence check, single converter invocation)
+2. Prints the hand-off command: `/cfn-vote-implement latest`
+3. Exits 3 (manifest ready, execution not performed) instead of running anything
 
-**See `cfn-parallel-execute` skill documentation for:**
-- Agent lifecycle management
-- TDD protocol
-- Pipeline maintenance (STOP/wait pattern)
-- Task assignment strategy
+**See `/cfn-vote-implement` documentation for:**
+- 3-agent voting protocol
+- TDD auto-implementation for unanimous findings
+- Product-owner escalation for split votes
+- User escalation for single-vote findings
 
 ## Task Assignment Strategy
 
-**Handled by `cfn-parallel-execute`.**
+**Consumed by the `fixlist-to-manifest.sh` converter**, not by an executor skill. It maps:
+- `- Agent: <type>` to the manifest's `category` field
+- `- File: <path>` to the manifest's `files` array
+- Section headers (Critical/High/Medium) to the manifest's `impact`/`priority` fields
 
 Tasks in fix-list.md must follow this format:
 ```markdown
@@ -239,11 +248,6 @@ Tasks in fix-list.md must follow this format:
 2. Add login test - Agent: tester - File: src/auth/login.test.ts
 3. Type check exports - Agent: typescript-specialist - File: src/api/index.ts
 ```
-
-**See `cfn-parallel-execute` for:**
-- Small task definition
-- Priority order
-- Agent assignment
 
 ## Output Files
 
@@ -294,16 +298,16 @@ Spawns 8 analysis agents in parallel, outputs:
 /cfn-alpha-launch:fix
 ```
 
-Delegates to `cfn-parallel-execute --tasks=fix-list.md --agents=3`
+Converts fix-list.md to a manifest, then prints:
+`/cfn-vote-implement latest`
 
-Follows pipeline maintenance protocol:
-1. Spawns 3 agents for first 3 tasks
-2. **STOP** - wait for exit notifications
-3. When agent exits, spawn 1 replacement
-4. **STOP** again - wait for next exit
-5. Repeat until all fixes addressed
+Running that command starts 3-agent voting on every finding:
+1. All 3 agents vote YES/NO per suggestion
+2. 3/3 agreement: auto-implemented with TDD
+3. 2/3 agreement: routed to the `product-owner` agent (IMPLEMENT/DEFER/REJECT)
+4. 1/3 agreement: surfaced to the user via AskUserQuestion
 
-**See `cfn-parallel-execute` documentation for detailed execution protocol.**
+**See `/cfn-vote-implement` documentation for detailed execution protocol.**
 
 ## Readiness Criteria
 
@@ -383,9 +387,20 @@ Follows pipeline maintenance protocol:
 - **Show calculation** - Agents must display their scoring math in reports
 
 ### 1.5.0 (2026-01-17)
-- Delegates fix execution to cfn-parallel-execute
+- Delegates fix execution to cfn-parallel-execute (never built: no skill of that name ever
+  existed on disk or in git history; superseded in 1.7.1 by a direct /cfn-vote-implement hand-off)
 - Simplified skill - focus on analysis, delegate execution
 - Cleaner separation of concerns
+
+### 1.7.1 (2026-08-20)
+- **Fixed dead delegation** - `fix` mode no longer execs the nonexistent `cfn-parallel-execute`;
+  it now calls the existing `mode_manifest` to build the manifest, then prints the
+  documented hand-off command, `/cfn-vote-implement latest`
+- **Collapsed duplicate manifest logic** - `fix` mode no longer re-implements the
+  fix-list check, converter check, and converter invocation that `mode_manifest`
+  already owned; it calls `mode_manifest` instead
+- **Honest exit status** - `fix` mode now exits 3 ("manifest ready, execution not performed")
+  instead of failing on a missing script
 
 ### 1.4.0 (2025-01-16)
 - Added contract validator (API contracts, GraphQL schema, types)

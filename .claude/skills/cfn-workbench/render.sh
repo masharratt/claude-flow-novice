@@ -18,8 +18,16 @@ set -euo pipefail
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Skill lives at .claude/skills/cfn-workbench/, so project root is 3 levels up.
-PROJECT_ROOT_DEFAULT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# The default root is the PROJECT BEING RENDERED, not this skill's own checkout.
+# Everything the render reads (manifests, VERIFY doc, results JSON, bless ledger,
+# lane reports, test output, screenshots, git log) belongs to that project.
+# This was a BASH_SOURCE-derived root, which is wrong twice over: the skill is
+# reached from every project through the ~/.claude/skills reverse symlink, so it
+# resolved into the shared CFN checkout and rendered CFN's own run instead of the
+# caller's; and the depth did not even match its own comment, since "../.." from
+# .claude/skills/cfn-workbench/ lands on .claude/, not the repo root.
+# watch.sh:122 already resolves it this way; the two now agree.
+PROJECT_ROOT_DEFAULT="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 # Source shared helpers + section builders.
 source "$SCRIPT_DIR/lib/html.sh"

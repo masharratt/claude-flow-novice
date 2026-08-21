@@ -7,6 +7,10 @@ tags: [cfn-loop, dependency-management, dynamic-ingestion, cli-mode]
 
 # CFN Dependency Ingestion Skill
 
+**Not available right now:** `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt` was deleted in a 2025-12-08
+documentation cleanup (removed as outdated archive content) and has not been recreated. Every
+diagram-parsing command below fails with a clear "not found" error until the diagram exists again.
+
 ## Quick Start
 
 ### Unified Shell Script (v2.0.0+)
@@ -53,7 +57,7 @@ node $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/dist/ingest-de
 
 ## What This Skill Does
 
-1. Parses `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt` (single source of truth)
+1. Parses `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt` (single source of truth; currently missing, see note above)
 2. Extracts all file paths from PART 4 (File Execution Order) and PART 5 (TypeScript Module Structure)
 3. Groups files by priority: [P0] critical path, [P1] post-validation, [P2] deferred
 4. **Smart Mode Selection:**
@@ -228,7 +232,8 @@ This automatically discovers and reads all files referenced in the dependency di
 
 ## Maintenance
 
-This skill self-updates as long as `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt` is maintained. No code changes needed when files are added/removed.
+This skill self-updates as long as `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt` is maintained, but the
+file does not currently exist (see note at top). No code changes needed once it is recreated.
 
 **When to Update:**
 - New TypeScript module added to orchestration
@@ -361,7 +366,7 @@ When files are added/removed from the dependency diagram:
 
 ## Related Documentation
 
-- **Dependency Diagram:** `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt` (source of truth)
+- **Dependency Diagram:** `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt` (source of truth; not available, see note at top of this file)
 - **CFN Loop Architecture:** `docs/CFN_LOOP_ARCHITECTURE.md`
 - **TypeScript Migration:** `planning/docker-migration/TYPESCRIPT_MIGRATION_HANDOFF.md`
 - **Agent Profiles:** `.claude/agents/cfn-dev-team/`

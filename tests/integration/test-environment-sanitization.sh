@@ -1,14 +1,47 @@
 #!/usr/bin/env bash
 # CFN Environment Sanitization Validation Tests
 # Part of ANTI-023 Memory Leak Protection System Integration Tests
+#
+# STATUS: 7 of 14 assertions FAIL against the library at HEAD. These are library
+# gaps, not test bugs. Verified 2026-08-20 by reading the library, not by
+# inference. Do not "fix" this suite by weakening the assertions; the assertions
+# describe what a thing named sanitize-environment.sh is supposed to do.
+#
+#   GAP 1 (3 failures) - no arbitrary sensitive-variable redaction.
+#   sanitize_environment iterates only "${!SANITIZATION_RULES[@]}"
+#   (sanitize-environment.sh:132), so any name outside that hardcoded 12-entry
+#   table (:21-39) is never visited. is_sensitive (:78-86) would return true for
+#   TEST_PASSWORD/TEST_TOKEN/TEST_API_KEY, but nothing calls it on them:
+#   sanitize_if_sensitive (:101-106) is wired to REDIS_URL alone (:24). The
+#   library has no "scan the environment and unset what looks sensitive" pass.
+#
+#   GAP 2 (3 failures) - limits are defaulted, never clamped.
+#   All three enforce_* arms (:110-121) are export "$v"="${value:-<default>}".
+#   ":-" substitutes only when the value is EMPTY, so an over-limit value passes
+#   straight through. The log line then misreports it: with MAX_AGENTS=50 the
+#   library prints "Enforcing max 10 agents: MAX_AGENTS=50". A resource-limit
+#   sanitizer that logs enforcement it did not perform is the security-relevant
+#   half of this gap.
+#
+#   GAP 3 (1 failure) - "check" never acknowledges clean variables.
+#   check_environment (:170-200) emits log_warning only for problems plus a
+#   pass/fail summary, so CLEAN_VAR cannot appear in its output by design.
+#   Either the library needs a per-inspected-var inventory line, or this
+#   assertion tests behaviour that was never specified.
+#
+# Closing GAP 2 does NOT conflict with tests/security/test-sourced-library-safety.sh:198-213,
+# which pins 10/600/2048 only after unsetting the vars (:187), i.e. the unset
+# path. Clamping the over-limit path leaves those cases green.
 
 set -euo pipefail
 
 # Test configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# Two levels up: this file lives in tests/integration/, so a single ".." lands
+# on tests/ and every repo-relative path below it resolved under tests/.claude.
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEST_RESULTS_DIR="/tmp/cfn-test-results"
-SANITIZATION_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-environment-sanitization/sanitize-environment.sh"
+SANITIZATION_SCRIPT="$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-environment-sanitization/sanitize-environment.sh"
 
 # Test tracking
 TOTAL_TESTS=0
@@ -30,12 +63,12 @@ log_test() {
 
 log_pass() {
     echo -e "${GREEN}[PASS]${NC} $1"
-    ((PASSED_TESTS++))
+    PASSED_TESTS=$((PASSED_TESTS + 1))
 }
 
 log_fail() {
     echo -e "${RED}[FAIL]${NC} $1"
-    ((FAILED_TESTS++))
+    FAILED_TESTS=$((FAILED_TESTS + 1))
     TEST_RESULTS+=("FAIL: $1")
 }
 
@@ -67,7 +100,7 @@ setup_test_env() {
     export MAX_AGENTS=20
     export CFN_TIMEOUT=1200
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test cleanup
@@ -99,8 +132,15 @@ test_sensitive_variable_sanitization() {
     export TEST_API_KEY="api_key=mykeyvalue"
     export TEST_NORMAL_VAR="normal_value"
 
-    # Source sanitization script
-    source "$SANITIZATION_SCRIPT" --strict
+    # Sourcing only loads the library. Arguments handed to `source` become the
+    # sourced file's positional params, they never reach the entry point, so
+    # --strict has to be passed to main itself.
+    source "$SANITIZATION_SCRIPT"
+    local strict_status=0
+    main --strict || strict_status=$?
+    if [[ $strict_status -ne 0 ]]; then
+        echo "[INFO] strict-mode entry point exited $strict_status" >&2
+    fi
 
     # Check that sensitive variables are unset
     if [[ -z "${TEST_PASSWORD:-}" ]]; then
@@ -143,19 +183,21 @@ test_cfn_variables_preservation() {
     export LOOP2_AGENTS="reviewer,validator"
     export PRODUCT_OWNER="po-789"
 
-    # Source sanitization script
+    # Source the library, then invoke the entry point: sourcing alone only
+    # defines functions, it is not a request to sanitize.
     source "$SANITIZATION_SCRIPT"
+    main
 
     # Check that CFN variables are preserved
     local preserved=0
     local total=6
 
-    [[ "${CFN_MODE:-}" == "test" ]] && ((preserved++))
-    [[ "${TASK_ID:-}" == "task-123" ]] && ((preserved++))
-    [[ "${AGENT_ID:-}" == "agent-456" ]] && ((preserved++))
-    [[ "${LOOP3_AGENTS:-}" == "dev,tester" ]] && ((preserved++))
-    [[ "${LOOP2_AGENTS:-}" == "reviewer,validator" ]] && ((preserved++))
-    [[ "${PRODUCT_OWNER:-}" == "po-789" ]] && ((preserved++))
+    [[ "${CFN_MODE:-}" == "test" ]] && preserved=$((preserved + 1))
+    [[ "${TASK_ID:-}" == "task-123" ]] && preserved=$((preserved + 1))
+    [[ "${AGENT_ID:-}" == "agent-456" ]] && preserved=$((preserved + 1))
+    [[ "${LOOP3_AGENTS:-}" == "dev,tester" ]] && preserved=$((preserved + 1))
+    [[ "${LOOP2_AGENTS:-}" == "reviewer,validator" ]] && preserved=$((preserved + 1))
+    [[ "${PRODUCT_OWNER:-}" == "po-789" ]] && preserved=$((preserved + 1))
 
     if [[ $preserved -eq $total ]]; then
         log_pass "All CFN critical variables preserved ($preserved/$total)"
@@ -163,7 +205,7 @@ test_cfn_variables_preservation() {
         log_fail "CFN variables not fully preserved ($preserved/$total)"
     fi
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: Memory limit enforcement
@@ -173,8 +215,10 @@ test_memory_limit_enforcement() {
     # Set excessive memory limit
     export NODE_HEAP_LIMIT="8G"  # Above 2GB limit
 
-    # Source sanitization script
+    # Source the library, then invoke the entry point: sourcing alone only
+    # defines functions, it is not a request to sanitize.
     source "$SANITIZATION_SCRIPT"
+    main
 
     # Check that limit is enforced
     if [[ "${NODE_HEAP_LIMIT:-}" == "2G" ]]; then
@@ -185,7 +229,7 @@ test_memory_limit_enforcement() {
         log_fail "Memory limit not enforced: ${NODE_HEAP_LIMIT:-}"
     fi
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: Agent count limit enforcement
@@ -195,8 +239,10 @@ test_agent_count_enforcement() {
     # Set excessive agent count
     export MAX_AGENTS=50  # Above 10 limit
 
-    # Source sanitization script
+    # Source the library, then invoke the entry point: sourcing alone only
+    # defines functions, it is not a request to sanitize.
     source "$SANITIZATION_SCRIPT"
+    main
 
     # Check that limit is enforced
     if [[ "${MAX_AGENTS:-}" == "10" ]]; then
@@ -205,7 +251,7 @@ test_agent_count_enforcement() {
         log_fail "Agent count limit not enforced: ${MAX_AGENTS:-}"
     fi
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: Timeout limit enforcement
@@ -215,8 +261,10 @@ test_timeout_enforcement() {
     # Set excessive timeout
     export CFN_TIMEOUT=3600  # Above 600 second limit
 
-    # Source sanitization script
+    # Source the library, then invoke the entry point: sourcing alone only
+    # defines functions, it is not a request to sanitize.
     source "$SANITIZATION_SCRIPT"
+    main
 
     # Check that limit is enforced
     if [[ "${CFN_TIMEOUT:-}" == "600" ]]; then
@@ -225,7 +273,7 @@ test_timeout_enforcement() {
         log_fail "Timeout limit not enforced: ${CFN_TIMEOUT:-}"
     fi
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: Environment check functionality
@@ -238,7 +286,7 @@ test_environment_check() {
 
     # Run check command
     local check_output
-    check_output=$("$SANITIZATION_SCRIPT" --check 2>&1 || true)
+    check_output=$("$SANITIZATION_SCRIPT" check 2>&1 || true)
 
     # Check that sensitive data is detected
     if echo "$check_output" | grep -q "DIRTY_VAR"; then

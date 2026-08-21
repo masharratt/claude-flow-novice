@@ -250,7 +250,7 @@ TypeScript integration is complete and production-ready. The enhanced orchestrat
 ## Contact
 
 For questions or issues:
-1. Review `TYPESCRIPT_INTEGRATION_REPORT.md` (comprehensive guide)
+1. `TYPESCRIPT_INTEGRATION_REPORT.md` is not available: it was removed as a stale dead-reference artifact (its own file references had gone dead). See this summary instead.
 2. Run `./test-typescript-integration.sh` (automated tests)
 3. Check bash script syntax: `bash -n orchestrate-enhanced.sh`
 

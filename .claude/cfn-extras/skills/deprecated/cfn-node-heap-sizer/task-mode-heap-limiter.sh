@@ -6,7 +6,7 @@ set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 
 # Mode-based heap sizes (in MB)
 declare -A HEAP_SIZES=(
@@ -30,8 +30,8 @@ declare -A TOOL_HEAPS=(
 # Function to detect current execution mode
 detect_execution_mode() {
     # Use existing mode detection if available
-    if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-task-mode-safety/mode-detection.sh" ]]; then
-        source "$PROJECT_ROOT/.claude/skills/cfn-task-mode-safety/mode-detection.sh"
+    if [[ -f "$PROJECT_ROOT/.claude/cfn-extras/skills/advanced-features/cfn-task-mode-safety/mode-detection.sh" ]]; then
+        source "$PROJECT_ROOT/.claude/cfn-extras/skills/advanced-features/cfn-task-mode-safety/mode-detection.sh"
         detect_execution_mode 2>/dev/null && return 0
     fi
 
@@ -221,13 +221,13 @@ exec_with_heap_limit() {
     echo "🚀 Executing: $command ${args[*]}" >&2
     echo "   NODE_OPTIONS: $NODE_OPTIONS" >&2
 
-    # Use wrapped executor if available
-    if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-validation-runner-instrumentation/wrapped-executor.sh" ]]; then
-        source "$PROJECT_ROOT/.claude/skills/cfn-validation-runner-instrumentation/wrapped-executor.sh"
-        execute_instrumented "$command" 300 2048 "${args[@]}"
-    else
-        "$command" "${args[@]}"
-    fi
+    # cfn: direct exec, no instrumentation wrapper. The former
+    # cfn-validation-runner-instrumentation/wrapped-executor.sh was deleted in
+    # 60ff7b3fa (Apr 2026) with no successor, and it never defined
+    # execute_instrumented anyway (it exported execute_with_monitoring), so this
+    # branch was dead on both counts. Reinstate a wrapper here only if a
+    # replacement instrumentation library lands.
+    "$command" "${args[@]}"
 }
 
 # Show usage

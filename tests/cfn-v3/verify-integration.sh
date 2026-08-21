@@ -36,7 +36,9 @@ fi
 echo
 echo "4. Testing mode detection..."
 unset TASK_ID AGENT_ID CFN_MODE
-source .claude/skills/cfn-task-mode-safety/mode-detection.sh
+# cfn-task-mode-safety was consolidated into .claude/cfn-extras/skills/
+# advanced-features/ (a live reverse-symlinked runtime dir, not an archive).
+source .claude/cfn-extras/skills/advanced-features/cfn-task-mode-safety/mode-detection.sh
 mode=$(detect_execution_mode 2>/dev/null)
 if [[ "$mode" == "task" ]]; then
     echo "✅ Mode detection returns 'task' for empty environment"

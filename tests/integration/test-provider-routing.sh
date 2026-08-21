@@ -5,6 +5,11 @@
 
 set -euo pipefail
 
+# BASH_SOURCE-derived repo root. A bare cwd-relative path only worked when this
+# file was invoked from the repo root; anywhere else `source .claude/...` resolved
+# against the caller's cwd instead of the repo.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -21,12 +26,12 @@ log() {
 
 log_success() {
     echo -e "${GREEN}[PASS]${NC} $*"
-    ((TESTS_PASSED++))
+    TESTS_PASSED=$((TESTS_PASSED + 1))
 }
 
 log_failure() {
     echo -e "${RED}[FAIL]${NC} $*"
-    ((TESTS_FAILED++))
+    TESTS_FAILED=$((TESTS_FAILED + 1))
 }
 
 log_section() {
@@ -44,24 +49,49 @@ test_provider_parser() {
 
     log "Testing parse-agent-provider.sh with backend-developer agent"
 
+    # Expectations are READ FROM the agent definition, never pinned to a literal
+    # provider name. Pinned literals are what made this test rot: it asserted
+    # openrouter/anthropic-claude-sonnet-4.5 long after the tree standardised on
+    # zai/glm-4.6, so it reported 4 failures that were really a stale test. What
+    # is under test is that the parser agrees with the definition, which stays
+    # true across any future provider migration.
+    AGENT_DEF="$PROJECT_ROOT/.claude/agents/cfn-dev-team/developers/backend-developer.md"
+    if [[ ! -f "$AGENT_DEF" ]]; then
+        log_failure "agent definition not found: $AGENT_DEF"
+        return
+    fi
+    # Provider params live in a PROVIDER_PARAMETERS comment block, not in the
+    # YAML frontmatter.
+    read_provider_param() {
+        sed -n '/PROVIDER_PARAMETERS/,/-->/p' "$AGENT_DEF" \
+            | grep -m1 "^$1:" | sed "s/^$1:[[:space:]]*//"
+    }
+    EXPECTED_PROVIDER=$(read_provider_param provider)
+    EXPECTED_MODEL=$(read_provider_param model)
+    if [[ -z "$EXPECTED_PROVIDER" || -z "$EXPECTED_MODEL" ]]; then
+        log_failure "backend-developer.md declares no provider/model to compare against"
+        return
+    fi
+    log "Definition declares provider=$EXPECTED_PROVIDER model=$EXPECTED_MODEL"
+
     # Test provider field
-    PROVIDER=$(bash .claude/skills/cfn-agent-spawning/parse-agent-provider.sh backend-developer --field provider)
-    if [[ "$PROVIDER" == "openrouter" ]]; then
+    PROVIDER=$(bash "$PROJECT_ROOT/.claude/skills/cfn-agent-lifecycle/lib/spawning/parse-agent-provider.sh" backend-developer --field provider)
+    if [[ "$PROVIDER" == "$EXPECTED_PROVIDER" ]]; then
         log_success "Provider parsing: $PROVIDER"
     else
-        log_failure "Provider parsing failed: expected 'openrouter', got '$PROVIDER'"
+        log_failure "Provider parsing failed: definition says '$EXPECTED_PROVIDER', parser returned '$PROVIDER'"
     fi
 
     # Test model field
-    MODEL=$(bash .claude/skills/cfn-agent-spawning/parse-agent-provider.sh backend-developer --field model)
-    if [[ "$MODEL" == "anthropic/claude-sonnet-4.5" ]]; then
+    MODEL=$(bash "$PROJECT_ROOT/.claude/skills/cfn-agent-lifecycle/lib/spawning/parse-agent-provider.sh" backend-developer --field model)
+    if [[ "$MODEL" == "$EXPECTED_MODEL" ]]; then
         log_success "Model parsing: $MODEL"
     else
-        log_failure "Model parsing failed: expected 'anthropic/claude-sonnet-4.5', got '$MODEL'"
+        log_failure "Model parsing failed: definition says '$EXPECTED_MODEL', parser returned '$MODEL'"
     fi
 
     # Test non-existent agent (should return empty)
-    NON_EXISTENT=$(bash .claude/skills/cfn-agent-spawning/parse-agent-provider.sh non-existent-agent --field provider)
+    NON_EXISTENT=$(bash "$PROJECT_ROOT/.claude/skills/cfn-agent-lifecycle/lib/spawning/parse-agent-provider.sh" non-existent-agent --field provider)
     if [[ -z "$NON_EXISTENT" ]]; then
         log_success "Non-existent agent returns empty"
     else
@@ -82,7 +112,7 @@ test_provider_env_no_custom() {
 
     # Run in subshell to avoid hanging on source
     (
-        source .claude/skills/cfn-agent-spawning/get-agent-provider-env.sh backend-developer 2>/dev/null || true
+        source "$PROJECT_ROOT/.claude/skills/cfn-agent-lifecycle/lib/spawning/get-agent-provider-env.sh" backend-developer 2>/dev/null || true
         echo "BASE_URL=${ANTHROPIC_BASE_URL:-empty}"
         echo "MODEL=${ANTHROPIC_MODEL:-empty}"
     ) > /tmp/test-provider-env.txt
@@ -120,26 +150,39 @@ test_provider_env_custom() {
 
     # Run in subshell to avoid hanging on source
     (
-        source .claude/skills/cfn-agent-spawning/get-agent-provider-env.sh backend-developer 2>/dev/null || true
+        source "$PROJECT_ROOT/.claude/skills/cfn-agent-lifecycle/lib/spawning/get-agent-provider-env.sh" backend-developer 2>/dev/null || true
         echo "BASE_URL=${ANTHROPIC_BASE_URL:-empty}"
         echo "MODEL=${ANTHROPIC_MODEL:-empty}"
     ) > /tmp/test-provider-env-custom.txt
 
-    # Read results
-    BASE_URL_RESULT=$(grep "BASE_URL=" /tmp/test-provider-env-custom.txt | cut -d= -f2)
-    MODEL_RESULT=$(grep "MODEL=" /tmp/test-provider-env-custom.txt | cut -d= -f2)
+    # -f2- not -f2: a base URL carrying a query string contains '=' and -f2
+    # would silently truncate it.
+    BASE_URL_RESULT=$(grep "BASE_URL=" /tmp/test-provider-env-custom.txt | cut -d= -f2-)
+    MODEL_RESULT=$(grep "MODEL=" /tmp/test-provider-env-custom.txt | cut -d= -f2-)
 
-    # With custom routing enabled, should use agent-specific provider
-    if [[ "$BASE_URL_RESULT" == "https://openrouter.ai/api/v1" ]]; then
-        log_success "Uses OpenRouter for backend-developer agent"
+    # The expected URL comes out of the router's OWN provider case block, so the
+    # assertion is "router routes the declared provider to the URL it declares
+    # for that provider" rather than a second hardcoded copy of the mapping that
+    # can drift away from it.
+    ROUTER="$PROJECT_ROOT/.claude/skills/cfn-agent-lifecycle/lib/spawning/get-agent-provider-env.sh"
+    # Kept to a single physical line on purpose: tests/test-sourced-paths-exist.sh
+    # rebuilds a file's assignment prefix line by line, so a multi-line
+    # VAR=$(awk '...') leaves an unterminated quote in the replayed prefix and
+    # downgrades this file's two real source-target checks to SKIP.
+    EXPECTED_BASE_URL=$(awk -v want="${EXPECTED_PROVIDER})" '$1 == want { inb = 1; next } inb && /ANTHROPIC_BASE_URL=/ { sub(/.*ANTHROPIC_BASE_URL="/, ""); sub(/".*/, ""); print; exit } inb && /^[[:space:]]*;;/ { exit }' "$ROUTER")
+
+    if [[ -z "$EXPECTED_BASE_URL" ]]; then
+        log_failure "router declares no ANTHROPIC_BASE_URL for provider '$EXPECTED_PROVIDER'"
+    elif [[ "$BASE_URL_RESULT" == "$EXPECTED_BASE_URL" ]]; then
+        log_success "Routes $EXPECTED_PROVIDER to $BASE_URL_RESULT"
     else
-        log_failure "Should use OpenRouter, got BASE_URL=$BASE_URL_RESULT"
+        log_failure "Provider '$EXPECTED_PROVIDER' should route to $EXPECTED_BASE_URL, got BASE_URL=$BASE_URL_RESULT"
     fi
 
-    if [[ "$MODEL_RESULT" == "anthropic/claude-sonnet-4.5" ]]; then
-        log_success "Uses correct model for backend-developer agent"
+    if [[ "$MODEL_RESULT" == "$EXPECTED_MODEL" ]]; then
+        log_success "Uses the model the definition declares: $MODEL_RESULT"
     else
-        log_failure "Should use anthropic/claude-sonnet-4.5, got MODEL=$MODEL_RESULT"
+        log_failure "Should use $EXPECTED_MODEL, got MODEL=$MODEL_RESULT"
     fi
 
     # Cleanup

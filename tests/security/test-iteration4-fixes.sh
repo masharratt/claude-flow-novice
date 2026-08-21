@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
 TEST_DB=""
@@ -25,7 +25,7 @@ test_propagate_skill_update_fix() {
     sqlite3 "$TEST_DB" "INSERT INTO skills (id, name, version, content_hash, content_path) VALUES (1, 'test-skill', '1.0', 'hash123', '/path/to/skill');"
 
     export CFN_SKILLS_DB_PATH="$TEST_DB"
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     # WHEN: Attempting SQL injection via skill_name parameter
     INJECTION_VECTOR="' OR 1=1; DROP TABLE skills; --"

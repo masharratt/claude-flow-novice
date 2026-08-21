@@ -2,7 +2,12 @@
      TRIGGER.DEV CONTAINER MODES ARCHITECTURE
 ================================================================================
 VERSION: 1.0.0 (Created: 2025-11-24)
-STATUS: ✅ COMPREHENSIVE DESIGN DOCUMENTATION - Phase 1 Architecture
+STATUS: SUPERSEDED. Trigger.dev was removed from the CFN Loop architecture
+(trigger-dev-consolidation epic, completed; local Promise.all orchestration
+via lib/mdap/ is the live replacement) and Trigger.dev usage moved to the
+separate SEO platform repo. None of the docker/trigger-dev/* and
+trigger-dev/* paths below exist in this repo anymore. Kept as historical
+design record only.
 
 EXECUTIVE SUMMARY:
   Trigger.dev represents persistent container-first orchestration extending CFN
@@ -2850,7 +2855,7 @@ categorized for dependency ingestion and context management.
 [TRIGGER.DEV CONFIGURATION]
 - trigger-dev/package.json - Dependencies and scripts
 - trigger-dev/tsconfig.json - TypeScript configuration
-- trigger-dev/trigger.config.ts - Trigger.dev project configuration
+- trigger-dev/trigger.config.ts - Trigger.dev project configuration (removed, see STATUS note at top)
 
 [ARCHITECTURE DOCUMENTATION]
 - readme/TRIGGER_CONTAINER_MODES_ARCHITECTURE.md - This document

@@ -6,13 +6,6 @@
 # Token Estimate: ~12,000 tokens (core CLI/coordination code)
 
 # ============================================================================
-# TRIGGER.DEV CLI IMPLEMENTATION (1 file)
-# ============================================================================
-# Trigger.dev configuration file for CLI mode execution
-
-docker/trigger-dev/trigger.config.ts
-
-# ============================================================================
 # COORDINATOR INFRASTRUCTURE (5 files)
 # ============================================================================
 # Docker-based coordinator for batch task management and orchestration

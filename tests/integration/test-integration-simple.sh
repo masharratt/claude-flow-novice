@@ -16,19 +16,19 @@ TESTS_FAILED=0
 
 log_pass() {
     echo -e "${GREEN}[PASS]${NC} $1"
-    ((TESTS_PASSED++))
+    TESTS_PASSED=$((TESTS_PASSED + 1))
 }
 
 log_fail() {
     echo -e "${RED}[FAIL]${NC} $1"
-    ((TESTS_FAILED++))
+    TESTS_FAILED=$((TESTS_FAILED + 1))
 }
 
 echo "CFN Integration Validation Test"
 echo "=============================="
 
 # Test 1: Environment sanitization script exists
-if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-environment-sanitization/sanitize-environment.sh" ]]; then
+if [[ -f "$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-environment-sanitization/sanitize-environment.sh" ]]; then
     log_pass "Environment sanitization script exists"
 else
     log_fail "Environment sanitization script missing"
@@ -85,7 +85,7 @@ fi
 export TEST_PASSWORD="secret123"
 export TEST_TOKEN="abc123xyz"
 
-if source "$PROJECT_ROOT/.claude/skills/cfn-environment-sanitization/sanitize-environment.sh" 2>/dev/null; then
+if source "$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-environment-sanitization/sanitize-environment.sh" 2>/dev/null; then
     if [[ -z "${TEST_PASSWORD:-}" && -z "${TEST_TOKEN:-}" ]]; then
         log_pass "Environment sanitization works correctly"
     else
@@ -98,7 +98,7 @@ fi
 # Test 6: Resource limits enforcement
 export CFN_MODE="cli"
 export TASK_ID="test-task"
-if source "$PROJECT_ROOT/.claude/skills/cfn-environment-sanitization/sanitize-environment.sh" --strict 2>/dev/null; then
+if source "$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-environment-sanitization/sanitize-environment.sh" --strict 2>/dev/null; then
     if [[ -n "${CFN_MAX_AGENTS:-}" && -n "${CFN_TIMEOUT:-}" && -n "${CFN_MEMORY_LIMIT:-}" ]]; then
         log_pass "Resource limits are enforced"
     else

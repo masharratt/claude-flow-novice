@@ -5,7 +5,14 @@ import * as path from 'path';
 
 /**
  * CLI entry point for agent selection
- * Usage: npx ts-node src/cli.ts "task description" [--min-validators N]
+ *
+ * Ships as a bundled CommonJS executable, not run from source. Build with
+ * `npm run build:agent-selection` (esbuild -> dist/cli.cjs) and invoke the
+ * bundle directly:
+ *   node .claude/skills/cfn-agent-lifecycle/lib/selection/dist/cli.cjs "task description" [--min-validators N]
+ * execute.sh's --typescript path execs dist/cli.cjs; there is no ts-node
+ * runtime path because consuming projects reach this skill through the
+ * ~/.claude/skills reverse symlink with no node_modules installed there.
  */
 async function main(): Promise<void> {
   try {

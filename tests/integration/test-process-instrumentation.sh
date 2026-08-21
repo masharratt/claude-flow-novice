@@ -12,7 +12,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 TEST_RESULTS_DIR="/tmp/cfn-test-results"
-INSTRUMENTATION_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+INSTRUMENTATION_SCRIPT="$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-process-instrumentation/instrument-process.sh"
 
 # Test tracking
 TOTAL_TESTS=0
@@ -34,12 +34,12 @@ log_test() {
 
 log_pass() {
     echo -e "${GREEN}[PASS]${NC} $1"
-    ((PASSED_TESTS++))
+    PASSED_TESTS=$((PASSED_TESTS + 1))
 }
 
 log_fail() {
     echo -e "${RED}[FAIL]${NC} $1"
-    ((FAILED_TESTS++))
+    FAILED_TESTS=$((FAILED_TESTS + 1))
     TEST_RESULTS+=("FAIL: $1")
 }
 
@@ -60,7 +60,7 @@ setup_test_env() {
     export CFN_TIMEOUT="60"
     export CFN_TELEMETRY_DIR="/tmp/cfn-telemetry"
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test cleanup
@@ -151,7 +151,7 @@ test_process_monitoring() {
     # Wait for process to complete and clean up
     wait "$test_pid" 2>/dev/null || true
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: Memory limit enforcement
@@ -165,7 +165,7 @@ test_memory_limit_enforcement() {
     # Create a script that allocates memory
     cat > "$TEST_RESULTS_DIR/memory_test.sh" << 'EOF'
 #!/bin/bash
-source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-process-instrumentation/instrument-process.sh"
 
 # Allocate memory gradually
 data=""
@@ -191,7 +191,7 @@ EOF
         fi
     fi
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: CPU monitoring
@@ -227,7 +227,7 @@ test_cpu_monitoring() {
 
     wait "$cpu_pid" 2>/dev/null || true
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: External PID monitoring
@@ -254,7 +254,7 @@ test_external_pid_monitoring() {
     # Clean up
     kill "$target_pid" "$monitor_pid" 2>/dev/null || true
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: Telemetry data integrity

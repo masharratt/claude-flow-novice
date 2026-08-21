@@ -6,8 +6,14 @@
 set -euo pipefail
 
 # Setup
-PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+# git rev-parse falls back to `pwd` when run outside a git work tree (e.g.
+# from /tmp), which made PROJECT_ROOT silently become the caller's cwd
+# instead of the repo root. BASH_SOURCE-derived, matching the sibling
+# sql-injection-audit-comprehensive.sh one directory over: this file sits
+# three levels under the repo root (tests/security/sql-injection).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
 # Colors
 GREEN='\033[0;32m'

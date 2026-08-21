@@ -138,7 +138,9 @@ SHELL_TESTS=(
     "$PROJECT_ROOT/tests/integration/test-process-instrumentation.sh"
     "$PROJECT_ROOT/tests/integration/test-provider-routing.sh"
     "$PROJECT_ROOT/tests/integration/test-seo-pipeline-structure.sh"
-    "$PROJECT_ROOT/tests/integration/test-standard-handoffs.sh"
+    # test-standard-handoffs.sh retired: tested StandardAdapter/DatabaseHandoff/
+    # file-operations.sh/agent-handoff.sh, all deleted in 1e4d22ae2's follow-up
+    # cleanup. No surviving code under test.
     "$PROJECT_ROOT/tests/integration/test-zai-routing.sh"
 )
 

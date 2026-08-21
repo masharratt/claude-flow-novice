@@ -18,11 +18,16 @@
 #       CFN_VERIFY_DATABASE_URL   when set, db-query: checks run via psql; else -> needs_agent
 #
 # Exit: 0 = all green AND nothing unresolved
-#       1 = one or more red or unresolved ACs
+#       1 = one or more red, unresolved, or tool_missing ACs
 #       2 = usage / parse / file error / evidence refusal
 #       4 = VERIFY manifest sha256 mismatch (edited after Bar A blessed it)
 #
 # Deps: jq, timeout(1); psql only when CFN_VERIFY_DATABASE_URL is set.
+#
+# Per-check tool preflight (S008): a check whose command is not on PATH is
+# reported as mode=error / pass=false, never as a pass. Declare a check's
+# non-obvious tools in `requires.tools: ["rg", ...]`; common tools are inferred.
+# See CFN_KNOWN_TOOLS and tool_install_hint below.
 set -uo pipefail
 
 # GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
@@ -152,6 +157,115 @@ check_requires() {
   return 0
 }
 
+# ---------------- tool preflight (S008) ----------------
+#
+# S008 (origin: MP0 deferral 102). Every check runs through `bash -c`, which
+# inherits no shell functions, no aliases and no interactive rc file. When the
+# command a check names is absent from PATH, the shell prints
+# "command not found" and produces NO stdout, and the single most common check
+# shape in a static manifest is
+#
+#     n=$(<tool> ... | wc -l); test "$n" -eq 0
+#
+# so `wc -l` reads the empty output as ZERO OFFENDERS and the AC scores GREEN.
+# A missing tool was indistinguishable from a clean repo. One manifest carried
+# 113 `rg` uses across 49 of its 241 checks, all of which silently false-passed
+# on every machine except the one that happened to have a private ripgrep build.
+#
+# A missing tool is therefore an `error` row: mode=error, pass=false. Never
+# `blocked` (a human may resolve a blocked row with hand-captured evidence, and
+# "the tool was not installed" is not evidence of anything) and never green.
+#
+# Three independent detectors, because no single one is sufficient:
+#   1. requires.tools[]  — what the manifest DECLARES the check needs. Explicit,
+#      carries the best install hint, but an author can forget it.
+#   2. inference over CFN_KNOWN_TOOLS — names matched only in a shell COMMAND
+#      position. Candidates come from a fixed list, so a pattern string can
+#      never invent a tool name that is not really a tool.
+#   3. post-run scan of the captured output for the shell's own not-found
+#      diagnostic. Catches a tool nested inside $(...) or a loop body, where the
+#      outer command still exits 0. Defeated by `2>/dev/null` inside the check,
+#      which is exactly why 1 and 2 exist.
+#
+# Resolution uses `type -P`, a PATH search only: a tool that exists solely as an
+# exported shell function resolves for `command -v` but is not reproducible from
+# a clone, and reporting it as present is how this bug survived.
+
+# Deliberately EXCLUDES project-local devDependency binaries (tsc, tsx, vitest,
+# jest, playwright, jscpd, eslint, prettier). Those are resolved from
+# node_modules/.bin by the package manager that invokes them, are never expected
+# on PATH, and listing them here reported four already-correct checks as broken.
+# The package manager itself (pnpm/npm/npx/yarn/node) IS listed, because that is
+# the thing that has to exist. Declare an unusual tool in requires.tools[].
+CFN_KNOWN_TOOLS="rg jq grep egrep fgrep sed awk gawk python3 python node npx npm pnpm yarn psql curl wget git timeout sha256sum shasum pytest cargo go docker supabase shellcheck yq gh openssl base64 comm diff perl ruby php java mvn gradle make cmake gcc clang rustc dotnet kubectl terraform aws gcloud az fly flyctl vercel wrangler sort uniq wc xargs find tr cut head tail stat date column realpath readlink mktemp tee"
+
+# Install line per tool. A row that says "rg is missing" and nothing else sends
+# the reader hunting; the row states how to get it.
+tool_install_hint() {
+  case "$1" in
+    rg)   echo "rg (ripgrep >= 14, needs --glob and -U multiline): apt-get install -y ripgrep | brew install ripgrep | cargo install ripgrep | static build from https://github.com/BurntSushi/ripgrep/releases" ;;
+    jq)   echo "jq: apt-get install -y jq | brew install jq" ;;
+    psql) echo "psql: apt-get install -y postgresql-client | brew install libpq" ;;
+    pnpm) echo "pnpm: corepack enable && corepack prepare pnpm@latest --activate" ;;
+    tsx)  echo "tsx: pnpm add -D tsx (invoke as 'pnpm tsx', not bare 'tsx')" ;;
+    node|npx) echo "$1: install Node 22+ (nvm install 22, or the distro package)" ;;
+    jscpd) echo "jscpd: pnpm add -D jscpd (invoke via 'pnpm exec jscpd')" ;;
+    timeout|sha256sum|sort|wc|tr|cut|head|tail|stat|date|comm|mktemp|tee|realpath|readlink)
+          echo "$1: GNU coreutils (apt-get install -y coreutils | brew install coreutils)" ;;
+    *)    echo "$1: not on PATH, install it and re-run" ;;
+  esac
+}
+
+# Tool names this check names in a shell COMMAND position, one per line.
+infer_tools() {
+  local check="$1" t
+  # `exec` and `command` are NOT command-position markers here: `pnpm exec tsc`
+  # put a node_modules binary in what looked like a PATH position.
+  local pre='(^|[;&|(){]|\$\(|`|[[:space:]](then|do|else|elif|env|time|xargs|sudo)[[:space:]])[[:space:]]*'
+  local post='([[:space:]]|$|`|\)|;)'
+  for t in $CFN_KNOWN_TOOLS; do
+    if [[ "$check" =~ ${pre}${t}${post} ]]; then printf '%s\n' "$t"; fi
+  done
+}
+
+# Sets MISSING_TOOLS (newline-separated). Returns 0 when every tool resolves.
+MISSING_TOOLS=""
+check_tools() {
+  local check="$1" ac="$2"
+  MISSING_TOOLS=""
+  local t seen="" declared
+  declared="$(echo "$ac" | jq -r '(.requires.tools // [])[]' 2>/dev/null)"
+  for t in $declared $(infer_tools "$check"); do
+    case " $seen " in *" $t "*) continue ;; esac
+    seen="$seen $t"
+    # type -P is a PATH search only: no functions, no aliases, no builtins.
+    env -u LC_ALL LC_MESSAGES=C bash -c "type -P -- '$t' >/dev/null 2>&1" && continue
+    MISSING_TOOLS="${MISSING_TOOLS}${t}"$'\n'
+  done
+  [ -z "${MISSING_TOOLS//[[:space:]]/}" ]
+}
+
+# One reason string for a set of missing tools, install lines included.
+missing_tools_reason() {
+  local names="" hints="" t
+  while IFS= read -r t; do
+    [ -n "$t" ] || continue
+    names="${names}${names:+ }${t}"
+    hints="${hints}${hints:+ ; }$(tool_install_hint "$t")"
+  done <<< "$1"
+  echo "tool_missing: $names not on PATH — this check cannot prove its predicate, and an absent tool must never read as zero offenders. Install: $hints"
+}
+
+# Names the shell itself reported as not found, from captured output.
+# Matches only the shell's own diagnostic shape, never arbitrary prose that
+# happens to end in "not found".
+scan_not_found() {
+  printf '%s\n' "$1" \
+    | grep -oE '^(bash|sh|dash|env|timeout)(: line [0-9]+)?: [^:]+: (command )?not found$' \
+    | sed -E 's/.*: ([^:]+): (command )?not found$/\1/' \
+    | sort -u | tr '\n' ' ' | sed 's/ *$//'
+}
+
 # exit-code-authoritative? runner kinds prove pass by exit code; predicate kinds
 # (curl/grep/rg/jq/db-query) do so ONLY if the check self-asserts.
 is_authoritative() {
@@ -260,7 +374,7 @@ cmd_run() {
     fi
 
     local class mode exit_code excerpt pass_val pred_unv evidence reason
-    local ac_cwd run_cwd exec_check req_env
+    local ac_cwd run_cwd exec_check req_env nf_tools
     mode=""; exit_code="null"; excerpt=""; pass_val="null"; pred_unv="false"; evidence=""
     # S005 (origin: MANIFEST_HANDOFF_conversational_interview_engine.md item 2):
     # every row states WHY it landed where it did, in-band. A check that ran 0
@@ -305,6 +419,16 @@ cmd_run() {
       fi
     fi
 
+    # --- S008 tool preflight. Runs AFTER requires{} (an absent DB is infra, not
+    # a broken toolchain) and BEFORE execution, so a check whose tool is missing
+    # never gets the chance to score its empty output as a pass.
+    if [ "$class" = "executable" ]; then
+      if ! check_tools "$exec_check" "$ac"; then
+        class="error"
+        reason="$(missing_tools_reason "$MISSING_TOOLS")"
+      fi
+    fi
+
     case "$class" in
       executable)
         local raw rc
@@ -314,11 +438,21 @@ cmd_run() {
             [ -n "$envline" ] && envargs+=("$envline")
           done <<< "$req_env"
         fi
-        raw="$(cd "$run_cwd" && timeout "$TIMEOUT" env ${envargs[@]+"${envargs[@]}"} bash -c "$exec_check" 2>&1)"; rc=$?
+        # LC_MESSAGES=C pins the shell's not-found wording so scan_not_found
+        # below is not defeated by a localized diagnostic. LC_ALL is dropped
+        # rather than set, so collation (sort -u counts) is left alone.
+        raw="$(cd "$run_cwd" && timeout "$TIMEOUT" env -u LC_ALL LC_MESSAGES=C ${envargs[@]+"${envargs[@]}"} bash -c "$exec_check" 2>&1)"; rc=$?
         exit_code="$rc"
         excerpt="$(printf '%s\n' "$raw" | tail -20)"
         mode="executed"
-        if is_authoritative "$exec_check"; then
+        # S008 detector 3: a tool absent inside $(...) or a loop body leaves the
+        # outer command exiting 0. Never adjudicate such a run as a pass.
+        nf_tools="$(scan_not_found "$raw")"
+        if [ -n "$nf_tools" ]; then
+          mode="error"; pass_val="false"
+          reason="$(missing_tools_reason "$(printf '%s\n' $nf_tools)")"
+          echo "  [$acid] tool_missing (reported by the shell at run time): $nf_tools" >&2
+        elif is_authoritative "$exec_check"; then
           # S002 (origin: ROOTCAUSE_mpa_thread_wiring_gap.md, AC-77): exit code 0
           # alone must never close a runner-kind AC: a fully skipIf-ed test file
           # exits 0 and used to mark the AC green. Parse the captured stdout via
@@ -403,6 +537,14 @@ cmd_run() {
           reason="predicate_unverified: psql exit 0 but the query does not self-assert — resolve with the captured rows"
         fi
         ;;
+      error)
+        # S008: the check's own toolchain is absent. Red, not blocked: `blocked`
+        # invites a hand-resolve, and "the tool was not installed" proves
+        # nothing about the feature. exit_code 127 is the shell's own
+        # command-not-found code, recorded so the row reads like what happened.
+        mode="error"; pass_val="false"; exit_code=127
+        echo "  [$acid] $reason" >&2
+        ;;
       blocked)
         # A third state, distinct from red. The check never ran, so it says
         # nothing about the feature -- bring the infrastructure up and re-run,
@@ -437,6 +579,8 @@ cmd_run() {
          executed: ([$r[]|select(.mode=="executed")]|length),
          needs_agent: ([$r[]|select(.mode=="needs_agent")]|length),
          blocked: ([$r[]|select(.mode=="blocked")]|length),
+         error: ([$r[]|select(.mode=="error")]|length),
+         tool_missing: ([$r[]|select((.reason // "")|startswith("tool_missing"))]|length),
          green: ([$r[]|select(.pass==true)]|length),
          red: ([$r[]|select(.pass==false)]|length),
          unresolved: ([$r[]|select(.pass==null)]|length),
@@ -487,6 +631,8 @@ cmd_resolve() {
          executed: ([$r[]|select(.mode=="executed")]|length),
          needs_agent: ([$r[]|select(.mode=="needs_agent")]|length),
          blocked: ([$r[]|select(.mode=="blocked")]|length),
+         error: ([$r[]|select(.mode=="error")]|length),
+         tool_missing: ([$r[]|select((.reason // "")|startswith("tool_missing"))]|length),
          green: ([$r[]|select(.pass==true)]|length),
          red: ([$r[]|select(.pass==false)]|length),
          unresolved: ([$r[]|select(.pass==null)]|length),

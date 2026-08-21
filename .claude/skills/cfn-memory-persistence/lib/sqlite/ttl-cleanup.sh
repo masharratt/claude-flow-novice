@@ -8,7 +8,7 @@ set -e  # Exit on error
 
 # Source parameterized query library for SQL injection prevention
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd)"
-source "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh"
+source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
 # Configuration
 DB_PATH="${DB_PATH:-./swarm-memory.db}"

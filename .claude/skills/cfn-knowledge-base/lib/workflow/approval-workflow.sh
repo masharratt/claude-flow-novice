@@ -14,12 +14,22 @@ set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../../../.." && pwd)"
 
-# PostgreSQL connection (read from .env or use defaults)
-if [ -f "${PROJECT_ROOT}/.env" ]; then
-    # shellcheck source=/dev/null
-    source "${PROJECT_ROOT}/.env"
+# PostgreSQL connection: read specific vars from .env, or fall back to the
+# defaults below. Anchor on CLAUDE_PROJECT_DIR, since credentials belong to
+# the project being worked on, not to the shared CFN
+# checkout (same decision as CONTENT_BASE_DIR in deploy-approved-skill.sh /
+# propagate-skill-update.sh). Never `source` the file: it executes whatever
+# shell is in it, and a wrapped/multi-line value (e.g. a token with an
+# embedded newline) breaks bash parsing on the continuation line. Extract
+# only the vars this script actually uses.
+ENV_FILE="${CLAUDE_PROJECT_DIR:-$PWD}/.env"
+if [ -f "$ENV_FILE" ]; then
+    for _env_var in CFN_DB_HOST CFN_DB_PORT CFN_DB_NAME CFN_DB_USER CFN_DB_PASSWORD; do
+        _env_val="$(grep "^${_env_var}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2- || true)"
+        [ -n "$_env_val" ] && printf -v "$_env_var" '%s' "$_env_val"
+    done
+    unset _env_var _env_val
 fi
 
 DB_HOST="${CFN_DB_HOST:-localhost}"

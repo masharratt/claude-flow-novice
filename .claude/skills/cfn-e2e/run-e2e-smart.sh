@@ -7,6 +7,9 @@ set -euo pipefail
 #######################################################################
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# CFN checkout root, for SHARED skill code only (works via the ~/.claude symlink too).
+# Per-project data/output stays on PROJECT_ROOT below.
+CFN_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
 
 # Configuration with defaults
@@ -122,8 +125,8 @@ write_results_json() {
 }
 
 # Try to source CFN utilities if available
-if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-utilities/execute.sh" ]]; then
-    source "$PROJECT_ROOT/.claude/skills/cfn-utilities/execute.sh" 2>/dev/null || true
+if [[ -f "$CFN_ROOT/.claude/skills/cfn-utilities/execute.sh" ]]; then
+    source "$CFN_ROOT/.claude/skills/cfn-utilities/execute.sh" 2>/dev/null || true
 fi
 
 usage() {

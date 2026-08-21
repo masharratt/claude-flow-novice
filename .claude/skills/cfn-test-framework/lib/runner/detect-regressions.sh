@@ -11,7 +11,7 @@ CFN_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 PROJECT_DATA_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 # Load parameterized query library (SQL injection prevention)
-source "$CFN_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+source "$CFN_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
 DB_FILE="$PROJECT_DATA_ROOT/.artifacts/test-benchmarks.db"
 

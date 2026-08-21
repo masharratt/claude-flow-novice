@@ -2,6 +2,11 @@
 
 Dynamic ingestion of CFN Loop CLI dependency files by parsing the dependency diagram.
 
+**Not available right now:** `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt` was deleted in a 2025-12-08
+documentation cleanup (removed as outdated archive content) and has not been recreated. The
+diagram-parsing commands below fail with a clear "not found" error until the diagram exists again;
+`execute.sh` falls back to generating context from task analysis instead.
+
 ## Quick Start
 
 ```bash
@@ -94,7 +99,8 @@ This automatically discovers and reads all files referenced in the dependency di
 
 ## Maintenance
 
-This skill self-updates when `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt` changes. No code updates needed.
+This skill self-updates when `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt` changes, but the file does
+not currently exist (see note at top). No code updates needed once the diagram is recreated.
 
 ## Implementation
 

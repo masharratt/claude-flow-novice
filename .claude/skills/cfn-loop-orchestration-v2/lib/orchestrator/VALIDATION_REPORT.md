@@ -297,7 +297,7 @@ const TS_FILES = /\.(ts|tsx)$/;
 - ✅ Mode validation
 
 #### 10. ✅ Documentation and Comments
-- ✅ TYPESCRIPT_INTEGRATION_REPORT.md present
+- TYPESCRIPT_INTEGRATION_REPORT.md was present at validation time (2025-11-20); removed later as a stale dead-reference artifact (its own ~21 file references had gone dead). Not available anymore.
 - ✅ All required sections documented
 
 ---

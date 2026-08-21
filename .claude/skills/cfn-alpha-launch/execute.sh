@@ -9,6 +9,7 @@ DOCS_ALPHA_DIR="${PROJECT_ROOT}/docs/alpha"
 LOG_FILE="${SCRIPT_DIR}/logs/execution.log"
 FIX_LIST="${DOCS_ALPHA_DIR}/fix-list.md"
 DEFAULT_AGENTS=3
+LAST_MANIFEST_PATH=""  # set by mode_manifest, read by mode_fix
 
 # Ensure directories exist
 mkdir -p "$(dirname "$LOG_FILE")"
@@ -33,19 +34,20 @@ Usage: $0 [OPTIONS]
 CFN Alpha Launch - Readiness analysis and fix execution.
 
 OPTIONS:
-    -m, --mode MODE         Mode: analyze or fix (required)
-    -a, --agents NUM        Number of parallel agents for fix mode (default: 3)
+    -m, --mode MODE         Mode: analyze, fix, or manifest (required)
+    -a, --agents NUM        Unused by fix/manifest (default: 3). fix hands off to
+                            /cfn-vote-implement, which always runs a fixed 3-agent vote.
     -h, --help              Show this help message
 
 MODES:
     analyze                 Run readiness analysis (spawns 8 parallel agents)
-    fix                     Execute priority fixes with parallel agents
+    fix                     Build the fix manifest, then print the /cfn-vote-implement
+                            hand-off (a shell script cannot spawn Claude agents itself)
     manifest                Convert docs/alpha/fix-list.md to cfn-vote-implement JSON manifest
 
 EXAMPLES:
     $0 -m analyze
     $0 -m fix
-    $0 -m fix --agents 5
     $0 -m manifest
 
 ANALYSIS OUTPUTS:
@@ -392,7 +394,10 @@ ANALYZE_INSTRUCTIONS
     log "Analyze mode instructions printed above"
 }
 
-# Manifest mode - convert fix-list.md to cfn-vote-implement JSON manifest
+# Manifest mode - convert fix-list.md to cfn-vote-implement JSON manifest.
+# Also the single owner of manifest-path resolution: mode_fix calls this function
+# instead of re-checking fix-list existence, re-checking converter existence, and
+# invoking the converter a second time (that duplication was the bug being fixed here).
 mode_manifest() {
     log "Mode: manifest"
 
@@ -409,35 +414,49 @@ Run analyze mode first:
     fi
 
     log "Converting $FIX_LIST to manifest..."
-    "$converter" "$FIX_LIST" --source cfn-alpha-launch
+    local converter_output
+    converter_output=$("$converter" "$FIX_LIST" --source cfn-alpha-launch)
+    echo "$converter_output"
+
+    # fixlist-to-manifest.sh prints a human-readable line then the bare manifest path as
+    # its last stdout line (echoed above, then re-extracted here into a global so
+    # mode_fix can reuse it without invoking the converter a second time).
+    LAST_MANIFEST_PATH=$(echo "$converter_output" | tail -n1)
+
+    if [[ -z "$LAST_MANIFEST_PATH" || ! -f "$LAST_MANIFEST_PATH" ]]; then
+        error_exit "Converter did not produce a manifest file (got: '$LAST_MANIFEST_PATH')"
+    fi
 }
 
-# Fix mode - delegates to cfn-parallel-execute
+# Fix mode - builds the manifest via mode_manifest, then hands off to /cfn-vote-implement.
+# cfn-parallel-execute was never built (documented, never implemented on disk or in git
+# history) and could not have worked as a shell delegation anyway: a shell script cannot
+# spawn Claude agents. This mode's job ends at "manifest ready". /cfn-vote-implement is
+# the documented consumer of an alpha-launch manifest (see mode_analyze's own step 6,
+# and cfn-vote-implement/SKILL.md), and it discovers the manifest itself via `latest`,
+# so no path argument or agent count is passed.
 mode_fix() {
     log "Mode: fix"
-    log "Parallel agents: $AGENT_COUNT"
 
-    # Check that fix-list.md exists
-    if [[ ! -f "$FIX_LIST" ]]; then
-        error_exit "Fix list not found: $FIX_LIST
+    mode_manifest
+    local manifest_path="$LAST_MANIFEST_PATH"
 
-Run analyze mode first:
-  cfn-alpha-launch --mode analyze"
-    fi
+    cat << EOF
 
-    log "Delegating to cfn-parallel-execute..."
-    log "Tasks file: $FIX_LIST"
-    log "Agent count: $AGENT_COUNT"
+Manifest ready: $manifest_path
 
-    # Delegate to cfn-parallel-execute
-    local parallel_execute="${SCRIPT_DIR}/../cfn-parallel-execute/execute.sh"
+A shell script cannot spawn Claude agents, so cfn-alpha-launch stops here (the --agents
+flag is not used by this mode; /cfn-vote-implement always runs a fixed 3-agent vote).
+Run this to route the fixes through voting:
 
-    if [[ ! -f "$parallel_execute" ]]; then
-        error_exit "cfn-parallel-execute not found at: $parallel_execute"
-    fi
+  /cfn-vote-implement latest
 
-    # Execute with the fix-list.md file
-    exec "$parallel_execute" --tasks="$FIX_LIST" --agents="$AGENT_COUNT"
+EOF
+
+    log "Manifest ready, execution not performed: $manifest_path"
+    # Exit 3: distinct from 0 (fully done) and 1 (error_exit failure). Signals
+    # "manifest ready, operator action required" so callers don't mistake this for success.
+    exit 3
 }
 
 # Main execution function

@@ -95,61 +95,30 @@ echo "Detect Regressions: $DETECT_REGRESSIONS"
 echo "Git: $GIT_BRANCH @ $GIT_COMMIT"
 echo ""
 
-# Run Hello World tests
-if [ "$SUITE" = "all" ] || [ "$SUITE" = "hello-world" ]; then
-  echo -e "${BLUE}[INFO]${NC} Running Hello World tests..."
-  
-  HW_START=$(date +%s)
-  HW_PASSED=0
-  HW_FAILED=0
-  HW_SKIPPED=0
-  
-  # Layer 0
-  if timeout 90 node "$CFN_ROOT/tests/hello-world/layer0-tool-validation.js" > /tmp/hw-layer0.log 2>&1; then
-    echo -e "${GREEN}✅ Layer 0: PASSED${NC}"
-    ((HW_PASSED++))
-  else
-    echo -e "${RED}❌ Layer 0: FAILED${NC}"
-    ((HW_FAILED++))
-  fi
-  
-  # Layer 5
-  if timeout 180 node "$CFN_ROOT/tests/hello-world/layer5-coordinator-spawning.js" > /tmp/hw-layer5.log 2>&1; then
-    echo -e "${GREEN}✅ Layer 5: PASSED${NC}"
-    ((HW_PASSED++))
-  else
-    echo -e "${RED}❌ Layer 5: FAILED${NC}"
-    ((HW_FAILED++))
-  fi
-  
-  # Layer 6
-  if timeout 240 node "$CFN_ROOT/tests/hello-world/layer6-coordinator-review.js" > /tmp/hw-layer6.log 2>&1; then
-    echo -e "${GREEN}✅ Layer 6: PASSED${NC}"
-    ((HW_PASSED++))
-  else
-    echo -e "${RED}❌ Layer 6: FAILED${NC}"
-    ((HW_FAILED++))
-  fi
-  
-  # Layer 7
-  if timeout 200 node "$CFN_ROOT/tests/hello-world/layer7-coordinator-error-retry.js" > /tmp/hw-layer7.log 2>&1; then
-    echo -e "${GREEN}✅ Layer 7: PASSED${NC}"
-    ((HW_PASSED++))
-  else
-    echo -e "${RED}❌ Layer 7: FAILED${NC}"
-    ((HW_FAILED++))
-  fi
-  
-  HW_END=$(date +%s)
-  HW_DURATION=$((HW_END - HW_START))
-  
-  echo -e "${BLUE}Hello World: ${HW_PASSED} passed, ${HW_FAILED} failed, ${HW_SKIPPED} skipped (${HW_DURATION}s)${NC}"
-  echo ""
-  
-  TOTAL_TESTS=$((TOTAL_TESTS + HW_PASSED + HW_FAILED + HW_SKIPPED))
-  PASSED_TESTS=$((PASSED_TESTS + HW_PASSED))
-  FAILED_TESTS=$((FAILED_TESTS + HW_FAILED))
-  SKIPPED_TESTS=$((SKIPPED_TESTS + HW_SKIPPED))
+# Hello World suite: removed 2026-08-20 (dead-artifacts cleanup).
+# tests/hello-world/ was archived wholesale to tests/archive/{legacy-v1,experimental}/hello-world/
+# -- it did NOT become tests/integration/hello-world/ (that holds an unrelated trivial test).
+# Verified broken from the archive location, not just relocated:
+#   Layer 0 (layer0-tool-validation.js): spawns via a cwd built from a relative path
+#     hardcoded for the original tests/hello-world/ depth; from the archive it resolves
+#     to the wrong directory, so `npx claude-flow-novice agent ...` fails with
+#     "npm error could not determine executable to run". 0/3 agents spawn.
+#   Layers 5-7 (coordinator-spawning/review/error-retry): `import { createClient } from
+#     'redis'` -- this repo no longer depends on the `redis` npm package (migrated to
+#     ioredis). They fail at module-resolution time (ERR_MODULE_NOT_FOUND), before ever
+#     attempting a Redis connection, so this is not fixable by starting Redis.
+# If reviving this suite: fix the layer0 cwd math for the new archive depth, port
+# layers 5-7 to ioredis, and point at tests/archive/legacy-v1/hello-world/ (or
+# tests/archive/experimental/hello-world/, which has more files). Do not point at
+# tests/hello-world/ (removed) or tests/integration/hello-world/ (unrelated test).
+if [ "$SUITE" = "hello-world" ]; then
+  # Exit non-zero deliberately. Falling through would run zero tests and print a
+  # summary, and a caller that asked for a suite and got a clean exit reasonably
+  # reads that as "the suite passed".
+  echo -e "${YELLOW}[WARN]${NC} The hello-world suite was archived 2026-08-20 and does not currently run." >&2
+  echo -e "${YELLOW}[WARN]${NC} See the comment above run-all-tests.sh:98 for what reviving it needs." >&2
+  echo -e "${YELLOW}[WARN]${NC} Refusing to report a result for a suite that executed nothing." >&2
+  exit 2
 fi
 
 # Run CFN E2E tests
@@ -190,7 +159,14 @@ fi
 
 END_TIME=$(date +%s)
 TOTAL_DURATION=$((END_TIME - START_TIME))
-SUCCESS_RATE=$(awk "BEGIN {printf \"%.1f\", ($PASSED_TESTS / $TOTAL_TESTS) * 100}")
+# A suite that ran nothing has no rate. Without this guard awk dies with
+# "division by zero attempted" and the script exits 1 for that accidental
+# reason instead of for anything about the tests.
+if [ "$TOTAL_TESTS" -gt 0 ]; then
+  SUCCESS_RATE=$(awk "BEGIN {printf \"%.1f\", ($PASSED_TESTS / $TOTAL_TESTS) * 100}")
+else
+  SUCCESS_RATE="n/a"
+fi
 
 # Summary
 echo -e "${GREEN}=========================================="

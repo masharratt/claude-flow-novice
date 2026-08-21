@@ -53,7 +53,7 @@ test_single_quote_injection() {
     log_test "$test_name" "1" "$payload"
 
     # Source the parameterized query library
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     # This should NOT execute the DROP TABLE
     result=$(sqlite_select "$TEST_DB" \
@@ -77,7 +77,7 @@ test_or_injection() {
 
     log_test "$test_name" "2" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT COUNT(*) FROM skills WHERE name = ?1" \
@@ -98,7 +98,7 @@ test_union_injection() {
 
     log_test "$test_name" "3" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -120,7 +120,7 @@ test_comment_bypass() {
 
     log_test "$test_name" "4" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -142,7 +142,7 @@ test_block_comment_bypass() {
 
     log_test "$test_name" "5" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -164,7 +164,7 @@ test_stacked_queries() {
 
     log_test "$test_name" "6" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -186,7 +186,7 @@ test_double_quote_injection() {
 
     log_test "$test_name" "7" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -208,7 +208,7 @@ test_backtick_injection() {
 
     log_test "$test_name" "8" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -230,7 +230,7 @@ test_time_blind_injection() {
 
     log_test "$test_name" "9" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     # Should not cause delay
     local start_time=$(date +%s%N)
@@ -255,7 +255,7 @@ test_boolean_blind_injection() {
 
     log_test "$test_name" "10" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT COUNT(*) FROM skills WHERE name = ?1" \
@@ -276,7 +276,7 @@ test_hex_encoding_bypass() {
 
     log_test "$test_name" "11" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT COUNT(*) FROM skills WHERE name = ?1" \
@@ -361,7 +361,7 @@ test_escape_sequence_injection() {
 
     log_test "$test_name" "16" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT COUNT(*) FROM skills WHERE name = ?1" \
@@ -381,7 +381,7 @@ test_null_byte_injection() {
 
     log_test "$test_name" "17" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -403,7 +403,7 @@ test_newline_injection() {
 
     log_test "$test_name" "18" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -425,7 +425,7 @@ test_unicode_normalization() {
 
     log_test "$test_name" "19" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -445,7 +445,7 @@ test_case_variation() {
 
     log_test "$test_name" "20" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -465,7 +465,7 @@ test_wildcard_injection() {
 
     log_test "$test_name" "21" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -485,7 +485,7 @@ test_conditional_statement() {
 
     log_test "$test_name" "22" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT COUNT(*) FROM skills WHERE name = ?1" \
@@ -505,7 +505,7 @@ test_arithmetic_injection() {
 
     log_test "$test_name" "23" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT COUNT(*) FROM skills WHERE name = ?1" \
@@ -525,7 +525,7 @@ test_long_string_attack() {
 
     log_test "$test_name" "24" "10000 character payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -545,7 +545,7 @@ test_special_characters() {
 
     log_test "$test_name" "25" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT name FROM skills WHERE name = ?1" \
@@ -565,7 +565,7 @@ test_parameterized_insert() {
 
     log_test "$test_name" "26" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     sqlite_insert "$TEST_DB" \
         "INSERT INTO skills (name, version, content_hash, content_path) VALUES (?1, ?2, ?3, ?4)" \
@@ -587,7 +587,7 @@ test_parameterized_update() {
 
     log_test "$test_name" "27" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     sqlite_update "$TEST_DB" \
         "UPDATE skills SET name = ?1 WHERE id = ?2" \
@@ -609,7 +609,7 @@ test_concatenation_attack() {
 
     log_test "$test_name" "28" "$payload"
 
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     result=$(sqlite_select "$TEST_DB" \
         "SELECT COUNT(*) FROM skills WHERE name = ?1" \

@@ -10,6 +10,7 @@ LOG_FILE="${SCRIPT_DIR}/logs/execution.log"
 FEATURE_STATUS="${PROJECT_ROOT}/readme/feature-status.md"
 FIX_LIST_DIR="${DOCS_ALPHA_DIR}/fixes-by-priority"
 DEFAULT_AGENTS=3
+LAST_MANIFEST_PATH=""  # set by mode_manifest, read by mode_fix
 
 # Ensure directories exist
 mkdir -p "$(dirname "$LOG_FILE")"
@@ -35,16 +36,19 @@ Usage: $0 [OPTIONS]
 CFN Alpha Launch V2 - Group-based alpha readiness analysis.
 
 OPTIONS:
-    -m, --mode MODE         Mode: select, analyze, fix, status, complete (required)
+    -m, --mode MODE         Mode: select, analyze, fix, status, complete, manifest (required)
     -p, --priority PRIORITY  Priority group: CRITICAL, HIGH, MEDIUM, LOW (optional)
     -f, --feature NUM       Specific feature number (optional, overrides group mode)
-    -a, --agents NUM        Number of parallel agents for fix mode (default: 3)
+    -a, --agents NUM        Unused by fix/manifest (default: 3). fix hands off to
+                            /cfn-vote-implement, which always runs a fixed 3-agent vote.
     -h, --help              Show this help message
 
 MODES:
     select                  Show next priority group to work on
     analyze                 Run analysis on all features in priority group
-    fix                     Execute fixes for priority group
+    fix                     Build the fix manifest for the group, then print the
+                            /cfn-vote-implement hand-off (a shell script cannot spawn
+                            Claude agents itself)
     status                  Show overall alpha readiness progress
     complete                Mark all features in group as complete
     manifest                Convert priority-group fix-list to cfn-vote-implement JSON manifest
@@ -54,7 +58,7 @@ EXAMPLES:
     $0 -m analyze                    # Analyzes next priority group (default)
     $0 -m analyze -p CRITICAL         # Analyzes CRITICAL features
     $0 -m analyze -f 2                # Analyzes specific feature #2 (override)
-    $0 -m fix --agents 5
+    $0 -m fix
     $0 -m status
     $0 -m complete -p CRITICAL
 
@@ -167,6 +171,18 @@ extract_feature_info() {
     fi
 
     echo "$title|$status|$priority|$description"
+}
+
+# Slugify a feature title for fix-list filenames (fix-list-<N>-<slug>.md).
+# Byte-identical `tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -ch '[:alnum:]-'` used to
+# appear at both call sites below; the trailing `tr -ch` was broken (-c complements the
+# set but needs a SET2 to translate into, and 'h' is not a valid flag to pair it with),
+# so it always failed, the pipeline's exit status was swallowed by `local slug=$(...)`,
+# and every single-feature fix-list silently ended up named "fix-list-<N>-.md" instead
+# of the documented "fix-list-<N>-<slug>.md". Fixed here once (-cd deletes anything
+# outside the set) and called from both sites instead of patching the same line twice.
+title_to_slug() {
+    echo "$1" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-'
 }
 
 # Find next priority group with incomplete features
@@ -377,7 +393,7 @@ mode_analyze() {
         local info=$(extract_feature_info "$FEATURE_NUM")
         IFS='|' read -r title status priority description <<< "$info"
 
-        local slug=$(echo "$title" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -ch '[:alnum:]-')
+        local slug=$(title_to_slug "$title")
         local fix_list="${FIX_LIST_DIR}/fix-list-${FEATURE_NUM}-${slug}.md"
 
         cat << "ANALYZE_INSTRUCTIONS"
@@ -511,71 +527,40 @@ ANALYZE_INSTRUCTIONS
     log "Fix list will be: $fix_list"
 }
 
-# Mode: Fix execution
+# Mode: Fix execution - delegates all fix-list resolution and manifest conversion to
+# mode_manifest (defined below), the single owner of that logic for both single-feature
+# and group-priority runs. Before this fix, mode_fix re-implemented mode_manifest's
+# fix-list-path resolution AND its converter invocation as a second, near-identical
+# copy; per the second-occurrence DRY rule that duplication gets collapsed here instead
+# of patched in place. cfn-parallel-execute was never built (documented, never
+# implemented on disk or in git history) and a shell script cannot spawn Claude agents
+# anyway, so this mode's job ends at "manifest ready".
 mode_fix() {
     log "Mode: fix"
-    log "Parallel agents: $AGENT_COUNT"
 
-    # Determine if group mode or single feature
-    if [[ -n "${FEATURE_NUM:-}" ]]; then
-        # Single feature mode
-        log "Single feature mode: #$FEATURE_NUM"
-
-        local info=$(extract_feature_info "$FEATURE_NUM")
-        IFS='|' read -r title status priority description <<< "$info"
-
-        local slug=$(echo "$title" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -ch '[:alnum:]-')
-        local fix_list="${FIX_LIST_DIR}/fix-list-${FEATURE_NUM}-${slug}.md"
-
-        if [[ ! -f "$fix_list" ]]; then
-            error_exit "Fix list not found: $fix_list
-
-Run analyze mode first:
-  cfn-alpha-launch-v2 --mode analyze --feature $FEATURE_NUM"
-        fi
-
-        log "Delegating to cfn-parallel-execute..."
-        log "Tasks file: $fix_list"
-
-        local parallel_execute="${SCRIPT_DIR}/../cfn-parallel-execute/execute.sh"
-        if [[ ! -f "$parallel_execute" ]]; then
-            error_exit "cfn-parallel-execute not found at: $parallel_execute"
-        fi
-
-        exec "$parallel_execute" --tasks="$fix_list" --agents="$AGENT_COUNT"
-    else
-        # Group mode
-        local target_priority="$PRIORITY"
-        if [[ -z "$target_priority" ]]; then
-            local next=$(find_next_priority_group)
-            if [[ "$next" == "ALL_COMPLETE" ]]; then
-                echo "All features complete. Nothing to fix."
-                return
-            fi
-            IFS='|' read -r target_priority count <<< "$next"
-            log "Auto-selected priority: $target_priority ($count features)"
-        fi
-
-        local fix_list="${FIX_LIST_DIR}/fix-list-${target_priority}.md"
-
-        if [[ ! -f "$fix_list" ]]; then
-            error_exit "Fix list not found: $fix_list
-
-Run analyze mode first:
-  cfn-alpha-launch-v2 --mode analyze --priority $target_priority"
-        fi
-
-        log "Priority group: $target_priority"
-        log "Delegating to cfn-parallel-execute..."
-        log "Tasks file: $fix_list"
-
-        local parallel_execute="${SCRIPT_DIR}/../cfn-parallel-execute/execute.sh"
-        if [[ ! -f "$parallel_execute" ]]; then
-            error_exit "cfn-parallel-execute not found at: $parallel_execute"
-        fi
-
-        exec "$parallel_execute" --tasks="$fix_list" --agents="$AGENT_COUNT"
+    mode_manifest
+    local manifest_path="$LAST_MANIFEST_PATH"
+    if [[ -z "$manifest_path" ]]; then
+        # mode_manifest already printed why (e.g. all features complete); nothing to fix.
+        return
     fi
+
+    cat << EOF
+
+Manifest ready: $manifest_path
+
+A shell script cannot spawn Claude agents, so cfn-alpha-launch-v2 stops here (the
+--agents flag is not used by this mode; /cfn-vote-implement always runs a fixed
+3-agent vote). Run this to route the fixes through voting:
+
+  /cfn-vote-implement latest
+
+EOF
+
+    log "Manifest ready, execution not performed: $manifest_path"
+    # Exit 3: distinct from 0 (fully done) and 1 (error_exit failure). Signals
+    # "manifest ready, operator action required" so callers don't mistake this for success.
+    exit 3
 }
 
 # Mode: Mark features complete
@@ -718,6 +703,7 @@ COMPLETE_INSTRUCTIONS
 # Mode: Manifest emission - convert priority-group fix-list to JSON manifest
 mode_manifest() {
     log "Mode: manifest"
+    LAST_MANIFEST_PATH=""
 
     local target_priority="$PRIORITY"
     local fix_list=""
@@ -725,7 +711,7 @@ mode_manifest() {
     if [[ -n "${FEATURE_NUM:-}" ]]; then
         local info=$(extract_feature_info "$FEATURE_NUM")
         IFS='|' read -r title status priority description <<< "$info"
-        local slug=$(echo "$title" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -ch '[:alnum:]-')
+        local slug=$(title_to_slug "$title")
         fix_list="${FIX_LIST_DIR}/fix-list-${FEATURE_NUM}-${slug}.md"
     else
         if [[ -z "$target_priority" ]]; then
@@ -752,7 +738,18 @@ Run analyze mode first."
     fi
 
     log "Converting $fix_list to manifest..."
-    "$converter" "$fix_list" --source cfn-alpha-launch-v2
+    local converter_output
+    converter_output=$("$converter" "$fix_list" --source cfn-alpha-launch-v2)
+    echo "$converter_output"
+
+    # fixlist-to-manifest.sh prints a human-readable line then the bare manifest path as
+    # its last stdout line (echoed above, then re-extracted here into a global so
+    # mode_fix can reuse it without invoking the converter a second time).
+    LAST_MANIFEST_PATH=$(echo "$converter_output" | tail -n1)
+
+    if [[ -z "$LAST_MANIFEST_PATH" || ! -f "$LAST_MANIFEST_PATH" ]]; then
+        error_exit "Converter did not produce a manifest file (got: '$LAST_MANIFEST_PATH')"
+    fi
 }
 
 # Main execution function

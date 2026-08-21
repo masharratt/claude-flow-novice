@@ -54,7 +54,8 @@ $HOME/.claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh \
 ### Run Specific Suite
 
 ```bash
-# Hello World only
+# Hello World only (archived 2026-08-20, see "Test Suites" below -- this now
+# warns and exits 2 without running; it does not report a result)
 $HOME/.claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh --suite hello-world
 
 # CFN E2E only
@@ -82,7 +83,7 @@ $HOME/.claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh \
 
 | Parameter | Required | Description | Default |
 |-----------|----------|-------------|---------|
-| `--suite` | No | Test suite: `all`, `hello-world`, `cfn-e2e` | `all` |
+| `--suite` | No | Test suite: `all`, `hello-world` (archived, warns and exits 2 without running -- see Test Suites below), `cfn-e2e` | `all` |
 | `--benchmark` | No | Store results in SQLite | `false` |
 | `--detect-regressions` | No | Run regression analysis | `false` |
 | `--threshold` | No | Regression threshold (%) | `0.10` |
@@ -93,7 +94,7 @@ $HOME/.claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh \
 
 ## Test Suites
 
-### Hello World (Layer 0-7)
+### Hello World (Layer 0-7) -- ARCHIVED, DOES NOT RUN
 
 **Purpose:** Validate agent spawning patterns and coordination
 
@@ -105,7 +106,20 @@ $HOME/.claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh \
 | 6 | Review Handoff | 180s | ✅ |
 | 7 | Error Retry | 150s | ✅ |
 
-**Location:** `tests/hello-world/`
+**Status (as of 2026-08-20):** removed from `run-all-tests.sh`. `tests/hello-world/`
+no longer exists; the source files were archived wholesale to
+`tests/archive/legacy-v1/hello-world/` (and a second copy under
+`tests/archive/experimental/hello-world/`). Verified broken from the archive
+location, not just relocated: Layer 0 spawns agents using a `cwd` built from a
+relative path sized for the old `tests/hello-world/` depth, so it now resolves
+to the wrong directory (`npm error could not determine executable to run`).
+Layers 5-7 `import { createClient } from 'redis'`, a package this repo no
+longer depends on (migrated to `ioredis`), so they fail at module-resolution
+time before attempting any Redis connection. `--suite hello-world` now warns
+and exits 2 rather than running these. It exits non-zero on purpose: running
+zero tests and exiting clean would read to any caller as "the suite passed".
+
+**Location:** `tests/archive/legacy-v1/hello-world/` (archived, not wired into the runner)
 
 ### CFN Loop E2E (9 Tests)
 
@@ -204,6 +218,10 @@ message: "Suite success rate: 88% → 77% (threshold: 10%)"
 
 ### Text (Console)
 
+Example from before the Hello World suite was archived (2026-08-20). The
+"Suite: Hello World" block below no longer appears in real output --
+`--suite hello-world` now prints a warning and skips (see Test Suites above).
+
 ```
 ==========================================
 CFN Test Suite Results
@@ -233,6 +251,9 @@ Regressions Detected: 0
 ```
 
 ### JSON (API/CI)
+
+Same caveat as above: `hello-world` was archived 2026-08-20 and no longer
+produces real results; kept here only as a shape example.
 
 ```json
 {

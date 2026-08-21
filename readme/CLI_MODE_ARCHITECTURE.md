@@ -1097,7 +1097,8 @@ PART 14: RELATED DOCUMENTATION
 
 [PRIMARY REFERENCES]
 - CFN Loop Architecture: `docs/CFN_LOOP_ARCHITECTURE.md`
-- Dependency Diagram: `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt`
+- Dependency Diagram: not available. `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt` was deleted in a
+  2025-12-08 documentation cleanup and has not been recreated.
 - Task Mode Guide: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - Coordinator Parameters: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 

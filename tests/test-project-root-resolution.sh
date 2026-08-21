@@ -43,15 +43,17 @@
 #          unrelated cwd, require the entry to land there, and require the CFN
 #          repo's own readme/ files to be byte-identical afterwards.
 #
-#   BUG-3/ test-typescript-integration.sh and ingest.sh both compute the repo
-#   BUG-4  root as "$SCRIPT_DIR/../../..". That was correct when each file lived
-#          three levels down; commit 11a517ca6 ("Consolidate 93 skills to 33")
-#          moved both two levels deeper without updating the arithmetic, so the
-#          root now lands on <repo>/.claude/skills. Every downstream check
-#          probed .claude/skills/.claude/skills/... and reported not-found
-#          unconditionally, and ingest.sh cd's to that root before reading a
-#          manifest, so no repo-relative manifest path could ever resolve.
-#          Proof: evaluate each file's own PROJECT_ROOT expression and require
+#   BUG-4  ingest.sh computed the repo root as "$SCRIPT_DIR/../../..". That was
+#          correct while the file lived three levels down; commit 11a517ca6
+#          ("Consolidate 93 skills to 33") moved it two levels deeper without
+#          updating the arithmetic, so the root landed on <repo>/.claude/skills.
+#          Every downstream check probed .claude/skills/.claude/skills/... and
+#          reported not-found unconditionally, and ingest.sh cd's to that root
+#          before reading a manifest, so no repo-relative manifest path could
+#          ever resolve. BUG-3 was the same defect in a second file,
+#          test-typescript-integration.sh, which has since been deleted; see the
+#          note at the probe below.
+#          Proof: evaluate the file's own PROJECT_ROOT expression and require
 #          the result to be the repo root, plus a landmark file under it.
 #
 #   BUG-5  the agent-selection TypeScript located agent-mappings.json via
@@ -214,10 +216,11 @@ check_root_depth() {
   pass "$label: $(basename "$script") resolves PROJECT_ROOT to the repo root"
 }
 
-check_root_depth "BUG-3" \
-  ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/test-typescript-integration.sh" \
-  "package.json"
-
+# BUG-3's subject, cfn-loop-orchestration-v2/.../test-typescript-integration.sh,
+# was deleted on 2026-08-20: it asserted on module paths that no longer exist and
+# failed 10/10 before any of this work started (its replacement gate is
+# tests/test-agent-selection-bundle.sh). BUG-4 below covers the identical
+# wrong-depth regression class, so retiring the BUG-3 probe loses no coverage.
 check_root_depth "BUG-4" \
   ".claude/skills/cfn-dependency-management/lib/ingestion/ingest.sh" \
   ".claude/skills"

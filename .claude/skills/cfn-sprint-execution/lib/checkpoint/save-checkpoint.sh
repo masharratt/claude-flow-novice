@@ -14,11 +14,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../../" && pwd)"
 
 # Redis configuration
-readonly REDIS_HOST="${REDIS_HOST:-localhost}"
-readonly REDIS_PORT="${REDIS_PORT:-6379}"
-readonly DEFAULT_REDIS_DB=0
-readonly DEFAULT_TIMEOUT=30
-readonly CHECKPOINT_TTL="${CHECKPOINT_TTL:-3600}"
+# Guarded, not `readonly`. All three of these scripts declare the same names and
+# the documented integration pattern in SKILL.md sources more than one of them in
+# a single shell, so `readonly` made the second `source` a fatal error:
+#   source save-checkpoint.sh && source resume-wave.sh
+#   -> resume-wave.sh: line 17: REDIS_HOST: readonly variable   (exit 1)
+# Assigning to a name the caller already froze fails whether or not the keyword
+# is present, so the guard is what fixes it, not dropping `readonly` alone.
+[[ -n ${REDIS_HOST:-} ]] || REDIS_HOST="${REDIS_HOST:-localhost}"
+[[ -n ${REDIS_PORT:-} ]] || REDIS_PORT="${REDIS_PORT:-6379}"
+[[ -n ${DEFAULT_REDIS_DB:-} ]] || DEFAULT_REDIS_DB=0
+[[ -n ${DEFAULT_TIMEOUT:-} ]] || DEFAULT_TIMEOUT=30
+[[ -n ${CHECKPOINT_TTL:-} ]] || CHECKPOINT_TTL="${CHECKPOINT_TTL:-3600}"
 
 # Helper: Check Redis connection
 check_redis_connection() {
@@ -31,11 +38,11 @@ check_redis_connection() {
 }
 
 # Color codes
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
-readonly NC='\033[0m'
+[[ -n ${RED:-} ]] || RED='\033[0;31m'
+[[ -n ${GREEN:-} ]] || GREEN='\033[0;32m'
+[[ -n ${YELLOW:-} ]] || YELLOW='\033[1;33m'
+[[ -n ${BLUE:-} ]] || BLUE='\033[0;34m'
+[[ -n ${NC:-} ]] || NC='\033[0m'
 
 # Logging functions
 log_info() {

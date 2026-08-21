@@ -9,8 +9,11 @@ set -euo pipefail
 
 # Source the helper library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+# A single dirname() only strips one level (tests/security -> tests), one
+# short of the repo root; this file is two levels down (tests/security), so
+# it needs two.
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
 TEST_DB="/tmp/test-sqlite-comprehensive-$$.db"
 TESTS_PASSED=0

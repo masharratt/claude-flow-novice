@@ -145,12 +145,16 @@ Generated: docs/alpha/fixes-by-priority/fix-list-CRITICAL.md
 **Parameters**:
 - `-p, --priority` - Priority group (optional, defaults to next)
 - `-f, --feature NUM` - Specific feature (optional, overrides group mode)
-- `-a, --agents NUM` - Parallel agent count (default: 3)
+- `-a, --agents NUM` - Unused by this mode (default: 3); see Behavior below
 
 **Behavior**:
-- Delegates to `cfn-parallel-execute`
-- Works through consolidated fix list for the group
-- Follows pipeline maintenance protocol (STOP/wait for exit notifications)
+- Calls the same `mode_manifest` logic that `manifest` mode uses (fix-list resolution
+  for single-feature or group-priority runs, converter existence check, single converter
+  invocation) and prints the hand-off command: `/cfn-vote-implement latest`
+- Exits 3 (manifest ready, execution not performed). A shell script cannot spawn Claude
+  agents, so `fix` mode stops there. `/cfn-vote-implement latest` is the documented
+  consumer of an alpha-launch manifest: it always runs a fixed 3-agent vote, which is
+  why `--agents` has no effect on this mode
 
 ### Mode: Manifest
 
@@ -239,9 +243,12 @@ Next Priority Group: HIGH (3 features)
 > Generated: docs/alpha/fixes-by-priority/fix-list-CRITICAL.md
 
 # Execute fixes
-/cfn-alpha-launch-v2:fix -p CRITICAL --agents 3
-> Delegating to cfn-parallel-execute...
-> Working through CRITICAL fixes...
+/cfn-alpha-launch-v2:fix -p CRITICAL
+> Manifest ready: <project-root>/.cfn-cache/manifests/cfn-review-alpha-v2-CRITICAL-<ts>.json
+> Run: /cfn-vote-implement latest
+
+# Run the printed command to actually vote on and implement CRITICAL fixes
+/cfn-vote-implement latest
 
 # Mark group complete
 /cfn-alpha-launch-v2:complete -p CRITICAL

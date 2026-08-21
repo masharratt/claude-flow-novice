@@ -38,7 +38,7 @@ Required:
 Optional:
   --interval <secs>        Tick interval in seconds. Positive integer. Default: 10.
   --root <dir>              Project root to resolve inputs from.
-                            Default: same 3-levels-up logic as render.sh.
+                            Default: $CLAUDE_PROJECT_DIR, else $PWD (same as render.sh).
   --stop                   Stop the running watcher for this slug, remove its
                             pidfile, exit 0. Exit 0 (with a message) when none
                             is running.

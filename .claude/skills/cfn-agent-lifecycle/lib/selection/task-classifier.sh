@@ -1,24 +1,15 @@
 #!/usr/bin/env bash
 
 ##############################################################################
-# ⚠️  DEPRECATED - This bash script is deprecated
+# SUPPORTED FALLBACK - this is the default agent-selection path, not a
+# deprecated one.
 #
-# Deprecation Date: 2025-11-20
-# Removal Date: 2026-02-20 (90 days)
-# Replacement: dist/cli.cjs
-#
-# This script will be removed in 90 days. Please migrate to TypeScript.
-#
-# Migration Guide: See docs/BASH_DEPRECATION_NOTICE.md
-# TypeScript Benefits:
-#   - Type safety (zero runtime type errors)
-#   - 90%+ test coverage
-#   - Better performance
-#   - Comprehensive documentation
-#
-# Automatic Migration:
-#   Set USE_TYPESCRIPT=true to use TypeScript implementation automatically
-#
+# execute.sh's select-agents command runs this script by default; the
+# TypeScript build (dist/cli.cjs) only runs when the caller passes
+# --typescript. The 2026-02-20 removal date this header used to carry has
+# passed with no removal, because the bash path is still the default, not
+# a migration step. No removal is planned. Keep bash and TypeScript
+# behavior in sync when either changes.
 ##############################################################################
 
 set -eu

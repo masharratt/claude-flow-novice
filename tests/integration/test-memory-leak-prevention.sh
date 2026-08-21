@@ -33,12 +33,12 @@ log_test() {
 
 log_pass() {
     echo -e "${GREEN}[PASS]${NC} $1"
-    ((PASSED_TESTS++))
+    PASSED_TESTS=$((PASSED_TESTS + 1))
 }
 
 log_fail() {
     echo -e "${RED}[FAIL]${NC} $1"
-    ((FAILED_TESTS++))
+    FAILED_TESTS=$((FAILED_TESTS + 1))
     TEST_RESULTS+=("FAIL: $1")
 }
 
@@ -59,7 +59,7 @@ setup_test_env() {
     export CFN_TIMEOUT="30"
     export CFN_TELEMETRY_DIR="/tmp/cfn-telemetry"
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test cleanup
@@ -87,7 +87,7 @@ test_memory_allocation_leak() {
 #!/bin/bash
 
 # Source instrumentation
-source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-process-instrumentation/instrument-process.sh"
 
 # Simulate memory leak by continuously allocating memory
 leak_array=()
@@ -96,7 +96,7 @@ iteration=0
 while true; do
     # Allocate 1MB per iteration
     leak_array+=($(printf 'A%.0s' {1..1000000}))
-    ((iteration++))
+    iteration=$((iteration + 1))
 
     echo "Memory leak iteration $iteration, allocated ${#leak_array[@]} chunks"
     sleep 0.1
@@ -129,7 +129,7 @@ EOF
         fi
     fi
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: Node.js process memory leak
@@ -173,7 +173,7 @@ EOF
 
     unset NODE_OPTIONS
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: File handle leak simulation
@@ -185,7 +185,7 @@ test_file_handle_leak() {
 #!/bin/bash
 
 # Source instrumentation
-source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-process-instrumentation/instrument-process.sh"
 
 # Simulate file handle leak
 file_handles=()
@@ -200,7 +200,7 @@ while true; do
     done
 
     echo "Leaked ${#file_handles[@]} file handles in iteration $iteration"
-    ((iteration++))
+    iteration=$((iteration + 1))
 
     sleep 0.1
 
@@ -234,7 +234,7 @@ EOF
     # Clean up leaked files
     rm -f /tmp/leak_test_*.txt 2>/dev/null || true
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: CPU resource exhaustion
@@ -246,7 +246,7 @@ test_cpu_resource_exhaustion() {
 #!/bin/bash
 
 # Source instrumentation
-source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-process-instrumentation/instrument-process.sh"
 
 # Infinite CPU-intensive loop
 echo "Starting CPU exhaustion test..."
@@ -276,7 +276,7 @@ EOF
         fi
     fi
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: Agent process cleanup
@@ -288,7 +288,7 @@ test_agent_process_cleanup() {
 #!/bin/bash
 
 # Source instrumentation
-source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-process-instrumentation/instrument-process.sh"
 
 # Spawn child processes
 children_pids=()
@@ -337,7 +337,7 @@ EOF
         pkill -P "$parent_pid" 2>/dev/null || true
     fi
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: Redis connection leak simulation
@@ -372,7 +372,7 @@ EOF
     export PATH="$TEST_RESULTS_DIR:$PATH"
 
     # Source CLI coordination
-    source "$PROJECT_ROOT/.claude/skills/cfn-task-mode-safety/cli-coordination.sh"
+    source "$PROJECT_ROOT/.claude/cfn-extras/skills/advanced-features/cfn-task-mode-safety/cli-coordination.sh"
 
     # Simulate connection leak
     local connection_attempts=0
@@ -380,7 +380,7 @@ EOF
 
     for i in $(seq 1 $max_attempts); do
         if timeout 5 redis_lpush_safe "test_key" "test_value" 2>/dev/null; then
-            ((connection_attempts++))
+            connection_attempts=$((connection_attempts + 1))
         fi
     done
 
@@ -399,7 +399,7 @@ EOF
     rm -f "/tmp/redis_connection_count"
     unset TASK_ID AGENT_ID
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: Environment variable cleanup
@@ -412,15 +412,15 @@ test_environment_variable_cleanup() {
     export DATABASE_URL="postgres://user:password@localhost/db"
 
     # Source sanitization
-    source "$PROJECT_ROOT/.claude/skills/cfn-environment-sanitization/sanitize-environment.sh"
+    source "$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-environment-sanitization/sanitize-environment.sh"
 
     # Check if sensitive variables are cleared
     local cleaned=0
     local total=3
 
-    [[ -z "${SECRET_PASSWORD:-}" ]] && ((cleaned++))
-    [[ -z "${API_TOKEN:-}" ]] && ((cleaned++))
-    [[ -z "${DATABASE_URL:-}" ]] && ((cleaned++))
+    [[ -z "${SECRET_PASSWORD:-}" ]] && cleaned=$((cleaned + 1))
+    [[ -z "${API_TOKEN:-}" ]] && cleaned=$((cleaned + 1))
+    [[ -z "${DATABASE_URL:-}" ]] && cleaned=$((cleaned + 1))
 
     if [[ $cleaned -eq $total ]]; then
         log_pass "All sensitive environment variables cleaned ($cleaned/$total)"
@@ -428,7 +428,7 @@ test_environment_variable_cleanup() {
         log_fail "Environment variables not fully cleaned ($cleaned/$total)"
     fi
 
-    ((TOTAL_TESTS++))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Test: Telemetry collection during leak
@@ -440,7 +440,7 @@ test_telemetry_during_leak() {
 #!/bin/bash
 
 # Source instrumentation
-source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
+source "$PROJECT_ROOT/.claude/cfn-extras/skills/utility/cfn-process-instrumentation/instrument-process.sh"
 
 # Gradual memory allocation
 data=""

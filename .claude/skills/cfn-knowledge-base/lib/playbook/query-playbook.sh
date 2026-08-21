@@ -7,8 +7,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 # Use shared bootstrap utilities
-if [[ -f "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh" ]]; then
-    source "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh"
+if [[ -f "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh" ]]; then
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 else
     echo "Error: SQLite parameter utilities not found" >&2
     exit 1

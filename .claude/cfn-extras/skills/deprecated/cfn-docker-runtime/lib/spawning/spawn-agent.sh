@@ -214,7 +214,7 @@ fi
 PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [[ -z "$PROJECT_ROOT" ]]; then
     # Fallback to script-relative path
-    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)"
+    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../../../.." && pwd -P)"
 fi
 cd "$PROJECT_ROOT"
 
@@ -347,7 +347,7 @@ if [[ -n "$TOKENS_FILE" ]]; then
 fi
 
 # Add provider routing environment variables (custom routing support)
-source .claude/skills/cfn-agent-spawning/get-agent-provider-env.sh "$AGENT_TYPE"
+source "$PROJECT_ROOT/.claude/skills/cfn-agent-lifecycle/lib/spawning/get-agent-provider-env.sh" "$AGENT_TYPE"
 if [[ -n "${ANTHROPIC_BASE_URL:-}" ]]; then
     DOCKER_CMD="$DOCKER_CMD --env ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}"
 fi

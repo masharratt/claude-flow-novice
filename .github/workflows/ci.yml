@@ -58,6 +58,31 @@ jobs:
       - name: Path containment gate
         run: bash tests/security/test-path-containment.sh
 
+      # Executes each script's assignment-only prefix to resolve every
+      # 'source' target naming .claude, then requires the file to exist. This is
+      # the gate for the class the skill consolidation created: scripts moved
+      # into lib/<area>/ and into .claude/cfn-extras/ without their referrers
+      # being updated, so a source line pointed at a path that no longer exists.
+      - name: Sourced-path existence gate
+        run: bash tests/test-sourced-paths-exist.sh
+
+      # A .env value that wraps onto a continuation line executes as shell when
+      # the file is sourced. These scripts now extract the keys they need with
+      # grep/cut instead. The fixture proves sourcing DOES fire a planted
+      # marker, so the check cannot pass vacuously.
+      - name: Env handling gate
+        run: bash tests/security/test-env-handling.sh
+
+      # A library whose documented entry point is `source` must not freeze the
+      # names its callers already declared. `readonly RED=...` in such a library
+      # is a hard error that kills the caller, and so is a plain assignment to a
+      # name the caller froze, so the fix is a guard either way. The gate sources
+      # the real libraries and also sources the checkpoint pair together, which
+      # is the combination lib/checkpoint/SKILL.md prescribes and the only way
+      # that particular collision is reachable.
+      - name: Sourced-library safety gate
+        run: bash tests/security/test-sourced-library-safety.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -66,6 +91,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
+
+      # dist/cli.cjs is a committed build artifact, because consuming projects
+      # reach this skill through the ~/.claude/skills symlink with no
+      # node_modules to build in. Placed after npm ci on purpose: the gate's
+      # staleness check rebuilds from src/cli.ts and compares, and it SKIPS
+      # rather than passes when esbuild is unresolvable.
+      - name: Agent-selection bundle gate
+        run: bash tests/test-agent-selection-bundle.sh
 
       - name: Run ESLint
         run: npm run lint 2>/dev/null || echo "Linting skipped - config not available"
@@ -234,6 +267,31 @@ jobs:
 
       - name: Path containment gate
         run: bash tests/security/test-path-containment.sh
+
+      # Executes each script's assignment-only prefix to resolve every
+      # 'source' target naming .claude, then requires the file to exist. This is
+      # the gate for the class the skill consolidation created: scripts moved
+      # into lib/<area>/ and into .claude/cfn-extras/ without their referrers
+      # being updated, so a source line pointed at a path that no longer exists.
+      - name: Sourced-path existence gate
+        run: bash tests/test-sourced-paths-exist.sh
+
+      # A .env value that wraps onto a continuation line executes as shell when
+      # the file is sourced. These scripts now extract the keys they need with
+      # grep/cut instead. The fixture proves sourcing DOES fire a planted
+      # marker, so the check cannot pass vacuously.
+      - name: Env handling gate
+        run: bash tests/security/test-env-handling.sh
+
+      # A library whose documented entry point is `source` must not freeze the
+      # names its callers already declared. `readonly RED=...` in such a library
+      # is a hard error that kills the caller, and so is a plain assignment to a
+      # name the caller froze, so the fix is a guard either way. The gate sources
+      # the real libraries and also sources the checkpoint pair together, which
+      # is the combination lib/checkpoint/SKILL.md prescribes and the only way
+      # that particular collision is reachable.
+      - name: Sourced-library safety gate
+        run: bash tests/security/test-sourced-library-safety.sh
 
       # Guards against the shim library quietly becoming a no-op on macOS --
       # a broken capability probe would leave every test above passing against

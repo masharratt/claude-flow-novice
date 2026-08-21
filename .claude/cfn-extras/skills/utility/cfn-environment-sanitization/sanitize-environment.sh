@@ -49,11 +49,13 @@ SENSITIVE_PATTERNS=(
 )
 
 # Color coding for output
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
-readonly NC='\033[0m' # No Color
+# Guarded: assign only if unset. A caller that already declared these names
+# (many test harnesses declare them 'readonly') must not die on 'source'.
+[[ -n ${RED:-} ]] || RED='\033[0;31m'
+[[ -n ${GREEN:-} ]] || GREEN='\033[0;32m'
+[[ -n ${YELLOW:-} ]] || YELLOW='\033[1;33m'
+[[ -n ${BLUE:-} ]] || BLUE='\033[0;34m'
+[[ -n ${NC:-} ]] || NC='\033[0m' # No Color
 
 # Logging functions
 log_info() {
@@ -111,11 +113,11 @@ sanitize_var() {
             ;;
         "enforce_10")
             export "$var_name"="${var_value:-10}"
-            log_info "Enforcing max 10 agents: $var_name=${!var_value}"
+            log_info "Enforcing max 10 agents: $var_name=${!var_name}"
             ;;
         "enforce_600")
             export "$var_name"="${var_value:-600}"
-            log_info "Enforcing 600s timeout: $var_name=${!var_value}"
+            log_info "Enforcing 600s timeout: $var_name=${!var_name}"
             ;;
     esac
 }
@@ -133,7 +135,7 @@ sanitize_environment() {
         local new_value="${!var_name:-}"
 
         if [[ "$old_value" != "$new_value" ]]; then
-            ((changes++))
+            changes=$((changes + 1))
         fi
     done
 
@@ -173,19 +175,19 @@ check_environment() {
     # Check for sensitive data exposure
     for var_name in $(env | grep -E "(password|secret|token|key|auth|credential)" | cut -d= -f1); do
         log_warning "Potential sensitive data in $var_name"
-        ((issues++))
+        issues=$((issues + 1))
     done
 
     # Check Node.js memory settings
     if [[ -n "${NODE_OPTIONS:-}" && ! "$NODE_OPTIONS" =~ "max-old-space-size" ]]; then
         log_warning "NODE_OPTIONS missing heap limit"
-        ((issues++))
+        issues=$((issues + 1))
     fi
 
     # Check CFN configuration
     if [[ -z "${CFN_MAX_AGENTS:-}" ]]; then
         log_warning "CFN_MAX_AGENTS not set"
-        ((issues++))
+        issues=$((issues + 1))
     fi
 
     if [[ $issues -eq 0 ]]; then

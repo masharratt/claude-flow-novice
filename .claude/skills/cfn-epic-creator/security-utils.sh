@@ -16,10 +16,12 @@ readonly ALLOWED_PATH_PATTERN='^[a-zA-Z0-9._/-]+$'
 readonly TEMP_DIR_PERMISSIONS=700
 
 # Color codes for output
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly NC='\033[0m' # No Color
+# Guarded: assign only if unset. A caller that already declared these names
+# (many test harnesses declare them 'readonly') must not die on 'source'.
+[[ -n ${RED:-} ]] || RED='\033[0;31m'
+[[ -n ${GREEN:-} ]] || GREEN='\033[0;32m'
+[[ -n ${YELLOW:-} ]] || YELLOW='\033[1;33m'
+[[ -n ${NC:-} ]] || NC='\033[0m' # No Color
 
 # Logging function
 log_security() {

@@ -4,20 +4,25 @@ set -euo pipefail
 
 readonly SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+readonly PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 readonly SHARED_UTILS_DIR="${SHARED_UTILS_DIR:-$PROJECT_ROOT/shared}"
 
 # Try different paths for bootstrap utilities
-if [[ -f "${PROJECT_ROOT}/.claude/skills/shared/bootstrap/sqlite-params.sh" ]]; then
-    source "${PROJECT_ROOT}/.claude/skills/shared/bootstrap/sqlite-params.sh"
-elif [[ -f "${SCRIPT_DIR}/../../shared/bootstrap/sqlite-params.sh" ]]; then
-    source "${SCRIPT_DIR}/../../shared/bootstrap/sqlite-params.sh"
+# cfn: PROJECT_ROOT was off by one level (3 x ../ landed on .claude/, not the
+# repo root), so this always fell through to the elif/error path. Depth fixed
+# to 4 x ../ (cli -> cfn-knowledge-base -> skills -> .claude -> repo root) and
+# both branches repointed from the removed .claude/skills/shared/bootstrap to
+# the real .claude/shared-lib/bootstrap.
+if [[ -f "${PROJECT_ROOT}/.claude/shared-lib/bootstrap/sqlite-params.sh" ]]; then
+    source "${PROJECT_ROOT}/.claude/shared-lib/bootstrap/sqlite-params.sh"
+elif [[ -f "${SCRIPT_DIR}/../../../shared-lib/bootstrap/sqlite-params.sh" ]]; then
+    source "${SCRIPT_DIR}/../../../shared-lib/bootstrap/sqlite-params.sh"
 elif [[ -f "${SHARED_UTILS_DIR}/bootstrap.sh" ]]; then
     source "${SHARED_UTILS_DIR}/bootstrap.sh"
 else
     echo "Error: Bootstrap utilities not found" >&2
-    echo "Tried: ${PROJECT_ROOT}/.claude/skills/shared/bootstrap/sqlite-params.sh" >&2
-    echo "Tried: ${SCRIPT_DIR}/../../shared/bootstrap/sqlite-params.sh" >&2
+    echo "Tried: ${PROJECT_ROOT}/.claude/shared-lib/bootstrap/sqlite-params.sh" >&2
+    echo "Tried: ${SCRIPT_DIR}/../../../shared-lib/bootstrap/sqlite-params.sh" >&2
     echo "And: ${SHARED_UTILS_DIR}/bootstrap.sh" >&2
     exit 1
 fi

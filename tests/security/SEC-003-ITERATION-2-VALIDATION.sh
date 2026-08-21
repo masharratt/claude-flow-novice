@@ -6,7 +6,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
 # Test database for injection attack tests
@@ -144,7 +144,7 @@ CREATE TABLE logs (
 SQL
 
     # Load sqlite-params library for safe testing
-    source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
     local passed=0
     local failed=0
@@ -244,7 +244,7 @@ test_owasp_a03_2021_compliance() {
 
     # Control 1: Input Validation
     log_info "  Checking: Parameterized queries (REQUIRED for A03:2021)"
-    if [[ -f "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh" ]]; then
+    if [[ -f "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh" ]]; then
         log_info "    ✓ Parameterized query library implemented"
         ((compliance_score++))
     fi
@@ -334,9 +334,9 @@ test_prevention_framework() {
     local framework_components=0
 
     # Check sqlite-params library
-    if [[ -f "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh" ]]; then
+    if [[ -f "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh" ]]; then
         # Verify function implementations
-        source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+        source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
         if declare -f sqlite_select > /dev/null && \
            declare -f sqlite_insert > /dev/null && \

@@ -14,7 +14,7 @@ PROJECT_DATA_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
 DB_FILE="${DB_FILE:-$PROJECT_DATA_ROOT/.artifacts/test-benchmarks.db}"
 
 # Source sqlite parameter binding library
-source "$CFN_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+source "$CFN_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
 # Parse arguments
 SUITE=""

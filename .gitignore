@@ -202,6 +202,13 @@ target/
 **/.tsbuildinfo
 **/build/
 
+# cfn-agent-lifecycle TypeScript agent-selection bundle: this compiled bundle
+# IS the shipped artifact (no install step runs in consuming projects reached
+# via the ~/.claude/skills reverse symlink), so it must be committed despite
+# the blanket **/dist/ rule above.
+!.claude/skills/cfn-agent-lifecycle/lib/selection/dist/
+!.claude/skills/cfn-agent-lifecycle/lib/selection/dist/cli.cjs
+
 # Test artifacts and temp files
 tests/epic-skills-validation/
 **/test-*.subtasks.json
@@ -337,3 +344,13 @@ src/planning/**/*.d.ts.map
 
 # CFN local cache
 .cfn-cache/
+
+# Agent git worktrees. `EnterWorktree`/isolation:"worktree" checks out a full
+# second copy of the repo under here (5000+ files), which must never be
+# committed back into the repo it was cut from. It also makes jest-haste-map
+# report every module as a duplicate.
+.claude/worktrees/
+
+# Rendered workbench/planning artifacts. Generated per run into the invoking
+# project by cfn-workbench render.sh; the plan sources live in planning/.
+.claude/planning/

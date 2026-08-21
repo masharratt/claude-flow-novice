@@ -17,7 +17,10 @@
 
 set -euo pipefail
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# PROJECT_ROOT was only one '../' (landed on tests/security/, not the repo
+# root), so the source below always missed. This file sits three levels
+# under the repo root (tests/security/sql-injection), so it needs three.
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 TEST_DB="/tmp/sql-injection-test-$$.db"
 TEST_COUNT=0
 PASS_COUNT=0
@@ -30,7 +33,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Source the parameterized query library
-source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
 # Test result tracking
 declare -a FAILED_TESTS=()
@@ -411,8 +414,8 @@ test_security_utilities() {
     echo "=== Test Group 10: Security Utilities Validation ==="
 
     # Test 27: security-utils.sh escape_sql_string function
-    if [[ -f "$PROJECT_ROOT/.claude/skills/workflow-codification/lib/security-utils.sh" ]]; then
-        source "$PROJECT_ROOT/.claude/skills/workflow-codification/lib/security-utils.sh"
+    if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-knowledge-base/lib/workflow/lib/security-utils.sh" ]]; then
+        source "$PROJECT_ROOT/.claude/skills/cfn-knowledge-base/lib/workflow/lib/security-utils.sh"
 
         local test_input="O'Reilly's book"
         local escaped

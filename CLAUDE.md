@@ -65,8 +65,8 @@ Set up or verify the links with:
 ### Editing CFN Files
 
 Edit files directly in this project — changes propagate to all projects via reverse symlinks. Both paths resolve to the same files:
-- `.claude/skills/cfn-parallel-execute/execute.sh` (project source)
-- `~/.claude/skills/cfn-parallel-execute/execute.sh` (via reverse symlink)
+- `.claude/skills/cfn-alpha-launch/execute.sh` (project source)
+- `~/.claude/skills/cfn-alpha-launch/execute.sh` (via reverse symlink)
 
 ### Z.ai Configuration
 

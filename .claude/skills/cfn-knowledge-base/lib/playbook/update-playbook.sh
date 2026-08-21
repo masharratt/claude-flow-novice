@@ -8,8 +8,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 DB_PATH="$SCRIPT_DIR/../../../../data/playbook.db"
 
 # Import parameterized query library from shared location
-if [[ -f "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh" ]]; then
-    source "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh"
+if [[ -f "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh" ]]; then
+    source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 else
     echo "Error: SQLite parameter utilities not found" >&2
     exit 1

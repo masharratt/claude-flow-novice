@@ -35,8 +35,7 @@
     }
   },
   "include": [
-    "src/**/*",
-    "trigger.config.ts"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",

@@ -10,17 +10,19 @@
 set -euo pipefail
 
 # Color codes for output
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
-readonly CYAN='\033[0;36m'
-readonly NC='\033[0m'  # No Color
+# Guarded: assign only if unset. A caller that already declared these names
+# (many test harnesses declare them 'readonly') must not die on 'source'.
+[[ -n ${RED:-} ]] || RED='\033[0;31m'
+[[ -n ${GREEN:-} ]] || GREEN='\033[0;32m'
+[[ -n ${YELLOW:-} ]] || YELLOW='\033[1;33m'
+[[ -n ${BLUE:-} ]] || BLUE='\033[0;34m'
+[[ -n ${CYAN:-} ]] || CYAN='\033[0;36m'
+[[ -n ${NC:-} ]] || NC='\033[0m'  # No Color
 
 # Logging configuration
-readonly LOG_TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+[[ -n ${LOG_TIMESTAMP:-} ]] || LOG_TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+[[ -n ${SCRIPT_DIR:-} ]] || SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -n ${SKILL_DIR:-} ]] || SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 ################################################################################
 # LOGGING FUNCTIONS

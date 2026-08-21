@@ -82,9 +82,7 @@ CFN_TREE_MANIFEST='
 .claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh|PROJECT_ROOT
 .claude/skills/cfn-knowledge-base/lib/playbook/query-playbook.sh|PROJECT_ROOT
 .claude/skills/cfn-knowledge-base/lib/playbook/update-playbook.sh|PROJECT_ROOT
-.claude/skills/cfn-knowledge-base/lib/workflow/approval-workflow.sh|PROJECT_ROOT
 .claude/skills/cfn-knowledge-base/lib/workflow/propagate-skill-update.sh|PROJECT_ROOT
-.claude/skills/cfn-knowledge-base/lib/workflow/review-skill.sh|PROJECT_ROOT
 .claude/skills/cfn-knowledge-base/lib/workflow/test-metadata-update.sh|PROJECT_ROOT
 .claude/skills/cfn-knowledge-base/lib/workflow/track-cost-savings.sh|PROJECT_ROOT
 .claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/test-iteration-context-injection.sh|PROJECT_ROOT
@@ -114,7 +112,10 @@ PROJECT_DATA_MANIFEST='
 .claude/skills/cfn-test-framework/lib/runner/init-benchmark-db.sh|PROJECT_DATA_ROOT
 .claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh|PROJECT_DATA_ROOT
 .claude/skills/cfn-test-framework/lib/runner/store-benchmarks.sh|PROJECT_DATA_ROOT
+.claude/skills/cfn-workbench/render.sh|PROJECT_ROOT_DEFAULT
 .claude/skills/cfn-workbench/watch.sh|ROOT
+.claude/skills/cfn-knowledge-base/lib/workflow/approval-workflow.sh|ENV_FILE
+.claude/skills/cfn-knowledge-base/lib/workflow/review-skill.sh|ENV_FILE
 '
 
 manifest() { echo "$1" | grep -v '^[[:space:]]*$'; }

@@ -5,7 +5,7 @@ set -e
 
 # Source parameterized query library for SQL injection prevention
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
-source "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh"
+source "$PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh"
 
 # Temporary test database
 TEST_DB="/tmp/test_memory_persistence_$(date +%s).sqlite"
