@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-20 (path-resolution audit: root-anchor depth, per-project vs CFN anchors, path containment; cfn-extras brought under the portability gate) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-20 (path-resolution audit: root-anchor depth, per-project vs CFN anchors, path containment; cfn-extras brought under the portability gate; macOS awk -v newline fix + gate) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -536,7 +536,7 @@ Consumer Project
 | cfn-migration-rehearsal | ✅ Prod | ✅ 8/8 | `.claude/skills/cfn-migration-rehearsal/` | Rehearses migration up+down round-trip against CFN_SCRATCH_DATABASE_URL only; refuses prod. Destructive-SQL guard is statement-anchored, so GRANT/REVOKE privilege names are not flagged. Executes what cfn-ops designs |
 | docs-sync pre-commit check | ✅ Prod | ✅ 9/9 | `.claude/hooks/cfn-docs-sync-check.sh` | Warns (blocks if CFN_DOCS_SYNC_STRICT=1) when a code commit omits feature-status.md / state-machines.md |
 
-| shell-portability gate | ✅ Prod | ✅ 3/3 + 43/43 | `tests/test-shell-portability.sh` | CI gate (ci.yml lint + macos jobs) blocking `#!/bin/bash` shebangs, hardcoded home paths, and cwd-relative `.claude/skills/cfn-*` refs in executable position. `# portability-ok: <reason>` (reason mandatory) exempts a genuine repo-root-only call. `--list-refs` lists in-scope refs. Check 3 now covers `.claude/cfn-extras/` (a live reverse-symlinked runtime dir, previously exempt wholesale); only its deprecated/ and agents/unused/ subtrees are skipped. Unit tests: tests/test-portability-skill-refs.sh |
+| shell-portability gate | ✅ Prod | ✅ 3/3 + 43/43 | `tests/test-shell-portability.sh` | CI gate (ci.yml lint + macos jobs) blocking `#!/bin/bash` shebangs, hardcoded home paths, and cwd-relative `.claude/skills/cfn-*` refs in executable position. `# portability-ok: <reason>` (reason mandatory) exempts a genuine repo-root-only call. `--list-refs` lists in-scope refs. Check 3 now covers `.claude/cfn-extras/` (a live reverse-symlinked runtime dir, previously exempt wholesale); only its deprecated/ and agents/unused/ subtrees are skipped. Check 4 blocks a heredoc-built (real-newline) variable passed through `awk -v`, which BSD awk rejects while GNU awk and mawk accept. Unit tests: tests/test-portability-skill-refs.sh |
 | GNU-tool shim library | ✅ Prod | ✅ 58/58 | `.claude/helpers/cfn-portable.sh` | Shell functions shadowing timeout/stat/date/sed/free/nproc/readlink, defined only when the GNU behavior is absent so it is a no-op on Linux. Sourced by 182 scripts. Removes the PATH dependency that broke hooks spawned outside a login shell |
 | shell-syntax gate | ✅ Prod | ✅ 2/2 | `tests/test-shell-syntax.sh` | Two CI checks per in-scope script: `bash -n` parses it, and a shebang requires index mode 100755. Added after 9 scripts were found unparseable, extended after 933 were non-executable in git, where a fresh clone gets 644 and `./script` exits 126 |
 | macOS Portability CI job | ✅ Prod | ✅ 3 gates | `.github/workflows/ci.yml` | macos-latest runner installing only bash 5, deliberately not coreutils or gnu-sed, so the BSD shim paths are exercised for real. Blocks the quality gate. Also asserts shims are active and every shim source path resolves |

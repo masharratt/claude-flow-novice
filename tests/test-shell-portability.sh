@@ -225,6 +225,49 @@ else
   echo "PASS: no cwd-relative .claude/skills/cfn-* references in executable position"
 fi
 
+# --- Check: no multi-line shell variable passed through `awk -v` -------------
+#
+# BSD awk (macOS) refuses a newline inside a -v string assignment:
+#   awk: newline in string ... at source line 1
+# It then inserts nothing and exits non-zero, while GNU awk and mawk both accept
+# it, so the bug is invisible on Linux. Hit once for real:
+# add-backlog-item.sh built BACKLOG_ENTRY with a heredoc and passed it as
+# `awk -v entry="$BACKLOG_ENTRY"`, so every backlog write was a silent no-op on
+# macOS. `-v` also expands backslash escapes, so user text containing \n is
+# rewritten even where it does work.
+#
+# Detection is narrow on purpose: only a -v value whose variable is assigned from
+# a heredoc (`VAR=$(cat <<EOF` / `VAR=$(<<`) or `read -r -d ''`. Those are the
+# forms that guarantee real newlines. A -v fed by a plain assignment is fine.
+#
+# Fix: export the variable for the awk call and read it via ENVIRON["NAME"].
+AWKV_HITS=""
+while IFS= read -r hit; do
+  [ -n "$hit" ] || continue
+  f="${hit%%:*}"
+  var=$(printf '%s' "$hit" | grep -oE '"\$\{?[A-Za-z_]+\}?"$' | tr -d '"${}')
+  [ -n "$var" ] || continue
+  if grep -qE "^[[:space:]]*${var}=\\\$\(cat <<|^[[:space:]]*${var}=\\\$\(<<|^[[:space:]]*read -r -d '' ${var}" "$f" 2>/dev/null; then
+    AWKV_HITS="$AWKV_HITS$f: awk -v ... \"\$$var\" (heredoc-built, has real newlines)
+"
+  fi
+done <<AWKV_EOF
+$(in_scope | while read -r f; do
+    [ -f "$f" ] || continue
+    grep -oE 'awk [^|]*-v [a-zA-Z_]+="\$\{?[A-Za-z_]+\}?"' "$f" 2>/dev/null | sed "s|^|$f:|"
+  done)
+AWKV_EOF
+
+AWKV_HITS=$(printf '%s' "$AWKV_HITS" | grep -v '^$' | sort -u || true)
+if [ -n "$AWKV_HITS" ]; then
+  echo "FAIL: multi-line variable passed through 'awk -v' (BSD awk rejects it):" >&2
+  echo "$AWKV_HITS" | sed 's/^/  /' >&2
+  echo "  Fix: VAR=\"\$VAR\" awk '... ENVIRON[\"VAR\"] ...'  (POSIX, byte-exact)" >&2
+  FAIL=1
+else
+  echo "PASS: no heredoc-built variable passed through 'awk -v'"
+fi
+
 echo "---"
 if [ "$FAIL" -eq 0 ]; then
   echo "shell portability: OK ($(in_scope | wc -l | tr -d ' ') shell files, $(in_scope_refs | wc -l | tr -d ' ') files scanned for skill refs)"

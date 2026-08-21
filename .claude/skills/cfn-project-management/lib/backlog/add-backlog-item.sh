@@ -196,11 +196,19 @@ EOF
 # Insert into appropriate priority section
 SECTION_MARKER="### $PRIORITY"
 
-# Use awk to insert after section marker
-awk -v section="$SECTION_MARKER" -v entry="$BACKLOG_ENTRY" '
+# Insert after the section marker.
+#
+# The entry must NOT travel through `awk -v`. It is built by a heredoc, so it
+# holds real newlines, and BSD awk (macOS) rejects a newline inside a -v string
+# assignment outright: "awk: newline in string ... at source line 1", after which
+# nothing is inserted. GNU awk accepts it, which is why this only ever failed on
+# macOS. `-v` also expands backslash escapes, so a literal \n or \t typed into
+# --item would be silently rewritten. ENVIRON is POSIX and passes the bytes
+# through untouched on both awks.
+BACKLOG_ENTRY="$BACKLOG_ENTRY" awk -v section="$SECTION_MARKER" '
   $0 ~ section {
     print
-    print entry
+    print ENVIRON["BACKLOG_ENTRY"]
     next
   }
   {print}
