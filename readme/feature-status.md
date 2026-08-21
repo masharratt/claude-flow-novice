@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-21 (S008 tool-preflight regression coverage added to verify-run; loop-task lane derivation and pre-flight readiness moved out of the model into tested scripts) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-21 (terse-output carve-out for agent briefs and plan artifacts, with a guard test; S008 tool-preflight regression coverage added to verify-run; loop-task lane derivation and pre-flight readiness moved out of the model into tested scripts) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -524,6 +524,7 @@ Consumer Project
 | derive-lanes | ✅ Prod | ✅ 74/74 | `.claude/skills/cfn-megaplan/bars/{derive-lanes.sh,derive_lanes.py}` | Derives lanes, produce/consume edges and topological waves from a PLAN step table. Exclusive file ownership is the default; `--hub-split` and `--soft-ownership` are opt-in. Emits a separability advisory when the longest lane exceeds 2x the cap so an unparallelizable plan escalates instead of running serial silently. |
 | preflight | ✅ Prod | ✅ 37/37 | `.claude/skills/cfn-megaplan/bars/{preflight.sh,preflight.py}` | Section-aware readiness scan of a plan dir: open escalations, unresolved forks, parked items, unpatched defects, open blocking deferrals, missing required artifacts. Headings qualified as answered/resolved/decided are excluded. Report capped under 3KB, 8 items per section with true counts. |
 | task-mode on-demand libs | ✅ Prod | n/a | `.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/` | 7 sections extracted from `cfn-loop-task.md` (exit gate, tool-failure capture, worked example, step amendment, iteration context, flaky re-run, changelog) with pointer stubs left inline. Command body 70,556 to 50,275 chars. Placed under an existing skill so no new registry entry and no collision with the `/cfn-loop-task` command name. |
+| caveman carve-out guard | ✅ Prod | ✅ 14/14 | `tests/test-caveman-carveout.sh`, `.claude/global/CLAUDE.md` | Terse output is exempted for subagent prompts, on-disk plan artifacts, AskUserQuestion text, commits and readme. Test pins the guide's claims about a plugin CFN does not control: the off knob, the flag path, intensity not being a size lever. Restores the live flag. |
 
 **Why these exist:** measured 2026-08-20, one coordinator burned ~187k context tokens before the loop started. 53k went to ad-hoc in-chat lane graph math over 14 python heredocs (whose lane set would have put co-writers of the same hub file in one wave), and ~41k to grepping SPEC/DECISIONS/PLAN for open items over 26 bash calls. Both answers are now deterministic script output.
 

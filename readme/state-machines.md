@@ -2,7 +2,7 @@
 
 Entity lifecycle documentation for stateful CFN systems.
 
-**Last Updated:** 2026-08-21 (AC verdict gains the S008 `error`/tool_missing state; implementation wave rewritten against derive-lanes.sh; loop pre-flight readiness lifecycle added)
+**Last Updated:** 2026-08-21 (terse-output mode flag lifecycle added; AC verdict gains the S008 `error`/tool_missing state; implementation wave rewritten against derive-lanes.sh; loop pre-flight readiness lifecycle added)
 
 ## Contents
 
@@ -34,6 +34,7 @@ Entity lifecycle documentation for stateful CFN systems.
 - [Workbench Watcher (cfn-workbench watch.sh)](#workbench-watcher-cfn-workbench-watchsh)
 - [Roster Lane (cfn-workbench section-roster)](#roster-lane-cfn-workbench-section-roster)
 - [Runtime Link Target (link-runtime-dirs.sh)](#runtime-link-target-link-runtime-dirssh)
+- [Terse-Output Mode (caveman plugin flag)](#terse-output-mode-caveman-plugin-flag)
 - [Content Path Containment (security-utils.sh validate_file_path)](#content-path-containment-security-utilssh-validate_file_path)
 - [Post-Edit Validation Pipeline (cfn-invoke-post-edit.sh / post-edit-pipeline.js, S016/S018/S020)](#post-edit-validation-pipeline-cfn-invoke-post-editsh-post-edit-pipelinejs-s016s018s020)
 - [Subagent Lifecycle Hooks (cfn-subagent-start.sh / cfn-subagent-stop.sh, S015)](#subagent-lifecycle-hooks-cfn-subagent-startsh-cfn-subagent-stopsh-s015)
@@ -928,6 +929,52 @@ occupied-populated-dir ──no --force──> refused ──--force+backup─�
 
 `~/.claude/agents` is deliberately not in this set: it stays a real directory so
 project-local agents survive, and only `agents/cfn-dev-team` is linked.
+
+## Terse-Output Mode (caveman plugin flag)
+
+**Source:** `~/.claude/.caveman-active` written by `caveman-activate.js` (SessionStart) and `caveman-mode-tracker.js` (UserPromptSubmit); rules in `.claude/global/CLAUDE.md` "Terse-Output Mode Carve-Out"; verified by `tests/test-caveman-carveout.sh`
+
+Documented here because the lifecycle is counter-intuitive in one specific way:
+turning terse mode off is not sticky. The flag is re-armed from config at the
+start of every session and after every compact, so "stop caveman" buys silence
+for the rest of one session and nothing more. Only the config file or the
+`CAVEMAN_DEFAULT_MODE` env var survives a restart.
+
+### States
+
+`off | active-lite | active-full | active-ultra | independent`
+
+`independent` covers the commit, review and compress skills, which define their
+own behaviour and suppress the per-prompt reminder.
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| any | active-<level> | SessionStart, including after a compact | resolved mode is not `off`; flag written, 1,847-byte ruleset injected |
+| any | off | SessionStart | resolved mode is `off` from env or config; flag unlinked, nothing injected |
+| off | active-<level> | prompt matches activate/enable/turn on/start/talk like + caveman | no stop word in the same prompt |
+| active-<level> | active-<other> | `/caveman lite\|full\|ultra` | argument is a valid mode |
+| active-<level> | independent | `/caveman-commit`, `/caveman-review`, `/caveman-compress` | skill defines behaviour; per-prompt reminder suppressed |
+| active-<level> | off | prompt matches stop/disable/deactivate/turn off + caveman, or "normal mode" | flag unlinked; takes effect from the next prompt |
+| active-<level> | active-<level> | any other prompt | 121-byte reminder injected because the flag reads back as a valid mode |
+| off | off | any prompt | flag absent, so `readFlag` returns null and nothing is injected |
+
+```
+                  SessionStart / compact (mode != off)
+      ┌──────────────────────────────────────────────┐
+      │                                              v
+    off <──stop caveman / normal mode──── active-{lite,full,ultra}
+      │                                     │      ^
+      └──"activate caveman"─────────────────┘      │
+                                                   v
+                              independent {commit, review, compress}
+```
+
+Resolution order for the mode is `CAVEMAN_DEFAULT_MODE`, then
+`~/.config/caveman/config.json`, then `full`. A malformed, oversized, or
+symlinked flag file reads back as null and is treated as `off`, so a tampered
+flag can never inject arbitrary bytes into model context.
 
 ## Content Path Containment (security-utils.sh validate_file_path)
 

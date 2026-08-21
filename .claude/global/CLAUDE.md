@@ -1,4 +1,4 @@
-# CFN Operating Guide v2.26.0
+# CFN Operating Guide v2.27.0
 
 ## 1. Edit Safety (REQUIRED)
 
@@ -130,6 +130,27 @@ Replacement map (`anthropic:* -> xai:*`) and cost/reasoning-model rules: `~/.cla
 
 ### Content Standards
 - **No Em Dashes:** Never use em dashes (---, &mdash;, or the literal character) in website copy, comments, or code. Use periods, commas, colons, or parentheses instead. (Agents default to em dashes; override this.)
+
+### Terse-Output Mode Carve-Out (caveman plugin)
+
+The caveman plugin injects terse-output rules at session start, on every compact, and on every user prompt. Its own boundaries already exempt code, commits, and PRs. Extend that exemption to anything a second party must act on without you present:
+
+- **Subagent prompts** (the `prompt` field of Agent/Task). A brief is the agent's entire world. Fragments drop the connective reasoning, so the agent guesses or asks back, costing far more than the terseness saved.
+- **Plan artifacts on disk:** PLAN, SPEC, VERIFY, DECISIONS, ARCH, and anything under `planning/`. Other sessions and humans read these later with none of this conversation.
+- **AskUserQuestion text.** Already covered by Decision Protocol ("Plain English only") below.
+- **Commit messages, PR bodies, `readme/*.md`.**
+
+Terse mode stays on for chat replies to the user. It is not a licence to drop technical substance anywhere.
+
+Controls (measured 2026-08-21): the session-start block is 1,847 bytes, re-paid on every compact, and the per-prompt reminder is 121 bytes. Neither shrinks with intensity level (`lite` is 1,907 bytes, `ultra` 1,852), so the only real lever is on/off, where both payloads drop to zero.
+
+- **This session only:** say "stop caveman". That unlinks `~/.claude/.caveman-active`, so per-prompt reinforcement stops on the next turn. `/caveman full` restores it. The session-start block is already paid and cannot be reclaimed.
+- **One project, permanently:** add `"CAVEMAN_DEFAULT_MODE": "off"` to that project's `.claude/settings.json` `env` block. Settings `env` reaches hook processes, so session start emits nothing and never writes the flag. Use this on projects that are mostly coordination, where most output is agent briefs and plan artifacts that the carve-out exempts anyway.
+- **Everywhere, permanently:** set `defaultMode` in `~/.config/caveman/config.json`.
+
+Never patch the plugin under `~/.claude/plugins/cache/`. That tree is not a git checkout, and an update writes a new content-hashed directory, so the edit disappears with no conflict and no warning.
+
+Forks inherit the whole transcript, so they inherit every injection above. Fresh agents do not: no session-start or prompt-submit hook fires for them.
 
 ### Decision Protocol (MANDATORY, ALL contexts)
 - **Always use AskUserQuestion** to surface decisions to the user. Never assume or silently decide.
