@@ -2,7 +2,7 @@
 
 Entity lifecycle documentation for stateful CFN systems.
 
-**Last Updated:** 2026-08-20 (implementation wave rewritten against derive-lanes.sh; loop pre-flight readiness lifecycle added)
+**Last Updated:** 2026-08-21 (AC verdict gains the S008 `error`/tool_missing state; implementation wave rewritten against derive-lanes.sh; loop pre-flight readiness lifecycle added)
 
 ## Contents
 
@@ -440,7 +440,7 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 
 **Entity:** verdict assigned to each Acceptance Criterion during VERIFY manifest execution.
 
-**States:** `green | red | unresolved | blocked` (S007 added `blocked`)
+**States:** `green | red | unresolved | blocked | error` (S007 added `blocked`; S008 added `error`)
 
 **Verdict rules (overrides old honor system):**
 
@@ -459,10 +459,11 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 | any AC unresolved after resolve phase | red | Predicate or agent evidence missing; cfn-loop-task may iterate to Phase 2 |
 | AC `requires` unmet (env unset, db URL absent, http URL unreachable) | blocked, `reason=precondition_unmet` | (S007) Infra absent is not feature failure. Counted in `summary.blocked`, resolvable with captured evidence like `needs_agent` once a human brings the infra up. One field loop hand-verified 27 rows to separate these two. |
 | AC `cwd` does not exist | blocked, `reason=precondition_unmet` | (S007) A monorepo subdir named in the manifest but absent on disk is a manifest defect, not a red check. |
+| AC's tool is not on PATH | error, `pass=false`, `exit_code=127`, `reason=tool_missing` | (S008, origin MP0 deferral 102) A `bash -c` check whose binary is absent emits no stdout, so `n=$(tool ... \| wc -l); test "$n" -eq 0` read empty output as zero offenders and scored GREEN. One manifest false-passed 113 `rg` uses across 49 of its 241 checks. Deliberately NOT `blocked`: a blocked row invites a hand-resolve, and "the tool was not installed" proves nothing about the feature. Adjudicated AFTER `requires{}` (absent infra is not a broken toolchain) and BEFORE execution. |
 
 **Verdict determinism:** AC verdict is fully determined by executable check output + parse-test-summary.sh classification (S002). Prose description never affects verdict. Results JSON from verify-run is single source of truth.
 
-**Verdict reason (S005, 2026-07-22):** every results row carries a `reason` string naming which rule decided it — `zero_tests_ran` / `skipped_present` / `runner_failed` / `ok` / `exit_code_only` / `predicate_failed` / `predicate_unverified` / `needs_agent` / `precondition_unmet` (S007). `summary.zero_ran` counts the first case separately, because a zero-ran check is a *check* defect (wrong selector, `--ignored` vs `#[ignore]` mismatch, wrong module path with `--exact`) and never a feature failure. Sending authors to debug correct code was the dominant cost in both 2026-07-22 field handoffs.
+**Verdict reason (S005, 2026-07-22):** every results row carries a `reason` string naming which rule decided it — `zero_tests_ran` / `skipped_present` / `runner_failed` / `ok` / `exit_code_only` / `predicate_failed` / `predicate_unverified` / `needs_agent` / `precondition_unmet` (S007) / `tool_missing` (S008, counted separately in `summary.tool_missing`). `summary.zero_ran` counts the first case separately, because a zero-ran check is a *check* defect (wrong selector, `--ignored` vs `#[ignore]` mismatch, wrong module path with `--exact`) and never a feature failure. Sending authors to debug correct code was the dominant cost in both 2026-07-22 field handoffs.
 
 ## VERIFY Manifest Bless Lifecycle (bless-verify.sh, S007, 2026-07-22)
 

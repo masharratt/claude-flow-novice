@@ -554,6 +554,243 @@ bless "$VF"
 "$SCRIPT" run --verify "$VF" --out "$WORK/res-wrongflag.json" >/dev/null 2>&1
 assert_exit $? 1 "S007: -t against pytest (whose filter is -k) does not relax"
 
+# =====================================================================
+# S008 tool preflight (origin: MP0 deferral 102)
+#
+# The bug this exists to prevent: every check runs through `bash -c`, so an
+# absent binary prints "command not found" and emits NO stdout. The most common
+# static-check shape is
+#
+#     n=$(<tool> ... | wc -l); test "$n" -eq 0
+#
+# where `wc -l` reads the empty output as ZERO OFFENDERS and the AC scores
+# GREEN. A missing tool was indistinguishable from a clean repo. One manifest
+# carried 113 `rg` uses across 49 of its 241 checks, every one a silent false
+# pass on any machine without ripgrep.
+#
+# A missing tool must be mode=error / pass=false / exit_code=127. Never green,
+# and never `blocked` -- a human may close a blocked row with hand-captured
+# evidence, and "the tool was not installed" is not evidence of anything.
+#
+# Note on check shapes below: classify() reads the FIRST WORD of the check, so
+# every fixture starts with a whitelisted command (`bash`, `grep`, ...). A
+# fixture starting with `n=$(...)` classifies as needs_agent and never reaches
+# the preflight at all.
+# =====================================================================
+
+# A tool guaranteed absent by construction: never on CFN_KNOWN_TOOLS, so only
+# detector 1 (requires.tools) or detector 3 (the shell's own diagnostic) can see
+# it. No dependence on what this machine happens to have installed.
+SYNTH="cfn-absent-tool-zqx"
+
+# Detector 2 infers over the fixed CFN_KNOWN_TOOLS list, so it needs a real name
+# off that list that is absent HERE. These five are absent from GitHub's Linux
+# and macOS runner images and from a stock WSL2 box. Assert the pick rather than
+# skipping: a vacuous pass would hide the very regression these tests pin.
+PICKED=""
+for t in wrangler vercel flyctl supabase dotnet; do
+  type -P -- "$t" >/dev/null 2>&1 || { PICKED="$t"; break; }
+done
+if [ -n "$PICKED" ]; then ok "S008: found an absent CFN_KNOWN_TOOLS name to test with ($PICKED)"
+else no "S008: every candidate tool is installed; detector-2 cases cannot run (widen the candidate list)"; fi
+
+# ---- THE REGRESSION: the wc -l shape must not score green on a missing tool ----
+VF=$(mkvf s008wc <<JSON
+{ "slug":"s008wc","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"static","check":"bash -c 'n=\$($SYNTH --files-with-matches TODO | wc -l); test \"\$n\" -eq 0'","pass":"exit 0","maps_to":["FR-1"],"requires":{"tools":["$SYNTH"]}}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-s008wc.json" >/dev/null 2>&1
+assert_exit $? 1 "S008: missing tool in the 'n=\$(tool|wc -l); test \$n -eq 0' shape -> exit 1, not green"
+[ "$(jq -r '.results[0].pass' "$WORK/res-s008wc.json")" = "false" ] \
+  && ok "S008: pass=false (an absent tool is not zero offenders)" || no "S008: pass=false"
+[ "$(jq -r '.results[0].mode' "$WORK/res-s008wc.json")" = "error" ] \
+  && ok "S008: mode=error" || no "S008: mode=error (got $(jq -r '.results[0].mode' "$WORK/res-s008wc.json"))"
+[ "$(jq -r '.results[0].exit_code' "$WORK/res-s008wc.json")" = "127" ] \
+  && ok "S008: exit_code 127 recorded (the shell's own command-not-found code)" || no "S008: exit_code 127"
+[ "$(jq -r '.summary.blocked' "$WORK/res-s008wc.json")" = "0" ] \
+  && ok "S008: never blocked (a blocked row is closable by hand-written evidence)" || no "S008: never blocked"
+[ "$(jq -r '.summary.tool_missing' "$WORK/res-s008wc.json")" = "1" ] \
+  && ok "S008: counted in summary.tool_missing" || no "S008: counted in summary.tool_missing"
+[ "$(jq -r '.summary.all_green' "$WORK/res-s008wc.json")" = "false" ] \
+  && ok "S008: all_green false" || no "S008: all_green false"
+
+# ---- detector 1: requires.tools[] honoured even when the check never names it ----
+VF=$(mkvf s008decl <<JSON
+{ "slug":"s008decl","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"static","check":"bash -c 'true'","pass":"exit 0","maps_to":["FR-1"],"requires":{"tools":["$SYNTH"]}}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-s008decl.json" >/dev/null 2>&1
+assert_exit $? 1 "S008 d1: declared-but-absent tool fails a check whose command would pass"
+R="$(jq -r '.results[0].reason' "$WORK/res-s008decl.json")"
+case "$R" in tool_missing*) ok "S008 d1: reason starts with tool_missing (what summary counts on)" ;;
+  *) no "S008 d1: reason starts with tool_missing (got: $R)" ;; esac
+echo "$R" | grep -q "$SYNTH"              && ok "S008 d1: reason names the tool" || no "S008 d1: reason names the tool"
+echo "$R" | grep -q "install it and re-run" && ok "S008 d1: reason carries a fallback install hint" || no "S008 d1: fallback install hint"
+
+# ---- detector 1: a present tool declared alongside a missing one is not reported ----
+VF=$(mkvf s008hint <<JSON
+{ "slug":"s008hint","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"static","check":"bash -c 'true'","pass":"exit 0","maps_to":["FR-1"],"requires":{"tools":["$SYNTH","grep"]}}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-s008hint.json" >/dev/null 2>&1
+R="$(jq -r '.results[0].reason' "$WORK/res-s008hint.json")"
+echo "$R" | grep -qE '(^|[^a-z])grep([^a-z]|$)' \
+  && no "S008 d1: grep is installed here and must not be listed missing (got: $R)" \
+  || ok "S008 d1: only the absent tool of a declared pair is reported"
+
+# ---- detector 2: inference over CFN_KNOWN_TOOLS in shell COMMAND position ----
+if [ -n "$PICKED" ]; then
+  VF=$(mkvf s008infer <<JSON
+{ "slug":"s008infer","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"static","check":"bash -c 'true'; $PICKED --version >/dev/null","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+  bless "$VF"
+  "$SCRIPT" run --verify "$VF" --out "$WORK/res-s008infer.json" >/dev/null 2>&1
+  assert_exit $? 1 "S008 d2: undeclared tool inferred from command position -> exit 1"
+  jq -r '.results[0].reason' "$WORK/res-s008infer.json" | grep -q "$PICKED" \
+    && ok "S008 d2: reason names the inferred tool" || no "S008 d2: reason names the inferred tool"
+
+  # Negative: the same name as a STRING ARGUMENT is not a command position.
+  # Inferring it would red a check whose real toolchain is present.
+  printf 'we do not use %s here\n' "$PICKED" > "$WORK/arg.txt"
+  VF=$(mkvf s008notcmd <<JSON
+{ "slug":"s008notcmd","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"static","check":"grep -q $PICKED $WORK/arg.txt","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+  bless "$VF"
+  "$SCRIPT" run --verify "$VF" --out "$WORK/res-s008notcmd.json" >/dev/null 2>&1
+  assert_exit $? 0 "S008 d2: a known-tool name in argument position is not inferred as a command"
+
+  # type -P is a PATH search only: a tool that exists ONLY as an exported shell
+  # function is not reproducible from a clone. Reporting it present is how the
+  # original bug survived, so absence must still be reported.
+  VF=$(mkvf s008fn <<JSON
+{ "slug":"s008fn","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"static","check":"bash -c 'true'; $PICKED --version >/dev/null","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+  bless "$VF"
+  eval "$PICKED() { return 0; }"; export -f "$PICKED"
+  "$SCRIPT" run --verify "$VF" --out "$WORK/res-s008fn.json" >/dev/null 2>&1
+  assert_exit $? 1 "S008: an exported shell function does not make a tool present (type -P, not command -v)"
+  export -fn "$PICKED" 2>/dev/null; unset -f "$PICKED"
+fi
+
+# ---- detector 3: absent tool inside $(...) where the outer command exits 0 ----
+# Neither declared nor on CFN_KNOWN_TOOLS, so ONLY the post-run scan of the
+# shell's own diagnostic can catch this one.
+VF=$(mkvf s008nf <<JSON
+{ "slug":"s008nf","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"static","check":"bash -c 'n=\$($SYNTH -c TODO); test -z \"\$n\"'","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-s008nf.json" >/dev/null 2>&1
+assert_exit $? 1 "S008 d3: not-found inside \$(...) with a 0-exit outer command -> exit 1"
+[ "$(jq -r '.results[0].mode' "$WORK/res-s008nf.json")" = "error" ] \
+  && ok "S008 d3: mode=error" || no "S008 d3: mode=error (got $(jq -r '.results[0].mode' "$WORK/res-s008nf.json"))"
+jq -r '.results[0].reason' "$WORK/res-s008nf.json" | grep -q "$SYNTH" \
+  && ok "S008 d3: reason names the tool the shell reported" || no "S008 d3: reason names the tool"
+
+# Negative: prose that merely ENDS in "not found" is not the shell's diagnostic.
+VF=$(mkvf s008prose <<'JSON'
+{ "slug":"s008prose","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"static","check":"bash -c \"echo 'config key not found'; echo 'the migration was not found'; true\"","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-s008prose.json" >/dev/null 2>&1
+assert_exit $? 0 "S008 d3: prose ending in 'not found' is not read as a missing tool"
+
+# ---- project-local devDependency binaries are deliberately EXCLUDED ----
+# tsc/tsx/vitest/jest/eslint/prettier/jscpd resolve from node_modules/.bin via
+# the package manager, are never expected on PATH, and listing them on
+# CFN_KNOWN_TOOLS reported four already-correct checks as broken. The package
+# manager itself IS listed, because that is the thing that has to exist.
+if type -P -- tsc >/dev/null 2>&1; then
+  ok "S008: tsc is on PATH here, so the exclusion case is not exercised (harmless)"
+else
+  VF=$(mkvf s008dev <<'JSON'
+{ "slug":"s008dev","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"static","check":"bash -c 'exit 0'; tsc --noEmit >/dev/null 2>&1 || true","pass":"exit 0","maps_to":["FR-1"]}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+  bless "$VF"
+  "$SCRIPT" run --verify "$VF" --out "$WORK/res-s008dev.json" >/dev/null 2>&1
+  assert_exit $? 0 "S008: an absent devDependency binary (tsc) is not preflighted as missing"
+  [ "$(jq -r '.summary.tool_missing' "$WORK/res-s008dev.json")" = "0" ] \
+    && ok "S008: devDependency exclusion keeps tool_missing at 0" || no "S008: devDependency exclusion"
+fi
+
+# ---- ordering: requires{} preconditions are adjudicated BEFORE the preflight ----
+# An unset env var is infrastructure, not a broken toolchain, and stays
+# `blocked` (resolvable by hand) rather than becoming `error` (not resolvable).
+VF=$(mkvf s008order <<JSON
+{ "slug":"s008order","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"static","check":"bash -c 'true'","pass":"exit 0","maps_to":["FR-1"],"requires":{"env":["CFN_S008_NEVER_SET_VAR"],"tools":["$SYNTH"]}}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-s008order.json" >/dev/null 2>&1 || true
+R="$(jq -r '.results[0].reason' "$WORK/res-s008order.json")"
+case "$R" in precondition_unmet*) ok "S008: an unmet requires{} precondition wins over the tool preflight" ;;
+  *) no "S008: precondition should be adjudicated first (got: $R)" ;; esac
+[ "$(jq -r '.results[0].mode' "$WORK/res-s008order.json")" = "blocked" ] \
+  && ok "S008: that row stays blocked, not error" || no "S008: that row stays blocked"
+
+# ---- a check whose tools all resolve is untouched by the preflight ----
+VF=$(mkvf s008ok <<JSON
+{ "slug":"s008ok","done_rule":"all acs green",
+  "acs":[
+    {"id":"AC-1","kind":"static","check":"grep -q verifyprobe $WORK/pv.txt","pass":"exit 0","maps_to":["FR-1"],"requires":{"tools":["grep"]}}
+  ],
+  "coverage":{"fr_total":1,"fr_mapped":1} }
+JSON
+)
+bless "$VF"
+"$SCRIPT" run --verify "$VF" --out "$WORK/res-s008ok.json" >/dev/null 2>&1
+assert_exit $? 0 "S008: present tools (declared and inferred) leave the check alone"
+[ "$(jq -r '.results[0].mode' "$WORK/res-s008ok.json")" = "executed" ] \
+  && ok "S008: mode stays executed when the toolchain resolves" || no "S008: mode stays executed"
+
 # ---- usage ----
 "$SCRIPT" >/dev/null 2>&1; assert_exit $? 2 "no subcommand -> exit 2"
 "$SCRIPT" run >/dev/null 2>&1; assert_exit $? 2 "run without --verify -> exit 2"
