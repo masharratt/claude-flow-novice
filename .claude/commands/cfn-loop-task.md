@@ -57,41 +57,29 @@ Note: `verify-run.sh` (Phase 5) enforces the same hash independently and exits 4
 
 If `$("$PP" resolve "$SLUG" "SPEC_${SLUG}.md")` resolves, parse its `## 8. Build Flags` section into coordinator variables (`db`, `frontend`, etc.). If the section is absent (or the SPEC file is missing), treat EVERY flag as `no`. These flags drive the Phase 4 gate-wiring matrix (Step 4.0).
 
+### Step 0c: Pre-flight readiness (one script, never grep the plan by hand)
+
+Answers "what in this plan still needs a human before the loop starts": open escalations, unresolved forks, parked items, defects reported-not-patched, open blocking deferrals, missing required artifacts. It is a section scan, not a keyword grep — a heading qualified as answered/resolved/decided is excluded, so `grep -i open` cannot substitute for it.
+
+```bash
+BARS=$HOME/.claude/skills/cfn-megaplan/bars
+"$BARS/preflight.sh" --plan-dir "$PDIR" --slug "$SLUG"; PF_RC=$?
+```
+
+- **Exit 0** — clear. Proceed to Phase 1.
+- **Exit 1** — the report lists every open item, capped at 8 per section with the true count. Resolve or explicitly accept each one via `AskUserQuestion` (one decision per item), record the answers in `DECISIONS_<slug>.md`, then re-run the script. Do NOT start Phase 2 with open blocking deferrals: they become gate failures at Phase 5.
+- **Exit 2** — bad `--plan-dir`. Re-resolve with `plan-paths.sh` before retrying.
+
+Do not answer this question by reading SPEC/DECISIONS/PLAN yourself. Measured 2026-08-20: a coordinator spent ~41k context tokens and 26 bash calls doing exactly that, one grep alone returning 7.1k tokens. The script's report is under 3KB. Add `--json` when you need the fields (`open_sections[]`, `open_blocking_deferrals`, `missing_artifacts[]`) instead of the human report.
+
 ---
 
 ## TOOL INITIATION FAILURE CAPTURE (global log)
 
-When a CFN tool fails to even START — script missing or not executable (bash exit 126/127), an agent `Task` spawn returns nothing or malformed JSON, a slash skill is not found, or `MAX_ITERATIONS` is exhausted with no done verdict — record it to the GLOBAL failure log so it can be troubleshooted later. This is distinct from a tool that STARTS and then fails its check (gate-check exit 1/2/3, verify-run red ACs): those are normal control-flow exits and are NEVER logged here.
-
-One file, shared by every project via the reverse symlink:
-`~/.claude/cfn-data/tool-init-failures.jsonl` (gitignored runtime data).
-
-The logger auto-captures timestamp, host, cwd, git branch/commit/dirty, provider, session id, and (from env) `TASK_ID`/`RUN_ID`/`SLUG`/`ITERATION`. Export those four at Phase 1 so records carry them. You only supply tool + category. Two modes:
-
-1. **wrap** (PROGRAMMATIC, preferred for bash-invoked CFN CLI tools). Runs the command, re-emits its real exit code + stdout/stderr unchanged, and logs ONLY on an initiation failure (exit 126/127). Control-flow exits are untouched:
-   ```bash
-   CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
-   bash "$CFN_FAILLOG" wrap --tool gate-check.sh -- \
-     $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh --out /tmp/x.txt --threshold 0.95
-   GATE_EXIT=$?   # 0/1/2/3 preserved exactly
-   ```
-   Every `cfn-*/cli/*.sh` invocation in Phase 3 and Phase 5 below is already wrapped this way (including the `tee`-piped ones: `check-test-hygiene.sh`, `harvest.sh`). For a piped call, keep the `2>&1 | tee` outside the wrapper and read the tool's real exit via `${PIPESTATUS[0]}` (a bare `$?` after a pipe captures `tee`'s exit, not the tool's).
-
-2. **record** (EXPLICIT, for LLM-mediated failures the wrapper cannot see). Call when:
-   - A `Task` spawn returned no output or a malformed trailing JSON block: `--category NO_OUTPUT` (or `INVALID_OUTPUT`), `--agent-id <id>`.
-   - A slash skill / command was not found: `--category SKILL_NOT_FOUND`.
-   - `MAX_ITERATIONS` exhausted with no done verdict — emit ONE record at the failure exit (Step 3.1 exit-1, 5E.3 exit-1, or 5E.4a exit-1 branch), before the summary report: `--category MAX_ITERATIONS`, `--tool <last-failing-gate>`, `--exit-code <rc>`, `--phase <phase>`.
-   ```bash
-   bash "$CFN_FAILLOG" record --tool "Task:backend-developer" \
-     --category NO_OUTPUT --stderr "lane returned no JSON block" --phase 2 --agent-id <id>
-   ```
-
-Categories: `MISSING_TOOL` `NOT_EXECUTABLE` `BAD_ARGS` `SPAWN_FAILED` `NO_OUTPUT` `INVALID_OUTPUT` `SKILL_NOT_FOUND` `DEPENDENCY_MISSING` `TIMEOUT` `MAX_ITERATIONS` `OTHER`.
-
-Review the log any time to triage: `bash "$CFN_FAILLOG" show [--tool NAME] [--last N]` (pretty-prints with `jq` if present).
-
----
-
+Only when a CFN tool fails to even START (bash 126/127, an agent `Task` that
+returns no JSON block, a hook that never runs): read
+`$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/tool-failure-capture.md` and log the failure as it specifies,
+then continue the loop. A tool that ran and returned a failure is not this.
 ## ⚡ AUTONOMOUS PROGRESSION (CRITICAL)
 
 **DO NOT stop to ask questions. Keep progressing by launching agents for next steps.**
@@ -231,30 +219,38 @@ $HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event loop_s
 
 **Scope:** Spawn agents to implement the **entire epic** (all phases of the plan) in one pass, not a single sprint slice. TDD throughout.
 
-### LANE DERIVATION (mechanical, do this before spawning)
+### LANE DERIVATION (one script, never derive by hand)
 
 1. **Locate the plan.** Use `$PLAN_FILE` from Step 0 (`plan-paths.sh resolve "$SLUG" "PLAN_${SLUG}.md"` — the plan dir `planning/<slug>/` first, legacy flat `planning/` second). If the slug is not known exactly, `$HOME/.claude/skills/cfn-megaplan/lib/plan-paths.sh newest 'PLAN_*.md'` returns the newest `PLAN_` across both layouts; confirm its name matches the task slug. If no `PLAN_` file resolves, STOP and run `/write-plan` first. Never improvise lanes without a plan. **Note:** a `MEGAPLAN_<slug>.md` is an index/summary, NOT a lane source — if only `MEGAPLAN_` (and/or `VERIFY_`) exists but no `PLAN_<slug>.md`, the megaplan run failed to persist its plan; run `/write-plan "<task>" --mode=<mode>` to regenerate `PLAN_<slug>.md` from the other artifacts in that plan dir, then continue. Do NOT derive lanes from `MEGAPLAN_` or `VERIFY_`.
-2. **One lane per phase.** Each top-level phase/workstream in the plan becomes one lane. **LANE_CAP = 8** (one constant, used here AND in wave scheduling step 6). If the plan has more phases than LANE_CAP, merge the smallest phases into neighboring lanes until at most LANE_CAP remain. (Lanes = phases, so most plans never reach the cap; it is a ceiling, not a target.)
-2b. **Wide-phase split (mandatory check, backstop for plans predating the width cap).** Run `$HOME/.claude/skills/cfn-megaplan/bars/check-phase-width.sh "$PLAN_FILE"` (caps: 15 steps / 8 distinct files per phase; new plans arrive clean because write-plan gates on it). For each flagged phase: cluster its steps by File cell — steps sharing ANY file land in the same cluster (transitively). If ≥ 2 clusters result, split the phase into sub-lanes `<phase>-a`, `<phase>-b`, ... one per cluster; first merge any cluster under 5 steps into the cluster it exchanges the most Consumes edges with (never split below ~5 steps per sub-lane — serial learning and coordination overhead eat the win). Cross-cluster Consumes edges are ordering, not merging: sub-lanes enter steps 5/6 as ordinary lanes and the wave scheduler orders them. If clustering yields 1 cluster (every step transitively co-writes), the phase legitimately stays one lane; log `phase-split: <phase> unsplittable (co-write chain)`. Otherwise log `phase-split: <phase> -> <sub-lane>:<steps> ...`. LANE_CAP still applies at wave time — a deferred-to-next-slot sub-lane still beats 48 serial steps (measured 2026-08-19: one 48-step lane ran 2+ hours; a legal 4-way file-cluster split was worth ~3x).
-3. **Exclusive file ownership.** Each lane gets an exclusive file list derived from the plan. No file may appear in two lanes. If two phases touch the same file, put both phases in the SAME lane and run them sequentially inside it.
-4. **Ownership clause in every spawn prompt.** Each spawn prompt includes: "FILES YOU OWN: <list>. Do not create or edit any file outside this list. Files outside your lane needing changes go in out_of_scope_needs (array of \"path: why\"); blocked_on is only for a blocker that stops YOUR lane (scalar, one sentence, else null). You may amend HOW a step is built (same files, same AC, same done predicate) and record it in step_amendments; you may not amend WHAT."
-5. **Compute lane-dependency edges (from Produces/Consumes).** First run the static sanity gate: `$HOME/.claude/skills/cfn-megaplan/bars/check-produce-consume.sh "$PLAN_FILE"` — exit 1 (duplicate producer / weasel / empty / malformed cell) BLOCKS; resolve before deriving lanes (a duplicate-producer finding is the AskUserQuestion below). Warnings (dangling consume) are advisory. If the plan has no such columns the checker exits 0 and you skip to a single wave. Then collect every step's identifiers per lane. Draw a directed edge **A → E** whenever any step in lane E has a `Consumes` string-equal (exact, trimmed) to a `Produces` of any step in lane A, with A ≠ E. A Consumes matching no lane's Produces is a pre-existing symbol → no edge (log a one-line `warn: dangling consume <id>` so a typo is visible). **Duplicate producer** (the same identifier Produced by steps in two DIFFERENT lanes) is ambiguous ownership → STOP and surface one `AskUserQuestion` (which lane owns it); do not guess. If the columns are absent or every cell is `-`, the edge set is empty. **Cycle** (A → E and E → A): merge the cycle's lanes into one lane run sequentially — same resolution as the same-file rule in step 3 — and log `cycle-merge: <lanes>`.
-6. **Order lanes into waves (topological).** WAVE_1 = every lane with no inbound edge. Each next wave = lanes whose inbound edges all originate in already-completed waves. Within a wave, run at most LANE_CAP lanes concurrently; ready-but-capped lanes defer to the next slot (never merge them just to fit the cap). Empty edge set ⇒ exactly one wave with all lanes ⇒ identical to the pre-feature single-wave behavior. Log `wave N: lanes [...]` per wave before spawning it.
+2. **Derive lanes and waves mechanically.** One call, ~40ms. Steps 2-6 of the old hand-derivation (one lane per phase, LANE_CAP merge, wide-phase file-cluster split, exclusive file ownership, produce/consume edges, cycle merge, topological waves) live in `derive-lanes.sh`. Measured 2026-08-20: deriving this in chat for a 165-step plan cost ~53k context tokens across 14 ad-hoc python heredocs and produced a lane set whose co-writers would have raced on one file. Do NOT re-derive, re-cluster, or "fold" lanes in the conversation. If the output looks wrong, the plan is wrong.
+
+```bash
+LANES_JSON="${PDIR}/lanes-${RUN_ID}.json"
+BARS=$HOME/.claude/skills/cfn-megaplan/bars
+# Static gate first: bad Produces/Consumes metadata would mislead wave ordering.
+"$BARS/check-produce-consume.sh" "$PLAN_FILE" >/dev/null || {
+  echo "BLOCKED: fix the produce/consume findings before deriving lanes" >&2; }
+"$BARS/derive-lanes.sh" "$PLAN_FILE" > "$LANES_JSON"; DERIVE_RC=$?
+echo "derive rc=$DERIVE_RC"
+jq -r '.separability | "critical path \(.critical_path_steps)/\(.total_steps) steps (\(.parallel_speedup)x), longest lane \(.longest_lane_steps), lanes \(.lanes), waves \(.waves)"' "$LANES_JSON"
+jq -r '.waves | to_entries[] | "wave \(.key+1): \(.value|join(", "))"' "$LANES_JSON"
+```
+
+3. **Act on the exit code.** `0` = lanes ready, spawn `.waves` in order (each wave slot is already capped at LANE_CAP, spawn a slot only after the previous one reports). `1` = `.blockers[]` holds duplicate-producer findings (the same identifier Produced in two lanes): surface ONE `AskUserQuestion` for ownership, patch the plan, re-run the script. Never guess ownership. `2` = usage / unparseable plan: fix the path or the step tables; hand-derivation is not the fallback.
+4. **Honour the separability advisory.** If `.separability.advisory` is non-null the plan is not lane-separable: too many steps write the same files, so the longest lane is more than twice the step cap. Surface one `AskUserQuestion` (re-run `/write-plan` with phase-local file sets, or accept the serial run) before spawning. Do NOT invent extra lanes to make it look parallel: two lanes that write one file inside one wave slot race and lose writes. `.hubs[]` names the files responsible.
+5. **Ownership clause in every spawn prompt.** Each spawn prompt includes: "FILES YOU OWN: <lane .files>. FILES YOU MAY READ BUT NOT OWN: <lane .shared_files>. Do not create or edit any file outside this list. Files outside your lane needing changes go in out_of_scope_needs (array of \"path: why\"); blocked_on is only for a blocker that stops YOUR lane (scalar, one sentence, else null). You may amend HOW a step is built (same files, same AC, same done predicate) and record it in step_amendments; you may not amend WHAT."
+6. **Looser ownership modes (opt-in only).** `--hub-split` gives one hub file a single owner lane; `--soft-ownership` does that for every co-written file and chains the co-writers so they never share a wave slot. Both loosen the exclusive-ownership invariant, which means two agents edit one file in different waves. Measured on the same 165-step plan: strict 1.0x, `--hub-split` 1.0x, `--soft-ownership` 1.14x. Not worth it by default. Use only after the advisory fires and the user opts in.
 
 ### Bounded step amendment (sanctioned adaptation, no re-gate)
 
-The plan pins WHAT (files, AC binding, done predicate). It does not have to pin HOW. A lane MAY amend a step's implementation approach without stopping, without `out_of_scope_needs`, and without re-opening Bar B, when ALL THREE hold:
+A lane MAY change HOW a step is built without stopping when all three hold:
+same files (inside its owned list), same AC binding, same Done predicate and
+Verify command. It records each one in `step_amendments`. Anything outside that
+box is not an amendment: another file goes in `out_of_scope_needs`, a different
+AC or predicate goes in `blocked_on: "plan drift: <one sentence>"`. A lane never
+edits `PLAN_` or `VERIFY_` itself.
 
-1. **Same files.** The amended step touches only the File cell(s) of that step (all inside the lane's owned list).
-2. **Same AC binding.** The step still satisfies the same `Failing test` / VERIFY AC id(s). No AC is added, dropped, or re-mapped.
-3. **Same done predicate.** The Done predicate and Verify command are unchanged and still exit 0/1 as written.
-
-Amendments inside that box are `kind: "how"`: a different signature than the Change cell spelled, a different internal algorithm, an extra private helper in the same file, a library call the plan did not name. The lane records each one in `step_amendments` in its final JSON (below) and continues. The coordinator persists them to `run-plan-<run-id>.json` (Step 3.01a) for audit; nothing else reads them as a gate.
-
-Anything outside the box is NOT an amendment and uses the existing channels: another file → `out_of_scope_needs`; a different AC, predicate, or verify command → `blocked_on: "plan drift: <one sentence>"` (the coordinator routes it to a VERIFY/PLAN edit + `bless-verify.sh` and does what its `regate` scope owes; see megaplan Step 7 re-gating). A lane never edits `PLAN_` or `VERIFY_` itself.
-
-Why this exists: before it, "how" learning mid-run had two bad exits: silently deviate (invisible drift) or stop and re-bless the whole manifest (the 1-hour tax). This gives the coordinator an audited middle path and keeps re-bless for changes to what is verified.
-
+Full contract and rationale: `$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/step-amendment.md`.
 ### Write the run plan (workbench roster input)
 
 With lanes and waves derived (step 6), persist the lane roster so the workbench roster section can track lane status, then emit `phase_started`. Lane id = the lane name from the plan. Non-blocking.
@@ -484,16 +480,10 @@ The script prints `{"pass":N,"total":M,"rate":R,"passed":true|false}` (plus `bas
 
 **DO NOT proceed to Phase 4 if the gate failed. ITERATE.**
 
-### Step 3.2: Flaky re-run protocol (W8)
+### Step 3.2: Flaky re-run protocol (W8, only when a test flakes)
 
-On gate-check exit 1 (rate below threshold), a failure may be flaky rather than real. Before treating reds as iteration fuel:
-
-1. Dedupe the failing test FILES from `/tmp/test-output-${RUN_ID}.txt` (unique file paths, not individual test cases).
-2. Re-run ONLY those files once.
-3. **Green on rerun** = flaky-flagged. Record the file in the report's `Flaky:` line (see Phase 5 Exit 5E.4). It is NOT iteration fuel. Recompute the effective pass rate inline by moving those tests from failing to passing, and re-evaluate the gate against that effective rate.
-4. **Still red on rerun** = a real failure. It stays iteration fuel; proceed with the exit-1 ITERATE action.
-5. **Cap:** a test flaky-flagged in ≥2 separate iterations counts as a REAL failure from then on (persistent flakiness is a defect). Track flaky flags per test across iterations.
-
+Skip unless a failing test passed on a prior iteration with no relevant code change.
+In that case read `$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/flaky-rerun.md` and follow it.
 ### Step 3.5: Harvest Tech-Debt Ledger (Product Owner input)
 
 After the gate passes, inventory the deliberate shortcuts implementers took so the Product Owner decides with debt visible, not hidden:
@@ -662,298 +652,24 @@ After each batch returns, implement the `Apply` items with TDD (sequential, same
 
 ### Exit gate (mechanical VERIFY gate, ordered 5E.0 -> 5E.5)
 
-The done verdict is mechanical, not honor-system. `verify-run.sh` reads the results file it writes; prose never counts. Steps 5E.0-5E.3 run only when a VERIFY manifest exists (Step 0); a non-megaplanned task skips them and starts at 5E.4. 5E.4a (deferrals gate, S006) always runs, VERIFY manifest or not. This gate MAY iterate back to Phase 2 (bounded by MAX_ITERATIONS): a red AC, a surviving mutation, or an open blocking deferral is iteration fuel.
+**Read `$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/exit-gate.md` now, then execute it in order.**
+It holds the full ordered gate: 5E.0 mutation spot-check, 5E.1 mechanical VERIFY
+run, 5E.2 needs_agent / predicate_unverified resolution, 5E.3 done verdict,
+5E.3a exit-stage evidence backfill and re-bless, 5E.4 all-green final gate,
+5E.4a deferral gate, 5E.5 prod-build smoke, the exit report, and 5E.6 run ledger.
 
-#### 5E.0 Mutation spot-check (W5, runs FIRST)
+The verdict is mechanical: `verify-run.sh` reads the results file it writes, and
+prose never substitutes for an exit code. Do not improvise any part of this gate.
+## Iteration Context Injection (iteration 2 and later only)
 
-At entry, emit the verify phase event:
+Iteration 1 needs nothing here. Before respawning for iteration N>1, read
+`$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/iteration-context.md` and build the injection block it specifies
+(verbatim failing-test excerpts, typecheck errors, prior learnings, and the
+downstream-dependent respawn rule for lanes with produce/consume edges).
+## Worked Example
 
-```bash
-$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event verify_started || true
-```
-
-Runs first so any residue a mutation leaves behind is caught by the later all-green gate (5E.4). Per `[core]` FR in the manifest, capped at 3:
-
-1. Pick the primary impl file for that FR from the PLAN lane mapping. Write a one-line justification of the choice into the report.
-2. Back it up and record the hash BEFORE mutating (no git stash: that would sweep uncommitted loop work):
-   ```bash
-   mkdir -p /tmp/cfn-mutation-${TASK_ID}
-   cp "${IMPL_FILE}" "/tmp/cfn-mutation-${TASK_ID}/$(basename "${IMPL_FILE}")"
-   BEFORE_SHA=$(sha256sum "${IMPL_FILE}" | cut -d' ' -f1)
-   ```
-   Install a restore-on-exit trap so a crash between mutate and restore cannot leave the file mutated:
-   ```bash
-   trap 'cp "/tmp/cfn-mutation-${TASK_ID}/$(basename "${IMPL_FILE}")" "${IMPL_FILE}" 2>/dev/null' EXIT
-   ```
-3. Spawn a mutation agent that makes exactly ONE semantic mutation (invert a key conditional OR replace a body with a constant), emits a unified diff, and touches nothing else.
-4. Run `verify-run.sh run --verify "$VERIFY_FILE" --only <that FR's AC ids>` and EXPECT red. A red result means the AC tests actually exercise the mutated logic.
-5. Restore the backup and assert the restored file's hash equals `BEFORE_SHA`:
-   ```bash
-   cp "/tmp/cfn-mutation-${TASK_ID}/$(basename "${IMPL_FILE}")" "${IMPL_FILE}"
-   [ "$(sha256sum "${IMPL_FILE}" | cut -d' ' -f1)" = "${BEFORE_SHA}" ] || echo "STOP FOR: corrupted state"
-   ```
-   Hash mismatch after restore = Stop For (corrupted state, manual recovery).
-6. **GREEN after mutation = the mutation survived** (the AC tests did not catch it). Record it and iterate once with "strengthen AC tests for FR-x" (back to Phase 2, counts against MAX_ITERATIONS). If it survives AGAIN on the next pass -> Stop For.
-
-`cfn: single-mutation probe, upgrade to a real mutation framework if survival rate matters` (deliberate shortcut: one mutation per FR, not exhaustive operators).
-
-#### 5E.1 Run the VERIFY manifest mechanically
-
-```bash
-CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
-bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
-  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh run \
-  --verify "$VERIFY_FILE" \
-  --out "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json"
-```
-
-This executes every executable/db-query AC and writes the results file (the single done authority).
-
-#### 5E.2 Resolve needs_agent / predicate_unverified rows
-
-For each results row with `mode: needs_agent` or `predicate_unverified: true` (`pass: null`, UNRESOLVED), spawn a verification agent. The spawn prompt MUST pin that AC's `check`, `pass`, trigger, seeds, and signal, and MUST require a verbatim evidence excerpt (the agent captures real output, it does not assert). Then stamp the evidence:
-
-```bash
-CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
-bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
-  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh resolve \
-  --results "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json" \
-  --ac <AC-id> --pass true|false --evidence-file <captured-evidence-file>
-```
-
-`resolve` refuses evidence under 3 non-empty lines. An unresolved row can never count as done.
-
-#### 5E.3 Summary = the done verdict
-
-```bash
-CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
-bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
-  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh summary \
-  --results "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json"
-SUMMARY_EXIT=$?
-```
-
-| Exit | Meaning | Action |
-|------|---------|--------|
-| 0 | all green AND nothing unresolved | This is the done verdict source. Proceed to 5E.4 |
-| 1 | red or unresolved AC(s) | The red ACs are iteration fuel: go back to Phase 2 (counts against MAX_ITERATIONS). If ITERATION > MAX_ITERATIONS, report failure and EXIT |
-| 4 | VERIFY sha256 mismatch | Stop For (the manifest was edited since Bar A; same as Step 0a) |
-
-#### 5E.3a Backfill evidence and re-bless at the exit stage (S007)
-
-Runs only when 5E.3 exited 0. The manifest was blessed at plan stage with `evidence: "PENDING: <reason>"` on rows whose code did not exist yet; the run above executed every check, so its recorded output is the real evidence.
-
-```bash
-CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
-bash "$CFN_FAILLOG" wrap --tool verify-run.sh -- \
-  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh backfill-evidence \
-  --results "${PDIR}/VERIFY_RESULTS_${RUN_ID}.json" \
-  --verify  "$VERIFY_FILE"
-
-bash "$CFN_FAILLOG" wrap --tool bless-verify.sh -- \
-  $HOME/.claude/skills/cfn-megaplan/bars/bless-verify.sh "$VERIFY_FILE" \
-  --stage exit --note "exit gate: evidence backfilled from VERIFY_RESULTS"
-```
-
-Only green rows are backfilled. `bless-verify.sh --stage exit` refuses (exit 1) on any surviving `PENDING`, which means an AC reported green without producing output — treat that as a red row, not a formality, and iterate. The re-bless re-pins the sidecar over the rewritten file; skipping it leaves the sidecar stale and the next `verify-run.sh` exits 4.
-
-#### 5E.4 All-green final gate (W4)
-
-Code changed since Phase 3 (vote-applied 3/3, 2/3, 1/3 items), so a mandatory final FULL-suite re-run is required. This gate is `--threshold 1.0`, not the mode rate gate.
-
-```bash
-npm test 2>&1 | tee /tmp/test-final-${TASK_ID}.txt
-CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
-bash "$CFN_FAILLOG" wrap --tool gate-check.sh -- \
-  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh \
-  --out /tmp/test-final-${TASK_ID}.txt --threshold 1.0
-```
-
-- Red -> run the Step 3.2 W8 flaky re-run FIRST (a green-on-rerun red is flaky-flagged, not real).
-- Persistent reds -> at most 2 quick-fix attempts.
-- Still red after 2 attempts -> `AskUserQuestion` (one decision): **Quarantine** / **Keep iterating** / **Abort**.
-
-  **FR-7 SITE 3 (Phase 5E.4 quarantine) decisions-ledger capture.** Record the user's quarantine choice AFTER the `AskUserQuestion` returns AND BEFORE the dispatch below. One writer invocation total (one decision by design). Status mapping: `Quarantine -> accepted`, `Keep iterating -> proposed`, `Abort -> superseded`. `actor=human`. `blocking=true` (quarantine is load-bearing for Step 3.05 hygiene). D-8 isolation: the audit row is an audit side-effect, not a gate on the quarantine itself; `test.skip` still happens, backlog entry still lands, the loop continues regardless of writer RC.
-
-  ```bash
-  # FR-7 SITE 3: record the quarantine/iterate/abort decision (actor=human, D-8 isolated).
-  # Set DEC_ID, DEC_TITLE, DEC_CHOSEN, DEC_RATIONALE, DEC_ALTS, DEC_STATUS per the user's choice.
-  # hook.sh owns the D-8 isolation envelope + per-site marker (DRY across sites 1/2/3).
-  export RUN_LOG="${RUN_LOG:-/tmp/decisions-ledger-${TASK_ID:-unknown}.log}"
-  bash $HOME/.claude/skills/cfn-decisions/hook.sh \
-      --site phase-5E.4-quarantine \
-      --slug "${SLUG:-$TASK_ID}" \
-      --id "$DEC_ID" \
-      --title "$DEC_TITLE" \
-      --chosen "$DEC_CHOSEN" \
-      --actor human \
-      --rationale "${DEC_RATIONALE:-}" \
-      --alternatives "${DEC_ALTS:-}" \
-      --status "${DEC_STATUS:-accepted}" \
-      --blocking true
-  # Quarantine / Phase 2 return / report+exit proceed regardless of writer RC (hook.sh always exits 0; D-8).
-  ```
-
-  - **Quarantine**: recorded in the report + wrap the test in `test.skip` carrying `// cfn-allow-skip: quarantined <date> <reason>` (this is what makes Step 3.05 hygiene accept it) + a backlog entry.
-  - **Keep iterating**: back to Phase 2 (counts against MAX_ITERATIONS).
-  - **Abort**: stop and report.
-
-**Final done is all-green OR an explicit user-approved quarantine. 0.95 is never a done state.** The mode rate gate (Phase 3) is iteration fuel only; this final gate is the completion bar.
-
-#### 5E.4a Deferral gate (S006, always runs, origin: ROOTCAUSE_mpa_thread_wiring_gap.md)
-
-Runs regardless of whether a VERIFY manifest exists (unlike 5E.0-5E.3, which
-are megaplan-only) because `out_of_scope_needs` can be reported by any lane in
-any task-mode run. This is the mechanical fix for the exact gap that let MP-A
-ship: an implementer correctly flagged an unfinished cross-lane wiring step in
-`out_of_scope_needs` (Step 3.01 persisted it), and nothing downstream ever
-consumed it — the loop declared 81/81 all-green over a feature unreachable
-from `src/index.ts`.
-
-```bash
-CFN_FAILLOG="$HOME/.claude/cfn-scripts/log-tool-init-failure.sh"
-bash "$CFN_FAILLOG" wrap --tool deferrals.sh -- \
-  $HOME/.claude/skills/cfn-loop-orchestration-v2/cli/deferrals.sh gate --slug "${SLUG:-$TASK_ID}"
-DEFERRALS_GATE_EXIT=$?
-```
-
-| Exit | Meaning | Action |
-|------|---------|--------|
-| 0 | no open blocking deferrals (or none were ever recorded) | ANDs into the done verdict; proceed to 5E.5 |
-| 1 | one or more open blocking deferrals | NOT DONE. The printed offenders (lane + text, stderr) name the file/step still owed: go back to Phase 2 and route that file to the lane that owns it. Counts against MAX_ITERATIONS. If ITERATION > MAX_ITERATIONS, escalate (Stop For) instead of silently declaring done |
-
-A deferral only clears via an explicit `deferrals.sh resolve --slug ${SLUG:-$TASK_ID} --id <n> --reason <text>` once the deferred work actually lands — never by re-running the gate itself. **Done requires 5E.4 (all-green) AND 5E.4a (no open blocking deferrals).**
-
-#### 5E.5 Prod-build smoke (W8a, runs LAST)
-
-If SPEC `frontend: yes` AND `package.json` has a `build` script:
-
-```bash
-npm run build 2>&1 | tee /tmp/build-smoke-${TASK_ID}.txt
-```
-
-- Non-zero exit = red. At most 2 fix attempts (back to Phase 2 with the build output as context), then Stop For.
-- Runs last so the built artifact reflects all vote-applied and quarantine changes.
-
-### Exit report
-
-**Final workbench render.** VERIFY_RESULTS is now on disk, so this render shows the populated AC/verify table and final verdict. Order matters: emit `loop_finished` first, stop the watcher second, render last so the page ends on complete data. One last refresh of the open tab.
-
-```bash
-$HOME/.claude/skills/cfn-workbench/emit-event.sh --slug "$RUN_ID" --event loop_finished || true
-$HOME/.claude/skills/cfn-workbench/watch.sh --slug "$RUN_ID" --stop \
-  || echo "WARN: workbench watcher stop skipped (non-blocking)" >&2
-$HOME/.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
-  || echo "WARN: workbench render skipped (non-blocking)" >&2
-```
-
-#### 5E.6 Run ledger (signal row, non-blocking, runs on EVERY exit path)
-
-Append one row for this run to the global run ledger and print its summary + FLAG lines. This is the only place the two loosening seams (Bar B `sonnet` tier, bounded HOW amendments) get a signal: a `sonnet`-tier plan whose lane hit a spec-gap `blocked_on` ("underspecified", "which symbol", "plan drift") flags "re-gate with `--bar-b=full`"; an amendment whose `what` names a `Produces` symbol flags "run check-produce-consume". Run it on done, on not-done escalation, and on MAX_ITERATIONS exit alike; `--outcome` says which. Never gates.
-
-```bash
-REPORT_ARGS=""; for LANE_ID in ${LANE_IDS}; do REPORT_ARGS="$REPORT_ARGS --report /tmp/lane-report-${RUN_ID}-${LANE_ID}.json"; done
-$HOME/.claude/skills/cfn-loop-orchestration-v2/cli/run-ledger.sh record \
-  --slug "${SLUG:-$RUN_ID}" --plan-dir "$PDIR" --run-plan "${PDIR}/run-plan-${RUN_ID}.json" \
-  $REPORT_ARGS --iterations "${ITERATION}" --outcome "${OUTCOME}" \
-  || echo "WARN: run ledger skipped (non-blocking)" >&2
-# OUTCOME: done | not_done (5E red and MAX_ITERATIONS hit) | escalated (Stop For)
-```
-
-Copy every `FLAG:` line it prints into the summary report verbatim. Trend over runs: `run-ledger.sh stats [--slug <slug>] [--last N]` (JSON, grouped by `bar_b_tier`; `spec_gap_runs` climbing on `sonnet` while flat on `full` is the "tier too loose" answer with numbers).
-
-After 5E.5 (or 5E.4 for non-frontend tasks) reports done and 5E.6 has written its row, mark todo #5 completed, report summary, EXIT.
-
-```
-Summary report:
-  Implementation iterations: ${ITERATION}
-  Vote suggestions reviewed: ${TOTAL_SUGGESTIONS}
-  Auto-implemented (3/3):    ${COUNT_3_OF_3}
-  Product Owner decided (2/3): ${COUNT_2_OF_3}
-  User decided (1/3):        ${COUNT_1_OF_3}
-  Skipped (0/3):             ${COUNT_0_OF_3}
-  Quarantined:               ${QUARANTINED_TESTS}
-  Flaky:                     ${FLAKY_TESTS}
-  Run ledger:                <the run-ledger.sh summary line, then any FLAG: lines verbatim>
-```
-
-**No vote iteration after Phase 5; the Phase 5 Exit gate (5E.0-5E.5) MAY iterate back to Phase 2, bounded by MAX_ITERATIONS.** If the user wants another round beyond MAX_ITERATIONS, they re-run `/cfn-loop-task`.
-
----
-
-## Iteration Context Injection
-
-**When iterating, build the retry context mechanically from the gate artifacts:**
-
-```bash
-# Verbatim failing-test excerpts
-FAILING_EXCERPTS=$(grep -A5 "FAIL\|✗\|✕" /tmp/test-output-${RUN_ID}.txt | head -80)
-# Typecheck errors, if any
-TSC_HEAD=$(head -40 /tmp/tsc-${TASK_ID}.txt)
-```
-
-Include this block in each retry spawn prompt:
-
-```
-PREVIOUS ITERATION FAILED THE GATE:
-- Gate: ${PASS_COUNT}/${TOTAL_COUNT} passing (threshold ${THRESHOLD})
-- Failing test excerpts (verbatim):
-${FAILING_EXCERPTS}
-- Typecheck errors (if any, first 40 lines):
-${TSC_HEAD}
-
-FIX ONLY THESE FAILURES. Do not refactor passing code.
-```
-
-**Downstream-dependent respawn (when lanes have produce/consume edges).** When you respawn only the lane(s) that failed the gate, ALSO respawn every lane transitively downstream of a failing lane in the step-6 edge graph — a downstream lane may have built on the failing lane's absent or wrong export. Compute the downstream set from the current edges (recomputed each iteration), respawn failing-lane ∪ downstream in the correct wave order, and leave lanes with no path from any failing lane untouched. Empty edge set ⇒ no downstream ⇒ "respawn failing lane only" exactly as before.
-
-**After 3 failed iterations, spawn root-cause-analyst before next Loop 3:**
-```
-Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
-```
-
----
-
-## Worked Example (abbreviated transcript)
-
-```
-[Iter 1] Lane derivation: lanes api, ui; edges: api Consumes src/types.ts:Claims
-         Produced by a shared 'types' step folded into api -> edge types->ui.
-         Waves: wave1=[api], wave2=[ui] (empty-edge plans would be one wave).
-[Iter 1] Wave1 spawn lane=api. Barrier. Producer guard: grep Claims in
-         src/types.ts -> resolves. Wave2 spawn lane=ui.
-[Iter 1] Agents return JSON: api 12/12 scoped, ui 8/9 scoped
-[Iter 1] Step 3.0: tsc -> 0 errors. Step 3.1: npm test -> tee output
-[Iter 1] gate-check.sh --out ... --threshold 0.95
-         -> {"pass":18,"total":21,"rate":0.8571,"passed":false} exit 1
-[Iter 1] Gate FAILED. Build retry context: 18/21, threshold 0.95,
-         grep -A5 "FAIL" excerpts (3 failing tests in ui lane)
-[Iter 2] Respawn ui lane only with retry context:
-         "FIX ONLY THESE FAILURES. Do not refactor passing code."
-[Iter 2] tsc -> 0 errors. gate-check.sh
-         -> {"pass":21,"total":21,"rate":1.0000,"passed":true} exit 0
-[Phase 4] Step 4.0 gate set: always dry-review; frontend=no, db=no -> no
-          security/migration/a11y; no dep/perf triggers. Only dry-review.
-[Phase 4] /cfn-dry-review -> manifest with 3 suggestions
-[Phase 4] /cfn-vote-implement <explicit-path>: item A 3/3 -> auto-implemented
-          with TDD; item B 2/3 -> product-owner says DEFER (backlogged);
-          item C 1/3 -> queued
-[Phase 5] AskUserQuestion batch (1 question): user picks Skip.
-[Phase 5] 5E.0 mutation probe on core FR-1 impl: invert conditional ->
-          verify-run.sh --only AC-1,AC-2 -> red (caught). Restore, hash OK.
-[Phase 5] 5E.1 verify-run.sh run -> VERIFY_RESULTS_auth.json
-[Phase 5] 5E.2 1 needs_agent row (playwright login) -> agent captures excerpt
-          -> verify-run.sh resolve --pass true
-[Phase 5] 5E.3 verify-run.sh summary -> exit 0 (all green)
-[Phase 5] 5E.3a backfill-evidence -> 22 rows PENDING -> real output;
-          bless-verify.sh --stage exit -> blessed #2 (predicate_changed false)
-[Phase 5] 5E.4 gate-check.sh --threshold 1.0 -> 22/22 all green
-[Phase 5] 5E.4a deferrals.sh gate --slug auth -> exit 0 (no open blocking needs)
-[Phase 5] 5E.5 frontend=no -> skip build smoke. EXIT (done).
-```
-
----
-
+Abbreviated end-to-end transcript: `$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/worked-example.md`.
+Read it only if the phase order below is unclear. A normal run never needs it.
 ## Quick Reference
 
 | Phase | What Happens | Next If Success | Next If Fail |
@@ -998,4 +714,4 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 
 ---
 
-**Version:** 3.6.0 | **Date:** 2026-08-19 | Standard CFN Loop. 3.6.0: wide-phase split (lane derivation 2b, check-phase-width.sh backstop) + cross-wave learnings channel (lane report `learnings`, `${PRIOR_LEARNINGS_BLOCK}` injection, 3.01a persistence). 3.5.0: 5E.6 run ledger (cli/run-ledger.sh; Bar B tier + amendment signal row, FLAG lines). 3.4.0: bounded step amendment (Phase 2, Step 3.01a) + per-AC scoped re-gate at Step 0a. Full-epic Phase 2; mechanical gate via cli/gate-check.sh; thresholds pinned in THRESHOLDS.md; Phase 3 now captures lane `out_of_scope_needs` into a side-manifest (Step 3.01, cli/deferrals.sh record); Phase 4 is the gate-wiring matrix (dry-review + conditional security/migration/a11y/dep-audit/perf gates) routed through cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user prompts); Phase 5 Exit is a mechanical VERIFY gate (5E.0 mutation probe, 5E.1-5E.3 verify-run.sh, 5E.4 all-green, 5E.4a deferrals gate — cli/deferrals.sh gate, S006 — 5E.5 prod-build smoke) that MAY iterate back to Phase 2 bounded by MAX_ITERATIONS.
+**Version history:** `$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/changelog.md` (read only when editing this skill).

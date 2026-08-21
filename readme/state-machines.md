@@ -2,7 +2,7 @@
 
 Entity lifecycle documentation for stateful CFN systems.
 
-**Last Updated:** 2026-08-19 (runtime link target lifecycle added for link-runtime-dirs.sh)
+**Last Updated:** 2026-08-20 (implementation wave rewritten against derive-lanes.sh; loop pre-flight readiness lifecycle added)
 
 ## Contents
 
@@ -30,6 +30,7 @@ Entity lifecycle documentation for stateful CFN systems.
 - [Role Verification Finding (cfn-persona-verify schema audit)](#role-verification-finding-cfn-persona-verify-schema-audit)
 - [Wireframe Gate (cfn-megaplan L5→L6 barrier)](#wireframe-gate-cfn-megaplan-l5l6-barrier)
 - [Implementation Wave (cfn-loop-task LANE DERIVATION)](#implementation-wave-cfn-loop-task-lane-derivation)
+- [Loop Pre-Flight Readiness (preflight.sh)](#loop-pre-flight-readiness-preflightsh)
 - [Workbench Watcher (cfn-workbench watch.sh)](#workbench-watcher-cfn-workbench-watchsh)
 - [Roster Lane (cfn-workbench section-roster)](#roster-lane-cfn-workbench-section-roster)
 - [Runtime Link Target (link-runtime-dirs.sh)](#runtime-link-target-link-runtime-dirssh)
@@ -552,20 +553,83 @@ Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 
 
 ## Implementation Wave (cfn-loop-task LANE DERIVATION)
 
-**Entity:** a lane wave scheduled by produce/consume edges (LANE DERIVATION step 5/6).
+**Source:** `.claude/skills/cfn-megaplan/bars/derive_lanes.py` (stages 5-9: ownership, edges, SCC merge, topological waves); consumed by `.claude/commands/cfn-loop-task.md` Phase 2; verified by `.claude/skills/cfn-megaplan/bars/tests/test-derive-lanes.sh`
 
-**States:** `blocked | ready | running | complete`
+A lane's wave slot is computed by the script, never derived in chat. The script
+emits `lanes[]`, `edges[]` and `waves[]`; the coordinator spawns one agent per
+lane in wave order and holds a barrier at each wave boundary.
+
+### States
+
+`blocked | ready | running | complete`
+
+### Transitions
 
 | From | To | Trigger | Guard |
 |------|----|---------|-------|
-| (none) | ready | lane has no inbound produce/consume edge (or empty edge set) | ready lanes form WAVE_1 |
-| (none) | blocked | lane Consumes an identifier Produced by a lane not yet complete | edge A→E from step-5 computation |
-| ready | running | wave spawned (≤ LANE_CAP=8 lanes concurrently; excess defers to next slot) | file ownership exclusive across lanes |
-| running | complete | all wave agents return + barrier reached + producer-existence guard passes | claimed Produces symbols resolve (scoped typecheck/grep), else respawn producing lane |
+| (none) | ready | lane has no inbound produce/consume edge | ready lanes form wave 1 (`waves[0]`) |
+| (none) | blocked | lane Consumes an identifier Produced by a lane not yet complete | edge recorded in `edges[]` |
+| ready | running | wave slot spawned (at most `LANE_CAP=8` lanes per slot; excess deferred to the next slot) | file ownership exclusive across lanes in the slot; `shared_files[]` are read-only for that lane |
+| running | complete | every wave agent returned, barrier reached, producer-existence guard passed | claimed `produces[]` symbols resolve (scoped typecheck/grep), else the producing lane respawns |
 | blocked | ready | every inbound-edge source lane reached complete | dependency satisfied |
-| complete | running | gate fails and this lane is the failing lane OR transitively downstream of it | respawn set recomputed from current edges each iteration |
+| complete | running | gate fails and this lane is the failing lane or transitively downstream of it | respawn set recomputed from `edges[]` each iteration |
 
-**Cycle note:** a produce/consume cycle (A→E and E→A) is not a state — it is collapsed at derivation time into a single lane run sequentially (same resolution as the same-file rule), so no wave ever waits on itself.
+```
+(none) ──no inbound edge──> ready ──spawn slot──> running ──barrier+producer guard──> complete
+(none) ──consumes pending──> blocked ──sources complete──> ready        complete ──gate fail──> running
+```
+
+**Cycle note:** a produce/consume cycle is not a state. Stage 8 collapses each
+strongly-connected component into one lane run sequentially (same resolution as
+the same-file rule), so no wave ever waits on itself. The SCC pass is iterative;
+recursive Tarjan overflows on a real 109-step co-write chain.
+
+**Not-separable exit:** when the longest lane exceeds twice `--max-steps`, the
+script emits a `separability` advisory instead of pretending to parallelize. That
+is a plan-quality signal (a hub file co-written by most steps), and the
+documented resolution is to re-run `/write-plan` with phase-local file sets or to
+accept the serial run explicitly. Exclusive ownership stays the default;
+`--hub-split` and `--soft-ownership` loosen it only on request.
+
+---
+
+## Loop Pre-Flight Readiness (preflight.sh)
+
+**Source:** `.claude/skills/cfn-megaplan/bars/preflight.py` (`scan_open_sections`, `find_artifacts`, `open_blocking_deferrals`); called from `.claude/commands/cfn-loop-task.md` Step 0c; verified by `.claude/skills/cfn-megaplan/bars/tests/test-preflight.sh`
+
+**Entity:** one plan directory, evaluated for whether the loop may start. The
+scan is section-aware: a heading that announces open work contributes its items,
+the same heading qualified as answered/resolved/decided/retired does not.
+
+### States
+
+`clear | open-items | open-deferrals | missing-artifact | unresolvable`
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | unresolvable | `--plan-dir` absent or not a directory | exit 2; re-resolve through `plan-paths.sh` before retrying |
+| (none) | missing-artifact | a required artifact (PLAN, VERIFY, SPEC, DECISIONS) has no `<KIND>_<slug>.md` | exit 1; reported in `missing_artifacts[]` |
+| (none) | open-items | an unqualified open heading in DECISIONS/SPEC/PLAN/ARCH/OPS/DATA/UX/TEST carries at least one item | exit 1; at most 8 items listed per section, `item_count` and `truncated` stay exact |
+| (none) | open-deferrals | `.DEFERRALS_<slug>.json` beside the plan dir has an entry with `status: OPEN` and `blocking: true` | exit 1; these become Phase 5 gate failures if the loop starts anyway |
+| (none) | clear | no missing artifact, no open section, no open blocking deferral | exit 0; the only state Phase 1 may follow |
+| open-items | clear | each item resolved or explicitly accepted, answer recorded in `DECISIONS_<slug>.md`, script re-run | one `AskUserQuestion` per item; a heading rewritten as answered/resolved drops out of the scan |
+| open-deferrals | clear | resolved through `deferrals.sh`, script re-run | resolution recorded in the side manifest, not in prose |
+| missing-artifact | clear | the artifact written (`/write-plan`, `/cfn-megaplan`), script re-run | resolves through `plan-paths.sh`, nested layout first |
+
+```
+unresolvable <──bad --plan-dir── (none) ──nothing open──> clear ──> Phase 1
+                                   │
+       ┌───────────────────────────┼───────────────────────────┐
+missing-artifact            open-items                  open-deferrals
+       │ write artifact            │ decide + record            │ deferrals.sh
+       └───────────────────────────┴───────────────────────────┘
+                              re-run ──> clear
+```
+
+`clear` is not sticky: it describes the plan dir at scan time, so the script is
+re-run after every resolution rather than remembered.
 
 ---
 

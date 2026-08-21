@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-20 (dead sourced-path sweep + gate; sourced-library `readonly` collision fixed in 7 libraries + gate; `.env` sourcing removed from knowledge-base scripts + gate; agent-selection shipped as a committed esbuild bundle + gate) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-20 (loop-task lane derivation and pre-flight readiness moved out of the model into tested scripts; command body cut 70KB to 50KB via on-demand libs) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -515,6 +515,16 @@ Consumer Project
 | cfn-design | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-design/` | Visual/layout/design-system/a11y/i18n + responsive/touch + content/microcopy + API contract |
 | cfn-test-plan | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-test-plan/` | AC→executable-check table (feeds Bar A). Phase 3 (S004, 2026-07-11) now emits WIRE-n call-site ACs for each composition-root component wiring, auto-populated in wiring_total/wiring_mapped counts. Producer side names wiring in mandatory Bar A coverage keys. |
 | cfn-ops | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-ops/` | Threat model/observability/rollout (beta+). Pairs with cfn-migration-rehearsal on up/down scripts; cfn-loop-task Phase 4 gate-matrix wires migration-rehearsal test ACs. |
+
+### Loop Pre-Flight & Lane Derivation (cfn-megaplan/bars)
+
+| Feature | Status | Tests | Location | Description |
+|---------|--------|-------|----------|-------------|
+| derive-lanes | ✅ Prod | ✅ 74/74 | `.claude/skills/cfn-megaplan/bars/{derive-lanes.sh,derive_lanes.py}` | Derives lanes, produce/consume edges and topological waves from a PLAN step table. Exclusive file ownership is the default; `--hub-split` and `--soft-ownership` are opt-in. Emits a separability advisory when the longest lane exceeds 2x the cap so an unparallelizable plan escalates instead of running serial silently. |
+| preflight | ✅ Prod | ✅ 37/37 | `.claude/skills/cfn-megaplan/bars/{preflight.sh,preflight.py}` | Section-aware readiness scan of a plan dir: open escalations, unresolved forks, parked items, unpatched defects, open blocking deferrals, missing required artifacts. Headings qualified as answered/resolved/decided are excluded. Report capped under 3KB, 8 items per section with true counts. |
+| task-mode on-demand libs | ✅ Prod | n/a | `.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/` | 7 sections extracted from `cfn-loop-task.md` (exit gate, tool-failure capture, worked example, step amendment, iteration context, flaky re-run, changelog) with pointer stubs left inline. Command body 70,556 to 50,275 chars. Placed under an existing skill so no new registry entry and no collision with the `/cfn-loop-task` command name. |
+
+**Why these exist:** measured 2026-08-20, one coordinator burned ~187k context tokens before the loop started. 53k went to ad-hoc in-chat lane graph math over 14 python heredocs (whose lane set would have put co-writers of the same hub file in one wave), and ~41k to grepping SPEC/DECISIONS/PLAN for open items over 26 bash calls. Both answers are now deterministic script output.
 
 ### Decision Log (structured records)
 
