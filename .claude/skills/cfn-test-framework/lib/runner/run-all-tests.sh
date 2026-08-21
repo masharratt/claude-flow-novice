@@ -18,8 +18,14 @@ NC='\033[0m'
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-DB_FILE="$PROJECT_ROOT/.artifacts/test-benchmarks.db"
+# Two distinct anchors. CFN_ROOT is the shared CFN source tree (this repo), which is
+# what tests/ refers to: this runner drives THIS repo test sources. PROJECT_DATA_ROOT
+# is the invoking project, which owns .artifacts/ (the benchmark DB is per-project
+# output). A BASH_SOURCE root must never be used for .artifacts/: it resolves into
+# the CFN checkout that every project shares by symlink.
+CFN_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+PROJECT_DATA_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
+DB_FILE="$PROJECT_DATA_ROOT/.artifacts/test-benchmarks.db"
 
 # Parameters
 SUITE="all"
@@ -99,7 +105,7 @@ if [ "$SUITE" = "all" ] || [ "$SUITE" = "hello-world" ]; then
   HW_SKIPPED=0
   
   # Layer 0
-  if timeout 90 node "$PROJECT_ROOT/tests/hello-world/layer0-tool-validation.js" > /tmp/hw-layer0.log 2>&1; then
+  if timeout 90 node "$CFN_ROOT/tests/hello-world/layer0-tool-validation.js" > /tmp/hw-layer0.log 2>&1; then
     echo -e "${GREEN}✅ Layer 0: PASSED${NC}"
     ((HW_PASSED++))
   else
@@ -108,7 +114,7 @@ if [ "$SUITE" = "all" ] || [ "$SUITE" = "hello-world" ]; then
   fi
   
   # Layer 5
-  if timeout 180 node "$PROJECT_ROOT/tests/hello-world/layer5-coordinator-spawning.js" > /tmp/hw-layer5.log 2>&1; then
+  if timeout 180 node "$CFN_ROOT/tests/hello-world/layer5-coordinator-spawning.js" > /tmp/hw-layer5.log 2>&1; then
     echo -e "${GREEN}✅ Layer 5: PASSED${NC}"
     ((HW_PASSED++))
   else
@@ -117,7 +123,7 @@ if [ "$SUITE" = "all" ] || [ "$SUITE" = "hello-world" ]; then
   fi
   
   # Layer 6
-  if timeout 240 node "$PROJECT_ROOT/tests/hello-world/layer6-coordinator-review.js" > /tmp/hw-layer6.log 2>&1; then
+  if timeout 240 node "$CFN_ROOT/tests/hello-world/layer6-coordinator-review.js" > /tmp/hw-layer6.log 2>&1; then
     echo -e "${GREEN}✅ Layer 6: PASSED${NC}"
     ((HW_PASSED++))
   else
@@ -126,7 +132,7 @@ if [ "$SUITE" = "all" ] || [ "$SUITE" = "hello-world" ]; then
   fi
   
   # Layer 7
-  if timeout 200 node "$PROJECT_ROOT/tests/hello-world/layer7-coordinator-error-retry.js" > /tmp/hw-layer7.log 2>&1; then
+  if timeout 200 node "$CFN_ROOT/tests/hello-world/layer7-coordinator-error-retry.js" > /tmp/hw-layer7.log 2>&1; then
     echo -e "${GREEN}✅ Layer 7: PASSED${NC}"
     ((HW_PASSED++))
   else
@@ -153,7 +159,7 @@ if [ "$SUITE" = "all" ] || [ "$SUITE" = "cfn-e2e" ]; then
   E2E_START=$(date +%s)
   
   # Run E2E test and capture results
-  if timeout 600 bash "$PROJECT_ROOT/tests/cfn-v3/test-e2e-cfn-loop.sh" > /tmp/e2e-output.log 2>&1; then
+  if timeout 600 bash "$CFN_ROOT/tests/cfn-v3/test-e2e-cfn-loop.sh" > /tmp/e2e-output.log 2>&1; then
     E2E_EXIT=0
   else
     E2E_EXIT=$?

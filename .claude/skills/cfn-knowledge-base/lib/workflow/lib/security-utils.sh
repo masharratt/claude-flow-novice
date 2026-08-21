@@ -197,8 +197,11 @@ validate_file_path() {
         return 1
     }
 
-    # Check if file is within base directory
-    if [[ ! "$abs_path" =~ ^"$abs_base" ]]; then
+    # Check if file is within base directory.
+    # Must compare on a path-separator boundary: a bare prefix match accepts a
+    # sibling whose name merely starts with the base, so a base of
+    # /srv/app would wrongly admit /srv/app-evil/payload.
+    if [[ "$abs_path" != "$abs_base" && "$abs_path" != "$abs_base"/* ]]; then
         echo "[ERROR] File path outside allowed directory: $file_path" >&2
         echo "[ERROR] Base directory: $base_dir" >&2
         return 1

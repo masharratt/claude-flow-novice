@@ -18,7 +18,7 @@ Execute E2E tests with intelligent batching for optimal memory usage.
 |------|---------|----------|
 | `task` | `/cfn-loop-task` | Autonomous execution with iteration on failures |
 | `error` | `/cfn-fix-errors` | Fix compilation/test errors after failures |
-| `parallel` | `cfn-parallel-execute` | Run multiple tasks in parallel via pipeline |
+| `parallel` | not available | No parallel-executor skill exists. Route these requests to `task` mode. |
 | `direct` | Script only | Simple test run without orchestration |
 
 **Keyword triggers:**
@@ -94,13 +94,10 @@ $HOME/.claude/skills/cfn-e2e/analyze-batches.sh tests/e2e --json /tmp/e2e-batche
 4. Run story tests - Agent: playwright-tester - File: tests/e2e/story-creation.spec.ts
 ```
 
-3. Delegate to parallel executor:
+3. Delegate to an executor:
 
-```bash
-cfn-parallel-execute --tasks=/tmp/e2e-tasks.md --agents=3
-```
-
-**Command reference:** `.claude/skills/cfn-parallel-execute/SKILL.md`
+`cfn-parallel-execute` was documented but never built, and no skill of that name exists. Hand the
+generated task list to `/cfn-loop-task` instead, which spawns the agents itself.
 
 ---
 
@@ -144,7 +141,7 @@ User Request
     │   └── Invoke: /cfn-fix-errors typescript
     │
     ├── "run e2e in parallel" / "parallel" / "--mode=parallel"
-    │   └── Invoke: cfn-parallel-execute --tasks=e2e-tasks.md --agents=3
+    │   └── No parallel executor exists: fall back to /cfn-loop-task
     │
     └── "run e2e" / "run tests" / "--mode=direct" / (default)
         └── Execute: $HOME/.claude/skills/cfn-e2e/run-e2e-smart.sh
@@ -183,7 +180,6 @@ User Request
 
 - `/cfn-loop-task` - Full CFN Loop orchestration
 - `/cfn-fix-errors` - Error coordination and fixing
-- `cfn-parallel-execute` - Pipeline-based parallel execution
 
 ## Skill Location
 

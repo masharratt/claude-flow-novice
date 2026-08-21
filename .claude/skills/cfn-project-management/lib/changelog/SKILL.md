@@ -52,11 +52,11 @@ Traditional changelogs require manual curation and often become stale or inconsi
 
 **Usage:**
 ```bash
-$HOME/.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
+$HOME/.claude/skills/cfn-project-management/lib/changelog/add-changelog-entry.sh \
   --type "feature" \
   --summary "Add backlog management skill for deferred work tracking" \
   --impact "Agents can now systematically capture deferred items with structured metadata instead of losing context in chat history" \
-  --files ".claude/skills/cfn-backlog-management/SKILL.md,readme/BACKLOG.md"
+  --files ".claude/skills/cfn-project-management/lib/backlog/SKILL.md,readme/BACKLOG.md"
 ```
 
 ### Output Location
@@ -140,7 +140,7 @@ Coordination pattern changes, skill refactors, system design updates.
 --type "architecture"
 --summary "Extract output processing into dedicated skill"
 --impact "95% code reuse between Loop 3 and Loop 2 consensus collection"
---files ".claude/skills/cfn-agent-output-processing/SKILL.md"
+--files ".claude/skills/cfn-agent-lifecycle/lib/output/README.md"
 ```
 
 ### Performance
@@ -204,7 +204,7 @@ Impact: "There was an issue that has been resolved"
 Edit: file_path="src/new-feature.ts" ...
 
 # Document change
-$HOME/.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
+$HOME/.claude/skills/cfn-project-management/lib/changelog/add-changelog-entry.sh \
   --type "feature" \
   --summary "JWT authentication middleware" \
   --impact "Stateless auth reduces session storage by 80%" \
@@ -214,7 +214,7 @@ $HOME/.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
 ### Loop 2 Validator (After Identifying Bug Fix)
 ```bash
 # Validator reviews fix
-$HOME/.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
+$HOME/.claude/skills/cfn-project-management/lib/changelog/add-changelog-entry.sh \
   --type "bugfix" \
   --summary "Prevent null pointer in Redis connection retry" \
   --impact "Eliminates crashes during Redis unavailability" \
@@ -225,11 +225,11 @@ $HOME/.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
 ### Product Owner (After Architectural Decision)
 ```bash
 # Product Owner approves design change
-$HOME/.claude/skills/cfn-changelog-management/add-changelog-entry.sh \
+$HOME/.claude/skills/cfn-project-management/lib/changelog/add-changelog-entry.sh \
   --type "architecture" \
   --summary "Split orchestrator into modular helper scripts" \
   --impact "78% code reduction, improved testability" \
-  --files ".claude/skills/cfn-loop-orchestration/helpers/"
+  --files ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/"
 ```
 
 ## Versioning Strategy
@@ -345,5 +345,5 @@ npm version minor  # 2.11.0 → 2.12.0
 ## References
 
 - **Sparse Language**: readme/CLAUDE.md - Documentation Guidelines
-- **Backlog Management**: `.claude/skills/cfn-backlog-management/SKILL.md`
+- **Backlog Management**: `.claude/skills/cfn-project-management/lib/backlog/SKILL.md`
 - **Versioning**: `package.json` - Single source of truth

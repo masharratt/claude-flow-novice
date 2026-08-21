@@ -7,13 +7,13 @@
 #
 # Usage:
 #   # Acquire lock
-#   ./.claude/skills/cfn-file-operations/execute.sh acquire-lock /path/to/file.txt --agent-id agent-001
+#   $HOME/.claude/skills/cfn-operations/lib/file/execute.sh acquire-lock /path/to/file.txt --agent-id agent-001
 #
 #   # Write atomically
-#   ./.claude/skills/cfn-file-operations/execute.sh atomic-write /path/to/file.txt "content" --checksum
+#   $HOME/.claude/skills/cfn-operations/lib/file/execute.sh atomic-write /path/to/file.txt "content" --checksum
 #
 #   # Release lock
-#   ./.claude/skills/cfn-file-operations/execute.sh release-lock LOCK_ID
+#   $HOME/.claude/skills/cfn-operations/lib/file/execute.sh release-lock LOCK_ID
 #
 
 set -euo pipefail

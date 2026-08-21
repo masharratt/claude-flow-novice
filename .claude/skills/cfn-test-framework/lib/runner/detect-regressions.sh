@@ -3,12 +3,17 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# Two distinct anchors. CFN_ROOT is the shared CFN source tree (this repo) and is
+# where the sqlite-params helper lives. PROJECT_DATA_ROOT is the invoking project,
+# which owns .artifacts/. A BASH_SOURCE root must never be used for .artifacts/:
+# it resolves into the CFN checkout that every project shares by symlink.
+CFN_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+PROJECT_DATA_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 # Load parameterized query library (SQL injection prevention)
-source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+source "$CFN_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
 
-DB_FILE="$PROJECT_ROOT/.artifacts/test-benchmarks.db"
+DB_FILE="$PROJECT_DATA_ROOT/.artifacts/test-benchmarks.db"
 
 THRESHOLD=0.10
 

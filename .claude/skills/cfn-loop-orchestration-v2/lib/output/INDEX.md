@@ -237,7 +237,7 @@ npx ts-node src/cli/process-loop2.ts \
 
 **Loop 3 Integration:**
 ```bash
-RESULT=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop3.ts \
+RESULT=$(npx ts-node "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop3.ts" \
   --agent-id "$AGENT_ID" \
   --output "$AGENT_OUTPUT" \
   --iteration "$ITERATION")
@@ -248,7 +248,7 @@ redis-cli LPUSH "swarm:${TASK_ID}:${AGENT_ID}:confidence" "$CONFIDENCE"
 
 **Loop 2 Integration:**
 ```bash
-RESULT=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop2.ts \
+RESULT=$(npx ts-node "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop2.ts" \
   --validator-id "$VALIDATOR_ID" \
   --output "$VALIDATOR_OUTPUT")
 
@@ -257,7 +257,7 @@ echo "$RESULT" >> ./validator-results.json
 
 **Consensus:**
 ```bash
-CONSENSUS=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop2.ts \
+CONSENSUS=$(npx ts-node "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop2.ts" \
   --consensus \
   --results-file ./validator-results.json \
   --threshold "$THRESHOLD")

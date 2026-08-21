@@ -226,7 +226,7 @@ export CLAUDE_MEMORY_LOG_LEVEL=trace
 #!/bin/bash
 # .claude/hooks/cfn-pre-execution/memory-check.sh
 
-$HOME/.claude/skills/cfn-memory-management/check-memory.sh
+$HOME/.claude/skills/cfn-memory-persistence/lib/management/check-memory.sh
 if [[ $? -ne 0 ]]; then
     echo "❌ Memory check failed. Please free memory before proceeding."
     exit 1
@@ -238,7 +238,7 @@ fi
 #!/bin/bash
 # .claude/hooks/cfn-post-execution/memory-cleanup.sh
 
-$HOME/.claude/skills/cfn-memory-management/cleanup-memory.sh
+$HOME/.claude/skills/cfn-memory-persistence/lib/management/cleanup-memory.sh
 ```
 
 ## Metrics and Monitoring

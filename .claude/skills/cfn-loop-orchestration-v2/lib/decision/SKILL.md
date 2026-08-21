@@ -25,9 +25,11 @@ status: production
 **Missing on disk (do NOT invoke; referenced sections below are ASPIRATIONAL only):**
 - `execute-decision.sh`
 - `src/decision-parser.ts`, `src/index.ts`, `dist/cli/parse-decision-cli.js`
-- `.claude/skills/cfn-task-audit/` (skill missing)
-- `.claude/skills/cfn-backlog-management/` (skill missing)
-- `.claude/skills/cfn-loop-validation/` (skill missing)
+
+**Consolidated elsewhere (these three were folded into parent skills; use the new paths):**
+- `.claude/skills/cfn-task-planning/lib/audit/` (was `cfn-task-audit`)
+- `.claude/skills/cfn-project-management/lib/backlog/` (was `cfn-backlog-management`)
+- `.claude/skills/cfn-loop-orchestration-v2/lib/validation/` (was `cfn-loop-validation`)
 
 ---
 
@@ -214,14 +216,14 @@ Reason: "No files created despite implementation task"
 
 ## Audit Trail Integration
 
-**ASPIRATIONAL SECTION: `cfn-task-audit` skill is missing on disk. Do not invoke `get-audit-data.sh`. Kept as a design reference only.**
+**The former `cfn-task-audit` skill was folded into `.claude/skills/cfn-task-planning/lib/audit/`. `get-audit-data.sh` exists there; the wiring described below is a design reference and is not called automatically.**
 
 ### Audit Data Retrieval
 
-The skill retrieves historical data from `cfn-task-audit`:
+The skill retrieves historical data from `.claude/skills/cfn-task-planning/lib/audit/`:
 
 ```bash
-AUDIT_DATA=$(./.claude/skills/cfn-task-audit/get-audit-data.sh \
+AUDIT_DATA=$($HOME/.claude/skills/cfn-task-planning/lib/audit/get-audit-data.sh \
   --task-id "$TASK_ID" \
   --mode combined \
   --format json)
@@ -424,9 +426,8 @@ Existing orchestrators continue to use bash without modification.
 To use TypeScript parsing in orchestrator:
 
 ```bash
-# Current (bash): Still works
-DECISION_JSON=$(./.claude/skills/cfn-product-owner-decision/execute-decision.sh \
-  --task-id "$TASK_ID" ...)
+# Historical (bash): execute-decision.sh was never implemented in this directory.
+# Use parse-decision.sh, or the product-owner agent in Task Mode.
 
 # New (TypeScript): Available if needed
 npx claude-flow-novice parse-decision --input output.txt --json
@@ -591,7 +592,7 @@ Exit Code: 1 (overridden)
 
 ## Related Skills
 
-All three related skills previously listed here (`cfn-task-audit`, `cfn-backlog-management`, `cfn-loop-validation`) are missing on disk. In-tree validation lives at `.claude/skills/cfn-loop-orchestration-v2/lib/validation/SKILL.md` (CLI mode only).
+The three skills previously listed here were consolidated into parent skills: `cfn-task-audit` into `.claude/skills/cfn-task-planning/lib/audit/`, `cfn-backlog-management` into `.claude/skills/cfn-project-management/lib/backlog/`, and `cfn-loop-validation` into `.claude/skills/cfn-loop-orchestration-v2/lib/validation/SKILL.md` (CLI mode only).
 
 ---
 

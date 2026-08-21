@@ -21,7 +21,8 @@ set -euo pipefail
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+EVENTBUS_WRAPPER="$SCRIPT_DIR/eventbus-wrapper.cjs"
 
 # Parse arguments
 TOPIC=""
@@ -103,8 +104,7 @@ TEMP_SCRIPT=$(mktemp)
 trap "rm -f $TEMP_SCRIPT" EXIT
 
 cat > "$TEMP_SCRIPT" << 'EOF'
-const path = require('path');
-const { eventBus } = require(path.join(process.env.PROJECT_ROOT, '.claude', 'skills', 'event-bus', 'eventbus-wrapper.cjs'));
+const { eventBus } = require(process.env.EVENTBUS_WRAPPER);
 
 const eventData = JSON.parse(process.env.EVENT_DATA);
 
@@ -132,6 +132,7 @@ EOF
 
 export EVENT_DATA
 export PROJECT_ROOT
+export EVENTBUS_WRAPPER
 RESULT=$(node "$TEMP_SCRIPT")
 
 # Output result

@@ -30,8 +30,9 @@ It routes to `cli/resolve-provider-model.cjs` via Node. Nothing else in this ski
 The following entry points that earlier versions of this document referenced do NOT exist on disk and must not be invoked or cited:
 - `dist/cli/orchestrator-cli.js` (missing)
 - `helpers/*.sh` (gate-check, consensus, iteration-manager, deliverable-verifier, timeout-calculator: directory missing)
-- `.claude/skills/redis-coordination/` (skill missing)
-- `.claude/skills/cfn-loop-orchestration/test-cfn-orchestration.sh` (path missing)
+- `.claude/skills/redis-coordination/` (skill removed; Redis helpers now live in `.claude/skills/cfn-memory-persistence/lib/redis/`)
+
+Renamed, not missing: the old `.claude/skills/cfn-loop-orchestration/test-cfn-orchestration.sh` is now `test-cfn-orchestration.sh` in this directory.
 
 For the mechanical test gate, use the verified script:
 

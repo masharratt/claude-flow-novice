@@ -65,8 +65,13 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-# Validate DATABASE_URL present (never source .env)
-RAW_URL=$(grep '^DATABASE_URL=' "$ENV_FILE" | cut -d'=' -f2-)
+# Validate a connection string is present (never source .env).
+# READONLY_DATABASE_URL wins where a project defines one: introspection only
+# ever reads, and a project's DATABASE_URL may be a narrowly scoped app role
+# that cannot see most schemas, which makes the generated docs silently
+# under-report the database. Falls back to DATABASE_URL everywhere else.
+RAW_URL=$(grep '^READONLY_DATABASE_URL=' "$ENV_FILE" | cut -d'=' -f2-)
+[[ -z "$RAW_URL" ]] && RAW_URL=$(grep '^DATABASE_URL=' "$ENV_FILE" | cut -d'=' -f2-)
 # Strip surrounding single/double quotes (matches db-query/execute.sh behavior).
 RAW_URL="${RAW_URL%\"}"; RAW_URL="${RAW_URL#\"}"
 RAW_URL="${RAW_URL%\'}"; RAW_URL="${RAW_URL#\'}"
@@ -206,7 +211,12 @@ for SCHEMA in "${SCHEMAS[@]}"; do
         # them alongside type info so agents see the trap without a second
         # query. Delimiter is \x01 (not '|') since comment text may itself
         # contain a pipe.
-        COL_QUERY="SELECT c.column_name, c.data_type, c.is_nullable, pgd.description
+        # The comment is flattened to a single line and its pipes escaped:
+        # a COMMENT ON COLUMN may hold paragraphs and an SQL snippet, and a raw
+        # newline would end the markdown table row mid-comment, turning the rest
+        # of the text into bogus one-column rows.
+        COL_QUERY="SELECT c.column_name, c.data_type, c.is_nullable,
+            regexp_replace(replace(pgd.description, '|', '\\|'), '\\s+', ' ', 'g')
           FROM information_schema.columns c
           LEFT JOIN pg_catalog.pg_statio_all_tables st
             ON st.relname = c.table_name AND st.schemaname = c.table_schema
@@ -221,7 +231,7 @@ for SCHEMA in "${SCHEMAS[@]}"; do
           exit 1
         }
 
-        TABLE_COMMENT_QUERY="SELECT obj_description(format('%I.%I', '$SCHEMA', '$TABLE_NAME')::regclass);"
+        TABLE_COMMENT_QUERY="SELECT regexp_replace(obj_description(format('%I.%I', '$SCHEMA', '$TABLE_NAME')::regclass), '\\s+', ' ', 'g');"
         TABLE_COMMENT=$(psql "$CLEAN_URL" -t -A -c "$TABLE_COMMENT_QUERY" 2>/dev/null || true)
 
         echo "## ${TABLE_NAME}"

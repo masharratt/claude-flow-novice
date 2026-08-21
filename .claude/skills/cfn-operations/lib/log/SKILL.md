@@ -17,7 +17,7 @@ The CFN Log Operations skill provides comprehensive logging capabilities for the
 ## Usage
 
 ```bash
-$HOME/.claude/skills/cfn-log-operations/execute.sh [COMMAND] [OPTIONS]
+$HOME/.claude/skills/cfn-operations/lib/log/execute.sh [COMMAND] [OPTIONS]
 ```
 
 ### Commands
@@ -272,7 +272,7 @@ jq 'select(.metadata.duration > 5000)' logs/*.json
 - Check permissions: `stat /var/log/cfn/`
 
 ### JSON parsing errors
-- Validate log format: `./.claude/skills/cfn-log-operations/execute.sh search --validate`
+- Validate log format: `$HOME/.claude/skills/cfn-operations/lib/log/execute.sh search --validate`
 - Check file encoding: `file logs/*.log`
 - Review recent logs: `tail -50 logs/*.log`
 

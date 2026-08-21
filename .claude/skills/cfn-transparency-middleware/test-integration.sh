@@ -98,12 +98,11 @@ main() {
     \"" "Middleware initialization failed"
 
     # 2. Spawn test agent with middleware wrapper
-    log "INFO" "Spawning test agent"
-    safe_execute "./.claude/skills/cfn-transparency-middleware/wrap-agent.sh \
-        \"backend-dev\" \
-        \"test-agent-1\" \
-        \"integration-test-task\" \
-        \"echo 'Test execution'\"" "Agent wrapping failed"
+    # cfn: step removed, restore when a JS/Rust agent wrapper exists again.
+    # wrap-agent.sh was deleted 2026-08-20: it imported
+    # src/middleware/transparency-middleware.js, which was itself deleted in
+    # ec6203a3b when this skill moved to Rust. No successor wrapper exists.
+    log "WARN" "Skipping agent-wrapper step: wrap-agent.sh was removed (no successor)"
 
     # 3. Verify memory was captured
     log "INFO" "Verifying memory capture"
@@ -143,5 +142,8 @@ main() {
     log "INFO" "✅ Integration test complete"
 }
 
-# Run the main function
-main
+# Run the main function only when executed directly. Without this guard a
+# `source` of this file runs the entire suite as a side effect.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main "$@"
+fi

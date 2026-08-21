@@ -3,10 +3,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-DB_FILE="$PROJECT_ROOT/.artifacts/test-benchmarks.db"
+# .artifacts/ is PER-PROJECT output owned by the invoking project, not CFN source.
+# Shared CFN code -> BASH_SOURCE or $HOME. Project data -> $CLAUDE_PROJECT_DIR/cwd.
+PROJECT_DATA_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
+DB_FILE="$PROJECT_DATA_ROOT/.artifacts/test-benchmarks.db"
 
-mkdir -p "$PROJECT_ROOT/.artifacts"
+mkdir -p "$PROJECT_DATA_ROOT/.artifacts"
 
 sqlite3 "$DB_FILE" << 'EOFSQL'
 CREATE TABLE IF NOT EXISTS test_suites (

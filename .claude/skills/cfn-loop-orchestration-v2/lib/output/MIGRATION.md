@@ -29,7 +29,7 @@ This guide helps migrate from the old bash-based output processing scripts to th
 ### Step 1: Install and Build
 
 ```bash
-cd $HOME/.claude/skills/cfn-loop-output-processing
+cd $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output
 
 # Install dependencies
 npm install
@@ -43,22 +43,22 @@ npm test
 
 ### Step 2: Update Orchestrator Integration
 
-#### Old Loop 3 Integration (Bash)
+#### Old Loop 3 Integration (Bash, removed)
 
 ```bash
-# Old way
-CONFIDENCE=$(./.claude/skills/cfn-loop3-output-processing/parse-confidence.sh "$AGENT_OUTPUT")
-DELIVERABLE_CHECK=$(./.claude/skills/cfn-loop3-output-processing/verify-deliverables.sh \
-  --before "$BEFORE_GIT" \
-  --after "$AFTER_GIT")
-FILES_CHANGED=$(echo "$DELIVERABLE_CHECK" | jq -r '.files_changed')
+# REMOVED (deleted in 41c19b9b8, no bash successor) - shown for reference only:
+# CONFIDENCE=$(./.claude/skills/cfn-loop3-output-processing/parse-confidence.sh "$AGENT_OUTPUT")
+# DELIVERABLE_CHECK=$(./.claude/skills/cfn-loop3-output-processing/verify-deliverables.sh \
+#   --before "$BEFORE_GIT" \
+#   --after "$AFTER_GIT")
+# FILES_CHANGED=$(echo "$DELIVERABLE_CHECK" | jq -r '.files_changed')
 ```
 
 #### New Loop 3 Integration (TypeScript)
 
 ```bash
 # New way
-RESULT=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop3.ts \
+RESULT=$(npx ts-node "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop3.ts" \
   --agent-id "$AGENT_ID" \
   --output "$AGENT_OUTPUT" \
   --iteration "$ITERATION")
@@ -80,7 +80,7 @@ WARNING=$(./parse-feedback.sh --extract-warnings "$VALIDATOR_OUTPUT" | jq 'lengt
 
 ```bash
 # New way
-RESULT=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop2.ts \
+RESULT=$(npx ts-node "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop2.ts" \
   --validator-id "$VALIDATOR_ID" \
   --output "$VALIDATOR_OUTPUT" \
   --iteration "$ITERATION")
@@ -106,7 +106,7 @@ done
 
 ```bash
 # New way - unified consensus calculation
-CONSENSUS=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop2.ts \
+CONSENSUS=$(npx ts-node "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop2.ts" \
   --consensus \
   --results-file ./validator-results.json \
   --threshold "$THRESHOLD")

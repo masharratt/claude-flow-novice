@@ -76,7 +76,7 @@ interface ValidationResult {
 
 ```bash
 # Install dependencies
-cd $HOME/.claude/skills/cfn-loop-validation
+cd $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation
 npm install
 
 # Build TypeScript
@@ -397,7 +397,7 @@ PASS_RATE=$(npm test 2>&1 | grep -o '[0-9]\+/[0-9]\+' | awk -F/ '{print $1/$2}')
 **Example:**
 ```bash
 # Integration into orchestrator
-VAPOR_RESULT=$(./.claude/skills/cfn-loop-validation/detect-vapor.sh \
+VAPOR_RESULT=$($HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/detect-vapor.sh \
   --output "$AGENT_OUTPUT" \
   --deliverables "$(echo $EXPECTED_FILES | tr ' ' ',')" \
   --json)
@@ -525,7 +525,7 @@ process.exit(0);
 ```bash
 # After Loop 3 execution, before Loop 2
 
-VAPOR_CHECK=$(./.claude/skills/cfn-loop-validation/detect-vapor.sh \
+VAPOR_CHECK=$($HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/detect-vapor.sh \
   --output "$LOOP3_OUTPUT" \
   --deliverables "$(echo ${EXPECTED_FILES[@]} | tr ' ' ',')" \
   --json)
@@ -777,6 +777,6 @@ node dist/cli/validate-deliverables.js --paths "file.js"
 
 ## Related Documentation
 
-- CFN Loop Architecture: `.claude/skills/cfn-loop-orchestration/SKILL.md`
+- CFN Loop Architecture: `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/SKILL.md`
 - Gate Checker Details: `src/gate-checker/gate-checker.ts`
 - Orchestrator Integration: `.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`

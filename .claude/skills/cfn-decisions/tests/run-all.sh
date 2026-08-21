@@ -4,8 +4,8 @@
 # atomic RED FIRST). Exits non-zero if any file fails. No watch mode, no bail.
 set -uo pipefail
 
-TEST_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$TEST_DIR/../../.." && pwd)"
+TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$TEST_DIR/../../../.." && pwd)"
 export REPO_ROOT
 
 # TDD ordering: AC-2 (cardinality) + AC-4 (atomic) first so RED state

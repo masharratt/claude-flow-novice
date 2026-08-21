@@ -503,6 +503,6 @@ describe('My Agent', () => {
 
 ## Reference
 
-- **Module:** `.claude/skills/cfn-loop-orchestration/src/helpers/context-injector.ts`
-- **Tests:** `.claude/skills/cfn-loop-orchestration/tests/context-injector.test.ts`
+- **Module:** `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/context-injector.ts`
+- **Tests:** `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/tests/context-injector.test.ts`
 - **Docs:** `CONTEXT_INJECTOR_IMPLEMENTATION.md`

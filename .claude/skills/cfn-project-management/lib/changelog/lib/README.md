@@ -25,7 +25,7 @@ validate_string_length "$string" "$min" "$max" "$field_name"
 
 **Example:**
 ```bash
-source "$HOME/.claude/skills/cfn-changelog-management/lib/validation.sh"
+source "$HOME/.claude/skills/cfn-project-management/lib/changelog/lib/validation.sh"
 validate_string_length "$SUMMARY" 10 100 "summary" || exit 1
 ```
 
@@ -55,7 +55,7 @@ validate_date "$date_string"
 
 **Example:**
 ```bash
-source "$HOME/.claude/skills/cfn-changelog-management/lib/validation.sh"
+source "$HOME/.claude/skills/cfn-project-management/lib/changelog/lib/validation.sh"
 validate_date "$CUSTOM_DATE" || exit 1
 ```
 
@@ -92,7 +92,7 @@ validate_enum "$value" "$field_name" "$valid_options"
 
 **Example:**
 ```bash
-source "$HOME/.claude/skills/cfn-changelog-management/lib/validation.sh"
+source "$HOME/.claude/skills/cfn-project-management/lib/changelog/lib/validation.sh"
 validate_enum "$TYPE" "type" "feature|bugfix|breaking" || exit 1
 validate_enum "$PRIORITY" "priority" "P0|P1|P2|P3" || exit 1
 ```
@@ -114,7 +114,7 @@ Error: --priority must be one of: P0, P1, P2, P3 (got: P5)
 
 ### Changelog Management
 
-**File:** `.claude/skills/cfn-changelog-management/add-changelog-entry.sh`
+**File:** `.claude/skills/cfn-project-management/lib/changelog/add-changelog-entry.sh`
 
 ```bash
 source "$SCRIPT_DIR/lib/validation.sh"
@@ -126,10 +126,10 @@ validate_date "$CUSTOM_DATE" || exit 1
 
 ### Backlog Management
 
-**File:** `.claude/skills/cfn-backlog-management/add-backlog-item.sh`
+**File:** `.claude/skills/cfn-project-management/lib/backlog/add-backlog-item.sh`
 
 ```bash
-source "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-changelog-management/lib/validation.sh"
+source "$HOME/.claude/skills/cfn-project-management/lib/changelog/lib/validation.sh"
 
 validate_string_length "$ITEM" 10 500 "item" || exit 1
 validate_enum "$PRIORITY" "priority" "P0|P1|P2|P3" || exit 1

@@ -154,9 +154,9 @@ error-management/
 
 | Old Path | New Path |
 |----------|----------|
-| `.claude/skills/cfn-standardized-error-handling/capture-agent-error.sh` | `.claude/skills/error-management/lib/capture/capture-agent-error.sh` |
-| `.claude/skills/cfn-error-batching-strategy/cli.sh` | `.claude/skills/error-management/lib/batching/cli.sh` |
-| `.claude/skills/cfn-error-logging/invoke-error-logging.sh` | `.claude/skills/error-management/lib/logging/invoke-error-logging.sh` |
+| `.claude/skills/cfn-standardized-error-handling/capture-agent-error.sh` | `.claude/skills/cfn-error-management/lib/capture/capture-agent-error.sh` |
+| `.claude/skills/cfn-error-batching-strategy/cli.sh` | `.claude/skills/cfn-error-management/lib/batching/cli.sh` |
+| `.claude/skills/cfn-error-logging/invoke-error-logging.sh` | `.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh` |
 
 ---
 

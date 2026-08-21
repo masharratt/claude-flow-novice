@@ -4,6 +4,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Input validation (SQL injection prevention)
 validate_identifier() {
     local input="$1"
@@ -20,7 +22,7 @@ validate_identifier() {
 }
 
 # Source the main script to access validation functions
-source "$(dirname "$0")/.claude/skills/cfn-cfn-test-integration.sh"
+source "${SCRIPT_DIR}/../test-integration.sh"
 
 # Test Cases for validate_input function
 test_input_validation() {

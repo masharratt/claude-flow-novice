@@ -8,6 +8,24 @@ set -euo pipefail
 DEFAULT_TOOL_BUDGET=10
 DEFAULT_COMPLEXITY="medium"
 
+# Where generated output goes.
+#
+# `.artifacts/<area>/` is the CFN convention for per-project generated output
+# (cfn-edit-safety writes .artifacts/feedback, cfn-memory-persistence writes
+# .artifacts/memory, cfn-test-framework writes .artifacts/analytics), and
+# `.artifacts/` is gitignored, which is correct for ephemeral decomposition
+# JSON and agent prompts.
+#
+# The anchor is CLAUDE_PROJECT_DIR (the project Claude Code was started in),
+# falling back to cwd when this script is run standalone. It is deliberately
+# NOT $HOME (this is per-project output, not shared CFN data) and NOT derived
+# from BASH_SOURCE (that resolves into the CFN source tree, which is shared by
+# every project via the reverse symlinks).
+#
+# Nothing is ever written under .claude/skills/: that tree is CFN source.
+ARTIFACTS_DIR="${CLAUDE_PROJECT_DIR:-$PWD}/.artifacts/task-decomposition"
+PROMPTS_DIR="$ARTIFACTS_DIR/prompts"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -187,7 +205,9 @@ analyze_task_complexity() {
 decompose_typescript_task() {
     local task_id="$1"
     local description="$2"
-    local output_file=".claude/skills/cfn-task-decomposition/${task_id}-subtasks.json"  # portability-ok: cwd-relative output path; cfn: needs a real artifacts dir, fix when this script is revived
+    local output_file="$ARTIFACTS_DIR/${task_id}-subtasks.json"
+
+    mkdir -p "$ARTIFACTS_DIR"
 
     echo -e "${YELLOW}Decomposing TypeScript task...${NC}" >&2
 
@@ -263,7 +283,9 @@ EOF
 decompose_exploration_task() {
     local task_id="$1"
     local description="$2"
-    local output_file=".claude/skills/cfn-task-decomposition/${task_id}-subtasks.json"  # portability-ok: cwd-relative output path; cfn: needs a real artifacts dir, fix when this script is revived
+    local output_file="$ARTIFACTS_DIR/${task_id}-subtasks.json"
+
+    mkdir -p "$ARTIFACTS_DIR"
 
     echo -e "${YELLOW}Decomposing exploration task...${NC}" >&2
 
@@ -304,7 +326,7 @@ EOF
 # Function to create task-specific agent prompts
 create_agent_prompts() {
     local subtasks_file="$1"
-    local prompts_dir=".claude/skills/cfn-task-decomposition/prompts"  # portability-ok: cwd-relative output path; cfn: needs a real artifacts dir, fix when this script is revived
+    local prompts_dir="$PROMPTS_DIR"
 
     mkdir -p "$prompts_dir"
 
@@ -395,7 +417,7 @@ main() {
 
         echo -e "\n${GREEN}=== Task Decomposition Complete ===${NC}"
         echo -e "📄 ${BLUE}Decomposition file:${NC} $decomposition_file"
-        echo -e "🤖 ${BLUE}Agent prompts:${NC} .claude/skills/cfn-task-decomposition/prompts/"
+        echo -e "🤖 ${BLUE}Agent prompts:${NC} $PROMPTS_DIR/"
         echo -e "💡 ${BLUE}Strategy:${NC} Break complex task into tool-budget-efficient subtasks"
 
         # Store decomposition info in Redis for coordinator

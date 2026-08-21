@@ -15,7 +15,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# This file lives at .claude/skills/cfn-dependency-management/lib/ingestion/, so
+# the repo root is FIVE levels up (ingestion -> lib -> cfn-dependency-management
+# -> skills -> .claude -> root). The old three-level form landed on
+# .claude/skills, and since the script cd's here before reading a manifest, no
+# repo-relative manifest path could ever resolve.
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 MANIFESTS_DIR="$SCRIPT_DIR/manifests"
 
 # Default parameters

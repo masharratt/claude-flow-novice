@@ -6,16 +6,16 @@ Dynamic ingestion of CFN Loop CLI dependency files by parsing the dependency dia
 
 ```bash
 # Ingest all dependencies
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh
 
 # Ingest P0 critical path only
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --priority P0
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --priority P0
 
 # Ingest TypeScript files only
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --type TS
 
 # Include deprecated files
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --include-deprecated
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --include-deprecated
 ```
 
 ## Output
@@ -27,8 +27,8 @@ The script outputs Read commands grouped by priority:
 Read: readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt
 
 # Step 2: Read P0 critical path files (required for 5-iteration e2e)
-Read: .claude/skills/cfn-loop-orchestration/src/orchestrate.ts
-Read: .claude/skills/cfn-agent-selection-with-fallback/src/cli.ts
+Read: .claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts
+Read: .claude/skills/cfn-agent-lifecycle/lib/selection/src/cli.ts
 ...
 
 # Step 3: Read P1 files (post-validation features)
@@ -86,7 +86,7 @@ The `cfn-loops-cli-expert` agent uses this skill for dynamic dependency loading:
 ## Step 2: Execute Dependency Ingestion
 
 ```bash
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh
 ```
 
 This automatically discovers and reads all files referenced in the dependency diagram.

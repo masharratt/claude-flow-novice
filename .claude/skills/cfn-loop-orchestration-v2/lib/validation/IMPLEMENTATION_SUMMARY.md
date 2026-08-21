@@ -369,7 +369,7 @@ if (!result.passed) {
 
 ```bash
 # After Loop 3, before Loop 2
-VAPOR=$(./.claude/skills/cfn-loop-validation/detect-vapor.sh \
+VAPOR=$("$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/detect-vapor.sh" \
   --output "$LOOP3_OUTPUT" \
   --deliverables "$(echo ${FILES[@]} | tr ' ' ',')" \
   --json)
@@ -529,7 +529,7 @@ try {
 
 ### Build Process
 ```bash
-cd $HOME/.claude/skills/cfn-loop-validation
+cd $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation
 npm install
 npm run build          # Compile TypeScript
 npm run type-check     # Check only, no build
@@ -629,7 +629,7 @@ if (vapor.detected) throw new ConsensusOnVaporError('...');
 ## File Manifest
 
 ```
-.claude/skills/cfn-loop-validation/
+.claude/skills/cfn-loop-orchestration-v2/lib/validation/
 ├── src/
 │   ├── types.ts                    # Type definitions (290 lines)
 │   ├── validator.ts                # Core validator (550 lines)

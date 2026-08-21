@@ -29,7 +29,7 @@ Provides comprehensive test execution across all CFN test suites:
 ### Skill Components
 
 ```
-.claude/skills/cfn-test-runner/
+.claude/skills/cfn-test-framework/lib/runner/
 ├── SKILL.md                    # This file
 ├── run-all-tests.sh            # Main test runner
 ├── store-benchmarks.sh         # SQLite benchmark storage
@@ -45,7 +45,7 @@ Provides comprehensive test execution across all CFN test suites:
 ### Run All Tests
 
 ```bash
-$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh \
+$HOME/.claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh \
   --suite all \
   --benchmark \
   --detect-regressions
@@ -55,19 +55,19 @@ $HOME/.claude/skills/cfn-test-runner/run-all-tests.sh \
 
 ```bash
 # Hello World only
-$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh --suite hello-world
+$HOME/.claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh --suite hello-world
 
 # CFN E2E only
-$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh --suite cfn-e2e
+$HOME/.claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh --suite cfn-e2e
 
 # Both
-$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh --suite all
+$HOME/.claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh --suite all
 ```
 
 ### With Regression Detection
 
 ```bash
-$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh \
+$HOME/.claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh \
   --suite all \
   --benchmark \
   --detect-regressions \
@@ -281,7 +281,7 @@ Generates interactive HTML report with:
 
 ```bash
 # First run establishes baseline
-$HOME/.claude/skills/cfn-test-runner/run-all-tests.sh --suite all --benchmark
+$HOME/.claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh --suite all --benchmark
 
 # Mark as baseline
 sqlite3 .artifacts/test-benchmarks.db << EOF

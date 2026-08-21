@@ -74,7 +74,7 @@ set -euo pipefail
 
 # Source SQLite parameter binding library (Pattern B - SQL injection prevention)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 # Use shared bootstrap utilities
 if [[ -f "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh" ]]; then
     source "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh"
@@ -85,7 +85,9 @@ fi
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+# Containment base for the update file: the invoking project, not the shared
+# CFN checkout. PROJECT_ROOT above stays as the CFN-tree anchor.
+CONTENT_BASE_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 # Source security utilities (SQL escaping, secure credentials)
 source "${SCRIPT_DIR}/lib/security-utils.sh"
@@ -184,7 +186,7 @@ validate_parameters() {
     fi
 
     # SECURITY FIX: Validate file path (prevent traversal)
-    validate_file_path "$update_path" "$PROJECT_ROOT" || exit 1
+    validate_file_path "$update_path" "$CONTENT_BASE_DIR" || exit 1
 
     # Validate database exists
     if [[ ! -f "$CFN_SKILLS_DB_PATH" ]]; then

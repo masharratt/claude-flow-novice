@@ -72,7 +72,7 @@ sqlite3 --version  # Should show version info
 redis-cli ping  # Should return "PONG"
 
 # Test CFN validation CLI
-$HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh --help
+$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/validate-iteration.sh --help
 ```
 
 ## Quick Start
@@ -81,21 +81,21 @@ $HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh --help
 
 ```bash
 # MVP mode (low threshold, fast iteration)
-$HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh \
+$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/validate-iteration.sh \
   --mode mvp \
   --iteration 1 \
   --confidence 0.75 \
   --task-id feature-auth
 
 # Standard mode (balanced quality)
-$HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh \
+$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/validate-iteration.sh \
   --mode standard \
   --iteration 2 \
   --confidence 0.85 \
   --task-id feature-auth
 
 # Enterprise mode (high quality, strict validation)
-$HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh \
+$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/validate-iteration.sh \
   --mode enterprise \
   --iteration 1 \
   --confidence 0.92 \
@@ -106,7 +106,7 @@ $HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh \
 
 ```bash
 # Validate consensus from validator swarm
-$HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh \
+$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/validate-iteration.sh \
   --mode standard \
   --iteration 2 \
   --confidence 0.85 \
@@ -119,7 +119,7 @@ $HOME/.claude/skills/cfn-loop-validation/validate-iteration.sh \
 
 ```bash
 # Get JSON output for programmatic use
-RESULT=$(./.claude/skills/cfn-loop-validation/validate-iteration.sh \
+RESULT=$($HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/validate-iteration.sh \
   --mode standard \
   --iteration 1 \
   --confidence 0.85 \
@@ -193,14 +193,14 @@ brew install bc
 **Solution:** Verify config.json exists
 
 ```bash
-ls -la ./.claude/skills/cfn-loop-validation/config.json
+ls -la $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/config.json
 ```
 
 ### Issue: "Permission denied"
 **Solution:** Make script executable
 
 ```bash
-chmod +x ./.claude/skills/cfn-loop-validation/validate-iteration.sh
+chmod +x $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/validate-iteration.sh
 ```
 
 ### Issue: SQLite database errors
@@ -212,10 +212,10 @@ sudo apt-get install sqlite3  # Ubuntu/Debian
 brew install sqlite3          # macOS
 
 # Create database directory
-mkdir -p ./.claude/skills/cfn-loop-validation/
+mkdir -p $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/
 
 # Verify database can be accessed
-sqlite3 ./.claude/skills/cfn-loop-validation/evidence-chain.db "SELECT 1;"
+sqlite3 $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/evidence-chain.db "SELECT 1;"
 ```
 
 ## Evidence Chain Persistence
@@ -224,7 +224,7 @@ Validation results are automatically stored in SQLite for audit trails:
 
 ```bash
 # Query validation history
-sqlite3 ./.claude/skills/cfn-loop-validation/evidence-chain.db \
+sqlite3 $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/evidence-chain.db \
   "SELECT task_id, iteration, confidence, status, timestamp
    FROM validation_evidence
    WHERE task_id = 'feature-auth'

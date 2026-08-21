@@ -407,7 +407,7 @@ EXPECTED_FILES=(
 )
 
 # Run vapor detection
-VAPOR_RESULT=$(./.claude/skills/cfn-loop-validation/detect-vapor.sh \
+VAPOR_RESULT=$("$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/detect-vapor.sh" \
   --output "$LOOP3_OUTPUT" \
   --deliverables "$(echo "${EXPECTED_FILES[@]}" | tr ' ' ',')" \
   --json)

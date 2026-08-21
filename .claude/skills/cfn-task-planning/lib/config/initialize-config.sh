@@ -5,7 +5,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# .cfn/task-configs is PER-PROJECT output owned by the invoking project, not CFN
+# source. A BASH_SOURCE-derived root resolves into the shared CFN tree (skills reach
+# every project through the reverse symlinks), so the old chain wrote task configs
+# into the CFN checkout instead of the project that asked for them.
+# Shared CFN code -> BASH_SOURCE or $HOME. Project data -> $CLAUDE_PROJECT_DIR/cwd.
+PROJECT_DATA_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 # Parse arguments
 TASK_DESCRIPTION=""
@@ -50,7 +55,7 @@ case "$MODE" in
 esac
 
 # Create config directory
-CONFIG_DIR="$PROJECT_ROOT/.cfn/task-configs"
+CONFIG_DIR="$PROJECT_DATA_ROOT/.cfn/task-configs"
 mkdir -p "$CONFIG_DIR"
 
 CONFIG_FILE="$CONFIG_DIR/task-${TASK_ID}.json"

@@ -4,7 +4,7 @@ set -euo pipefail
 # Update Playbook after Successful CFN Loop
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 DB_PATH="$SCRIPT_DIR/../../../../data/playbook.db"
 
 # Import parameterized query library from shared location

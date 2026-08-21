@@ -39,13 +39,19 @@ async function main(): Promise<void> {
       }
     }
 
-    // Create selector with proper paths
-    const projectRoot = process.env.PROJECT_ROOT || process.cwd();
-    const mappingsPath = path.join(
-      projectRoot,
-      '.claude/skills/cfn-agent-selection-with-fallback/agent-mappings.json'
+    // Create selector with proper paths.
+    // agent-mappings.json and the agent profiles ship inside the CFN skill tree
+    // and are never copied per project, so they are resolved from THIS MODULE's
+    // own location. The old process.cwd() form looked inside whichever project
+    // invoked the skill, where neither file exists.
+    // src/ and dist/ are siblings, so these depths hold for both.
+    // selectionDir is .claude/skills/cfn-agent-lifecycle/lib/selection, so
+    // .claude is FOUR levels up (selection -> lib -> cfn-agent-lifecycle -> skills).
+    const selectionDir = path.resolve(__dirname, '..');
+    const mappingsPath = path.join(selectionDir, 'agent-mappings.json');
+    const agentsDir = path.resolve(
+      selectionDir, '..', '..', '..', '..', 'agents', 'cfn-dev-team'
     );
-    const agentsDir = path.join(projectRoot, '.claude/agents/cfn-dev-team');
 
     const selector = new AgentSelector(mappingsPath, agentsDir);
 

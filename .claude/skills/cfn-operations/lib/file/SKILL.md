@@ -36,13 +36,13 @@ This skill provides:
 
 ```bash
 # Basic usage
-$HOME/.claude/skills/cfn-file-operations/execute.sh acquire-lock /path/to/file.txt
+$HOME/.claude/skills/cfn-operations/lib/file/execute.sh acquire-lock /path/to/file.txt
 
 # With agent ID tracking
-$HOME/.claude/skills/cfn-file-operations/execute.sh acquire-lock /path/to/file.txt --agent-id agent-001
+$HOME/.claude/skills/cfn-operations/lib/file/execute.sh acquire-lock /path/to/file.txt --agent-id agent-001
 
 # With custom timeout (30 seconds)
-$HOME/.claude/skills/cfn-file-operations/execute.sh acquire-lock /path/to/file.txt --timeout 30000
+$HOME/.claude/skills/cfn-operations/lib/file/execute.sh acquire-lock /path/to/file.txt --timeout 30000
 
 # Output: LOCK_ID:LOCK_PATH (e.g., "lock-1234567890-999:/tmp/cfn-locks/abc123.lock")
 ```
@@ -127,7 +127,7 @@ LOCK_INFO=$(./execute.sh acquire-lock /path/to/file.txt)
 #!/bin/bash
 set -euo pipefail
 
-SKILL_PATH="./.claude/skills/cfn-file-operations/execute.sh"
+SKILL_PATH="$HOME/.claude/skills/cfn-operations/lib/file/execute.sh"
 FILE_PATH="/path/to/important-file.txt"
 AGENT_ID="backend-dev-001"
 
@@ -283,7 +283,7 @@ See `test.sh` for comprehensive test suite covering:
 - TypeScript API: `src/lib/file-lock-manager.ts`
 - Atomic Writer: `src/lib/atomic-file-writer.ts`
 - Usage Guide: `docs/FILE_OPERATIONS_GUIDE.md`
-- Tests: `.claude/skills/cfn-file-operations/test.sh`
+- Tests: `.claude/skills/cfn-operations/lib/file/test.sh`
 
 ## Version
 

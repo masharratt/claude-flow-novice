@@ -152,7 +152,7 @@ npx claude-flow-novice parse-decision \
 
 ```bash
 # Existing bash script still works perfectly
-DECISION_RESULT=$(./.claude/skills/cfn-product-owner-decision/execute-decision.sh \
+DECISION_RESULT=$("$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/decision/archive/legacy-bash/execute-decision.sh" \
   --task-id "$TASK_ID" \
   --agent-id "$PO_ID" \
   --consensus "$CONSENSUS" \
@@ -364,7 +364,7 @@ The original `execute-decision.sh` continues to work exactly as before:
 
 ```bash
 # Old code (still works)
-DECISION_RESULT=$(./.claude/skills/cfn-product-owner-decision/execute-decision.sh ...)
+DECISION_RESULT=$("$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/decision/archive/legacy-bash/execute-decision.sh" ...)
 
 # No changes required to orchestrators
 # No changes required to existing scripts

@@ -5,12 +5,16 @@ set -e
 # Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 
-# cfn-backlog-management/add-backlog-item.sh
+# cfn-project-management/lib/backlog/add-backlog-item.sh
 # Adds structured backlog items to readme/BACKLOG.md
 
-# Source shared validation utilities
+# Source shared validation utilities. This is SHARED CFN CODE, so it resolves
+# from this script's own location, never from a caller-supplied root: the old
+# "$PROJECT_ROOT/..." form ran before PROJECT_ROOT was assigned (line ~95) and
+# expanded to the absolute path "/.claude/skills/...". The cfn-changelog-management
+# skill it pointed at is also gone; the surviving copy is the sibling below.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$PROJECT_ROOT/.claude/skills/cfn-changelog-management/lib/validation.sh"
+source "$SCRIPT_DIR/../changelog/lib/validation.sh"
 
 # Default values
 PRIORITY="P2"
@@ -89,10 +93,15 @@ validate_enum "$PRIORITY" "priority" "P0|P1|P2|P3" || exit 1
 # Validate category using shared enum validation
 validate_enum "$CATEGORY" "category" "Feature|Bug|Technical-Debt|Optimization" || exit 1
 
-# Path to backlog file
+# Path to backlog file.
+# The backlog is PROJECT-LOCAL DATA, so it is anchored on the invoking project,
+# not on this script's location. A BASH_SOURCE-derived root resolves into the CFN
+# repo (skills reach every project through the reverse symlinks in CLAUDE.md), so
+# the old form wrote every project's backlog into the CFN checkout.
+# Shared CFN code -> BASH_SOURCE or $HOME. Project data -> $CLAUDE_PROJECT_DIR/cwd.
 BACKLOG_FILE="readme/BACKLOG.md"
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
-BACKLOG_PATH="$PROJECT_ROOT/$BACKLOG_FILE"
+PROJECT_DATA_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
+BACKLOG_PATH="$PROJECT_DATA_ROOT/$BACKLOG_FILE"
 
 # Create backlog file if it doesn't exist
 if [[ ! -f "$BACKLOG_PATH" ]]; then

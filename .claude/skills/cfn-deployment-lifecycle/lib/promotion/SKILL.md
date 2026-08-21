@@ -299,7 +299,7 @@ mv .claude/skills/staging/backup-skill .claude/skills/staging/production-skill
 
 ## Related Documentation
 
-- **Task 1.1**: `.claude/skills/cfn-deployment/SKILL.md`
+- **Task 1.1**: `.claude/skills/cfn-deployment-lifecycle/lib/deployment/SKILL.md`
 - **Task 0.5**: `docs/IMPLEMENTATION_UTILITIES.md`
 - **Phase 4**: `docs/SKILL_GENERATION.md` (future)
 - **Operational Guide**: `docs/SKILL_PROMOTION_WORKFLOW.md`

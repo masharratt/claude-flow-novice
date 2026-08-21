@@ -33,6 +33,7 @@ Entity lifecycle documentation for stateful CFN systems.
 - [Workbench Watcher (cfn-workbench watch.sh)](#workbench-watcher-cfn-workbench-watchsh)
 - [Roster Lane (cfn-workbench section-roster)](#roster-lane-cfn-workbench-section-roster)
 - [Runtime Link Target (link-runtime-dirs.sh)](#runtime-link-target-link-runtime-dirssh)
+- [Content Path Containment (security-utils.sh validate_file_path)](#content-path-containment-security-utilssh-validate_file_path)
 - [Post-Edit Validation Pipeline (cfn-invoke-post-edit.sh / post-edit-pipeline.js, S016/S018/S020)](#post-edit-validation-pipeline-cfn-invoke-post-editsh-post-edit-pipelinejs-s016s018s020)
 - [Subagent Lifecycle Hooks (cfn-subagent-start.sh / cfn-subagent-stop.sh, S015)](#subagent-lifecycle-hooks-cfn-subagent-startsh-cfn-subagent-stopsh-s015)
 - [Pre-Edit Backup Lifecycle (cfn-invoke-pre-edit.sh / restore.sh / cleanup.sh, S014 + S017)](#pre-edit-backup-lifecycle-cfn-invoke-pre-editsh-restoresh-cleanupsh-s014-s017)
@@ -862,3 +863,57 @@ occupied-populated-dir ──no --force──> refused ──--force+backup─�
 
 `~/.claude/agents` is deliberately not in this set: it stays a real directory so
 project-local agents survive, and only `agents/cfn-dev-team` is linked.
+
+## Content Path Containment (security-utils.sh validate_file_path)
+
+**Source:** `.claude/skills/cfn-knowledge-base/lib/workflow/lib/security-utils.sh:183`
+(`validate_file_path`); callers
+`.claude/skills/cfn-knowledge-base/lib/workflow/deploy-approved-skill.sh:154` and
+`.../propagate-skill-update.sh:189`.
+
+The traversal guard in front of skill deployment. A caller-supplied content path
+is resolved to absolute form and then judged against an allowed base directory.
+Both the resolve step and the judgement can reject.
+
+The base is the invoking project (`CONTENT_BASE_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"`),
+not a `BASH_SOURCE`-derived CFN root. The content path defaults to a cwd-relative
+`./.claude/skills-database/skills.db`, so it belongs to the project that invoked
+the skill; a CFN-rooted base rejected that path outright whenever the skill ran
+from anywhere other than the CFN checkout.
+
+### States
+
+| State | Meaning |
+|-------|---------|
+| `submitted` | A path and a base directory have been supplied, neither resolved yet. |
+| `unresolvable` | `readlink -f` failed on the path or on the base. Terminal, rejected. |
+| `resolved` | Both sides are absolute and canonical, ready to compare. Symlinks are already followed, so a link is judged by its target. |
+| `contained` | The resolved path equals the base or sits beneath it on a path-separator boundary. Terminal, accepted. |
+| `escaped` | The resolved path lies outside the base. Terminal, rejected. |
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| `submitted` | `unresolvable` | `readlink -f "$file_path"` fails | path does not exist or cannot be canonicalised |
+| `submitted` | `unresolvable` | `readlink -f "$base_dir"` fails | base does not exist |
+| `submitted` | `resolved` | both `readlink -f` calls succeed | - |
+| `resolved` | `contained` | boundary comparison passes | `abs_path` equals `abs_base`, or `abs_path` matches `abs_base/*` |
+| `resolved` | `escaped` | boundary comparison fails | anything else, including a sibling whose name merely begins with the base |
+| `contained` | - | returns 0 | caller proceeds with deployment |
+| `escaped` | - | returns 1 | caller exits 1 |
+| `unresolvable` | - | returns 1 | caller exits 1 |
+
+```
+submitted ──readlink fails──> unresolvable ──> reject
+    |
+    └──both resolve──> resolved ──on boundary──> contained ──> accept
+                          |
+                          └──off boundary────> escaped ────> reject
+```
+
+The boundary condition is the whole point. The check previously compared with a
+bare prefix (`=~ ^"$abs_base"`), which admitted a sibling directory whose name
+started with the base: base `/srv/app` accepted `/srv/app-evil/payload`. The
+comparison now requires either equality or a following `/`, so `resolved` moves
+to `escaped` in that case. Covered by `tests/security/test-path-containment.sh`.

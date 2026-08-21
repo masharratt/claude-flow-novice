@@ -44,6 +44,20 @@ jobs:
       - name: Portability skill-ref unit tests
         run: bash tests/test-portability-skill-refs.sh
 
+      # Resolves every skill script's root-anchor chain by executing it and
+      # requires the landing dir to hold package.json + .git. Catches the
+      # wrong-../-depth family that 921604f4d and the later skill
+      # consolidations left behind, plus per-project anchors that must follow
+      # CLAUDE_PROJECT_DIR instead of the shared CFN checkout.
+      - name: Root resolution gate
+        run: bash tests/test-root-resolution.sh
+
+      - name: PROJECT_ROOT resolution regressions
+        run: bash tests/test-project-root-resolution.sh
+
+      - name: Path containment gate
+        run: bash tests/security/test-path-containment.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -206,6 +220,20 @@ jobs:
 
       - name: Portability skill-ref unit tests
         run: bash tests/test-portability-skill-refs.sh
+
+      # Resolves every skill script's root-anchor chain by executing it and
+      # requires the landing dir to hold package.json + .git. Catches the
+      # wrong-../-depth family that 921604f4d and the later skill
+      # consolidations left behind, plus per-project anchors that must follow
+      # CLAUDE_PROJECT_DIR instead of the shared CFN checkout.
+      - name: Root resolution gate
+        run: bash tests/test-root-resolution.sh
+
+      - name: PROJECT_ROOT resolution regressions
+        run: bash tests/test-project-root-resolution.sh
+
+      - name: Path containment gate
+        run: bash tests/security/test-path-containment.sh
 
       # Guards against the shim library quietly becoming a no-op on macOS --
       # a broken capability probe would leave every test above passing against

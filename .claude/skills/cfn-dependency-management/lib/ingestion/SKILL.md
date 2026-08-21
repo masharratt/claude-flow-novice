@@ -13,33 +13,35 @@ tags: [cfn-loop, dependency-management, dynamic-ingestion, cli-mode]
 
 ```bash
 # List available manifests
-bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --list-manifests
+bash $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest.sh --list-manifests
 
 # CLI mode dependencies
-bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --manifest cli-mode --inject-content --skip-validation
+bash $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest.sh --manifest cli-mode --inject-content --skip-validation
 
 # Shared dependencies
-bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --manifest shared --inject-content
+bash $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest.sh --manifest shared --inject-content
 
 # Filter by type (TypeScript only)
-bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --manifest cli-mode --type TS --inject-content
+bash $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest.sh --manifest cli-mode --type TS --inject-content
 ```
 
 ### Legacy: Diagram-Based Ingestion
 
 ```bash
 # CLI mode from diagram
-bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --diagram cli
+bash $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest.sh --diagram cli
 
 # Docker mode from diagram
-bash $HOME/.claude/skills/cfn-dependency-ingestion/ingest.sh --diagram docker
+bash $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest.sh --diagram docker
 ```
 
 ### TypeScript Version (Legacy)
 
+**Requires a build first:** `dist/` is not committed. Run `bash $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/build.sh` before using the commands below.
+
 ```bash
-node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
-  --manifest .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt \
+node $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/dist/ingest-dependencies.js \
+  --manifest .claude/skills/cfn-dependency-management/lib/ingestion/manifests/cli-mode-dependencies.txt \
   --inject-content
 ```
 
@@ -64,69 +66,71 @@ node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
 
 ### TypeScript Version (v2.0.0+)
 
+**Requires a build first:** `dist/` is not committed. Run `bash $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/build.sh` before using the commands below.
+
 **Basic ingestion with content injection:**
 ```bash
-node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content
+node $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/dist/ingest-dependencies.js --inject-content
 ```
 
 **Priority-filtered ingestion:**
 ```bash
 # P0 only (critical path)
-node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --priority P0
+node $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/dist/ingest-dependencies.js --inject-content --priority P0
 
 # P0 + P1 (exclude deferred)
-node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --priority P0,P1
+node $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/dist/ingest-dependencies.js --inject-content --priority P0,P1
 ```
 
 **Type-filtered ingestion:**
 ```bash
 # TypeScript only
-node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --type TS
+node $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/dist/ingest-dependencies.js --inject-content --type TS
 
 # Shell scripts only
-node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --type SH
+node $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/dist/ingest-dependencies.js --type SH
 
 # Both TypeScript and shell
-node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --type TS,SH
+node $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/dist/ingest-dependencies.js --type TS,SH
 ```
 
 **Traditional Read command output:**
 ```bash
 # Output Read commands instead of injecting content
-node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js
+node $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/dist/ingest-dependencies.js
 ```
 
 **Skip validation (faster, useful when files are known to exist):**
 ```bash
-node $HOME/.claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --skip-validation
+node $HOME/.claude/skills/cfn-dependency-management/lib/ingestion/dist/ingest-dependencies.js --inject-content --skip-validation
 ```
 
 ### Shell Script Version (Legacy)
 
 **Basic ingestion (all files):**
 ```bash
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh
 ```
 
 **Priority-filtered ingestion:**
 ```bash
 # P0 only (critical path)
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --priority P0
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --priority P0
 
 # P0 + P1 (exclude deferred)
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --priority P0,P1
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --priority P0,P1
 ```
 
 **Type-filtered ingestion:**
 ```bash
 # TypeScript only
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --type TS
 
 # Shell scripts only
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type SH
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --type SH
 
 # Both TypeScript and shell
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS,SH
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --type TS,SH
 ```
 
 ## Progressive Disclosure
@@ -165,8 +169,8 @@ Read: .claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md
 ...
 
 # Step 3: Read P1 files (post-validation)
-Read: .claude/skills/cfn-loop-orchestration/src/helpers/confidence-aggregator.ts
-Read: .claude/skills/cfn-loop-orchestration/src/helpers/context-lookup.ts
+Read: .claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/confidence-aggregator.ts
+Read: .claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/context-lookup.ts
 ...
 
 # Step 4: Read coordination layer (Redis/Shell)
@@ -216,7 +220,7 @@ The `cfn-loops-cli-expert` agent MUST use this skill in Step 2 instead of hardco
 Run the dynamic ingestion script to load all CFN Loop CLI dependencies:
 
 ```bash
-$HOME/.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
+$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh
 ```
 
 This automatically discovers and reads all files referenced in the dependency diagram.
@@ -258,22 +262,22 @@ Use these validation commands to ensure counts match expectations:
 # Total files discovered (all priorities, all types, skip validation)
 # Note: 14 after deduplication (was 18 with orchestrate.ts appearing twice and other duplicates)
 expected_total=14
-actual=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --skip-validation 2>&1 | grep -c "^Read:")
+actual=$($HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --skip-validation 2>&1 | grep -c "^Read:")
 test $actual -eq $expected_total && echo "✓ Total files: $actual" || echo "✗ Expected $expected_total, got $actual"
 
 # P0 critical path files (in Step 2 section only, not including diagram in Step 1)
 expected_p0=3
-actual=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --priority P0 --skip-validation 2>&1 | awk '/Step 2:/,/Step 3:/' | grep -c "^Read:")
+actual=$($HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --priority P0 --skip-validation 2>&1 | awk '/Step 2:/,/Step 3:/' | grep -c "^Read:")
 test $actual -eq $expected_p0 && echo "✓ P0 files: $actual" || echo "✗ Expected $expected_p0, got $actual"
 
 # TypeScript files (includes .ts, .js, .cjs)
 expected_ts=4
-actual=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS --skip-validation 2>&1 | grep -c "^Read:")
+actual=$($HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --type TS --skip-validation 2>&1 | grep -c "^Read:")
 test $actual -eq $expected_ts && echo "✓ TypeScript files: $actual" || echo "✗ Expected $expected_ts, got $actual"
 
 # Shell script files (.sh)
 expected_sh=3
-actual=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type SH --skip-validation 2>&1 | grep "Step 5" -A 20 | grep -c "^Read:.*\.sh$")
+actual=$($HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --type SH --skip-validation 2>&1 | grep "Step 5" -A 20 | grep -c "^Read:.*\.sh$")
 test $actual -eq $expected_sh && echo "✓ Shell files: $actual" || echo "✗ Expected $expected_sh, got $actual"
 ```
 
@@ -283,7 +287,7 @@ Verify no file appears more than once:
 
 ```bash
 # Check for duplicate Read commands
-duplicates=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --skip-validation 2>&1 | grep "^Read:" | sort | uniq -d)
+duplicates=$($HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --skip-validation 2>&1 | grep "^Read:" | sort | uniq -d)
 if [[ -z "$duplicates" ]]; then
   echo "✓ No duplicate files"
 else
@@ -299,11 +303,11 @@ Verify missing files are reported to stderr:
 ```bash
 # Count missing files (should be 4 as of 2025-11-20)
 expected_missing=4
-actual=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh 2>&1 | grep "^WARNING: File not found" | wc -l)
+actual=$($HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh 2>&1 | grep "^WARNING: File not found" | wc -l)
 test $actual -eq $expected_missing && echo "✓ Missing file warnings: $actual" || echo "✗ Expected $expected_missing warnings, got $actual"
 
 # Missing files should NOT appear in Read output
-missing_in_output=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh 2>&1 | grep "^Read:" | while read -r line; do
+missing_in_output=$($HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh 2>&1 | grep "^Read:" | while read -r line; do
   file=$(echo "$line" | cut -d' ' -f2)
   [[ ! -f "$file" ]] && echo "$file"
 done | wc -l)
@@ -316,7 +320,7 @@ Verify type filters work correctly:
 
 ```bash
 # TypeScript filter should only return .ts/.js/.cjs files (plus diagram)
-non_ts=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS --skip-validation 2>&1 | grep "^Read:" | grep -v "DEPENDENCY_DIAGRAM" | grep -v "\.ts$\|\.js$\|\.cjs$")
+non_ts=$($HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --type TS --skip-validation 2>&1 | grep "^Read:" | grep -v "DEPENDENCY_DIAGRAM" | grep -v "\.ts$\|\.js$\|\.cjs$")
 if [[ -z "$non_ts" ]]; then
   echo "✓ TypeScript filter working"
 else
@@ -325,7 +329,7 @@ else
 fi
 
 # Shell filter should only return .sh files (plus diagram)
-non_sh=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type SH --skip-validation 2>&1 | grep "^Read:" | grep -v "DEPENDENCY_DIAGRAM" | grep -v "\.sh$")
+non_sh=$($HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --type SH --skip-validation 2>&1 | grep "^Read:" | grep -v "DEPENDENCY_DIAGRAM" | grep -v "\.sh$")
 if [[ -z "$non_sh" ]]; then
   echo "✓ Shell filter working"
 else
@@ -348,7 +352,7 @@ These files are referenced in the dependency diagram but do not exist:
 
 When files are added/removed from the dependency diagram:
 
-1. Run ingestion script: `./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --skip-validation`
+1. Run ingestion script: `$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/ingest-dependencies.sh --skip-validation`
 2. Count total files: `| grep -c "^Read:"`
 3. Update `expected_total` in regression tests above
 4. Update P0/TS/SH counts similarly
@@ -369,7 +373,7 @@ When files are added/removed from the dependency diagram:
   - **Available Manifests:** `cli-mode`, `shared`
 
 - **3.0.0** (2025-11-24): Unified ingestion script
-  - **Merged Skills:** Combined trigger-dev-dependency-ingestion and cfn-dependency-ingestion into single tool
+  - **Merged Skills:** Combined trigger-dev-dependency-ingestion and cfn-dependency-management/lib/ingestion into single tool
   - **Unified Interface:** `--manifest <name>` for all manifest-based ingestion
   - **Legacy Support:** `--diagram <type>` for diagram-based parsing
 

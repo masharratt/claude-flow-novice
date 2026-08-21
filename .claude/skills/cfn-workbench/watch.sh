@@ -115,7 +115,11 @@ if [[ -z "$SLUG" ]]; then
 fi
 
 if [[ -z "$ROOT" ]]; then
-  ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+  # planning/, .cfn-cache/, tmp/ and tests/screenshots/ are PER-PROJECT data owned
+  # by the project being watched, not CFN source. A BASH_SOURCE-derived root lands in
+  # the shared CFN tree, so the old chain watched the CFN checkout no matter which
+  # project invoked it. --root still overrides this default.
+  ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
 fi
 
 PIDFILE="/tmp/cfn-workbench-watch-${SLUG}.pid"

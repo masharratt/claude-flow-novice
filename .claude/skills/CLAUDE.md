@@ -23,8 +23,8 @@ Skills must include tests covering:
 ## Core Skill References
 
 - **Coordination:** `.claude/skills/cfn-coordination/SKILL.md` - chain, broadcast, mesh, consensus patterns
-- **Agent Spawning:** `.claude/skills/cfn-agent-spawning/SKILL.md` - agent lifecycle management
-- **Loop Validation:** `.claude/skills/cfn-loop-validation/SKILL.md` - gate checks and consensus
+- **Agent Spawning:** `.claude/skills/cfn-agent-lifecycle/lib/spawning/SKILL.md` - agent lifecycle management
+- **Loop Validation:** `.claude/skills/cfn-loop-orchestration-v2/lib/validation/SKILL.md` - gate checks and consensus
 - **Planning (token-lean):** `.claude/skills/cfn-megaplan-fast/SKILL.md` - program-mode planner; shares `cfn-megaplan/bars/` (incl. `check-size.sh`) and `cfn-megaplan/lib/extract-sections.sh`
 
 ## Skill File Structure

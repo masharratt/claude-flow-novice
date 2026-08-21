@@ -28,7 +28,7 @@ validate_period() {
 # Tracks cost savings from script execution vs AI agent usage
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 
 # Load parameterized query library (SQL injection prevention)
 source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"

@@ -150,12 +150,12 @@ execute_waves() {
     local plan_file="$2"
 
     # Check for existing checkpoint
-    if source "./.claude/skills/cfn-wave-checkpoint/save-checkpoint.sh" && \
+    if source "$HOME/.claude/skills/cfn-sprint-execution/lib/checkpoint/save-checkpoint.sh" && \
        checkpoint_exists "$task_id"; then
         log "Found checkpoint, resuming..."
 
         # Resume execution
-        source "./.claude/skills/cfn-wave-checkpoint/resume-wave.sh"
+        source "$HOME/.claude/skills/cfn-sprint-execution/lib/checkpoint/resume-wave.sh"
         resume_wave "$task_id"
 
         # Continue monitoring from checkpoint
@@ -172,7 +172,7 @@ Add after successful wave spawn:
 
 ```bash
 # In spawn_wave completion
-if $(./.claude/skills/cfn-wave-checkpoint/save-checkpoint.sh \
+if $($HOME/.claude/skills/cfn-sprint-execution/lib/checkpoint/save-checkpoint.sh \
     save "$task_id" "$wave_num" "$container_ids" "$(date +%s)" "$batch_count"); then
     log_success "Checkpoint saved for recovery"
 fi
@@ -184,7 +184,7 @@ Add to wave cleanup phase:
 
 ```bash
 # After wave completion
-$(./.claude/skills/cfn-wave-checkpoint/cleanup-orphans.sh \
+$($HOME/.claude/skills/cfn-sprint-execution/lib/checkpoint/cleanup-orphans.sh \
     cleanup "$task_id" "$wave_num")
 ```
 

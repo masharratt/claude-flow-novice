@@ -213,10 +213,10 @@ LOOP2_AGENTS=$(echo "$AGENTS_JSON" | jq -r '.loop2 | join(",")')
 
 | Old Path | New Path |
 |----------|----------|
-| `.claude/skills/cfn-agent-selector/select-agents.sh` | `.claude/skills/agent-lifecycle/lib/selection/select-agents.sh` |
-| `.claude/skills/cfn-agent-selection-with-fallback/select-agents.sh` | `.claude/skills/agent-lifecycle/lib/selection/select-agents-with-fallback.sh` |
-| `.claude/skills/cfn-agent-spawning/spawn-agent.sh` | `.claude/skills/agent-lifecycle/lib/spawning/spawn-agent.sh` |
-| `.claude/skills/cfn-agent-execution/execute-agent.sh` | `.claude/skills/agent-lifecycle/lib/spawning/execute-agent.sh` |
+| `.claude/skills/cfn-agent-selector/select-agents.sh` | `.claude/skills/cfn-agent-lifecycle/lib/selection/select-agents.sh` |
+| `.claude/skills/cfn-agent-selection-with-fallback/select-agents.sh` | `.claude/skills/cfn-agent-lifecycle/lib/selection/select-agents-with-fallback.sh` |
+| `.claude/skills/cfn-agent-spawning/spawn-agent.sh` | `.claude/skills/cfn-agent-lifecycle/lib/spawning/spawn-agent.sh` |
+| `.claude/skills/cfn-agent-execution/execute-agent.sh` | `.claude/skills/cfn-agent-lifecycle/lib/spawning/execute-agent.sh` |
 
 ### CLI Wrappers (Convenience)
 
@@ -292,6 +292,7 @@ node ./lib/selection/dist/cli.cjs "Implement auth"
 ## Related Skills
 
 - **cfn-task-planning** (`.claude/skills/cfn-task-planning/`) - Task classification + complexity/iteration estimation + specialist recommendation. Planning classifies; lifecycle selects and spawns from that classification.
-- **task-classifier** (`.claude/skills/task-classifier/`) - Standalone task classification
-- **cfn-docker-agent-spawning** (`.claude/skills/cfn-docker-agent-spawning/`) - Docker-specific spawning
-- **cfn-product-owner-decision** (`.claude/skills/cfn-product-owner-decision/`) - Product owner output processing
+- **Task classification** (`.claude/skills/cfn-task-planning/lib/classifier/`) - Standalone task classification (the former top-level `task-classifier` skill)
+- **Product Owner decision** (`.claude/skills/cfn-loop-orchestration-v2/lib/decision/`) - Product owner output processing (the former `cfn-product-owner-decision` skill)
+
+Docker-mode spawning (`cfn-docker-agent-spawning`) was removed with the rest of the Docker-mode skills. There is no successor.

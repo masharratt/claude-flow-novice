@@ -12,9 +12,6 @@ CODESEARCH_BLOCK='
 # Before implementing any changes, ALWAYS query the codebase for similar patterns:
 #   /codebase-search "relevant search terms for your task" --top 5
 #   /codebase-search "error pattern or issue you'\''re fixing" --top 3
-# Also query past errors and learnings:
-#   ./.claude/skills/cfn-codesearch-codebase-index/query-error-patterns.sh --task-description "Your task description"
-#   ./.claude/skills/cfn-codesearch-codebase-index/query-learnings.sh --task-description "Your task description" --category PATTERN
 # This prevents duplicated work and leverages existing solutions.'
 
 # Function to add instructions after post-edit pipeline section

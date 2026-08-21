@@ -29,40 +29,39 @@ docker/coordinator/team/resource-tracker.js
 # ============================================================================
 # Core agent spawning and selection utilities for CLI mode
 
-.claude/skills/cfn-agent-spawning/spawn-agent.sh
-.claude/skills/cfn-agent-spawning/spawn-agent-wrapper.sh
-.claude/skills/cfn-agent-spawning/spawn-worker.sh
-.claude/skills/cfn-agent-spawning/spawn-templates.sh
-.claude/skills/cfn-agent-spawning/get-agent-provider-env.sh
-.claude/skills/cfn-agent-spawning/parse-agent-provider.sh
-.claude/skills/cfn-agent-spawning/check-dependencies.sh
+.claude/skills/cfn-agent-lifecycle/lib/spawning/spawn-agent.sh
+.claude/skills/cfn-agent-lifecycle/lib/spawning/spawn-agent-wrapper.sh
+.claude/skills/cfn-agent-lifecycle/lib/spawning/spawn-worker.sh
+.claude/skills/cfn-agent-lifecycle/lib/spawning/spawn-templates.sh
+.claude/skills/cfn-agent-lifecycle/lib/spawning/get-agent-provider-env.sh
+.claude/skills/cfn-agent-lifecycle/lib/spawning/parse-agent-provider.sh
+.claude/skills/cfn-agent-lifecycle/lib/spawning/check-dependencies.sh
 
 # ============================================================================
-# AGENT SELECTION & EXECUTION SKILLS (5 files)
+# AGENT SELECTION & EXECUTION SKILLS (4 files)
 # ============================================================================
 # Agent type selection and execution utilities
 
-.claude/skills/cfn-agent-selector/select-agents.sh
-.claude/skills/cfn-agent-selection-with-fallback/select-agents.sh
-.claude/skills/cfn-agent-selection-with-fallback/select-agents-ts.sh
-.claude/skills/cfn-agent-selection-with-fallback/task-classifier.sh
-.claude/skills/cfn-agent-execution/execute-agent.sh
+.claude/skills/cfn-agent-lifecycle/lib/selection/select-agents.sh
+.claude/skills/cfn-agent-lifecycle/lib/selection/select-agents-with-fallback.sh
+.claude/skills/cfn-agent-lifecycle/lib/selection/task-classifier.sh
+.claude/skills/cfn-agent-lifecycle/lib/spawning/execute-agent.sh
 
 # ============================================================================
 # AGENT LIFECYCLE MANAGEMENT (2 files)
 # ============================================================================
 # Agent lifecycle hooks and audit trails
 
-.claude/skills/agent-lifecycle/execute-lifecycle-hook.sh
-.claude/skills/agent-lifecycle/simple-audit.sh
+.claude/skills/cfn-agent-lifecycle/lib/audit/execute-lifecycle-hook.sh
+.claude/skills/cfn-agent-lifecycle/lib/audit/simple-audit.sh
 
 # ============================================================================
 # MEMORY & STATE PERSISTENCE (2 files)
 # ============================================================================
 # Memory persistence for agent outputs and state
 
-.claude/skills/cfn-automatic-memory-persistence/persist-agent-output.sh
-.claude/skills/cfn-automatic-memory-persistence/query-agent-history.sh
+.claude/skills/cfn-memory-persistence/lib/auto/persist-agent-output.sh
+.claude/skills/cfn-memory-persistence/lib/auto/query-agent-history.sh
 
 # ============================================================================
 # DOCKER RUNTIME CONTRACT (1 file)
@@ -109,8 +108,8 @@ docker-compose.yml
 #   2. Secondary: shared-dependencies.txt - coordination infrastructure, ~2.2K tokens
 #
 # Example ingestion command:
-#   node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
-#     --manifest .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt \
+#   node "$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/dist/ingest-dependencies.js" \
+#     --manifest "$HOME/.claude/skills/cfn-dependency-management/lib/ingestion/manifests/cli-mode-dependencies.txt" \
 #     --inject-content \
 #     --skip-validation
 #
@@ -138,12 +137,10 @@ docker-compose.yml
 # INCLUDE (Code):
 #   ✓ docker/trigger-dev/*.ts - SDK configuration files
 #   ✓ docker/coordinator/**/*.js - Coordinator implementation
-#   ✓ .claude/skills/cfn-agent-spawning/*.sh - Agent spawning
-#   ✓ .claude/skills/cfn-agent-selector/*.sh - Agent selection
-#   ✓ .claude/skills/cfn-agent-selection-with-fallback/*.sh - Advanced selection
-#   ✓ .claude/skills/cfn-agent-execution/*.sh - Agent execution
-#   ✓ .claude/skills/agent-lifecycle/*.sh - Lifecycle management
-#   ✓ .claude/skills/cfn-automatic-memory-persistence/*.sh - Memory/state
+#   ✓ .claude/skills/cfn-agent-lifecycle/lib/spawning/*.sh - Agent spawning
+#   ✓ .claude/skills/cfn-agent-lifecycle/lib/selection/*.sh - Agent selection
+#   ✓ .claude/skills/cfn-agent-lifecycle/lib/audit/*.sh - Lifecycle management
+#   ✓ .claude/skills/cfn-memory-persistence/lib/auto/*.sh - Memory/state
 #   ✓ docker/runtime/cfn-runtime.contract.yml - Runtime contract
 #   ✓ docker-compose.yml, .env.example - Project configuration
 #
@@ -175,8 +172,8 @@ docker-compose.yml
 # 3. Agent Spawning and Selection
 #    - Core spawning scripts with provider routing
 #    - Selection logic for appropriate agent types
-#    - Located in: .claude/skills/cfn-agent-spawning/
-#    - Extended selection with fallback: .claude/skills/cfn-agent-selection-with-fallback/
+#    - Located in: .claude/skills/cfn-agent-lifecycle/lib/spawning/
+#    - Extended selection with fallback: .claude/skills/cfn-agent-lifecycle/lib/selection/
 #
 # 4. Agent Lifecycle and Memory
 #    - Lifecycle hooks for agent execution tracking

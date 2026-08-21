@@ -9,7 +9,7 @@ Complete TypeScript validation framework for CFN Loop critical path with compreh
 ### Installation
 
 ```bash
-cd $HOME/.claude/skills/cfn-loop-validation
+cd $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation
 npm install
 npm run build
 npm test -- --coverage
@@ -296,7 +296,7 @@ if (!result.passed) {
 ### Orchestrator Vapor Check
 
 ```bash
-VAPOR=$(./.claude/skills/cfn-loop-validation/detect-vapor.sh \
+VAPOR=$($HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation/detect-vapor.sh \
   --output "$LOOP3_OUTPUT" \
   --deliverables "$(echo ${FILES[@]} | tr ' ' ',')" \
   --json)
@@ -344,7 +344,7 @@ try {
 ## File Structure
 
 ```
-.claude/skills/cfn-loop-validation/
+.claude/skills/cfn-loop-orchestration-v2/lib/validation/
 ├── src/
 │   ├── types.ts                    # Type definitions
 │   ├── validator.ts                # Core validator
@@ -434,7 +434,7 @@ node dist/cli/validate-deliverables.js --help
 
 ## Related Documentation
 
-- CFN Loop Orchestration: `.claude/skills/cfn-loop-orchestration/SKILL.md`
+- CFN Loop Orchestration: `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/SKILL.md`
 - Gate Checker: `src/gate-checker/gate-checker.ts`
 - Orchestrator Integration: `.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`
 

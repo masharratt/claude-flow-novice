@@ -269,7 +269,7 @@ if [[ -n "\$TEST_CMD" ]]; then
     TEST_OUTPUT=\$(eval "\$TEST_CMD" 2>&1)
 
     # Parse test results using CFN helper
-    RESULTS=\$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \\
+    RESULTS=\$(npx tsx "\$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/parse-test-results.ts" \\
         "jest" "\$TEST_OUTPUT")
 else
     echo "⚠️  No test command found in success criteria"

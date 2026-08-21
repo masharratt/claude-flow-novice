@@ -40,7 +40,7 @@ Single TypeScript module (`cfn-loop-output-processing`) providing:
 ### Module Structure
 
 ```
-.claude/skills/cfn-loop-output-processing/
+.claude/skills/cfn-loop-orchestration-v2/lib/output/
 ├── src/
 │   ├── output-processor.ts          # Core module (type-safe)
 │   └── cli/
@@ -359,7 +359,7 @@ npx ts-node src/cli/process-loop2.ts \
 
 ```bash
 # From orchestrator: process implementer output
-RESULT=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop3.ts \
+RESULT=$(npx ts-node $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop3.ts \
   --agent-id "$AGENT_ID" \
   --output "$AGENT_OUTPUT" \
   --iteration "$ITERATION")
@@ -376,7 +376,7 @@ redis-cli LPUSH "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
 ```bash
 # Process validator output
-RESULT=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop2.ts \
+RESULT=$(npx ts-node $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop2.ts \
   --validator-id "$VALIDATOR_ID" \
   --output "$VALIDATOR_OUTPUT" \
   --iteration "$ITERATION")
@@ -391,7 +391,7 @@ echo "$RESULT" >> ./validator-results.json
 
 ```bash
 # Calculate consensus from all validators
-CONSENSUS=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop2.ts \
+CONSENSUS=$(npx ts-node $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop2.ts \
   --consensus \
   --results-file ./validator-results.json \
   --threshold "$CONSENSUS_THRESHOLD")
@@ -609,8 +609,8 @@ Orchestrator integration remains identical - only internal implementation change
 
 ## Related Documentation
 
-- **Agent Output Processing** (`.claude/skills/agent-output-processing/SKILL.md`) - Universal pattern
-- **Loop Orchestration** (`.claude/skills/cfn-loop-orchestration/SKILL.md`) - Coordinator integration
+- **Agent Output Processing** (`.claude/skills/cfn-agent-lifecycle/lib/output/README.md`) - Universal pattern
+- **Loop Orchestration** (`.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/SKILL.md`) - Coordinator integration
 - **CFN Loop Architecture** (`docs/CFN_LOOP_ARCHITECTURE.md`) - System design
 
 ---

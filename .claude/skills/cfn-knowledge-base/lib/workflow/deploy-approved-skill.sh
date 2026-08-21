@@ -52,12 +52,14 @@ set -euo pipefail
 
 # Source SQLite parameter binding library (Pattern B - SQL injection prevention)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# Containment base for the deployed content file. The content path defaults to
+# a cwd-relative ./.claude/skills-database/skills.db, so it belongs to the
+# project that invoked this skill, not to the shared CFN checkout.
+CONTENT_BASE_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 # Source security utilities (SQL escaping, secure credentials)
 source "${SCRIPT_DIR}/lib/security-utils.sh"
@@ -149,7 +151,7 @@ validate_inputs() {
     fi
 
     # Validate file path (security: prevent traversal)
-    validate_file_path "$content_path" "$PROJECT_ROOT" || exit 1
+    validate_file_path "$content_path" "$CONTENT_BASE_DIR" || exit 1
 
     # Validate database exists
     if [[ ! -f "$CFN_SKILLS_DB_PATH" ]]; then

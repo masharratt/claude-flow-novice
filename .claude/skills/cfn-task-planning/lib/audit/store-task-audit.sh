@@ -15,7 +15,7 @@ set -euo pipefail
 
 # Import SQLite parameterized query library for SQL injection prevention
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 source "${SCRIPT_DIR}/../../../shared/bootstrap/sqlite-params.sh"
 
 # Colors for output

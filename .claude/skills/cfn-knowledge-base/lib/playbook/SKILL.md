@@ -119,7 +119,7 @@ Automatically update playbook with insights from sprint retrospectives.
 
 ### Auto-Update Usage
 ```bash
-$HOME/.claude/skills/cfn-playbook/lib/auto-update/auto-update-playbook.sh \
+$HOME/.claude/skills/cfn-knowledge-base/lib/playbook/lib/auto-update/auto-update-playbook.sh \
   --retrospective-json "$RETROSPECTIVE_JSON" \
   --task-id "$TASK_ID"
 ```
@@ -141,7 +141,7 @@ Used by:
 ## Directory Structure
 
 ```
-cfn-playbook/
+cfn-knowledge-base/lib/playbook/
 ├── SKILL.md              # This file
 ├── playbook.db           # SQLite database
 ├── init-playbook.sh      # Initialize database

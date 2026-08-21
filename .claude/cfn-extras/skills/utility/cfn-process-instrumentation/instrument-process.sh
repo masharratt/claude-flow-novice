@@ -14,10 +14,6 @@
 
 set -euo pipefail
 
-# Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
 # Default limits
 # Note: DEFAULT_TIMEOUT may be set by wrapped-executor.sh (300)
 # Only set if not already defined

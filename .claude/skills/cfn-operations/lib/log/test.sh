@@ -14,7 +14,7 @@ set -euo pipefail
 
 # Script setup
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 EXECUTE_CMD="$SCRIPT_DIR/execute.sh"
 
 # Test environment

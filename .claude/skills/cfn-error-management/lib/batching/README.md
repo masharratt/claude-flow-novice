@@ -111,7 +111,7 @@ Error batching transforms unstructured error output into **strategic batches** r
 ### Modular Design
 
 ```
-cfn-error-batching-strategy/
+cfn-error-management/lib/batching/
 ├── SKILL.md                        # This file
 ├── cli.sh                          # Entry point (user-facing)
 ├── analyze-errors.sh               # Phase 1: Error parsing
@@ -172,7 +172,7 @@ cfn-error-batching-strategy/
 
 **Example Usage:**
 ```bash
-$HOME/.claude/skills/cfn-error-batching-strategy/analyze-errors.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/analyze-errors.sh \
   --command "npx tsc --noEmit" \
   --workspace "/workspace" \
   --language typescript \
@@ -231,7 +231,7 @@ $HOME/.claude/skills/cfn-error-batching-strategy/analyze-errors.sh \
 
 **Example Usage:**
 ```bash
-$HOME/.claude/skills/cfn-error-batching-strategy/cluster-files.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/cluster-files.sh \
   --files "[\"src/Button.tsx\", \"src/Modal.tsx\", ...]" \
   --workspace "/workspace" \
   --strategy directory \
@@ -291,7 +291,7 @@ $HOME/.claude/skills/cfn-error-batching-strategy/cluster-files.sh \
 
 **Customizable Tiers:**
 ```bash
-$HOME/.claude/skills/cfn-error-batching-strategy/create-batches.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/create-batches.sh \
   --clusters clusters.json \
   --tier-config tier-config.json \
   --output batches.json
@@ -353,7 +353,7 @@ $HOME/.claude/skills/cfn-error-batching-strategy/create-batches.sh \
 
 **Example Usage:**
 ```bash
-$HOME/.claude/skills/cfn-error-batching-strategy/calculate-waves.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/calculate-waves.sh \
   --batches batches.json \
   --budget "40g" \
   --max-parallel 32 \
@@ -368,7 +368,7 @@ $HOME/.claude/skills/cfn-error-batching-strategy/calculate-waves.sh \
 
 **One-liner with defaults:**
 ```bash
-$HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/cli.sh \
   --command "npx tsc --noEmit" \
   --workspace "/workspace" \
   --budget "40g"
@@ -400,7 +400,7 @@ Estimated parallelism: 28 agents
 ### Advanced Configuration
 
 ```bash
-$HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/cli.sh \
   --command "python -m mypy src" \
   --workspace "/workspace" \
   --language python \
@@ -420,7 +420,7 @@ $HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
 ```bash
 #!/bin/bash
 # Extract batching plan
-PLAN=$(./.claude/skills/cfn-error-batching-strategy/cli.sh \
+PLAN=$($HOME/.claude/skills/cfn-error-management/lib/batching/cli.sh \
   --command "npx tsc --noEmit" \
   --workspace "/workspace" \
   --budget "40g" \
@@ -870,7 +870,7 @@ tests/fixtures/
 ### Example 1: TypeScript Project (376 errors, 85 files)
 
 ```bash
-$HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/cli.sh \
   --command "npx tsc --noEmit" \
   --workspace "/mnt/c/Users/masha/Documents/project/frontend" \
   --budget "40g" \
@@ -905,7 +905,7 @@ $HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
 ### Example 2: Python Project (mypy + ruff)
 
 ```bash
-$HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/cli.sh \
   --command "python -m mypy src && python -m ruff check src" \
   --workspace "/workspace" \
   --language python \
@@ -925,7 +925,7 @@ cat > custom-tiers.json << 'EOF'
 }
 EOF
 
-$HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/cli.sh \
   --command "npx tsc --noEmit" \
   --workspace "/workspace" \
   --tier-config custom-tiers.json \
@@ -943,7 +943,7 @@ $HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
 npx tsc --noEmit
 
 # Run with verbose output
-$HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/cli.sh \
   --command "npx tsc --noEmit" \
   --workspace "/workspace" \
   --verbose
@@ -953,7 +953,7 @@ $HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
 
 ```bash
 # Fall back to directory-based clustering
-$HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/cli.sh \
   --command "npx tsc --noEmit" \
   --workspace "/workspace" \
   --strategy directory
@@ -966,7 +966,7 @@ $HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
 jq '.batching.tier_distribution' output.json
 
 # Increase budget or adjust tiers
-$HOME/.claude/skills/cfn-error-batching-strategy/cli.sh \
+$HOME/.claude/skills/cfn-error-management/lib/batching/cli.sh \
   --command "npx tsc --noEmit" \
   --workspace "/workspace" \
   --budget "64g"

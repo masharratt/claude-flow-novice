@@ -11,7 +11,7 @@ set -euo pipefail
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VALIDATOR="${SCRIPT_DIR}/.claude/skills/cfn-cfn-validate-iteration.sh"
+VALIDATOR="${SCRIPT_DIR}/../validate-iteration.sh"
 
 # Configuration
 TASK_ID="distributed-task-microservices"

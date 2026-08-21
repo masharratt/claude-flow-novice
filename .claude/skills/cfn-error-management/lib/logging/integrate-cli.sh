@@ -19,8 +19,10 @@
 # GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
 # Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ERROR_LOGGING_SCRIPT="$SCRIPT_DIR/invoke-error-logging.sh"
+# This file is documented as `source`d, so a bare SCRIPT_DIR would overwrite
+# the caller's own variable. Prefix it to keep the caller's namespace intact.
+CFN_CLI_INTEGRATION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ERROR_LOGGING_SCRIPT="$CFN_CLI_INTEGRATION_DIR/invoke-error-logging.sh"
 
 # Helper function
 log() {
@@ -170,7 +172,12 @@ cfn_preflight_check() {
 
   # Check available memory
   if command -v free >/dev/null 2>&1; then
-    local available_mem=$(free -m 2>/dev/null | awk 'NR==2{print int($7)}' || echo "0")
+    # Same guard as the disk check below: procps versions without an
+    # "available" column leave field 7 empty, and the trailing `|| echo 0`
+    # cannot catch that because free itself succeeded.
+    local available_mem
+    available_mem=$(free -m 2>/dev/null | awk 'NR==2{print int($7)}')
+    [ -n "$available_mem" ] || available_mem=0
     if [ "$available_mem" -lt 512 ]; then
       issues+=("Low memory (${available_mem}MB available)")
     fi
@@ -178,7 +185,12 @@ cfn_preflight_check() {
 
   # Check disk space
   if command -v df >/dev/null 2>&1; then
-    local available_space=$(df "$PROJECT_ROOT" 2>/dev/null | awk 'NR==2{print int($4/1024)}' || echo "0")
+    # PROJECT_ROOT is not set by any caller of this sourced file; an empty path
+    # made df fail and, because `|| echo 0` binds to the pipeline rather than
+    # the assignment, left available_space empty -> "integer expression expected".
+    local available_space
+    available_space=$(df "${PROJECT_ROOT:-${CLAUDE_PROJECT_DIR:-$PWD}}" 2>/dev/null | awk 'NR==2{print int($4/1024)}')
+    [ -n "$available_space" ] || available_space=0
     if [ "$available_space" -lt 100 ]; then
       issues+=("Low disk space (${available_space}MB available)")
     fi

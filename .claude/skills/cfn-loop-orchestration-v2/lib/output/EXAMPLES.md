@@ -493,7 +493,7 @@ AGENT_OUTPUT=$(cat agent-output.txt)
 TASK_ID="task-123"
 
 # Process Loop 3 output
-RESULT=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop3.ts \
+RESULT=$(npx ts-node "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop3.ts" \
   --agent-id "coder-1" \
   --output "$AGENT_OUTPUT" \
   --iteration 1)

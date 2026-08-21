@@ -2,6 +2,26 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
+ * Canonical locations of the selection data.
+ *
+ * agent-mappings.json and the cfn-dev-team agent profiles ship inside the CFN
+ * skill tree and are never copied into individual projects, so they are resolved
+ * from THIS MODULE's own location. The previous `process.env.PROJECT_ROOT ||
+ * process.cwd()` form looked inside whichever project invoked the skill, where
+ * neither file exists.
+ *
+ * src/ and dist/ are siblings under lib/selection/, so these depths are correct
+ * for both the TypeScript sources and the built bundle. SELECTION_DIR is
+ * .claude/skills/cfn-agent-lifecycle/lib/selection, so .claude is FOUR levels up
+ * (selection -> lib -> cfn-agent-lifecycle -> skills).
+ */
+const SELECTION_DIR = path.resolve(__dirname, '..');
+export const DEFAULT_MAPPINGS_PATH = path.join(SELECTION_DIR, 'agent-mappings.json');
+export const DEFAULT_AGENTS_DIR = path.resolve(
+  SELECTION_DIR, '..', '..', '..', '..', 'agents', 'cfn-dev-team'
+);
+
+/**
  * Task classification result
  */
 export interface TaskClassification {
@@ -121,8 +141,8 @@ export class AgentSelector {
   private agentsDir: string;
 
   constructor(
-    mappingsPath: string = '.claude/skills/cfn-agent-selection-with-fallback/agent-mappings.json',
-    agentsDir: string = '.claude/agents/cfn-dev-team'
+    mappingsPath: string = DEFAULT_MAPPINGS_PATH,
+    agentsDir: string = DEFAULT_AGENTS_DIR
   ) {
     this.mappingsPath = mappingsPath;
     this.agentsDir = agentsDir;
@@ -357,8 +377,5 @@ export class AgentSelector {
  * Create a default agent selector with standard paths
  */
 export async function createDefaultSelector(): Promise<AgentSelector> {
-  const projectRoot = process.env.PROJECT_ROOT || process.cwd();
-  const mappingsPath = path.join(projectRoot, '.claude/skills/cfn-agent-selection-with-fallback/agent-mappings.json');
-  const agentsDir = path.join(projectRoot, '.claude/agents/cfn-dev-team');
-  return new AgentSelector(mappingsPath, agentsDir);
+  return new AgentSelector(DEFAULT_MAPPINGS_PATH, DEFAULT_AGENTS_DIR);
 }

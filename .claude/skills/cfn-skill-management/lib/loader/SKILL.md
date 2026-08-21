@@ -383,13 +383,13 @@ npm test -- tests/skill-loader.test.ts --coverage
 
 ```bash
 # Test skill loading
-npx tsx ./.claude/skills/cfn-skill-loader/execute.sh \
+"$HOME/.claude/skills/cfn-skill-management/lib/loader/execute.sh" \
   --agent-type backend-developer \
   --task-context "authentication,api" \
   --max-skills 20
 
 # Test cache performance
-npx tsx ./.claude/skills/cfn-skill-loader/execute.sh \
+"$HOME/.claude/skills/cfn-skill-management/lib/loader/execute.sh" \
   --benchmark \
   --iterations 10
 ```

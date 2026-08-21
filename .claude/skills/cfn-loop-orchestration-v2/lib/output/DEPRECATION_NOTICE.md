@@ -23,14 +23,15 @@ The following bash scripts are **DEPRECATED** and replaced by the unified TypeSc
 
 ### For Orchestrators
 
-**Old:**
+**Old (removed):**
 ```bash
-CONFIDENCE=$(./.claude/skills/cfn-loop3-output-processing/parse-confidence.sh "$OUTPUT")
+# REMOVED (deleted in 41c19b9b8, no bash successor) - shown for reference only:
+# CONFIDENCE=$(./.claude/skills/cfn-loop3-output-processing/parse-confidence.sh "$OUTPUT")
 ```
 
 **New:**
 ```bash
-RESULT=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop3.ts \
+RESULT=$(npx ts-node "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop3.ts" \
   --agent-id "$AGENT_ID" \
   --output "$OUTPUT")
 CONFIDENCE=$(echo "$RESULT" | jq -r '.confidence')
@@ -38,9 +39,10 @@ CONFIDENCE=$(echo "$RESULT" | jq -r '.confidence')
 
 ### For TypeScript Code
 
-**Old (calling bash):**
+**Old (removed, calling bash):**
 ```bash
-RESULT=$(./.claude/skills/cfn-loop2-output-processing/parse-feedback.sh --extract-confidence "$OUTPUT")
+# REMOVED (deleted in 41c19b9b8, no bash successor) - shown for reference only:
+# RESULT=$(./.claude/skills/cfn-loop2-output-processing/parse-feedback.sh --extract-confidence "$OUTPUT")
 ```
 
 **New (TypeScript import):**
@@ -134,24 +136,22 @@ If you find incompatibilities:
 3. Compare JSON results
 4. Report with examples
 
-## Rollback Plan
+## Rollback Plan (no longer available)
 
-If you need to revert during the deprecation period:
+The deprecation window has closed. The bash scripts named below were deleted in
+commit 41c19b9b8 and have no bash successor, so there is nothing to roll back to:
 
 ```bash
-# Use old bash scripts temporarily
-CONFIDENCE=$(./.claude/skills/cfn-loop3-output-processing/parse-confidence.sh "$OUTPUT")
-
-# Schedule migration for later
-# TODO: Update to TypeScript module
+# REMOVED (deleted in 41c19b9b8, no bash successor) - shown for reference only:
+# CONFIDENCE=$(./.claude/skills/cfn-loop3-output-processing/parse-confidence.sh "$OUTPUT")
 ```
 
-The old bash scripts will remain available for at least 90 days.
+The TypeScript CLI under `src/cli/` is the only supported entry point.
 
 ## FAQ
 
 **Q: Do I have to migrate immediately?**
-A: No. Bash scripts work for 90 days. Plan migration during that window.
+A: The migration is already mandatory. The bash scripts were deleted in 41c19b9b8.
 
 **Q: Will the output be different?**
 A: No. Output format and confidence scores are identical.

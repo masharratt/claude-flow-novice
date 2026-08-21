@@ -101,9 +101,16 @@ cd "$(git rev-parse --show-toplevel)"
 #   analysis/  vendored or illustrative trees, not part of the CFN runtime
 EXCLUDE_RE='^(docker/|archive/|legacy/|planning/|benchmark/|api-gateway/|packages/|examples/|templates/|monitoring/|analysis/|\.archive/)|(^|/)(\.backups|node_modules|target|archive)/'
 
-# Additionally excluded from check 3 only: prose trees, plus trees that are only
-# ever executed from this repo's root (see the header for the reasoning).
-EXCLUDE_REFS_RE='^(tests/|docs/|readme/|\.claude/cfn-extras/)'
+# Additionally excluded from check 3 only: prose trees, plus the dead corners of
+# cfn-extras.
+#
+# cfn-extras itself is NOT exempt. It is one of the 14 reverse-symlinked runtime
+# dirs (see CLAUDE.md), so it is live code reached from every project, and
+# excluding it wholesale is why a path corruption from 921604f4d survived there
+# for ten months with no gate watching. Only the deliberately-dead subtrees are
+# skipped: commands/deprecated/ and skills/deprecated/ are retained for history,
+# and agents/unused/ is not dispatched.
+EXCLUDE_REFS_RE='^(tests/|docs/|readme/)|^\.claude/cfn-extras/(commands/deprecated/|skills/deprecated/|agents/unused/)'
 
 in_scope() {
   git ls-files '*.sh' | grep -vE "$EXCLUDE_RE"

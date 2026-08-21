@@ -37,6 +37,12 @@
 
 set -euo pipefail
 
+# Sibling helpers live next to this file inside cfn-agent-lifecycle, so resolve
+# them from this script's own location rather than the caller's cwd. Named
+# distinctly because this script is meant to be sourced and must not clobber a
+# SCRIPT_DIR the caller already set.
+PROVIDER_ENV_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 AGENT_TYPE="${1:-}"
 CUSTOM_ROUTING_ENABLED="${CFN_CUSTOM_ROUTING:-false}"
 SETTINGS_FILE=".claude/settings.json"
@@ -134,8 +140,8 @@ if [[ "$CUSTOM_ROUTING_ENABLED" != "true" ]]; then
 fi
 
 # Step 2: Custom routing enabled - check agent profile for PROVIDER_PARAMETERS
-AGENT_PROVIDER=$(bash $HOME/.claude/skills/cfn-agent-spawning/parse-agent-provider.sh "$AGENT_TYPE" --field provider)
-AGENT_MODEL=$(bash $HOME/.claude/skills/cfn-agent-spawning/parse-agent-provider.sh "$AGENT_TYPE" --field model)
+AGENT_PROVIDER=$(bash "$PROVIDER_ENV_SCRIPT_DIR/parse-agent-provider.sh" "$AGENT_TYPE" --field provider)
+AGENT_MODEL=$(bash "$PROVIDER_ENV_SCRIPT_DIR/parse-agent-provider.sh" "$AGENT_TYPE" --field model)
 
 if [[ -n "$AGENT_PROVIDER" ]]; then
     # Agent has provider parameters - use them

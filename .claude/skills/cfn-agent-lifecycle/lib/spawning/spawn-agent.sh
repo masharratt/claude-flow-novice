@@ -9,7 +9,7 @@
 #
 # This script will be removed in 90 days. Please migrate to TypeScript.
 #
-# Migration Guide: .claude/skills/cfn-agent-spawning/TYPESCRIPT_MIGRATION.md
+# Migration Guide: none on disk (the old cfn-agent-spawning/TYPESCRIPT_MIGRATION.md was never carried over)
 # TypeScript Benefits:
 #   - Type safety (zero runtime type errors)
 #   - 90%+ test coverage

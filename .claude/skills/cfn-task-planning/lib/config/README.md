@@ -48,7 +48,7 @@ Without explicit scope configuration:
 ## Usage
 
 ```bash
-$HOME/.claude/skills/cfn-task-config-init/initialize-config.sh \
+$HOME/.claude/skills/cfn-task-planning/lib/config/initialize-config.sh \
   --task-description "Implement JWT authentication" \
   --mode "standard" \
   --task-id "cfn-phase-1730545678"
@@ -117,7 +117,7 @@ Based on task analysis:
 ```bash
 # Step 1: Initialize config (Task Mode only)
 if [[ "$SPAWN_MODE" == "task" ]]; then
-  CONFIG_PATH=$(./claude/skills/cfn-task-config-init/initialize-config.sh \
+  CONFIG_PATH=$($HOME/.claude/skills/cfn-task-planning/lib/config/initialize-config.sh \
     --task-description "$ARGUMENTS" \
     --mode "$MODE" \
     --task-id "$TASK_ID")

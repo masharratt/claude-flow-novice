@@ -144,7 +144,7 @@ generate_context_from_extraction() {
         
         echo ""
         echo "# Coordination Layer Files:"
-        echo "Read: .claude/skills/cfn-loop-orchestration/SKILL.md"
+        echo "Read: .claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/SKILL.md"
         echo ""
     fi
     
@@ -154,17 +154,17 @@ generate_context_from_extraction() {
     case "$mode" in
         mvp)
             echo "Read: .claude/agents/cfn-dev-team/cfn-implementation-agent.md"
-            echo "Read: .claude/skills/cfn-agent-spawning/SKILL.md"
+            echo "Read: .claude/skills/cfn-agent-lifecycle/lib/spawning/SKILL.md"
             ;;
         standard|enterprise)
             echo "Read: .claude/agents/cfn-dev-team/cfn-coordinator.md"
             echo "Read: .claude/agents/cfn-dev-team/cfn-implementation-agent.md"
             echo "Read: .claude/agents/cfn-dev-team/cfn-validator.md"
-            echo "Read: .claude/skills/cfn-loop-orchestration/SKILL.md"
-            echo "Read: .claude/skills/cfn-agent-spawning/SKILL.md"
+            echo "Read: .claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/SKILL.md"
+            echo "Read: .claude/skills/cfn-agent-lifecycle/lib/spawning/SKILL.md"
             
             if [[ "$mode" == "enterprise" ]]; then
-                echo "Read: .claude/skills/cfn-validation-framework/SKILL.md"
+                echo "Read: .claude/skills/cfn-loop-orchestration-v2/lib/validation/SKILL.md"
                 echo "Read: .claude/skills/cfn-error-management/SKILL.md"
             fi
             ;;

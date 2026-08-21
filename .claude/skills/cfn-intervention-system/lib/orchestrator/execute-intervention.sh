@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Repo root, derived from this script's own location so the script
-# works from any checkout on any machine.
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
+# Shared CFN helper roots. ~/.claude is a symlink into the CFN repo, so these
+# resolve from any project cwd.
+CFN_SKILLS="$HOME/.claude/skills"
+CFN_EXTRAS_SKILLS="$HOME/.claude/cfn-extras/skills"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -20,7 +21,7 @@ done
 case "$TRIGGER" in
     "confidence_plateau")
         # Use agent swap
-        SWAP_OUTPUT=$($PROJECT_ROOT/.claude/skills/cfn-agent-swap/recommend-swap.sh \
+        SWAP_OUTPUT=$("$CFN_EXTRAS_SKILLS/advanced-features/cfn-agent-swap/recommend-swap.sh" \
             --loop3-agents "$(IFS=,; echo "${AGENTS[*]}")" \
             --loop3-confidences "0.70,0.82" \
             --feedback-themes "$(IFS=,; echo "${THEMES[*]}")")
@@ -30,7 +31,7 @@ case "$TRIGGER" in
 
     "recurring_feedback")
         # Use specialist injection
-        SWAP_OUTPUT=$($PROJECT_ROOT/.claude/skills/cfn-specialist-injection/recommend-specialist.sh \
+        SWAP_OUTPUT=$("$CFN_SKILLS/cfn-task-intelligence/lib/specialist/recommend-specialist.sh" \
             --current-loop3 "$(IFS=,; echo "${AGENTS[*]}")" \
             --feedback-themes "$(IFS=,; echo "${THEMES[*]}")" \
             --recurring-count 3)
@@ -40,7 +41,7 @@ case "$TRIGGER" in
 
     "deliverables_stuck")
         # Use scope simplifier
-        SWAP_OUTPUT=$($PROJECT_ROOT/.claude/skills/cfn-scope-simplifier/simplify-scope.sh \
+        SWAP_OUTPUT=$("$CFN_SKILLS/cfn-planning/lib/scope/simplify-scope.sh" \
             --original-deliverables "src/auth/oauth2.ts,src/auth/sessions.ts,tests/auth.test.ts,docs/auth.md" \
             --files-created "none" \
             --iteration "$ITERATION")

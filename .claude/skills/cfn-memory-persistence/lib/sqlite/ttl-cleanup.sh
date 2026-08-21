@@ -7,7 +7,7 @@
 set -e  # Exit on error
 
 # Source parameterized query library for SQL injection prevention
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd)"
 source "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh"
 
 # Configuration

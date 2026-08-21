@@ -22,7 +22,7 @@ Comprehensive error logging and diagnostic capture for CFN Loop failures. Create
 
 ### Main Entry Point
 ```bash
-$HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+$HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
   --action <capture|report|cleanup|list> \
   --task-id <unique-id> \
   [--error-type <orchestrator|agent-spawn|timeout|consensus|resource>] \
@@ -44,7 +44,7 @@ $HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
 #### **capture** - Capture Error Data
 ```bash
 # Automatic capture on CFN Loop failure
-$HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+$HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
   --action capture \
   --task-id "cfn-cli-1731234567" \
   --error-type "orchestrator" \
@@ -55,7 +55,7 @@ $HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
 #### **report** - Generate User Report
 ```bash
 # Generate user-friendly error report
-$HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+$HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
   --action report \
   --task-id "cfn-cli-1731234567" \
   --format "markdown"
@@ -64,7 +64,7 @@ $HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
 #### **cleanup** - Manage Error Logs
 ```bash
 # Clean old error logs (older than 7 days)
-$HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+$HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
   --action cleanup \
   --retention-days 7
 ```
@@ -72,7 +72,7 @@ $HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
 #### **list** - List Error Logs
 ```bash
 # List all error logs
-$HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+$HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
   --action list \
   --format "table"
 ```
@@ -103,7 +103,7 @@ $HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
 ```bash
 # Add to orchestrate.sh error handling
 if [ $EXIT_CODE -ne 0 ]; then
-  $HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+  $HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
     --action capture \
     --task-id "$TASK_ID" \
     --error-type "orchestrator" \
@@ -114,9 +114,9 @@ fi
 
 ### Docker Loop Integration
 ```bash
-# Add to cfn-docker-loop-orchestration error handling
+# Error handling for a containerised loop runner (the cfn-docker-loop-orchestration skill was removed)
 if [ $CONTAINER_EXIT_CODE -ne 0 ]; then
-  $HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+  $HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
     --action capture \
     --task-id "$TASK_ID" \
     --error-type "docker" \
@@ -129,7 +129,7 @@ fi
 ```bash
 # Add to agent spawning error handling
 if ! $SPAWN_COMMAND; then
-  $HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+  $HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
     --action capture \
     --task-id "$TASK_ID" \
     --error-type "agent-spawn" \
@@ -214,7 +214,7 @@ fi
 ```bash
 # In cfn-loop-cli command
 if ! npx claude-flow-novice agent cfn-v3-coordinator ...; then
-  $HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+  $HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
     --action capture \
     --task-id "$TASK_ID" \
     --error-type "cli-coordinator" \
@@ -225,7 +225,7 @@ fi
 ### Generate Debug Report
 ```bash
 # After CFN Loop failure
-$HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+$HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
   --action report \
   --task-id "cfn-cli-1731234567" \
   --format markdown > /tmp/cfn_error_report.md
@@ -237,12 +237,12 @@ echo "📤 Send this file to your Claude assistant for debugging help"
 ### List Recent Errors
 ```bash
 # List all recent errors
-$HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+$HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
   --action list \
   --format table
 
 # List errors from last 24 hours
-$HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+$HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
   --action list \
   --since "24h" \
   --format json
@@ -291,15 +291,15 @@ $HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
 ### Diagnostic Commands
 ```bash
 # System health check
-$HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+$HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
   --action diagnostics
 
 # Dependency validation
-$HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+$HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
   --action validate-dependencies
 
 # Resource monitoring
-$HOME/.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+$HOME/.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh \
   --action monitor-resources
 ```
 

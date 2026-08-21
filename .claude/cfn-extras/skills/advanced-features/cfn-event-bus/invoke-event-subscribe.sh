@@ -21,7 +21,8 @@ set -euo pipefail
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+EVENTBUS_WRAPPER="$SCRIPT_DIR/eventbus-wrapper.cjs"
 
 # Parse arguments
 TOPIC=""
@@ -75,8 +76,7 @@ HANDLER_SCRIPT=$(mktemp)
 trap "rm -f $HANDLER_SCRIPT" EXIT
 
 cat > "$HANDLER_SCRIPT" <<'EOF'
-const path = require('path');
-const { eventBus } = require(path.join(process.env.PROJECT_ROOT, '.claude', 'core', 'event-bus.js'));
+const { eventBus } = require(process.env.EVENTBUS_WRAPPER);
 const { spawn } = require('child_process');
 
 const topic = process.env.TOPIC;
@@ -157,6 +157,7 @@ EOF
 
 # Execute subscription handler
 export PROJECT_ROOT
+export EVENTBUS_WRAPPER
 export TOPIC
 export CALLBACK
 export FILTER

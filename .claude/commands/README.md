@@ -5,12 +5,13 @@
 ### Skills (Most Common) - Building Blocks
 **What:** Single-purpose bash scripts in `.claude/skills/`
 **When:** Most tasks - they're the building blocks
-**Example:** `cfn-agent-spawning`, `cfn-loop-validation`
+**Example:** `cfn-agent-lifecycle`, `cfn-loop-orchestration-v2`
 
 ```bash
 # Direct skill invocation
-$HOME/.claude/skills/cfn-agent-spawning/spawn-agent.sh \
-  --task-id "task-123" \
+$HOME/.claude/skills/cfn-agent-lifecycle/cli/spawn-agent.sh \
+  --task "Fix the failing auth tests" \
+  --agents coder,tester \
   --agent-id "coder-1"
 ```
 
@@ -76,8 +77,8 @@ Need to automate something?
 **Goal:** Spawn an agent for a task
 
 ```bash
-$HOME/.claude/skills/cfn-agent-spawning/spawn-agent.sh \
-  --task-id "task-123" --agent-id "coder-1"
+$HOME/.claude/skills/cfn-agent-lifecycle/cli/spawn-agent.sh \
+  --task "Fix the failing auth tests" --agents coder --agent-id "coder-1"
 ```
 
 ### Example 2: CFN Loop Execution

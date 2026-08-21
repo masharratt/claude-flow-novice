@@ -286,17 +286,17 @@ Time: 2.345s
 ### Orchestrator Integration
 ```bash
 # Process Loop 3 output
-RESULT=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop3.ts \
+RESULT=$(npx ts-node "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop3.ts" \
   --agent-id "$AGENT_ID" \
   --output "$AGENT_OUTPUT")
 
 # Process Loop 2 output
-RESULT=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop2.ts \
+RESULT=$(npx ts-node "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop2.ts" \
   --validator-id "$VALIDATOR_ID" \
   --output "$VALIDATOR_OUTPUT")
 
 # Calculate consensus
-CONSENSUS=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/process-loop2.ts \
+CONSENSUS=$(npx ts-node "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/output/src/cli/process-loop2.ts" \
   --consensus \
   --results-file ./validator-results.json)
 ```
@@ -380,7 +380,7 @@ CONSENSUS=$(npx ts-node ./.claude/skills/cfn-loop-output-processing/src/cli/proc
 ## Files Created
 
 ```
-.claude/skills/cfn-loop-output-processing/
+.claude/skills/cfn-loop-orchestration-v2/lib/output/
 ├── src/
 │   ├── output-processor.ts              (600 lines, core logic)
 │   └── cli/

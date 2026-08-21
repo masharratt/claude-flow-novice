@@ -363,11 +363,11 @@ validate_success_criteria || exit 1
 
 ### 2. CFN Loop Orchestration
 
-**Integration Point:** Generated agents include test execution pattern using `parse-test-results.sh`.
+**Integration Point:** Generated agents include test execution pattern using the CFN Loop `parse-test-results.ts` helper. The old bash `parse-test-results.sh` was removed; the TypeScript CLI takes the same `<framework> <output>` arguments and prints the same JSON.
 
 **Pattern:**
 ```bash
-RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
+RESULTS=$(npx tsx "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/parse-test-results.ts" \
     "jest" "$TEST_OUTPUT")
 ```
 

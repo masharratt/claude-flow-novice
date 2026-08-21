@@ -92,10 +92,15 @@ if [[ -n "$FILES" ]]; then
   fi
 fi
 
-# Path to changelog
+# Path to changelog.
+# The changelog is PROJECT-LOCAL DATA, so it is anchored on the invoking project,
+# not on this script's location. A BASH_SOURCE-derived root resolves into the CFN
+# repo (skills reach every project through the reverse symlinks in CLAUDE.md), so
+# the old form wrote every project's changelog into the CFN checkout.
+# Shared CFN code -> BASH_SOURCE or $HOME. Project data -> $CLAUDE_PROJECT_DIR/cwd.
 CHANGELOG_FILE="readme/CHANGELOG.md"
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
-CHANGELOG_PATH="$PROJECT_ROOT/$CHANGELOG_FILE"
+PROJECT_DATA_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
+CHANGELOG_PATH="$PROJECT_DATA_ROOT/$CHANGELOG_FILE"
 
 # Check if changelog exists
 if [[ ! -f "$CHANGELOG_PATH" ]]; then

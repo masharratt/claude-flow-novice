@@ -4,8 +4,8 @@
 
 The `validator.ts` module provides a unified, type-safe abstraction layer for all validation operations in the CFN Loop orchestration system. It abstracts gate checking, consensus validation, and deliverable verification under a consistent interface.
 
-**Module Location:** `.claude/skills/cfn-loop-orchestration/src/helpers/validator.ts`
-**Test Suite:** `.claude/skills/cfn-loop-orchestration/tests/validator.test.ts`
+**Module Location:** `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/validator.ts`
+**Test Suite:** `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/tests/validator.test.ts`
 **Lines of Code:** 276 (implementation) + 643 (tests)
 
 ## Core Components
@@ -521,6 +521,6 @@ validatorResults.forEach(vr => {
 
 ## References
 
-- CFN Loop Orchestration: `.claude/skills/cfn-loop-orchestration/`
-- Test Suite: `.claude/skills/cfn-loop-orchestration/tests/validator.test.ts`
-- Type Definitions: `.claude/skills/cfn-loop-orchestration/src/types.ts`
+- CFN Loop Orchestration: `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/`
+- Test Suite: `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/tests/validator.test.ts`
+- Type Definitions: `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/types.ts`

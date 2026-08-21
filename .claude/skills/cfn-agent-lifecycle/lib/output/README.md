@@ -311,9 +311,9 @@ echo "$PARSED_OUTPUT"
 
 ## Related Skills
 
-- **Product Owner Decision** (`.claude/skills/product-owner-decision/SKILL.md`) - Specific implementation
-- **Redis Coordination** (`.claude/skills/redis-coordination/SKILL.md`) - State management
-- **CFN Loop Validation** (`.claude/skills/cfn-loop-validation/SKILL.md`) - Quality gates
+- **Product Owner Decision** (`.claude/skills/cfn-loop-orchestration-v2/lib/decision/SKILL.md`) - Specific implementation
+- **Redis Coordination** (`.claude/skills/cfn-memory-persistence/lib/redis/SKILL.md`) - State management
+- **CFN Loop Validation** (`.claude/skills/cfn-loop-orchestration-v2/lib/validation/SKILL.md`) - Quality gates
 
 ---
 

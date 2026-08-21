@@ -252,6 +252,86 @@ while [ "$i" -lt "$AC_COUNT" ]; do
     add_finding "$ACID" "check" "unrunnable_selector: '<file>::<name>' is not a selector any runner accepts — use -t \"<name>\" (vitest/jest), -g \"<name>\" (playwright), or 'cargo test <path> -- --exact'" "error"
   fi
 
+  # 1e2: dead test-name selector (S008). A `-t "<name>"` (vitest/jest) or
+  # `-g "<name>"` (playwright) whose named test file exists but holds no such
+  # title selects zero tests. verify-run.sh classifies that as `zero_tests_ran`
+  # and forces red, so it is not a false green, but the row is then red for a
+  # reason that has nothing to do with the feature and the real verdict is never
+  # reached. This class has bitten twice: first as a leading `^` anchoring to the
+  # describe title instead of the it title, then as an `FR-N:` tag convention the
+  # manifest assumed and the tests never adopted (80 of 146 selectors dead in one
+  # manifest, across five waves reported green). An alternation counts as live if
+  # any one branch matches, which is how the runner reads it.
+  SEL=$(printf '%s' "$CHECK" | grep -oE '(^| )-[tg] "[^"]+"' | head -1 | sed -E 's/^ ?-[tg] "//; s/"$//' || true)
+  if [ -n "$SEL" ]; then
+    SELFILE=$(printf '%s' "$CHECK" | grep -oE '(vitest|jest|playwright)[a-z ]* run [^ ]+' | head -1 | awk '{print $NF}' || true)
+    if [ -z "$SELFILE" ]; then
+      SELFILE=$(printf '%s' "$CHECK" | grep -oE '[A-Za-z0-9_/.-]+\.(spec|test)\.[a-z]+' | head -1 || true)
+    fi
+    if [ -n "$SELFILE" ] && [ -f "$SELFILE" ]; then
+      SELHIT=0
+      OLDIFS="$IFS"; IFS='|'
+      for branch in $SEL; do
+        BR=$(printf '%s' "$branch" | sed -E 's/^\^//; s/\$$//')
+        [ -n "$BR" ] || continue
+        if grep -qF -- "$BR" "$SELFILE"; then SELHIT=1; break; fi
+      done
+      IFS="$OLDIFS"
+      if [ "$SELHIT" -eq 0 ]; then
+        add_finding "$ACID" "check" "dead_selector: the check filters tests by name with '$SEL' but $SELFILE holds no test title matching it, so this check collects 0 tests and can never report on the feature. Drop the -t/-g filter to run the whole file, or align the selector with a real test title." "error"
+      fi
+    elif [ -n "$SELFILE" ]; then
+      if [ "$STAGE" = "exit" ]; then
+        add_finding "$ACID" "check" "dead_selector: the check filters by name with '$SEL' but its test file $SELFILE does not exist at the exit bless, so the selector collects 0 tests" "error"
+      else
+        add_finding "$ACID" "check" "dead_selector: test file $SELFILE for selector '$SEL' does not exist yet (plan stage accepted; the exit bless requires it and validates the selector against its titles)" "warn"
+      fi
+    fi
+  fi
+
+  # 1e3: check invokes a command that is not an executable on PATH (S009).
+  # `verify-run.sh` runs every check with `bash -c`, and a non-interactive bash
+  # inherits neither shell functions nor aliases. So a check whose command is
+  # provided by a function looks fine in an interactive shell and dies with
+  # "command not found" under the runner. That is red for a reason that has
+  # nothing to do with the feature, the same failure shape as dead_selector.
+  # Found live: `rg` on a machine with no ripgrep binary, where Claude Code
+  # defines rg() as a wrapper around its own bundled copy. 113 uses across 49
+  # of 241 checks looked healthy and could not run.
+  # `command -v` is the WRONG test here: it prints the bare name for a function
+  # or a builtin and so reports success for exactly the case that breaks. Only
+  # an absolute path means an executable a child bash can find, which is what
+  # the leading-slash test below asserts.
+  CHK_CMDS=$(printf '%s' "$CHECK" \
+    | sed -E 's/^[a-z]+: //' \
+    | sed -E 's/\$\(/\n/g; s/`/\n/g; s/&&/\n/g; s/\|\|/\n/g; s/\|/\n/g; s/;/\n/g' \
+    | sed -E 's/^[[:space:]]*(!|then|else|do)[[:space:]]+//' \
+    | awk '{print $1}' \
+    | grep -E '^[a-z][a-z0-9_.-]+$' \
+    | sort -u || true)
+  for cmd in $CHK_CMDS; do
+    case "$cmd" in
+      test|echo|printf|cd|export|set|unset|exit|return|if|then|else|elif|fi|\
+      for|while|do|done|case|esac|local|read|eval|exec|true|false|source|\
+      shift|trap|wait|command|type|hash|umask|alias|time|timeout|env|\
+      shopt|let|declare|typeset|function|getopts|pushd|popd|jobs|kill) continue ;;
+      # Not commands at all: these reach the command position only as branches
+      # of a quoted regex alternation inside a check, e.g. the
+      # `(const|let|var|function|class)` declaration pattern of a single-copy
+      # constants guard, which the `|` split above cannot tell from a pipe.
+      var|const|class|def|fn|impl|struct|enum|interface) continue ;;
+    esac
+    RESOLVED=$(command -v "$cmd" 2>/dev/null || true)
+    case "$RESOLVED" in
+      /*) continue ;;
+    esac
+    if [ "$STAGE" = "exit" ]; then
+      add_finding "$ACID" "check" "tool_unavailable: the check invokes '$cmd', which resolves to no executable on PATH (it is a shell function, an alias, or absent). verify-run.sh executes checks with 'bash -c', which inherits neither, so this check cannot run and reports red regardless of the feature. Install the real binary, or export the function with 'export -f $cmd' before the run, or rewrite the check against a tool that ships as an executable." "error"
+    else
+      add_finding "$ACID" "check" "tool_unavailable: the check invokes '$cmd', which resolves to no executable on PATH on this machine (shell function, alias, or absent). Under 'bash -c' it is command-not-found. Provision the binary before the exit bless, or export the function into the runner's environment." "warn"
+    fi
+  done
+
   # 1f: requires{} precondition shape (S007). verify-run.sh reports an unmet
   # precondition as `blocked` rather than red; a malformed one would silently
   # never be enforced.

@@ -288,7 +288,7 @@ agents.forEach((agent, i) => {
 ## Test Command
 
 ```bash
-npm test -- ./.claude/skills/cfn-loop-orchestration/tests/context-injector.test.ts
+npm test -- "$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/tests/context-injector.test.ts"
 ```
 
 Expected output: `Tests: 34 passed, 34 total`

@@ -1,4 +1,10 @@
-import { AgentSelector, TaskClassification, AgentSelection } from './agent-selector';
+import {
+  AgentSelector,
+  TaskClassification,
+  AgentSelection,
+  DEFAULT_MAPPINGS_PATH,
+  DEFAULT_AGENTS_DIR
+} from './agent-selector';
 import * as fs from 'fs';
 import * as path from 'path';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
@@ -10,12 +16,12 @@ describe('AgentSelector', () => {
   let testAgentsDir: string;
 
   beforeAll(async () => {
-    // Get project root
-    const projectRoot = process.env.PROJECT_ROOT || process.cwd();
-
-    // Use actual mappings and agents directories
-    testMappingsPath = path.join(projectRoot, '.claude/skills/cfn-agent-selection-with-fallback/agent-mappings.json');
-    testAgentsDir = path.join(projectRoot, '.claude/agents/cfn-dev-team');
+    // Use the same module-relative locations the implementation uses. Resolving
+    // these from process.cwd() was the defect: the mappings file and the agent
+    // profiles ship inside the CFN skill tree, so a cwd-anchored path missed
+    // them whenever the skill ran from another project.
+    testMappingsPath = DEFAULT_MAPPINGS_PATH;
+    testAgentsDir = DEFAULT_AGENTS_DIR;
 
     selector = new AgentSelector(testMappingsPath, testAgentsDir);
   });

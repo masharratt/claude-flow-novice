@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 
-# cfn-changelog-management/bulk-import.sh
+# cfn-project-management/lib/changelog/bulk-import.sh
 # Batch changelog imports with fuzzy deduplication and auto-squashing
 # Simplified two-pass approach: collect all entries, then deduplicate
 
 # Default values
-# Repo root, derived from this script's own location so the script
-# works from any checkout on any machine.
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)"
+# Two roots, deliberately kept distinct:
+#   SCRIPT_DIR         shared CFN code, derived from this script's own location.
+#   PROJECT_DATA_ROOT  project-local data (readme/CHANGELOG.md), anchored on the
+#                      INVOKING project. A BASH_SOURCE-derived root resolves into
+#                      the CFN repo (reverse symlinks, see CLAUDE.md), so the old
+#                      single-root form imported every project's changelog entries
+#                      into the CFN checkout.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+PROJECT_DATA_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 INPUT_FILE=""
 AUTO_SQUASH=false
@@ -127,7 +133,7 @@ calculate_similarity() {
 # Check if entry exists in CHANGELOG
 entry_exists() {
   local summary="$1"
-  grep -qF "$summary" "$PROJECT_ROOT/readme/CHANGELOG.md" 2>/dev/null
+  grep -qF "$summary" "$PROJECT_DATA_ROOT/readme/CHANGELOG.md" 2>/dev/null
 }
 
 # Initialize files
@@ -244,7 +250,9 @@ while IFS='|' read -r date type summary impact files issue migration; do
     fi
 
     # Execute
-    if $PROJECT_ROOT/.claude/skills/cfn-changelog-management/add-changelog-entry.sh "${args[@]}" >/dev/null 2>&1; then
+    # Sibling script, resolved from SCRIPT_DIR. The cfn-changelog-management skill
+    # this used to point at no longer exists.
+    if "$SCRIPT_DIR/add-changelog-entry.sh" "${args[@]}" >/dev/null 2>&1; then
       echo "  ✓ Added: $summary ($date)"
     else
       echo "  ✗ Failed: $summary ($date)" >&2

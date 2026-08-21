@@ -13,7 +13,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# This file lives at .claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/,
+# so the repo root is FIVE levels up (orchestrator -> lib -> cfn-loop-orchestration-v2
+# -> skills -> .claude -> root). The old three-level form landed on
+# .claude/skills, which made every "$PROJECT_ROOT/.claude/skills/..." check below
+# probe .claude/skills/.claude/skills/... and report not-found unconditionally.
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 
 # Colors for output
 RED='\033[0;31m'
@@ -73,8 +78,11 @@ test_typescript_modules() {
   local modules_found=0
   local modules_expected=5
 
-  # Check agent selector
-  if [ -f "$PROJECT_ROOT/.claude/skills/cfn-agent-selection-with-fallback/dist/cli.cjs" ]; then
+  # Check agent selector. cfn-agent-selection-with-fallback was consolidated into
+  # cfn-agent-lifecycle/lib/selection; only src/cli.ts is checked in there.
+  # cfn: probes the unbuilt dist artifact, so this check reports not-found until a
+  # build step emits lib/selection/dist/. Point it at the build output once one exists.
+  if [ -f "$PROJECT_ROOT/.claude/skills/cfn-agent-lifecycle/lib/selection/dist/cli.cjs" ]; then
     log_info "✓ Agent selector: cli.cjs found"
     modules_found=$((modules_found + 1))
   else

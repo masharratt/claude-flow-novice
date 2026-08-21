@@ -4,9 +4,6 @@ set -euo pipefail
 # Google Sheets Sprint Ordering Script
 # Resolves dependencies and generates execution plan using topological sort
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-
 # Default values
 SPRINTS_JSON=""
 OUTPUT_FILE=""

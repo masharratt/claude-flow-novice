@@ -5,7 +5,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 cd "$PROJECT_ROOT"
 
 FORCE=false
@@ -143,8 +143,8 @@ Database Location:
   ${DB_PATH}
 
 Next Steps:
-  1. Capture screenshot:  ./.claude/skills/cfn-webapp-testing/capture-screenshot.sh --help
-  2. Set baseline:        ./.claude/skills/cfn-webapp-testing/set-baseline.sh --help
-  3. Compare screenshots: ./.claude/skills/cfn-webapp-testing/compare-screenshots.sh --help
+  1. Capture screenshot:  ${HOME}/.claude/skills/cfn-test-framework/lib/webapp/capture-screenshot.sh --help
+  2. Set baseline:        ${HOME}/.claude/skills/cfn-test-framework/lib/webapp/set-baseline.sh --help
+  3. Compare screenshots: ${HOME}/.claude/skills/cfn-test-framework/lib/webapp/compare-screenshots.sh --help
 
 EOF

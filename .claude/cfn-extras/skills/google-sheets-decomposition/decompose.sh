@@ -4,9 +4,6 @@ set -euo pipefail
 # Google Sheets Request Decomposition Script
 # Breaks complex requests into atomic micro-sprints with dependencies
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-
 # Configuration
 MAX_SPRINTS=15
 MAX_OPS_PER_SPRINT=5

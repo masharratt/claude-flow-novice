@@ -25,7 +25,7 @@ Context Injector is a TypeScript module that builds and manages broadcast messag
 ## File Structure
 
 ```
-.claude/skills/cfn-loop-orchestration/
+.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/
 ├── src/
 │   └── helpers/
 │       ├── context-injector.ts                          [IMPLEMENTATION]
@@ -109,7 +109,7 @@ console.log(`Task: ${context.taskId}, Phase: ${context.phase}`);
 
 ### Run Tests
 ```bash
-npm test -- ./.claude/skills/cfn-loop-orchestration/tests/context-injector.test.ts
+npm test -- $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/tests/context-injector.test.ts
 ```
 
 ## Documentation Structure
@@ -253,7 +253,7 @@ interface SuccessCriteria {
 
 ### Tests not passing
 **Steps:**
-1. Run: `npm test -- ./.claude/skills/cfn-loop-orchestration/tests/context-injector.test.ts`
+1. Run: `npm test -- $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/tests/context-injector.test.ts`
 2. Check output for which tests fail
 3. Review CONTEXT_INJECTOR_USAGE_GUIDE.md for patterns
 4. Verify all parameters are correct types

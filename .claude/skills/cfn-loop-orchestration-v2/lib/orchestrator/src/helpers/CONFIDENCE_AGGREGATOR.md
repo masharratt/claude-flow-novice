@@ -560,5 +560,5 @@ Potential future improvements:
 
 - **Test Suite:** `tests/confidence-aggregator.test.ts` (53 tests)
 - **Type Definitions:** Core interfaces in module header
-- **CFN Loop Documentation:** `.claude/skills/cfn-loop-orchestration/`
+- **CFN Loop Documentation:** `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/`
 - **Gate Checking:** Uses aggregateScore for Loop 3 gate validation

@@ -122,7 +122,7 @@ if awk "BEGIN {exit !($AGENT_CONFIDENCE < 0.70)}"; then
 fi
 
 # Call CodeSearch ingestion
-$HOME/.claude/skills/cfn-local-codesearch-accelerator/ingest-agent-transcript.sh \
+$HOME/.claude/skills/cfn-codesearch/ingest-agent-transcript.sh \
     --transcript "$TRANSCRIPT_ARCHIVE" \
     --agent-id "$AGENT_ID" \
     --agent-type "$AGENT_TYPE" \
@@ -305,14 +305,14 @@ tail -f .artifacts/logs/subagent-lifecycle.log
 
 Verify script exists and is executable:
 ```bash
-ls -l $HOME/.claude/skills/cfn-local-codesearch-accelerator/ingest-agent-transcript.sh
+ls -l $HOME/.claude/skills/cfn-codesearch/ingest-agent-transcript.sh
 ```
 
 ### No patterns found
 
 Run failure analysis manually:
 ```bash
-$HOME/.claude/skills/cfn-local-codesearch-accelerator/analyze-agent-failures.sh --days 30
+$HOME/.claude/skills/cfn-codesearch/analyze-agent-failures.sh --days 30
 ```
 
 Check database tables exist:
@@ -337,5 +337,5 @@ Run with broader query:
 
 - Analysis document: `docs/CODESEARCH_INTEGRATION_ANALYSIS.md`
 - Subagent hooks: `.claude/hooks/cfn-subagent-*.sh`
-- CodeSearch accelerator: `.claude/skills/cfn-local-codesearch-accelerator/`
+- CodeSearch accelerator: `.claude/skills/cfn-codesearch/`
 - Lifecycle database: `data/agent-lifecycle.db`

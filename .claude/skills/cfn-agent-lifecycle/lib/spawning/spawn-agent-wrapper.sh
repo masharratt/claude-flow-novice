@@ -55,7 +55,7 @@ if [[ -z "${1:-}" ]]; then
 fi
 
 # Get the project root
-PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
+PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd)}"
 
 # Delegate to TypeScript implementation
 # The CLI expects agent type as first argument, followed by options

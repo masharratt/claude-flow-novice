@@ -31,7 +31,7 @@ Complete TypeScript conversion of CFN Loop validation system with comprehensive 
 ## File Structure
 
 ```
-.claude/skills/cfn-loop-validation/
+.claude/skills/cfn-loop-orchestration-v2/lib/validation/
 │
 ├── SOURCE CODE (5 TypeScript files, 1,195 lines)
 │   ├── src/
@@ -272,7 +272,7 @@ class CFNValidator {
 
 ```bash
 # 1. Install dependencies
-cd $HOME/.claude/skills/cfn-loop-validation
+cd $HOME/.claude/skills/cfn-loop-orchestration-v2/lib/validation
 npm install
 
 # 2. Build TypeScript
@@ -506,8 +506,8 @@ node dist/cli/validate-deliverables.js --help
 
 ## Related Documentation
 
-- CFN Loop Orchestration: `.claude/skills/cfn-loop-orchestration/SKILL.md`
-- Gate Checker: `.claude/skills/cfn-loop-orchestration/src/gate-checker/`
+- CFN Loop Orchestration: `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/SKILL.md`
+- Gate Checker: `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/gate-checker/`
 - Orchestrator: `.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`
 
 ---

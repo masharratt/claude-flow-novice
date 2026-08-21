@@ -9,9 +9,9 @@ set -euo pipefail
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 
 # Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-TELEMETRY_DIR="${CFN_TELEMETRY_DIR:-$PROJECT_ROOT/.artifacts/telemetry}"
+# Telemetry is per-project output, so it anchors on the invoking project, not on a
+# BASH_SOURCE-derived root (which would write into the shared CFN source tree).
+TELEMETRY_DIR="${CFN_TELEMETRY_DIR:-${CLAUDE_PROJECT_DIR:-$PWD}/.artifacts/telemetry}"
 COLLECTION_INTERVAL="${CFN_TELEMETRY_INTERVAL:-30}"  # seconds
 
 # Ensure telemetry directory exists

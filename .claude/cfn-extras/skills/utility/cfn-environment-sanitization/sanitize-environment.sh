@@ -16,8 +16,6 @@ set -euo pipefail
 
 # Configuration
 STRICT_MODE=${1:-"false"}
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Environment sanitization rules
 declare -A SANITIZATION_RULES=(

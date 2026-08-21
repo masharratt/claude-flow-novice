@@ -450,4 +450,4 @@ sed -i 's/\r$//' *.sh
 3. **Extend:** Add custom validation logic or Redis event handlers
 4. **Monitor:** Track validation metrics in Redis or SQLite
 
-For more information, see `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-loop-validation/SKILL.md`
+For more information, see `.claude/skills/cfn-loop-orchestration-v2/lib/validation/SKILL.md`
