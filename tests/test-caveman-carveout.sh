@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
 # Guards the "Terse-Output Mode Carve-Out" section of the CFN operating guide
-# (.claude/global/CLAUDE.md, symlinked to ~/.claude/CLAUDE.md).
-#
-# That section makes factual claims about a THIRD-PARTY plugin (caveman) that
-# CFN does not control:
+# (.claude/global/CLAUDE.md, symlinked to ~/.claude/CLAUDE.md) and its detail
+# file (.claude/global/references/caveman-controls.md). The carve-out rules are
+# CFN's own and live in the guide; the control claims about a THIRD-PARTY
+# plugin (caveman) that CFN does not control live in the reference file:
 #
 #   - `CAVEMAN_DEFAULT_MODE=off` silences both injections.
 #   - The live switch is the flag file ~/.claude/.caveman-active.
 #   - Patching the plugin cache is pointless because the cache is not a git
 #     checkout and an update writes a new content-hashed directory.
 #
-# A plugin update can rename the knob or move the flag, at which point the guide
-# is confidently wrong and the next person burns a session discovering it. The
-# claims are mechanical, so they are checked mechanically here.
+# A plugin update can rename the knob or move the flag, at which point the
+# reference is confidently wrong and the next person burns a session
+# discovering it. The claims are mechanical, so they are checked mechanically
+# here.
 #
 # The plugin is optional. When it is not installed the plugin-dependent checks
-# skip and the run still passes. What never skips is the CLAUDE.md half: the
+# skip and the run still passes. What never skips is the guide half: the
 # carve-out rule is CFN's own and must not be silently dropped.
 #
 # NON-DESTRUCTIVE BY CONSTRUCTION: exercising `off` makes the real hook unlink
@@ -26,6 +27,7 @@ set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 GUIDE="$REPO/.claude/global/CLAUDE.md"
+CTRL="$REPO/.claude/global/references/caveman-controls.md"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 FLAG="$CLAUDE_DIR/.caveman-active"
 
@@ -49,10 +51,21 @@ grep -q '^### Terse-Output Mode Carve-Out' "$GUIDE" \
   && ok "guide: carve-out section present" \
   || no "guide: carve-out section present"
 
-for claim in 'Subagent prompts' 'AskUserQuestion text' 'CAVEMAN_DEFAULT_MODE' '.caveman-active'; do
+for claim in 'Subagent prompts' 'AskUserQuestion text'; do
   grep -qF "$claim" "$GUIDE" \
     && ok "guide: mentions $claim" \
     || no "guide: mentions $claim"
+done
+
+# The control claims moved to the reference file; the guide must point there.
+grep -qF 'references/caveman-controls.md' "$GUIDE" \
+  && ok "guide: points at caveman-controls.md" \
+  || no "guide: points at caveman-controls.md"
+
+for claim in 'CAVEMAN_DEFAULT_MODE' '.caveman-active'; do
+  grep -qF "$claim" "$CTRL" \
+    && ok "controls file: mentions $claim" \
+    || no "controls file: mentions $claim"
 done
 
 # The carve-out exists to keep second-party output readable. If the guide ever

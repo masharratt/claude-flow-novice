@@ -1,4 +1,4 @@
-# CFN Operating Guide v2.27.0
+# CFN Operating Guide v2.28.0
 
 ## 1. Edit Safety (REQUIRED)
 
@@ -104,20 +104,9 @@ Rules:
 - **No watch mode.** Use `vitest run` not `vitest`. Watch mode = main cause of re-run.
 - **No bail flag.** Drop `-x` / `--bail` / `--fail-fast`. Bail stop at first fail, hide rest.
 - **Verbose + full traces.** Want every failure first pass, not summary.
-- **Compile errors ≠ test failures.** Compile fail = zero tests run. Dump ALL compile errors one pass BEFORE blaming tests:
-  - Rust: `cargo check --message-format=short`
-  - TS: `tsc --noEmit`
-  - Go: `go build ./...`
+- **Compile errors ≠ test failures.** Compile fail = zero tests run. Dump ALL compile errors one pass BEFORE blaming tests.
 
-Per-language full-error flags (all assume `OUT=/tmp/test-${PWD##*/}-$(date +%s).txt`):
-
-| Lang | Command |
-|------|---------|
-| vitest | `vitest run --reporter=verbose 2>&1 \| tee "$OUT"` |
-| jest | `jest --verbose --no-coverage 2>&1 \| tee "$OUT"` |
-| pytest | `pytest -v --tb=short 2>&1 \| tee "$OUT"` |
-| Rust | `cargo test 2>&1 \| tee "$OUT"` (`-- --nocapture` for stdout) |
-| Go | `go test ./... -v 2>&1 \| tee "$OUT"` |
+Per-language full-error command table + compile-triage commands: `~/.claude/references/test-output-flags.md` (load when running any test suite).
 
 ### Provider Ban (CRITICAL)
 
@@ -142,15 +131,7 @@ The caveman plugin injects terse-output rules at session start, on every compact
 
 Terse mode stays on for chat replies to the user. It is not a licence to drop technical substance anywhere.
 
-Controls (measured 2026-08-21): the session-start block is 1,847 bytes, re-paid on every compact, and the per-prompt reminder is 121 bytes. Neither shrinks with intensity level (`lite` is 1,907 bytes, `ultra` 1,852), so the only real lever is on/off, where both payloads drop to zero.
-
-- **This session only:** say "stop caveman". That unlinks `~/.claude/.caveman-active`, so per-prompt reinforcement stops on the next turn. `/caveman full` restores it. The session-start block is already paid and cannot be reclaimed.
-- **One project, permanently:** add `"CAVEMAN_DEFAULT_MODE": "off"` to that project's `.claude/settings.json` `env` block. Settings `env` reaches hook processes, so session start emits nothing and never writes the flag. Use this on projects that are mostly coordination, where most output is agent briefs and plan artifacts that the carve-out exempts anyway.
-- **Everywhere, permanently:** set `defaultMode` in `~/.config/caveman/config.json`.
-
-Never patch the plugin under `~/.claude/plugins/cache/`. That tree is not a git checkout, and an update writes a new content-hashed directory, so the edit disappears with no conflict and no warning.
-
-Forks inherit the whole transcript, so they inherit every injection above. Fresh agents do not: no session-start or prompt-submit hook fires for them.
+Forks inherit every injection above; fresh agents get none. Never patch the plugin under `~/.claude/plugins/cache/`. Controls, byte measurements, and disable methods (this session / one project / everywhere): `~/.claude/references/caveman-controls.md` (load when adjusting terse-output mode).
 
 ### Decision Protocol (MANDATORY, ALL contexts)
 - **Always use AskUserQuestion** to surface decisions to the user. Never assume or silently decide.
@@ -164,15 +145,21 @@ Forks inherit the whole transcript, so they inherit every injection above. Fresh
 - **One decision per question:** Surface ONE decision per question with genuine tradeoffs and a recommendation.
 - **Escape hatch:** Obvious fix with no real tradeoff — state what you'll do and move on.
 - **Scope challenge (Step 0):** Verify: (1) minimum viable scope, (2) existing solutions, (3) 8+ files = smell test.
-- **Megaplan pre-plan (REQUIRED for non-trivial work):** Before plan mode or `/write-plan`, run `/cfn-megaplan "<task>" [--tier=mvp|beta|enterprise]` — see *Planning Pipeline* below for the DAG, gates, and outputs. Required for: multi-file changes, shared-state changes (DB/API/types), new features, security/auth changes, cross-project work. Skip only for single-line fixes, renames, or bug fixes with a reproducing test. Medium features (3-7 files, single shared-state surface) route to `/cfn-megaplan-lite` instead of skipping planning. Multi-part mvp/beta programs route to `/cfn-megaplan-fast` (one shared plan, thin per-part plans).
+- **Routing tree (replaces the old megaplan-required triggers):** Pick the track by planning depth, not file count. File count is a smell test only (8+ files = check for a missed decomposition), never a router.
+  1. **No shared state** (component-local state, single-consumer pages) → plan mode.
+  2. **Shared state, in-repo only** (DB/API/types where every consumer compiles and tests in this tree) → plan mode + `/cfn-plan-review`. Cross-repo consumers are out of process scope — rare for us, no discovery attempts.
+  3. **Known external consumer** (e.g. sites in `~/.claude/references/blog-api-sites.md`) → same as 2, plus: additive-only change or version the surface.
+  4. **Wrong-quietly surface** (RLS, visibility, policy, semantic DB changes) → manifest track regardless of size: `/write-plan` from existing artifacts → Bar A → blessed VERIFY → `cfn-loop-task` (see *Manifest Track vs Session Track*).
+
+  The `/cfn-megaplan` family is for program-scale work only: multi-part mvp/beta programs (`/cfn-megaplan-fast`), enterprise/compliance/ops/migration-rehearsal (full `/cfn-megaplan`). Ordinary feature work never routes there.
 - **Investigate before planning:** Dump actual schema/imports/config and trace dependencies before writing any plan that touches data or shared state.
 - **Assumption registry:** Every plan must list assumptions as explicit, testable statements. See `code-quality.md` for full rules.
-- **plan review:** For migrations, schema changes, or cross-project work, run the plan review skill "/cfn-plan-review" (dependency trace, blast radius, gap analysis) in the same session. Merge results into the plan.
+- **plan review:** For any shared-state work (routing branch 2+), run the plan review skill "/cfn-plan-review" (dependency trace, blast radius, gap analysis) in the same session. Merge results into the plan.
 - **Sonnet/TDD:** Assume all implementation will be done with sonnet level subagents and TDD is required
 
 ### Planning Pipeline (canonical order)
 ```
-/cfn-megaplan      (canonical entry: tiered DAG — research+spec+decide+pseudo+data+
+/cfn-megaplan      (program-scale entry: tiered DAG — research+spec+decide+pseudo+data+
                     arch+ux+design+test-plan+ops, wrapping write-plan + plan-review,
                     gated by Verifiable-done + Haiku-executable bars; --tier=mvp|beta|enterprise)
    ├─ /cfn-megaplan-lite  (medium-feature branch: balanced cut, both bars 1-round, no live probe,
@@ -199,19 +186,30 @@ Non-code branch (deliverable is a document, not a build):
 /cfn-share           (publish any plan/spec/doc as a private page with a stable URL for
                       non-terminal reviewers; re-shares update the same link)
 ```
-Sub-pipelines megaplan composes (run standalone only for narrow/iterative work):
-- `/cfn-spa-plan` — spec + pseudo + arch only, no tiering or extra phases.
-- `/write-plan` — implementation roadmap, agent dispatch, TDD phases.
-- `/cfn-plan-review` — assumption extraction, dependency trace, blast radius.
-- `/cfn-megaplan-lite`: balanced cut of megaplan for medium features (3-7 files, single shared-state surface); both bars 1-round, no live probe, pseudo folded into arch, sonnet non-core phases.
-- `/cfn-megaplan-fast`: token-lean planner for multi-part programs (and cheapest safe path for single features). One program-level spec/data/arch/ux, then per-part test-plan + write-plan + Bar A over `extract-sections.sh` slices (`--part-specs` auto-adds a 12KB per-part SPEC when parts are distinct domains); `check-size.sh` caps every artifact; Bar B static lint only. Same loop-task hand-off. Measured reason: a 7-part megaplan program cost ~10M output tokens.
-- `/cfn-knowledge-plan`: non-code deliverables. Route here when the output is prose, not code. A doc that specifies a build still goes to `/cfn-megaplan`. Hand raw sources (full transcript, whole PDF) to intake — summarising first destroys the signal extraction mines.
-- `/cfn-share`: hand a plan to someone who does not live in a terminal. Always pass the recorded `url` on re-shares or the reader's link is orphaned.
-
-Conditional phases (frontend/db/pii/unknowns) auto-resolve from cfn-spec build flags; the security floor (RLS/auth/secrets/no-unscoped-delete/PII) is forced on regardless of tier. Outputs `planning/*_*.md` per phase.
+Sub-pipelines megaplan composes (`/cfn-spa-plan`, `/write-plan`, `/cfn-plan-review`, `/cfn-megaplan-lite`, `/cfn-megaplan-fast`, `/cfn-knowledge-plan`, `/cfn-share` — run standalone only for narrow/iterative work) and conditional-phase rules (security floor forced on regardless of tier): `~/.claude/references/planning-pipeline.md` (load when choosing among planning skills).
 
 `/cfn-loop-cli` only when external-API delegation (non-Claude providers) required.
-Skipping `/cfn-megaplan` is the primary cause of intent drift, missed edge cases, and the dropdown-as-textbox class of UI bugs. Default to running it.
+Routing wrong is the primary cause of intent drift, missed edge cases, and the dropdown-as-textbox class of UI bugs: plan mode alone on a wrong-quietly surface (branch 4), or skipping `/cfn-plan-review` on shared state (branch 2). Route per the routing tree in *Plan Mode Protocol*.
+
+### Manifest Track vs Session Track (when planning artifacts already exist)
+
+`cfn-loop-task` requires `PLAN_<slug>.md`. It does not require `VERIFY_<slug>.md` — without one it proceeds
+without the mechanical Bar A all-green done gate and falls back to gate-vote opinion (dry-review,
+security-review, a11y, dep-audit, 3-vote still run regardless; they trigger off manifest build flags, not
+off VERIFY presence). Verified against `cfn-loop-task.md:20,26,224`.
+
+Once SPEC/DATA/ARCH/UX already exist for a feature (a megaplan sunk the expensive phases already), the live
+question per surface is never "megaplan vs plan mode" — it's whether that surface needs a blessed VERIFY
+manifest at all. One criterion decides it: **can this be wrong quietly?**
+
+| Track | Criterion | Process |
+|---|---|---|
+| Manifest track | Wrong state is invisible until someone is harmed: RLS, `can_view_person`-class visibility, chat/booking state, block enforcement, anything writing policy | `/write-plan` from existing artifacts → Bar A → blessed VERIFY → `cfn-loop-task` |
+| Session track | Wrong state is visible the moment you open the page: content pages, display/read surfaces, info/FAQ, schedule display | Plan mode in its own session, TDD, `cfn-loop-task` with PLAN only, no VERIFY |
+
+Split **per surface, not per feature** — one feature can straddle both (e.g. a schedule feature's display
+half is session track, its visibility-policy half is manifest track). Evidence for the split (shipped binding
+defects, S007 grading failures): `~/.claude/references/planning-pipeline.md`.
 
 ### TDD Protocol (REQUIRED)
 - **No implementation without a failing test.** No exceptions for "simple" changes. If you cannot write a failing test, fix the design.
@@ -275,5 +273,8 @@ Every commit MUST update these two docs. Create if missing. **Full contract: `~/
 | Code quality standards | `~/.claude/rules/code-quality.md` | auto-loaded (glob `**/*`) |
 | CLAUDE.md authoring/structure | `~/.claude/references/claude-md-structure.md` | writing or trimming any CLAUDE.md, file too big, deciding what breaks out to reference files |
 | Signed-in Chrome for playwright-mcp | `~/.claude/references/playwright-signed-chrome.md` | wiring a signed-in browser session to a project (per-project `.mcp.json` setup) |
+| Test output capture flags (per language) | `~/.claude/references/test-output-flags.md` | running any test suite |
+| Caveman plugin controls and measurements | `~/.claude/references/caveman-controls.md` | adjusting terse-output mode |
+| Planning pipeline sub-skills and phases | `~/.claude/references/planning-pipeline.md` | choosing among planning skills |
 
 @RTK.md
