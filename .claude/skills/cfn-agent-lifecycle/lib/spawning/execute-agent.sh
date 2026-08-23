@@ -34,7 +34,7 @@ fi
 
 # Default values
 AGENT_ID="${AGENT_ID:-${AGENT_TYPE}-1}"
-AGENT_MODEL="${AGENT_MODEL:-haiku}"
+AGENT_MODEL="${AGENT_MODEL:-sonnet}"
 TASK_ID="${TASK_ID:-}"
 ITERATION="${ITERATION:-1}"
 MODE="${MODE:-cli}"
@@ -81,7 +81,7 @@ API_MODEL=$(jq -r --arg p "$API_PROVIDER" --arg t "$AGENT_MODEL" \
   '.providers[$p].models[$t] // empty' "$PROVIDER_MODELS_FILE")
 
 if [ -z "$API_MODEL" ]; then
-  DEFAULT_TIER=$(jq -r '.defaultTier // "haiku"' "$PROVIDER_MODELS_FILE")
+  DEFAULT_TIER=$(jq -r '.defaultTier // "sonnet"' "$PROVIDER_MODELS_FILE")
   echo "Warning: no model for provider='$API_PROVIDER' tier='$AGENT_MODEL'; falling back to tier '$DEFAULT_TIER'" >&2
   API_MODEL=$(jq -r --arg p "$API_PROVIDER" --arg t "$DEFAULT_TIER" \
     '.providers[$p].models[$t] // empty' "$PROVIDER_MODELS_FILE")

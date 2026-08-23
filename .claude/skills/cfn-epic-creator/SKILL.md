@@ -442,7 +442,7 @@ API contracts first, then UI components, then wiring validation.
 ```
 Scope reduction, test strategy, security review, standards enforcement.
 
-**Haiku Model Optimization:**
+**Small-Model Optimization:**
 ```bash
 --agents=typescript-specialist,tester,integration-tester,react-frontend-engineer --per-sprint
 ```

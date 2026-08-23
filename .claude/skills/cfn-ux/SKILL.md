@@ -94,7 +94,7 @@ Rules:
 - **A field bound to an FK or lookup table is NEVER a free-text input.** It is a select or searchable combobox sourced from that table. This is the single rule the bug violates.
 - Every row names the **value source** (which table, enum, or constant supplies the options). Bar B rejects any control whose options have no named source.
 - `>20 rows` → combobox with type-ahead search, not a raw select (usability + render cost).
-- The output table is consumed directly by Bar B (`bars/haiku-executable.md`). A haiku-level implementer reads the control column and builds it. No interpretation allowed.
+- The output table is consumed directly by Bar B (`bars/haiku-executable.md`). A sonnet-level lane (under the opus coordinator) reads the control column and builds it. No interpretation allowed.
 
 Emit one row per field. No field is exempt. A field with no binding listed is an `[OPEN]` item, not a free-text default.
 

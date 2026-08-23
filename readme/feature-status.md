@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-23 (plan-mode path gains three megaplan behaviors: open-item register, new-column safety check, intent confirm) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-23 (execute-agent.sh default model haiku→sonnet; stale haiku prose fixed in cfn-ux + epic-creator v1; earlier today: plan-mode path gains open-item register, new-column safety, intent confirm) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -92,7 +92,7 @@ This file MUST be updated when:
 |-------|--------|-------|----------|-------------|
 | cfn-loop-orchestration | ✅ Prod | ✅ | `cfn-loop-orchestration/` | Core orchestrator v3.0 |
 | cfn-loop-orchestration-v2 | ✅ Prod | ✅ | `cfn-loop-orchestration-v2/` | Gate checks, consensus |
-| cfn-agent-lifecycle | ✅ Prod | ✅ 21/21 | `cfn-agent-lifecycle/` | Agent start/stop lifecycle hooks. Subagent metadata parsed from stdin JSON payload (env fallback for manual). SQL-escaped; `set -uo pipefail` so bookkeeping never blocks spawns. 21/21 tests. NOT registered in settings yet (duplicate SubagentStop writer conflict). (CHANGELOG.md) |
+| cfn-agent-lifecycle | ✅ Prod | ✅ 21/21 | `cfn-agent-lifecycle/` | Agent start/stop lifecycle hooks. Subagent metadata parsed from stdin JSON payload (env fallback for manual). SQL-escaped; `set -uo pipefail` so bookkeeping never blocks spawns. 21/21 tests. NOT registered in settings yet (duplicate SubagentStop writer conflict). (CHANGELOG.md) 2026-08-23: `lib/spawning/execute-agent.sh` unset-model default flipped haiku→sonnet (fallback jq string too), matching `provider-models.json` `defaultTier: sonnet` and the sonnet-executor assumption everywhere else. |
 | cfn-agent-spawning | ✅ Prod | ✅ | `cfn-agent-spawning/` | CLI agent spawning |
 
 ### Code Intelligence Skills
