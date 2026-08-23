@@ -188,6 +188,8 @@ Surface scenarios the plan does not address:
 - Are there ordering constraints? (table A must exist before table B due to FKs)
 - Does the plan assume downtime? If not, how is consistency maintained?
 
+**State coverage (ask the user; never blanket-require).** For each screen or data surface the plan touches, list the candidate states: `empty` (zero rows / null value), `loading`, `error`, `partial`, `stale`, and `no-access` (viewer lacks permission — on privacy-sensitive surfaces name the not-found vs forbidden distinction explicitly). Then ask the user ONCE, in plain English, which states this plan must cover. Full state coverage with tests is sometimes overkill and the user decides the cut; recommend the minimal set the surface's failure mode justifies. Record the answer as the binding state list in the review output. Every state on that list is then treated exactly like a Phase 4 edge case: the plan must say what happens in it, and Phase 5's regression-coverage requirement maps it to a test. States not selected are recorded as explicitly declined, not silently skipped — a later reader can tell the difference between "nobody thought about empty" and "empty was considered and cut".
+
 ### Phase 5: Alpha Readiness Check
 
 Whatever the plan implements MUST be at least alpha-ready when merged. Alpha-ready = could ship to real users behind a feature flag without on-call paging or data loss. Score the plan against the same 8 dimensions used by `cfn-alpha-launch`. Each dimension is PASS, GAP, or N/A. Any GAP becomes a numbered finding in Phase 6.
@@ -197,7 +199,7 @@ Whatever the plan implements MUST be at least alpha-ready when merged. Alpha-rea
 | Area | Requirement | Check |
 |------|-------------|-------|
 | **test** | TDD plan present | Each implementation step names the failing test written first. Bug fixes name the reproducing test. |
-| **test** | Regression coverage | Edge cases from Phase 4 each map to a test (unit, integration, or e2e). |
+| **test** | Regression coverage | Edge cases from Phase 4 and every state on the user-selected state list each map to a test (unit, integration, or e2e). |
 | **security** | RLS on new tables | Every new Supabase table has a Row Level Security policy in the same migration. |
 | **security** | Auth boundaries | New endpoints state the auth check (Clerk session, API key, public). No "TBD auth". |
 | **security** | No secrets in code | Plan does not hardcode tokens, keys, or DB URLs. Secrets routed via Fly secrets or env. |
@@ -313,7 +315,7 @@ Write to: `planning/<slug>/REVIEW_<slug>.md` with this required section order:
 1. **Assumptions verified table** (| # | Assumption | Verify command (executed) | Evidence | Verdict |)
 2. **Dependency Graph** (with pasted query/grep evidence per row)
 3. **Blast Radius** (covered / safe / GAPS)
-4. **Edge Cases**
+4. **Edge Cases** (including the binding state-coverage list: selected states per surface, declined states marked as declined)
 5. **Alpha Readiness table** (fully filled, no empty Notes cells)
 6. **Findings** (numbered, each tagged BLOCKER / GAP / NOTE)
 
