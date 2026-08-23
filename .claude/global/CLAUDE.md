@@ -143,6 +143,7 @@ Forks inherit every injection above; fresh agents get none. Never patch the plug
 ### Plan Mode Protocol
 - **Completeness default:** Default to complete implementation. Deferring tests or edge cases saves minutes, not days.
 - **One decision per question:** Surface ONE decision per question with genuine tradeoffs and a recommendation.
+- **Intent confirm (user-visible changes):** when a plan changes user-visible behavior and any part of the ask is ambiguous, confirm the intended behavior with ONE question before writing the full plan. A plan built on wrong intent wastes its review. `cfn-plan-review` re-checks this at review time.
 - **Escape hatch:** Obvious fix with no real tradeoff — state what you'll do and move on.
 - **Scope challenge (Step 0):** Verify: (1) minimum viable scope, (2) existing solutions, (3) 8+ files = smell test.
 - **Routing tree (replaces the old megaplan-required triggers):** Pick the track by planning depth, not file count. File count is a smell test only (8+ files = check for a missed decomposition), never a router.

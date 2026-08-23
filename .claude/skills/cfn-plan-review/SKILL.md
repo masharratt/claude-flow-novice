@@ -21,6 +21,8 @@ Invoked internally by `cfn-megaplan` (the canonical planning pipeline) at its pl
 
 ## Protocol
 
+**Intent confirm (run first; wrong intent invalidates the review).** If the plan changes user-visible behavior, compare the plan's stated behavior against the user's actual ask. Any ambiguity or plausible mismatch → ask ONE plain-English confirming question before running the phases below; a full review of a plan built on wrong intent is wasted work. This is the review-time backstop for the guide's intent-confirm rule (one question before writing the plan).
+
 ### Phase 0: DRY & Modularity Check
 
 Before reviewing completeness, apply the DRY and modularity rules from `~/.claude/rules/code-quality.md` (DRY & Modularity section) to the plan:
@@ -210,6 +212,7 @@ Whatever the plan implements MUST be at least alpha-ready when merged. Alpha-rea
 | **architect** | Rollback path | Plan states how to undo if alpha users hit a blocker (revert migration, feature flag off, redeploy prior tag). |
 | **supabase** | Migration reversibility | New migrations have `down` direction OR explicitly documented why they cannot be rolled back. |
 | **supabase** | Schema sync step | Plan ends with `~/.claude/skills/supabase-schema-sync/execute.sh` after any migration. |
+| **supabase** | New-column safety | New non-null column on an existing table names its backfill for existing rows; new FK or hot-lookup column gets an index; constraint choice (CHECK/UNIQUE/FK) stated. |
 | **contract** | Inter-service typing | Cross-service calls (API, trigger payload, queue message) define a shared Zod schema or TS interface. |
 | **contract** | Enum completeness | New enum values traced through ALL consumers (DB, switch/match, serializers, UI). |
 | **consistency** | Canonical constants | No hardcoded path/schema/limit strings duplicated across files; routed through shared config. |
@@ -275,9 +278,18 @@ A score <=3 with no named alternative or citation is invalid and re-runs.
 
 When run inside `cfn-megaplan`, this phase also invokes `bars/haiku-executable.md`: static weasel-word scan, structural scan (every step has file path + signature + control type + error path), branch-coverage scan, then the live haiku probe. Any finding routes to its owning phase (ui_control -> cfn-ux, value source -> cfn-data/cfn-arch, branch -> cfn-pseudo) and that phase re-runs. Re-run until clean. Outside megaplan, run it manually before declaring the plan ready.
 
+### Phase 5.7: Open-Item Register (decisions the plan never made)
+
+Collect every question the plan left unanswered: implementation choices the text defers, parks, or never mentions but that someone must choose at build time (error-handling style, defaults, naming, library choice, ordering). These are not defects in what the plan says — they are holes where an implementer will guess silently if nobody asks. Two buckets, per item:
+
+- **BLOCKING** — consequence is user-visible or touches shared state (DB, API contract, shared types). Ask the user now via `AskUserQuestion`, one decision per question, plain English, with a recommended default. Record the answer into the plan.
+- **DEFERRED** — low consequence now. Record the default the implementer should assume, plus the trigger that forces revisiting (e.g. "default: sequential sync; revisit if ingest exceeds ~1k rows/min"). An unmarked deferral is a silent guess, not a decision.
+
+An empty register must be written as `_none_` (with one line saying what was checked) — that distinguishes "no open items" from "nobody looked", the same distinction declined-state recording makes for state coverage.
+
 ### Phase 6: Findings Summary
 
-**Minimum evidence floor.** A valid review contains: >=5 extracted assumptions (or an explicit per-category statement why none applies), >=1 dependency graph with pasted query/grep evidence, and a fully-filled Alpha Readiness table. A zero-gap review must show the executed evidence clearing each hard requirement; "PASS" with an empty Notes cell is invalid.
+**Minimum evidence floor.** A valid review contains: >=5 extracted assumptions (or an explicit per-category statement why none applies), >=1 dependency graph with pasted query/grep evidence, a fully-filled Alpha Readiness table, and an Open-Item Register (or explicit `_none_`). A zero-gap review must show the executed evidence clearing each hard requirement; "PASS" with an empty Notes cell is invalid.
 
 Present all gaps from Phases 1-5 as numbered questions, one per issue. Each question includes:
 - What was found
@@ -317,7 +329,8 @@ Write to: `planning/<slug>/REVIEW_<slug>.md` with this required section order:
 3. **Blast Radius** (covered / safe / GAPS)
 4. **Edge Cases** (including the binding state-coverage list: selected states per surface, declined states marked as declined)
 5. **Alpha Readiness table** (fully filled, no empty Notes cells)
-6. **Findings** (numbered, each tagged BLOCKER / GAP / NOTE)
+6. **Open-Item Register** (BLOCKING items with the user's answer, DEFERRED items with default + trigger, or `_none_` with what was checked)
+7. **Findings** (numbered, each tagged BLOCKER / GAP / NOTE)
 
 ## Return (to orchestrator)
 
