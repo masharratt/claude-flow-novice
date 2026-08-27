@@ -1,4 +1,4 @@
-# CFN Operating Guide v2.28.0
+# CFN Operating Guide v2.29.0
 
 ## 1. Edit Safety (REQUIRED)
 
@@ -138,7 +138,9 @@ Forks inherit every injection above; fresh agents get none. Never patch the plug
 - **One decision per question.** Ask a single question with a plain English explanation of the tradeoff and your recommendation. Do not bundle multiple decisions into one message.
 - **Plain English only.** No jargon, acronyms, or internal terminology in decision questions. Write as if explaining to someone unfamiliar with the codebase.
 - **Meaningful Decisions** Only surface decisions that have a meaningful consequence if made without human input. Example: "Should I commit"? Little consequence, go ahead and do it unless CIDi pipelines enabled. "Should I remove these records from the database?" Large consequence, ask user. 
-- **Order of implementation** should be decided by you. Do not stop to ask the user. 
+- **Order of implementation** should be decided by you. Do not stop to ask the user.
+
+**Night mode exception.** While the night-mode flag is on (`night-mode.sh on`), the AskUserQuestion mandate is suspended for that session: take the conservative, reversible default instead of asking, and log every decision to the decision log under slug `night-<date>`. Commit work as it finishes but never push. Never execute irreversible or destructive operations; defer them as blocking decisions and continue elsewhere. A PreToolUse hook enforces this mechanically; `night-mode.sh off` prints the morning report so the batch can be reviewed and overturned. Full contract: `.claude/skills/cfn-night-mode/SKILL.md`.
 
 ### Plan Mode Protocol
 - **Completeness default:** Default to complete implementation. Deferring tests or edge cases saves minutes, not days.

@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-23 (execute-agent.sh default model haiku→sonnet; stale haiku prose fixed in cfn-ux + epic-creator v1; earlier today: plan-mode path gains open-item register, new-column safety, intent confirm) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-08-27 (night mode added and verified: cfn-night-mode skill 33/33, guard/inject hooks registered, /night-mode command) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -151,6 +151,7 @@ This file MUST be updated when:
 | cfn-knowledge-plan | ⚠️ Beta | ✅ 18 | `.claude/skills/cfn-knowledge-plan/` | Non-code branch of the planning pipeline: strategy docs, proposals, competitive analysis, research memos. Plan-for-the-plan (intake → brief → extract-plan+outline) blocks drafting until KPLAN is approved; extract runs one sonnet agent per source emitting verbatim quotes with locators. Gated by Bar K grounding (check-grounding.sh, rules G1-G9) plus megaplan's weasel scan reused unmodified. Known limitations: Bar K checks the Claims Ledger contract, not prose — it cannot flag an ungrounded sentence that carries no `[C-n]` cite at all. |
 | cfn-share | ⚠️ Beta | ✅ 23 | `.claude/skills/cfn-share/` | Publishes a plan/spec/doc as a private Artifact page with a stable URL for non-terminal reviewers. resolve.sh derives title and recalls the pinned URL; record-url.sh writes a `.share-<basename>.url` sidecar holding url + sha256 + timestamp so re-shares update in place and report staleness. Known limitations: Artifact pages are a read surface, not a comment system; reviewer feedback routes back through the owning phase skill by hand. |
 | cfn-notify hook | ⚠️ Beta | n/a | `.claude/hooks/cfn-notify.sh` | Audible turn-completion and needs-input signal for WSL2 sessions. Wired to global Stop and Notification hook events; plays a Windows Media wav via detached powershell.exe with a console-beep fallback. 14ms hook overhead (call is backgrounded). Defaults: stop=chimes, input=Windows Notify Calendar, error=Windows Critical Stop; override per event with `CFN_NOTIFY_STOP`/`_INPUT`/`_ERROR` (no file edit). `--list` enumerates the 70 available sounds, `--play <name>` auditions one synchronously and exits 1 on an unknown name. Disable with `CFN_NOTIFY=0`. Known limitations: WSL2/Windows only, silent no-op elsewhere; no audio verification in CI. |
+| cfn-night-mode | ✅ Prod | ✅ 33/33 | `.claude/skills/cfn-night-mode/` | Global autonomy flag + decision log + morning report. On: AskUserQuestion hook-blocked, conservative defaults chosen, decisions logged under slug `night-<date>`, commit yes / push never, irreversible ops deferred blocking. Off prints the morning report for review/overturn. |
 
 ### Infrastructure Skills
 
@@ -306,6 +307,8 @@ This file MUST be updated when:
 | Git Hook Installer | ✅ Prod | ✅ 47/47 | `.claude/hooks/install-git-hooks.sh` | Deploy credential-scanning git hook. Fixed core.hooksPath resolution (S013, 2026-07-25) so husky repos no longer silently ignore installs. Resolves both relative paths and absolute hooksPath values. Coverage expanded from 3/41 to 41/41 repos. |
 | Pre-commit Credential Scan | ✅ Prod | ✅ 47/47 | `.claude/hooks/pre-commit` | Tracked source for credential-scanning git hook. Four critical bugs fixed (2026-07-25): (S010) infinite loop from read/append race on `TEMP_RESULTS`; (S011) fail-open via negation exit status always 0; (S012) credential leak via unshadowed `$pattern` in `is_whitelisted()`; (S013-S014) installer ignoring `core.hooksPath`. Added OpenAI (`sk-proj-`, legacy `sk-`+48) and GitHub (`ghp_`, `github_pat_`) patterns. Tests: 47 passed / 0 failed. Mutation-verified (reverting fixes produces 4 failures). |
 | Skill Usage Tracker | 🚧 Dev | ✅ 15/15 | `.claude/hooks/cfn-track-skill-usage.sh`, `.claude/cfn-scripts/skill-usage-report.sh` | PostToolUse hook records every Skill-tool invocation to SQLite (WAL mode, `~/.claude/cfn-data/skill-usage.sqlite`, never blocks the tool call); report script joins usage against the full skill inventory to surface unused skills as deprecation candidates. Deps: sqlite3/python3. Known limitations: empty until warmup; tracks invocation count, not value delivered. |
+| cfn-night-mode-guard.sh | ✅ Prod | ✅ 33/33 | `.claude/hooks/cfn-night-mode-guard.sh` | PreToolUse blocker while night mode is on: denies AskUserQuestion and EnterPlanMode with self-contained deny text (conservative default, log via record.sh, never push); auto-allows ExitPlanMode. Fail-open when jq absent or flag off; denies append to the events log. |
+| cfn-night-mode-inject.sh | ✅ Prod | ✅ 33/33 | `.claude/hooks/cfn-night-mode-inject.sh` | SessionStart + UserPromptSubmit injector for the night-mode flag. Flag on: full contract at session start (re-fires on resume/compact), short reminder each prompt. Flag off: silent unless the pending-review marker exists. No DB query on the per-turn path. |
 
 ### Docker Support
 

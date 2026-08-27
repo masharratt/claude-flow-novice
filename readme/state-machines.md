@@ -2,7 +2,7 @@
 
 Entity lifecycle documentation for stateful CFN systems.
 
-**Last Updated:** 2026-08-21 (terse-output mode flag lifecycle added; AC verdict gains the S008 `error`/tool_missing state; implementation wave rewritten against derive-lanes.sh; loop pre-flight readiness lifecycle added)
+**Last Updated:** 2026-08-27 (night mode flag lifecycle added)
 
 ## Contents
 
@@ -43,6 +43,7 @@ Entity lifecycle documentation for stateful CFN systems.
 - [Pre-commit Credential Scan (scan_staged_file, S010-S014)](#pre-commit-credential-scan-scanstagedfile-s010-s014)
 - [Pre-commit Hook Self-Test Gate (cfn-hook-selftest.sh, S019)](#pre-commit-hook-self-test-gate-cfn-hook-selftestsh-s019)
 - [Prompt Optimizer Run (prompt-optimizer engine)](#prompt-optimizer-run-prompt-optimizer-engine)
+- [Night Mode Flag (cfn-night-mode)](#night-mode-flag-cfn-night-mode)
 
 
 ---
@@ -1029,3 +1030,42 @@ bare prefix (`=~ ^"$abs_base"`), which admitted a sibling directory whose name
 started with the base: base `/srv/app` accepted `/srv/app-evil/payload`. The
 comparison now requires either equality or a following `/`, so `resolved` moves
 to `escaped` in that case. Covered by `tests/security/test-path-containment.sh`.
+
+## Night Mode Flag (cfn-night-mode)
+
+**Source:** `~/.claude/.night-mode-active` (+ `.night-mode-pending-review` window-start
+marker), written by `.claude/skills/cfn-night-mode/night-mode.sh`; enforced by
+`.claude/hooks/cfn-night-mode-guard.sh`; surfaced by `.claude/commands/night-mode.md`;
+verified by `tests/test-night-mode.sh`
+
+A global autonomy switch. While on, sessions do not stop on questions: they pick the
+conservative reversible option, log every decision to the decision-log store under slug
+`night-<date>`, and surface the whole batch through the morning report when the flag
+goes off.
+
+### States
+
+| State | Meaning |
+|-------|---------|
+| `off` | No flag file. Hooks fail open; the normal Decision Protocol applies. |
+| `on` | Flag file holds the ISO start timestamp. The guard blocks AskUserQuestion and EnterPlanMode; the injector shows the contract at session start plus a per-turn reminder. |
+| `off-pending-review` | Flag removed but decisions or denied prompts exist in the window; the pending marker stays until the user reviews the report. |
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| `off` | `on` | `night-mode.sh on` | doctor registrations verified |
+| `on` | `off` | `night-mode.sh off` | morning report rendered; pending marker written if decisions or deferred items exist in the window |
+| `off-pending-review` | `off` | `night-mode.sh report --ack` | user reviewed the batch; marker removed, events log truncated |
+
+```
+                  night-mode.sh on (doctor verified)
+    off  <──────────────────────────────────────────  on
+     ^                                               │
+     │ report --ack (guard: user reviewed            │ night-mode.sh off
+     │ the batch; marker removed)                    │ (guard: morning report rendered;
+     │                                               ▼  marker written if needed)
+     └──────────────────────────────────  off-pending-review
+```
+
