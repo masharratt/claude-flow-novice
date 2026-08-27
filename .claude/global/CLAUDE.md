@@ -47,6 +47,18 @@ Hard rules:
 
 Cheaper substitutes, in order: restate context in a fresh agent prompt, point the agent at a file/plan artifact, `SendMessage` to a live agent, then fork as last resort.
 
+### Codex Delegation (gated by project flag)
+
+Use Codex (`mcp__codex__codex` / `mcp__codex__codex-reply` MCP tools) ONLY in projects whose CLAUDE.md contains a literal `codex=true` line. In all other projects, never call codex tools. Subscription-billed: keep `OPENAI_API_KEY` unset or calls silently bill the API.
+
+- Offload: read-heavy sweeps (grep forests, log/schema dumps), mechanical implementation of a fully specified plan part, second-opinion review.
+- Always pass: `cwd` = absolute repo path, `approval-policy` = `never`, `sandbox` = `read-only` (research/review) or `workspace-write` (implementation).
+- Bound every codex prompt's reply ("under N words", "path:line list only"). Unbounded replies flood caller context.
+- Follow-ups via `codex-reply` (same threadId); accumulated context stays codex-side.
+- Parallel fan-out: one MCP server is serial. Use N `codex exec` background processes instead.
+- Never delegate: planning, decisions, anything touching credentials.
+- Verify use: `/codex-hud:usage-today` deltas, or `pstree -p <claude-pid>` showing a codex child.
+
 ### Operations
 - **Batch operations**: one message per related batch (spawns, edits, bash, todos)
 - **Never mix implementers and validators** in same message

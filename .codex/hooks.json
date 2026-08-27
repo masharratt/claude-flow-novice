@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|apply_patch",
+        "handlers": [
+          {
+            "command": "/home/masha/projects/claude-flow-novice/.codex/hooks/edit-safety.sh pre",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|apply_patch",
+        "handlers": [
+          {
+            "command": "/home/masha/projects/claude-flow-novice/.codex/hooks/edit-safety.sh post",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}
