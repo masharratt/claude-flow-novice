@@ -35,6 +35,7 @@ source "$SCRIPT_DIR/lib/section-header.sh"
 source "$SCRIPT_DIR/lib/section-timeline.sh"
 source "$SCRIPT_DIR/lib/section-roster.sh"
 source "$SCRIPT_DIR/lib/section-events.sh"
+source "$SCRIPT_DIR/lib/section-map.sh"
 source "$SCRIPT_DIR/lib/section-iteration-detail.sh"
 source "$SCRIPT_DIR/lib/section-ac-table.sh"
 source "$SCRIPT_DIR/lib/section-vote-ledger.sh"
@@ -86,6 +87,9 @@ Inputs (all optional except manifests; missing sources are recorded as data gaps
   <root>/planning/<slug>/.VERIFY_<slug>.bless.json  bless ledger (structure/predicate changes)
   (each also resolved from the legacy flat <root>/planning/ when the plan predates per-plan dirs)
   <root>/tmp/lane-report-<slug>-*.json           per-lane pass rate
+  <root>/planning/<slug>/lanes-<slug>.json       transit map waves (also resolved
+                                                 from the legacy flat planning/)
+                                                 .waves: array of lane-id arrays
   <root>/tmp/test-output-<slug>-*.txt            test runner summary line
   /tmp/lane-report-<slug>-*.json                 runtime lane reports (also scanned)
   /tmp/test-output-<slug>-*.txt                  runtime test outputs (also scanned)
@@ -170,6 +174,7 @@ export WORKBENCH_INVOCATION="cfn-workbench --slug $SLUG$( [[ "$ROOT" != "$PROJEC
 # Build sections. Each function emits an HTML chunk on stdout.
 HEADER_HTML="$(section_header)"
 NAV_HTML="$(section_nav)"
+MAP_HTML="$(section_map)"
 TIMELINE_HTML="$(section_timeline)"
 ROSTER_HTML="$(section_roster)"
 EVENTS_HTML="$(section_events)"
@@ -205,6 +210,7 @@ GAPS_STRIP_HTML="$(gaps_strip)"
   printf '%s\n' "$HEADER_HTML"
   printf '%s\n' "$NAV_HTML"
   printf '%s\n' "$GAPS_STRIP_HTML"
+  printf '%s\n' "$MAP_HTML"
   printf '%s\n' "$TIMELINE_HTML"
   printf '%s\n' "$ROSTER_HTML"
   printf '%s\n' "$EVENTS_HTML"

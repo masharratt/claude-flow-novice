@@ -1,0 +1,22 @@
+{
+  "slug": "map15",
+  "generated_at": "2026-08-11T10:00:00Z",
+  "phases": ["Wave 1", "Wave 2", "Wave 3"],
+  "lanes": [
+    {"id": "m01", "name": "Lane 01", "phase": "Wave 1"},
+    {"id": "m02", "name": "Lane 02", "phase": "Wave 1"},
+    {"id": "m03", "name": "Lane 03", "phase": "Wave 1"},
+    {"id": "m04", "name": "Lane 04", "phase": "Wave 1"},
+    {"id": "m05", "name": "Lane 05", "phase": "Wave 1"},
+    {"id": "m06", "name": "Lane 06", "phase": "Wave 2"},
+    {"id": "m07", "name": "Lane 07", "phase": "Wave 2"},
+    {"id": "m08", "name": "Lane 08", "phase": "Wave 2"},
+    {"id": "m09", "name": "Lane 09", "phase": "Wave 2"},
+    {"id": "m10", "name": "Lane 10", "phase": "Wave 2"},
+    {"id": "m11", "name": "Lane 11", "phase": "Wave 3"},
+    {"id": "m12", "name": "Lane 12", "phase": "Wave 3"},
+    {"id": "m13", "name": "Lane 13", "phase": "Wave 3"},
+    {"id": "m14", "name": "Lane 14", "phase": "Wave 3"},
+    {"id": "m15", "name": "Lane 15", "phase": "Wave 3"}
+  ]
+}

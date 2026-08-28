@@ -89,6 +89,15 @@ assert_file_exists() {
   else fail "$1 (no file: $2)"; fi
 }
 
+# assert_count NAME FILE REGEX EXPECTED (same shape as test-live-sections.sh)
+assert_count() {
+  local name="$1" file="$2" pattern="$3" expected="$4"
+  local got
+  got=$(grep -oE -- "$pattern" "$file" 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$got" -eq "$expected" ]]; then ok "$name ($got)"
+  else fail "$name (expected=$expected got=$got)"; fi
+}
+
 echo "=== cfn-workbench render.sh test suite ==="
 echo "skill dir: $SKILL_DIR"
 echo
@@ -464,6 +473,192 @@ assert_exit "live: missing value exits 2" 2 \
   "$RENDER" --slug "workbench_9col" --root "$ROOT" --out "$TMP_OUT/bad3.html" --live
 
 unset WORKBENCH_NO_LAUNCH
+
+# ---------------------------------------------------------------
+# GROUP 15: transit map section (sec-map)
+# ---------------------------------------------------------------
+echo "[15] transit map"
+
+# map_slice FILE - the sec-map section, for slice-scoped assertions.
+map_slice() { sed -n '/<section class="card" id="sec-map">/,/<\/section>/p' "$1"; }
+
+OUT_MAP="$TMP_OUT/map.html"
+"$RENDER" --slug "workbench" --root "$ROOT" --out "$OUT_MAP" --no-screenshots 2>&1
+RC=$?
+if [[ "$RC" -ne 0 ]]; then
+  fail "map render failed (exit=$RC)"
+else
+  ok "map render exit 0"
+  assert_contains "map: section id present" "$OUT_MAP" 'id="sec-map"'
+  assert_contains "map: nav anchor present" "$OUT_MAP" 'href="#sec-map"'
+  # Nav anchor must come FIRST in the section nav (before Timeline).
+  nav_off=$(grep -bo 'href="#sec-map"' "$OUT_MAP" | head -1 | cut -d: -f1)
+  tl_off=$(grep -bo 'href="#sec-timeline"' "$OUT_MAP" | head -1 | cut -d: -f1)
+  if [[ -n "$nav_off" && -n "$tl_off" && "$nav_off" -lt "$tl_off" ]]; then
+    ok "map: nav anchor precedes timeline anchor"
+  else fail "map: nav anchor not first (map=$nav_off timeline=$tl_off)"; fi
+
+  # SVG structure: 4 stations, fixed-width viewBox, gate junction, badge.
+  assert_count "map: 4 stations for workbench plan" "$OUT_MAP" 'class="map-st"' 4
+  assert_match "map: svg has 960-wide viewBox" "$OUT_MAP" \
+    '<svg[^>]*map-svg[^>]*viewBox="0 0 960 [0-9]+"'
+  assert_contains "map: gate unknown (no verdict event)" "$OUT_MAP" \
+    'map-gate map-gate-unknown'
+  assert_contains "map: iteration badge = 1" "$OUT_MAP" 'data-iteration="1"'
+  assert_no_match "map: no loop-back without failed gate" "$OUT_MAP" 'class="map-loop"'
+  # Derivation: fixture statuses (frontend/backend landed via reports,
+  # qa in-flight via lane_spawned, docs pending).
+  assert_match "map: landed station (frontend)" "$OUT_MAP" \
+    'data-lane="frontend" data-status="landed"'
+  assert_match "map: in-flight station (qa)" "$OUT_MAP" \
+    'data-lane="qa" data-status="in-flight"'
+  assert_match "map: pending station (docs)" "$OUT_MAP" \
+    'data-lane="docs" data-status="pending"'
+  # In-flight lane gets a train with a baked static transform (JS-off correct).
+  assert_match "map: train for in-flight lane (qa)" "$OUT_MAP" \
+    '<g class="map-train" data-lane="qa"[^>]*transform="translate\([0-9]+,[0-9]+\)"'
+  assert_no_match "map: no train for landed lane" "$OUT_MAP" \
+    '<g class="map-train" data-lane="frontend"'
+  assert_count "map: one <title> per station" "$OUT_MAP" '<title>lane [^<]*</title>' 4
+fi
+
+# Blocked derivation: a report whose blocked_on is non-null marks the station
+# blocked (and removes its train). Fixture ships outside data/lane-tmp so the
+# default staging (and the roster assertions above) stay untouched.
+cp "$FIX"/data/map-qa-blocked/*.json "$ROOT/tmp/" 2>/dev/null || true
+OUT_MAPB="$TMP_OUT/map-blocked.html"
+"$RENDER" --slug "workbench" --root "$ROOT" --out "$OUT_MAPB" --no-screenshots 2>&1
+RC=$?
+if [[ "$RC" -ne 0 ]]; then
+  fail "map blocked render failed (exit=$RC)"
+else
+  ok "map blocked render exit 0"
+  assert_match "map: blocked station (qa after blocked report)" "$OUT_MAPB" \
+    'data-lane="qa" data-status="blocked"'
+  assert_match "map: blocked ! marker" "$OUT_MAPB" 'class="map-mark"[^>]*>!<'
+  assert_no_match "map: no train once blocked" "$OUT_MAPB" \
+    '<g class="map-train" data-lane="qa"'
+fi
+
+# Regression: real lane reports (cfn-dev-team schema) carry no generated_at.
+# Blocked detection must not depend on that field; a report without it still
+# marks the station blocked. Reproduces the e2e miss where qa rendered landed.
+rm -f "$ROOT"/tmp/lane-report-workbench-*-qa.json
+cp "$FIX"/data/map-qa-blocked-nogen/*.json "$ROOT/tmp/" 2>/dev/null || true
+OUT_MAPBN="$TMP_OUT/map-blocked-nogen.html"
+"$RENDER" --slug "workbench" --root "$ROOT" --out "$OUT_MAPBN" --no-screenshots 2>&1
+RC=$?
+if [[ "$RC" -ne 0 ]]; then
+  fail "map blocked-nogen render failed (exit=$RC)"
+else
+  ok "map blocked-nogen render exit 0"
+  assert_match "map: blocked station without generated_at" "$OUT_MAPBN" \
+    'data-lane="qa" data-status="blocked"'
+fi
+rm -f "$ROOT"/tmp/lane-report-workbench-*-qa.json
+cp "$FIX"/data/map-qa-blocked/*.json "$ROOT/tmp/" 2>/dev/null || true
+
+# Missing run-plan: gap recorded + empty state, section still present.
+OUT_MAPGAP="$TMP_OUT/map-gap.html"
+"$RENDER" --slug "workbench_5col" --root "$ROOT" --out "$OUT_MAPGAP" --no-screenshots 2>&1
+RC=$?
+if [[ "$RC" -ne 0 ]]; then
+  fail "map gap render failed (exit=$RC)"
+else
+  ok "map gap render exit 0"
+  assert_contains "map gap: section id still present" "$OUT_MAPGAP" 'id="sec-map"'
+  assert_contains "map gap: names canonical path" "$OUT_MAPGAP" \
+    "planning/workbench_5col/run-plan-workbench_5col.json missing; map skipped)"
+  assert_match "map gap: empty-state copy" "$OUT_MAPGAP" 'class="empty"'
+fi
+
+# XSS: hostile lane id and name must arrive escaped inside the map.
+XSS_ROOT="$(mktemp -d)"
+mkdir -p "$XSS_ROOT/planning"
+cat > "$XSS_ROOT/planning/run-plan-xssmap.json" <<'JSON'
+{"slug":"xssmap","generated_at":"2026-08-11T10:00:00Z","phases":["Phase 1"],
+ "lanes":[{"id":"<script>alert(1)</script>","name":"He said \"hi\"","phase":"Phase 1"}]}
+JSON
+OUT_XSS="$TMP_OUT/map-xss.html"
+"$RENDER" --slug "xssmap" --root "$XSS_ROOT" --out "$OUT_XSS" --no-screenshots 2>&1
+RC=$?
+if [[ "$RC" -ne 0 ]]; then
+  fail "map xss render failed (exit=$RC)"
+else
+  ok "map xss render exit 0"
+  assert_not_contains "map xss: raw script payload absent" "$OUT_XSS" \
+    '<script>alert(1)</script>'
+  assert_contains "map xss: escaped id in data-lane" "$OUT_XSS" \
+    'data-lane="&lt;script&gt;alert(1)&lt;/script&gt;"'
+  assert_contains "map xss: escaped label fragment" "$OUT_XSS" \
+    '&lt;script&gt;alert(1)'
+  assert_not_contains "map xss: raw quoted name absent" "$OUT_XSS" 'He said "hi"'
+  assert_contains "map xss: escaped quote present" "$OUT_XSS" 'He said &quot;hi&quot;'
+fi
+rm -rf "$XSS_ROOT"
+
+# Single-lane plan: one column centers at x=480; tier height scales down.
+SINGLE_ROOT="$(mktemp -d)"
+mkdir -p "$SINGLE_ROOT/planning"
+cat > "$SINGLE_ROOT/planning/run-plan-singlemap.json" <<'JSON'
+{"slug":"singlemap","generated_at":"2026-08-11T10:00:00Z","phases":["Only"],
+ "lanes":[{"id":"solo","name":"Solo","phase":"Only"}]}
+JSON
+OUT_MAP1="$TMP_OUT/map-single.html"
+"$RENDER" --slug "singlemap" --root "$SINGLE_ROOT" --out "$OUT_MAP1" --no-screenshots 2>&1
+RC=$?
+if [[ "$RC" -ne 0 ]]; then
+  fail "map single render failed (exit=$RC)"
+else
+  ok "map single render exit 0"
+  assert_count "map single: 1 station" "$OUT_MAP1" 'class="map-st"' 1
+  assert_contains "map single: scaled viewBox (960x238)" "$OUT_MAP1" 'viewBox="0 0 960 238"'
+  assert_contains "map single: station centered at 480" "$OUT_MAP1" 'translate(480,70)'
+fi
+rm -rf "$SINGLE_ROOT"
+
+# 15-lane plan via lanes-<slug>.json waves: 15 stations, tier height 806.
+OUT_MAP15="$TMP_OUT/map15.html"
+"$RENDER" --slug "map15" --root "$ROOT" --out "$OUT_MAP15" --no-screenshots 2>&1
+RC=$?
+if [[ "$RC" -ne 0 ]]; then
+  fail "map15 render failed (exit=$RC)"
+else
+  ok "map15 render exit 0"
+  assert_count "map15: 15 stations" "$OUT_MAP15" 'class="map-st"' 15
+  assert_contains "map15: scaled viewBox (960x806)" "$OUT_MAP15" 'viewBox="0 0 960 806"'
+fi
+
+# Idempotence: two renders of the same inputs produce identical map slices.
+OUT_ID1="$TMP_OUT/map-id1.html"
+OUT_ID2="$TMP_OUT/map-id2.html"
+"$RENDER" --slug "workbench" --root "$ROOT" --out "$OUT_ID1" --no-screenshots >/dev/null 2>&1
+"$RENDER" --slug "workbench" --root "$ROOT" --out "$OUT_ID2" --no-screenshots >/dev/null 2>&1
+if [[ "$(map_slice "$OUT_ID1")" == "$(map_slice "$OUT_ID2")" && -n "$(map_slice "$OUT_ID1")" ]]; then
+  ok "map: re-render is byte-identical (map slice)"
+else
+  fail "map: re-render differs (map slice)"
+fi
+
+# Map outputs stay self-contained and free of em dashes (slice-scoped too).
+for HTML in "$OUT_MAP" "$OUT_MAPB" "$OUT_MAPGAP" "$OUT_XSS" "$OUT_MAP1" "$OUT_MAP15"; do
+  [[ -f "$HTML" ]] || continue
+  name="$(basename "$HTML")"
+  assert_not_contains "$name: no em dash char" "$HTML" $'—'
+  assert_not_contains "$name: no &mdash;" "$HTML" "&mdash;"
+  assert_no_match "$name: no <link tag" "$HTML" "<link[[:space:]>]"
+  assert_no_match "$name: no script src=" "$HTML" '<script[^>]*\ssrc='
+  if grep -oE 'src="[^"]*"' "$HTML" | grep -vq '^src="data:'; then
+    fail "$name: found non-data: src="
+  else ok "$name: all src= are data:"; fi
+  if grep -oE 'href="[^"]*"' "$HTML" | grep -vqE '^href="(data:|#)'; then
+    fail "$name: found non-data/non-fragment href="
+  else ok "$name: all href= are data:/fragment"; fi
+done
+# Slice content cannot go in as a grep filename (too long); stage it.
+SLICE_TMP="$TMP_OUT/map-slice.txt"
+map_slice "$OUT_MAPB" > "$SLICE_TMP"
+assert_not_contains "map: no em dash in map slice" "$SLICE_TMP" $'—'
 
 # ---------------------------------------------------------------
 # Summary

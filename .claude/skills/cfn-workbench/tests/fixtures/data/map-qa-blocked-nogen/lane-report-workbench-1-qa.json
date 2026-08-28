@@ -1,0 +1,14 @@
+{
+  "lane": "qa",
+  "tests_written": 4,
+  "scoped_tests_passed": 1,
+  "scoped_tests_total": 4,
+  "files_modified": ["tests/qa.ts"],
+  "phases_complete": [],
+  "out_of_scope_needs": [],
+  "step_amendments": [],
+  "learnings": [],
+  "blocked_on": "flaky harness fixture",
+  "tests_removed_reason": null,
+  "confidence": 0.3
+}

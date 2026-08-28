@@ -7,7 +7,7 @@ author: CFN Team
 description: Render a self-contained HTML progress page from scattered CFN Loop run data (manifests, VERIFY doc, lane reports, screenshots, bless ledger).
 dependencies: [bash, jq, base64, git]
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-08-27
 complexity: Medium
 keywords: [workbench, render, html, progress, loop-report, self-contained]
 triggers: [manual-checkpoint, phase-5-report, loop-summary]
@@ -65,6 +65,7 @@ or open it locally.
 | Test outputs | `<root>/tmp/test-output-<slug>-*.txt` AND `/tmp/test-output-<slug>-*.txt` | Test runner summary line |
 | Screenshots | `<root>/tests/screenshots/<slug>-iteration-*.png` | Base64-inlined as `data:image/png;base64,...` |
 | Run plan | `<root>/planning/<slug>/run-plan-<slug>.json` | Lane roster (id/name/phase) for the Roster section |
+| Lanes file | `<root>/planning/<slug>/lanes-<slug>.json` | Wave layout for the Transit Map section (nested-first via `plan_path`, legacy flat `<root>/planning/lanes-<slug>.json` second) |
 | Events feed | `/tmp/cfn-events-<slug>.jsonl` AND `<root>/tmp/cfn-events-<slug>.jsonl` | Live lifecycle events (written by `emit-event.sh`) for the Events section, and lane status (`lane_spawned`/`lane_landed`) in the Roster section |
 | Git log | git repo at `<root>` | Branch + commit count |
 
@@ -88,6 +89,25 @@ section's headline count and table rows.
 
 `lanes[].id` is required (used to match lane-report files and events).
 `name`/`phase` are optional and fall back to `id` / `-` in the table.
+
+### Transit map (`planning/<slug>/lanes-<slug>.json`)
+
+Optional wave layout for the Transit Map section:
+`{"slug":"<slug>","waves":[["lane-id","lane-id"],["lane-id"]]}`. Each inner
+array is one wave, rendered left to right as a column of station nodes.
+Fallbacks: lanes missing from the file are appended as a final column; no
+lanes file at all falls back to grouping the run plan's `phases` (one column
+per phase), then to a single sorted column. Station status is derived per
+lane: `blocked` when the lane's latest report (by `generated_at`) has a
+non-null `blocked_on`, else `landed` / `in-flight` / `pending` as in the
+Roster. In-flight lanes draw a train whose position is baked into the SVG at
+render time; the inline script only animates between baked points and is
+skipped under `prefers-reduced-motion`. The gate junction shows the latest
+`gate_verdict` (pass / fail / unknown); a failed gate followed by a later
+`loop_started` draws a loop-back edge to column 1 and the badge counts
+iterations from `loop_started` events. Missing run plan (and no lanes file)
+records a data gap and renders the empty state; the section never blocks the
+render.
 
 ### Events feed (`cfn-events-<slug>.jsonl`)
 
@@ -174,27 +194,34 @@ call sites wrap every call with `|| true` so a bad emit never blocks the loop.
    text). Pill class flips `stale-ok` (< 120s) -> `stale-warn` (120-599s) ->
    `stale-bad` (>= 600s) purely in inline `<script>`/`<style>`, no re-render
    needed for the color to change.
-2. **Iteration Timeline**: pass rate, gate verdict, commit count per iteration.
-3. **Lane Roster**: headline `N of M lanes landed`; table of every lane from
+2. **Transit Map**: inline SVG of the run as stations (one per lane, grouped
+   in wave columns), tracks between waves, a gate junction, a loop-back edge
+   when a gate failed and a new iteration started, and trains for in-flight
+   lanes (positions baked at render time; the one inline script only animates
+   between them and honors `prefers-reduced-motion`). Missing data is a data
+   gap; the section still renders with an empty-state card.
+3. **Iteration Timeline**: pass rate, gate verdict, commit count per iteration.
+4. **Lane Roster**: headline `N of M lanes landed`; table of every lane from
    `run-plan-<slug>.json` with derived status (`landed` / `in-flight` /
    `pending`) and, for in-flight lanes, a `Since HH:MM` from their
    `lane_spawned` event. Missing run plan is a data gap; the section still
    renders with an empty-state card.
-4. **Events**: live feed table (Time, Event, Lane, Phase, Detail) from
+5. **Events**: live feed table (Time, Event, Lane, Phase, Detail) from
    `cfn-events-<slug>.jsonl`, newest first, capped at 30 rows with an
    `N earlier events not shown` note past the cap. Missing events file is a
    data gap; the section still renders with an empty-state card.
-5. **Per-Iteration Detail**: lanes (pass rate, passed/failed), test summary,
+6. **Per-Iteration Detail**: lanes (pass rate, passed/failed), test summary,
    screenshot grid (click to enlarge via `<details>`), gate events.
-6. **Acceptance Criteria**: id, check, kind, status pill, evidence, reference.
-7. **Vote Ledger**: every suggestion id with the latest status (accepted,
+7. **Acceptance Criteria**: id, check, kind, status pill, evidence, reference.
+8. **Vote Ledger**: every suggestion id with the latest status (accepted,
    rejected, open).
-8. **Tech-Debt Ledger**: suggestions tagged `tech-debt` or matching `cfn:`.
-9. **Bless Ledger**: structure_changed and predicate_changed lists + verdict.
-10. **Footer**: command, input count, byte size, data-gap warnings.
+9. **Tech-Debt Ledger**: suggestions tagged `tech-debt` or matching `cfn:`.
+10. **Bless Ledger**: structure_changed and predicate_changed lists + verdict.
+11. **Footer**: command, input count, byte size, data-gap warnings.
 
 Section nav (`section_nav` in `lib/html.sh`) jumps to every section above by
-anchor id (`#sec-timeline`, `#sec-roster`, `#sec-events`, `#sec-detail`, ...).
+anchor id (`#sec-map`, `#sec-timeline`, `#sec-roster`, `#sec-events`,
+`#sec-detail`, ...).
 
 ## Self-containment guarantees
 

@@ -131,6 +131,7 @@ gaps_strip() {
 section_nav() {
   cat <<'EOF'
 <nav class="section-nav">
+  <a href="#sec-map">Map</a>
   <a href="#sec-timeline">Timeline</a>
   <a href="#sec-roster">Roster</a>
   <a href="#sec-events">Events</a>

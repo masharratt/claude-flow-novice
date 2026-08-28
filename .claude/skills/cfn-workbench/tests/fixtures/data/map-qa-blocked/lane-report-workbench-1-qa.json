@@ -1,0 +1,10 @@
+{
+  "slug": "workbench",
+  "iteration": 1,
+  "lane": "qa",
+  "pass_rate": 0.5,
+  "tests_passed": 3,
+  "tests_failed": 3,
+  "blocked_on": "gate check: 3 tests red",
+  "generated_at": "2026-08-11T10:07:00Z"
+}

@@ -194,11 +194,13 @@ fingerprint() {
     "$ROOT/planning/${SLUG}/VERIFY_RESULTS_${SLUG}.json" \
     "$ROOT/planning/${SLUG}/.VERIFY_${SLUG}.bless.json" \
     "$ROOT/planning/${SLUG}/run-plan-${SLUG}.json" \
+    "$ROOT/planning/${SLUG}/lanes-${SLUG}.json" \
     `# legacy flat layout: plans written before per-plan dirs existed` \
     "$ROOT/planning/VERIFY_${SLUG}.md" \
     "$ROOT/planning/VERIFY_RESULTS_${SLUG}.json" \
     "$ROOT/planning/.VERIFY_${SLUG}.bless.json" \
     "$ROOT/planning/run-plan-${SLUG}.json" \
+    "$ROOT/planning/lanes-${SLUG}.json" \
     "$ROOT/tmp/lane-report-${SLUG}-"*.json \
     "/tmp/lane-report-${SLUG}-"*.json \
     "$ROOT/tmp/test-output-${SLUG}-"*.txt \

@@ -19,6 +19,7 @@ TMP_OUT="$(mktemp -d)"
 WROOT1="$(mktemp -d)"  # foreground change-detection
 WROOT2="$(mktemp -d)"  # daemon pidfile lifecycle
 WROOT3="$(mktemp -d)"  # stale pidfile
+WROOT4=""              # lanes-file fingerprint (created in GROUP 7)
 
 SLUG_STATUS="wbwatch-status-$$"
 SLUG_FG="wbwatch-fg-$$"
@@ -47,6 +48,7 @@ cleanup() {
     wait "$WPID" 2>/dev/null || true
   fi
   rm -rf "$TMP_OUT" "$WROOT1" "$WROOT2" "$WROOT3"
+  [[ -n "$WROOT4" ]] && rm -rf "$WROOT4"
 }
 trap cleanup EXIT
 
@@ -302,6 +304,72 @@ NEWPID="$(cat "$PIDFILE_S" 2>/dev/null || echo "")"
   || fail "stale pidfile: pid not replaced (got=$NEWPID)"
 
 "$WATCH" --slug "$SLUG_STALE" --stop >/dev/null 2>&1
+
+# ---------------------------------------------------------------
+# GROUP 7: fingerprint covers the transit-map lanes file
+# ---------------------------------------------------------------
+echo "[7] fingerprint covers lanes file"
+
+# The map section reads planning/<slug>/lanes-<slug>.json (nested) or the
+# legacy flat planning/lanes-<slug>.json. Touching either must trip the
+# fingerprint and force a re-render, or the map goes stale between iterations.
+WROOT4="$(mktemp -d)"
+mkdir -p "$WROOT4/.cfn-cache/manifests" "$WROOT4/planning" "$WROOT4/tmp" "$WROOT4/tests/screenshots"
+echo '{}' > "$WROOT4/.cfn-cache/manifests/cfn-seed.json"
+
+SLUG_LANES="wbwatch-lanes-$$"
+LANES_NESTED="$WROOT4/planning/${SLUG_LANES}/lanes-${SLUG_LANES}.json"
+LANES_FLAT="$WROOT4/planning/lanes-${SLUG_LANES}.json"
+mkdir -p "$(dirname "$LANES_NESTED")"
+printf '{"slug":"%s","waves":[["a","b"]]}' "$SLUG_LANES" > "$LANES_NESTED"
+
+WOUT4="$TMP_OUT/lanes-out.html"
+WORKBENCH_WATCH_MAX_TICKS=14 "$WATCH" --slug "$SLUG_LANES" --root "$WROOT4" --out "$WOUT4" \
+  --interval 1 --foreground --no-screenshots >"$TMP_OUT/lanes.log" 2>&1 &
+WPID=$!
+
+if wait_for_file "$WOUT4" 20; then ok "lanes: first tick rendered output"
+else fail "lanes: first tick did not render within timeout"; fi
+
+if [[ -f "$WOUT4" ]]; then
+  # 1. Touch the nested lanes file -> mtime change trips the fingerprint.
+  # touch with an explicit offset: the file was just created, so a plain
+  # touch can land in the same integer second (%Y) and not change the hash.
+  M1=$(stat -c %Y "$WOUT4" 2>/dev/null || echo 0)
+  touch -d "@$(( $(stat -c %Y "$LANES_NESTED") + 3 ))" "$LANES_NESTED"
+  i=0
+  M2="$M1"
+  while [[ "$M2" -eq "$M1" && $i -lt 20 ]]; do
+    sleep 0.25
+    M2=$(stat -c %Y "$WOUT4" 2>/dev/null || echo 0)
+    i=$((i+1))
+  done
+  if [[ "$M2" -ne "$M1" ]]; then ok "lanes: nested lanes file touch re-renders"
+  else fail "lanes: nested lanes file touch did not re-render (timeout)"; fi
+
+  # 2. Create the legacy flat lanes file -> appearing file trips the fingerprint.
+  M3="$M2"
+  printf '{"slug":"%s","waves":[["a"]]}' "$SLUG_LANES" > "$LANES_FLAT"
+  i=0
+  M4="$M3"
+  while [[ "$M4" -eq "$M3" && $i -lt 20 ]]; do
+    sleep 0.25
+    M4=$(stat -c %Y "$WOUT4" 2>/dev/null || echo 0)
+    i=$((i+1))
+  done
+  if [[ "$M4" -ne "$M3" ]]; then ok "lanes: legacy flat lanes file creation re-renders"
+  else fail "lanes: legacy flat lanes file creation did not re-render (timeout)"; fi
+else
+  fail "lanes: nested touch check skipped (no output file)"
+  fail "lanes: flat creation check skipped (no output file)"
+fi
+
+wait "$WPID" 2>/dev/null
+LANES_RC=$?
+[[ "$LANES_RC" -eq 0 ]] && ok "lanes: watch process exits 0 after MAX_TICKS" \
+  || fail "lanes: watch process exit=$LANES_RC (want 0)"
+WPID=""
+rm -rf "$WROOT4"
 
 echo
 TOTAL=$((PASS + FAIL))

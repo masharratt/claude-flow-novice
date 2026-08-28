@@ -100,3 +100,14 @@ These are problems to solve, not directions. We have no preferred answers.
 A reader can, within a few seconds of opening the page, answer: *is the run passing, what is the verdict, and is anything blocked?* On a longer look they can trace what changed in the latest iteration and what evidence supports the current state. This holds across 1 iteration and 15, across desktop and phone, and whether or not most data sources are present.
 
 Everything else (how it looks achieving that) is up to you.
+
+---
+
+## 8. Transit map contract (shipped)
+
+The map section (`lib/section-map.sh`, `#sec-map`) draws the run as a transit system: one station per lane, grouped into left-to-right wave columns; tracks between consecutive waves; a gate junction at the right edge; a loop-back edge when the gate failed and a new iteration started; and a train per in-flight lane. The contract:
+
+- **Inputs are read-only and optional.** The wave layout comes from `planning/<slug>/lanes-<slug>.json` (`waves`: array of lane-id arrays, nested-first via `plan_path`, legacy flat fallback). With no lanes file the section falls back to grouping the run plan's `phases`, then to a single sorted column. Missing run plan and lanes file records a data gap and renders the empty-state card. The section never blocks or fails the render.
+- **No new events.** Status is derived entirely from existing data: latest `lane-report-<slug>-*-<lane>.json` with a non-null `blocked_on` makes a station `blocked`; otherwise `landed` / `in-flight` / `pending` exactly as the Roster derives them. The gate junction state comes from the latest `gate_verdict` event (`pass` / `fail` / `unknown` when absent). Iteration count is the number of `loop_started` events, minimum 1.
+- **Static-complete without JS.** Every station, track, gate, loop-back, badge, and train is plain SVG with the train position baked at render time. The single inline script (guarded by `prefers-reduced-motion`) only animates trains between their baked endpoints; with JS off or reduced motion requested, the baked positions are the truth. This is the same degrade-to-static rule as the header staleness pill.
+- **Geometry invariants.** All coordinates are computed in one jq pass as integers and clamped; bash interpolates integers only. Width is fixed (960 viewBox units), height scales with lane count (`70 + (N+1) * rowH`, with rowH stepping down at 7 and 13 lanes so 15+ lanes stay on one page). All interpolated text (lane ids, names, status labels) passes through `html_escape`, including `data-lane` attributes; hostile ids and names render as text, never markup.

@@ -309,6 +309,61 @@ else
 fi
 rm -f "$DEFAULT_TARGET"
 
+# ---------------------------------------------------------------
+# GROUP 6: transit map derivation (synthetic gate-fail + iterate cycle)
+# ---------------------------------------------------------------
+echo "[6] transit map (synthetic gate-fail iterate cycle)"
+
+MAP_SLUG="mapsyn"
+cat > "$ROOT/planning/run-plan-${MAP_SLUG}.json" <<'JSON'
+{"slug":"mapsyn","generated_at":"2026-08-11T12:00:00Z","phases":["Wave 1","Wave 2"],
+ "lanes":[{"id":"alpha","name":"Alpha","phase":"Wave 1"},
+          {"id":"beta","name":"Beta","phase":"Wave 2"}]}
+JSON
+MAP_EVENTS="$ROOT/tmp/cfn-events-${MAP_SLUG}.jsonl"
+cat > "$MAP_EVENTS" <<'JSONL'
+{"ts":"2026-08-11T12:00:00Z","event":"loop_started"}
+{"ts":"2026-08-11T12:00:10Z","event":"lane_spawned","lane":"alpha","phase":"Wave 1"}
+{"ts":"2026-08-11T12:01:00Z","event":"lane_landed","lane":"alpha"}
+{"ts":"2026-08-11T12:02:00Z","event":"lane_spawned","lane":"beta","phase":"Wave 2"}
+{"ts":"2026-08-11T12:05:00Z","event":"gate_verdict","detail":"P/T exit 1"}
+{"ts":"2026-08-11T12:06:00Z","event":"loop_started"}
+JSONL
+
+OUT_MAP="$TMP_OUT/map.html"
+"$RENDER" --slug "$MAP_SLUG" --root "$ROOT" --out "$OUT_MAP" --no-screenshots 2>&1
+RC=$?
+if [[ "$RC" -ne 0 ]]; then
+  fail "map render exit 0 (got=$RC)"
+else
+  ok "map render exit 0"
+  assert_contains "map: section id present" "$OUT_MAP" 'id="sec-map"'
+  assert_contains "map: nav anchor present" "$OUT_MAP" 'href="#sec-map"'
+  # Two loop_started events -> iteration 2.
+  assert_contains "map: iteration badge = 2" "$OUT_MAP" 'data-iteration="2"'
+  # gate_verdict "P/T exit 1" -> fail.
+  assert_contains "map: gate fail class" "$OUT_MAP" 'map-gate map-gate-fail'
+  # Failed gate + a later loop_started -> loop-back track drawn.
+  assert_match "map: loop-back path present" "$OUT_MAP" '<path[^>]*class="map-loop"'
+  assert_contains "map: loop-back iterate label" "$OUT_MAP" ">iterate<"
+  # Derivation: alpha landed, beta still in-flight.
+  assert_match "map: landed station (alpha)" "$OUT_MAP" \
+    'data-lane="alpha" data-status="landed"'
+  assert_match "map: in-flight station (beta)" "$OUT_MAP" \
+    'data-lane="beta" data-status="in-flight"'
+  # In-flight lane -> train with a baked static transform and depart epoch.
+  assert_match "map: train for beta with baked transform" "$OUT_MAP" \
+    '<g class="map-train" data-lane="beta"[^>]*transform="translate\([0-9]+,[0-9]+\)"'
+  assert_match "map: train carries depart epoch" "$OUT_MAP" \
+    'data-lane="beta"[^>]*data-depart-epoch="[0-9]+"'
+  assert_no_match "map: no train for landed alpha" "$OUT_MAP" \
+    '<g class="map-train" data-lane="alpha"'
+  # Map inline script stays self-contained; no em dashes in rendered copy.
+  assert_no_match "map: no script src=" "$OUT_MAP" '<script[^>]*\ssrc='
+  assert_not_contains "map: no em dash" "$OUT_MAP" $'—'
+fi
+rm -f "$MAP_EVENTS"
+
 echo
 TOTAL=$((PASS + FAIL))
 echo "===================================================="
