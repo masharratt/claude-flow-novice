@@ -100,14 +100,25 @@ lanes file at all falls back to grouping the run plan's `phases` (one column
 per phase), then to a single sorted column. Station status is derived per
 lane: `blocked` when the lane's latest report (by `generated_at`) has a
 non-null `blocked_on`, else `landed` / `in-flight` / `pending` as in the
-Roster. In-flight lanes draw a train whose position is baked into the SVG at
-render time; the inline script only animates between baked points and is
-skipped under `prefers-reduced-motion`. The gate junction shows the latest
+Roster. Geometry is trunk-and-connector: each multi-station column gets one
+vertical trunk behind its stations plus a wave-colored header (`wave N`)
+above it, adjacent columns are joined by exactly one horizontal connector
+on a shared line above the first station row (so connectors never cross),
+the column step is capped so few-wave maps center, and every connector
+carries an arrowhead in its own stroke color. viewBox is sized to content:
+width = min(960, gateX + 70), height = tallest column plus a fixed
+loop-back corridor, never total lane count. In-flight lanes draw a train
+baked into the SVG at render time
+(riding the connector out of its column, or parked just off its station in
+the last column); the inline script only animates between baked points and
+is skipped under `prefers-reduced-motion`. A legend row under the SVG names
+the four status fills, the train pill, the iterate loop and the gate. The
+gate junction sits on the connector line and shows the latest
 `gate_verdict` (pass / fail / unknown); a failed gate followed by a later
-`loop_started` draws a loop-back edge to column 1 and the badge counts
-iterations from `loop_started` events. Missing run plan (and no lanes file)
-records a data gap and renders the empty state; the section never blocks the
-render.
+`loop_started` draws a dashed loop-back edge from the gate to the first
+station of column 1 and the badge counts iterations from `loop_started`
+events. Missing run plan (and no lanes file) records a data gap and renders
+the empty state; the section never blocks the render.
 
 ### Events feed (`cfn-events-<slug>.jsonl`)
 

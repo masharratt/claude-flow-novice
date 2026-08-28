@@ -500,8 +500,55 @@ else
 
   # SVG structure: 4 stations, fixed-width viewBox, gate junction, badge.
   assert_count "map: 4 stations for workbench plan" "$OUT_MAP" 'class="map-st"' 4
-  assert_match "map: svg has 960-wide viewBox" "$OUT_MAP" \
-    '<svg[^>]*map-svg[^>]*viewBox="0 0 960 [0-9]+"'
+  assert_match "map: viewBox sized to content" "$OUT_MAP" \
+    '<svg[^>]*map-svg[^>]*viewBox="0 0 [0-9]+ [0-9]+"'
+  # Geometry: one vertical trunk per multi-station column, exactly one
+  # horizontal connector per wave (adjacent-pair connector + gate connector),
+  # an arrowhead on every connector, height sized to the tallest column.
+  assert_count "map: one trunk per multi-station column (2x2 -> 2)" "$OUT_MAP" \
+    'class="map-trunk' 2
+  assert_count "map: one connector per wave (2 waves -> 2)" "$OUT_MAP" \
+    'class="map-connector' 2
+  assert_match "map: connectors carry arrowheads" "$OUT_MAP" \
+    '<line class="map-connector[^>]*marker-end="url\(#map-arrow\)"'
+  # Column step is capped so few-wave maps center instead of spanning wide.
+  assert_contains "map: capped column step (col 2 at x=430)" "$OUT_MAP" \
+    'translate(430,70)'
+  assert_contains "map: gate centered near content (x=500)" "$OUT_MAP" \
+    'translate(500,42)'
+  assert_match "map: inter-column connector spans capped step" "$OUT_MAP" \
+    '<line class="map-connector map-wave-1" x1="90" y1="42" x2="430" y2="42"'
+  assert_match "map: gate connector stops short of ring" "$OUT_MAP" \
+    '<line class="map-connector map-wave-1" x1="430" y1="42" x2="470" y2="42"'
+  # Column headers name each wave above its trunk.
+  assert_count "map: one wave header per column" "$OUT_MAP" \
+    'class="map-wave-label' 2
+  assert_contains "map: wave 1 header" "$OUT_MAP" '>wave 1<'
+  assert_contains "map: wave 2 header" "$OUT_MAP" '>wave 2<'
+  # A first-row train in the last column parks below its station, off the
+  # shared connector line at y=42.
+  # Parked trains center on the trunk so the pill straddles the line.
+  assert_match "map: k=0 last-column train parks below station" "$OUT_MAP" \
+    'data-lane="qa"[^>]*data-from="420,100"'
+  # In-flight labels drop 3px so the pulse ring's lower arc does not graze.
+  assert_contains "map: in-flight label clears pulse ring" "$OUT_MAP" \
+    '<text class="map-label" y="33">QA Verification</text>'
+  assert_contains "map: pending label keeps base offset" "$OUT_MAP" \
+    '<text class="map-label" y="30">Docs Update</text>'
+  assert_contains "map: compact viewBox (570x298, content width + tight corridor)" \
+    "$OUT_MAP" 'viewBox="0 0 570 298"'
+  assert_match "map: in-flight dots glyph on station" "$OUT_MAP" \
+    'class="map-mark map-mark-live"[^>]*>\.\.\.<'
+  # Legend: a map-legend container naming all four status words.
+  assert_contains "map: legend container present" "$OUT_MAP" 'class="map-legend"'
+  LEGEND_TMP="$TMP_OUT/map-legend.txt"
+  sed -n '/<div class="map-legend">/,/<\/div>/p' "$OUT_MAP" > "$LEGEND_TMP"
+  assert_contains "map: legend names landed" "$LEGEND_TMP" '>landed<'
+  assert_contains "map: legend names in-flight" "$LEGEND_TMP" '>in-flight<'
+  assert_contains "map: legend names blocked" "$LEGEND_TMP" '>blocked<'
+  assert_contains "map: legend names pending" "$LEGEND_TMP" '>pending<'
+  assert_contains "map: legend names the train pill" "$LEGEND_TMP" \
+    '>train (lane working now)<'
   assert_contains "map: gate unknown (no verdict event)" "$OUT_MAP" \
     'map-gate map-gate-unknown'
   assert_contains "map: iteration badge = 1" "$OUT_MAP" 'data-iteration="1"'
@@ -536,6 +583,8 @@ else
   assert_match "map: blocked station (qa after blocked report)" "$OUT_MAPB" \
     'data-lane="qa" data-status="blocked"'
   assert_match "map: blocked ! marker" "$OUT_MAPB" 'class="map-mark"[^>]*>!<'
+  assert_match "map: blocked glyph is 15px" "$OUT_MAPB" \
+    '\.map-mark\{[^}]*font-size:15px'
   assert_no_match "map: no train once blocked" "$OUT_MAPB" \
     '<g class="map-train" data-lane="qa"'
 fi
@@ -612,7 +661,13 @@ if [[ "$RC" -ne 0 ]]; then
 else
   ok "map single render exit 0"
   assert_count "map single: 1 station" "$OUT_MAP1" 'class="map-st"' 1
-  assert_contains "map single: scaled viewBox (960x238)" "$OUT_MAP1" 'viewBox="0 0 960 238"'
+  assert_contains "map single: compact viewBox (620x214)" "$OUT_MAP1" 'viewBox="0 0 620 214"'
+  assert_count "map single: no trunk for one-station column" "$OUT_MAP1" \
+    'class="map-trunk' 0
+  assert_count "map single: gate connector only" "$OUT_MAP1" \
+    'class="map-connector' 1
+  assert_contains "map single: gate sits beside the lone column" "$OUT_MAP1" \
+    'translate(550,42)'
   assert_contains "map single: station centered at 480" "$OUT_MAP1" 'translate(480,70)'
 fi
 rm -rf "$SINGLE_ROOT"
@@ -626,7 +681,16 @@ if [[ "$RC" -ne 0 ]]; then
 else
   ok "map15 render exit 0"
   assert_count "map15: 15 stations" "$OUT_MAP15" 'class="map-st"' 15
-  assert_contains "map15: scaled viewBox (960x806)" "$OUT_MAP15" 'viewBox="0 0 960 806"'
+  assert_contains "map15: wide plan keeps 910x360 viewBox" "$OUT_MAP15" \
+    'viewBox="0 0 910 360"'
+  assert_count "map15: one trunk per column (3x5 -> 3)" "$OUT_MAP15" \
+    'class="map-trunk' 3
+  assert_count "map15: one connector per wave (3 waves -> 3)" "$OUT_MAP15" \
+    'class="map-connector' 3
+  assert_count "map15: one wave header per column" "$OUT_MAP15" \
+    'class="map-wave-label' 3
+  assert_contains "map15: cap keeps 3 columns inside 960 (gate at 840)" \
+    "$OUT_MAP15" 'translate(840,42)'
 fi
 
 # Idempotence: two renders of the same inputs produce identical map slices.
