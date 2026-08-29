@@ -111,3 +111,38 @@ The map section (`lib/section-map.sh`, `#sec-map`) draws the run as a transit sy
 - **No new events.** Status is derived entirely from existing data: latest `lane-report-<slug>-*-<lane>.json` with a non-null `blocked_on` makes a station `blocked`; otherwise `landed` / `in-flight` / `pending` exactly as the Roster derives them. The gate junction state comes from the latest `gate_verdict` event (`pass` / `fail` / `unknown` when absent). Iteration count is the number of `loop_started` events, minimum 1.
 - **Static-complete without JS.** Every station, track, gate, loop-back, badge, and train is plain SVG with the train position baked at render time. The single inline script (guarded by `prefers-reduced-motion`) only animates trains between their baked endpoints; with JS off or reduced motion requested, the baked positions are the truth. This is the same degrade-to-static rule as the header staleness pill.
 - **Geometry invariants.** All coordinates are computed in one jq pass as integers and clamped; bash interpolates integers only. viewBox is sized to content: width = `min(960, gateX + 70)` (compact plans leave no dead space right of the gate; wide plans clamp at 960), height = `70 + maxRows*rowH + 60`. The layout is trunk-and-connector: exactly ONE horizontal connector per adjacent wave pair (plus one into the gate), all on a shared line at y=42 above the first station row, so connectors can never cross; the gate connector stops 30 units short of the gate ring so the arrowhead kisses it without crowding. Column steps are capped (`min(780/(W-1), 340)`) so few-wave maps center instead of spanning wide. Each multi-station column gets one vertical trunk behind its stations (single-station columns emit no trunk) and a wave-colored header (`wave N`) above it at y=20. Stations sit at `y = 70 + k*rowH` where k is the index WITHIN the wave, and height is sized to the tallest column (the +60 covers the corridor and bottom label zone), with rowH stepping down at 7 and 13 lanes so 15+ lanes stay on one page. Connector arrowheads inherit the connector's stroke color (`fill: context-stroke`); the loop-back keeps its own red-tipped marker and ends below-left of column 1's first station, clear of its label; its depth derives from the tallest column's label bottom (`labelBottom + 26`), so the curve clears every station label by ≥15px in every rowH tier. A `map-legend` row naming the four status fills, the train pill, the iterate loop and the gate is required under the SVG. All interpolated text (lane ids, names, status labels) passes through `html_escape`, including `data-lane` attributes; hostile ids and names render as text, never markup.
+
+## 9. Project dashboard contract (shipped)
+
+`dashboard.sh` + `lib/section-map-all.sh` render every loop run in a project as
+its own transit line on one self-contained page (`#sec-dashboard`). Where the
+per-run map answers "how is this run going", this answers "what is every
+session doing right now" in a single tab.
+
+- **Discovery scoping is the contract.** A run is discovered by its PLAN or its
+  ROOT-LOCAL event stream: `planning/*/run-plan-*.json` (per-plan dirs),
+  `planning/run-plan-*.json` (legacy flat), and plan-less runs with a
+  `<root>/tmp/cfn-events-<slug>.jsonl`. Machine-global `/tmp/cfn-events-*`
+  files NEVER discover a run: they carry no project marker, so scanning them
+  would paint foreign runs onto this project's page. They still enrich an
+  already-discovered run (same merge rule as the roster). Runs sort by last
+  activity, newest first.
+- **Band geometry.** viewBox height 104 per band, line at y=54, stations at
+  `x = 60 + idx*step + wave*36`, step clamped `[34, 74]`, gate ring at
+  `lastX + 46`, viewBox width `max(gateX + 60, 960)`. The jq TSV protocol uses
+  fixed arities: `hdr w h` (3), `st lane status x y label` (6), `conn x1 x2 y`
+  (3), `wtick x label` (2), `train lane x1 y x2 y mx depart` (7), `loop path
+  mx my` (4), `gate x y` (3). Bash does no float math; jq floors to integers.
+- **Label readability zoning.** Station labels sit ABOVE the line (rel y=-22,
+  abs 32); wave-tick labels (`W1`, `W2`, ...) get their own row above them
+  (abs y=20, tick line y 44-52); the dashed loop-back curve and `iterate`
+  label live BELOW the line (curve 66-92, label y=98). Zones never overlap, so
+  no label can collide with the curve, the ticks, or each other. Label width
+  scales with station spacing: `maxch = floor((step-8)/6)` clamped `[4, 14]`
+  (mono 10px ≈ 6px/char); the full name rides in the station `<title>`. The
+  gate ring carries NO text label (the run-header chip and `<title>` carry it).
+- **Page rules.** Default cap 12 bands (`--max-lines` overrides; hidden runs
+  counted in an overflow note). `--live <secs>` injects a same-page meta
+  refresh. Self-containment and escaping guarantees are identical to the
+  per-run page; exit 0 on empty state (a dashboard is never a gate), exit 2 on
+  usage errors.

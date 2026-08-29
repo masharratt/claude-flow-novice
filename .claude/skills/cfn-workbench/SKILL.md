@@ -7,7 +7,7 @@ author: CFN Team
 description: Render a self-contained HTML progress page from scattered CFN Loop run data (manifests, VERIFY doc, lane reports, screenshots, bless ledger).
 dependencies: [bash, jq, base64, git]
 created: 2026-07-28
-updated: 2026-08-27
+updated: 2026-08-28
 complexity: Medium
 keywords: [workbench, render, html, progress, loop-report, self-contained]
 triggers: [manual-checkpoint, phase-5-report, loop-summary]
@@ -233,6 +233,38 @@ call sites wrap every call with `|| true` so a bad emit never blocks the loop.
 Section nav (`section_nav` in `lib/html.sh`) jumps to every section above by
 anchor id (`#sec-map`, `#sec-timeline`, `#sec-roster`, `#sec-events`,
 `#sec-detail`, ...).
+
+## Project dashboard (all runs, one tab)
+
+`dashboard.sh` answers a different question from `render.sh`: not "how is run
+`<slug>` going" but "what is every session in this project doing right now".
+One self-contained HTML page (`<root>/planning/workbench-dashboard.html`),
+one transit line per loop run, sorted by last activity (newest first).
+
+```bash
+.claude/skills/cfn-workbench/dashboard.sh [--root <dir>] [--out <path>]
+    [--max-lines <N>] [--live <secs>] [--open]
+```
+
+- **Discovery**: `planning/*/run-plan-*.json` (per-plan dirs) +
+  `planning/run-plan-*.json` (legacy flat) + plan-less runs whose
+  `<root>/tmp/cfn-events-*.jsonl` exists. Machine-global `/tmp/cfn-events-*`
+  streams NEVER discover a run (no project marker); they only enrich a run
+  already discovered, same merge rule as the roster.
+- **Bands**: each run renders as one horizontal line (stations left to right in
+  wave order, gate ring at the end, dashed loop-back below the line on
+  gate-fail + iterate, train per in-flight lane). Line color cycles a 10-color
+  palette by run index. Station labels sit ABOVE the line (rel y=-22) with a
+  per-step character budget (mono 10px, ~6px/char, clamped 4-14 chars; full
+  name in the station `<title>`); wave ticks (`W1`, `W2`, ...) get their own
+  row above the labels. No text label on the gate ring (run-header chip +
+  `<title>` carry it).
+- **Cap**: default 12 bands (`--max-lines` overrides); hidden runs are counted
+  in an overflow note.
+- **`--live <secs>`**: injects `<meta http-equiv="refresh" content="<secs>">`
+  so one tab stays current. Same self-containment contract (zero `<link>`,
+  zero non-`data:` src/href, `html_escape` on all interpolation); exit 0 even
+  on empty state, exit 2 on usage errors. Never a gate.
 
 ## Self-containment guarantees
 

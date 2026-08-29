@@ -72,109 +72,51 @@ _wb_lane_blocked() {
   jq -e '.blocked_on != null' "$latest_file" >/dev/null 2>&1
 }
 
-# section_map - emit the Transit map section HTML on stdout.
-section_map() {
-  local slug="${WORKBENCH_SLUG:-}"
-  local root="${WORKBENCH_ROOT:-.}"
-  local run_plan; run_plan="$(plan_path "$root" "$slug" "run-plan-${slug}.json")" || true
+# _wb_map_run_state SLUG ROOT RUN_PLAN [WAVES_JSON]
+# Derive everything the transit-map layouts need for one run: waves, per-lane
+# status, per-lane spawn ts, lane display names, gate state, loop-back flag,
+# iteration count. Prints one JSON object; rc 1 only when RUN_PLAN is unreadable
+# and no WAVES_JSON override was passed (nothing to lay out). Shared by the
+# per-run map (section_map) and the project dashboard (lib/section-map-all.sh).
+_wb_map_run_state() {
+  local slug="$1" root="$2" run_plan="$3" waves_override="${4:-}"
+  local waves_json="$waves_override"
 
-  # Scoped styles (roster precedent): status fills, wave palette, pulse ring.
-  printf '<style>'
-  printf '.map-svg{--map-w0:#9184d9;--map-w1:#4aa3c0;--map-w2:#c07b4a;--map-w3:#7ee2a8;--map-w4:#e9c46a;width:100%%;height:auto;display:block;}'
-  printf '.map-trunk{stroke-width:3;opacity:.35;fill:none;}'
-  printf '.map-connector{stroke-width:3;opacity:.5;fill:none;}'
-  printf '.map-wave-0{stroke:var(--map-w0);}.map-wave-1{stroke:var(--map-w1);}.map-wave-2{stroke:var(--map-w2);}.map-wave-3{stroke:var(--map-w3);}.map-wave-4{stroke:var(--map-w4);}'
-  printf '.map-wave-label{font-size:11px;text-anchor:middle;font-family:var(--font-mono);letter-spacing:.06em;}'
-  printf '.map-wave-label.map-wave-0{fill:var(--map-w0);}.map-wave-label.map-wave-1{fill:var(--map-w1);}.map-wave-label.map-wave-2{fill:var(--map-w2);}.map-wave-label.map-wave-3{fill:var(--map-w3);}.map-wave-label.map-wave-4{fill:var(--map-w4);}'
-  printf '.map-st .map-dot{stroke:var(--color-divider);stroke-width:1.5;}'
-  printf '.map-st[data-status="pending"] .map-dot{fill:var(--color-surface);stroke:var(--neutral-400);stroke-width:2;}'
-  printf '.map-st[data-status="in-flight"] .map-dot{fill:var(--warn);}'
-  printf '.map-st[data-status="landed"] .map-dot{fill:var(--ok);}'
-  printf '.map-st[data-status="blocked"] .map-dot{fill:var(--bad);}'
-  printf '.map-pulse{fill:none;stroke:var(--warn);stroke-width:2;opacity:.55;animation:map-pulse 2.4s ease-out infinite;}'
-  printf '@keyframes map-pulse{0%%{r:13;opacity:.55;}100%%{r:26;opacity:0;}}'
-  printf '@media (prefers-reduced-motion: reduce){.map-pulse{animation:none;opacity:.25;}}'
-  printf '.map-label{fill:var(--neutral-300);text-anchor:middle;font-family:var(--font-mono);}'
-  printf '.map-tier-s .map-label{font-size:13px;}.map-tier-m .map-label{font-size:11px;}.map-tier-l .map-label{font-size:9px;}'
-  printf '.map-mark{fill:var(--color-bg);text-anchor:middle;font-weight:700;font-size:15px;}'
-  printf '.map-mark-live{font-size:12px;letter-spacing:.5px;}'
-  printf '.map-gate .map-gate-outer{fill:none;stroke-width:3;}'
-  printf '.map-gate .map-gate-inner{stroke:var(--color-divider);stroke-width:1.5;}'
-  printf '.map-gate-unknown .map-gate-outer{stroke:var(--neutral-400);}.map-gate-unknown .map-gate-inner{fill:var(--neutral-500);}'
-  printf '.map-gate-pass .map-gate-outer{stroke:var(--ok);}.map-gate-pass .map-gate-inner{fill:var(--ok);}'
-  printf '.map-gate-fail .map-gate-outer{stroke:var(--bad);}.map-gate-fail .map-gate-inner{fill:var(--bad);}'
-  printf '.map-loop{fill:none;stroke:var(--bad);stroke-width:2.5;stroke-dasharray:7 5;opacity:.8;}'
-  printf '.map-arrow-head{fill:context-stroke;}'
-  printf '.map-arrow-head-bad{fill:var(--bad);}'
-  printf '.map-loop-label{fill:var(--bad);text-anchor:middle;font-size:11px;font-weight:600;letter-spacing:.08em;}'
-  printf '.map-badge{fill:var(--neutral-300);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;}'
-  printf '.map-train rect{fill:#c5bdf0;stroke:var(--accent-600);stroke-width:1;}'
-  printf '.map-train .map-win{fill:var(--color-bg);}'
-  printf '.map-legend{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin-top:10px;font-family:var(--font-mono);font-size:12px;color:var(--neutral-300);}'
-  printf '.map-legend .map-key{display:inline-flex;align-items:center;gap:6px;line-height:1;}'
-  printf '.map-key-dot{display:inline-block;width:11px;height:11px;border-radius:50%%;box-sizing:border-box;border:2px solid var(--neutral-400);background:var(--color-surface);}'
-  printf '.map-key-ok{background:var(--ok);border-color:var(--ok);}'
-  printf '.map-key-warn{background:var(--warn);border-color:var(--warn);}'
-  printf '.map-key-bad{background:var(--bad);border-color:var(--bad);}'
-  printf '.map-key-loop{display:inline-block;width:24px;height:0;border-top:3px dashed var(--bad);}'
-  printf '.map-key-gate{display:inline-block;width:13px;height:13px;border-radius:50%%;box-sizing:border-box;border:3px solid var(--neutral-400);}'
-  printf '.map-key-train{display:inline-block;width:22px;height:10px;border-radius:5px;box-sizing:border-box;background:#c5bdf0;border:1px solid var(--accent-600);}'
-  printf '</style>'
-
-  printf '<section class="card" id="sec-map">'
-  printf '<span class="section-kicker">Live</span>'
-  printf '<h2>Transit map</h2>'
-  printf '<hr class="hr"/>'
-
-  if [[ -z "$slug" || ! -f "$run_plan" ]] \
-     || ! jq -e '.lanes | type == "array"' "$run_plan" >/dev/null 2>&1; then
-    # Root-relative: $root can be a mktemp scratch dir and the page must not leak one.
-    record_gap "run plan (${run_plan#"$root"/} missing; map skipped)"
-    printf '<p class="empty">No transit map available for this run.</p>'
-    printf '</section>'
-    return
-  fi
-
-  # Column source: lanes file waves first, run-plan phases fallback.
-  local lanes_file; lanes_file="$(plan_path "$root" "$slug" "lanes-${slug}.json")" || true
-  local waves_json=""
-  if [[ -f "$lanes_file" ]] \
-     && jq -e '.waves | type == "array" and length > 0' "$lanes_file" >/dev/null 2>&1; then
-    waves_json="$(jq -c '
-      [ .waves[]
-        | (if type == "array" then . else [] end)
-        | map(select(type == "string" and length > 0))
-        | select(length > 0) ]' "$lanes_file" 2>/dev/null || true)"
-  fi
   if [[ -z "$waves_json" || "$waves_json" == "[]" ]]; then
-    waves_json="$(jq -c '
-      . as $rp
-      | ($rp.phases // []) as $p0
-      | (if ($p0 | type) == "array" then $p0 else [] end) as $phases
-      | [ $phases
-          | map(select(type == "string" and length > 0))[] as $ph
-          | [ $rp.lanes[]
-              | select(((.phase // "") == $ph) and ((.id // "") != ""))
-              | .id ]
-          | select(length > 0) ]
-      | . as $grouped
-      | ($grouped | flatten) as $matched
-      | [ $rp.lanes[]
-          | (.id // "")
-          | select((. != "") and (($matched | index(.)) | not)) ] as $extra
-      | (if ($extra | length) > 0 then ($grouped + [$extra]) else $grouped end)
-      | if length == 0
-        then [ [ $rp.lanes[] | (.id // "") | select(. != "") ] | sort ]
-        else . end' "$run_plan" 2>/dev/null || true)"
+    [[ -n "$run_plan" && -f "$run_plan" ]] || return 1
+    # Column source: lanes file waves first, run-plan phases fallback.
+    local lanes_file; lanes_file="$(plan_path "$root" "$slug" "lanes-${slug}.json")" || true
+    if [[ -f "$lanes_file" ]] \
+       && jq -e '.waves | type == "array" and length > 0' "$lanes_file" >/dev/null 2>&1; then
+      waves_json="$(jq -c '
+        [ .waves[]
+          | (if type == "array" then . else [] end)
+          | map(select(type == "string" and length > 0))
+          | select(length > 0) ]' "$lanes_file" 2>/dev/null || true)"
+    fi
+    if [[ -z "$waves_json" || "$waves_json" == "[]" ]]; then
+      waves_json="$(jq -c '
+        . as $rp
+        | ($rp.phases // []) as $p0
+        | (if ($p0 | type) == "array" then $p0 else [] end) as $phases
+        | [ $phases
+            | map(select(type == "string" and length > 0))[] as $ph
+            | [ $rp.lanes[]
+                | select(((.phase // "") == $ph) and ((.id // "") != ""))
+                | .id ]
+            | select(length > 0) ]
+        | . as $grouped
+        | ($grouped | flatten) as $matched
+        | [ $rp.lanes[]
+            | (.id // "")
+            | select((. != "") and (($matched | index(.)) | not)) ] as $extra
+        | (if ($extra | length) > 0 then ($grouped + [$extra]) else $grouped end)
+        | if length == 0
+          then [ [ $rp.lanes[] | (.id // "") | select(. != "") ] | sort ]
+          else . end' "$run_plan" 2>/dev/null || true)"
+    fi
   fi
-
-  local total
-  total="$(printf '%s' "$waves_json" | jq '[.[][]] | length' 2>/dev/null || echo 0)"
-  if [[ -z "$total" || "$total" -eq 0 ]]; then
-    printf '<p class="empty">No lanes defined in the run plan.</p>'
-    printf '</section>'
-    return
-  fi
+  [[ -n "$waves_json" ]] || waves_json="[]"
 
   local events_json
   events_json="$(_wb_events_json "$slug" "$root")"
@@ -230,6 +172,150 @@ section_map() {
     ''|*[!0-9]*) iteration="1" ;;
   esac
 
+  jq -cn \
+    --argjson waves "$waves_json" \
+    --argjson status "$status_json" \
+    --argjson spawn "$spawn_json" \
+    --argjson names "$names_json" \
+    --arg gate "$gate_state" \
+    --argjson loop "$([[ "$loop_flag" == "1" ]] && printf true || printf false)" \
+    --argjson iter "$iteration" \
+    '{waves:$waves, status:$status, spawn:$spawn, names:$names,
+      gate:$gate, loop:$loop, iteration:$iter}'
+}
+
+# _wb_map_style - scoped styles shared by the per-run map and the dashboard
+# bands: status fills, wave palette, pulse ring, gate, train, legend.
+_wb_map_style() {
+  printf '<style>'
+  printf '.map-svg{--map-w0:#9184d9;--map-w1:#4aa3c0;--map-w2:#c07b4a;--map-w3:#7ee2a8;--map-w4:#e9c46a;width:100%%;height:auto;display:block;}'
+  printf '.map-trunk{stroke-width:3;opacity:.35;fill:none;}'
+  printf '.map-connector{stroke-width:3;opacity:.5;fill:none;}'
+  printf '.map-wave-0{stroke:var(--map-w0);}.map-wave-1{stroke:var(--map-w1);}.map-wave-2{stroke:var(--map-w2);}.map-wave-3{stroke:var(--map-w3);}.map-wave-4{stroke:var(--map-w4);}'
+  printf '.map-wave-label{font-size:11px;text-anchor:middle;font-family:var(--font-mono);letter-spacing:.06em;}'
+  printf '.map-wave-label.map-wave-0{fill:var(--map-w0);}.map-wave-label.map-wave-1{fill:var(--map-w1);}.map-wave-label.map-wave-2{fill:var(--map-w2);}.map-wave-label.map-wave-3{fill:var(--map-w3);}.map-wave-label.map-wave-4{fill:var(--map-w4);}'
+  printf '.map-st .map-dot{stroke:var(--color-divider);stroke-width:1.5;}'
+  printf '.map-st[data-status="pending"] .map-dot{fill:var(--color-surface);stroke:var(--neutral-400);stroke-width:2;}'
+  printf '.map-st[data-status="in-flight"] .map-dot{fill:var(--warn);}'
+  printf '.map-st[data-status="landed"] .map-dot{fill:var(--ok);}'
+  printf '.map-st[data-status="blocked"] .map-dot{fill:var(--bad);}'
+  printf '.map-pulse{fill:none;stroke:var(--warn);stroke-width:2;opacity:.55;animation:map-pulse 2.4s ease-out infinite;}'
+  printf '@keyframes map-pulse{0%%{r:13;opacity:.55;}100%%{r:26;opacity:0;}}'
+  printf '@media (prefers-reduced-motion: reduce){.map-pulse{animation:none;opacity:.25;}}'
+  printf '.map-label{fill:var(--neutral-300);text-anchor:middle;font-family:var(--font-mono);}'
+  printf '.map-tier-s .map-label{font-size:13px;}.map-tier-m .map-label{font-size:11px;}.map-tier-l .map-label{font-size:9px;}'
+  printf '.map-mark{fill:var(--color-bg);text-anchor:middle;font-weight:700;font-size:15px;}'
+  printf '.map-mark-live{font-size:12px;letter-spacing:.5px;}'
+  printf '.map-gate .map-gate-outer{fill:none;stroke-width:3;}'
+  printf '.map-gate .map-gate-inner{stroke:var(--color-divider);stroke-width:1.5;}'
+  printf '.map-gate-unknown .map-gate-outer{stroke:var(--neutral-400);}.map-gate-unknown .map-gate-inner{fill:var(--neutral-500);}'
+  printf '.map-gate-pass .map-gate-outer{stroke:var(--ok);}.map-gate-pass .map-gate-inner{fill:var(--ok);}'
+  printf '.map-gate-fail .map-gate-outer{stroke:var(--bad);}.map-gate-fail .map-gate-inner{fill:var(--bad);}'
+  printf '.map-loop{fill:none;stroke:var(--bad);stroke-width:2.5;stroke-dasharray:7 5;opacity:.8;}'
+  printf '.map-arrow-head{fill:context-stroke;}'
+  printf '.map-arrow-head-bad{fill:var(--bad);}'
+  printf '.map-loop-label{fill:var(--bad);text-anchor:middle;font-size:11px;font-weight:600;letter-spacing:.08em;}'
+  printf '.map-badge{fill:var(--neutral-300);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;}'
+  printf '.map-train rect{fill:#c5bdf0;stroke:var(--accent-600);stroke-width:1;}'
+  printf '.map-train .map-win{fill:var(--color-bg);}'
+  printf '.map-legend{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin-top:10px;font-family:var(--font-mono);font-size:12px;color:var(--neutral-300);}'
+  printf '.map-legend .map-key{display:inline-flex;align-items:center;gap:6px;line-height:1;}'
+  printf '.map-key-dot{display:inline-block;width:11px;height:11px;border-radius:50%%;box-sizing:border-box;border:2px solid var(--neutral-400);background:var(--color-surface);}'
+  printf '.map-key-ok{background:var(--ok);border-color:var(--ok);}'
+  printf '.map-key-warn{background:var(--warn);border-color:var(--warn);}'
+  printf '.map-key-bad{background:var(--bad);border-color:var(--bad);}'
+  printf '.map-key-loop{display:inline-block;width:24px;height:0;border-top:3px dashed var(--bad);}'
+  printf '.map-key-gate{display:inline-block;width:13px;height:13px;border-radius:50%%;box-sizing:border-box;border:3px solid var(--neutral-400);}'
+  printf '.map-key-train{display:inline-block;width:22px;height:10px;border-radius:5px;box-sizing:border-box;background:#c5bdf0;border:1px solid var(--accent-600);}'
+  printf '</style>'
+}
+
+# _wb_map_train_script - inline script easing baked trains along their segment
+# between meta-refreshes. Shared by section_map and the dashboard bands.
+# Reduced motion or any failure leaves the static baked transforms in place.
+_wb_map_train_script() {
+  cat <<'MAPSCRIPT'
+<script>
+(function () {
+  'use strict';
+  try {
+    if (window.matchMedia
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    var trains = document.querySelectorAll('.map-train');
+    if (!trains.length) { return; }
+    var SEG = 120; // seconds of elapsed time per segment crossing
+    function place(el) {
+      var from = (el.getAttribute('data-from') || '').split(',');
+      var to = (el.getAttribute('data-to') || '').split(',');
+      var dep = parseInt(el.getAttribute('data-depart-epoch') || '0', 10);
+      if (from.length !== 2 || to.length !== 2 || isNaN(dep)) { return; }
+      var fx = parseFloat(from[0]); var fy = parseFloat(from[1]);
+      var tx = parseFloat(to[0]); var ty = parseFloat(to[1]);
+      var p = (Date.now() / 1000 - dep) / SEG;
+      if (isNaN(p)) { p = 0; }
+      if (p < 0) { p = 0; }
+      // Clamped short of the destination; the next meta-refresh re-anchors.
+      if (p > 0.92) { p = 0.92; }
+      var x = Math.round(fx + (tx - fx) * p);
+      var y = Math.round(fy + (ty - fy) * p);
+      el.setAttribute('transform', 'translate(' + x + ',' + y + ')');
+    }
+    function frame() {
+      var i;
+      for (i = 0; i < trains.length; i++) { place(trains[i]); }
+      window.requestAnimationFrame(frame);
+    }
+    window.requestAnimationFrame(frame);
+  } catch (err) {
+    return; // static baked transforms remain correct
+  }
+})();
+</script>
+MAPSCRIPT
+}
+
+# section_map - emit the Transit map section HTML on stdout.
+section_map() {
+  local slug="${WORKBENCH_SLUG:-}"
+  local root="${WORKBENCH_ROOT:-.}"
+  local run_plan; run_plan="$(plan_path "$root" "$slug" "run-plan-${slug}.json")" || true
+
+  _wb_map_style
+
+  printf '<section class="card" id="sec-map">'
+  printf '<span class="section-kicker">Live</span>'
+  printf '<h2>Transit map</h2>'
+  printf '<hr class="hr"/>'
+
+  if [[ -z "$slug" || ! -f "$run_plan" ]] \
+     || ! jq -e '.lanes | type == "array"' "$run_plan" >/dev/null 2>&1; then
+    # Root-relative: $root can be a mktemp scratch dir and the page must not leak one.
+    record_gap "run plan (${run_plan#"$root"/} missing; map skipped)"
+    printf '<p class="empty">No transit map available for this run.</p>'
+    printf '</section>'
+    return
+  fi
+
+  # Shared derivation: waves, statuses, gate, iteration (see _wb_map_run_state).
+  local run_state
+  run_state="$(_wb_map_run_state "$slug" "$root" "$run_plan")" || {
+    record_gap "transit map (state derivation failed for ${slug})"
+    printf '<p class="empty">No transit map available for this run.</p>'
+    printf '</section>'
+    return
+  }
+  local waves_json status_json spawn_json names_json gate_state loop_flag iteration
+  waves_json="$(printf '%s' "$run_state" | jq -c '.waves')"
+  status_json="$(printf '%s' "$run_state" | jq -c '.status')"
+  spawn_json="$(printf '%s' "$run_state" | jq -c '.spawn')"
+  names_json="$(printf '%s' "$run_state" | jq -c '.names')"
+  gate_state="$(printf '%s' "$run_state" | jq -r '.gate')"
+  loop_flag="$(printf '%s' "$run_state" | jq -r '.loop')"
+  iteration="$(printf '%s' "$run_state" | jq -r '.iteration')"
+
+
   # One jq pass emits every SVG coordinate as TSV; bash only interpolates.
   local geo
   geo="$(printf '%s' "$waves_json" | jq -r \
@@ -237,7 +323,7 @@ section_map() {
     --argjson spawn "$spawn_json" \
     --argjson names "$names_json" \
     --arg gate "$gate_state" \
-    --argjson loop "$([[ "$loop_flag" == "1" ]] && printf true || printf false)" \
+    --argjson loop "$([[ "$loop_flag" == "true" ]] && printf true || printf false)" \
     --argjson iter "$iteration" '
 . as $wv
 | ($wv | length) as $W
@@ -421,48 +507,8 @@ section_map() {
     "$(html_escape "gate")"
   printf '</div>'
 
-  # Eases baked trains along their segment between 10s meta-refreshes.
-  # Reduced motion or any failure leaves the static baked transforms in place.
-  cat <<'MAPSCRIPT'
-<script>
-(function () {
-  'use strict';
-  try {
-    if (window.matchMedia
-        && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return;
-    }
-    var trains = document.querySelectorAll('.map-train');
-    if (!trains.length) { return; }
-    var SEG = 120; // seconds of elapsed time per segment crossing
-    function place(el) {
-      var from = (el.getAttribute('data-from') || '').split(',');
-      var to = (el.getAttribute('data-to') || '').split(',');
-      var dep = parseInt(el.getAttribute('data-depart-epoch') || '0', 10);
-      if (from.length !== 2 || to.length !== 2 || isNaN(dep)) { return; }
-      var fx = parseFloat(from[0]); var fy = parseFloat(from[1]);
-      var tx = parseFloat(to[0]); var ty = parseFloat(to[1]);
-      var p = (Date.now() / 1000 - dep) / SEG;
-      if (isNaN(p)) { p = 0; }
-      if (p < 0) { p = 0; }
-      // Clamped short of the destination; the next meta-refresh re-anchors.
-      if (p > 0.92) { p = 0.92; }
-      var x = Math.round(fx + (tx - fx) * p);
-      var y = Math.round(fy + (ty - fy) * p);
-      el.setAttribute('transform', 'translate(' + x + ',' + y + ')');
-    }
-    function frame() {
-      var i;
-      for (i = 0; i < trains.length; i++) { place(trains[i]); }
-      window.requestAnimationFrame(frame);
-    }
-    window.requestAnimationFrame(frame);
-  } catch (err) {
-    return; // static baked transforms remain correct
-  }
-})();
-</script>
-MAPSCRIPT
+  # Shared train-easing script (see _wb_map_train_script).
+  _wb_map_train_script
 
   printf '</section>'
 }
