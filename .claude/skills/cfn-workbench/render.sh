@@ -230,52 +230,15 @@ GAPS_STRIP_HTML="$(gaps_strip)"
 SIZE=$(wc -c < "$OUT" | tr -d ' ')
 sed -i "s#__WB_SIZE__#${SIZE}#" "$OUT"
 
-# Self-containment assertion (defensive; tests also check).
-# cfn: defensive belt-and-suspenders, run on every render so a regression in a
-# section lib cannot silently leak an external src/href into the output.
-self_containment_check() {
-  local file="$1"
-  local problems=0
-  if grep -iqE '<link[[:space:]>/]' "$file"; then
-    echo "WARN: emitted HTML contains a <link tag" >&2; problems=$((problems+1))
-  fi
-  local bad_src bad_href
-  bad_src=$(grep -oE 'src="[^"]*"' "$file" | grep -v '^src="data:' || true)
-  bad_href=$(grep -oE 'href="[^"]*"' "$file" | grep -vE '^href="(data:|#)' || true)
-  if [[ -n "$bad_src" ]]; then
-    echo "WARN: emitted HTML has non-data: src= attributes:" >&2
-    echo "$bad_src" | sed 's/^/  /' >&2; problems=$((problems+1))
-  fi
-  if [[ -n "$bad_href" ]]; then
-    echo "WARN: emitted HTML has non-data: href= attributes:" >&2
-    echo "$bad_href" | sed 's/^/  /' >&2; problems=$((problems+1))
-  fi
-  return $problems
-}
+# Self-containment assertion (defensive; tests also check), then a one-time
+# open of the page. Both helpers live in lib/html.sh and are shared with
+# dashboard.sh. cfn: defensive belt-and-suspenders, run on every render so a
+# regression in a section lib cannot silently leak an external src/href into
+# the output.
+wb_self_containment_check "$OUT" \
+  || echo "WARN: self-containment check reported problems (see above). HTML still written." >&2
 
-# Run the check but never fail the render (exit 0 contract for normal path).
-self_containment_check "$OUT" || echo "WARN: self-containment check reported problems (see above). HTML still written." >&2
-
-# open_if_needed - open the rendered page once per output path (idempotent).
-# A marker in /tmp records that the page is already open; later renders skip the
-# launch and rely on the --live meta-refresh to update the existing tab. Never
-# fails the render. WORKBENCH_NO_LAUNCH=1 writes the marker but skips the spawn
-# (used by the test suite so renders do not pop a browser window).
-open_if_needed() {
-  local marker="/tmp/cfn-workbench-opened-$(basename "$OUT")"
-  [[ -f "$marker" ]] && return 0
-  : > "$marker"
-  [[ "${WORKBENCH_NO_LAUNCH:-0}" == "1" ]] && return 0
-  if command -v explorer.exe >/dev/null 2>&1; then
-    # WSL2: open in the Windows host default browser via the file:// path.
-    ( explorer.exe "$(wslpath -w "$OUT" 2>/dev/null || echo "$OUT")" >/dev/null 2>&1 & )
-  elif command -v xdg-open >/dev/null 2>&1; then
-    ( xdg-open "$OUT" >/dev/null 2>&1 & )
-  fi
-  return 0
-}
-
-[[ "$OPEN" == "1" ]] && open_if_needed
+[[ "$OPEN" == "1" ]] && wb_open_if_needed "$OUT"
 
 # Summary on stdout.
 GAP_COUNT=$(get_gap_count)
