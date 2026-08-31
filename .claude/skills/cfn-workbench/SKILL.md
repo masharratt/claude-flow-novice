@@ -211,28 +211,43 @@ call sites wrap every call with `|| true` so a bad emit never blocks the loop.
    lanes (positions baked at render time; the one inline script only animates
    between them and honors `prefers-reduced-motion`). Missing data is a data
    gap; the section still renders with an empty-state card.
-3. **Iteration Timeline**: pass rate, gate verdict, commit count per iteration.
-4. **Lane Roster**: headline `N of M lanes landed`; table of every lane from
+3. **Garden**: the run as a growing plant (`lib/section-garden.sh`, Espalier
+   v1). Inline SVG grown by jq from the same `_wb_map_run_state` derivation the
+   map uses: stem height = iterations survived, one dark scar ring per
+   completed gate cycle, one branch per wave, one leaf per lane (closed bud =
+   pending, warm shimmer = in-flight, open leaf = landed, thorn + curled leaf
+   = blocked), a flower at the apex on gate pass or a wilted head on fail.
+   Static-complete without JS. An optional WebGL overlay (inline fragment
+   shader, LYGIA hash/noise/bayer/palette chunks pasted under MIT attribution)
+   adds tip glow, pollen motes, and a dithered vignette at 30fps; it hides
+   itself when WebGL is unavailable OR the context is lost (a lost context
+   presents a white buffer that would white-wash the plant under
+   `mix-blend-mode:screen`), and renders one static frame under
+   `prefers-reduced-motion`. Missing run plan is a data gap; the section still
+   renders with an empty-state card. Contract:
+   `docs/WORKBENCH_DESIGN_HANDOFF.md` section 10.
+4. **Iteration Timeline**: pass rate, gate verdict, commit count per iteration.
+5. **Lane Roster**: headline `N of M lanes landed`; table of every lane from
    `run-plan-<slug>.json` with derived status (`landed` / `in-flight` /
    `pending`) and, for in-flight lanes, a `Since HH:MM` from their
    `lane_spawned` event. Missing run plan is a data gap; the section still
    renders with an empty-state card.
-5. **Events**: live feed table (Time, Event, Lane, Phase, Detail) from
+6. **Events**: live feed table (Time, Event, Lane, Phase, Detail) from
    `cfn-events-<slug>.jsonl`, newest first, capped at 30 rows with an
    `N earlier events not shown` note past the cap. Missing events file is a
    data gap; the section still renders with an empty-state card.
-6. **Per-Iteration Detail**: lanes (pass rate, passed/failed), test summary,
+7. **Per-Iteration Detail**: lanes (pass rate, passed/failed), test summary,
    screenshot grid (click to enlarge via `<details>`), gate events.
-7. **Acceptance Criteria**: id, check, kind, status pill, evidence, reference.
-8. **Vote Ledger**: every suggestion id with the latest status (accepted,
+8. **Acceptance Criteria**: id, check, kind, status pill, evidence, reference.
+9. **Vote Ledger**: every suggestion id with the latest status (accepted,
    rejected, open).
-9. **Tech-Debt Ledger**: suggestions tagged `tech-debt` or matching `cfn:`.
-10. **Bless Ledger**: structure_changed and predicate_changed lists + verdict.
-11. **Footer**: command, input count, byte size, data-gap warnings.
+10. **Tech-Debt Ledger**: suggestions tagged `tech-debt` or matching `cfn:`.
+11. **Bless Ledger**: structure_changed and predicate_changed lists + verdict.
+12. **Footer**: command, input count, byte size, data-gap warnings.
 
 Section nav (`section_nav` in `lib/html.sh`) jumps to every section above by
-anchor id (`#sec-map`, `#sec-timeline`, `#sec-roster`, `#sec-events`,
-`#sec-detail`, ...).
+anchor id (`#sec-map`, `#sec-garden`, `#sec-timeline`, `#sec-roster`,
+`#sec-events`, `#sec-detail`, ...).
 
 ## Project dashboard (all runs, one tab)
 

@@ -146,3 +146,49 @@ session doing right now" in a single tab.
   refresh. Self-containment and escaping guarantees are identical to the
   per-run page; exit 0 on empty state (a dashboard is never a gate), exit 2 on
   usage errors.
+
+## 10. Garden contract (shipped)
+
+The garden section (`lib/section-garden.sh`, `#sec-garden`) renders the run as
+a growing plant, Espalier v1: a vertical stem whose height tracks iterations
+survived, one dark scar ring per completed gate cycle, one branch per wave,
+one leaf per lane, and a flower or wilted head at the apex for the gate
+verdict. Every visual channel has a data owner; no effect ships without one.
+Pure decoration is confined to the background layer (soil line, faint roots,
+vignette).
+
+- **Derivation is reused, never rebuilt.** The section consumes
+  `_wb_map_run_state` (lib/section-map.sh) verbatim: waves, per-lane status,
+  spawn timestamps, names, gate, iteration. No new event types; the 9-type set
+  stays closed. Missing run plan records a data gap and renders the
+  empty-state card; the section never blocks the render.
+- **Metaphor map is closed.** bud = pending, shimmer = in-flight, open leaf =
+  landed, thorn + curled leaf = blocked, scar = completed gate cycle, flower =
+  gate pass, wilted head = gate fail, stem height = iterations. Status text
+  stays owned by the roster + map sections; the garden plate carries lane
+  names only in `<title>` hover.
+- **Static-complete without JS.** The SVG plant is plain markup with all
+  geometry baked at render time. Same degrade rule as the map: inline JS only
+  animates (leaf sway is CSS keyframes, wilt droop is JS-added classes after
+  120s/600s on the baked `data-generated-epoch`), and
+  `prefers-reduced-motion` freezes both. Geometry discipline matches the map:
+  one jq TSV pass with fixed arities, integers only, bash interpolates;
+  malformed record = skip node + record gap, never fail.
+- **The shader overlay is optional polish, never load-bearing.** One canvas
+  over the SVG (`pointer-events:none; mix-blend-mode:screen`) driven by a
+  fullscreen-triangle fragment shader in an inline
+  `<script type="x-shader/x-fragment">` block: tip glow at in-flight leaves
+  (baked `data-glow` pairs), two layers of hash-gridded pollen motes, and a
+  Bayer-dithered vignette in a per-project cosine-palette hue. Chunks adapted
+  from LYGIA (hash, value noise, bayer dither, cosine palette, MIT) with
+  attribution comment; hand-written GLSL, NO three.js. Budgets: dpr 1, rAF
+  capped 30fps, ~40 motes. The overlay hides itself when WebGL is unavailable
+  AND when the context is lost: a lost context presents an uninitialized WHITE
+  buffer, and under screen blend that white-washes the stage over the plant
+  (observed 2026-08-31: 77% #ffffff pixels after CONTEXT_LOST_WEBGL). Guard =
+  `webglcontextlost` listener + `isContextLost()` check per frame; the SVG
+  stands on its own. No attempt at context restore: the overlay is decoration.
+- **Escaping and self-containment identical to every other section.** All
+  interpolated text (lane ids, names, titles) passes through `html_escape`
+  including data attributes; zero `src=`/`href=` beyond `data:`; no em dashes.
+  Suite: `tests/test-garden.sh` (39 asserts).
