@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cfn-selftest: not-a-hook unwired 2026-09-03: superseded by cfn-precompact-task.sh (single PreCompact pipeline); script kept for tests + manual use
 set -euo pipefail
 
 # GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).

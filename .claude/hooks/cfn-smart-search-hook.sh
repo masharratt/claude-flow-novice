@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cfn-selftest: not-a-hook unwired 2026-09-03: CodeSearch nudge enforced by CLAUDE.md rule alone; script kept for tests + manual use
 set -uo pipefail
 
 # Claude Code surfaces STDERR (not stdout) as the reason for a blocking exit 2.

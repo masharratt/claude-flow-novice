@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cfn-selftest: not-a-hook unwired 2026-09-03: CodeSearch nudge enforced by CLAUDE.md rule alone; script kept for tests + manual use
 set -uo pipefail
 
 # Structured logging
