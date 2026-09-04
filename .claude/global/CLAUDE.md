@@ -25,6 +25,22 @@ Agent descriptions are the dispatch table.
 
 **Solo work only for:** Single-file edits with no research, direct questions answerable from context
 
+**DEPTH LIMIT: only the main chat spawns agents.** If you are reading this file as a
+subagent, you are a leaf. Execute your brief directly and never call Agent/Task. The
+SPAWN FREQUENTLY rule above is addressed to the main chat alone: its whole purpose is
+protecting the main context window, which a subagent does not own. A subagent that fans
+out multiplies token spend, hides its real work from the coordinator, and hands back a
+summary of a summary that no longer cites files. If a brief is too big for one agent,
+say so in the report and let the main chat split it.
+
+Exception: an orchestration skill (cfn-loop-task, cfn-megaplan and its phase skills)
+whose own instructions tell you to spawn. Those spawn by design and say so.
+
+Coordinator side of the same rule: for read-only fan-out prefer `Explore`, whose tool
+set excludes Agent, so nesting is impossible rather than merely discouraged. When
+spawning any other type, end the brief with the line: "You are a leaf agent. Do not
+spawn subagents; do the work yourself."
+
 ### Fork Subagents (`subagent_type: "fork"`) - TOKEN HAZARD
 
 A fork inherits the **entire main-chat conversation** as its prompt and always runs on the parent model. Cost per fork = current context size, re-sent. Three forks at 100k context = 300k input tokens before the fork does any work. A fresh agent (any other `subagent_type`, or omitted) starts near-empty and costs a fraction.

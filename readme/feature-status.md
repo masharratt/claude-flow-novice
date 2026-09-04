@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-08-31 (cfn-workbench: garden section, run as a growing plant with shader overlay) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-09-03 (spawn depth guard + hook selfcheck: nested-spawn block wired global and gg-projects, dead-wiring tripwire) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -309,6 +309,8 @@ This file MUST be updated when:
 | Skill Usage Tracker | 🚧 Dev | ✅ 15/15 | `.claude/hooks/cfn-track-skill-usage.sh`, `.claude/cfn-scripts/skill-usage-report.sh` | PostToolUse hook records every Skill-tool invocation to SQLite (WAL mode, `~/.claude/cfn-data/skill-usage.sqlite`, never blocks the tool call); report script joins usage against the full skill inventory to surface unused skills as deprecation candidates. Deps: sqlite3/python3. Known limitations: empty until warmup; tracks invocation count, not value delivered. |
 | cfn-night-mode-guard.sh | ✅ Prod | ✅ 33/33 | `.claude/hooks/cfn-night-mode-guard.sh` | PreToolUse blocker while night mode is on: denies AskUserQuestion and EnterPlanMode with self-contained deny text (conservative default, log via record.sh, never push); auto-allows ExitPlanMode. Fail-open when jq absent or flag off; denies append to the events log. |
 | cfn-night-mode-inject.sh | ✅ Prod | ✅ 33/33 | `.claude/hooks/cfn-night-mode-inject.sh` | SessionStart + UserPromptSubmit injector for the night-mode flag. Flag on: full contract at session start (re-fires on resume/compact), short reminder each prompt. Flag off: silent unless the pending-review marker exists. No DB query on the per-turn path. |
+| Spawn Depth Guard | ✅ Prod | ✅ manual | `.claude/hooks/cfn-spawn-depth-guard.sh` | PreToolUse (Agent\|Task) blocker enforcing the CLAUDE.md DEPTH LIMIT: subagent-originated spawns (payload carries agent_id/agent_type; main-chat calls carry neither) exit 2 with leaf-agent guidance. Allowlist at `~/.claude/nested-spawn-allowlist.txt` (CFN_NESTED_SPAWN_ALLOWFILE override). Wired in `~/.claude/settings.json` and per-project `.claude/settings.local.json`. |
+| Hook Selfcheck | ✅ Prod | ✅ manual | `.claude/hooks/cfn-hook-selfcheck.sh` | SessionStart tripwire against dead wiring (the silent user-level `settings.local.json` failure class): appends `date<TAB>CLAUDE_PROJECT_DIR` to `~/.claude/hook-selfcheck.log`. No entry for a project on a day you used it means that project's hook wiring is dead. Fails open; trims log past 2000 lines. |
 
 ### Docker Support
 
