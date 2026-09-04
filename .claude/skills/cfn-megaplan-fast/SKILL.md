@@ -1,7 +1,7 @@
 ---
 name: cfn-megaplan-fast
 description: "Token-lean planning orchestrator for multi-part programs and single features. Program mode runs spec/data/arch/ux ONCE, then only test_plan + write_plan + Bar A per part, reading section extracts not whole artifacts. Hard byte caps per artifact, static-only bars (1 round, inline patch), opus only for spec+arch, no nested subagents. Same hand-off contract to /cfn-loop-task as megaplan. Use for mvp/beta work; full /cfn-megaplan stays for enterprise/compliance/ops-heavy builds."
-version: 1.1.0
+version: 1.2.0
 tags: [planning, orchestrator, dag, program-mode, token-lean, fast]
 status: beta
 ---
@@ -67,6 +67,8 @@ Rationale: the baseline's SPECs were 110-136KB and VERIFYs up to 545KB, each re-
 
 **Per-run cap override.** When a raise-for-this-run is accepted (or late measured findings would be cut to make weight), record it in `planning/<prog>/.cap-override.md`: artifact, new cap, reason, scope (this run, this program, that artifact). `fast.json` is never edited to make one run pass. Subsequent `check-size.sh` OVER lines for an overridden artifact are logged, not repaired.
 
+**Brief budget.** A spawn brief is ≤ 15% of its target artifact's byte cap (SPEC: ≤ 3.5KB), and carries assignment + input paths + cap only. Brief size drives artifact size: the writer treats the brief as the register to match, so a multi-KB brief produces an over-cap artifact and the compress pass the caps exist to avoid (reported 2026-09-03: thousands-of-words briefs → 36KB SPEC vs 24KB cap → 234K subagent tokens compressing two files). Every byte of context the orchestrator is tempted to inline goes to an input file (extract, artifact, decision-log row) and reaches the agent as a path. The `cfn-spawn-depth-guard.sh` hook warns on main-chat briefs over `CFN_BRIEF_MAX_BYTES` (default 4096; log `~/.claude/brief-size-warn.log`).
+
 ## Protocol
 
 **Step 0: scope + preflight.** Reject enterprise signals (compliance, PII-heavy, multi-tenant, external API integration, schema migration rehearsal, capacity) → route to `/cfn-megaplan`. Build slug from task (same rule as megaplan Step 1). `mkdir -p planning/<prog>`. Check `/goal` availability only if `--unattended` requested (needs Claude Code ≥ 2.1.234 + hooks enabled); warn and continue manually if absent. Read open tech debt in scope (`cfn-tech-debt`) as megaplan does.
@@ -97,6 +99,8 @@ Rationale: the baseline's SPECs were 110-136KB and VERIFYs up to 545KB, each re-
 Persistence gate (same as megaplan): every part has PLAN + VERIFY + `.sha256`; nothing loose in `planning/`. Log `MEGAPLANFAST ok: <path>`. Stop.
 
 ## Phase prompt template
+
+Brief construction: task one-liner + resolved input paths + caps, ≤ 15% of the artifact byte cap. Phase detail lives in the skill file the agent reads first; never restate it in the brief.
 
 ```
 Follow <phase skill path> exactly. Read the skill file first. Directive: light unless stated.
@@ -132,6 +136,7 @@ Return: artifact path, byte count, 3-line summary, [OPEN] list, [PARKED] list.
 - Agent writes over cap and "summarizes" by deleting ids/ACs → check-verifiable-static coverage catches AC loss; compress prompt forbids dropping ids.
 - A phase spawns its own subagents → cost multiplier. Prompt forbids it; if a return mentions nested spawns, note in synthesis.
 - Orchestrator pastes whole artifacts into prompts instead of paths → main-chat bloat. Always pass paths.
+- Orchestrator brief is thousands of words → the writer mirrors it → over-cap artifact → compress pass (the exact cost the caps exist to avoid; see Brief budget). Scope is not the cause: the same scope as a path-based brief is ~1.5KB. Watch `~/.claude/brief-size-warn.log` after a run; recurring warns mean the orchestrator is inlining context instead of filing it.
 - `/goal` evaluator cannot see results → it loops. Every step's `log` line is mandatory stdout.
 
 ## Anti-patterns

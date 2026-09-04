@@ -1,4 +1,4 @@
-# CFN Operating Guide v2.29.0
+# CFN Operating Guide v2.30.0
 
 ## 1. Edit Safety (REQUIRED)
 
@@ -22,6 +22,8 @@ CFN rules override Claude Code defaults when they conflict.
 - A skill/agent description says "MUST BE USED" or "Use PROACTIVELY" — invoke it immediately, do not wait
 
 Agent descriptions are the dispatch table.
+
+**BRIEF BUDGET** A spawn brief is an assignment (task one-liner, input paths, output path + cap), not a context carrier. Keep it ≤ ~2KB. Context the agent needs goes in a file and the brief passes the path. Big brief makes the agent write big: measured 2026-09-03, thousands-of-words briefs produced a 36KB SPEC against a 24KB cap and 234K tokens of compression spawns. The spawn hook warns over 4096 bytes (`CFN_BRIEF_MAX_BYTES`; log `~/.claude/brief-size-warn.log`).
 
 **Solo work only for:** Single-file edits with no research, direct questions answerable from context
 

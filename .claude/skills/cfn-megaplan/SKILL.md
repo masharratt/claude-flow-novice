@@ -1,7 +1,7 @@
 ---
 name: cfn-megaplan
 description: "Tiered planning orchestrator. Runs the full SPARC+ pipeline (research, spec, decide, pseudo, data, arch, ux, design, test, ops) as a parallel DAG, scaled by build stage (mvp/beta/enterprise) via inclusion profiles. Enforces two gates: every success criterion is executable (verifiable-done) and every step is unambiguous (haiku-executable). Use as the entry point for any non-trivial build instead of cfn-spa-plan."
-version: 1.3.0
+version: 1.4.0
 tags: [planning, orchestrator, sparc, tiered, mvp, beta, enterprise, dag]
 status: production
 ---
@@ -217,7 +217,7 @@ Caps live in the profile's `.caps` (mvp = 2x, beta = 3x, enterprise = 4x the `cf
 
 Agent selection: spawn each phase as the profile's `agent` key. A phase with no `agent` key → spawn `general-purpose` with the SKILL.md path in the prompt. Pass the profile's `model` key as the spawn model when present; a phase with no `model` key inherits the session model (see Step 3a).
 
-Each phase prompt carries:
+Each phase prompt carries (the template, nothing more — see Brief budget below):
 
 ```
 Follow .claude/skills/<phase-skill>/SKILL.md exactly. Read the skill file first.
@@ -239,6 +239,8 @@ Open-item triage (apply to EVERY [OPEN] you would raise):
 Return: artifact path + a 3-line summary + [OPEN] items (BLOCKING, need a user decision now)
         + [PARKED] items (deferred, listed separately with the default you chose).
 ```
+
+**Brief budget.** A phase brief is the template above filled in — assignment, paths, cap — and stays ≤ 15% of the artifact's byte cap (~3.5KB at mvp SPEC). Brief size drives artifact size: the writer mirrors the brief's register, so a multi-KB brief produces an over-cap artifact and pays the compress spawn at the join (reported 2026-09-03: thousands-of-words briefs → 36KB SPEC vs 24KB cap → 234K subagent tokens compressing two files). Context never rides in the brief: research findings, prior decisions, and phase detail go to input files the agent reads (dep artifacts, decision-log rows, the phase skill itself). `cfn-spawn-depth-guard.sh` warns on main-chat briefs over `CFN_BRIEF_MAX_BYTES` (default 4096; log `~/.claude/brief-size-warn.log`).
 
 If any phase returns **BLOCKING** `[OPEN]` items, batch them and surface via `AskUserQuestion` before advancing past the level. Record every resolved decision via `.claude/skills/cfn-decisions/record.sh` (closes gap G35/decision-log loop AND populates the per-run JSON ledger). The writer owns the per-run JSON register and delegates the SQLite sync to `decision-log/record.sh` (behavior-preserving for SQLite via delegation, additive for JSON as a new per-run artifact); the orchestrator forwards mid-level decisions to the writer, which records them.
 
