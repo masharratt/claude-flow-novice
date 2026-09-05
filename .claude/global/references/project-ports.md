@@ -17,6 +17,7 @@ Load when starting a dev server or debugging a port conflict. Extracted from `~/
 | keystone | 3810-3819 (3810 = Next.js web) | |
 | daily-drones | 3900-3909 (3900 = vite viewer, 3901 = viewer WS / axum) | |
 | ggi-work | 4100-4109 (4100 = invite-builder vite + Playwright, 4101 = docs site, 4102 = gg-all-projects apps/attendee + Playwright, 4103 = gg-all-projects apps/internal) | |
+| whatsapp | | **8094** (OpenWA, docker, `OpenWA/` in project dir; Evolution API removed 2026-09-02) |
 
 ## Supabase local stack port bands
 
