@@ -102,7 +102,14 @@ MANIFEST="$(awk '
   END            { printf "%s", last }
 ' "$VERIFY")"
 
-[ -n "${MANIFEST//[[:space:]]/}" ] || { echo "error: no fenced json manifest block in $VERIFY" >&2; exit 2; }
+# Emptiness test history: `${MANIFEST//[[:space:]]/}` was quadratic (>10 min on
+# a backfilled 381-AC manifest); `printf | grep -q` was linear but under
+# `set -o pipefail` grep -q's early exit SIGPIPEs printf (141), so a valid large
+# manifest was rejected as empty. Pure-bash case glob: linear, no pipe.
+case "$MANIFEST" in
+  *[![:space:]]*) ;;
+  *) echo "error: no fenced json manifest block in $VERIFY" >&2; exit 2 ;;
+esac
 echo "$MANIFEST" | jq -e . >/dev/null 2>&1 || { echo "error: manifest json does not parse" >&2; exit 2; }
 
 # ---- gate: Bar A static pass must be clean before anything is pinned ----

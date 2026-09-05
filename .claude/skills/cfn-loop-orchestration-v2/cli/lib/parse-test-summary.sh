@@ -74,6 +74,41 @@ pts_sum_count() {
     | awk '{s+=$1} END {print s+0}'
 }
 
+# pts_sum_ts_summary "<file>" "<line-ERE>" -> "PASS FAIL SKIP TODO COLLECTED"
+# summed over EVERY matching line, one summary per line.
+#
+# Same defect the cargo branch above already guards against, reached by a
+# different route: a monorepo test runner emits one summary line PER PACKAGE,
+# so `tail -1` scores whichever package happens to print last and is blind to
+# every other one. Measured 2026-08-21 on a `turbo run test` capture with 13
+# summary lines: the last was `Tests  13 passed (13)`, so the gate reported
+# 13/13 = 1.0000 and exited 0 while 40 tests were failing in a package it
+# never read. A repo can never fail this gate as long as its last-printing
+# package is green. Summing is the only reading that cannot be gamed by
+# ordering; for a single-summary capture it is arithmetically identical to
+# the old tail -1.
+#
+# Per line the parenthesized total wins when present (vitest prints the
+# S003-correct inclusive denominator there); otherwise the four counts are
+# summed for that line.
+pts_sum_ts_summary() {
+  grep -E "$2" "$1" | awk '
+    {
+      p = 0; f = 0; s = 0; t = 0; c = -1
+      for (i = 1; i < NF; i++) {
+        if ($(i + 1) ~ /^passed/)  p = $i + 0
+        if ($(i + 1) ~ /^failed/)  f = $i + 0
+        if ($(i + 1) ~ /^skipped/) s = $i + 0
+        if ($(i + 1) ~ /^todo/)    t = $i + 0
+        if ($(i + 1) ~ /^total/)   c = $i + 0
+      }
+      if (c < 0 && match($0, /\([0-9]+\)[^(]*$/)) c = substr($0, RSTART + 1, RLENGTH - 2) + 0
+      if (c < 0) c = p + f + s + t
+      P += p; F += f; S += s; T += t; C += c
+    }
+    END { printf "%d %d %d %d %d", P + 0, F + 0, S + 0, T + 0, C + 0 }'
+}
+
 # pts_count_lines "<file>" "<ERE>" -> number of matching lines
 pts_count_lines() { grep -cE "$2" "$1" || true; }
 
@@ -201,14 +236,16 @@ parse_test_summary() {
   fi
 
   # --- jest: "Tests:       2 failed, 10 passed, 12 total" ---
-  LINE=$(grep -E '^[[:space:]]*Tests:.*[0-9]+ total' "$clean" | tail -1 || true)
-  if [[ -n "$LINE" ]]; then
+  # Summed across every summary line, and the optional `<task>:<script>:`
+  # prefix is allowed: a monorepo task runner (turbo, nx, lerna) tags each
+  # streamed line with the package that produced it, so an anchor of
+  # `^[[:space:]]*Tests:` matched only the unprefixed lines. See
+  # pts_sum_ts_summary for the measurement.
+  local JEST_RE='^([[:alnum:]@/_.-]+:[[:alnum:]_.-]+:)?[[:space:]]*Tests:.*[0-9]+ total'
+  if grep -qE "$JEST_RE" "$clean"; then
     PTS_RUNNER="jest"
-    PTS_PASS=$(pts_extract_count "$LINE" "passed"); PTS_PASS=${PTS_PASS:-0}
-    PTS_FAIL=$(pts_extract_count "$LINE" "failed"); PTS_FAIL=${PTS_FAIL:-0}
-    PTS_SKIP=$(pts_extract_count "$LINE" "skipped"); PTS_SKIP=${PTS_SKIP:-0}
-    PTS_TODO=$(pts_extract_count "$LINE" "todo"); PTS_TODO=${PTS_TODO:-0}
-    PTS_COLLECTED=$(pts_extract_count "$LINE" "total"); PTS_COLLECTED=${PTS_COLLECTED:-0}
+    read -r PTS_PASS PTS_FAIL PTS_SKIP PTS_TODO PTS_COLLECTED \
+      <<< "$(pts_sum_ts_summary "$clean" "$JEST_RE")"
     rm -f "$clean"
     return 0
   fi
@@ -217,20 +254,14 @@ parse_test_summary() {
   # or a fully-skipped run: " Tests  3 skipped (3)" (the AC-77 shape, no
   # "passed"/"failed" word at all, which is why this must also match on
   # skipped/todo alone, not just passed|failed).
-  LINE=$(grep -E '^[[:space:]]*Tests[[:space:]]+.*[0-9]+ (passed|failed|skipped|todo)' "$clean" | tail -1 || true)
-  if [[ -n "$LINE" ]]; then
+  # Summed across every summary line, with the same optional
+  # `<task>:<script>:` monorepo prefix the jest branch allows. See
+  # pts_sum_ts_summary for why tail -1 is not a safe reading here.
+  local VITEST_RE='^([[:alnum:]@/_.-]+:[[:alnum:]_.-]+:)?[[:space:]]*Tests[[:space:]]+.*[0-9]+ (passed|failed|skipped|todo)'
+  if grep -qE "$VITEST_RE" "$clean"; then
     PTS_RUNNER="vitest"
-    PTS_PASS=$(pts_extract_count "$LINE" "passed"); PTS_PASS=${PTS_PASS:-0}
-    PTS_FAIL=$(pts_extract_count "$LINE" "failed"); PTS_FAIL=${PTS_FAIL:-0}
-    PTS_SKIP=$(pts_extract_count "$LINE" "skipped"); PTS_SKIP=${PTS_SKIP:-0}
-    PTS_TODO=$(pts_extract_count "$LINE" "todo"); PTS_TODO=${PTS_TODO:-0}
-    local PAREN
-    PAREN=$(echo "$LINE" | grep -oE '\([0-9]+\)' | tail -1 | tr -d '()')
-    if [[ -n "$PAREN" ]]; then
-      PTS_COLLECTED="$PAREN"
-    else
-      PTS_COLLECTED=$((PTS_PASS + PTS_FAIL + PTS_SKIP + PTS_TODO))
-    fi
+    read -r PTS_PASS PTS_FAIL PTS_SKIP PTS_TODO PTS_COLLECTED \
+      <<< "$(pts_sum_ts_summary "$clean" "$VITEST_RE")"
     rm -f "$clean"
     return 0
   fi

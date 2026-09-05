@@ -157,10 +157,20 @@ MANIFEST=$(awk '
   END            { printf "%s", last }
 ' "$VERIFY")
 
-if [ -z "${MANIFEST//[[:space:]]/}" ]; then
-  echo '[{"file":"'"$FILE_JSON"'","ac_id":"(file)","field":"manifest","issue":"no fenced json manifest block found","severity":"error"}]'
-  exit 1
-fi
+# Emptiness test history: `${MANIFEST//[[:space:]]/}` was quadratic (measured
+# >5 min on a 1.2MB backfilled manifest). Replacing it with
+# `printf | grep -q` traded that for a second trap: grep -q exits on first
+# match, the printf builtin takes SIGPIPE mid-write (141), and under
+# `set -o pipefail` the pipeline status is 141, so `! pipeline` reads as true
+# and a VALID 274KB manifest was rejected as empty. The case glob below is
+# pure linear bash: no subprocess, no pipe, no SIGPIPE, ~2ms on 274KB.
+case "$MANIFEST" in
+  *[![:space:]]*) ;;
+  *)
+    echo '[{"file":"'"$FILE_JSON"'","ac_id":"(file)","field":"manifest","issue":"no fenced json manifest block found","severity":"error"}]'
+    exit 1
+    ;;
+esac
 
 if ! echo "$MANIFEST" | jq -e . >/dev/null 2>&1; then
   echo '[{"file":"'"$FILE_JSON"'","ac_id":"(file)","field":"manifest","issue":"json manifest does not parse","severity":"error"}]'
@@ -185,10 +195,23 @@ for key in wiring_total wiring_mapped; do
 done
 
 # ---- Per-AC checks (1 shape, 2 taxonomy, 3 decidability, 4 weasel) ----
-AC_COUNT=$(echo "$MANIFEST" | jq '.acs | length' 2>/dev/null || echo 0)
+# Split the ACs to one compact-JSON line each BEFORE the loop. The previous
+# form, `AC=$(echo "$MANIFEST" | jq -c ".acs[$i]")` inside the loop, re-piped
+# and re-parsed the ENTIRE manifest once per AC: O(ACs x manifest-size). Fine
+# at plan stage (~40 rows, small evidence), catastrophic after
+# backfill-evidence lands real output: a 381-AC / 1.5MB manifest meant ~570MB
+# reparsed and the run did not finish in 6 minutes (vs 43s on the same
+# manifest pre-backfill). jq -c guarantees one line per AC (embedded newlines
+# are escaped), so line order == array order. Measured after the fix: 43s ->
+# 5s on the all-PENDING manifest; the backfilled one completes at all.
+ACS_NDJSON="$(mktemp)"
+trap 'rm -f "$ACS_NDJSON"' EXIT
+printf '%s' "$MANIFEST" | jq -c '.acs[]' > "$ACS_NDJSON" 2>/dev/null || : > "$ACS_NDJSON"
+AC_COUNT=$(wc -l < "$ACS_NDJSON")
 i=0
 while [ "$i" -lt "$AC_COUNT" ]; do
-  AC=$(echo "$MANIFEST" | jq -c ".acs[$i]")
+  i=$((i + 1))
+  AC=$(sed -n "${i}p" "$ACS_NDJSON")
   ACID=$(echo "$AC" | jq -r '.id // "AC-?"')
 
   # 1: shape
@@ -203,6 +226,13 @@ while [ "$i" -lt "$AC_COUNT" ]; do
   PASS=$(echo "$AC" | jq -r '.pass // ""')
   EVIDENCE=$(echo "$AC" | jq -r '.evidence // ""')
 
+  # A row whose evidence is a QUARANTINED pointer is excluded from the done
+  # claim by an explicit user decision, recorded in the quarantine doc the
+  # pointer names. Its check string will never execute, so the runnability
+  # lints (1e unrunnable_selector, 1e2 dead_selector, 1e3 tool_unavailable)
+  # skip it; shape and evidence-presence checks still apply.
+  case "$EVIDENCE" in QUARANTINED:*) IS_QUARANTINED=1 ;; *) IS_QUARANTINED=0 ;; esac
+
   # 1c: controlled kind vocabulary (S007). Exact membership, error not warn.
   if [ -n "$KIND" ] && ! in_list "$KIND" "$VALID_KINDS"; then
     add_finding "$ACID" "kind" "unrecognized check kind '$KIND' — must be one of: $VALID_KINDS" "error"
@@ -213,7 +243,10 @@ while [ "$i" -lt "$AC_COUNT" ]; do
   # Authoring happens against the plan and verification happens against the
   # code; nothing else in the loop forces those two to be the same statement,
   # which is how 21/147 and 71/104 ACs went runtime-red against correct code.
-  if [ -z "${EVIDENCE//[[:space:]]/}" ]; then
+  # case glob, not `printf | grep -q`: same SIGPIPE-under-pipefail trap as the
+  # manifest emptiness test above (grep -q exits early, printf takes 141).
+  case "$EVIDENCE" in *[![:space:]]*) EVIDENCE_HAS_CONTENT=1 ;; *) EVIDENCE_HAS_CONTENT=0 ;; esac
+  if [ "$EVIDENCE_HAS_CONTENT" -eq 0 ]; then
     add_finding "$ACID" "evidence" "no runtime evidence — run this check once and paste its actual output (test result line, grep hit count, or exit status) before blessing the manifest" "error"
   elif [[ "$EVIDENCE" =~ ^[[:space:]]*PENDING([[:space:]]*:|[[:space:]]|$) ]]; then
     # A greenfield manifest is authored before the code exists, so its checks
@@ -248,7 +281,7 @@ while [ "$i" -lt "$AC_COUNT" ]; do
   # manifest-internal convention no runner implements: vitest and playwright
   # both read it as a single filename and report "No test files found" (exit
   # non-zero, zero tests run). 89 of one field manifest's 104 checks used it.
-  if echo "$CHECK" | grep -qE '[A-Za-z0-9_/.-]+\.(spec|test)\.[a-z]+::|\.rs::|\.py::[a-z_]+ '; then
+  if [ "$IS_QUARANTINED" -eq 0 ] && echo "$CHECK" | grep -qE '[A-Za-z0-9_/.-]+\.(spec|test)\.[a-z]+::|\.rs::|\.py::[a-z_]+ '; then
     add_finding "$ACID" "check" "unrunnable_selector: '<file>::<name>' is not a selector any runner accepts — use -t \"<name>\" (vitest/jest), -g \"<name>\" (playwright), or 'cargo test <path> -- --exact'" "error"
   fi
 
@@ -262,11 +295,28 @@ while [ "$i" -lt "$AC_COUNT" ]; do
   # manifest assumed and the tests never adopted (80 of 146 selectors dead in one
   # manifest, across five waves reported green). An alternation counts as live if
   # any one branch matches, which is how the runner reads it.
-  SEL=$(printf '%s' "$CHECK" | grep -oE '(^| )-[tg] "[^"]+"' | head -1 | sed -E 's/^ ?-[tg] "//; s/"$//' || true)
-  if [ -n "$SEL" ]; then
-    SELFILE=$(printf '%s' "$CHECK" | grep -oE '(vitest|jest|playwright)[a-z ]* run [^ ]+' | head -1 | awk '{print $NF}' || true)
+  if [ "$IS_QUARANTINED" -eq 0 ]; then
+  # Pair each -t/-g selector with the file named in ITS OWN command segment.
+  # Two earlier first-match pairings both convicted live checks:
+  # 1. SELFILE took the token right after `run`; for `vitest run -t "<sel>"
+  #    <file>` that is the literal flag `-t`, and 150 of 254 rows in one
+  #    manifest were convicted on a file named "-t" that cannot exist.
+  # 2. SEL/SELFILE were the first selector and first file ANYWHERE in the
+  #    string; a chained check whose first half is a whole-suite vitest
+  #    filter (no file) and second half a file-scoped playwright run had the
+  #    halves cross-paired. Segment-local pairing fixes both.
+  # A selector whose own segment names no file is a whole-suite filter: its
+  # title is searched across every spec/test file in the tree, because that
+  # is exactly what the runner does with it.
+  DEAD_PAIR=""
+  while IFS= read -r SEG; do
+    [ -n "$(printf '%s' "$SEG" | tr -d '[:space:]')" ] || continue
+    SEL=$(printf '%s' "$SEG" | grep -oE '(^| )-[tg] "[^"]+"' | head -1 | sed -E 's/^ ?-[tg] "//; s/"$//' || true)
+    [ -n "$SEL" ] || continue
+    # Only accept a real test-file path as the run argument (see note 1).
+    SELFILE=$(printf '%s' "$SEG" | grep -oE '(vitest|jest|playwright)[a-z ]* (run|test) [A-Za-z0-9_/.@-]+\.(spec|test)\.[a-z]+' | head -1 | awk '{print $NF}' || true)
     if [ -z "$SELFILE" ]; then
-      SELFILE=$(printf '%s' "$CHECK" | grep -oE '[A-Za-z0-9_/.-]+\.(spec|test)\.[a-z]+' | head -1 || true)
+      SELFILE=$(printf '%s' "$SEG" | grep -oE '[A-Za-z0-9_/.-]+\.(spec|test)\.[a-z]+' | head -1 || true)
     fi
     if [ -n "$SELFILE" ] && [ -f "$SELFILE" ]; then
       SELHIT=0
@@ -277,16 +327,30 @@ while [ "$i" -lt "$AC_COUNT" ]; do
         if grep -qF -- "$BR" "$SELFILE"; then SELHIT=1; break; fi
       done
       IFS="$OLDIFS"
-      if [ "$SELHIT" -eq 0 ]; then
-        add_finding "$ACID" "check" "dead_selector: the check filters tests by name with '$SEL' but $SELFILE holds no test title matching it, so this check collects 0 tests and can never report on the feature. Drop the -t/-g filter to run the whole file, or align the selector with a real test title." "error"
-      fi
+      [ "$SELHIT" -eq 0 ] && DEAD_PAIR="selector '$SEL' vs file $SELFILE (no matching title)"
     elif [ -n "$SELFILE" ]; then
       if [ "$STAGE" = "exit" ]; then
-        add_finding "$ACID" "check" "dead_selector: the check filters by name with '$SEL' but its test file $SELFILE does not exist at the exit bless, so the selector collects 0 tests" "error"
+        DEAD_PAIR="selector '$SEL' vs file $SELFILE (file does not exist)"
       else
         add_finding "$ACID" "check" "dead_selector: test file $SELFILE for selector '$SEL' does not exist yet (plan stage accepted; the exit bless requires it and validates the selector against its titles)" "warn"
       fi
+    else
+      # Whole-suite name filter: search the tree, as the runner does.
+      SELHIT=0
+      OLDIFS="$IFS"; IFS='|'
+      for branch in $SEL; do
+        BR=$(printf '%s' "$branch" | sed -E 's/^\^//; s/\$$//')
+        [ -n "$BR" ] || continue
+        if grep -rqlF -- "$BR" --include='*.spec.ts' --include='*.test.ts' --include='*.spec.js' --include='*.test.js' . 2>/dev/null; then SELHIT=1; break; fi
+      done
+      IFS="$OLDIFS"
+      [ "$SELHIT" -eq 0 ] && DEAD_PAIR="whole-suite selector '$SEL' matches no test title in the tree"
     fi
+    [ -n "$DEAD_PAIR" ] && break
+  done < <(printf '%s' "$CHECK" | sed 's/&&/\n/g; s/;/\n/g')
+  if [ -n "$DEAD_PAIR" ]; then
+    add_finding "$ACID" "check" "dead_selector: the check filters tests by name with $DEAD_PAIR, so that command collects 0 tests and can never report on the feature. Drop the -t/-g filter to run the whole file, or align the selector with a real test title." "error"
+  fi
   fi
 
   # 1e3: check invokes a command that is not an executable on PATH (S009).
@@ -302,13 +366,22 @@ while [ "$i" -lt "$AC_COUNT" ]; do
   # or a builtin and so reports success for exactly the case that breaks. Only
   # an absolute path means an executable a child bash can find, which is what
   # the leading-slash test below asserts.
+  # Quoted spans are stripped before the split: a quoted grep alternation
+  # (`grep -oE '\[(mobile-375|tablet-768|desktop-1280)\]'`) and an inline
+  # quoted program (`tsx -e "import fs ..."`) both contain `|` / `;` chars
+  # that the split below cannot tell from real pipes and semicolons, so their
+  # words reached command position as false positives. Real command words
+  # never sit inside quotes: only segment-leading words are examined, and a
+  # segment leader inside quotes was never checkable by this heuristic anyway.
   CHK_CMDS=$(printf '%s' "$CHECK" \
     | sed -E 's/^[a-z]+: //' \
+    | sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g" \
     | sed -E 's/\$\(/\n/g; s/`/\n/g; s/&&/\n/g; s/\|\|/\n/g; s/\|/\n/g; s/;/\n/g' \
     | sed -E 's/^[[:space:]]*(!|then|else|do)[[:space:]]+//' \
     | awk '{print $1}' \
     | grep -E '^[a-z][a-z0-9_.-]+$' \
     | sort -u || true)
+  if [ "$IS_QUARANTINED" -eq 1 ]; then CHK_CMDS=""; fi
   for cmd in $CHK_CMDS; do
     case "$cmd" in
       test|echo|printf|cd|export|set|unset|exit|return|if|then|else|elif|fi|\
@@ -484,7 +557,6 @@ while [ "$i" -lt "$AC_COUNT" ]; do
       fi
     fi
   fi
-  i=$((i + 1))
 done
 
 # ---- Check 5: coverage consistency ----

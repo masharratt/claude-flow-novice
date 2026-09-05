@@ -67,6 +67,66 @@ strip_pw() {
   esac
 }
 
+# S009 (origin: B1 VERIFY manifest global preamble): every check in the B1
+# manifest carries an inline shell preamble before the real command
+# (`set -o pipefail; OUT=/tmp/...; export CURVE26_LOCAL_DATABASE_URL="$..."; <cmd>`),
+# which that manifest documents as part of every check cell. The preamble is
+# legitimate shell the executor already runs whole via `bash -c`, but classify()
+# and is_authoritative() read the FIRST WORD of the string, so the real
+# command's tool word sat invisible behind `set` and all 134 rows graded
+# needs_agent without executing. Strip the leading `set -o pipefail;`,
+# assignment and `export` statements for CLASSIFICATION ONLY; execution keeps
+# the full string so pipefail and the env export still take effect.
+#
+# Safety: a statement is stripped only when a `;` separates it from what
+# follows, so an env-prefix form with no semicolon (`FOO=1 pnpm ...`,
+# `export FOO=1 pnpm ...`) is never mangled, and the loop cannot run past the
+# first non-preamble statement.
+strip_prelude() {
+  local c="$1" head rest
+  while :; do
+    head="${c%%;*}"
+    [ "$head" = "$c" ] && break
+    # S012 (origin: staff-person-refresh VERIFY manifest, exit gate 2026-09-02):
+    # the assignment arm named exactly one variable, OUT. 33 of 58 rows opened
+    # with a different one (F="path/to/file.ts"; test -s "$F" && grep -q ...),
+    # so the first word graded as `F="..."` and every one of them read
+    # needs_agent without executing. Any leading scalar assignment is prelude
+    # for CLASSIFICATION purposes; the discriminator is a NAME= at the very
+    # start of the statement, which cannot match a command word because the
+    # name pattern admits no whitespace before the `=`. Same contract as S009
+    # and S011: execution keeps the full string, assignment included.
+    if [[ "$head" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+      rest="${c#*;}"
+      c="${rest#"${rest%%[![:space:]]*}"}"
+      continue
+    fi
+    case "$head" in
+      "set -o pipefail"|export\ *)
+        rest="${c#*;}"
+        c="${rest#"${rest%%[![:space:]]*}"}"
+        ;;
+      case\ *)
+        # S011 (origin: B4 VERIFY manifest, exit gate 2026-08-24): 271 of 306
+        # rows carry an inline endpoint guard between the export and the real
+        # command (case "$CURVE26_LOCAL_DATABASE_URL" in ...local patterns...)
+        # :;; *) echo "refusing non-local endpoint"; exit 2;; esac; pnpm ...).
+        # The guard is legitimate shell the executor runs whole via bash -c,
+        # but strip_prelude stopped at it, so first word graded as `case` and
+        # every guarded row read needs_agent without executing. Skip through
+        # the guard's esac; for CLASSIFICATION ONLY, same contract as the
+        # export strip above: execution keeps the full string, guard included,
+        # so a non-local endpoint still aborts the check itself.
+        rest="${c#*esac;}"
+        [ "$rest" = "$c" ] && break
+        c="${rest#"${rest%%[![:space:]]*}"}"
+        ;;
+      *) break ;;
+    esac
+  done
+  printf '%s' "$c"
+}
+
 # Classify a check string -> executable | db-query | needs_agent
 #
 # S007 (origin: HANDOFF_verify_manifest_runnability.md): `playwright:` used to
@@ -83,9 +143,15 @@ classify() {
     db-query*) echo db-query; return ;;
   esac
   check="$(strip_pw "$check")"
+  check="$(strip_prelude "$check")"
   local first="${check%% *}"
   case "$first" in
-    vitest|jest|mocha|ava|cargo|pytest|go|npx|npm|pnpm|yarn|playwright|node|bash|tsc|curl|grep|rg|jq) echo executable ;;
+    # S012: `test` and `[` are the guard form a check opens with when it must
+    # prove its own target exists before asserting on it
+    # (test -s "$F" && grep -q ... && pnpm vitest run ...). They are shell
+    # builtins that self-assert by exit code, which is why is_authoritative
+    # already accepts them; omitting them here made 32 such rows unrunnable.
+    vitest|jest|mocha|ava|cargo|pytest|go|npx|npm|pnpm|yarn|playwright|node|bash|tsc|curl|grep|rg|jq|test|\[) echo executable ;;
     *) echo needs_agent ;;
   esac
 }
@@ -269,7 +335,7 @@ scan_not_found() {
 # exit-code-authoritative? runner kinds prove pass by exit code; predicate kinds
 # (curl/grep/rg/jq/db-query) do so ONLY if the check self-asserts.
 is_authoritative() {
-  local check="$1"
+  local check; check="$(strip_prelude "$1")"
   case "${check%% *}" in
     vitest|jest|mocha|ava|cargo|pytest|go|npx|npm|pnpm|yarn|playwright|node|bash|tsc) return 0 ;;
   esac
@@ -338,7 +404,10 @@ cmd_run() {
   fi
 
   local MANIFEST; MANIFEST="$(extract_manifest "$VERIFY")"
-  [ -n "${MANIFEST//[[:space:]]/}" ] || die2 "no fenced json manifest block in $VERIFY"
+  # case glob, not `printf | grep -q`: grep -q exits early, printf takes
+  # SIGPIPE (141), pipefail makes it the pipeline status, valid manifest
+  # rejected as empty. Linear, no subprocess.
+  case "$MANIFEST" in *[![:space:]]*) ;; *) die2 "no fenced json manifest block in $VERIFY" ;; esac
   echo "$MANIFEST" | jq -e . >/dev/null 2>&1 || die2 "manifest json does not parse"
 
   local SLUG SHA MANIFEST_CWD
@@ -352,6 +421,20 @@ cmd_run() {
   # specifically CANNOT run from the repo root when two @playwright/test
   # versions resolve, so this is not fixable by path-prefixing the checks.
   MANIFEST_CWD="$(echo "$MANIFEST" | jq -r '.cwd // ""')"
+  # S010 (origin: B1 gate run 2, 2026-08-22): the B1 manifest's `cwd` is the
+  # absolute path of the main checkout, authored during planning before the
+  # implementation worktree existed. The b1 code lives in the worktree, so a
+  # gate run from the manifest cwd collects the MAIN tree's test population,
+  # which carries none of the b1 titles: 116 rows graded zero_tests_ran against
+  # the wrong tree and every file-scoped check exited "No test files found".
+  # The manifest is sha256-blessed, so the operator gets the same pointer
+  # pattern CFN_VERIFY_DATABASE_URL already uses: CFN_VERIFY_CWD overrides the
+  # manifest-global cwd. Per-AC `cwd` still wins over both, and the sha256
+  # integrity check above still pins the manifest bytes.
+  if [ -n "${CFN_VERIFY_CWD:-}" ]; then
+    MANIFEST_CWD="$CFN_VERIFY_CWD"
+    echo "note: CFN_VERIFY_CWD set, manifest cwd overridden to $MANIFEST_CWD" >&2
+  fi
 
   # optional --only filter
   local only_filter=""
@@ -481,7 +564,14 @@ cmd_run() {
               # disabled guard. Judge on passed/failed instead of skipped.
               # todo>0 is excluded above on purpose: a `.todo(` placeholder is
               # never selector-induced, so it keeps failing under S002.
-              if [ "$PTS_PASS" -eq 0 ]; then
+              # S012 (origin: B4 exit gate 5E.0, 2026-08-24): the zero_tests_ran
+              # arm used to fire on PASS==0 alone, so a name-filtered run whose
+              # ONE matched test FAILED (0 passed, 1 failed, rest skipped)
+              # mislabeled as "selector matched no test". A failing match is
+              # evidence the selector works: require FAIL==0 too before calling
+              # the selector dead, and let the failed>0 arm below report
+              # runner_failed with the real counts.
+              if [ "$PTS_PASS" -eq 0 ] && [ "$PTS_FAIL" -eq 0 ]; then
                 pass_val="false"
                 reason="zero_tests_ran: name-filtered run matched no test (0 passed, $PTS_SKIP skipped of $PTS_COLLECTED collected, runner=$PTS_RUNNER) — the selector in this check proves nothing. Fix the check, not the feature."
                 echo "  [$acid] zero_tests_ran (name filter matched 0 of $PTS_COLLECTED, runner=$PTS_RUNNER)" >&2
@@ -675,7 +765,7 @@ cmd_backfill() {
 
   local manifest
   manifest="$(extract_manifest "$VERIFY")"
-  [ -n "${manifest//[[:space:]]/}" ] || die2 "no fenced json manifest block in $VERIFY"
+  case "$manifest" in *[![:space:]]*) ;; *) die2 "no fenced json manifest block in $VERIFY" ;; esac
   echo "$manifest" | jq -e . >/dev/null 2>&1 || die2 "manifest json does not parse"
 
   # The manifest goes to jq through a FILE, not --argjson. A manifest with ~140

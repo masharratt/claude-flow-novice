@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-09-04 (brief-budget guard added to spawn hook: warn >4096B, megaplan brief-budget rules) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-09-04 (verify gate hardening: monorepo summary sums, prelude-aware check classification, linear manifest emptiness tests; PLAN megaplan_fast done AC1-6) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 

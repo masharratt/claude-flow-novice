@@ -1,6 +1,6 @@
 # PLAN: cfn-megaplan-fast (program-mode, capped, static-bar planning)
 
-**Date:** 2026-08-19  **Status:** draft, awaiting approval  **Owner:** masha
+**Date:** 2026-08-19  **Status:** done — built + verified (AC1-6 bless#, AC7 deferred to first real-program run)  **Owner:** masha
 **Why:** one 7-part megaplan program consumed ~10M output tokens / 1.57B cache-read (42% of weekly budget) and is still in flight. Evidence: `planning/cfn_megaplan_fast/cost/report.md` (session `3c5e9658`, 108 spawns + 48 nested).
 
 ## 0. Goal
