@@ -122,9 +122,15 @@ if [ -n "$task" ]; then
   task_part="\033[36m» ${task}\033[0m"
 fi
 
+# --- Session id (first 8 chars; address for cross-session SendMessage) ---
+sid_part=""
+if [ -n "$session_id" ]; then
+  sid_part="\033[2m${session_id:0:8}\033[0m"
+fi
+
 # --- Assemble ---
 # Line 1: current task (the work).
-# Line 2: provider, model, branch, diff/dur/wt, context % (the environment).
+# Line 2: provider, model, branch, diff/dur/wt, context %, session id (the environment).
 line1="$task_part"
 
 line2="$ctx_part"
@@ -134,6 +140,7 @@ line2="$ctx_part"
 [ -n "$diff_part" ] && line2="${line2:+$line2  }${diff_part}"
 [ -n "$dur_part" ] && line2="${line2:+$line2  }${dur_part}"
 [ -n "$wt_part" ] && line2="${line2:+$line2  }${wt_part}"
+[ -n "$sid_part" ] && line2="${line2:+$line2  }${sid_part}"
 
 parts="$line1"
 [ -n "$line2" ] && parts="${parts:+$parts\n}${line2}"
