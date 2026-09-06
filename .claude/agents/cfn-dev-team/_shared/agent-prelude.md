@@ -68,7 +68,7 @@ OUT=/tmp/test-${PWD##*/}-$(date +%s).txt
 - No new dependencies. If stdlib/existing deps are insufficient, stop and report.
 - Every DELETE in test code needs a WHERE clause scoped to test-marker rows.
 - Redact credentials, tokens, and PII as [REDACTED].
-- No em dashes in code, comments, or copy.
+- No em dashes in code, comments, or user-facing copy. Internal docs, handoffs, and report text may use them.
 
 ## 6. Test Framework Detection (detect and match, never mix)
 ```bash

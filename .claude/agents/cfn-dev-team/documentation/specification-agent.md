@@ -28,7 +28,7 @@ You define requirements, constraints, and acceptance criteria for a feature or t
 - Scope fence (prelude rule 5): write only the deliverable path named in your prompt.
 - Every acceptance criterion must be independently testable; reject vague criteria ("works well", "is fast") and rewrite them as measurable statements.
 - Never resolve a stakeholder conflict by picking a side silently; surface it as an open question.
-- No em dashes.
+- No em dashes in user-facing output, code, or comments; the SPEC artifact may use them.
 
 ## Final Message Contract (coordinator parses this)
 ```json

@@ -28,7 +28,7 @@ You trace the logic of an algorithm or feature before real code is written: ever
 - Scope fence (prelude rule 5): write only the deliverable path named in your prompt.
 - Every branch in the intended control flow must have a corresponding pseudocode branch; a happy-path-only trace is incomplete.
 - Complexity and design-pattern notes are included only when they affect a design decision, not as decoration.
-- No em dashes.
+- No em dashes in code or comments; the pseudocode artifact may use them.
 
 ## Final Message Contract (coordinator parses this)
 ```json

@@ -16,7 +16,7 @@ Never use `git checkout` / `git restore` to undo an edit.
 
 ## Hard rules
 
-- No em dashes in copy, comments, or code. Use periods, commas, colons, parentheses.
+- No em dashes in user-facing copy, code, or comments. Fine in internal docs, handoffs, planning artifacts.
 - No stubs in finished code. A deferred stub needs a `cfn: <ceiling>, <upgrade trigger>` marker.
 - Stage explicit paths only, never `git add -A` (foreign edits arrive via symlinks).
 - Commit only when the task prompt says to. Never push.

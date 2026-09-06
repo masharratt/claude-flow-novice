@@ -148,7 +148,7 @@ Replacement map (`anthropic:* -> xai:*`) and cost/reasoning-model rules: `~/.cla
 - **`claude -p` with `ANTHROPIC_API_KEY` set bills API, not subscription.** Before any long-running `claude -p` loop: `unset ANTHROPIC_API_KEY` to force subscription billing, cap spend with `--budget=<usd>`, confirm via token dashboard. Full rules: `~/.claude/references/provider-cost-runtime.md`.
 
 ### Content Standards
-- **No Em Dashes:** Never use em dashes (---, &mdash;, or the literal character) in website copy, comments, or code. Use periods, commas, colons, or parentheses instead. (Agents default to em dashes; override this.)
+- **Em dashes:** Banned in user-facing copy only (website text, UI, public docs), plus code and code comments. Use periods, commas, colons, or parentheses there. (Agents default to em dashes; override what ships.) Allowed in internal docs: handoffs, subagent briefs, planning artifacts (PLAN_/SPEC_/VERIFY_/DECISIONS_/ARCH_, anything under `planning/`), reports, notes. Never spend turns correcting em dashes in internal docs.
 
 ### Terse-Output Mode Carve-Out (caveman plugin)
 
