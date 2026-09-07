@@ -314,9 +314,19 @@ while [ "$i" -lt "$AC_COUNT" ]; do
     SEL=$(printf '%s' "$SEG" | grep -oE '(^| )-[tg] "[^"]+"' | head -1 | sed -E 's/^ ?-[tg] "//; s/"$//' || true)
     [ -n "$SEL" ] || continue
     # Only accept a real test-file path as the run argument (see note 1).
-    SELFILE=$(printf '%s' "$SEG" | grep -oE '(vitest|jest|playwright)[a-z ]* (run|test) [A-Za-z0-9_/.@-]+\.(spec|test)\.[a-z]+' | head -1 | awk '{print $NF}' || true)
+    # S013 (origin: people-ask-router-engine__B exit gate, 2026-09-07): both
+    # character classes below excluded `[` and `]`, so a Next.js dynamic-route
+    # path segment (apps/internal/app/api/internal/[...path]/__tests__/...)
+    # could never match in full. The regex engine still found a shorter match
+    # starting right after the bracket (__tests__/ask.route.test.ts), which
+    # is not a real path, so the file-existence probe below always failed and
+    # a live, passing check (AC-B-8, confirmed 1 test collected and green by
+    # direct run) was convicted dead_selector at every exit bless. Widening
+    # both classes to admit `[` and `]` is a strict superset: no path that
+    # matched before stops matching, and bracketed segments now resolve.
+    SELFILE=$(printf '%s' "$SEG" | grep -oE '(vitest|jest|playwright)[a-z ]* (run|test) [A-Za-z0-9_/.@\[\]-]+\.(spec|test)\.[a-z]+' | head -1 | awk '{print $NF}' || true)
     if [ -z "$SELFILE" ]; then
-      SELFILE=$(printf '%s' "$SEG" | grep -oE '[A-Za-z0-9_/.-]+\.(spec|test)\.[a-z]+' | head -1 || true)
+      SELFILE=$(printf '%s' "$SEG" | grep -oE '[A-Za-z0-9_/.\[\]-]+\.(spec|test)\.[a-z]+' | head -1 || true)
     fi
     if [ -n "$SELFILE" ] && [ -f "$SELFILE" ]; then
       SELHIT=0
