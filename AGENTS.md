@@ -22,6 +22,8 @@ Never use `git checkout` / `git restore` to undo an edit.
 - Commit only when the task prompt says to. Never push.
 - Never source `.env`. Extract vars singly (`grep '^VAR=' .env | cut -d'=' -f2-`). Redact secrets as `[REDACTED]`.
 - Shell is bash on WSL2 (GNU userland). Invoke helper scripts via `$HOME/.claude/...`, never cwd-relative.
+- This repo sets `core.fileMode=false`: plain `chmod +x` is invisible to the index. New scripts need
+  `git update-index --chmod=+x <file>` plus an `#!/usr/bin/env bash` shebang, or CI exec-bit gates fail.
 - Temp files go in `/tmp/`, never project root.
 
 ## Test output capture

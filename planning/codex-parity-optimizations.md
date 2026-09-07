@@ -1,7 +1,7 @@
 # Codex Parity: Claude-Side Optimizations and Their Codex Equivalents
 
-**Date:** 2026-09-07 (night session)
-**Status:** Proposed. Drafts below are ready to apply; nothing applied yet.
+**Date:** 2026-09-07 (night session; applied + verified same day on user go-ahead)
+**Status:** Applied. G1-G4 live (global AGENTS.md, repo AGENTS.md exec-bit rule, 2 agent roles, config.toml + astra.config.toml). Findings in "Applied-state findings".
 **Context:** codex-cli upgraded to 0.153.4. `gpt-6-astra` verified live via `codex exec` (read-only smoke test returned `ASTRA-OK`, 7.8k tokens). Billing is subscription, so per-token cost is a non-issue; rate limits and context loading are the real constraints.
 
 ## Parity map — what exists on each side
@@ -47,20 +47,25 @@ Included in Appendix D. Affects interactive approval prompts; MCP/exec calls set
 - **CFN skills port**: codex now has native `~/.codex/skills/`, but CFN skills are bash orchestration built around Claude hooks; revisit only if a specific skill is needed codex-side.
 - **Night-mode guard port**: cannot hook `codex exec` from Claude side; covered textually by global AGENTS.md hard rules + sandbox discipline (read-only default, workspace-write only for fully specified implementation — unchanged from the Astra change list).
 
-## Verification items
+## Verification results (2026-09-07, applied + tested)
 
-1. `models_cache.json` still lists 8 slugs with no astra (cache fetched by client 0.151.0 metadata) — yet the live call worked. Cache display is stale/cosmetic; ignore unless a call fails.
-2. Bubblewrap warning on first exec: codex used its bundled copy. Install `bubblewrap` via apt to silence and use system sandbox.
-3. Subagent model pinning (G3 caveat): after applying, run one `spawn` and check the session log shows the intended model. If V2 still drops pins, keep pins at CLI level only.
-4. `codex mcp-server` deprecation watch: 0.153.4 still ships it (MCP delegation worked through the smoke test path? — not retested this session; re-verify the MCP registration on next use).
+1. ~~models_cache stale~~ — confirmed cosmetic: live `gpt-6-astra` calls work while the cache still omits the slug.
+2. ~~Bubblewrap~~ — installed by user.
+3. Subagent spawn verified in exec mode: `SPAWN-OK`, role `code-reviewer` ran on an empty diff. Rollout JSONL records only parent-model entries (`gpt-5.6-sol`) and no `agent_type` field — V2 pin-drop confirmed in practice. Model pinning stays CLI-level (D5).
+4. `codex mcp-server` — not retested this session; keep the deprecation watch.
 
-## Morning actions (deferred, consistent with 2026-09-06 D1)
+## Applied-state findings (0.153.4 specifics the drafts did not predict)
 
-1. Apply Appendix A → `~/.codex/AGENTS.md` (new file, machine-global).
-2. Apply Appendix D → `~/.codex/config.toml` (merge with existing trust entry, don't clobber it).
-3. Apply Appendix C → `.codex/agents/` in this repo, then verify pinning behavior (Verification item 3).
-4. Optional: Appendix B repo AGENTS.md additions.
-5. `sudo apt install bubblewrap` (system change, needs you).
+1. **Profiles moved out of config.toml.** `[profiles.astra]` there now errors: `legacy ... move those settings into /home/masha/.codex/astra.config.toml`. Per-profile files sit beside config.toml and are selected with `-p <name>`. Appendix D below updated to the new layout.
+2. **Codex persists the last-used model across sessions.** After one `--model gpt-6-astra` exec, a flagless exec came up `model: gpt-6-astra` with no `[profiles]` selector involved. The top-level `model = "gpt-5.6-sol"` pin in config.toml is therefore required for the opt-in contract (D2), not just nice-to-have. Verified: pin restores `gpt-5.6-sol` default; `-p astra` still selects astra at effort `low`.
+
+## Morning actions (all done 2026-09-07)
+
+1. ~~Apply Appendix A~~ → `~/.codex/AGENTS.md` created.
+2. ~~Apply Appendix D~~ → config.toml + `astra.config.toml` (migrated to the new per-profile file format after the legacy-table error).
+3. ~~Apply Appendix C~~ → `.codex/agents/{code-reviewer,root-cause-analyst}.toml`; spawn verified.
+4. ~~Appendix B~~ → applied slimmed: only the `core.fileMode=false` exec-bit rule was genuinely missing; the rest duplicated existing AGENTS.md sections.
+5. ~~bubblewrap~~ → installed by user.
 
 ## Appendix A — `~/.codex/AGENTS.md` draft
 
@@ -156,21 +161,22 @@ No edits, no commits.
 
 (No `model`/`model_reasoning_effort` keys: V2 pinning is unreliable. Pin at spawn: `codex exec -m gpt-5.6-sol -c model_reasoning_effort=high`.)
 
-## Appendix D — `config.toml` draft (merge, keep existing trust entry)
+## Appendix D — `config.toml` draft (APPLIED 2026-09-07, updated to 0.153.x profile format)
 
+`~/.codex/config.toml` (top-level `model` pin must precede all `[tables]`):
 ```toml
-[projects."/home/masha/projects-gg/gg-all-projects"]
-trust_level = "trusted"
+model = "gpt-5.6-sol"
 
-[projects."/home/masha/projects/claude-flow-novice"]
-trust_level = "trusted"
+[projects."..."]        # trust entries incl. claude-flow-novice, fireside-family, gg-all-projects
 
 [agents]
 enabled = true
 max_concurrent_threads_per_session = 4
 default_subagent_model = "gpt-5.6-terra"
+```
 
-[profiles.astra]
+`~/.codex/astra.config.toml` (selected via `codex exec -p astra`; legacy `[profiles.*]` tables in config.toml are rejected by 0.153.x):
+```toml
 model = "gpt-6-astra"
 model_reasoning_effort = "low"
 ```
