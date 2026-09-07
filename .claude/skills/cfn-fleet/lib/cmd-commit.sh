@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # lib/cmd-commit.sh — cfn-fleet `commit`: claim-enforced git commit.
 # Sourced by cli/fleet after lib/common.sh; defines main (router contract).
 #

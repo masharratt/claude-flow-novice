@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cfn-fleet lib/cmd-land.sh — merge/record a workstream as landed.
 #
 # Real-run origin guard class: unclaimed dirty files swept into another

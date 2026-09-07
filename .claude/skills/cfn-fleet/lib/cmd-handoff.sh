@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cfn-fleet lib/cmd-handoff.sh — write handoffs/HANDOFF_WSxx.md for a spare
 # session to read as its brief after the previous session compacted or died
 # (compaction-restart procedure, run e59a7826).

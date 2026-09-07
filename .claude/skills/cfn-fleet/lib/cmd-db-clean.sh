@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cfn-fleet lib/cmd-db-clean.sh — thin alias so the router's literal
 # lib/cmd-<subcommand>.sh mapping reaches the db-clean implementation, which
 # lives in cmd-db.sh (SPEC layout defines no separate db-clean file).

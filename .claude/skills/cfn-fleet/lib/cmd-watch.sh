@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cfn-fleet lib/cmd-watch.sh — roster event scanner for the Monitor tool.
 #
 # Real-run origin: replaces the hand-rolled 16h monitor loop (run e59a7826).

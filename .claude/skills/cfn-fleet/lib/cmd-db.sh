@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cfn-fleet lib/cmd-db.sh — scratch postgres containers per workstream.
 #
 # Real-run origin: junk rehearsal-DB class (run e59a7826). `db WSxx`

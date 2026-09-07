@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/test-cfn-fleet-spawn-watch.sh
 # Phase CLI :: cfn-fleet agent C contract tests — spawn/land/handoff/db/watch
 # (SPEC-cfn-fleet.md, section "C — spawn/land/handoff/db/watch"). Priority 1.

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # cfn-fleet lib/cmd-spawn.sh — launch the worker session(s) for a workstream.
 #
 # Real-run origin: spare sessions back compaction restarts (run e59a7826).

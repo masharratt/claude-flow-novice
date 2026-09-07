@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/test-cfn-fleet-commit.sh
 # Phase CI :: cfn-fleet `commit` + `migrate-next` subcommands (Priority 1)
 # Guards two real incidents from fleet run e59a7826 (gg-all-projects, 2026-09-05):
