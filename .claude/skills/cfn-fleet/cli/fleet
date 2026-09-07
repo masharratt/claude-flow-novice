@@ -31,7 +31,9 @@ Subcommands:
   land WSxx [--no-ff]                           merge/mark landed
   handoff WSxx                                  write HANDOFF_WSxx.md
   db WSxx | db-clean [--all]                    scratch postgres containers
-  watch [--stale-min N] [--poll S] [--once]     monitor loop (Monitor-tool ready)
+  watch [--stale-min N] [--poll S] [--once] [--emit-events]
+                                                monitor loop (Monitor-tool ready);
+                                                --emit-events bridges to cfn-workbench
 
 Exit codes: 0 ok | 64 usage | 65 data error | 66 guard refusal | 71 internal
 EOF

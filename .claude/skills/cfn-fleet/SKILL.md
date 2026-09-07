@@ -64,7 +64,7 @@ done | dead`.
 | `land WSxx [--no-ff]` | Worktree: merge `fleet/<WSxx>` + remove worktree; main: mark landed |
 | `handoff WSxx` | Write `handoffs/HANDOFF_WSxx.md` for compaction restart into a spare |
 | `db WSxx` / `db-clean [--all]` | Scratch postgres containers (only when `FLEET_DB=docker`) |
-| `watch [--stale-min N] [--poll S] [--once]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`ALL-DONE`; Monitor-tool ready |
+| `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`ALL-DONE`; Monitor-tool ready. `--emit-events` also feeds cfn-workbench (below) |
 
 Exit codes: `0` ok, `64` usage, `65` data error (bad WS id, overlap, duplicate),
 `66` guard refusal, `71` internal.
@@ -85,3 +85,30 @@ gives each WS its own checkout under `.claude/worktrees/` and branch
 `fleet/<WSxx>`; claims are still tracked in the shared roster, `fleet land`
 merges back. Per-run settings live only in that run's `fleet.env` — nothing
 global.
+
+## Workbench dashboard (opt-in)
+
+`fleet watch --emit-events` bridges the roster into cfn-workbench's HTML
+progress page. No workbench changes required. Each scan regenerates
+`<run-dir>/run-plan-<slug>.json` (one lane per workstream, id = roster name
+lowercased) and maps transitions onto workbench's event feed:
+
+| Fleet | Workbench event |
+|-------|-----------------|
+| first `--emit-events` scan | `loop_started` (once, marker in run dir) |
+| status → `started` | `lane_spawned --lane <name>` |
+| status → `landed` | `lane_landed --lane <name>` |
+| `ALL-DONE` | `loop_finished` |
+
+STALE/DEAD and non-status changes have no workbench event type — they stay on
+watch stdout. Emitter path overridable via `FLEET_WB_EMIT_EVENT`; a missing
+emitter never fails the watch loop.
+
+Master session recipe:
+
+```bash
+# terminal 1: fleet events (also feeds workbench)
+$HOME/.claude/skills/cfn-fleet/cli/fleet watch --emit-events
+# terminal 2: live HTML dashboard (roster cards, timeline, events)
+$HOME/.claude/skills/cfn-workbench/render.sh --slug fleet-<slug> --root <project>
+```

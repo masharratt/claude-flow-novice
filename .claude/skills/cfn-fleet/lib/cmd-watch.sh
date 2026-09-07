@@ -6,7 +6,7 @@
 # field values persist in <run-dir>/.watch.state, so consecutive --once scans
 # (and loop polls) diff against the previous scan.
 #
-#   fleet watch [--stale-min 15] [--poll 60] [--once]
+#   fleet watch [--stale-min 15] [--poll 60] [--once] [--emit-events]
 #
 # Events (one line each):
 #   CHANGE <ws> <field>   field value differs from the previous scan (first
@@ -15,8 +15,64 @@
 #                         started|working
 #   DEAD <ws>             status = dead
 #   ALL-DONE              every row landed|done -> exits 0 (ends the loop)
+#
+# --emit-events (opt-in) bridges to cfn-workbench: roster status transitions
+# map onto its closed event set (loop_started / lane_spawned / lane_landed /
+# loop_finished) and <run-dir>/run-plan-<slug>.json is regenerated each scan
+# so workbench's roster section renders one card per workstream. STALE, DEAD
+# and non-status CHANGE lines have no workbench event type: stdout only.
 
 FLEET_WATCH_STATE=""
+FLEET_WATCH_EMIT=0
+FLEET_WB_SLUG=""
+
+# _fleet_wb_emit EVENT LANE DETAIL — append to the workbench events feed.
+# Never fails the watch loop (emit-event contract: caller wraps || true).
+# Override the target with FLEET_WB_EMIT_EVENT (tests / relocated skills).
+_fleet_wb_emit() {
+  local ev="$1" lane="$2" detail="$3"
+  local emit="${FLEET_WB_EMIT_EVENT:-$HOME/.claude/skills/cfn-workbench/emit-event.sh}"
+  [ -x "$emit" ] || return 0
+  local -a args=(--slug "$FLEET_WB_SLUG" --event "$ev")
+  [ -n "$lane" ] && args+=(--lane "$lane")
+  [ -n "$detail" ] && args+=(--detail "$detail")
+  "$emit" "${args[@]}" || true
+}
+
+# _fleet_lane_id WS — workbench lane id for a workstream: roster name
+# (default: lowercased ws id), lowercased, spaces folded to underscores.
+# Must match the run-plan lanes[].id this scan writes.
+_fleet_lane_id() {
+  local name
+  name=$(roster_get "$1" name 2>/dev/null || printf '%s' "$1")
+  [ -n "$name" ] || name="$1"
+  printf '%s' "${name,,}" | tr ' ' '_'
+}
+
+# _fleet_runplan_write — regenerate <run-dir>/run-plan-<slug>.json from the
+# roster. Idempotent; workbench's roster section (lib/section-roster.sh)
+# reads exactly this shape. jq is a workbench dependency, so anyone running
+# the bridge has it; without jq we warn once per scan and carry on.
+_fleet_runplan_write() {
+  command -v jq >/dev/null 2>&1 \
+    || { echo "fleet watch: jq not found; run-plan not refreshed" >&2; return 0; }
+  local roster out lanes_json
+  roster=$(fleet_roster_file)
+  out="$(fleet_run_dir)/run-plan-$FLEET_WB_SLUG.json"
+  lanes_json=$(tail -n +2 "$roster" | jq -R -s '
+    split("\n") | map(select(length > 0) | split("\t"))
+    | map({ id:   (if .[1] == "" then .[0] else .[1] end | ascii_downcase | gsub(" "; "_")),
+            name: .[2],
+            phase: "Fleet" })')
+  if ! jq -n --arg slug "$FLEET_WB_SLUG" --argjson lanes "$lanes_json" \
+        '{slug: $slug, generated_at: (now | todate), phases: ["Fleet"], lanes: $lanes}' \
+        > "$out.new" 2>/dev/null; then
+    echo "fleet watch: run-plan render failed" >&2
+    rm -f "$out.new"
+    return 0
+  fi
+  mv "$out.new" "$out"
+}
 
 main() {
   local stale_min=15 poll=60 once=0
@@ -29,6 +85,7 @@ main() {
         [ $# -ge 2 ] || fleet_die 64 "watch: --poll needs seconds"
         poll="$2"; shift 2 ;;
       --once) once=1; shift ;;
+      --emit-events) FLEET_WATCH_EMIT=1; shift ;;
       -*)     fleet_die 64 "watch: unknown option $1" ;;
       *)      fleet_die 64 "watch: unexpected argument $1" ;;
     esac
@@ -38,6 +95,7 @@ main() {
 
   local run_dir
   run_dir=$(fleet_run_dir)
+  FLEET_WB_SLUG="$(basename "$run_dir")"
   FLEET_WATCH_STATE="$run_dir/.watch.state"
   local roster
   roster=$(fleet_roster_file)
@@ -85,7 +143,7 @@ _fleet_watch_scan() {
   fields=("${_FIELDS[@]}")
 
   local -A cur=()
-  local -a row_events=() change_events=()
+  local -a row_events=() change_events=() wb_transitions=()
   local row lines=0 alldone=1 i status hb age_min
   while IFS= read -r row || [ -n "$row" ]; do
     [ -n "$row" ] || continue
@@ -109,6 +167,9 @@ _fleet_watch_scan() {
         else
           change_events+=("CHANGE $ws ${fields[$i]}")   # new row since last scan
         fi
+        # Workbench bridge piggybacks on the same diff: record the NEW status
+        # so the emit pass can map started->lane_spawned, landed->lane_landed.
+        [ "${fields[$i]}" = "status" ] && wb_transitions+=("$ws|$val")
       fi
     done
 
@@ -136,6 +197,26 @@ _fleet_watch_scan() {
     echo "$e"
   done
 
+  # Workbench bridge (--emit-events): refresh the run-plan, anchor the
+  # timeline with one loop_started, then translate status transitions.
+  if [ "$FLEET_WATCH_EMIT" -eq 1 ]; then
+    _fleet_runplan_write
+    local started_marker="$FLEET_WATCH_STATE.wb-started"
+    if [ ! -f "$started_marker" ]; then
+      _fleet_wb_emit loop_started "" "fleet run" && : > "$started_marker"
+    fi
+    local t ws st
+    for t in "${wb_transitions[@]}"; do
+      ws="${t%%|*}"
+      st="${t##*|}"
+      case "$st" in
+        started) _fleet_wb_emit lane_spawned "$(_fleet_lane_id "$ws")" "" ;;
+        landed)  _fleet_wb_emit lane_landed  "$(_fleet_lane_id "$ws")" "" ;;
+        *)       : ;;   # pending/working/blocked/done/dead: no workbench type
+      esac
+    done
+  fi
+
   # Persist the snapshot for the next scan's diff (atomic tmp+mv).
   {
     for key in "${!cur[@]}"; do
@@ -145,6 +226,7 @@ _fleet_watch_scan() {
 
   if [ "$lines" -gt 0 ] && [ "$alldone" -eq 1 ]; then
     echo "ALL-DONE"
+    [ "$FLEET_WATCH_EMIT" -eq 1 ] && _fleet_wb_emit loop_finished "" "all workstreams landed/done"
     exit 0
   fi
   return 0
