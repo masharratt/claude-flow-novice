@@ -28,6 +28,7 @@ Entity lifecycle documentation for stateful CFN systems.
 - [Test Hygiene Gate (check-test-hygiene.sh, S001, 2026-07-11)](#test-hygiene-gate-check-test-hygienesh-s001-2026-07-11)
 - [Role Capability Outcome (cfn-persona-verify)](#role-capability-outcome-cfn-persona-verify)
 - [Role Verification Finding (cfn-persona-verify schema audit)](#role-verification-finding-cfn-persona-verify-schema-audit)
+- [Fleet Workstream (cfn-fleet roster.tsv)](#fleet-workstream-cfn-fleet-rostertsv)
 - [Wireframe Gate (cfn-megaplan L5→L6 barrier)](#wireframe-gate-cfn-megaplan-l5l6-barrier)
 - [Implementation Wave (cfn-loop-task LANE DERIVATION)](#implementation-wave-cfn-loop-task-lane-derivation)
 - [Loop Pre-Flight Readiness (preflight.sh)](#loop-pre-flight-readiness-preflightsh)
@@ -1067,5 +1068,45 @@ goes off.
      │ the batch; marker removed)                    │ (guard: morning report rendered;
      │                                               ▼  marker written if needed)
      └──────────────────────────────────  off-pending-review
+```
+
+---
+
+## Fleet Workstream (cfn-fleet roster.tsv)
+
+**Source:** `<run-dir>/roster.tsv` `status` column, written by `fleet add/spawn/commit/land` (`.claude/skills/cfn-fleet/lib/common.sh` `roster_set`); `working/blocked/done/dead` are set by direct roster edit or `roster_set` (no dedicated subcommand).
+
+### States
+
+| State | Meaning |
+|-------|---------|
+| `pending` | Registered by `fleet add`; no session spawned yet. |
+| `started` | `fleet spawn` launched the worker session (heartbeat seeded). |
+| `working` | Worker active: heartbeats fresh, claims registered. |
+| `blocked` | Worker reported a blocker; master must resolve or reassign. |
+| `landed` | `fleet commit`/`fleet land` succeeded; `landed_sha` recorded. |
+| `done` | Master confirmed the run; terminal success. |
+| `dead` | Session hung, killed, or compacted without handoff; terminal failure. |
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| `pending` | `started` | `fleet spawn WSxx` | `briefs/WSxx.md` exists (else 65) |
+| `started` | `working` | direct roster edit (worker picks up task) | claims registered |
+| `working` | `blocked` | direct roster edit (blocker note in `notes`) | note carries block reason |
+| `blocked` | `working` | direct roster edit (blocker resolved) | |
+| `working` | `landed` | `fleet commit WSxx` | no unclaimed dirty files (else 66; `--force-with-note` overrides, stages claimed only) |
+| `working` | `landed` | `fleet land WSxx` | worktree mode: branch merged + worktree clean; main mode: unclaimed-dirty guard |
+| `landed` | `done` | direct roster edit (master closes run) | |
+| `started`/`working` | `dead` | `fleet watch` STALE event or manual edit | heartbeat older than `--stale-min` |
+
+```
+ pending ──spawn──> started ──edit──> working <──edit──> blocked
+                                       │
+                          commit/land  │  (guards: unclaimed-dirty 66,
+                                       ▼   worktree clean)
+                                    landed ──edit──> done
+ started/working ──watch STALE──> dead
 ```
 

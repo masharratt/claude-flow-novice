@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# cfn-fleet thin router: fleet <subcommand> [args]
+#
+# Contract (planning/SPEC-cfn-fleet.md): source lib/common.sh, then
+# lib/cmd-<subcommand>.sh must exist and define main(). Missing cmd file =
+# unknown subcommand (usage to stderr, exit 64). Exit codes: 0 ok, 64 usage,
+# 65 data error, 66 guard refusal, 71 internal.
+set -euo pipefail
+
+# Skill root = parent of the cli/ dir this script lives in
+SKILL_DIR="$(cd "$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")" && pwd)"
+
+usage(){
+  cat >&2 <<'EOF'
+Usage: fleet <subcommand> [args]
+
+Run-dir selection (first match wins):
+  --run-dir PATH          global flag, allowed anywhere in the args
+  $FLEET_RUN_DIR          env override
+  nearest planning/fleet-* walking up from cwd (newest per level)
+
+Subcommands:
+  init <slug> [--worktree] [--db none|docker]   scaffold planning/fleet-<slug>
+  add WSxx "task" [--name s] [--claims p1,p2]   register a workstream
+  status [--tsv]                                roster table
+  claim WSxx <path...>                          register file ownership
+  heartbeat WSxx [note...]                      liveness + latest note
+  commit WSxx -m <msg>                          guarded commit (claims-only staging)
+  migrate-next WSxx <dir>                       reserve next migration number
+  spawn WSxx [--spares N] [--no-tmux] [--dry-run]
+  land WSxx [--no-ff]                           merge/mark landed
+  handoff WSxx                                  write HANDOFF_WSxx.md
+  db WSxx | db-clean [--all]                    scratch postgres containers
+  watch [--stale-min N] [--poll S] [--once]     monitor loop (Monitor-tool ready)
+
+Exit codes: 0 ok | 64 usage | 65 data error | 66 guard refusal | 71 internal
+EOF
+}
+
+# Global --run-dir (before or after the subcommand) exports FLEET_RUN_DIR so
+# lib/common.sh's fleet_run_dir picks it up first.
+ARGS=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --run-dir=*)
+      FLEET_RUN_DIR="${1#--run-dir=}"; export FLEET_RUN_DIR; shift;;
+    --run-dir)
+      [ $# -ge 2 ] || { usage; exit 64; }
+      FLEET_RUN_DIR="$2"; export FLEET_RUN_DIR; shift 2;;
+    *)
+      ARGS+=("$1"); shift;;
+  esac
+done
+set -- ${ARGS[@]+"${ARGS[@]}"}
+
+SUB="${1:-}"
+if [ -z "$SUB" ]; then
+  usage
+  exit 64
+fi
+# Restrict to safe chars before it can reach a file path below.
+[[ "$SUB" =~ ^[a-z0-9][a-z0-9-]*$ ]] || { usage; exit 64; }
+
+# Shared contract: run-dir resolution, roster read/write, env, fleet_die.
+# shellcheck source=../lib/common.sh
+source "$SKILL_DIR/lib/common.sh"
+
+CMD_FILE="$SKILL_DIR/lib/cmd-$SUB.sh"
+if [ ! -f "$CMD_FILE" ]; then
+  usage
+  fleet_die 64 "unknown subcommand: $SUB"
+fi
+# shellcheck source=/dev/null
+source "$CMD_FILE"
+declare -F main >/dev/null 2>&1 \
+  || fleet_die 71 "lib/cmd-$SUB.sh does not define main()"
+
+shift
+main "$@"
