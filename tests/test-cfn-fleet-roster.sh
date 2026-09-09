@@ -65,15 +65,17 @@ test_init_scaffold_and_duplicate_refusal(){
     [ -e "$RD/$f" ] && ok "scaffolded $f" || no "missing scaffold file $f"
   done
 
-  # roster: header only, 10 tab-separated columns, canonical names
+  # roster: header only, 11 tab-separated columns, canonical names (engine appended)
   [ "$(wc -l < "$RD/roster.tsv")" -eq 1 ] && ok "roster header-only" \
     || no "roster has $(wc -l < "$RD/roster.tsv") lines, want 1"
   local hdr
   hdr=$(head -n1 "$RD/roster.tsv")
-  [ "$(printf '%s\n' "$hdr" | awk -F'\t' '{print NF}')" -eq 10 ] \
-    && ok "header has 10 tab fields" || no "header fields: '$hdr'"
-  [ "$(printf '%s\n' "$hdr" | awk -F'\t' '{print $1":"$4":"$9":"$10}')" = "ws_id:status:heartbeat:notes" ] \
+  [ "$(printf '%s\n' "$hdr" | awk -F'\t' '{print NF}')" -eq 11 ] \
+    && ok "header has 11 tab fields" || no "header fields: '$hdr'"
+  [ "$(printf '%s\n' "$hdr" | awk -F'\t' '{print $1":"$4":"$9":"$10":"$11}')" = "ws_id:status:heartbeat:notes:engine" ] \
     && ok "header column names" || no "header names: '$hdr'"
+  [ -f "$RD/engines.env" ] && ok "init installs engines.env registry copy" \
+    || no "engines.env missing from run dir"
 
   grep -q '^FLEET_WORKTREE=off$' "$RD/fleet.env" && ok "default FLEET_WORKTREE=off" || no "fleet.env worktree default"
   grep -q '^FLEET_DB=none$'      "$RD/fleet.env" && ok "default FLEET_DB=none"      || no "fleet.env db default"
@@ -243,32 +245,35 @@ test_status_table_and_tsv(){
   printf '%s\n' "$line" | grep -qF "$p41" && no "task column leaked past 40 chars" \
     || ok "no chars beyond 40 in task column"
 
-  # claims count + heartbeat age parsed from row tail (task has spaces, so use NF)
+  # claims count + heartbeat age parsed from row tail (task has spaces, so use
+  # NF; engine column sits last, age second-to-last)
   line=$(printf '%s\n' "$OUT" | grep "^WS01")
-  [ "$(printf '%s\n' "$line" | awk '{print $(NF-1)}')" = "2" ] && ok "#claims column counted" \
+  [ "$(printf '%s\n' "$line" | awk '{print $(NF-2)}')" = "2" ] && ok "#claims column counted" \
     || no "#claims: '$line'"
-  [ "$(printf '%s\n' "$line" | awk '{print $NF}')" = "-" ] && ok "zero heartbeat renders '-'" \
+  [ "$(printf '%s\n' "$line" | awk '{print $(NF-1)}')" = "-" ] && ok "zero heartbeat renders '-'" \
     || no "age for hb=0: '$line'"
+  [ "$(printf '%s\n' "$line" | awk '{print $NF}')" = "claude-sub" ] && ok "default engine rendered" \
+    || no "engine col: '$line'"
 
   log_step "WHEN heartbeat then status, THEN age renders as seconds"
   run_fleet "$P" heartbeat WS01
   run_fleet "$P" status
   local age
-  age=$(printf '%s\n' "$OUT" | awk '$1=="WS01"{print $NF}')
+  age=$(printf '%s\n' "$OUT" | awk '$1=="WS01"{print $(NF-1)}')
   if [ -n "$age" ] && [ "$age" != "-" ] && [ "$age" -ge 0 ] 2>/dev/null; then
     ok "heartbeat age rendered numerically ($age)"
   else
     no "age after heartbeat: '$age'"
   fi
 
-  log_step "WHEN status --tsv, THEN raw 10-field TSV rows"
+  log_step "WHEN status --tsv, THEN raw 11-field TSV rows"
   run_fleet "$P" status --tsv
   [ "$RC" -eq 0 ] && ok "status --tsv exits 0" || no "tsv rc=$RC"
-  [ "$(printf '%s\n' "$OUT" | awk -F'\t' 'NR>1{print NF}' | sort -u)" = "10" ] \
-    && ok "tsv rows have 10 tab fields" || no "tsv field counts: $(printf '%s\n' "$OUT" | awk -F'\t' 'NR>1{print NF}' | sort -u | tr '\n' ' ')"
+  [ "$(printf '%s\n' "$OUT" | awk -F'\t' 'NR>1{print NF}' | sort -u)" = "11" ] \
+    && ok "tsv rows have 11 tab fields" || no "tsv field counts: $(printf '%s\n' "$OUT" | awk -F'\t' 'NR>1{print NF}' | sort -u | tr '\n' ' ')"
   [ "$(printf '%s\n' "$OUT" | awk -F'\t' '$1=="WS02"{print $3}')" = "$long" ] \
     && ok "tsv shows untruncated task" || no "tsv task mangled"
-  printf '%s\n' "$OUT" | awk -F'\t' 'NR==1{exit ($1=="ws_id" && NF==10)?0:1}' \
+  printf '%s\n' "$OUT" | awk -F'\t' 'NR==1{exit ($1=="ws_id" && NF==11)?0:1}' \
     && ok "tsv includes header" || no "tsv header missing"
 
   log_step "GIVEN empty roster, WHEN status, THEN header only + exit 0"

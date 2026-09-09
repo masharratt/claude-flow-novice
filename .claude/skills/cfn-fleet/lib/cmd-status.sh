@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # fleet status [--tsv]
 # Human table: ws_id, status, task (truncated to 40 chars), #claims, heartbeat
-# age in seconds ('-' when the workstream never heartbeated). --tsv emits the
-# raw roster (header + rows) for parsing.
+# age in seconds ('-' when the workstream never heartbeated), engine (compact,
+# right side; '-' when the row predates the engine column and no default is
+# configured). --tsv emits the raw roster (header + rows) for parsing.
 main(){
   local tsv=0
   case "${1:-}" in
@@ -21,13 +22,18 @@ main(){
     return 0
   fi
 
-  local now
+  local now engdef
   now=$(date +%s)
-  printf '%-6s  %-8s  %-40s  %6s  %6s\n' "ws_id" "status" "task" "#claims" "age"
+  # display fallback mirrors fleet_ws_engine: empty/absent engine cell ->
+  # FLEET_DEFAULT_ENGINE -> claude-sub (fleet.env key read once, may be empty)
+  engdef=$(fleet_engine_default)
+  printf '%-6s  %-8s  %-40s  %6s  %6s  %-10.10s\n' "ws_id" "status" "task" "#claims" "age" "engine"
 
   # awk, not `IFS=$'\t' read`: read collapses consecutive tabs, which would
-  # shift every empty cell into its left neighbor (e.g. claims <- "0")
-  awk -F'\t' -v now="$now" '
+  # shift every empty cell into its left neighbor (e.g. claims <- "0").
+  # Column indexes 1-10 are stable (engine was APPENDED as col 11); a
+  # pre-engine roster has NF=10, so the engine cell is guarded by NF.
+  awk -F'\t' -v now="$now" -v engdef="$engdef" '
     NR == 1 { next }
     {
       nclaims = split($5, a, " ")
@@ -37,6 +43,7 @@ main(){
       } else {
         age = "-"
       }
-      printf "%-6s  %-8s  %-40s  %6s  %6s\n", $1, $4, substr($3, 1, 40), nclaims, age
+      eng = (NF >= 11 && $11 != "") ? $11 : (engdef != "" ? engdef : "-")
+      printf "%-6s  %-8s  %-40s  %6s  %6s  %-10.10s\n", $1, $4, substr($3, 1, 40), nclaims, age, eng
     }' "$f"
 }

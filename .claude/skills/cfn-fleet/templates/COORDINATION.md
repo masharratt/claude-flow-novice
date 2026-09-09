@@ -44,6 +44,28 @@ Never pick a migration number by eye. Reserve with `fleet migrate-next WSxx
 `pending | started | working | blocked | landed | done | dead` — one token, no
 invented states. The master is the only session that sets `landed`/`done`/`dead`.
 
+## Engines
+
+Workers on this run may be a mix of engines (`claude-sub`, `glm`, `codex`); the
+roster's `engine` column records which. The protocol above is bash plus files,
+so it is engine-neutral: every worker, whatever it runs, claims through the
+same roster, commits through `fleet commit`, and heartbeats the same way.
+Spawn verifies each pane's engine banner before the row reaches `started`, so a
+worker on the wrong model never enters this fleet silently. Do not assume
+cross-engine messaging: `codex` workers have no inbound channel at all, and
+`glm`/`codex` panes are not Claude sessions, so anything you would say to a
+worker goes through the roster files or the master, never through
+session-to-session messaging.
+
+**Data-access rule for third-party engines (`glm`):** glm workers may write and
+edit code that targets Airtable, Attio, or the project database, but must NOT
+access those systems live — no API requests, no migrations, no db-query, no
+curl/psql/fetch against them. Their panes are launched without data-system
+credentials (see the `unset` list in `engines.env`). Live access and
+verification belong to a `claude-sub` workstream or the master. If the target
+project's CLAUDE.md/AGENTS.md carries its own engine data-access rule, that
+rule applies in full.
+
 ## Monitoring
 
 `fleet watch` emits one event line per change (CHANGE / STALE / DEAD / ALL-DONE)

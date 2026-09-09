@@ -36,6 +36,10 @@ main(){
   cp "$tmpl/RUNBOOK.md" "$base/RUNBOOK.md"
   cp "$tmpl/BRIEF_WS.md" "$base/briefs/BRIEF_WS.md"
   cp "$tmpl/HANDOFF_WS.md" "$base/handoffs/HANDOFF_WS.md"
+  # engines.env: run-dir copy of the registry (spawn resolves engines here;
+  # refuses to overwrite, idempotent-safe — see lib/engines.sh). Pinned to
+  # $base: discovery-by-mtime could pick a sibling run dir at init time.
+  ( FLEET_RUN_DIR="$base" fleet_engines_install ) >/dev/null
   printf '%s\n' "$FLEET_ROSTER_HEADER" > "$base/roster.tsv"
   printf 'FLEET_WORKTREE=%s\nFLEET_DB=%s\n' "$worktree" "$db" > "$base/fleet.env"
   : > "$base/.roster.lock"

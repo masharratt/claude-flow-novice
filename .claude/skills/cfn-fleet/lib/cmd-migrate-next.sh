@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # lib/cmd-migrate-next.sh — cfn-fleet `migrate-next`: migration number
 # allocation under one flock. Sourced by cli/fleet after lib/common.sh;
 # defines main (router contract).

@@ -14,6 +14,14 @@
 #   STALE <ws> <minutes>  heartbeat older than stale-min AND status
 #                         started|working
 #   DEAD <ws>             status = dead
+#   DEAD <ws> (pane exited)
+#                         roster name's tmux session is gone while status is
+#                         started|working: spawn execs the engine, so the pane
+#                         dies with it, and a missing session means the worker
+#                         is gone even on a fresh heartbeat. Probed on the
+#                         run's dedicated socket (FLEET_TMUX_SOCKET, default
+#                         fleet-<slug>); tmux absent or server down is
+#                         tooling, never a false DEAD.
 #   ALL-DONE              every row landed|done -> exits 0 (ends the loop)
 #
 # --emit-events (opt-in) bridges to cfn-workbench: roster status transitions
@@ -120,6 +128,37 @@ _fleet_tsv_split() {
   read -r -a _FIELDS <<< "$(printf '%s' "$1" | tr '\t' '\037')"
 }
 
+# _fleet_watch_socket: the run's dedicated tmux socket. FLEET_TMUX_SOCKET
+# from fleet.env, else fleet-<slug> from the run dir basename. Must match
+# cmd-spawn.sh:_fleet_spawn_socket (duplicated here so watch does not source
+# spawn; change both together).
+_fleet_watch_socket(){
+  local sock
+  sock=$(fleet_env_get FLEET_TMUX_SOCKET)
+  if [ -z "$sock" ]; then
+    sock=$(basename "$(fleet_run_dir)")
+    sock="fleet-${sock#fleet-}"
+    sock="${sock//[^A-Za-z0-9_.-]/-}"
+  fi
+  printf '%s\n' "$sock"
+}
+
+# _fleet_watch_pane_alive SOCKET SESSION: 0 while the session exists on the
+# run's socket, 1 once it is gone (spawn's exec makes the pane die with the
+# engine, so tmux answers rc 1 "can't find session"). rc 1 alongside tmux's
+# "no server running" / "error connecting" text is TOOLING, not a dead
+# worker: it reports 0 so an absent tmux server can never manufacture a
+# false DEAD.
+_fleet_watch_pane_alive(){
+  local err rc=0
+  err=$(tmux -L "$1" has-session -t "$2" 2>&1) || rc=$?
+  [ "$rc" -eq 0 ] && return 0
+  case "$err" in
+    *"no server running"*|*"error connecting"*) return 0 ;;
+  esac
+  return 1
+}
+
 # _fleet_watch_scan ROSTER STALE_MIN — one scan. Order: STALE/DEAD per roster
 # row, then CHANGE lines, then ALL-DONE (exit 0). Always returns 0 otherwise.
 _fleet_watch_scan() {
@@ -145,6 +184,13 @@ _fleet_watch_scan() {
   local -A cur=()
   local -a row_events=() change_events=() wb_transitions=()
   local row lines=0 alldone=1 i status hb age_min
+  # Dead-pane probe needs tmux and the run's socket; skip the whole check
+  # silently when the binary is missing (tooling absence is never a DEAD).
+  local tmux_ok=0 sock=""
+  if command -v tmux >/dev/null 2>&1; then
+    tmux_ok=1
+    sock=$(_fleet_watch_socket)
+  fi
   while IFS= read -r row || [ -n "$row" ]; do
     [ -n "$row" ] || continue
     lines=$((lines + 1))
@@ -153,6 +199,7 @@ _fleet_watch_scan() {
     local ws="${cells[0]}"
     status=""
     hb="0"
+    local name_val=""
     for i in "${!fields[@]}"; do
       val="${cells[$i]:-}"
       key="$ws|${fields[$i]}"
@@ -160,6 +207,7 @@ _fleet_watch_scan() {
       case "${fields[$i]}" in
         status)    status="$val" ;;
         heartbeat) hb="$val" ;;
+        name)      name_val="$val" ;;
       esac
       if [ "$had_state" -eq 1 ]; then
         if [ -n "${prev[$key]+set}" ]; then
@@ -177,6 +225,13 @@ _fleet_watch_scan() {
       dead)
         row_events+=("DEAD $ws") ;;
       started|working)
+        # Pane liveness first: a gone session (engine exited) is DEAD even on
+        # a fresh heartbeat. Rows without a name cell and tmux-less hosts are
+        # skipped, never reported dead.
+        if [ "$tmux_ok" -eq 1 ] && [ -n "$name_val" ]; then
+          _fleet_watch_pane_alive "$sock" "$name_val" \
+            || row_events+=("DEAD $ws (pane exited)")
+        fi
         age_min=0
         # shellcheck disable=SC2053
         [[ "$hb" =~ ^[0-9]+$ ]] && age_min=$(((now - hb) / 60))

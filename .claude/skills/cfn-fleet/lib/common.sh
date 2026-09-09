@@ -14,11 +14,21 @@
 #   roster_set WS FIELD VAL  flock .roster.lock, rewrite row atomically (tmp+mv)
 #   roster_rows              TSV lines minus header
 #   fleet_die CODE MSG       msg to stderr, exit CODE
+#
+# Engine registry helpers (fleet_engine_*, fleet_ws_engine) live in engines.sh,
+# sourced below; their contract is pinned by planning/HANDOFF_cfn-fleet-engines.md.
 
-# Canonical roster columns (order IS the TSV layout; do not reorder).
+# shellcheck source=engines.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/engines.sh"
+
+# Canonical roster columns (order IS the TSV layout; do not reorder). New
+# columns are APPENDED only, so cut/awk positional consumers keep their
+# indexes. Pre-engine rosters on disk carry the old 10-column header; readers
+# treat a missing canonical field as empty and the first writer migrates the
+# file (see _roster_migrate_locked).
 # Consumed by cmd-init.sh (and any cmd file that writes rows), not here.
 # shellcheck disable=SC2034
-FLEET_ROSTER_HEADER=$'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes'
+FLEET_ROSTER_HEADER=$'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine'
 
 fleet_die(){ # fleet_die CODE MSG — message to stderr, exit CODE
   local code="$1"
@@ -91,12 +101,22 @@ fleet_roster_file(){ # echoes <run-dir>/roster.tsv
 }
 
 # 1-based column index for a header name; empty when the field is unknown.
+# A field that exists in the canonical FLEET_ROSTER_HEADER but not in the
+# file's older header (e.g. engine on a pre-engine roster) falls back to the
+# canonical index: reads then see the missing trailing cell as empty, and
+# migrate-on-first-write (roster_set / cmd-add) upgrades the file under the
+# lock it already holds.
 _roster_field_index(){
-  local field="$1" f
+  local field="$1" f idx
   f=$(fleet_roster_file)
   [ -f "$f" ] || fleet_die 64 "no roster at $f (fleet init first)"
-  head -n1 "$f" | awk -F'\t' -v want="$field" \
-    '{for (i=1; i<=NF; i++) if ($i == want) { print i; exit }}'
+  idx=$(head -n1 "$f" | awk -F'\t' -v want="$field" \
+    '{for (i=1; i<=NF; i++) if ($i == want) { print i; exit }}')
+  if [ -z "$idx" ]; then
+    idx=$(printf '%s\n' "$FLEET_ROSTER_HEADER" | awk -F'\t' -v want="$field" \
+      '{for (i=1; i<=NF; i++) if ($i == want) { print i; exit }}')
+  fi
+  printf '%s\n' "$idx"
 }
 
 roster_exists(){ # roster_exists WS — 0 if a row with ws_id WS is present
@@ -115,6 +135,26 @@ roster_get(){ # roster_get WS FIELD — echoes value; 65 on unknown WS or FIELD
   awk -F'\t' -v ws="$ws" -v i="$idx" '$1 == ws { print $i; exit }' "$f"
 }
 
+# _roster_migrate_locked FILE — bring a stale-header roster up to the current
+# FLEET_ROSTER_HEADER: header line replaced with the canonical one, every data
+# row padded with empty trailing cells to match. Migrate-on-first-write policy:
+# readers keep working on old files (a missing canonical field reads as empty
+# via the _roster_field_index fallback); the first WRITER upgrades the file.
+# Must be called with the roster flock already held (roster_set, cmd-add) —
+# it takes no lock of its own, so it never self-deadlocks. No-op when the
+# header is current; never truncates a longer (future) header's rows.
+_roster_migrate_locked(){
+  local f="$1" nf tmp
+  [ "$(head -n1 "$f")" = "$FLEET_ROSTER_HEADER" ] && return 0
+  nf=$(printf '%s\n' "$FLEET_ROSTER_HEADER" | awk -F'\t' '{print NF}')
+  tmp="${f}.tmp.$$"
+  awk -F'\t' -v OFS='\t' -v hdr="$FLEET_ROSTER_HEADER" -v nf="$nf" '
+    NR == 1  { print hdr; next }
+             { while (NF < nf) $(NF+1) = ""; print }' "$f" > "$tmp" \
+    || { rm -f "$tmp"; return 71; }
+  mv -f "$tmp" "$f" || { rm -f "$tmp"; return 71; }
+}
+
 # roster_set WS FIELD VAL — rewrite one cell under an exclusive flock on
 # .roster.lock, atomically (write tmp in the same dir, mv over). Tabs and
 # newlines in VAL are flattened to spaces to keep the TSV parseable.
@@ -131,6 +171,7 @@ roster_set(){
   tmp="${f}.tmp.$$"
   (
     flock -x 9 || exit 71
+    _roster_migrate_locked "$f" || exit 71
     awk -F'\t' -v OFS='\t' -v ws="$ws" -v i="$idx" -v v="$val" '
       NR == 1  { print; next }
       $1 == ws { $i = v; print; next }
