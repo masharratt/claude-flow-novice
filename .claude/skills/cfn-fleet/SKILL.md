@@ -1,7 +1,7 @@
 ---
 name: cfn-fleet
 description: "Multi-session fleet coordination: one master Claude Code session coordinates N worker sessions (each a full session with its own context and subagents) through a file-based roster in the target project. Thin messages (control plane), fat files (data plane): roster, briefs, and handoffs carry state; messages only assign/wake/block. Use when running parallel workstreams in one repo without cross-contaminating commits, claims, or migrations."
-version: 1.0.0
+version: 1.1.0
 tags: [fleet, multi-session, coordination, roster, workstreams, claims, tmux]
 status: beta
 ---
@@ -69,6 +69,7 @@ done | dead`.
 | `handoff WSxx` | Write `handoffs/HANDOFF_WSxx.md` for compaction restart into a spare |
 | `db WSxx` / `db-clean [--all]` | Scratch postgres containers (only when `FLEET_DB=docker`) |
 | `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
+| `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained HTML tracking page from the roster (status pills, heartbeat age, engine, claims, STALE/DEAD badges, transition timeline), served on 127.0.0.1 for VS Code Simple Browser (below) |
 
 Exit codes: `0` ok, `64` usage, `65` data error (bad WS id, overlap, duplicate),
 `66` guard refusal, `71` internal.
@@ -175,6 +176,39 @@ $HOME/.claude/skills/cfn-fleet/cli/fleet watch --emit-events
 $HOME/.claude/skills/cfn-workbench/render.sh --slug fleet-<slug> --root <project>
 ```
 
+## Fleet dashboard
+
+`fleet dashboard` is the fleet-native tracking view: one self-contained HTML
+page rendered straight from `roster.tsv` (no event bridge, no workbench
+dependency), served on `127.0.0.1` so it opens in VS Code's built-in Simple
+Browser instead of Chrome. Per-worker cards show the status pill (closed
+vocab), task, engine, claims, notes, heartbeat age (ticks client-side,
+static age without JS), landed sha, and STALE (heartbeat older than
+`--stale-min` while started/working) and DEAD (status dead, or pane exited
+per the tmux session probe) badges; a timeline lists the last 30 status
+transitions.
+
+```bash
+$HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --open    # serve + open in Simple Browser
+$HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --stop    # tear the server down
+```
+
+- State: the dashboard keeps its OWN `.dashboard.state` and appends
+  transitions to `<run-dir>/dashboard-events.jsonl`. It never touches
+  `.watch.state` (owned by `fleet watch`), so both can run concurrently.
+- Port: `--port` > `FLEET_DASHBOARD_PORT` env > `FLEET_DASHBOARD_PORT` in
+  fleet.env > 4880. Server is `python3 -m http.server --bind 127.0.0.1`
+  rooted at the run dir (pidfile `.dashboard.pid`, idempotent double-start,
+  port busy exits 66); `--no-serve` renders once without binding (tests).
+- `--open` runs `code --open-url vscode://simpleBrowser.show?url=...`; when
+  the `code` CLI is absent it warns and prints the URL plus the fallback
+  (Ctrl+Shift+P, "Simple Browser: Show"). Nothing outside VS Code is ever
+  launched.
+- The dashboard deliberately never exits on ALL-DONE (unlike `fleet watch`):
+  `landed` means has-a-commit, not finished (trap 3). The page re-renders
+  when the roster/events change (default 5s poll) and meta-refreshes at the
+  same cadence.
+
 ## Traps measured in real runs (read before running a fleet)
 
 Four families, all from runs on 2026-09-08 and 2026-09-09. Each one leaves the roster
@@ -228,9 +262,15 @@ Worktree-mode specifics:
   checks out that stale tip rather than the integration branch. Check
   `git merge-base --is-ancestor` and then `git -C <wt> reset --hard <integration branch>`
   right after spawn. Delete merged `fleet/WSxx` branches at the end of a run.
-- Symlink `node_modules` at the root AND per package into the worktree, and pass an
-  **absolute** worktree path to the link script: a relative path writes relative `@ggi/*`
-  symlink targets that resolve nowhere.
+- Do NOT symlink `node_modules` into the worktree. A symlinked package `node_modules` is the
+  main checkout's real directory, so its workspace links (`@ggi/config -> ../../../config`)
+  resolve to the MAIN checkout's source: the lane typechecks against `dev` plus peers'
+  uncommitted edits, never against its own branch (measured 2026-09-09: an upstream lane's
+  new export read as missing, a peer's uncommitted enum widening read as a type error). Run
+  `pnpm install --offline --frozen-lockfile --ignore-scripts` inside the worktree instead
+  (about 4 seconds against a warm store, hardlinked) and confirm
+  `readlink packages/<pkg>/node_modules/@ggi/config` prints `../../../config`. Still copy each
+  app's gitignored `next-env.d.ts` across.
 - A repo-wide `pnpm typecheck` inside a worktree reds every package the link script skipped,
   so ask workers for a typecheck scoped to their own files.
 - Do not commit the `planning/fleet-*` run dir before spawning, or the worktree resolves its
@@ -263,6 +303,41 @@ integration branch before the master noticed, failing two Preview builds.
 - After EVERY landing, run `git status --short` and compare against the claim list before
   anything is pushed. Any dirty claimed path means the commit is incomplete. The fix is a
   follow-up commit of the missing paths.
+
+### 5. Two fleets on one repo collide on the WS id, not the run slug
+
+`fleet spawn` keys the worktree path (`.claude/worktrees/wsNN`) and the branch (`fleet/WSNN`)
+on the workstream id alone. Two runs in the same repo that both register `WS01` share one
+worktree and one branch. Measured 2026-09-09: a second master's `spawn WS01` found the first
+run's worktree already present (no "Preparing worktree" line), launched a second engine inside
+it, and `fleet/WS01` interleaved both lanes' commits. Each worker saw the other's files as
+unclaimed dirt and committed with `--force-with-note`, so the commits stayed path-clean, but
+`fleet land WS01` would have fast-forwarded the other run's work onto the integration branch.
+
+- Before `fleet add`, run `git worktree list` and `git branch --list 'fleet/WS*'`. Pick ids no
+  live run uses (the second run here renumbered to WS12 to WS15).
+- If a collision has already happened, do not `fleet land`. Each master cherry-picks only its
+  own lane's commits (subject prefix identifies the lane) and confirms with `git show --stat`
+  that no foreign path rode along.
+- A landing rehearsal is cheap and catches this class: `git worktree add --detach <tmp> dev`,
+  cherry-pick every lane commit there, run typecheck and the touched suites, then land from
+  the rehearsed tip. Hot-file conflicts (changelog, feature-status) show up there instead of
+  in the shared checkout.
+
+### 6. Messages to a pane and lanes that outlive a base rebase (2026-09-10)
+
+- **`tmux send-keys "<text>" Enter` in one call leaves the text sitting unsent in the
+  Claude Code prompt** when the worker is mid-turn; the roster then shows the worker idle with
+  the message visible in its input box. Send the text, `sleep 1`, then send `Enter` as a
+  separate `send-keys`, and confirm with `capture-pane` that a spinner line follows the prompt.
+- **After rebasing the integration base, a lane that forked from the OLD base must be rebased
+  with `--onto <base> <old fork point>`.** A plain `git rebase <base>` replays the whole old
+  history (every earlier lane and the base's own commits) and hits the same hot-file conflicts
+  the base rebase already resolved. Tag the pre-rebase tip, compute the fork point as
+  `merge-base <lane> <tag>`, and use `--onto` when that point is not an ancestor of the new base.
+- **A landing script whose output is piped to `tail` cannot refuse.** The pipe swallows the
+  exit status, so a rebase conflict reads as landed and the next wave is spawned from a base
+  missing the lane. Run landing scripts bare and branch on their exit code.
 
 ### Two smaller ones
 

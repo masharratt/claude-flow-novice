@@ -14,6 +14,12 @@
 #   roster_set WS FIELD VAL  flock .roster.lock, rewrite row atomically (tmp+mv)
 #   roster_rows              TSV lines minus header
 #   fleet_die CODE MSG       msg to stderr, exit CODE
+#   _fleet_html_escape STR   escaped HTML for STR (& first, then < > " ')
+#   _fleet_tsv_split LINE    split a TSV line into _FIELDS preserving empty cells
+#   _fleet_tmux_socket       run's dedicated tmux socket (env > fleet-<slug>)
+#   _fleet_tmux_pane_alive SOCKET SESSION
+#                            0 while the session exists; tmux-absent rc is
+#                            tooling, never a dead pane
 #
 # Engine registry helpers (fleet_engine_*, fleet_ws_engine) live in engines.sh,
 # sourced below; their contract is pinned by planning/HANDOFF_cfn-fleet-engines.md.
@@ -240,4 +246,62 @@ _fleet_unclaimed_dirty(){
     _fleet_path_claimed "$path" "$claims" || printf '%s\n' "$path"
   done < <(_fleet_all_dirty "$run_dir_rel")
   return 0
+}
+
+# --- Shared presentation / tmux helpers (watch, dashboard, spawn) -----------
+
+# _fleet_html_escape STR — escaped HTML. Order is load-bearing: & must be
+# replaced first or each escape's own ampersand gets re-escaped.
+_fleet_html_escape() {
+  local s="$1"
+  # \& forms: in bash 5.2 ${//} replacement a bare & is a backreference to
+  # the matched text (so &lt; would emit <lt;). Same fix as workbench
+  # lib/html.sh html_escape.
+  s="${s//&/\&amp;}"
+  s="${s//</\&lt;}"
+  s="${s//>/\&gt;}"
+  s="${s//\"/\&quot;}"
+  s="${s//\'/\&apos;}"
+  printf '%s' "$s"
+}
+
+# _fleet_tsv_split LINE — split a TSV line into _FIELDS preserving empty
+# cells (tab -> octal unit separator, which is NOT whitespace-collapsed by
+# bash's IFS handling the way literal tabs are). Extracted from cmd-watch.sh;
+# never parse the roster with positional `IFS=$'\t' read` (consecutive empty
+# cells collapse and columns shift).
+_fleet_tsv_split() {
+  _FIELDS=()
+  local IFS=$'\037'
+  read -r -a _FIELDS <<< "$(printf '%s' "$1" | tr '\t' '\037')"
+}
+
+# _fleet_tmux_socket: the run's dedicated tmux socket. FLEET_TMUX_SOCKET from
+# fleet.env, else fleet-<slug> from the run dir basename (non-alphanumerics
+# folded to dashes). Single source of truth for watch, dashboard, and spawn.
+_fleet_tmux_socket() {
+  local sock
+  sock=$(fleet_env_get FLEET_TMUX_SOCKET)
+  if [ -z "$sock" ]; then
+    sock=$(basename "$(fleet_run_dir)")
+    sock="fleet-${sock#fleet-}"
+    sock="${sock//[^A-Za-z0-9_.-]/-}"
+  fi
+  printf '%s\n' "$sock"
+}
+
+# _fleet_tmux_pane_alive SOCKET SESSION: 0 while the session exists on the
+# run's socket, 1 once it is gone (spawn's exec makes the pane die with the
+# engine, so tmux answers rc 1 "can't find session"). rc 1 alongside tmux's
+# "no server running" / "error connecting" text is TOOLING, not a dead
+# worker: it reports 0 so an absent tmux server can never manufacture a
+# false DEAD.
+_fleet_tmux_pane_alive() {
+  local err rc=0
+  err=$(tmux -L "$1" has-session -t "$2" 2>&1) || rc=$?
+  [ "$rc" -eq 0 ] && return 0
+  case "$err" in
+    *"no server running"*|*"error connecting"*) return 0 ;;
+  esac
+  return 1
 }

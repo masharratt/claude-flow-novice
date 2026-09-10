@@ -53,3 +53,11 @@ Multiple projects run their own Memgraph container. Bolt defaults to 7687. Assig
 **Port conflict notes:**
 - `daily-automations` had no assigned range and defaulted to Next.js `3000`, which two other local projects also bind. Playwright's `reuseExistingServer` only probes for HTTP 200, so it cannot tell one app from another: on 2026-08-12 the whole lineage e2e suite ran against a different project's static file server. Its "File not found" page has no badges and no table, so the accessibility and contrast specs passed while proving nothing. Moved to `3050` and pinned in `frontend/playwright.config.ts`. Lesson: a project with no assigned port is a silently-wrong-target waiting to happen; assign one before writing e2e specs.
 - `8080` held locally by the daily-recall Rust gateway (health body shows `api-core`/`voice-realtime`). `daily-interview`/asked-team orchestrator moved to `8092` (root `.env` `PORT=8092`) to avoid it. Fireside API Gateway is on `8090` locally (prod still binds 8080 inside container). Prod asked-orchestrator (Fly) still listens 8080 inside its container; the `PORT` override is local-dev only.
+
+## Local tooling ports
+
+Non-project dev tooling that binds loopback:
+
+| Tool | Port | Notes |
+|------|------|-------|
+| cfn-fleet dashboard | **4880** | `fleet dashboard` python3 http.server, 127.0.0.1 only, rooted at the fleet run dir. Per-run pidfile `.dashboard.pid`; move with `--port` or `FLEET_DASHBOARD_PORT`. Busy port exits 66. |

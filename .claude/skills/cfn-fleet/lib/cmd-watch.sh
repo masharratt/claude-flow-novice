@@ -119,45 +119,9 @@ main() {
   done
 }
 
-# _fleet_tsv_split LINE — split a TSV line into _FIELDS preserving empty
-# cells (tab -> octal unit separator, which is NOT whitespace-collapsed by
-# bash's IFS handling the way literal tabs are).
-_fleet_tsv_split() {
-  _FIELDS=()
-  local IFS=$'\037'
-  read -r -a _FIELDS <<< "$(printf '%s' "$1" | tr '\t' '\037')"
-}
-
-# _fleet_watch_socket: the run's dedicated tmux socket. FLEET_TMUX_SOCKET
-# from fleet.env, else fleet-<slug> from the run dir basename. Must match
-# cmd-spawn.sh:_fleet_spawn_socket (duplicated here so watch does not source
-# spawn; change both together).
-_fleet_watch_socket(){
-  local sock
-  sock=$(fleet_env_get FLEET_TMUX_SOCKET)
-  if [ -z "$sock" ]; then
-    sock=$(basename "$(fleet_run_dir)")
-    sock="fleet-${sock#fleet-}"
-    sock="${sock//[^A-Za-z0-9_.-]/-}"
-  fi
-  printf '%s\n' "$sock"
-}
-
-# _fleet_watch_pane_alive SOCKET SESSION: 0 while the session exists on the
-# run's socket, 1 once it is gone (spawn's exec makes the pane die with the
-# engine, so tmux answers rc 1 "can't find session"). rc 1 alongside tmux's
-# "no server running" / "error connecting" text is TOOLING, not a dead
-# worker: it reports 0 so an absent tmux server can never manufacture a
-# false DEAD.
-_fleet_watch_pane_alive(){
-  local err rc=0
-  err=$(tmux -L "$1" has-session -t "$2" 2>&1) || rc=$?
-  [ "$rc" -eq 0 ] && return 0
-  case "$err" in
-    *"no server running"*|*"error connecting"*) return 0 ;;
-  esac
-  return 1
-}
+# TSV split (_fleet_tsv_split), tmux socket (_fleet_tmux_socket), and pane
+# liveness (_fleet_tmux_pane_alive) live in lib/common.sh (single source of
+# truth, shared with cmd-dashboard.sh and cmd-spawn.sh).
 
 # _fleet_watch_scan ROSTER STALE_MIN — one scan. Order: STALE/DEAD per roster
 # row, then CHANGE lines, then ALL-DONE (exit 0). Always returns 0 otherwise.
@@ -189,7 +153,7 @@ _fleet_watch_scan() {
   local tmux_ok=0 sock=""
   if command -v tmux >/dev/null 2>&1; then
     tmux_ok=1
-    sock=$(_fleet_watch_socket)
+    sock=$(_fleet_tmux_socket)
   fi
   while IFS= read -r row || [ -n "$row" ]; do
     [ -n "$row" ] || continue
@@ -229,7 +193,7 @@ _fleet_watch_scan() {
         # a fresh heartbeat. Rows without a name cell and tmux-less hosts are
         # skipped, never reported dead.
         if [ "$tmux_ok" -eq 1 ] && [ -n "$name_val" ]; then
-          _fleet_watch_pane_alive "$sock" "$name_val" \
+          _fleet_tmux_pane_alive "$sock" "$name_val" \
             || row_events+=("DEAD $ws (pane exited)")
         fi
         age_min=0

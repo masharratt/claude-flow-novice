@@ -34,6 +34,11 @@ Subcommands:
   watch [--stale-min N] [--poll S] [--once] [--emit-events]
                                                 monitor loop (Monitor-tool ready);
                                                 --emit-events bridges to cfn-workbench
+  dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]
+                                                self-contained status page (worker cards +
+                                                transition timeline) rendered from the roster;
+                                                serves the run dir on 127.0.0.1 for the VS Code
+                                                Simple Browser; --stop tears the server down
 
 Exit codes: 0 ok | 64 usage | 65 data error | 66 guard refusal | 71 internal
 EOF

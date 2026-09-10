@@ -62,17 +62,10 @@ if ! declare -F fleet_engine_get >/dev/null 2>&1; then
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/engines.sh"
 fi
 
-# _spawn_socket — dedicated tmux socket for this run: FLEET_TMUX_SOCKET from
-# fleet.env, else fleet-<slug> derived from the run dir basename.
+# _spawn_socket — dedicated tmux socket for this run; delegates to the shared
+# helper in lib/common.sh (same logic for watch, dashboard, and spawn).
 _fleet_spawn_socket(){
-  local sock
-  sock=$(fleet_env_get FLEET_TMUX_SOCKET)
-  if [ -z "$sock" ]; then
-    sock=$(basename "$(fleet_run_dir)")
-    sock="fleet-${sock#fleet-}"
-    sock="${sock//[^A-Za-z0-9_.-]/-}"
-  fi
-  printf '%s\n' "$sock"
+  _fleet_tmux_socket
 }
 
 # _fleet_env_seconds KEY DEFAULT — numeric fleet.env knob with a fallback.
@@ -116,6 +109,7 @@ _fleet_pane_wait(){
   while [ "$i" -lt "$max" ]; do
     line=$(tmux -L "$sock" capture-pane -p -t "$tgt" 2>/dev/null \
       | sed -e 's/\r$//' -e 's/[[:space:]]*$//' -e '/^$/d' \
+      | grep -v -E -- 'exec (claude|codex)|--model |send-keys' \
       | grep -E -- "$re" || true)
     line="${line%%$'\n'*}"
     if [ -n "$line" ]; then
@@ -410,6 +404,15 @@ main() {
   # 8. Thin prompt only after the banner.
   tmux -L "$sock" send-keys -t "$name" -l "$prompt_line"
   tmux -L "$sock" send-keys -t "$name" Enter
+
+  # 8b. Auth check after the first request. A relay token that the banner
+  # cannot see (the banner renders before any API call) surfaces here as
+  # "401 Authentication Failed ... Retrying". Measured 2026-09-09: two glm
+  # workers reached started on an expired z.ai token and sat in retry loops.
+  # Warn loudly; the row is already started, the master decides.
+  if _fleet_pane_wait "$sock" "$name" '401 Authentication Failed|Authentication Failed|invalid_api_key|authentication_error' 12 >/dev/null; then
+    echo "spawn: WARNING $name: engine reports an authentication failure after the first request (token for engine '$engine' rejected). Fix the source var and respawn." >&2
+  fi
 
   # 9. Spares: same engine/env, launched to the banner, NO prompt.
   for ((k = 1; k <= spares; k++)); do
