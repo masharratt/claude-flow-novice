@@ -122,6 +122,18 @@ _fleet_pane_wait(){
   return 1
 }
 
+# _fleet_codex_flag_check REPO — Codex delegation gate (global CLAUDE.md):
+# the codex engine may only run in projects whose CLAUDE.md carries a
+# literal codex=true line. However the engine was chosen (--engine flag,
+# roster column, FLEET_DEFAULT_ENGINE), this runs after engine resolution
+# and before any side effect. Dies 66 naming the file when absent.
+_fleet_codex_flag_check() {
+  local f="$1/CLAUDE.md"
+  if [ ! -f "$f" ] || ! grep -Eq '^[[:space:]]*codex=true[[:space:]]*$' "$f"; then
+    fleet_die 66 "spawn: codex engine requires a literal 'codex=true' line in $f (Codex delegation gate; add it to the project's CLAUDE.md or use claude-sub/glm)"
+  fi
+}
+
 # _fleet_codex_auth_warn — subscription billing needs auth_mode chatgpt in
 # ~/.codex/auth.json. Warn only; the hard refusal is the unset-list guard.
 _fleet_codex_auth_warn(){
@@ -195,16 +207,39 @@ _spawn_launch_one(){
   fi
   tmux -L "$sock" send-keys -t "$sname" Enter
 
-  # Trust prompt: send the keys only if the prompt text actually shows.
-  # Registry trust_keys is a comma list ("Down,Enter"); send-keys wants them
-  # as separate words.
-  if [ -n "$trust_re" ]; then
-    if _fleet_pane_wait "$sock" "$sname" "$trust_re" "$trust_timeout" >/dev/null; then
-      if [ -n "$trust_keys" ]; then
-        # shellcheck disable=SC2086  # word-split key list is the point
-        tmux -L "$sock" send-keys -t "$sname" ${trust_keys//,/ }
-      fi
-    fi
+  # Startup gates: ONE poll over the folder-trust and startup-modal regexes,
+  # dispatch on the matched line. Keys are sent only when a prompt actually
+  # shows (registry trust_keys is a comma list, "Down,Enter"; send-keys wants
+  # them as separate words).
+  # - codex-cli update modal ("Update available ... Press enter to
+  #   continue"): bare Enter would pick "1. Update now" = a surprise
+  #   npm install -g, so send "2" (Skip) then Enter (measured live,
+  #   codex-cli 0.153.4, 2026-09-10).
+  # - folder-trust prompts: the engine trust_keys.
+  local gate_re="Update available|Press enter to continue" gate_line
+  if [ -n "$trust_re" ]; then gate_re="$gate_re|$trust_re"; fi
+  gate_line=$(_fleet_pane_wait "$sock" "$sname" "$gate_re" "$trust_timeout" || true)
+  if [ -n "$gate_line" ]; then
+    case "$gate_line" in
+      *Update\ available*|*Press\ enter*)
+        tmux -L "$sock" send-keys -t "$sname" -l "2"
+        sleep 0.3
+        tmux -L "$sock" send-keys -t "$sname" Enter
+        # a folder-trust prompt may surface once the modal is cleared
+        if [ -n "$trust_re" ] && _fleet_pane_wait "$sock" "$sname" "$trust_re" "$trust_timeout" >/dev/null; then
+          if [ -n "$trust_keys" ]; then
+            # shellcheck disable=SC2086  # word-split key list is the point
+            tmux -L "$sock" send-keys -t "$sname" ${trust_keys//,/ }
+          fi
+        fi
+        ;;
+      *)
+        if [ -n "$trust_keys" ]; then
+          # shellcheck disable=SC2086  # word-split key list is the point
+          tmux -L "$sock" send-keys -t "$sname" ${trust_keys//,/ }
+        fi
+        ;;
+    esac
   fi
 
   if [ -n "$banner_re" ]; then
@@ -320,6 +355,7 @@ main() {
         *) fleet_die 66 "spawn: OPENAI_API_KEY is set in the master env but engine '$engine' does not unset it (a set key silently bills the API instead of the ChatGPT plan; add OPENAI_API_KEY to the engine unset list or unset it before spawn)" ;;
       esac
     fi
+    _fleet_codex_flag_check "$repo"
     _fleet_codex_auth_warn
   fi
   if [ "$engine" = "claude-sub" ]; then

@@ -166,7 +166,8 @@ test_registry_seed_and_fields(){
     && [ "$trust" = "Enter" ] && ok "codex trust_keys Enter" \
     || no "codex trust: '$trust'"
   banner=$(fleet_engine_get banner_regex codex 2>/dev/null) \
-    && [ "$banner" = "provider: openai|OpenAI Codex" ] && ok "codex banner_regex" \
+    && [ "$banner" = "provider: openai|OpenAI Codex|Ask Codex" ] \
+    && ok "codex banner_regex (Ask Codex added: codex-cli 0.153+ TUI, live-smoked 2026-09-10)" \
     || no "codex banner: '$banner'"
 
   log_step "WHEN unknown field or engine, THEN exit 65"

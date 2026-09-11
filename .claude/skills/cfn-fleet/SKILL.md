@@ -99,10 +99,12 @@ a rule block.
 |---|---|---|---|---|
 | `claude-sub` | `claude --model sonnet --permission-mode bypassPermissions` | Claude subscription (Team/Max/Pro) | `Claude Team\|Claude Pro\|Claude Max` (e.g. "Sonnet 5 with high effort · Claude Team") | nothing (spawn unsets every relay var in the pane) |
 | `glm` | `claude --model glm-5.3-flash` pointed at z.ai | z.ai API billing | `glm-` (e.g. "glm-5.3-flash with high effort · API Usage Billing") | `export FLEET_ZAI_TOKEN=<z.ai token>` before spawn |
-| `codex` | `codex --sandbox workspace-write --ask-for-approval never` | ChatGPT subscription | `provider: openai\|OpenAI Codex` (e.g. "model: gpt-5.6-sol provider: openai") | nothing (an `OPENAI_API_KEY` in the master env must be unset in the pane; spawn refuses otherwise) |
+| `codex` | `codex --sandbox workspace-write --ask-for-approval never` | ChatGPT subscription | `provider: openai\|OpenAI Codex\|Ask Codex` (codex-cli 0.153+ renders "Ask Codex"; e.g. "OpenAI Codex (v0.153.4)") | nothing (an `OPENAI_API_KEY` in the master env must be unset in the pane; spawn refuses otherwise). Codex delegation gate: spawn refuses (66) unless the target repo's CLAUDE.md carries a literal `codex=true` line |
 
-Registry: `templates/engines.env`, copied into the run dir by `fleet init`
-(`engines.env`). One line per engine, 7 ` | `-separated fields: name, bin, args,
+Registry: the SHARED `~/.claude/cfn-config/engines.env` (single source of
+truth, also read by cfn-tmux-agents; `templates/engines.env` is a symlink to
+it), copied into the run dir by `fleet init` (`engines.env`) where per-run
+tuning happens. One line per engine, 7 ` | `-separated fields: name, bin, args,
 set (NAME=$SOURCE_VAR or NAME=literal), unset, trust_keys, banner_regex. It
 stores variable NAMES and non-secret flags only; `$SOURCE_VAR` references are
 resolved from the master shell at spawn time and credential values reach tmux
@@ -118,10 +120,13 @@ with `tmux -L fleet-<slug> kill-server`):
    `export FLEET_RUN_DIR=<run dir>; unset <unset list>; exec <bin> <args>`.
    The `exec` makes the pane die with the engine, which is what `fleet watch`'s
    `DEAD <ws> (pane exited)` detects.
-2. Trust prompt: both `claude` and `codex` stop on a folder-trust prompt on
-   first launch in a directory (worktree mode hits it every run). Spawn polls
-   `capture-pane` up to `FLEET_TRUST_TIMEOUT` (default 15s) and sends the
-   engine's `trust_keys` only if the prompt is actually seen.
+2. Startup gates, one poll: the codex-cli update modal ("Update available
+   ... Press enter to continue", codex-cli 0.153+) is dismissed with `2`
+   (Skip) then Enter — bare Enter picks "1. Update now" = a surprise
+   `npm install -g`. Folder-trust prompts (both `claude` and `codex`, first
+   launch in a directory; worktree mode hits it every run) get the engine's
+   `trust_keys`, sent only if the prompt is actually seen within
+   `FLEET_TRUST_TIMEOUT` (default 15s).
 3. Banner gate: spawn polls up to `FLEET_BANNER_TIMEOUT` (default 20s) for the
    engine's `banner_regex`. Match: roster `started`, heartbeat stamped, then
    and only then the thin prompt. Timeout: the row stays `pending`, the last

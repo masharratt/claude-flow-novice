@@ -349,6 +349,7 @@ make_engine_project() { # $1 = slug — fast polls, scripted capture, clean
     # fixture HOME (so the codex auth.json check never reads the real one)
     local slug="$1"
     make_project "$slug"
+    printf 'codex=true\n' > "$PROJ/CLAUDE.md"
     printf 'FLEET_TRUST_TIMEOUT=1\nFLEET_BANNER_TIMEOUT=1\n' >> "$RUN_DIR/fleet.env"
     : > "$TMUX_LOG"
     : > "$ENGINE_LOG"
@@ -683,6 +684,26 @@ test_spawn_trust_prompt_codex() {
         "codex banner verified"
 }
 
+test_spawn_codex_update_modal() {
+    # codex-cli 0.153+ opens an update modal at startup ("Update available
+    # ... Press enter to continue"); bare Enter picks "1. Update now" = a
+    # surprise npm install -g. Spawn must dismiss with "2" (Skip) then Enter.
+    # Live-measured 2026-09-10 on 0.153.4.
+    log_step "GIVEN codex's update modal then the banner, WHEN spawn --engine codex"
+    make_engine_project eng-codexmodal
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "  Update available! 0.153.4 -> 0.154.0"
+    capture_script 2 "  2. Skip"
+    capture_script 3 "Ask Codex to do anything"
+
+    run_fleet spawn WS01 --engine codex
+    assert_equals "0" "$FLEET_RC" "spawn through the update modal exits 0"
+    assert_contains "$(tmux_calls 'send-keys -t ws01 -l 2')" "-l 2" "modal dismissed with literal 2 (Skip)"
+    assert_contains "$FLEET_OUT" "Ask Codex" "banner verified past the modal"
+    assert_equals "started" "$(roster_field WS01 status)" "row started after modal + banner"
+}
+
 test_spawn_no_trust_text_sends_no_keys() {
     # Case 7 (negative): no prompt text -> no trust keys at all.
     log_step "GIVEN a pane that goes straight to the banner, WHEN spawn"
@@ -696,6 +717,31 @@ test_spawn_no_trust_text_sends_no_keys() {
     assert_not_contains "$(tmux_calls)" "Down" "no trust keys when the prompt never appears"
     assert_equals "2" "$(grep -ac 'send-keys -t ws01 Enter' "$TMUX_LOG")" \
         "only pane-command and thin-prompt Enters"
+}
+
+test_spawn_codex_flag_gate() {
+    # Codex delegation gate (global CLAUDE.md): the codex engine may only
+    # run in projects whose CLAUDE.md carries a literal codex=true line.
+    # Applies however the engine was chosen: --engine flag, roster column,
+    # or FLEET_DEFAULT_ENGINE (the guard runs after engine resolution).
+    log_step "GIVEN a project with no CLAUDE.md, WHEN spawning codex"
+    make_engine_project eng-codexflag
+    rm -f "$PROJ/CLAUDE.md"
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "model: gpt-5.6-sol provider: openai"
+
+    run_fleet spawn WS01 --engine codex
+    assert_equals "66" "$FLEET_RC" "codex without codex=true refuses spawn"
+    assert_contains "$FLEET_OUT" "codex=true" "refusal names the gate"
+    assert_equals "pending" "$(roster_field WS01 status)" "refusal leaves the row pending"
+    assert_not_contains "$(tmux_calls)" "new-session" "no session launched on refusal"
+
+    log_step "GIVEN CLAUDE.md with a literal codex=true line, WHEN spawning codex"
+    printf '# project\n\ncodex=true\n' > "$PROJ/CLAUDE.md"
+    run_fleet spawn WS01 --engine codex
+    assert_equals "0" "$FLEET_RC" "codex=true passes the gate"
+    assert_contains "$FLEET_OUT" "engine=codex" "spawn proceeds"
 }
 
 test_spawn_codex_billing_guard() {
@@ -1274,7 +1320,9 @@ run_all_tests() {
     test_spawn_banner_match_prompt_once_spares_silent
     test_spawn_trust_prompt_claude
     test_spawn_trust_prompt_codex
+    test_spawn_codex_update_modal
     test_spawn_no_trust_text_sends_no_keys
+    test_spawn_codex_flag_gate
     test_spawn_codex_billing_guard
     test_spawn_claude_sub_warns_on_armed_settings
     test_spawn_warns_on_dirty_tmux_server_env
