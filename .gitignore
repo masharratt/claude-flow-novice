@@ -62,6 +62,10 @@ bin/claude-flow-*
 !.claude/backups/.gitkeep            # Keep directory structure
 .env/worker
 *.env
+# cfn-fleet engine registry: names/flags only, never values (tests enforce it)
+!.claude/skills/cfn-fleet/templates/engines.env
+# shared engine registry (single source for cfn-fleet + cfn-tmux-agents)
+!.claude/cfn-config/engines.env
 
 # Docker Secrets and Encryption (Phase 1.2a)
 .secrets/                          # Raw unencrypted credential files
