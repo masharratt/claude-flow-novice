@@ -29,6 +29,9 @@ from the target project root unless resolving a different run dir on purpose.
    serves a self-contained HTML tracking page on 127.0.0.1:4880 and opens it in
    VS Code Simple Browser (status, heartbeat age, claims, STALE/DEAD, timeline;
    safe beside `fleet watch`); `fleet dashboard --stop` tears it down.
+   Standard cadence: the main chat runs a fleet check every **15 minutes**
+   regardless of watch/dashboard activity — `fleet status`, react to STALE/DEAD,
+   unblock workers, land finished lanes (see SKILL.md "Master check cadence").
 8. **Land**: workers commit via `fleet commit WSxx -m <msg>` (guarded, claimed
    paths only). Master runs `fleet land WSxx` (worktree mode merges the branch)
    and marks the row landed.

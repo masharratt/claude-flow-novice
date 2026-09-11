@@ -1,7 +1,7 @@
 ---
 name: cfn-fleet
 description: "Multi-session fleet coordination: one master Claude Code session coordinates N worker sessions (each a full session with its own context and subagents) through a file-based roster in the target project. Thin messages (control plane), fat files (data plane): roster, briefs, and handoffs carry state; messages only assign/wake/block. Use when running parallel workstreams in one repo without cross-contaminating commits, claims, or migrations."
-version: 1.1.0
+version: 1.2.0
 tags: [fleet, multi-session, coordination, roster, workstreams, claims, tmux]
 status: beta
 ---
@@ -213,6 +213,19 @@ $HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --stop    # tear the server d
   `landed` means has-a-commit, not finished (trap 3). The page re-renders
   when the roster/events change (default 5s poll) and meta-refreshes at the
   same cadence.
+
+## Master check cadence
+
+Standard timing: the main chat checks the fleet every **15 minutes**. Each
+check is one batch: `fleet status` (roster + heartbeat ages), react to STALE/
+DEAD rows, unblock or wake workers, land finished lanes. `fleet watch` (Monitor
+tool) and the dashboard run alongside but never replace the check — a watch
+stream goes quiet when nothing changes and poll loops die under memory pressure
+(trap 6); the 15-minute check is what catches a stalled run.
+
+Mechanics: schedule the check with the Monitor tool or a session loop at a
+15-minute interval; do not hold a `sleep`-loop in a shell. A check that finds
+`ALL-DONE` plus every row `done:`-heartbeated and clean is the exit condition.
 
 ## Traps measured in real runs (read before running a fleet)
 
