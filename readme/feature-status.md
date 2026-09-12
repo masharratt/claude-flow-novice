@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-09-10 (added cfn-tmux-agents skill) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-09-12 (added nitpicky skill) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -132,6 +132,7 @@ This file MUST be updated when:
 | cfn-validation-framework | ✅ Prod | ✅ | `cfn-validation-framework/` | Test validation |
 | cfn-edit-safety | ✅ Prod | ✅ 17/17 | `cfn-edit-safety/` | Pre/post-edit backup and validation pipeline. Post-edit validators (TS/ESLint/Prettier/shellcheck/cargo check) run non-blocking in a warning bucket; missing tools SKIP. 12 jest tests; hook suite 152 passed. Phase 2.7 wires cargo check. (CHANGELOG.md) |
 | cfn-persona-verify | ⚠️ Beta | ✅ 21/21 | `cfn-persona-verify/` | Role-coherence gate: flags builds that are tests-green but nonsense for the actor (e.g. manager with no approval capability). 21 negative controls enforce the schema. Wired into cfn-loop-task Phase 4 gate (frontend=yes AND role docs). Observe-only by default. (CHANGELOG.md) |
+| nitpicky (pre-launch review portal) | dev | ✅ 55/55 | `nitpicky/` | Launch-readiness visual walkthrough: 5 parallel lens agents screenshot every page and state; merge assigns content-hash ids; local server writes fix/deny/defer decisions to decisions.json per click (atomic, drafts survive outages); Export writes hand-off CHECKLIST.md. |
 
 ### Planning & Management Skills
 

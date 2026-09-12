@@ -2,7 +2,7 @@
 
 Entity lifecycle documentation for stateful CFN systems.
 
-**Last Updated:** 2026-08-27 (night mode flag lifecycle added)
+**Last Updated:** 2026-09-12 (nitpicky review decision lifecycle added)
 
 ## Contents
 
@@ -29,6 +29,7 @@ Entity lifecycle documentation for stateful CFN systems.
 - [Role Capability Outcome (cfn-persona-verify)](#role-capability-outcome-cfn-persona-verify)
 - [Role Verification Finding (cfn-persona-verify schema audit)](#role-verification-finding-cfn-persona-verify-schema-audit)
 - [Fleet Workstream (cfn-fleet roster.tsv)](#fleet-workstream-cfn-fleet-rostertsv)
+- [Review Decision (nitpicky portal)](#review-decision-nitpicky-portal)
 - [Wireframe Gate (cfn-megaplan L5→L6 barrier)](#wireframe-gate-cfn-megaplan-l5l6-barrier)
 - [Implementation Wave (cfn-loop-task LANE DERIVATION)](#implementation-wave-cfn-loop-task-lane-derivation)
 - [Loop Pre-Flight Readiness (preflight.sh)](#loop-pre-flight-readiness-preflightsh)
@@ -1109,4 +1110,49 @@ goes off.
                                     landed ──edit──> done
  started/working ──watch STALE──> dead
 ```
+
+---
+
+## Review Decision (nitpicky portal)
+
+**Source:** `<run-dir>/decisions.json` `decisions` map, written by
+`.claude/skills/nitpicky/lib/server.py` (`POST /api/decision`, atomic tmp+rename,
+validated patch: known finding id, decision enum, explanation ≤ 20k chars); read back
+by `review.html` and by `lib/export-checklist.py` when freezing the hand-off checklist.
+
+One record per finding. The record also carries an optional free-text `explanation`
+(review context for the implementation team) and `updatedAt`. Clearing a decision
+keeps the explanation. Findings with no record are undecided.
+
+### States
+
+| State | Meaning |
+|-------|---------|
+| `undecided` | No record (or record without `decision`). Excluded from the exported checklist sections, counted in its header. |
+| `fix` | Accepted: goes to the implementation team as a checklist item with the explanation as context. |
+| `defer` | Explicitly postponed; listed under Deferred, never silently backlogged. |
+| `deny` | Rejected; appendix only. A deny explanation may authorize an alternative change, so it is preserved verbatim. |
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| `undecided` | `fix`/`defer`/`deny` | decision button click in review.html | patch validated server-side (id in findings.json, enum, size caps, localhost Origin) |
+| `fix`/`defer`/`deny` | `undecided` | same decision button re-clicked | explanation preserved |
+| `fix`/`defer`/`deny` | `fix`/`defer`/`deny` | different decision button clicked | record replaced, `updatedAt` bumped |
+| any | any | browser reload | server state authoritative; newer unsent browser drafts overwrite (draft `ts` > record `updatedAt`) |
+
+```
+             click Fix            click Defer          click Deny
+ undecided ───────────> fix ─┐ undecided ──────> defer   undecided ──────> deny
+     ^                  │     │                  │                          │
+     │  re-click same   │     │  re-click same   │        re-click same    │
+     └──────────────────┘     └──────────────────┘          └───────────────┘
+     any state ──click another button──> that decision (record replaced)
+```
+
+Persistence rules: the server applies patches serially and writes atomically;
+unsent browser edits sit in a per-run localStorage draft queue and are retried via
+the Retry button after a server restart; a stale draft never overwrites a newer
+server record.
 
