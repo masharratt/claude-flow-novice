@@ -34,25 +34,30 @@
 #   - Heavy lifting (grouping, aggregation) runs in SQL; python only sees
 #     aggregated rows. 66k nodes / 111k edges extract in seconds.
 #
-# Feature heuristic (deterministic only; Claude enrichment adds descriptions
-# in a later phase, never here):
-#   1. Candidate = any top-level directory holding at least one source file.
-#      Infra/docs dirs never qualify (FEATURE_EXCLUDE below), and neither do
-#      hidden dirs (legacy junk like .archive is not a feature).
-#   2. With a CBM snapshot, a candidate is a feature only when it
-#      participates in at least one cross-module edge: a cluster somebody
-#      imports or calls. Self-contained bundles (e.g. a src/ whose files
-#      import only each other) stay plain modules. Without a snapshot there
-#      are no edges to filter by, so every candidate qualifies.
-#   3. fid = slug of the owning path (lowercase, non-alphanumeric to '-').
-#   4. Entrypoints: per feature, files CBM flags is_entry_point plus a name
-#      fallback (main/index/app/__main__/server stems), since real snapshots
-#      may not populate the flag. Root-level entrypoint files stay modules.
+# Feature heuristic (CANONICAL: a deterministic function of the file tree
+# and git only; Claude enrichment adds descriptions in a later phase, never
+# here. Feature identity feeds the fingerprint and the enrich-preservation
+# gate, and CBM graph resolution is toolchain-dependent, so the same tree
+# must produce the same features[] with or without a CBM snapshot):
+#   1. Feature = any top-level directory holding at least one source file
+#      (threshold: a single code file qualifies a dir). Infra/docs dirs
+#      never qualify (FEATURE_EXCLUDE below), and neither do hidden dirs
+#      (legacy junk like .archive is not a feature).
+#   2. fid = slug of the owning path (lowercase, non-alphanumeric to '-').
+#   3. Entrypoints per feature: files whose basename stem is
+#      main/index/app/__main__/server (name heuristic only; CBM entry-point
+#      flags are toolchain-dependent and would break mode invariance).
+#      Root-level entrypoint files stay modules.
+#   4. The CBM snapshot only ENRICHES the store: per-feature edge weight,
+#      module node counts, module-level edges, meta.edge_type_counts and
+#      meta.cbm_mode. Presence or absence of a snapshot never changes
+#      features[] fids/files/entrypoints, so a snapshot store and a
+#      degraded store of the same tree are fingerprint-identical.
 #
-# Modules group File+Module nodes (or, degraded, the file tree) by top-level
-# directory; repo-root files each form their own module named by filename.
-# Module edges aggregate node-level CALLS/IMPORTS/INHERITS across modules;
-# intra-module traffic is dropped as architecture noise.
+# Modules group usable-path snapshot nodes (or, degraded, the file tree) by
+# top-level directory; repo-root files each form their own module named by
+# filename. Module edges aggregate node-level CALLS/IMPORTS/INHERITS across
+# modules; intra-module traffic is dropped as architecture noise.
 #
 # Coupling: file pairs touched by the same commit (git log --name-only),
 # counted across history, ranked by count then name, top 20. Commits larger
@@ -61,8 +66,8 @@
 # pathological histories bounded (break in log order: deterministic).
 #
 # Determinism: files sorted, edges sorted, coupling ranked with a stable
-# tiebreak. Repeated runs differ only in meta.generated_at, which
-# lib/fingerprint.sh strips before hashing.
+# tiebreak. Repeated runs differ only in meta.generated_at and CBM
+# enrichment, which lib/fingerprint.sh's canonical subset excludes.
 
 # shellcheck disable=SC1091
 [ -n "${WIKI_FINGERPRINT_LOADED:-}" ] \
@@ -158,7 +163,6 @@ snap_code_paths = {}   # code path -> node count (drives the module-set union)
 mod_nodes = {}         # module -> usable-path node count (label/ext-agnostic)
 agg = {}               # (src_module, dst_module, TYPE) -> edge count
 edge_type_counts = {}  # TYPE -> total edges in snapshot, excluded types included
-entry_points = set()   # paths CBM flags is_entry_point
 
 if os.path.isfile(SNAPSHOT):
     try:
@@ -207,14 +211,6 @@ if os.path.isfile(SNAPSHOT):
             for ty, c in conn.execute(
                     "SELECT type, COUNT(*) FROM edges GROUP BY type"):
                 edge_type_counts[ty] = c
-            try:
-                for (fp,) in conn.execute(
-                        "SELECT DISTINCT file_path FROM nodes "
-                        "WHERE label IN ('File','Module') AND file_path != '' "
-                        "AND json_extract(properties, '$.is_entry_point') = 1"):
-                    entry_points.add(norm_fp(fp))
-            except sqlite3.Error:
-                pass  # pre-JSON1 sqlite: flag detection off, name heuristic stays on
             cbm_mode = "snapshot"
         finally:
             conn.close()
@@ -222,7 +218,7 @@ if os.path.isfile(SNAPSHOT):
         print(f"wiki: snapshot unreadable ({exc}); git-only extraction",
               file=sys.stderr)
         cbm_mode, snap_code_paths, agg = "none", {}, {}
-        edge_type_counts, entry_points, mod_nodes = {}, set(), {}
+        edge_type_counts, mod_nodes = {}, {}
 else:
     print("wiki: DEGRADED: no CBM snapshot at .wiki/cache/cbm.db; "
           "git-only extraction", file=sys.stderr)
@@ -247,21 +243,18 @@ for (s, t, _), c in agg.items():
     edge_touch[s] = edge_touch.get(s, 0) + c
     edge_touch[t] = edge_touch.get(t, 0) + c
 
-# --- features (heuristic documented in the header) -----------------------------
+# --- features (canonical rule documented in the header) ------------------------
+# Every non-excluded top-level dir with >=1 code file is a feature, snapshot
+# or not; edge_touch only enriches the per-feature edges field.
 top_dirs = sorted({module_of(f) for flist in mod_files.values() for f in flist
                    if "/" in f})
 candidates = [d for d in top_dirs
               if d not in FEATURE_EXCLUDE and not d.startswith(".")]
 
-if cbm_mode == "snapshot" and edge_touch:
-    chosen = [d for d in candidates if edge_touch.get(d, 0) > 0]
-else:
-    chosen = candidates
-
 features = []
-for d in chosen:
+for d in candidates:
     dfiles = mod_files.get(d, [])
-    eps = sorted({f for f in dfiles if f in entry_points or entry_name(f)})
+    eps = sorted({f for f in dfiles if entry_name(f)})
     features.append({"fid": slug(d),
                      "name": d,
                      "files": dfiles,

@@ -230,16 +230,18 @@ case_real_shape_snapshot() {
         && ok "real-shape: pathless noise excluded, dir-path node counted (sum=11)" \
         || no "real-shape: module node sum=$noise_sum (want 11)"
 
-    # features: all three dirs participate in cross-module edges
+    # features: canonical rule = every non-excluded top-level dir with >=1
+    # code file; NOT pruned by CBM edges (bulk participates despite zero
+    # cross-module edges)
     local fids
     fids=$(store_val "$store" "','.join(f['fid'] for f in s['features'])")
-    [ "$fids" = "app,lib,src" ] \
-        && ok "real-shape: fids exactly app,lib,src ($fids)" \
-        || no "real-shape: fids=$fids (want app,lib,src)"
+    [ "$fids" = "app,bulk,lib,src" ] \
+        && ok "real-shape: fids exactly app,bulk,lib,src, edge-pruning gone ($fids)" \
+        || no "real-shape: fids=$fids (want app,bulk,lib,src)"
 
-    # entrypoint detection: CBM flag
+    # entrypoint detection: name stem heuristic (main/index/app/__main__/server)
     store_val "$store" "[f['entrypoints'] for f in s['features'] if f['fid'] == 'app']" | grep -q "app/main.py" \
-        && ok "real-shape: app entrypoints detect app/main.py" \
+        && ok "real-shape: app entrypoints detect app/main.py by stem" \
         || no "real-shape: app entrypoints missing main.py: $(store_val "$store" "[f['entrypoints'] for f in s['features'] if f['fid'] == 'app']")"
 
     # edges: DEFINES-resolved CALLS must appear; excluded types must not
@@ -365,46 +367,118 @@ case_minimal_schema_snapshot() {
 }
 
 # ---------------------------------------------------------------------------
+# Mode-invariance pair: the same tree extracted with and without a CBM
+# snapshot. Cross-machine contract: CBM graph resolution is toolchain-
+# dependent, so feature identity and the fingerprint must be CBM-independent;
+# the snapshot only enriches edges/counts.
+prepare_mode_pair() {
+    MODE_SNAP="$T/fx-$$_is"
+    make_repo_copy_tree "$MODE_SNAP"
+    make_minimal_cbm "$MODE_SNAP"
+    run_extract "$MODE_SNAP" >"$T/extract-is.log" 2>&1 || return 1
+    MODE_DEG="$T/fx-$$_id"
+    make_repo_copy_tree "$MODE_DEG"
+    run_extract "$MODE_DEG" >"$T/extract-id.log" 2>&1 || return 1
+    STORE_SNAP="$MODE_SNAP/.wiki/store.json"
+    STORE_DEG="$MODE_DEG/.wiki/store.json"
+}
+
+case_fp_mode_invariant() {
+    prepare_mode_pair || { no "fp-mode-invariant: mode-pair extracts failed"; return; }
+    store_val "$STORE_SNAP" "s['meta']['cbm_mode']" | grep -qx snapshot \
+        && store_val "$STORE_DEG" "s['meta']['cbm_mode']" | grep -qx none \
+        && ok "fp-mode-invariant: pair built (snapshot + degraded)" \
+        || { no "fp-mode-invariant: pair modes wrong ($(store_val "$STORE_SNAP" "s['meta']['cbm_mode']")/$(store_val "$STORE_DEG" "s['meta']['cbm_mode']"))"; return; }
+    local fp1 fp2
+    if fp1=$(fp_of "$STORE_SNAP") && fp2=$(fp_of "$STORE_DEG") \
+        && [ -n "$fp1" ] && [ "$fp1" = "$fp2" ]; then
+        ok "fp-mode-invariant: snapshot and degraded fingerprints identical"
+    else
+        no "fp-mode-invariant: fingerprints differ across modes ($fp1 vs $fp2)"
+    fi
+}
+
+case_features_mode_invariant() {
+    [ -f "${STORE_SNAP:-}" ] || { no "features-mode-invariant: mode pair missing"; return; }
+    local f1 f2
+    f1=$(store_val "$STORE_SNAP" "','.join(f['fid'] for f in s['features'])")
+    f2=$(store_val "$STORE_DEG" "','.join(f['fid'] for f in s['features'])")
+    [ -n "$f2" ] && [ "$f1" = "$f2" ] \
+        && ok "features-mode-invariant: fids identical across modes ($f1)" \
+        || no "features-mode-invariant: fids differ ('$f1' vs '$f2')"
+    # entrypoints are canonical too: identical across modes
+    local e1 e2
+    e1=$(store_val "$STORE_SNAP" "sorted(set(e for f in s['features'] for e in f.get('entrypoints', [])))")
+    e2=$(store_val "$STORE_DEG" "sorted(set(e for f in s['features'] for e in f.get('entrypoints', [])))")
+    [ "$e1" = "$e2" ] \
+        && ok "features-mode-invariant: entrypoints identical across modes" \
+        || no "features-mode-invariant: entrypoints differ ('$e1' vs '$e2')"
+}
+
+# ---------------------------------------------------------------------------
 case_fp_stable() {
     if [ ! -f "$LIB/fingerprint.sh" ]; then no "fp-stable: lib/fingerprint.sh exists"; return; fi
     ok "fp-stable: lib/fingerprint.sh exists"
 
-    # logically identical stores: different key order, whitespace, generated_at,
-    # repo path, and one carrying an existing fingerprint field
+    # logically identical canonical content: different key order, whitespace,
+    # generated_at, repo path, one carrying an existing fingerprint field, and
+    # one carrying full CBM enrichment (modules/edges/edge_type_counts) that
+    # the canonical subset must ignore
     cat >"$T/a.json" <<'EOF'
 {"features":[{"fid":"parsing","files":["parsing/parser.py"]}],"meta":{"repo":"/x/repo","cbm_mode":"snapshot","generated_at":"2026-09-12T10:00:00Z"}}
 EOF
     cat >"$T/b.json" <<'EOF'
 {
-  "meta": {"generated_at": "1999-01-01T00:00:00Z", "cbm_mode": "snapshot", "repo": "/somewhere/else", "fingerprint": "deadbeef"},
-  "features": [{"files": ["parsing/parser.py"], "fid": "parsing"}]
+  "modules": [{"name": "parsing", "files": ["parsing/parser.py"], "nodes": 9}],
+  "edges": [{"source": "service.py", "target": "parsing", "type": "IMPORTS", "count": 1}],
+  "coupling": [],
+  "meta": {"generated_at": "1999-01-01T00:00:00Z", "cbm_mode": "snapshot", "repo": "/somewhere/else", "fingerprint": "deadbeef", "edge_type_counts": {"DEFINES": 5}},
+  "features": [{"files": ["parsing/parser.py"], "fid": "parsing", "edges": 7}]
 }
 EOF
     local fa fb
     fa=$(fp_of "$T/a.json") && ok "fp-stable: hashes store a" || { no "fp-stable: store a hash failed"; return; }
     if fb=$(fp_of "$T/b.json") && [ "$fa" = "$fb" ] && [ "${#fa}" -eq 64 ]; then
-        ok "fp-stable: same logical content, same 64-hex hash (order/whitespace/generated_at/repo ignored)"
+        ok "fp-stable: same canonical content, same 64-hex hash (order/whitespace/meta/CBM enrichment ignored)"
     else
         no "fp-stable: equal-content hashes differ ('$fa' vs '$fb')"
     fi
 
-    # changed content must change the hash
+    # changed canonical content must change the hash
     cat >"$T/c.json" <<'EOF'
 {"features":[{"fid":"parsing","files":["parsing/parser.py","parsing/regexes.py"]}],"meta":{"repo":"/x/repo","cbm_mode":"snapshot","generated_at":"2026-09-12T10:00:00Z"}}
 EOF
     local fc
     fc=$(fp_of "$T/c.json") && [ "$fc" != "$fa" ] \
-        && ok "fp-stable: changed content differs" \
-        || no "fp-stable: changed content hashed same as original"
+        && ok "fp-stable: changed feature files differ" \
+        || no "fp-stable: changed feature files hashed same as original"
 
-    # non-volatile meta participates
+    # entrypoints are canonical inputs: a change must flip the hash
+    cat >"$T/e.json" <<'EOF'
+{"features":[{"fid":"parsing","files":["parsing/parser.py"],"entrypoints":["parsing/main.py"]}],"meta":{"repo":"/x/repo","cbm_mode":"snapshot","generated_at":"2026-09-12T10:00:00Z"}}
+EOF
+    local fe
+    fe=$(fp_of "$T/e.json") && [ "$fe" != "$fa" ] \
+        && ok "fp-stable: changed entrypoints differ" \
+        || no "fp-stable: entrypoint change not reflected"
+
+    # coupling is a canonical input: a change must flip the hash
+    cat >"$T/f.json" <<'EOF'
+{"features":[{"fid":"parsing","files":["parsing/parser.py"]}],"coupling":[{"files":["parsing/parser.py","util.py"],"count":1}],"meta":{"repo":"/x/repo","cbm_mode":"snapshot","generated_at":"2026-09-12T10:00:00Z"}}
+EOF
+    local ff
+    ff=$(fp_of "$T/f.json") && [ "$ff" != "$fa" ] \
+        && ok "fp-stable: changed coupling differs" \
+        || no "fp-stable: coupling change not reflected"
+
+    # CBM enrichment stays excluded: flipping cbm_mode must NOT change the hash
     cat >"$T/d.json" <<'EOF'
 {"features":[{"fid":"parsing","files":["parsing/parser.py"]}],"meta":{"repo":"/x/repo","cbm_mode":"none","generated_at":"2026-09-12T10:00:00Z"}}
 EOF
     local fd
-    fd=$(fp_of "$T/d.json") && [ "$fd" != "$fa" ] \
-        && ok "fp-stable: non-volatile meta (cbm_mode) changes hash" \
-        || no "fp-stable: cbm_mode change not reflected in hash"
+    fd=$(fp_of "$T/d.json") && [ "$fd" = "$fa" ] \
+        && ok "fp-stable: cbm_mode flip does not change hash (enrichment excluded)" \
+        || no "fp-stable: cbm_mode changed the hash (must be excluded)"
 
     # unparseable JSON fails loudly, nonzero exit
     printf 'not json at all\n' >"$T/bad.json"
@@ -648,6 +722,8 @@ case_gitignore_untracked() {
 
 # ---------------------------------------------------------------------------
 case_fp_stable
+case_fp_mode_invariant
+case_features_mode_invariant
 case_minimal_schema_snapshot
 case_real_shape_snapshot
 case_extract_fixture

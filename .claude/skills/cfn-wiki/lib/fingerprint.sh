@@ -1,17 +1,29 @@
 #!/usr/bin/env bash
-# cfn-wiki store fingerprint: stable sha256 over a store.json's logical content.
+# cfn-wiki store fingerprint: sha256 over the CBM-independent canonical
+# subset of a store.json.
 #
 # Contract: wiki_fingerprint <store.json> -> 64-hex sha256 on stdout, exit 0.
 # Missing file or unparseable JSON -> message on stderr, exit 1.
 #
-# Stability property (the staleness gate and Phase 3 enrich preservation both
-# key off this): the hash covers logical content only. Before hashing, the
-# store is parsed and re-emitted with sorted keys and compact separators, so
-# key order and whitespace never matter, and the volatile meta fields
-# (generated_at, repo: environment output, not content) plus meta.fingerprint
-# itself are stripped, so a re-extract in a different checkout or a different
-# minute hashes identically. Any change to features/modules/edges/coupling or
-# to non-volatile meta (e.g. cbm_mode) changes the hash.
+# Inputs hashed (the canonical subset):
+#   features[].fid, features[].files, features[].entrypoints
+#   coupling[].files, coupling[].count
+# Lists are order-normalized (features by fid, files/entrypoints sorted,
+# coupling by files then count) so store ordering never leaks into the hash.
+#
+# Inputs excluded BY DESIGN:
+#   module node counts, module-level edges, meta.edge_type_counts, cbm_mode,
+#   generated_at, repo, meta.fingerprint itself. The CBM-derived fields are
+#   enrichment: CBM graph resolution is toolchain-dependent (two machines
+#   index the same tree into different graphs), so any CBM-derived input
+#   would make the fingerprint differ across machines and break the
+#   staleness gate. With this subset, a snapshot-mode store and a
+#   degraded git-only store of the same tree hash identically; any change to
+#   tracked feature content, entrypoints, or git coupling flips the hash.
+#
+# Consumers: the sync drift gate hashes the whole store (drift = any
+# regenerable byte changed); the per-feature enrich preservation in Phase 3
+# keys off this same function.
 
 WIKI_FINGERPRINT_LOADED=1
 
@@ -29,17 +41,28 @@ import sys
 path = sys.argv[1]
 try:
     with open(path, encoding="utf-8") as fh:
-        obj = json.load(fh)
+        store = json.load(fh)
 except (OSError, ValueError) as exc:
     print(f"wiki_fingerprint: cannot parse {path}: {exc}", file=sys.stderr)
     sys.exit(1)
+if not isinstance(store, dict):
+    print(f"wiki_fingerprint: {path} is not a JSON object", file=sys.stderr)
+    sys.exit(1)
 
-meta = obj.get("meta")
-if isinstance(meta, dict):
-    for key in ("generated_at", "repo", "fingerprint"):
-        meta.pop(key, None)
+features = sorted(
+    ({"entrypoints": sorted(str(e) for e in f.get("entrypoints") or []),
+      "fid": str(f.get("fid", "")),
+      "files": sorted(str(p) for p in f.get("files") or [])}
+     for f in store.get("features") or [] if isinstance(f, dict)),
+    key=lambda f: f["fid"])
 
-blob = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+coupling = sorted(
+    ({"count": p.get("count", 0), "files": sorted(str(x) for x in p.get("files") or [])}
+     for p in store.get("coupling") or [] if isinstance(p, dict)),
+    key=lambda p: (p["files"], p["count"]))
+
+canon = {"coupling": coupling, "features": features}
+blob = json.dumps(canon, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 print(hashlib.sha256(blob.encode("utf-8")).hexdigest())
 PY
 }
