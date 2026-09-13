@@ -37,3 +37,9 @@ jobs:
 
       - name: Wiki drift gate
         run: bash .claude/skills/cfn-wiki/lib/wiki.sh sync --check .
+
+      - name: Dump drift diff on failure
+        if: failure()
+        run: |
+          git diff --stat -- readme/
+          git diff -- readme/ | head -100
