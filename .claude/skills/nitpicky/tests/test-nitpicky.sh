@@ -25,14 +25,17 @@ make_run() { # project_dir app_url -> echoes run dir
   "$SKILL_DIR/lib/new-run.sh" "$1" "$2"
 }
 
-write_lens() { # run_dir lens finding_json_array
+write_lens() { # run_dir lens finding_json_array [coverage_json_array]
   local dir="$1/findings"
   mkdir -p "$dir"
-  "$PY" - "$dir/$2.json" "$2" "$3" <<'EOF'
+  "$PY" - "$dir/$2.json" "$2" "$3" "${4:-}" <<'EOF'
 import json, sys
 path, lens, arr = sys.argv[1], sys.argv[2], json.loads(sys.argv[3])
+doc = {"lens": lens, "findings": arr}
+if len(sys.argv) > 4 and sys.argv[4]:
+    doc["coverage"] = json.loads(sys.argv[4])
 with open(path, "w") as f:
-    json.dump({"lens": lens, "findings": arr}, f, indent=2)
+    json.dump(doc, f, indent=2)
 EOF
 }
 
@@ -239,6 +242,91 @@ RC=$?
 assert_eq "$RC" "2" "T11 malformed state exit code"
 grep -q '{broken' "$RUN_S/decisions.json" && ok || fail "T11 malformed file was clobbered"
 rm -f "$RUN_S/decisions.json"
+
+# ---------------------------------------------------------------- live-run feedback
+# T12: duplicate-evidence detection — byte-identical PNGs across lens prefixes flagged
+RUN_F="$(make_run "$TMP/proj-dup" 'http://localhost:3000')"
+"$PY" - "$RUN_F" <<'EOF'
+import base64, pathlib, sys
+png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
+run = pathlib.Path(sys.argv[1])
+(run / "screenshots" / "consistency-shared.png").write_bytes(png)
+(run / "screenshots" / "friction-shared.png").write_bytes(png)
+(run / "screenshots" / "consistency-unique.png").write_bytes(png + b"\x01")
+EOF
+write_lens "$RUN_F" consistency "[{\"what\": \"Dup evidence finding A\", \"expected\": \"x\", \"url\": \"http://localhost:3000/a\", \"severity\": \"low\", \"screenshot\": \"screenshots/consistency-shared.png\"},{\"what\": \"Unique evidence finding\", \"expected\": \"x\", \"url\": \"http://localhost:3000/a\", \"severity\": \"low\", \"screenshot\": \"screenshots/consistency-unique.png\"}]"
+write_lens "$RUN_F" friction "[{\"what\": \"Dup evidence finding B\", \"expected\": \"y\", \"url\": \"http://localhost:3000/b\", \"severity\": \"low\", \"screenshot\": \"screenshots/friction-shared.png\"}]"
+MERGE_F="$("$PY" "$SKILL_DIR/lib/merge-findings.py" --run-dir "$RUN_F" 2>&1)"
+assert_eq "$?" "0" "T12 merge exit"
+assert_contains "$MERGE_F" "duplicate-evidence" "T12 duplicate evidence named"
+"$PY" - "$RUN_F" <<'EOF'
+import json, sys
+d = json.load(open(sys.argv[1] + "/findings.json"))
+flagged = [f["id"] for f in d["findings"] if f.get("evidence_flag") == "duplicate-image"]
+assert len(flagged) == 2, flagged
+uniq = [f for f in d["findings"] if f["what"].startswith("Unique")]
+assert not uniq[0].get("evidence_flag"), "unique-evidence finding wrongly flagged"
+EOF
+[ $? = 0 ] && ok || fail "T12 flagging wrong (expected exactly the 2 shared-byte findings)"
+
+# T13: cross-lens clustering — near-identical defect from two lenses shares a cluster
+RUN_G="$(make_run "$TMP/proj-cluster" 'http://localhost:3000')"
+write_lens "$RUN_G" consistency "[{\"what\": \"Privacy policy link leaks draft content to anonymous users\", \"expected\": \"Drafts not public\", \"url\": \"http://localhost:3000/privacy\", \"severity\": \"high\", \"screenshot\": \"screenshots/c-priv.png\"}]"
+write_lens "$RUN_G" friction "[{\"what\": \"privacy policy link leaks draft content to anonymous users\", \"expected\": \"Drafts not public\", \"url\": \"http://localhost:3000/privacy\", \"severity\": \"high\", \"screenshot\": \"screenshots/f-priv.png\"}]"
+"$PY" -c "import base64,pathlib;p=pathlib.Path('$RUN_G/screenshots');png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');(p/'c-priv.png').write_bytes(png);(p/'f-priv.png').write_bytes(png+b'x')"
+"$PY" "$SKILL_DIR/lib/merge-findings.py" --run-dir "$RUN_G" >/dev/null 2>&1
+"$PY" - "$RUN_G" <<'EOF'
+import json, sys
+d = json.load(open(sys.argv[1] + "/findings.json"))
+fs = d["findings"]
+assert len(fs) == 2
+assert fs[0].get("cluster") and fs[0]["cluster"] == fs[1]["cluster"], fs
+assert fs[0]["cluster_size"] == 2
+assert len(d["clusters"]) == 1
+EOF
+[ $? = 0 ] && ok || fail "T13 clustering failed"
+
+# T14: redaction — run.json redactions scrubbed from findings.json AND checklist
+mkdir -p "$TMP/proj-redact"
+printf 's3cretPW\n' >"$TMP/redact.txt"
+printf '/cart\n/missing-page\n' >"$TMP/routes.txt"
+RUN_H="$("$SKILL_DIR/lib/new-run.sh" "$TMP/proj-redact" 'http://localhost:3000' --redact-file "$TMP/redact.txt" --routes-file "$TMP/routes.txt")"
+grep -q '"s3cretPW"' "$RUN_H/run.json" && ok || fail "T14 run.json carries redactions"
+grep -q '"/cart"' "$RUN_H/run.json" && ok || fail "T14 run.json carries coverage.expected"
+write_lens "$RUN_H" consistency "[{\"what\": \"Login form uses password s3cretPW in placeholder\", \"expected\": \"No credential in UI\", \"url\": \"http://localhost:3000/login\", \"severity\": \"high\", \"screenshot\": \"screenshots/r.png\"}]" "[{\"path\": \"/cart\", \"status\": \"covered\"},{\"path\": \"/settings\", \"status\": \"blocked\", \"note\": \"503s\"}]"
+"$PY" -c "import base64,pathlib;(pathlib.Path('$RUN_H/screenshots')/'r.png').write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='))"
+MERGE_H="$("$PY" "$SKILL_DIR/lib/merge-findings.py" --run-dir "$RUN_H" 2>&1)"
+assert_eq "$?" "0" "T14 merge exit"
+if grep -q "s3cretPW" "$RUN_H/findings.json"; then fail "T14 secret survived in findings.json"; else ok; fi
+grep -q "\[REDACTED\]" "$RUN_H/findings.json" && ok || fail "T14 [REDACTED] marker absent"
+"$PY" "$SKILL_DIR/lib/export-checklist.py" --run-dir "$RUN_H" --decisions <(echo '{}') >/dev/null 2>&1
+if grep -q "s3cretPW" "$RUN_H/CHECKLIST.md" 2>/dev/null; then fail "T14 secret survived in checklist"; else ok; fi
+
+# T15: coverage aggregation + uncovered expected route named (same merge)
+assert_contains "$MERGE_H" "uncovered-expected=[/missing-page]" "T15 uncovered expected route named"
+assert_contains "$MERGE_H" "blocked=1" "T15 blocked count in run-health"
+"$PY" - "$RUN_H" <<'EOF'
+import json, sys
+d = json.load(open(sys.argv[1] + "/findings.json"))
+cov = d["coverage"]
+assert cov["covered"] == ["/cart"], cov
+assert cov["blocked"][0]["path"] == "/settings", cov
+assert cov["uncovered_expected"] == ["/missing-page"], cov
+EOF
+[ $? = 0 ] && ok || fail "T15 coverage block wrong"
+
+# T16: suspected_env_cause passthrough + run-health summary
+write_lens "$RUN_H" friction "[{\"what\": \"Whole analytics page stuck on spinner\", \"expected\": \"Data loads\", \"url\": \"http://localhost:3000/analytics\", \"severity\": \"medium\", \"screenshot\": \"screenshots/e.png\", \"suspected_env_cause\": true}]"
+"$PY" -c "import base64,pathlib;(pathlib.Path('$RUN_H/screenshots')/'e.png').write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='))"
+MERGE_I="$("$PY" "$SKILL_DIR/lib/merge-findings.py" --run-dir "$RUN_H" 2>&1)"
+assert_contains "$MERGE_I" "suspected-env=1" "T16 run-health counts env findings"
+"$PY" - "$RUN_H" <<'EOF'
+import json, sys
+d = json.load(open(sys.argv[1] + "/findings.json"))
+envs = [f for f in d["findings"] if f.get("suspected_env_cause")]
+assert len(envs) == 1 and d["env_summary"]["suspected_env_findings"] == 1
+EOF
+[ $? = 0 ] && ok || fail "T16 env passthrough wrong"
 
 echo ""
 echo "passed=$PASS failed=$FAIL"

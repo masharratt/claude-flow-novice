@@ -38,6 +38,36 @@ Write exactly one JSON file per agent:
   review page.
 - `area` (optional): short page/feature label shown as a chip ("Cart", "Settings > API").
 - `steps` (optional): minimal repro when the defect is not obvious from the screenshot.
+- `suspected_env_cause` (optional, boolean): set `true` when the failure pattern looks
+  server-side rather than an app defect — bursts of 5xx, 401 loops on a valid session,
+  whole surfaces stuck on spinner, data that should exist not loading. The portal gets
+  a filter for it and the merge prints a run-health summary, so mark honestly instead
+  of reporting backend noise as app defects.
+
+## Coverage block (same file, top level, required)
+
+Report which routes/pages you actually walked — honestly, including the ones you
+could not:
+
+```json
+{
+  "lens": "consistency",
+  "coverage": [
+    {"path": "/dashboard", "status": "covered"},
+    {"path": "/search", "status": "blocked", "note": "permanent loading spinner; queries never resolve"},
+    {"path": "/onboarding/step-3", "status": "skipped", "note": "requires completing steps 1-2 with real data"}
+  ],
+  "findings": []
+}
+```
+
+- `path`: route or page path as the app addresses it.
+- `status`: `covered` (walked through your lens) | `blocked` (tried; app or backend
+  prevented it) | `skipped` (not attempted; say why in `note`).
+- The merge aggregates all lenses per route and names expected routes
+  (run.json `coverage.expected`) that no lens covered, so the coordinator can
+  re-brief for exactly the holes. Prose mentions of "did not visit X" do not count —
+  use the coverage block.
 
 ## Scope guards
 

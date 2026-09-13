@@ -2,7 +2,7 @@
 
 Entity lifecycle documentation for stateful CFN systems.
 
-**Last Updated:** 2026-09-12 (nitpicky review decision lifecycle added)
+**Last Updated:** 2026-09-13 (nitpicky decision triggers extended: bulk + cluster)
 
 ## Contents
 
@@ -1137,9 +1137,9 @@ keeps the explanation. Findings with no record are undecided.
 
 | From | To | Trigger | Guard |
 |------|----|---------|-------|
-| `undecided` | `fix`/`defer`/`deny` | decision button click in review.html | patch validated server-side (id in findings.json, enum, size caps, localhost Origin) |
+| `undecided` | `fix`/`defer`/`deny` | decision button click, bulk action on the filtered set, or cluster apply in review.html | patch validated server-side (id in findings.json, enum, size caps, localhost Origin) |
 | `fix`/`defer`/`deny` | `undecided` | same decision button re-clicked | explanation preserved |
-| `fix`/`defer`/`deny` | `fix`/`defer`/`deny` | different decision button clicked | record replaced, `updatedAt` bumped |
+| `fix`/`defer`/`deny` | `fix`/`defer`/`deny` | different decision button clicked, or bulk/cluster overwrite | record replaced, `updatedAt` bumped; bulk note only fills empty explanations, cluster apply never overwrites existing explanations |
 | any | any | browser reload | server state authoritative; newer unsent browser drafts overwrite (draft `ts` > record `updatedAt`) |
 
 ```

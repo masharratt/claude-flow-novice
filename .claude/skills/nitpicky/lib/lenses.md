@@ -11,6 +11,16 @@ these in the first ten minutes and judge the app by them. Find them first.
 
 ## Thoroughness rules (every lens)
 
+0. **Own browser, always.** Launch your OWN isolated browser context (your own
+   Playwright instance or a fresh incognito context). NEVER drive a shared MCP
+   browser tab: parallel lens agents collide there — one agent screenshots another
+   agent's page and phantom bugs appear (a "silent re-login" that was really a
+   sibling agent navigating). Byte-identical screenshots across agents are treated
+   as contaminated evidence by the merge and must be re-shot.
+1. **Walk every reachable page. Never sample.** If a nav item, tab, footer link,
+   settings row, or route exists, it gets visited. An unvisited page is an unreviewed
+   page — record it in your coverage block as blocked/skipped with the reason.
+
 1. **Walk every reachable page. Never sample.** If a nav item, tab, footer link,
    settings row, or route exists, it gets visited. An unvisited page is an unreviewed
    page.
@@ -43,7 +53,20 @@ these in the first ten minutes and judge the app by them. Find them first.
    - `medium` — clearly noticeable friction, inconsistency, or polish gap.
    - `low` — nit: a detail only a careful reader or tester would catch. Report these
      anyway; that is the point of this review.
-7. **Stay in scope:** what a human would see and feel. No architecture opinions, no
+7. **Separate backend noise from app defects.** When a failure smells server-side
+   (5xx bursts, 401 loops on a valid session, a whole surface stuck on spinner,
+   expected data absent), still record it, but set `suspected_env_cause: true` on the
+   finding. Do not spend findings budget re-reporting one backend outage twenty times;
+   one env finding per affected surface plus a coverage `blocked` entry is enough.
+8. **Live-target safety (applies whenever the app URL is not localhost):** this may be
+   a production system with real users and real data. Read-only walk. NEVER: make
+   purchases or payments; delete or modify real records; send emails, messages, or
+   notifications; enable/disable security settings (2FA, password changes); invoke
+   external services or bots; trigger AI generation that burns credits; export real
+   customer data. Test only with data you created (clearly test-named), and only
+   reversible actions. If a flow cannot be exercised safely, record it as a coverage
+   `skipped` entry with the reason instead of forcing it.
+9. **Stay in scope:** what a human would see and feel. No architecture opinions, no
    performance tuning, no security audit, no feature suggestions, no code-level
    refactors. Polish and correctness of the user-facing surface only.
 

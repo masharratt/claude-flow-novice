@@ -1,7 +1,7 @@
 ---
 name: nitpicky
 description: "Pre-launch visual walkthrough of a full app: spawns parallel per-lens review agents (consistency, friction, verbose language, visual polish, accessibility) that screenshot every page and state, merges findings into a browser triage portal (fix / deny / defer with notes, autosaved to decisions.json on disk via a local server), and exports a hand-off checklist for the implementation team. Use when preparing an app for launch or human testing."
-version: 1.1.0
+version: 1.3.0
 tags: [review, ux, polish, launch-readiness, playwright, walkthrough, triage]
 status: dev
 category: review
@@ -44,13 +44,21 @@ let the user triage. Do not auto-export or auto-implement anything.
 
 ## Workflow
 
-1. **Resolve the app URL.** URL given: verify it responds (`curl -s -o /dev/null -w '%{http_code}'`).
-   Project dir given: detect the dev server (package.json scripts, project port
-   references, running port) and start it if needed; confirm the URL responds before
-   proceeding. Never walk a dead app.
-2. **Scaffold the run:**
+1. **Resolve the app URL and verify the DATA PATH, not just the landing page.** URL
+   given: verify it responds (`curl -s -o /dev/null -w '%{http_code}'`), then log in
+   (test account if needed) and load one real data surface — a list or detail page
+   that requires a working backend. Project dir given: detect the dev server
+   (package.json scripts, project port references, running port) and start it if
+   needed. A landing page 200 with a degraded backend burns the whole run: 45 minutes
+   of agents triaging Supabase 503s as app defects. If the data surface fails,
+   ABORT and report, or proceed only with the user's explicit say-so and note the
+   degradation in every brief.
+2. **Scaffold the run.** Optional but recommended: a routes file (one route per line,
+   becomes the coverage expectation) and a redactions file (one secret per line —
+   test passwords, tokens; merge and export scrub them mechanically):
    ```bash
-   RUN_DIR=$("$HOME"/.claude/skills/nitpicky/lib/new-run.sh <project-root> "$APP_URL")
+   RUN_DIR=$("$HOME"/.claude/skills/nitpicky/lib/new-run.sh <project-root> "$APP_URL" \
+     [--routes-file routes.txt] [--redact-file secrets.txt])
    ```
 3. **Spawn one agent per lens in ONE message** (parallel). Default lenses:
    `consistency`, `friction`, `verbose-language`, `visual-polish`, `accessibility`.
@@ -66,8 +74,19 @@ let the user triage. Do not auto-export or auto-implement anything.
    python3 "$HOME/.claude/skills/nitpicky/lib/merge-findings.py" --run-dir "$RUN_DIR"
    ```
    Exit 1 (schema/parse errors): re-brief the offending agent for just the repair.
-   Exit 0 with `missing-screenshots=[...]`: re-brief the agent to re-shoot those
-   proofs, then re-merge. Exit 2: agent produced nothing — re-run that lens.
+   Exit 0 with repairable output — act on the named warnings before opening the page:
+   - `missing-screenshots=[...]`: re-brief that agent to re-shoot the proofs.
+   - `duplicate-evidence: lenses=... ids=[...]`: byte-identical screenshots across
+     lens prefixes = shared-browser contamination; re-brief those agents to re-shoot
+     in their OWN browser context.
+   - `uncovered-expected=[...]`: routes from coverage.expected no lens covered;
+     re-brief ONE agent for just the holes.
+   - `run-health: suspected-env=N` (+ WARNING when high): backend likely degraded —
+     say so when handing the page to the user; the portal has a filter for those
+     findings.
+   Exit 2: agent produced nothing — re-run that lens.
+   Cross-lens near-duplicates are clustered automatically (`Likely duplicate` line in
+   the portal with an apply-to-cluster button); do not re-brief for them.
 6. **Start the portal server and open the page:**
    ```bash
    nohup python3 "$HOME/.claude/skills/nitpicky/lib/server.py" \
@@ -82,8 +101,10 @@ let the user triage. Do not auto-export or auto-implement anything.
    the user sees "Not saved" and their pending edits sit only in the page).
    Tell the user: every click writes `decisions.json` on disk; unsaved edits are
    kept in the browser and a Retry button appears if the server drops; filter
-   chips narrow the list; "Next undecided" walks the queue; Export writes
-   CHECKLIST.md straight into the run dir.
+   chips narrow the list; "Next undecided" walks the queue; Bulk actions applies
+   one decision to the whole filtered set (with confirm); likely cross-lens
+   duplicates show an apply-to-cluster button; suspected-environment findings are
+   filterable; Export writes CHECKLIST.md straight into the run dir.
 7. **Hand-off.** When the user finishes triage (or asks mid-review), Export has
    written `$RUN_DIR/CHECKLIST.md`. Read `decisions.json` (or `GET /api/decisions`)
    to act on decisions yourself. Never parse CHECKLIST.md as the decision source;
@@ -122,12 +143,26 @@ App under review: <APP_URL>
 Screenshots dir: <RUN_DIR>/screenshots/
 Write findings to: <RUN_DIR>/findings/<lens>.json
 
+BROWSER ISOLATION (mandatory): launch your OWN isolated browser context — your own
+Playwright instance or a fresh incognito context. Never use a shared MCP browser
+tab; parallel agents collide there and contaminate each other's evidence.
+
 Summary: this app is being prepared for launch and human testing. Walk the ENTIRE
 app through your lens only. Extreme detail and thoroughness are the job: every page,
 every state, every small defect. Expected finding volume for a real app is high; do
 not stop early. Every finding needs a screenshot saved into the screenshots dir
-named <lens>-<short-slug>.png and referenced as "screenshots/<file>.png". Output
-JSON only, at that path, exactly per schema. No code fixes, no architecture notes.
+named <lens>-<short-slug>.png and referenced as "screenshots/<file>.png". Report
+your walked/blocked/skipped routes in the coverage block, and mark findings
+`suspected_env_cause: true` when the failure looks server-side. Output JSON only,
+at that path, exactly per schema. No code fixes, no architecture notes.
+
+[LIVE-TARGET STANZA — include this block only when APP_URL is not localhost:]
+LIVE TARGET: this is a production system with real users and real data. Read-only
+walk. NEVER: purchases or payments; deleting or modifying real records; sending
+emails/messages/notifications; security setting changes (2FA, passwords); external
+service or bot invocations; AI generation that burns credits; exporting real
+customer data. Test only with data you created (test-named) and only reversible
+actions; otherwise record a coverage `skipped` entry with the reason.
 
 You are a leaf agent. Do not spawn subagents; do the work yourself.
 ```
@@ -179,6 +214,14 @@ You are a leaf agent. Do not spawn subagents; do the work yourself.
 
 ## Version History
 
+- **1.3.0** (2026-09-13): First live-run feedback incorporated (172-finding run):
+  mandatory per-agent browser isolation + mechanical duplicate-evidence detection;
+  data-path pre-flight; coverage manifest (coverage.expected + per-agent coverage
+  block + uncovered-expected report); cross-lens duplicate clustering with
+  apply-to-cluster in the portal; live-target safety stanza for non-localhost
+  targets; mechanical credential redaction (run.json redactions scrubbed at merge
+  AND export); run-health summary; portal env-cause filter; bulk actions on the
+  filtered set.
 - **1.1.0** (2026-09-12): Decision portal server. Decisions write to
   `decisions.json` on disk per click (atomic tmp+rename, validated patches,
   origin-checked). Browser draft queue survives server outages (Retry button);

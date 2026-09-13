@@ -37,9 +37,18 @@ def item_block(f: dict, explanation: str, with_checkbox: bool) -> list:
     return lines
 
 
+def apply_redactions(text: str, redactions) -> str:
+    for secret in redactions or []:
+        if secret:
+            text = text.replace(str(secret), "[REDACTED]")
+    return text
+
+
 def build_markdown_from_state(findings_by_id: dict, decisions: dict,
-                              run_id: str = "unknown", app_url: str = "unknown"):
-    """Shared checklist builder. Returns (markdown_text, counts, undecided)."""
+                              run_id: str = "unknown", app_url: str = "unknown",
+                              redactions=None):
+    """Shared checklist builder. Returns (markdown_text, counts, undecided).
+    Every secret in redactions is scrubbed from the output text."""
     groups = {d: [] for d in DECISIONS}
     undecided = 0
     for fid, f in findings_by_id.items():
@@ -85,7 +94,7 @@ def build_markdown_from_state(findings_by_id: dict, decisions: dict,
             lines.append(f"- {f['id']} [{f['lens']} · {f['severity']}] {f['what']}{reason}")
         lines.append("")
 
-    return "\n".join(lines).rstrip() + "\n", counts, undecided
+    return apply_redactions("\n".join(lines).rstrip() + "\n", redactions), counts, undecided
 
 
 def main() -> int:
@@ -118,10 +127,18 @@ def main() -> int:
         decisions = decisions["decisions"]
 
     findings_by_id = {f["id"]: f for f in findings_doc.get("findings", [])}
+    redactions = []
+    run_meta_path = run_dir / "run.json"
+    if run_meta_path.is_file():
+        try:
+            redactions = json.loads(run_meta_path.read_text()).get("redactions", [])
+        except (json.JSONDecodeError, AttributeError):
+            redactions = []
     text, counts, undecided = build_markdown_from_state(
         findings_by_id, decisions,
         run_id=findings_doc.get("run_id", "unknown"),
-        app_url=findings_doc.get("app_url", "unknown"))
+        app_url=findings_doc.get("app_url", "unknown"),
+        redactions=redactions)
 
     out_path = Path(args.out) if args.out else run_dir / "CHECKLIST.md"
     out_path.write_text(text)

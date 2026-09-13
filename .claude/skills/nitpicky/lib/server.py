@@ -56,6 +56,7 @@ class PortalState:
         findings_doc = json.loads((run_dir / "findings.json").read_text())
         self.run_id = meta["run_id"]
         self.app_url = meta["app_url"]
+        self.redactions = [str(s) for s in meta.get("redactions", [])]
         self.known_ids = {f["id"] for f in findings_doc.get("findings", [])}
 
         if self.path.exists():
@@ -231,7 +232,8 @@ class Handler(BaseHTTPRequestHandler):
             snap = self.state.snapshot()
             text, counts, undecided = self.export_mod.build_markdown_from_state(
                 _findings_by_id(self.state), snap["decisions"],
-                run_id=self.state.run_id, app_url=self.state.app_url)
+                run_id=self.state.run_id, app_url=self.state.app_url,
+                redactions=self.state.redactions)
             out = self.state.run_dir / "CHECKLIST.md"
             out.write_text(text)
             self._json(200, {"ok": True, "path": str(out),
