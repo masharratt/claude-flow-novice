@@ -9,6 +9,11 @@ BACKUP_PATH=$(~/.claude/hooks/cfn-invoke-pre-edit.sh "$FILE" --agent-id "$AGENT_
 ```
 CFN rules override Claude Code defaults when they conflict.
 
+The post-edit hook runs `tsc` on the single file with no project tsconfig, so its
+`TYPE_WARNING` and `LINT_ISSUES` lines are usually false: unresolved workspace imports and
+missing path aliases, not real type errors. Confirm against a project-level `pnpm typecheck`
+before acting on one, and never "fix" code to satisfy a per-file warning.
+
 ---
 
 ## 2. Critical Rules
@@ -43,6 +48,12 @@ set excludes Agent, so nesting is impossible rather than merely discouraged. Whe
 spawning any other type, end the brief with the line: "You are a leaf agent. Do not
 spawn subagents; do the work yourself."
 
+**Two things that are not completion signals.** A subagent must never block on `Monitor`
+waiting for a notification: one stalled through repeated resumes with no wakeup ever
+arriving and burned roughly 1M tokens on 2026-09-06. And a coordinator must never treat a
+size-stable output file as "the agent finished": the agent's later passes silently overwrite
+coordinator edits to that same file. Wait for the completion notification, nothing else.
+
 ### Fork Subagents (`subagent_type: "fork"`) - TOKEN HAZARD
 
 A fork inherits the **entire main-chat conversation** as its prompt and always runs on the parent model. Cost per fork = current context size, re-sent. Three forks at 100k context = 300k input tokens before the fork does any work. A fresh agent (any other `subagent_type`, or omitted) starts near-empty and costs a fraction.
@@ -69,13 +80,7 @@ Cheaper substitutes, in order: restate context in a fresh agent prompt, point th
 
 Use Codex (`mcp__codex__codex` / `mcp__codex__codex-reply` MCP tools) ONLY in projects whose CLAUDE.md contains a literal `codex=true` line. In all other projects, never call codex tools. Subscription-billed: keep `OPENAI_API_KEY` unset or calls silently bill the API.
 
-- Offload: read-heavy sweeps (grep forests, log/schema dumps), mechanical implementation of a fully specified plan part, second-opinion review.
-- Always pass: `cwd` = absolute repo path, `approval-policy` = `never`, `sandbox` = `read-only` (research/review) or `workspace-write` (implementation).
-- Bound every codex prompt's reply ("under N words", "path:line list only"). Unbounded replies flood caller context.
-- Follow-ups via `codex-reply` (same threadId); accumulated context stays codex-side.
-- Parallel fan-out: one MCP server is serial. Use N `codex exec` background processes instead.
-- Never delegate: planning, decisions, anything touching credentials.
-- Verify use: `/codex-hud:usage-today` deltas, or `pstree -p <claude-pid>` showing a codex child.
+Load `~/.claude/references/codex-delegation.md` before the first codex call in a flagged project: what to offload, required call shape, reply bounding, which model at which reasoning effort, and the two model-id traps that read as subscription refusals but are not.
 
 ### Operations
 - **Batch operations**: one message per related batch (spawns, edits, bash, todos)
@@ -148,7 +153,7 @@ Replacement map (`anthropic:* -> xai:*`) and cost/reasoning-model rules: `~/.cla
 - **`claude -p` with `ANTHROPIC_API_KEY` set bills API, not subscription.** Before any long-running `claude -p` loop: `unset ANTHROPIC_API_KEY` to force subscription billing, cap spend with `--budget=<usd>`, confirm via token dashboard. Full rules: `~/.claude/references/provider-cost-runtime.md`.
 
 ### Content Standards
-- **Em dashes:** Banned in user-facing copy only (website text, UI, public docs), plus code and code comments. Use periods, commas, colons, or parentheses there. (Agents default to em dashes; override what ships.) Allowed in internal docs: handoffs, subagent briefs, planning artifacts (PLAN_/SPEC_/VERIFY_/DECISIONS_/ARCH_, anything under `planning/`), reports, notes. Never spend turns correcting em dashes in internal docs.
+- **Em dashes:** Banned in user-facing copy only (website text, UI, public docs), plus code and code comments. Use periods, commas, colons, or parentheses there. (Agents default to em dashes; override what ships.) Allowed in internal docs: handoffs, subagent briefs, planning artifacts (PLAN_/SPEC_/VERIFY_/DECISIONS_/ARCH_, anything under `planning/`), reports, notes. Never spend turns correcting em dashes in internal docs. Carve-out: code that detects, strips or tests for em dashes has to spell the character literally in its regex or fixture. Those occurrences are the feature, not a violation, so do not "fix" them and do not let a scan flag them.
 
 ### Terse-Output Mode Carve-Out (caveman plugin)
 
@@ -268,6 +273,8 @@ defects, S007 grading failures): `~/.claude/references/planning-pipeline.md`.
 
 Every commit MUST update these two docs. Create if missing. **Full contract: `~/.claude/skills/cfn-doc-lint/SCHEMA.md`** (the spec) + `/cfn-doc-lint` (the enforcer). Summary:
 
+**cfn-wiki exception (wiki-installed repos only):** where the `cfn-wiki` skill is installed and `<repo>/.wiki/config.json` exists, both files are GENERATED by `wiki sync` — never hand-edit them. Curate through the wiki portal (writes `.wiki/annotations.json`) or the `wiki:enrich` blocks inside the generated files, then run `wiki sync`. `wiki sync --check` (CI + SessionStart) fails when the generated content drifts from the store. Repos WITHOUT cfn-wiki follow the hand-maintenance contract below, unchanged. Lint remains the validator in both modes.
+
 1. **`readme/feature-status.md`** — Production readiness tracker. Update when features change, status changes, or test coverage changes.
    - **Closed status vocabulary (all projects):** `prod | beta | dev | stub | deprecated`. No other tokens (`done`, `shipped`, `mvp`, `mock`, `live`, `wired`, `partial`...) — collapse them per SCHEMA. One token per Status cell.
    - **Columns:** `Feature | Status | Description | Dependencies | Known Limitations` (optional: `Last Verified`, `Tests`, `Location`).
@@ -309,5 +316,7 @@ Every commit MUST update these two docs. Create if missing. **Full contract: `~/
 | Test output capture flags (per language) | `~/.claude/references/test-output-flags.md` | running any test suite |
 | Caveman plugin controls and measurements | `~/.claude/references/caveman-controls.md` | adjusting terse-output mode |
 | Planning pipeline sub-skills and phases | `~/.claude/references/planning-pipeline.md` | choosing among planning skills |
+| Codex: what to offload, call shape, model + effort, model-id traps | `~/.claude/references/codex-delegation.md` | first codex call in a `codex=true` project |
+| Browser-only frontend traps (real click vs jsdom, StrictMode) | `~/.claude/references/frontend-browser-traps.md` | writing or debugging a frontend test that passes in jsdom |
 
 @RTK.md

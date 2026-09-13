@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Codebase Wiki</title>
+<style>
+/* Theme tokens: explicit light palette on :root, dark overrides under
+   prefers-color-scheme, explicit [data-theme] wins in both directions. */
+:root {
+  color-scheme: light dark;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --text: #1a1d21;
+  --dim: #57606a;
+  --line: #d9dde3;
+  --accent: #2456d6;
+  --accent-soft: #e3eafc;
+  --ok: #1a7f37;
+  --ok-soft: #ddf3e4;
+  --warn: #9a6700;
+  --warn-soft: #fff0c2;
+  --bad: #b3261e;
+  --bad-soft: #fde7e5;
+  --info: #2456d6;
+  --info-soft: #e3eafc;
+  --st-prod: #1a7f37;   --st-prod-soft: #ddf3e4;
+  --st-beta: #2456d6;   --st-beta-soft: #e3eafc;
+  --st-dev: #57606a;    --st-dev-soft: #eef0f3;
+  --st-stub: #9a6700;   --st-stub-soft: #fff0c2;
+  --st-deprecated: #b3261e; --st-deprecated-soft: #fde7e5;
+  --edge: #6f87c7;
+  --paper: #f8f9fb;     /* diagram backing stays light in both themes */
+  --radius: 10px;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14161a;
+    --surface: #1d2026;
+    --surface-2: #262a31;
+    --text: #e8eaed;
+    --dim: #9aa3af;
+    --line: #363c45;
+    --accent: #7d9ef7;
+    --accent-soft: #24304d;
+    --ok: #4ec06a;
+    --ok-soft: #1d3527;
+    --warn: #d9a52a;
+    --warn-soft: #3a3016;
+    --bad: #ef6b61;
+    --bad-soft: #3c211f;
+    --info: #7d9ef7;
+    --info-soft: #24304d;
+    --st-prod: #4ec06a;   --st-prod-soft: #1d3527;
+    --st-beta: #7d9ef7;   --st-beta-soft: #24304d;
+    --st-dev: #9aa3af;    --st-dev-soft: #262a31;
+    --st-stub: #d9a52a;   --st-stub-soft: #3a3016;
+    --st-deprecated: #ef6b61; --st-deprecated-soft: #3c211f;
+    --edge: #5b74b3;
+    --paper: #f4f5f7;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14161a;
+  --surface: #1d2026;
+  --surface-2: #262a31;
+  --text: #e8eaed;
+  --dim: #9aa3af;
+  --line: #363c45;
+  --accent: #7d9ef7;
+  --accent-soft: #24304d;
+  --ok: #4ec06a;
+  --ok-soft: #1d3527;
+  --warn: #d9a52a;
+  --warn-soft: #3a3016;
+  --bad: #ef6b61;
+  --bad-soft: #3c211f;
+  --info: #7d9ef7;
+  --info-soft: #24304d;
+  --st-prod: #4ec06a;   --st-prod-soft: #1d3527;
+  --st-beta: #7d9ef7;   --st-beta-soft: #24304d;
+  --st-dev: #9aa3af;    --st-dev-soft: #262a31;
+  --st-stub: #d9a52a;   --st-stub-soft: #3a3016;
+  --st-deprecated: #ef6b61; --st-deprecated-soft: #3c211f;
+  --edge: #5b74b3;
+  --paper: #f4f5f7;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }   /* class display rules must not beat hidden */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 0 16px;
+}
+code, .mono { font-family: var(--mono); font-size: 12px; }
+h1 { font-size: 18px; margin: 0; }
+h2 { font-size: 14px; margin: 0 0 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button {
+  font: inherit; color: var(--text); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 5px 12px; cursor: pointer;
+}
+button:hover { background: var(--surface-2); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.primary:hover { filter: brightness(1.08); }
+button.danger { color: var(--bad); border-color: var(--bad); background: var(--surface); }
+
+/* header */
+header {
+  position: sticky; top: 0; z-index: 20; background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0 0; margin: 0 -16px;
+}
+.head-inner { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+.head-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; justify-content: space-between; }
+.head-row .repo { color: var(--dim); font-family: var(--mono); font-size: 13px; }
+.head-meta { color: var(--dim); font-size: 12px; margin: 4px 0 8px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+
+/* banners */
+.banners { max-width: 1080px; margin: 0 auto; padding: 8px 16px 0; display: flex; flex-direction: column; gap: 6px; }
+.banner {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  border-radius: 8px; padding: 8px 12px; font-size: 13px;
+}
+.banner .banner-text { flex: 1; min-width: 200px; }
+.banner.stale { background: var(--warn-soft); color: var(--warn); }
+.banner.degraded { background: var(--info-soft); color: var(--info); }
+.banner button { padding: 1px 10px; font-size: 12px; }
+.banner b { font-weight: 700; }
+
+/* tabs */
+nav.tabs { max-width: 1080px; margin: 8px auto 0; padding: 0 16px; display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  border: 1px solid transparent; border-bottom: none; background: transparent;
+  border-radius: 8px 8px 0 0; padding: 7px 14px; color: var(--dim);
+}
+.tab[aria-selected="true"] {
+  background: var(--surface); border-color: var(--line);
+  color: var(--text); font-weight: 600;
+}
+
+/* main */
+main { max-width: 1080px; margin: 0 auto; padding: 16px 0 80px; }
+.panel[hidden] { display: none; }
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px;
+}
+.empty-state { color: var(--dim); text-align: center; padding: 32px 16px; }
+.empty-state p { margin: 4px 0; }
+
+/* architecture */
+.arch-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+.arch-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; }
+#arch-svg { display: block; margin: 0 auto; min-width: 480px; max-width: 100%; height: auto; }
+#arch-svg text { font-family: var(--mono); font-size: 12px; fill: var(--text); }
+#arch-svg .edge { fill: none; stroke: var(--edge); stroke-opacity: 0.45; }
+#arch-svg .edge:hover { stroke-opacity: 1; }
+#arch-svg .node-hit { cursor: pointer; }
+#arch-svg .node-circle { fill: var(--surface-2); stroke: var(--line); }
+#arch-svg .node-hit:hover .node-circle,
+#arch-svg .node-hit.selected .node-circle { stroke: var(--accent); stroke-width: 2.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--dim); font-size: 12px; margin-top: 8px; }
+.legend svg { vertical-align: middle; margin-right: 4px; }
+#arch-detail h3 { margin: 0 0 6px; font-family: var(--mono); font-size: 14px; word-break: break-all; }
+#arch-detail .count { color: var(--dim); font-size: 12px; margin-bottom: 8px; }
+#arch-detail ul { margin: 6px 0; padding-left: 18px; font-size: 12px; color: var(--dim); }
+#arch-detail ul code { color: var(--text); }
+#arch-detail .edge-line { font-family: var(--mono); font-size: 12px; padding: 1px 0; }
+#arch-detail .edge-line .t { color: var(--dim); }
+
+/* catalog */
+.grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.feat-card { display: flex; flex-direction: column; gap: 8px; margin-bottom: 0; }
+.card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fid { font-family: var(--mono); font-size: 13px; font-weight: 700; word-break: break-all; }
+.desc { margin: 0; color: var(--text); }
+.feat-card .desc.empty { color: var(--dim); font-style: italic; }
+.file-list { list-style: none; margin: 0; padding: 0; font-family: var(--mono); font-size: 11.5px; color: var(--dim); word-break: break-all; }
+.file-list li { padding: 1px 0; }
+.card-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: auto; padding-top: 4px; font-size: 12px; color: var(--dim); }
+.card-foot .spacer { flex: 1; }
+.chip {
+  display: inline-block; border-radius: 999px; padding: 1px 9px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  background: var(--surface-2); color: var(--dim);
+}
+.chip.st-prod      { background: var(--st-prod-soft); color: var(--st-prod); }
+.chip.st-beta      { background: var(--st-beta-soft); color: var(--st-beta); }
+.chip.st-dev       { background: var(--st-dev-soft); color: var(--st-dev); }
+.chip.st-stub      { background: var(--st-stub-soft); color: var(--st-stub); }
+.chip.st-deprecated{ background: var(--st-deprecated-soft); color: var(--st-deprecated); }
+.note-btn::after { content: ""; }
+.note-btn.has-note { border-color: var(--accent); color: var(--accent); }
+.note-btn.has-note::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 5px; }
+
+/* data and state */
+#erd-scroll { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; }
+#erd-svg { display: block; }
+#erd-svg text { font-family: var(--mono); font-size: 11px; fill: #24292f; }
+#erd-svg .t-title { font-weight: 700; font-size: 12px; }
+#erd-svg .t-box { fill: #ffffff; stroke: #b7bec9; rx: 6; }
+#erd-svg .t-head { fill: #eef1f5; stroke: none; }
+#erd-svg .t-row-sep { stroke: #e3e7ec; }
+#erd-svg .fk { fill: none; stroke: #2456d6; stroke-opacity: 0.7; }
+#erd-svg .fk-arrow { fill: #2456d6; }
+.rls-list { margin: 10px 0 0; padding: 0; list-style: none; font-size: 12.5px; }
+.rls-list li { padding: 3px 0; border-bottom: 1px dotted var(--line); display: flex; gap: 8px; flex-wrap: wrap; }
+.rls-list .tbl { font-family: var(--mono); }
+.rls-list .pol { font-family: var(--mono); color: var(--dim); }
+.rls-list .cmd { color: var(--dim); }
+.entity-card { margin-bottom: 0; }
+.entity-card .src { color: var(--dim); font-family: var(--mono); font-size: 11.5px; word-break: break-all; }
+.state-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.diagram-paper { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow-x: auto; margin-top: 8px; }
+.diagram-paper svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+.trans-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+.trans-table th, .trans-table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.trans-table th { color: var(--dim); font-weight: 600; }
+.trans-table td:first-child, .trans-table td:nth-child(2) { font-family: var(--mono); }
+
+/* change story */
+.spark-row { display: flex; align-items: flex-end; gap: 4px; height: 130px; padding: 8px 4px 0; overflow-x: auto; }
+.spark-bar { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 26px; flex: 1; }
+.spark-bar .bar { width: 100%; max-width: 38px; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+.spark-bar .n { font-size: 11px; color: var(--dim); }
+.spark-bar .lbl { font-size: 10px; color: var(--dim); white-space: nowrap; writing-mode: vertical-rl; text-orientation: mixed; height: 64px; overflow: hidden; }
+.hotspot { display: flex; align-items: center; gap: 10px; padding: 3px 0; font-size: 12.5px; }
+.hotspot .path { font-family: var(--mono); width: 45%; word-break: break-all; }
+.hotspot .track { flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.hotspot .fill { height: 100%; background: var(--edge); }
+.hotspot .n { color: var(--dim); min-width: 34px; text-align: right; }
+.story-row { display: flex; gap: 12px; align-items: baseline; padding: 4px 0; border-bottom: 1px dotted var(--line); font-size: 12.5px; flex-wrap: wrap; }
+.story-row .fid { flex: 0 0 auto; min-width: 90px; }
+.story-row .when { color: var(--dim); font-family: var(--mono); font-size: 11.5px; }
+.story-row .bar-wrap { flex: 1; min-width: 80px; }
+.story-row .track { height: 7px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.story-row .fill { height: 100%; background: var(--accent); opacity: 0.75; }
+
+/* annotation drawer */
+#anno {
+  position: fixed; right: 16px; bottom: 16px; z-index: 40;
+  width: 360px; max-width: calc(100vw - 32px);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px 16px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+}
+#anno h3 { margin: 0; font-family: var(--mono); font-size: 13px; word-break: break-all; }
+.anno-head { display: flex; justify-content: space-between; align-items: start; gap: 8px; margin-bottom: 8px; }
+#anno label { display: block; font-size: 12px; color: var(--dim); margin: 8px 0 4px; }
+#anno-note { width: 100%; min-height: 96px; resize: vertical; font: inherit; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+#anno-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+#anno-status { font-size: 12px; color: var(--dim); }
+#anno-status.err { color: var(--bad); font-weight: 600; }
+#anno-status.ok { color: var(--ok); }
+.anno-hint { font-size: 12px; color: var(--dim); margin: 6px 0 0; }
+
+footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--dim); font-size: 12px; }
+
+@media (max-width: 860px) {
+  .arch-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  #anno { left: 16px; right: 16px; width: auto; }
+  .hotspot .path { width: 100%; }
+  .hotspot { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="head-inner">
+    <div class="head-row">
+      <h1>Codebase Wiki <span class="repo" id="h-repo"></span></h1>
+      <button id="theme-toggle" title="Cycle color theme (auto, light, dark)">Theme: auto</button>
+    </div>
+    <div class="head-meta" id="head-meta"></div>
+  </div>
+  <div class="banners">
+    <div class="banner stale" id="banner-stale" role="status" hidden>
+      <span class="banner-text"><b>Wiki stale.</b> <span id="stale-text"></span></span>
+      <button data-dismiss="banner-stale">Dismiss</button>
+    </div>
+    <div class="banner degraded" id="banner-degraded" role="status" hidden>
+      <span class="banner-text"><b>Degraded build.</b> <span id="degraded-text"></span></span>
+      <button data-dismiss="banner-degraded">Dismiss</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Wiki views">
+    <button class="tab" role="tab" id="tab-arch" data-view="arch" aria-controls="view-arch" aria-selected="true">Architecture</button>
+    <button class="tab" role="tab" id="tab-catalog" data-view="catalog" aria-controls="view-catalog" aria-selected="false">Features</button>
+    <button class="tab" role="tab" id="tab-data" data-view="data" aria-controls="view-data" aria-selected="false">Data &amp; State</button>
+    <button class="tab" role="tab" id="tab-change" data-view="change" aria-controls="view-change" aria-selected="false">Change Story</button>
+  </nav>
+</header>
+
+<main>
+  <section class="panel" id="view-arch" role="tabpanel" aria-labelledby="tab-arch">
+    <div class="arch-grid">
+      <div>
+        <div class="arch-scroll" id="arch-scroll"></div>
+        <div class="legend" id="arch-legend">
+          <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="2"/></svg>CALLS</span>
+          <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="2" stroke-dasharray="5 3"/></svg>IMPORTS</span>
+          <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="2" stroke-dasharray="1 3"/></svg>INHERITS</span>
+          <span>edge width and node size scale with weight / file count</span>
+        </div>
+      </div>
+      <aside class="card" id="arch-detail" hidden>
+        <h3 id="arch-detail-name"></h3>
+        <div class="count" id="arch-detail-count"></div>
+        <div id="arch-detail-body"></div>
+        <button class="note-btn" id="arch-detail-note">Note</button>
+      </aside>
+    </div>
+  </section>
+
+  <section class="panel" id="view-catalog" role="tabpanel" aria-labelledby="tab-catalog" hidden>
+    <div class="grid-cards" id="catalog-grid"></div>
+  </section>
+
+  <section class="panel" id="view-data" role="tabpanel" aria-labelledby="tab-data" hidden>
+    <h2>Data model</h2>
+    <div id="erd-host"></div>
+    <div id="rls-host"></div>
+    <h2 style="margin-top: 22px;">State machines</h2>
+    <div class="grid-cards" id="state-grid"></div>
+  </section>
+
+  <section class="panel" id="view-change" role="tabpanel" aria-labelledby="tab-change" hidden>
+    <h2>Commits per week</h2>
+    <div class="card" id="spark-host"></div>
+    <h2>Hotspots</h2>
+    <div class="card" id="hotspot-host"></div>
+    <h2>Feature timeline</h2>
+    <div class="card" id="story-host"></div>
+  </section>
+</main>
+
+<footer id="foot"></footer>
+
+<aside id="anno" hidden>
+  <div class="anno-head">
+    <h3 id="anno-target"></h3>
+    <button id="anno-close" title="Close" aria-label="Close note editor">x</button>
+  </div>
+  <label for="anno-note">Note</label>
+  <textarea id="anno-note" placeholder="What should a reader know about this?"></textarea>
+  <div id="anno-actions">
+    <button class="primary" id="anno-save">Save note</button>
+    <button class="danger" id="anno-delete" hidden>Delete</button>
+    <span id="anno-status"></span>
+  </div>
+  <p class="anno-hint" id="anno-hint" hidden>
+    Static view: notes need the local server. Run <code>wiki serve</code> and reload.
+  </p>
+</aside>
+
+<script type="application/json" id="wiki-payload">__WIKI_PAYLOAD__</script>
+<script>
+(function () {
+  "use strict";
+
+  var P;
+  try {
+    P = JSON.parse(document.getElementById("wiki-payload").textContent);
+  } catch (e) {
+    document.body.insertBefore(
+      document.createTextNode("Portal payload failed to parse: " + e.message),
+      document.body.firstChild);
+    document.body.dataset.ready = "error";
+    return;
+  }
+  var META = P.meta || {};
+
+  // ---------- tiny helpers ----------
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function shortDate(iso) {
+    return (iso || "").slice(0, 10);
+  }
+  function emptyCard(host, title, hint) {
+    var c = el("div", "card empty-state");
+    c.appendChild(el("p", "", title));
+    if (hint) c.appendChild(el("p", "", hint));
+    host.appendChild(c);
+  }
+  function storeGet(key, fb) {
+    try { return JSON.parse(localStorage.getItem(key) || "null") || fb; }
+    catch (e) { return fb; }
+  }
+  function storeSet(key, v) {
+    try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* per-viewer only */ }
+  }
+
+  // ---------- theme ----------
+  // favicon via a runtime data: link: keeps the source free of link tags
+  // (self-contained selfcheck) while suppressing the browser's automatic
+  // /favicon.ico request, so the page makes zero network requests.
+  var fav = document.createElement("link");
+  fav.rel = "icon";
+  fav.href = "data:,";
+  document.head.appendChild(fav);
+  var THEME_KEY = "wiki-portal-theme";
+  var THEMES = ["auto", "light", "dark"];
+  function applyTheme(t) {
+    if (t === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", t);
+    $("theme-toggle").textContent = "Theme: " + t;
+  }
+  var theme = storeGet(THEME_KEY, "auto");
+  if (THEMES.indexOf(theme) < 0) theme = "auto";
+  applyTheme(theme);
+  $("theme-toggle").addEventListener("click", function () {
+    theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+    storeSet(THEME_KEY, theme);
+    applyTheme(theme);
+  });
+
+  // ---------- header + banners ----------
+  $("h-repo").textContent = META.repo ? "· " + META.repo : "";
+  var metaBits = [];
+  if (META.generated_at) metaBits.push("generated " + shortDate(META.generated_at));
+  if (META.fingerprint) metaBits.push("fingerprint " + String(META.fingerprint).slice(0, 8));
+  var catalog = P.catalog || {};
+  var featCount = (catalog.features || []).length;
+  metaBits.push(featCount + (featCount === 1 ? " feature" : " features"));
+  $("head-meta").textContent = metaBits.join("  ·  ");
+  $("foot").textContent = "cfn-wiki portal: self-contained page, no external requests. " +
+    "Regenerate with: wiki build.";
+
+  if (META.stale) {
+    $("stale-text").textContent =
+      "The store changed since the last wiki sync. Run: wiki sync";
+    $("banner-stale").hidden = false;
+  }
+  if (META.degraded) {
+    $("degraded-text").textContent = META.degraded;
+    $("banner-degraded").hidden = false;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-dismiss]"), function (b) {
+    b.addEventListener("click", function () {
+      var t = $(b.getAttribute("data-dismiss"));
+      if (t) t.hidden = true;
+    });
+  });
+
+  // ---------- tabs ----------
+  var VIEWS = ["arch", "catalog", "data", "change"];
+  function selectView(name) {
+    VIEWS.forEach(function (v) {
+      var tab = $("tab-" + v);
+      var panel = $("view-" + v);
+      var on = v === name;
+      tab.setAttribute("aria-selected", on ? "true" : "false");
+      panel.hidden = !on;
+    });
+  }
+  VIEWS.forEach(function (v) {
+    $("tab-" + v).addEventListener("click", function () { selectView(v); });
+  });
+
+  var SERVER_MODE = location.protocol === "http:" || location.protocol === "https:";
+
+  // ---------- annotations ----------
+  var annos = {};          // id -> {note, updatedAt}
+  var annoStatusTimer = null;
+
+  function annoGet(id) { return annos[id] ? annos[id].note || "" : ""; }
+  function annoPaintButtons() {
+    Array.prototype.forEach.call(document.querySelectorAll(".note-btn"), function (b) {
+      var id = b.getAttribute("data-annotate");
+      if (id && annos[id] && (annos[id].note || "").length) b.classList.add("has-note");
+      else b.classList.remove("has-note");
+    });
+  }
+  function annoSetStatus(text, cls) {
+    var s = $("anno-status");
+    s.textContent = text;
+    s.className = cls || "";
+    if (annoStatusTimer) clearTimeout(annoStatusTimer);
+    annoStatusTimer = setTimeout(function () { s.textContent = ""; }, 4000);
+  }
+  function annoSave() {
+    if (!SERVER_MODE) return;
+    var id = $("anno-target").textContent;
+    var note = $("anno-note").value;
+    $("anno-save").disabled = true;
+    annoSetStatus("Saving...", "");
+    fetch("/api/annotations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: id, note: note, clientTs: new Date().toISOString() })
+    }).then(function (res) {
+      return res.json().then(function (j) { return { ok: res.ok, j: j }; });
+    }).then(function (r) {
+      $("anno-save").disabled = false;
+      if (r.ok) {
+        if ((note || "").length) annos[id] = { note: note, updatedAt: new Date().toISOString() };
+        else delete annos[id];
+        $("anno-delete").hidden = !(annos[id] && annos[id].note);
+        annoPaintButtons();
+        annoSetStatus("Saved " + new Date().toLocaleTimeString(), "ok");
+      } else {
+        annoSetStatus(r.j && r.j.error ? r.j.error : "Save failed", "err");
+      }
+    }).catch(function (err) {
+      $("anno-save").disabled = false;
+      annoSetStatus(err && err.message ? err.message : "Server unreachable", "err");
+    });
+  }
+  var annoDebounce = null;
+  $("anno-save").addEventListener("click", annoSave);
+  $("anno-note").addEventListener("input", function () {
+    if (!SERVER_MODE) return;
+    if (annoDebounce) clearTimeout(annoDebounce);
+    annoDebounce = setTimeout(annoSave, 900);
+  });
+  $("anno-delete").addEventListener("click", function () {
+    $("anno-note").value = "";
+    annoSave();
+  });
+  $("anno-close").addEventListener("click", function () { $("anno").hidden = true; });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape") $("anno").hidden = true;
+  });
+  function openAnno(target) {
+    $("anno-target").textContent = target;
+    $("anno-note").value = annoGet(target);
+    $("anno-delete").hidden = !annoGet(target);
+    $("anno-hint").hidden = SERVER_MODE;
+    $("anno-note").disabled = !SERVER_MODE;
+    $("anno-save").disabled = !SERVER_MODE;
+    $("anno").hidden = false;
+    if (SERVER_MODE) $("anno-note").focus();
+  }
+  // one delegated listener covers all note buttons, including dynamic ones
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest ? ev.target.closest(".note-btn") : null;
+    if (b && b.getAttribute("data-annotate")) {
+      openAnno(b.getAttribute("data-annotate"));
+    }
+  });
+
+  // ---------- architecture view ----------
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var DASH = { CALLS: "", IMPORTS: "5 3", INHERITS: "1 3" };
+
+  function svgEl(tag, attrs) {
+    var n = document.createElementNS(SVG_NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  function renderArch() {
+    var host = $("arch-scroll");
+    var nodes = (P.arch && P.arch.nodes) || [];
+    var edges = (P.arch && P.arch.edges) || [];
+    var byId = {};
+    nodes.forEach(function (n) { byId[n.id] = n; });
+
+    if (!nodes.length) {
+      host.appendChild(el("div", "empty-state"));
+      host.lastChild.appendChild(el("p", "", "No modules indexed yet."));
+      host.lastChild.appendChild(el("p", "", "Run: wiki sync"));
+      $("arch-legend").hidden = true;
+      return;
+    }
+
+    // deterministic circle layout (single node centered, two on a line)
+    var n = nodes.length;
+    var R = Math.max(150, Math.min(300, 34 * n));
+    var W = Math.max(560, 2 * R + 220);
+    var H = Math.max(380, 2 * R + 170);
+    var cx = W / 2, cy = H / 2 - 8;
+    var pos = {};
+    nodes.forEach(function (nd, i) {
+      var x, y;
+      if (n === 1) { x = cx; y = cy; }
+      else if (n === 2) { x = cx + (i === 0 ? -R : R); y = cy; }
+      else {
+        var ang = -Math.PI / 2 + (2 * Math.PI * i) / n;
+        x = cx + R * Math.cos(ang);
+        y = cy + R * Math.sin(ang);
+      }
+      pos[nd.id] = { x: x, y: y };
+    });
+
+    var maxCount = 1;
+    nodes.forEach(function (nd) { maxCount = Math.max(maxCount, nd.count || 0); });
+    var maxWeight = 1;
+    edges.forEach(function (e) { maxWeight = Math.max(maxWeight, e.weight || 0); });
+
+    var svg = svgEl("svg", {
+      id: "arch-svg", viewBox: "0 0 " + W + " " + H,
+      width: W, height: H, role: "img",
+      "aria-label": "Module dependency graph"
+    });
+
+    edges.forEach(function (e) {
+      var a = pos[e.source], b = pos[e.target];
+      if (!a || !b) return;
+      var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      var dx = b.x - a.x, dy = b.y - a.y;
+      var len = Math.sqrt(dx * dx + dy * dy) || 1;
+      // perpendicular offset makes a stable, readable arc per edge
+      var off = Math.min(70, len * 0.18);
+      var kx = mx - (dy / len) * off;
+      var ky = my + (dx / len) * off;
+      var w = 1 + 4 * ((e.weight || 0) / maxWeight);
+      var p = svgEl("path", {
+        class: "edge",
+        d: "M " + a.x + " " + a.y + " Q " + kx + " " + ky + " " + b.x + " " + b.y,
+        "stroke-width": w.toFixed(2),
+        "stroke-dasharray": DASH[e.type] != null ? DASH[e.type] : ""
+      });
+      var title = svgEl("title", {});
+      title.textContent = e.type + " " + e.source + " to " + e.target +
+        " (weight " + (e.weight || 0) + ")";
+      p.appendChild(title);
+      svg.appendChild(p);
+      // arrowhead at the target end
+      var ang = Math.atan2(b.y - ky, b.x - kx);
+      var ax = b.x - 14 * Math.cos(ang), ay = b.y - 14 * Math.sin(ang);
+      var s = 6;
+      svg.appendChild(svgEl("polygon", {
+        class: "fk-arrow",
+        points: (ax) + "," + (ay) + " " +
+                (ax - s * Math.cos(ang - 0.42)) + "," + (ay - s * Math.sin(ang - 0.42)) + " " +
+                (ax - s * Math.cos(ang + 0.42)) + "," + (ay - s * Math.sin(ang + 0.42)),
+        fill: "var(--edge)"
+      }));
+    });
+
+    nodes.forEach(function (nd) {
+      var p = pos[nd.id];
+      var r = 9 + 13 * Math.sqrt((nd.count || 0) / maxCount);
+      var g = svgEl("g", { class: "node-hit", "data-node": nd.id, tabindex: "0", role: "button" });
+      var circ = svgEl("circle", { class: "node-circle", cx: p.x, cy: p.y, r: r.toFixed(1) });
+      var label = svgEl("text", {
+        x: p.x, y: p.y + r + 15, "text-anchor": "middle"
+      });
+      label.textContent = nd.label || nd.id;
+      var t = svgEl("title", {});
+      t.textContent = nd.label || nd.id;
+      g.appendChild(circ);
+      g.appendChild(label);
+      g.appendChild(t);
+      function pick() { selectNode(nd.id); }
+      g.addEventListener("click", pick);
+      g.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(); }
+      });
+      svg.appendChild(g);
+    });
+
+    host.appendChild(svg);
+
+    function selectNode(id) {
+      var nd = byId[id];
+      Array.prototype.forEach.call(svg.querySelectorAll(".node-hit"), function (g) {
+        var on = g.getAttribute("data-node") === id;
+        g.classList.toggle("selected", on);
+      });
+      $("arch-detail").hidden = false;
+      $("arch-detail-name").textContent = nd.label || id;
+      $("arch-detail-count").textContent =
+        (nd.count || 0) + " indexed node" + ((nd.count || 0) === 1 ? "" : "s");
+      var body = $("arch-detail-body");
+      body.textContent = "";
+
+      if ((nd.files || []).length) {
+        body.appendChild(el("p", "count", "Files"));
+        var ul = el("ul");
+        nd.files.forEach(function (f) {
+          var li = el("li");
+          li.appendChild(el("code", "", f));
+          ul.appendChild(li);
+        });
+        body.appendChild(ul);
+      }
+      var rel = (P.arch.edges || []).filter(function (e) {
+        return e.source === id || e.target === id;
+      });
+      if (rel.length) {
+        body.appendChild(el("p", "count", "Edges"));
+        rel.forEach(function (e) {
+          var line = el("div", "edge-line");
+          var dir = e.source === id;
+          line.appendChild(document.createTextNode(dir ? "out " : "in "));
+          var t = el("span", "t", "[" + e.type + " w" + (e.weight || 0) + "] ");
+          line.appendChild(t);
+          line.appendChild(el("code", "", dir ? e.target : e.source));
+          body.appendChild(line);
+        });
+      }
+      var feat = (catalog.features || []).filter(function (f) { return f.fid === id; })[0];
+      if (feat) {
+        body.appendChild(el("p", "count", "Feature page"));
+        var link = el("a", "", "readme/wiki/" + feat.fid + "/wiki.md");
+        link.href = SERVER_MODE ? "/wiki/" + encodeURIComponent(feat.fid)
+                                : "readme/wiki/" + feat.fid + "/wiki.md";
+        body.appendChild(link);
+      }
+      var noteBtn = $("arch-detail-note");
+      noteBtn.setAttribute("data-annotate", "module:" + id);
+      noteBtn.classList.toggle("has-note", !!(annos["module:" + id] && annos["module:" + id].note));
+    }
+    // expose for the annotation painter (button inside the detail panel)
+    renderArch.selectNode = selectNode;
+  }
+
+  // ---------- catalog view ----------
+  function renderCatalog() {
+    var grid = $("catalog-grid");
+    var feats = catalog.features || [];
+    if (catalog.empty || !feats.length) {
+      emptyCard(grid, "No features extracted yet.",
+                "Run: wiki sync  (extraction needs at least one tracked source file)");
+      return;
+    }
+    feats.forEach(function (f) {
+      var card = el("article", "card feat-card");
+      card.setAttribute("data-fid", f.fid || "");
+      var head = el("div", "card-head");
+      head.appendChild(el("code", "fid", f.fid || "(unnamed)"));
+      head.appendChild(el("span", "chip st-" + (f.status || "dev"), f.status || "dev"));
+      card.appendChild(head);
+
+      if (f.description) card.appendChild(el("p", "desc", f.description));
+      else card.appendChild(el("p", "desc empty", "No description yet. Add one in the wiki:enrich block."));
+
+      var ul = el("ul", "file-list");
+      (f.files || []).slice(0, 8).forEach(function (fp) {
+        ul.appendChild(el("li", "", fp));
+      });
+      if ((f.files || []).length > 8) {
+        ul.appendChild(el("li", "", "+ " + (f.files.length - 8) + " more files"));
+      }
+      card.appendChild(ul);
+
+      var foot = el("div", "card-foot");
+      foot.appendChild(el("span", "",
+        f.coupling_count === 1 ? "couples with 1 file group"
+                               : "coupling: " + (f.coupling_count || 0) + " file groups"));
+      foot.appendChild(el("span", "spacer"));
+      var page = el("a", "", "page");
+      page.href = SERVER_MODE ? "/wiki/" + encodeURIComponent(f.fid)
+                              : "readme/wiki/" + f.fid + "/wiki.md";
+      page.title = "Generated feature page";
+      foot.appendChild(page);
+      var btn = el("button", "note-btn", "Note");
+      btn.setAttribute("data-annotate", "feature:" + (f.fid || ""));
+      foot.appendChild(btn);
+      card.appendChild(foot);
+      grid.appendChild(card);
+    });
+  }
+
+  // ---------- data + state view ----------
+  function renderData() {
+    var host = $("erd-host");
+    var data = P.data || {};
+    if (data.empty || !data.erd || !(data.erd.tables || []).length) {
+      var why = data.reason ? " (" + data.reason + ")" : "";
+      emptyCard(host, "No database introspection" + why + ".",
+                "Point .env DATABASE_URL at a reachable Postgres and rebuild to see tables, FKs and RLS policies.");
+    } else {
+      renderErd(host, data.erd.tables);
+      var rlsHost = $("rls-host");
+      var rls = data.rls || [];
+      if (rls.length) {
+        var c = el("div", "card");
+        c.appendChild(el("p", "count", "Row Level Security policies (" + rls.length + ")"));
+        var ul = el("ul", "rls-list");
+        rls.forEach(function (p) {
+          var li = el("li");
+          li.appendChild(el("span", "tbl", p.table));
+          li.appendChild(el("span", "pol", p.policy));
+          li.appendChild(el("span", "cmd", p.cmd || ""));
+          ul.appendChild(li);
+        });
+        c.appendChild(ul);
+        rlsHost.appendChild(c);
+      }
+    }
+
+    var grid = $("state-grid");
+    var ents = (P.state && P.state.entities) || [];
+    if (!ents.length) {
+      emptyCard(grid, "No state machines documented.",
+                "Entities appear here once readme/state-machines.md is generated by wiki sync.");
+      return;
+    }
+    ents.forEach(function (e) {
+      var card = el("article", "card entity-card");
+      var head = el("div", "card-head");
+      head.appendChild(el("code", "fid", e.name || "(unnamed)"));
+      var btn = el("button", "note-btn", "Note");
+      btn.setAttribute("data-annotate", "entity:" + (e.name || ""));
+      head.appendChild(el("span", "spacer"));
+      head.appendChild(btn);
+      card.appendChild(head);
+      if (e.source) card.appendChild(el("div", "src", "Source: " + e.source));
+
+      if (e.svg) {
+        var paper = el("div", "diagram-paper");
+        paper.innerHTML = e.svg;   // sanitized at build time by build-portal.sh
+        card.appendChild(paper);
+      } else {
+        if ((e.states || []).length) {
+          var chips = el("div", "state-chips");
+          e.states.forEach(function (s) { chips.appendChild(el("span", "chip", s)); });
+          card.appendChild(chips);
+        }
+        if ((e.transitions || []).length) {
+          var tbl = el("table", "trans-table");
+          var thead = el("thead");
+          var hr = el("tr");
+          ["From", "To", "Trigger", "Guard"].forEach(function (h) {
+            hr.appendChild(el("th", "", h));
+          });
+          thead.appendChild(hr);
+          tbl.appendChild(thead);
+          var tb = el("tbody");
+          e.transitions.forEach(function (t) {
+            var tr = el("tr");
+            [t.from, t.to, t.trigger, t.guard].forEach(function (v) {
+              tr.appendChild(el("td", "", v == null ? "" : String(v)));
+            });
+            tb.appendChild(tr);
+          });
+          tbl.appendChild(tb);
+          card.appendChild(tbl);
+        }
+      }
+      grid.appendChild(card);
+    });
+  }
+
+  function renderErd(host, tables) {
+    var sorted = tables.slice().sort(function (a, b) {
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+    });
+    var COL_W = 220, ROW_H = 20, HEAD_H = 26, PAD_X = 60, PAD_Y = 50;
+    var perCol = Math.max(1, Math.ceil(Math.sqrt(sorted.length)));
+    var pos = {}, y = PAD_Y, col = 0, rowCount = 0;
+    var maxX = 0, maxY = 0;
+    sorted.forEach(function (t, i) {
+      if (rowCount >= perCol) { col++; rowCount = 0; y = PAD_Y; }
+      var h = HEAD_H + (t.columns || []).length * ROW_H + 6;
+      pos[t.name] = { x: PAD_X + col * (COL_W + PAD_X), y: y, h: h };
+      y += h + PAD_Y;
+      rowCount++;
+      maxX = Math.max(maxX, PAD_X + col * (COL_W + PAD_X) + COL_W + PAD_X / 2);
+      maxY = Math.max(maxY, y);
+    });
+    var W = Math.max(560, maxX), H = Math.max(320, maxY);
+    var svg = svgEl("svg", {
+      id: "erd-svg", viewBox: "0 0 " + W + " " + H,
+      width: W, height: H, role: "img", "aria-label": "Entity relationship diagram"
+    });
+    svg.appendChild(svgEl("style", {},
+      "#erd-svg .t-title{font-weight:700}"));
+    // FK arrows draw after the boxes so they stay visible
+    var arrowLayer = [];
+    sorted.forEach(function (t) {
+      var p = pos[t.name];
+      var h = p.h;
+      svg.appendChild(svgEl("rect", {
+        class: "t-box", x: p.x, y: p.y, width: COL_W,
+        height: HEAD_H + (t.columns || []).length * ROW_H + 6, rx: 6
+      }));
+      svg.appendChild(svgEl("rect", {
+        class: "t-head", x: p.x, y: p.y, width: COL_W, height: HEAD_H, rx: 6
+      }));
+      svg.appendChild(svgEl("rect", {
+        class: "t-head", x: p.x, y: p.y + HEAD_H - 6, width: COL_W, height: 6
+      }));
+      var title = svgEl("text", {
+        class: "t-title", x: p.x + 10, y: p.y + 17
+      });
+      title.textContent = t.name;
+      svg.appendChild(title);
+      (t.columns || []).forEach(function (c, ri) {
+        var ry = p.y + HEAD_H + ri * ROW_H;
+        if (ri > 0) {
+          svg.appendChild(svgEl("line", {
+            class: "t-row-sep", x1: p.x + 1, y1: ry, x2: p.x + COL_W - 1, y2: ry
+          }));
+        }
+        var label = (c.nullable ? c.name + " ?" : c.name);
+        var isFk = (t.fks || []).some(function (f) { return f.from === c.name; });
+        if (isFk) label = "FK " + label;
+        var txt = svgEl("text", { x: p.x + 10, y: ry + 14 });
+        txt.textContent = label;
+        svg.appendChild(txt);
+        var tt = svgEl("text", { x: p.x + COL_W - 8, y: ry + 14, "text-anchor": "end", opacity: "0.65" });
+        tt.textContent = c.type;
+        svg.appendChild(tt);
+      });
+      (t.fks || []).forEach(function (f) {
+        var target = pos[f.to.split(".")[0]];
+        if (!target) return;
+        var idx = (t.columns || []).map(function (c) { return c.name; }).indexOf(f.from);
+        var sy = p.y + HEAD_H + Math.max(0, idx) * ROW_H + 10;
+        var tIdx = -1;
+        var tTable = sorted.filter(function (x) { return x.name === f.to.split(".")[0]; })[0];
+        if (tTable) {
+          tIdx = (tTable.columns || []).map(function (c) { return c.name; })
+            .indexOf(f.to.split(".")[1]);
+        }
+        var ty = target.y + HEAD_H + Math.max(0, tIdx) * ROW_H + 10;
+        arrowLayer.push({ x1: p.x + COL_W, y1: sy, x2: target.x, y2: ty,
+                          label: t.name + "." + f.from, to: f.to });
+      });
+    });
+    arrowLayer.forEach(function (a) {
+      var mx = (a.x1 + a.x2) / 2, my = (a.y1 + a.y2) / 2;
+      var dist = Math.abs(a.x2 - a.x1);
+      var off = Math.min(60, 24 + dist * 0.1);
+      var d = "M " + a.x1 + " " + a.y1 +
+              " C " + (mx + off) + " " + a.y1 + ", " + (mx - off) + " " + a.y2 +
+              ", " + a.x2 + " " + a.y2;
+      var path = svgEl("path", { class: "fk", d: d });
+      var t = svgEl("title", {});
+      t.textContent = a.label + " references " + a.to;
+      path.appendChild(t);
+      svg.appendChild(path);
+      var ang = Math.atan2(a.y2 - (my - off), a.x2 - (mx - off));
+      svg.appendChild(svgEl("polygon", {
+        class: "fk-arrow",
+        points: a.x2 + "," + a.y2 + " " +
+                (a.x2 + 7 * Math.cos(ang + Math.PI - 0.4)) + "," + (a.y2 + 7 * Math.sin(ang + Math.PI - 0.4)) + " " +
+                (a.x2 + 7 * Math.cos(ang + Math.PI + 0.4)) + "," + (a.y2 + 7 * Math.sin(ang + Math.PI + 0.4))
+      }));
+    });
+    var scroll = el("div");
+    scroll.id = "erd-scroll";
+    scroll.appendChild(svg);
+    host.appendChild(scroll);
+  }
+
+  // ---------- change story view ----------
+  function weekStart(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    var day = (d.getUTCDay() + 6) % 7;   // Monday = 0
+    d.setUTCDate(d.getUTCDate() - day);
+    d.setUTCHours(0, 0, 0, 0);
+    return d;
+  }
+  function renderChange() {
+    var change = P.change || {};
+    var commits = change.commits || [];
+    var spark = $("spark-host");
+    if (!commits.length) {
+      emptyCard(spark, "No commits in the window.", "Commit history appears after the repo has tracked commits.");
+    } else {
+      var weeks = {};
+      commits.forEach(function (c) {
+        var ws = weekStart(c.date);
+        if (!ws) return;
+        var key = ws.toISOString().slice(0, 10);
+        weeks[key] = (weeks[key] || 0) + 1;
+      });
+      var keys = Object.keys(weeks).sort();
+      var row = el("div", "spark-row");
+      var max = 1;
+      keys.forEach(function (k) { max = Math.max(max, weeks[k]); });
+      keys.forEach(function (k) {
+        var cell = el("div", "spark-bar");
+        cell.title = weeks[k] + " commit" + (weeks[k] === 1 ? "" : "s") + " in week of " + k;
+        cell.appendChild(el("span", "n", String(weeks[k])));
+        var bar = el("div", "bar");
+        bar.style.height = Math.round(8 + (weeks[k] / max) * 100) + "px";
+        cell.appendChild(bar);
+        cell.appendChild(el("span", "lbl", k));
+        row.appendChild(cell);
+      });
+      spark.appendChild(row);
+    }
+
+    var hot = $("hotspot-host");
+    var spots = change.hotspots || [];
+    if (!spots.length) {
+      emptyCard(hot, "No hotspots.", "Files touched most often in the window appear here.");
+    } else {
+      var maxC = 1;
+      spots.forEach(function (s) { maxC = Math.max(maxC, s.count); });
+      spots.forEach(function (s) {
+        var line = el("div", "hotspot");
+        line.appendChild(el("span", "path", s.file));
+        var track = el("span", "track");
+        var fill = el("span", "fill");
+        fill.style.width = Math.round((s.count / maxC) * 100) + "%";
+        track.appendChild(fill);
+        line.appendChild(track);
+        line.appendChild(el("span", "n", String(s.count)));
+        hot.appendChild(line);
+      });
+    }
+
+    var story = $("story-host");
+    var entries = Object.keys(change.story || {}).map(function (fid) {
+      return { fid: fid, s: change.story[fid] };
+    });
+    entries.sort(function (a, b) { return (b.s.commit_count || 0) - (a.s.commit_count || 0); });
+    if (!entries.length) {
+      emptyCard(story, "No features in the store.", "Run: wiki sync");
+      return;
+    }
+    var maxS = 1;
+    entries.forEach(function (e) { maxS = Math.max(maxS, e.s.commit_count || 0); });
+    entries.forEach(function (e) {
+      var row = el("div", "story-row");
+      row.appendChild(el("code", "fid", e.fid));
+      var wrap = el("span", "bar-wrap");
+      var track = el("span", "track");
+      var fill = el("span", "fill");
+      fill.style.width = Math.round(((e.s.commit_count || 0) / maxS) * 100) + "%";
+      track.appendChild(fill);
+      wrap.appendChild(track);
+      row.appendChild(wrap);
+      row.appendChild(el("span", "when",
+        (e.s.first_commit_date ? "first " + shortDate(e.s.first_commit_date) : "no commits")));
+      row.appendChild(el("span", "when", (e.s.commit_count || 0) + " in window"));
+      story.appendChild(row);
+    });
+  }
+
+  // ---------- boot ----------
+  try {
+    renderArch();
+    renderCatalog();
+    renderData();
+    renderChange();
+    if (SERVER_MODE) {
+      fetch("/api/annotations").then(function (res) { return res.json(); })
+        .then(function (doc) {
+          annos = (doc && doc.annotations) || {};
+          annoPaintButtons();
+        }).catch(function () {
+          annoSetStatus("Notes unavailable: server unreachable", "err");
+        });
+    }
+    document.body.dataset.ready = "1";
+  } catch (err) {
+    var fatal = el("div", "card empty-state");
+    fatal.appendChild(el("p", "", "Portal render failed: " + err.message));
+    document.body.insertBefore(fatal, document.body.firstChild);
+    document.body.dataset.ready = "error";
+  }
+})();
+</script>
+</body>
+</html>

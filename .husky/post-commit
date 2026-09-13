@@ -2,3 +2,42 @@
 # Post-commit: update CodeSearch index for changed files
 HOOK="$HOME/.claude/hooks/cfn-post-commit-codesearch-index.sh"
 [ -x "$HOOK" ] && "$HOOK"
+
+# --- wiki-sync-hook (cfn-wiki): deterministic post-commit wiki regen. -------
+# Appended by cfn-wiki Phase 4; the codesearch block above is byte-preserved.
+# Guards: skill installed (repo-local .claude/skills/cfn-wiki, else the
+# ~/.claude/skills reverse link, so fresh clones resolve it too); wiki already
+# initialized (.wiki exists -- this hook never performs a first sync);
+# flock -n on .wiki/cache/sync.lock so a running or concurrent sync skips.
+# Best-effort: never fails the commit, silent unless WIKI_HOOK_VERBOSE=1.
+wiki_sync_hook() {
+    local root skill log
+    root="$(git rev-parse --show-toplevel 2>/dev/null)" || root="$PWD"
+    for skill in "$root/.claude/skills/cfn-wiki" "$HOME/.claude/skills/cfn-wiki"; do
+        if [ -f "$skill/lib/wiki.sh" ] && [ -f "$skill/lib/sync.sh" ]; then
+            break
+        fi
+        skill=""
+    done
+    [ -n "$skill" ] || return 0
+    [ -d "$root/.wiki" ] || return 0
+    if command -v flock >/dev/null 2>&1; then
+        mkdir -p "$root/.wiki/cache" 2>/dev/null || true
+        exec 9>>"$root/.wiki/cache/sync.lock" 2>/dev/null || return 0
+        flock -n 9 || return 0
+    fi
+    if [ "${WIKI_HOOK_VERBOSE:-0}" = "1" ]; then
+        "$skill/lib/wiki.sh" sync --no-hooks "$root" || true
+        return 0
+    fi
+    log="$(mktemp "${TMPDIR:-/tmp}/wiki-sync-hook.XXXXXX" 2>/dev/null)" || log=""
+    if [ -n "$log" ]; then
+        "$skill/lib/wiki.sh" sync --no-hooks "$root" >"$log" 2>&1 \
+            || { echo "wiki-sync-hook: regen failed for $root (tail below)" >&2; tail -5 "$log" >&2; }
+        rm -f "$log"
+    else
+        "$skill/lib/wiki.sh" sync --no-hooks "$root" >/dev/null 2>&1 || true
+    fi
+    return 0
+}
+wiki_sync_hook || true

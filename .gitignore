@@ -358,3 +358,12 @@ src/planning/**/*.d.ts.map
 # Rendered workbench/planning artifacts. Generated per run into the invoking
 # project by cfn-workbench render.sh; the plan sources live in planning/.
 .claude/planning/
+
+# cfn-wiki generated artifacts (regenerable; the store is untracked by design,
+# plan fuzzy-whistling-eich). The **/ forms cover both this repo root and
+# nested fixture/sibling checkouts under tests/fixtures/.
+**/.wiki/store.json
+**/.wiki/cache/
+# Enrichment working dir: wiki:enrich block text is carried inside the
+# generated md (re-extracted on every sync), so .wiki/enrich/ is rebuildable.
+**/.wiki/enrich/

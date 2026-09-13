@@ -1,0 +1,30 @@
+# cfn-wiki drift gate: fails when the readme/ projections drift from
+# .wiki/store.json (hand-edited generated sections, or source changes since
+# the last `wiki sync`). CI runs the clean-runner install path so the pinned
+# CBM setup step is exercised on every trigger.
+name: wiki-check
+
+on:
+  push:
+    paths:
+      - '.claude/skills/cfn-wiki/**'
+      - 'readme/**'
+  pull_request:
+    paths:
+      - '.claude/skills/cfn-wiki/**'
+      - 'readme/**'
+
+jobs:
+  wiki-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for the coupling walk)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install cfn-wiki CBM substrate (pinned v0.10.8)
+        run: bash .claude/skills/cfn-wiki/lib/wiki.sh doctor --install
+
+      - name: Wiki drift gate
+        run: bash .claude/skills/cfn-wiki/lib/wiki.sh sync --check .
