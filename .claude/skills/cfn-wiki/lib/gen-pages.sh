@@ -4,10 +4,14 @@
 # Contract: wiki_gen_pages <store> <repo> -> one page per store feature at
 # $features_dir/<fid>/wiki.md, exit 0. features_dir comes from
 # .wiki/config.json key "features_dir" (default "readme/wiki"). Pages carry:
-# Source grounding (the feature's file list), a closed-vocab Status line, a
-# mermaid diagram of the feature's cross-module edges, the change-coupling
-# pairs touching its files, and the enrichment block resolved by
-# lib/merge-enrichment.sh (edited blocks survive while the feature fp holds).
+# Source grounding (the feature's file list), a closed-vocab Status line, the
+# git-derived change-coupling pairs touching its files, and the enrichment
+# block resolved by lib/merge-enrichment.sh (edited blocks survive while the
+# feature fp holds).
+#
+# Byte contract: pages are a canonical projection of tree + git only. CBM
+# enrichment (module-level edges, edge weights) renders in the portal via the
+# view modules, never in page bytes.
 
 # shellcheck disable=SC1091
 [ -n "${WIKI_MERGE_ENRICH_LOADED:-}" ] \
@@ -63,17 +67,12 @@ with open(store_path, encoding="utf-8") as fh:
     store = json.load(fh)
 
 features = store.get("features", [])
-edges = store.get("edges", [])
+# CBM store.edges is toolchain-dependent enrichment: it renders in the portal
+# (view-arch) and never in page bytes. coupling is git-derived, in-contract.
 coupling = store.get("coupling", [])
 resolved = os.path.join(os.path.dirname(os.path.abspath(store_path)),
                         "enrich", "resolved")
 store_fp = store.get("meta", {}).get("fingerprint", "")
-
-
-def slug(text):
-    # keep in sync with lib/extract-features.sh slug()
-    s = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
-    return s or "feature"
 
 
 def esc(cell):
@@ -103,19 +102,6 @@ for f in features:
             ""]
     page += ["- `%s`" % p for p in files] or ["- (no files recorded)"]
     page += ["", "**Status:** dev", ""]
-
-    related = [e for e in edges
-               if e.get("source") == name or e.get("target") == name]
-    page += ["## Feature Edges", ""]
-    if related:
-        page += ["```mermaid", "flowchart LR"]
-        for e in related:
-            page.append('    %s["%s"] --> %s["%s"]'
-                        % (slug(e["source"]), e["source"],
-                           slug(e["target"]), e["target"]))
-        page += ["```", ""]
-    else:
-        page += ["No cross-module edges recorded (degraded index).", ""]
 
     pairs = [p for p in coupling
              if p["files"][0] in files or p["files"][1] in files]

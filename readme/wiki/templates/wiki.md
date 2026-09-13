@@ -9,14 +9,10 @@
 
 **Status:** dev
 
-## Feature Edges
-
-No cross-module edges recorded (degraded index).
-
 ## Change Coupling
 
 No co-change pairs recorded for these files.
 
-<!-- wiki:enrich id=templates fp=5c472461f60d9798dc255c2e913c9f558bd0c2c353bbb9d1dc3d1a72da07fb4c -->
+<!-- wiki:enrich id=templates fp=e0ffe622344898c9e33ef25463d0b0fcb61dbda518e6a3549598a532c5a3a32f -->
 _No curated description yet. Edit this wiki:enrich block to describe templates._
 <!-- /wiki:enrich -->

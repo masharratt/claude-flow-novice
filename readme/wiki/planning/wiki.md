@@ -35,14 +35,10 @@
 
 **Status:** dev
 
-## Feature Edges
-
-No cross-module edges recorded (degraded index).
-
 ## Change Coupling
 
 No co-change pairs recorded for these files.
 
-<!-- wiki:enrich id=planning fp=fe6b0c7866907b09659e935ecedca17326cab4d52bb6337ffa4ba56db523ebab -->
+<!-- wiki:enrich id=planning fp=6efcb16208864720c81be53fea6b99b01c1c923c43e7b80c1f50882222073f0f -->
 _No curated description yet. Edit this wiki:enrich block to describe planning._
 <!-- /wiki:enrich -->

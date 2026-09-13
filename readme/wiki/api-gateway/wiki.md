@@ -22,14 +22,10 @@
 
 **Status:** dev
 
-## Feature Edges
-
-No cross-module edges recorded (degraded index).
-
 ## Change Coupling
 
 No co-change pairs recorded for these files.
 
-<!-- wiki:enrich id=api-gateway fp=e90af009fd54906b4dd06529113af65305b5d5d7c48060391adb334a6d3d2c37 -->
+<!-- wiki:enrich id=api-gateway fp=d7c568d77a3888a80e901a0b840b41cd88d2bae9b2b1ac6a4c8bb43b92d6e35d -->
 _No curated description yet. Edit this wiki:enrich block to describe api-gateway._
 <!-- /wiki:enrich -->

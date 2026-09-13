@@ -485,6 +485,77 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
+case_md_mode_invariant() {
+    # Generated md bytes must be a function of the canonical projection
+    # (tree + git) only: CBM enrichment (module-level edges, per-feature edge
+    # weights) differs per machine and toolchain and must never reach md.
+    local REPO_A="$T/inv-a" REPO_B="$T/inv-b"
+    make_repo "$REPO_A"
+    cp -r "$REPO_A/." "$REPO_B/"
+    run_in "$LIB/extract-features.sh" wiki_extract "$REPO_A" >/dev/null 2>&1 \
+        && ok "md-mode-invariant: canonical extract" \
+        || { no "md-mode-invariant: canonical extract failed"; return; }
+
+    # snapshot-variant copy of the same store: fake CBM module edges and
+    # per-feature edge weights, exactly what another machine's toolchain
+    # could produce for the same tree. The fingerprint ignores CBM fields,
+    # so both stores carry the same wiki-fp and outputs must be byte-equal.
+    python3 - "$REPO_A/.wiki/store.json" "$REPO_B/.wiki/store.json" <<'PY'
+import copy
+import json
+import os
+import sys
+
+src, dst = sys.argv[1], sys.argv[2]
+os.makedirs(os.path.dirname(dst), exist_ok=True)
+with open(src, encoding="utf-8") as fh:
+    store = json.load(fh)
+variant = copy.deepcopy(store)
+for f in variant["features"]:
+    f["edges"] = (f.get("edges", 0) or 0) + 7
+variant["edges"] = [
+    {"source": "parsing", "target": "ghost-module", "type": "IMPORTS", "count": 3},
+    {"source": "reporting", "target": "parsing", "type": "CALLS", "count": 9},
+]
+with open(dst, "w", encoding="utf-8") as fh:
+    json.dump(variant, fh, indent=2)
+    fh.write("\n")
+PY
+
+    local R
+    for R in "$REPO_A" "$REPO_B"; do
+        run_in "$LIB/import-existing.sh" wiki_import_existing "$R" >/dev/null 2>&1 || true
+        run_in "$LIB/gen-projections.sh" wiki_gen_projections \
+            "$R/.wiki/store.json" "$R" >/dev/null 2>&1 \
+            || { no "md-mode-invariant: projections gen failed for $R"; return; }
+        run_in "$LIB/gen-pages.sh" wiki_gen_pages \
+            "$R/.wiki/store.json" "$R" >/dev/null 2>&1 \
+            || { no "md-mode-invariant: pages gen failed for $R"; return; }
+    done
+
+    strip_clock() { grep -v '^\*\*Last Updated:' "$1"; }
+    local rel
+    for rel in readme/feature-status.md readme/state-machines.md; do
+        if diff <(strip_clock "$REPO_A/$rel") <(strip_clock "$REPO_B/$rel") >/dev/null; then
+            ok "md-mode-invariant: $rel byte-identical across CBM variants"
+        else
+            no "md-mode-invariant: $rel bytes differ when CBM enrichment varies (leak)"
+        fi
+    done
+    if diff -r "$REPO_A/readme/wiki" "$REPO_B/readme/wiki" >/dev/null 2>&1; then
+        ok "md-mode-invariant: feature pages byte-identical across CBM variants"
+    else
+        no "md-mode-invariant: feature pages differ when CBM enrichment varies (leak)"
+    fi
+    if grep -rq -e "ghost-module" -e "inbound cross-module" \
+        "$REPO_A/readme" "$REPO_B/readme"; then
+        no "md-mode-invariant: CBM module names or edge weights leaked into md"
+    else
+        ok "md-mode-invariant: no CBM-derived names or counts anywhere in md"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 case_lint_catches() {
     local D="$T/lint"
     mkdir -p "$D/good" "$D/bad" "$D/empty"
@@ -547,6 +618,7 @@ case_enrich_preserve
 case_projections_lint
 case_pages_shape
 case_lint_catches
+case_md_mode_invariant
 skip "real-repo-lint: deferred to Phase 7 (first wiki sync on this repo; verify via cfn-doc-lint execute.sh readme)"
 
 echo

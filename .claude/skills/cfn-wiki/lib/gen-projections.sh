@@ -18,6 +18,11 @@
 #     style (mermaid fences, kept as fences for GitHub rendering)
 #   - enrichment embedded as wiki:enrich blocks resolved by lib/merge-enrichment.sh
 #
+# Byte contract: generated md is a canonical projection of tree + git only.
+# CBM enrichment (module-level edges, per-feature edge weights, cbm_mode) is
+# toolchain-dependent and renders in the portal via the view modules, never
+# in md bytes.
+#
 # cfn: Status is fixed to dev for every auto-extracted feature; per-feature
 # statuses arrive when enrich-block status keys land (Phase 5 view-catalog).
 
@@ -58,7 +63,6 @@ if not re.fullmatch(r"[0-9a-f]{64}", store_fp):
     sys.exit("wiki_gen_projections: store meta.fingerprint missing or malformed")
 
 features = store.get("features", [])
-edges = store.get("edges", [])
 resolved = os.path.join(os.path.dirname(os.path.abspath(store_path)),
                         "enrich", "resolved")
 
@@ -131,23 +135,14 @@ for tok, meaning in STATUS_MEANINGS:
     lines.append("| %s | %s |" % (tok, meaning))
 lines.append("")
 
-inbound = {}
-for e in edges:
-    inbound.setdefault(e.get("target", ""), set()).add(e.get("source", ""))
-
 if features:
     lines += ["| Feature | Status | Description | Dependencies | Known Limitations |",
               "|---------|--------|-------------|--------------|-------------------|"]
     for f in features:
-        deps = sorted(d for d in inbound.get(f["name"], ()) if d)
-        desc = "Auto-extracted feature: %d source files" % len(f.get("files", []))
-        weight = f.get("edges", 0)
-        if weight:
-            desc += "; %d inbound cross-module edge calls" % weight
-        desc += "."
+        desc = "Auto-extracted feature: %d source files." % len(f.get("files", []))
         lines.append("| %s | %s | %s | %s | %s |" % (
             esc(f["name"]), CURRENT_STATUS, esc(desc),
-            esc(", ".join(deps)),
+            "-",
             "Auto-generated row; curate via the wiki:enrich block under Feature Notes."))
     lines += ["", "## Feature Notes", ""]
     for f in features:

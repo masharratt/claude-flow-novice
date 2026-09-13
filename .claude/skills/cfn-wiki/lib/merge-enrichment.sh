@@ -8,10 +8,13 @@
 #
 # Preservation rule (plan: fuzzy-whistling-eich): a block is preserved across
 # a regeneration iff its stored fp equals the CURRENT feature fingerprint, a
-# sha256 over the feature's own slice {fid, name, files, edges} canonicalized
-# exactly like lib/fingerprint.sh (sorted keys, compact separators). A stale
-# block (feature content changed) is dropped; the regenerated block re-attaches
-# the enrichment text from .wiki/enrich/blocks/<id>.md, the import source.
+# sha256 over the feature's canonical slice {fid, files, entrypoints}
+# (order-normalized, canonicalized exactly like lib/fingerprint.sh). CBM
+# enrichment (edge weights) is deliberately excluded: it is toolchain-
+# dependent, and a weight change is not a feature-content change. A stale
+# block (canonical content changed) is dropped; the regenerated block
+# re-attaches the enrichment text from .wiki/enrich/blocks/<id>.md, the
+# import source.
 #
 # Public functions:
 #   wiki_feature_fp <store> <fid>        print the feature slice fp (exit 1 if
@@ -57,9 +60,14 @@ with open(store_path, encoding="utf-8") as fh:
 feature = next((f for f in store.get("features", []) if f.get("fid") == fid), None)
 if feature is None:
     sys.exit(1)
-# keep the canonicalization in sync with lib/fingerprint.sh
-slice_ = {k: feature.get(k) for k in ("fid", "name", "files", "edges")}
-blob = json.dumps(slice_, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+# keep in sync with lib/fingerprint.sh: same canonical subset per feature
+# (entrypoints/fid/files, order-normalized), same serialization
+slice_ = {
+    "entrypoints": sorted(str(e) for e in feature.get("entrypoints") or []),
+    "fid": str(feature.get("fid", "")),
+    "files": sorted(str(p) for p in feature.get("files") or []),
+}
+blob = json.dumps(slice_, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 print(hashlib.sha256(blob.encode("utf-8")).hexdigest())
 PY
 }

@@ -11,14 +11,10 @@
 
 **Status:** dev
 
-## Feature Edges
-
-No cross-module edges recorded (degraded index).
-
 ## Change Coupling
 
 No co-change pairs recorded for these files.
 
-<!-- wiki:enrich id=migrations fp=2ba671fcccc8742bd7a1d6cbd410cd5c487383dcf83adfe344dd421f888f922a -->
+<!-- wiki:enrich id=migrations fp=1ab2ea2d8f69f661d1d7095599c967c5e7f7b8ddaf76b182cc755650c5ff5a83 -->
 _No curated description yet. Edit this wiki:enrich block to describe migrations._
 <!-- /wiki:enrich -->

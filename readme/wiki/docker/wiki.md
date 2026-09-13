@@ -67,14 +67,10 @@
 
 **Status:** dev
 
-## Feature Edges
-
-No cross-module edges recorded (degraded index).
-
 ## Change Coupling
 
 No co-change pairs recorded for these files.
 
-<!-- wiki:enrich id=docker fp=3deb19e012771b5d2ed4265277d6b2ad49b6ccfc45c24d65892c906312616c43 -->
+<!-- wiki:enrich id=docker fp=2fd432e94aa6758bd5192fbc022741f7ef81dd46b0c883b56128e5c2257593fa -->
 _No curated description yet. Edit this wiki:enrich block to describe docker._
 <!-- /wiki:enrich -->

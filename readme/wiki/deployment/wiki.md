@@ -27,14 +27,10 @@
 
 **Status:** dev
 
-## Feature Edges
-
-No cross-module edges recorded (degraded index).
-
 ## Change Coupling
 
 No co-change pairs recorded for these files.
 
-<!-- wiki:enrich id=deployment fp=f981ad2c24285abaa64c7fb16eb5545e732484bae0da9d9aa20c3e0286872813 -->
+<!-- wiki:enrich id=deployment fp=bf4dc11a474fe765e4e7560203e19815b9dfbc7a1eddf5e7c847b110a6d85ae8 -->
 _No curated description yet. Edit this wiki:enrich block to describe deployment._
 <!-- /wiki:enrich -->
