@@ -54,6 +54,16 @@
 #      features[] fids/files/entrypoints, so a snapshot store and a
 #      degraded store of the same tree are fingerprint-identical.
 #
+# File enumeration (dual mode):
+#   - Inside a git worktree: tracked files only (git ls-files). Untracked and
+#     gitignored files are local machine state; they must never enter
+#     features[]/entrypoints, so a dirty worktree fingerprints identically
+#     to a clean clone. Snapshot-only paths are also kept out of the module
+#     set in this mode (CBM may have indexed untracked files).
+#   - Not a git worktree (plain dirs, test temp copies): raw filesystem
+#     walk, skipping EXCLUDE_DIRS and junk extensions, with the snapshot
+#     paths unioned into the module set as before.
+#
 # Modules group usable-path snapshot nodes (or, degraded, the file tree) by
 # top-level directory; repo-root files each form their own module named by
 # filename. Module edges aggregate node-level CALLS/IMPORTS/INHERITS across
@@ -141,19 +151,31 @@ def entry_name(rel):
     return stem in ENTRY_STEMS
 
 
-# --- file tree: always available, the degraded-mode backbone -----------------
-files = []
-for root, dirs, names in os.walk(repo, onerror=lambda exc: None):
-    dirs[:] = sorted(d for d in dirs
-                     if d not in EXCLUDE_DIRS and not d.endswith(".egg-info"))
-    for name in sorted(names):
-        rel = os.path.relpath(os.path.join(root, name), repo)
-        rel = rel.replace(os.sep, "/")
-        if rel.endswith((".pyc", ".pyo", ".db", ".sqlite",
-                         ".sqlite-journal", ".db-journal", ".db-wal", ".db-shm")):
-            continue
-        files.append(rel)
-files.sort()
+# --- canonical file enumeration (dual mode, see header) ----------------------
+git_mode = True
+try:
+    tracked = subprocess.run(
+        ["git", "-C", repo, "ls-files", "--full-name", "-z"],
+        capture_output=True, check=True).stdout
+except (OSError, subprocess.CalledProcessError):
+    git_mode = False
+    tracked = b""
+if git_mode:
+    files = sorted({p.decode("utf-8", "surrogateescape").replace("\\", "/")
+                    for p in tracked.split(b"\0") if p})
+else:
+    files = []
+    for root, dirs, names in os.walk(repo, onerror=lambda exc: None):
+        dirs[:] = sorted(d for d in dirs
+                         if d not in EXCLUDE_DIRS and not d.endswith(".egg-info"))
+        for name in sorted(names):
+            rel = os.path.relpath(os.path.join(root, name), repo)
+            rel = rel.replace(os.sep, "/")
+            if rel.endswith((".pyc", ".pyo", ".db", ".sqlite",
+                             ".sqlite-journal", ".db-journal", ".db-wal", ".db-shm")):
+                continue
+            files.append(rel)
+    files.sort()
 
 # --- CBM snapshot (optional; its absence is degraded mode, never an error) ---
 # Aggregation runs in SQL (see header): python only sees per-path node counts,
@@ -224,10 +246,15 @@ else:
           "git-only extraction", file=sys.stderr)
 
 # --- modules ------------------------------------------------------------------
-# files lists are tree/code-driven; nodes counts come straight from the
-# snapshot (empty in degraded mode), already label/ext-agnostic.
+# files lists are enumeration-driven; nodes counts come straight from the
+# snapshot (empty in degraded mode), already label/ext-agnostic. In git mode
+# the module set is tracked files only; snapshot-only paths (CBM may have
+# indexed untracked files) must not leak into features[].files.
+code_set = {f for f in files if code_file(f)}
+if not git_mode:
+    code_set |= set(snap_code_paths)
 mod_files = {}
-for f in sorted(set(f for f in files if code_file(f)) | set(snap_code_paths)):
+for f in sorted(code_set):
     mod_files.setdefault(module_of(f), []).append(f)
 
 modules = [{"name": name,

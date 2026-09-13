@@ -416,6 +416,77 @@ case_features_mode_invariant() {
 }
 
 # ---------------------------------------------------------------------------
+case_worktree_dirt_invariant() {
+    # git worktree: tracked files only. Untracked files, untracked top-level
+    # dirs, and gitignored build artifacts are local machine state and must
+    # never enter features[] or change the fingerprint (a dirty worktree
+    # must fingerprint identically to a clean clone).
+    local REPO_W="$T/fx-$$_w"
+    mkdir -p "$REPO_W"
+    cp -r "$FIXTURE/." "$REPO_W/"
+    rm -rf "$REPO_W/.wiki" "$REPO_W/readme"
+    git -C "$REPO_W" init -q
+    git -C "$REPO_W" config user.email dirt-case@example.com
+    git -C "$REPO_W" config user.name "Dirt Case"
+    printf '*.js\n' >"$REPO_W/.gitignore"
+    git -C "$REPO_W" add .gitignore parsing reporting src main.py service.py util.py
+    git -C "$REPO_W" commit -qm "fixture tree"
+
+    local store="$REPO_W/.wiki/store.json"
+    if run_extract "$REPO_W" >"$T/extract-w1.log" 2>&1; then
+        ok "worktree-dirt: clean-tree extract exit 0"
+    else
+        no "worktree-dirt: clean-tree extract failed: $(tail -5 "$T/extract-w1.log")"
+        return
+    fi
+    local fp1
+    fp1=$(fp_of "$store")
+
+    # dirty the worktree: untracked file in an existing feature dir, an
+    # untracked new top-level dir, and a gitignored build artifact
+    printf 'x = 1\n' >"$REPO_W/parsing/untracked_extra.py"
+    mkdir -p "$REPO_W/logs"
+    printf 'x = 1\n' >"$REPO_W/logs/sweep.py"
+    printf '// generated\n' >"$REPO_W/src/report.bundle.js"
+
+    if run_extract "$REPO_W" >"$T/extract-w2.log" 2>&1; then
+        ok "worktree-dirt: dirty-tree extract exit 0"
+    else
+        no "worktree-dirt: dirty-tree extract failed: $(tail -5 "$T/extract-w2.log")"
+        return
+    fi
+    local fp2
+    fp2=$(fp_of "$store")
+    [ -n "$fp2" ] && [ "$fp1" = "$fp2" ] \
+        && ok "worktree-dirt: dirty worktree fingerprints identically to clean" \
+        || no "worktree-dirt: fp changed on dirty worktree ($fp1 vs $fp2)"
+
+    store_val "$store" "'logs' not in [f['fid'] for f in s['features']]" | grep -q True \
+        && ok "worktree-dirt: untracked top-level dir is not a feature" \
+        || no "worktree-dirt: untracked dir leaked into features"
+    store_val "$store" "not any('untracked_extra' in f for feat in s['features'] for f in feat['files'])" | grep -q True \
+        && ok "worktree-dirt: untracked file absent from feature file lists" \
+        || no "worktree-dirt: untracked file leaked into features[].files"
+    store_val "$store" "not any(f.endswith('.js') for feat in s['features'] for f in feat['files'])" | grep -q True \
+        && ok "worktree-dirt: gitignored artifact absent from feature file lists" \
+        || no "worktree-dirt: gitignored artifact leaked into features[].files"
+
+    # committing the previously-untracked content is a real tracked change:
+    # the fingerprint must flip
+    git -C "$REPO_W" add -A
+    git -C "$REPO_W" commit -qm "adopt local files"
+    if run_extract "$REPO_W" >"$T/extract-w3.log" 2>&1; then
+        local fp3
+        fp3=$(fp_of "$store")
+        [ -n "$fp3" ] && [ "$fp3" != "$fp1" ] \
+            && ok "worktree-dirt: committing the dirt flips the fp (tracked change)" \
+            || no "worktree-dirt: fp did not flip after commit ($fp1 vs $fp3)"
+    else
+        no "worktree-dirt: post-commit extract failed"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 case_fp_stable() {
     if [ ! -f "$LIB/fingerprint.sh" ]; then no "fp-stable: lib/fingerprint.sh exists"; return; fi
     ok "fp-stable: lib/fingerprint.sh exists"
@@ -724,6 +795,7 @@ case_gitignore_untracked() {
 case_fp_stable
 case_fp_mode_invariant
 case_features_mode_invariant
+case_worktree_dirt_invariant
 case_minimal_schema_snapshot
 case_real_shape_snapshot
 case_extract_fixture
