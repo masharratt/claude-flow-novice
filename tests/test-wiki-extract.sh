@@ -547,6 +547,69 @@ case_empty_git_fallback() {
 }
 
 # ---------------------------------------------------------------------------
+case_fp_ignores_coupling() {
+    # coupling[] is a function of git log AT QUERY TIME (sliding window over
+    # recent commits), not of the tree: it must never enter the fingerprint,
+    # or the marker drifts on every commit boundary crossing.
+    cat >"$T/base-c.json" <<'EOF'
+{"features":[{"fid":"parsing","files":["parsing/parser.py"],"entrypoints":[]},{"fid":"util.py","files":["util.py"],"entrypoints":[]}],"coupling":[{"files":["parsing/parser.py","util.py"],"count":3}],"meta":{"cbm_mode":"snapshot","fingerprint":"x"}}
+EOF
+    local fp0
+    fp0=$(fp_of "$T/base-c.json") || { no "fp-ignores-coupling: base hash failed"; return; }
+
+    # drop the pair entirely
+    cat >"$T/nocoup.json" <<'EOF'
+{"features":[{"fid":"parsing","files":["parsing/parser.py"],"entrypoints":[]},{"fid":"util.py","files":["util.py"],"entrypoints":[]}],"coupling":[],"meta":{"cbm_mode":"snapshot","fingerprint":"x"}}
+EOF
+    # mutate the count
+    cat >"$T/recoup.json" <<'EOF'
+{"features":[{"fid":"parsing","files":["parsing/parser.py"],"entrypoints":[]},{"fid":"util.py","files":["util.py"],"entrypoints":[]}],"coupling":[{"files":["parsing/parser.py","util.py"],"count":9}],"meta":{"cbm_mode":"snapshot","fingerprint":"x"}}
+EOF
+    # swap the pair for a different one
+    cat >"$T/othercoup.json" <<'EOF'
+{"features":[{"fid":"parsing","files":["parsing/parser.py"],"entrypoints":[]},{"fid":"util.py","files":["util.py"],"entrypoints":[]}],"coupling":[{"files":["src/report.ts","src/summary.ts"],"count":1}],"meta":{"cbm_mode":"snapshot","fingerprint":"x"}}
+EOF
+    local fpn fpr fpo
+    fpn=$(fp_of "$T/nocoup.json")
+    fpr=$(fp_of "$T/recoup.json")
+    fpo=$(fp_of "$T/othercoup.json")
+    if [ "$fpn" = "$fp0" ] && [ "$fpr" = "$fp0" ] && [ "$fpo" = "$fp0" ]; then
+        ok "fp-ignores-coupling: dropped/mutated/replaced coupling never flips the fp"
+    else
+        no "fp-ignores-coupling: coupling still leaks into the hash ($fp0/$fpn/$fpr/$fpo)"
+    fi
+}
+
+# ---------------------------------------------------------------------------
+case_index_copy_asserted() {
+    # a CBM run that "succeeds" but leaves an empty project db must fail the
+    # copy loudly (exit 1 + stderr line), never report silent success
+    if [ ! -f "$LIB/cbm-index.sh" ]; then no "index-copy-asserted: lib/cbm-index.sh exists"; return; fi
+    ok "index-copy-asserted: lib/cbm-index.sh exists"
+
+    local REPO_C="$T/fx-$$_c"
+    make_repo_copy_tree "$REPO_C"
+    local STUB="$T/bin-stub" CACHE="$T/cache-c"
+    mkdir -p "$STUB" "$CACHE"
+    printf '#!/bin/sh\nexit 0\n' >"$STUB/codebase-memory-mcp"
+    chmod +x "$STUB/codebase-memory-mcp"
+    : >"$CACHE/$(basename "$REPO_C").db"   # index "ran" but produced an empty db
+
+    local rc=0
+    env CBM_BIN="$STUB/codebase-memory-mcp" CBM_CACHE_DIR="$CACHE" bash -c '
+        set -uo pipefail
+        source "$1/cbm-index.sh"
+        wiki_cbm_index "$2" fast
+    ' _ "$LIB" "$REPO_C" >"$T/idx.out" 2>"$T/idx.err" || rc=$?
+    [ "$rc" -ne 0 ] \
+        && ok "index-copy-asserted: empty-db copy exits nonzero (rc=$rc)" \
+        || no "index-copy-asserted: silent success (rc=0) on empty project db"
+    grep -qF "wiki: CBM index copy failed (expected $CACHE/$(basename "$REPO_C").db)" "$T/idx.err" \
+        && ok "index-copy-asserted: loud stderr line names the expected source" \
+        || no "index-copy-asserted: expected stderr line missing: $(cat "$T/idx.err")"
+}
+
+# ---------------------------------------------------------------------------
 case_fp_stable() {
     if [ ! -f "$LIB/fingerprint.sh" ]; then no "fp-stable: lib/fingerprint.sh exists"; return; fi
     ok "fp-stable: lib/fingerprint.sh exists"
@@ -593,14 +656,15 @@ EOF
         && ok "fp-stable: changed entrypoints differ" \
         || no "fp-stable: entrypoint change not reflected"
 
-    # coupling is a canonical input: a change must flip the hash
+    # coupling is a query-time function of git log (sliding window): changes
+    # must NOT flip the hash
     cat >"$T/f.json" <<'EOF'
 {"features":[{"fid":"parsing","files":["parsing/parser.py"]}],"coupling":[{"files":["parsing/parser.py","util.py"],"count":1}],"meta":{"repo":"/x/repo","cbm_mode":"snapshot","generated_at":"2026-09-12T10:00:00Z"}}
 EOF
     local ff
-    ff=$(fp_of "$T/f.json") && [ "$ff" != "$fa" ] \
-        && ok "fp-stable: changed coupling differs" \
-        || no "fp-stable: coupling change not reflected"
+    ff=$(fp_of "$T/f.json") && [ "$ff" = "$fa" ] \
+        && ok "fp-stable: coupling change does not change hash (query-time data excluded)" \
+        || no "fp-stable: coupling changed the hash (must be excluded)"
 
     # CBM enrichment stays excluded: flipping cbm_mode must NOT change the hash
     cat >"$T/d.json" <<'EOF'
@@ -853,6 +917,8 @@ case_gitignore_untracked() {
 
 # ---------------------------------------------------------------------------
 case_fp_stable
+case_fp_ignores_coupling
+case_index_copy_asserted
 case_fp_mode_invariant
 case_features_mode_invariant
 case_worktree_dirt_invariant

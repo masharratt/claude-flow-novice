@@ -58,6 +58,14 @@ wiki_cbm_index() {
     fi
 
     mkdir -p "$repo/.wiki/cache"
-    cp "$src" "$repo/.wiki/cache/cbm.db"
+    cp "$src" "$repo/.wiki/cache/cbm.db" 2>/dev/null || true
+    if [ ! -s "$repo/.wiki/cache/cbm.db" ]; then
+        # The index step reported success but left nothing usable to copy
+        # (e.g. CBM deduped the clone into a parent project's db by canonical
+        # root). A failed copy with a present binary is loud: this is NOT the
+        # degraded path, which stays exit 0.
+        echo "wiki: CBM index copy failed (expected $src)" >&2
+        return 1
+    fi
     echo "wiki: indexed $repo (mode=$mode) -> .wiki/cache/cbm.db"
 }

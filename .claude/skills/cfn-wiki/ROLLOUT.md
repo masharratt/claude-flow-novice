@@ -64,6 +64,13 @@ Adopt per repo by config only. The skill lives in this repo (`.claude/skills/cfn
 | CBM | `rm -rf ~/.cache/codebase-memory-mcp ~/.local/share/cfn-wiki` |
 | Hooks | remove the SessionStart entry from `.claude/settings.json`; drop the husky append block |
 
+## Known wart
+
+A commit that adds/renames a feature dir flips the fingerprint, so CI runs
+red on that exact commit until the follow-up `wiki sync` commit — the husky
+regen is post-commit by design (it can never block or rewrite a commit).
+Follow the red with `wiki sync && git commit -am "chore(wiki): sync"`.
+
 ## Deferred decisions (from planning/cfn-wiki/REVIEW_cfn-wiki.md)
 
 - Enrichment authoring: manual `wiki sync --enrich` only; revisit if staleness notices get noisy.

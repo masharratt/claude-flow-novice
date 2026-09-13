@@ -1,25 +1,26 @@
 #!/usr/bin/env bash
-# cfn-wiki store fingerprint: sha256 over the CBM-independent canonical
-# subset of a store.json.
+# cfn-wiki store fingerprint: sha256 over the canonical feature subset of a
+# store.json.
 #
 # Contract: wiki_fingerprint <store.json> -> 64-hex sha256 on stdout, exit 0.
 # Missing file or unparseable JSON -> message on stderr, exit 1.
 #
 # Inputs hashed (the canonical subset):
 #   features[].fid, features[].files, features[].entrypoints
-#   coupling[].files, coupling[].count
-# Lists are order-normalized (features by fid, files/entrypoints sorted,
-# coupling by files then count) so store ordering never leaks into the hash.
+# Lists are order-normalized (features by fid, files/entrypoints sorted) so
+# store ordering never leaks into the hash.
 #
 # Inputs excluded BY DESIGN:
-#   module node counts, module-level edges, meta.edge_type_counts, cbm_mode,
-#   generated_at, repo, meta.fingerprint itself. The CBM-derived fields are
-#   enrichment: CBM graph resolution is toolchain-dependent (two machines
-#   index the same tree into different graphs), so any CBM-derived input
-#   would make the fingerprint differ across machines and break the
-#   staleness gate. With this subset, a snapshot-mode store and a
-#   degraded git-only store of the same tree hash identically; any change to
-#   tracked feature content, entrypoints, or git coupling flips the hash.
+#   coupling[] is a function of git log AT QUERY TIME (a sliding window over
+#   recent commits), not of the tree: the window slides as commits land, so
+#   any coupling-derived input would drift the marker on every commit
+#   boundary crossing. CBM-derived data (module node counts, module-level
+#   edges, meta.edge_type_counts, cbm_mode) is enrichment: CBM graph
+#   resolution is toolchain-dependent, so it can never be cross-machine
+#   stable. Volatile meta (generated_at, repo, meta.fingerprint itself) is
+#   environment output. With this subset, the same tracked tree hashes
+#   identically across machines, modes, and commits; a change to tracked
+#   feature content or entrypoints flips the hash.
 #
 # Consumers: the sync drift gate hashes the whole store (drift = any
 # regenerable byte changed); the per-feature enrich preservation in Phase 3
@@ -56,13 +57,8 @@ features = sorted(
      for f in store.get("features") or [] if isinstance(f, dict)),
     key=lambda f: f["fid"])
 
-coupling = sorted(
-    ({"count": p.get("count", 0), "files": sorted(str(x) for x in p.get("files") or [])}
-     for p in store.get("coupling") or [] if isinstance(p, dict)),
-    key=lambda p: (p["files"], p["count"]))
-
-canon = {"coupling": coupling, "features": features}
-blob = json.dumps(canon, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+blob = json.dumps({"features": features}, sort_keys=True,
+                  separators=(",", ":"), ensure_ascii=True)
 print(hashlib.sha256(blob.encode("utf-8")).hexdigest())
 PY
 }
