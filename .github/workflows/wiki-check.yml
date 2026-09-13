@@ -26,5 +26,14 @@ jobs:
       - name: Install cfn-wiki CBM substrate (pinned v0.10.8)
         run: bash .claude/skills/cfn-wiki/lib/wiki.sh doctor --install
 
+      # The committed projections carry a snapshot-mode fingerprint: extract
+      # never indexes by design, so CI must index (same pinned binary, same
+      # mode) or its git-only store hashes differently and the gate false-fires.
+      - name: Index repo for snapshot fingerprint parity
+        run: |
+          source .claude/skills/cfn-wiki/lib/wiki-env.sh
+          source .claude/skills/cfn-wiki/lib/cbm-index.sh
+          wiki_cbm_index "$GITHUB_WORKSPACE" fast
+
       - name: Wiki drift gate
         run: bash .claude/skills/cfn-wiki/lib/wiki.sh sync --check .
