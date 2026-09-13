@@ -171,7 +171,11 @@ assert_contains() {
     local needle="$2"
     local test_name="${3:-Test $TEST_TOTAL}"
 
-    if echo "$haystack" | grep -qF -- "$needle"; then
+    # Pure-bash match, not `echo | grep -q`: grep -q exits early on a match and
+    # a large haystack (30KB+) can then feed echo a SIGPIPE, which set -o
+    # pipefail turns into a deterministic false FAIL. Learned on the fleet
+    # dashboard suite when its page grew 3x (2026-09-12).
+    if [[ "$haystack" == *"$needle"* ]]; then
         TEST_PASSED=$((TEST_PASSED + 1))
         log_success "PASS: $test_name"
         return 0
@@ -191,7 +195,8 @@ assert_not_contains() {
     local needle="$2"
     local test_name="${3:-Test $TEST_TOTAL}"
 
-    if ! echo "$haystack" | grep -qF -- "$needle"; then
+    # Same pipefail/SIGPIPE hazard as assert_contains: pure-bash scan instead.
+    if [[ "$haystack" != *"$needle"* ]]; then
         TEST_PASSED=$((TEST_PASSED + 1))
         log_success "PASS: $test_name"
         return 0

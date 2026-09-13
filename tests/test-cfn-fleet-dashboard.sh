@@ -103,6 +103,14 @@ set_status() {
         && mv "$RUN_DIR/roster.tsv.new" "$RUN_DIR/roster.tsv"
 }
 
+# static_html FILE: the page's bash-rendered markup with the inline <script>
+# blocks stripped. The live JS mirrors the static templates (card, tile, seg
+# and badge literals of its own), so every count or grep over rendered
+# markup MUST go through this or the JS copy inflates the count.
+static_html() {
+    sed '/^<script>$/,/^<\/script>$/d' "$1"
+}
+
 # run_dash: invoke main in a command-substitution subshell (fleet_die exits
 # are captured, not fatal), stdout+stderr merged into DASH_OUT.
 run_dash() {
@@ -145,12 +153,23 @@ test_render_structure_cards_title_count_pills() {
     assert_success "dashboard.html written into the run dir" test -f "$html"
     assert_contains "$(cat "$html")" "<title>Fleet dashboard: fleet-dash1</title>" \
         "title carries the run slug"
-    assert_equals "3" "$(grep -cF 'class="card" data-ws' "$html" || true)" \
+    assert_equals "3" "$(static_html "$html" | grep -cF 'class="card" data-ws' || true)" \
         "one worker card per roster row"
-    assert_contains "$(cat "$html")" 'data-count="pending"' "status count pill: pending"
-    assert_contains "$(cat "$html")" 'data-count="started"' "status count pill: started"
-    assert_contains "$(cat "$html")" 'data-count="working"' "status count pill: working"
+    assert_equals "1" "$(static_html "$html" | grep -oF 'data-st="pending"' | wc -l || true)" \
+        "status tile: pending"
+    assert_equals "1" "$(static_html "$html" | grep -oF 'data-st="started"' | wc -l || true)" \
+        "status tile: started"
+    assert_equals "1" "$(static_html "$html" | grep -oF 'data-st="working"' | wc -l || true)" \
+        "status tile: working"
+    assert_contains "$(static_html "$html")" 'class="tile zero" data-st="blocked"' \
+        "zero count renders as a dimmed tile (blocked at 0)"
     assert_contains "$(cat "$html")" 'stale-min 15' "header shows the staleness knob"
+    assert_contains "$(cat "$html")" 'id="filters"' "filter chip row present"
+    assert_contains "$(cat "$html")" 'class="filterchip on" data-filter="all"' \
+        "all chip active by default"
+    assert_contains "$(cat "$html")" 'id="sort" class="sortsel"' "sort select present"
+    assert_contains "$(cat "$html")" 'class="live-dot" id="live-dot" data-state="ok"' \
+        "live dot span carries data-state"
     assert_contains "$DASH_OUT" "dashboard.html" "stdout names the rendered page"
     assert_success "--no-serve never writes a pidfile" test ! -f "$RUN_DIR/.dashboard.pid"
 }
@@ -167,6 +186,21 @@ test_html_escape_payload_neutralized() {
         '&lt;script&gt;alert(&quot;x&amp;y&quot;)&lt;/script&gt;' \
         "task payload fully html-escaped"
     assert_not_contains "$(cat "$html")" '<script>alert' "raw payload never reaches the page"
+
+    log_step "GIVEN hostile goal.txt and now-editing payloads, WHEN render"
+    printf '<script>alert("g&x")</script>' > "$RUN_DIR/goal.txt"
+    mkdir -p "$RUN_DIR/files"
+    printf '%s\n' '" onmouseover="alert(1)' > "$RUN_DIR/files/WS01.txt"
+    run_dash --no-serve --once
+    assert_equals "0" "$DASH_RC" "payload render exits 0"
+    assert_contains "$(cat "$html")" \
+        '&lt;script&gt;alert(&quot;g&amp;x&quot;)&lt;/script&gt;' \
+        "goal blurb payload fully html-escaped"
+    assert_contains "$(cat "$html")" \
+        '<li>&quot; onmouseover=&quot;alert(1)</li>' \
+        "now-editing path payload fully html-escaped"
+    assert_not_contains "$(cat "$html")" '<script>alert("g' "raw goal payload never reaches the page"
+    assert_not_contains "$(cat "$html")" 'onmouseover="alert(1)' "raw path payload never reaches the page"
 }
 
 test_status_pills_all_seven_statuses() {
@@ -187,9 +221,17 @@ test_status_pills_all_seven_statuses() {
     for s in pending started working blocked landed done dead; do
         assert_equals "1" "$(grep -cF "class=\"pill st-$s\"" "$html" || true)" \
             "exactly one whitelist pill for $s"
+        assert_equals "1" "$(static_html "$html" | grep -oF "data-st=\"$s\"" | wc -l || true)" \
+            "exactly one stat tile for $s"
     done
     assert_equals "0" "$(grep -cF 'st-wobblin' "$html" || true)" \
         "unknown status never becomes a pill class"
+    assert_equals "1" "$(static_html "$html" | grep -cF 'id="tiles"' || true)" \
+        "tiles row present"
+    for s in queued active blocked landed dead; do
+        assert_equals "1" "$(static_html "$html" | grep -oF "seg seg-$s" | wc -l || true)" \
+            "meter carries the grouped $s segment"
+    done
 }
 
 test_stale_badge_derivation() {
@@ -204,10 +246,12 @@ test_stale_badge_derivation() {
 
     assert_equals "0" "$DASH_RC" "render exits 0"
     local html="$RUN_DIR/dashboard.html"
-    assert_equals "1" "$(grep -cF 'badge stale' "$html" || true)" \
+    assert_equals "1" "$(static_html "$html" | grep -cF 'badge stale' || true)" \
         "exactly one STALE badge (20-min working row at default 15m)"
+    assert_contains "$(static_html "$html")" '<span class="badge stale">&#9888; STALE</span>' \
+        "STALE badge renders icon plus label"
     run_dash --no-serve --once --stale-min 30
-    assert_equals "0" "$(grep -cF 'badge stale' "$html" || true)" \
+    assert_equals "0" "$(static_html "$html" | grep -cF 'badge stale' || true)" \
         "--stale-min 30 hides the 20-min heartbeat"
 }
 
@@ -216,8 +260,11 @@ test_dead_badge_derivation() {
     build_run dashdead1
     add_ws WS01 ws01 "Crashed" dead "" "" "" "$(date +%s)"
     run_dash --no-serve --once
-    assert_equals "1" "$(grep -cF 'badge dead' "$RUN_DIR/dashboard.html" || true)" \
+    assert_equals "1" "$(static_html "$RUN_DIR/dashboard.html" | grep -cF 'badge dead' || true)" \
         "status dead shows the DEAD badge"
+    assert_contains "$(static_html "$RUN_DIR/dashboard.html")" \
+        '<span class="badge dead">&#10005; DEAD</span>' \
+        "DEAD badge renders icon plus label"
 
     log_step "GIVEN a started row whose tmux session is gone, WHEN render"
     build_run dashdead2
@@ -227,7 +274,7 @@ test_dead_badge_derivation() {
     export FLEET_TMUX_HASSESSION_STDERR="can't find session: ws01"
     run_dash --no-serve --once
     unset FLEET_TMUX_HASSESSION_RC FLEET_TMUX_HASSESSION_STDERR
-    assert_equals "1" "$(grep -cF 'badge dead' "$RUN_DIR/dashboard.html" || true)" \
+    assert_equals "1" "$(static_html "$RUN_DIR/dashboard.html" | grep -cF 'badge dead' || true)" \
         "gone session on a started row shows DEAD (pane exit)"
     assert_contains "$(cat "$TMUX_LOG")" "-L fleet-dashdead2 has-session -t ws01" \
         "pane probe runs on the run's dedicated socket"
@@ -239,7 +286,7 @@ test_dead_badge_derivation() {
     export FLEET_TMUX_HASSESSION_STDERR="no server running on /tmp/tmux-501/default"
     run_dash --no-serve --once
     unset FLEET_TMUX_HASSESSION_RC FLEET_TMUX_HASSESSION_STDERR
-    assert_equals "0" "$(grep -cF 'badge dead' "$RUN_DIR/dashboard.html" || true)" \
+    assert_equals "0" "$(static_html "$RUN_DIR/dashboard.html" | grep -cF 'badge dead' || true)" \
         "no-server-running is tooling, never a DEAD"
 
     log_step "GIVEN no tmux on PATH, WHEN render"
@@ -250,7 +297,7 @@ test_dead_badge_derivation() {
     run_dash --no-serve --once
     export PATH="$saved_path"
     assert_equals "0" "$DASH_RC" "tmux-less host still renders"
-    assert_equals "0" "$(grep -cF 'badge dead' "$RUN_DIR/dashboard.html" || true)" \
+    assert_equals "0" "$(static_html "$RUN_DIR/dashboard.html" | grep -cF 'badge dead' || true)" \
         "tmux absence never manufactures a DEAD"
 }
 
@@ -296,12 +343,22 @@ test_self_contained_refresh_and_static_fallback() {
     assert_equals "0" "$(grep -c '<link' "$html" || true)" "zero <link> tags"
     assert_equals "0" "$(grep -cE '(src|href)="[^"]' "$html" || true)" \
         "zero external src/href attributes"
-    assert_contains "$body" 'http-equiv="refresh" content="5"' "meta refresh defaults to the 5s knob"
+    assert_contains "$body" '<noscript><meta http-equiv="refresh" content="15"></noscript>' \
+        "no-JS fallback refresh lives only inside noscript"
+    assert_equals "1" "$(grep -cF 'http-equiv="refresh"' "$html" || true)" \
+        "no bare head-level refresh outside the noscript block"
+    assert_contains "$body" 'data-poll="5"' "poll knob carried on the body tag"
     assert_contains "$body" 'data-epoch="' "heartbeat stamp carries data-epoch for the JS ticker"
     assert_contains "$body" 'class="hb-age"' "static heartbeat age fallback present"
     assert_contains "$body" 'never' "rows without a heartbeat read as never"
     assert_contains "$body" 'setInterval' "1s ticker script present"
-    assert_contains "$body" 'prefers-color-scheme: dark' "dark-mode tokens present"
+    assert_contains "$body" ':root {
+  color-scheme: dark;
+  --bg: #14161a;' "dark tokens are the :root default"
+    assert_contains "$body" 'prefers-color-scheme: light' \
+        "light set guarded under a light-OS scope"
+    assert_contains "$body" 'data-theme="light"' "explicit light theme block present"
+    assert_contains "$body" 'fleet-dash-theme' "theme toggle persists via the localStorage key"
     assert_contains "$body" \
         'landed means the workstream has a commit, not that it is finished' \
         "footer carries the landed caveat"
@@ -389,7 +446,7 @@ test_empty_roster_empty_state() {
     assert_equals "0" "$DASH_RC" "empty roster renders and exits 0"
     local html="$RUN_DIR/dashboard.html"
     assert_contains "$(cat "$html")" 'class="card empty-state"' "empty-state card present"
-    assert_equals "0" "$(grep -cF 'data-ws=' "$html" || true)" "no worker cards"
+    assert_equals "0" "$(static_html "$html" | grep -cF 'data-ws=' || true)" "no worker cards"
 }
 
 test_usage_and_data_errors() {
@@ -424,6 +481,102 @@ test_urlencode() {
         "$(_fleet_urlencode 'http://127.0.0.1:4880/dashboard.html')" \
         "reserved chars percent-encoded"
     assert_equals "a%20b%7Ec" "$(_fleet_urlencode 'a b~c')" "space encoded, unreserved kept"
+}
+
+test_inline_js_live_layer_contract() {
+    log_step "GIVEN a rendered page, WHEN the inline live-poll layer ships"
+    build_run dashjs
+    add_ws WS01 ws01 "Live work" started "" "" "" "$(date +%s)"
+    run_dash --no-serve --once
+
+    assert_equals "0" "$DASH_RC" "render exits 0"
+    local js
+    js=$(sed -n '/^<script>$/,/^<\/script>$/p' "$RUN_DIR/dashboard.html")
+    assert_contains "$js" 'fetch(' "live layer fetches over the same origin"
+    assert_contains "$js" 'roster.tsv' "fetches roster.tsv by name"
+    assert_contains "$js" 'dashboard-events-tail.jsonl' "fetches the events tail feed"
+    assert_contains "$js" 'esc(' "every interpolated string goes through esc()"
+    assert_contains "$js" 'encodeURIComponent(' "ws ids percent-encoded for the files path"
+    assert_contains "$js" \
+        'var VOCAB = ["pending", "started", "working", "blocked", "landed", "done", "dead"];' \
+        "JS vocab array pins the 7 closed-vocab statuses in order"
+    assert_contains "$js" 'setLive("err")' "failed fetch flips the live dot for retry"
+    assert_contains "$(cat "$RUN_DIR/dashboard.html")" '.live-dot[data-state="err"]' \
+        "amber error state styled for the live dot"
+}
+
+test_events_tail_written_and_capped_at_30() {
+    log_step "GIVEN 35 recorded events, WHEN a render pass runs"
+    build_run dashtail
+    add_ws WS01 ws01 "Tail work" pending
+    run_dash --no-serve --once
+    local i=1
+    while [ "$i" -le 35 ]; do
+        printf '{"ts":1700000000,"ws":"FAKE%02d","from":"pending","to":"started"}\n' "$i" \
+            >> "$RUN_DIR/dashboard-events.jsonl"
+        i=$((i + 1))
+    done
+    run_dash --no-serve --once
+
+    assert_equals "0" "$DASH_RC" "render exits 0"
+    assert_equals "35" "$(wc -l < "$RUN_DIR/dashboard-events.jsonl")" \
+        "fixture sanity: 35 events recorded"
+    local tailf="$RUN_DIR/dashboard-events-tail.jsonl"
+    assert_success "tail feed written by the render pass" test -f "$tailf"
+    assert_equals "30" "$(wc -l < "$tailf")" "tail feed capped at 30 lines"
+    assert_contains "$(head -n 1 "$tailf")" 'FAKE06' \
+        "oldest kept event is the 6th of 35 (newest 30 win)"
+    assert_contains "$(tail -n 1 "$tailf")" 'FAKE35' "newest event kept last"
+}
+
+test_now_editing_section_from_files_fixture() {
+    log_step "GIVEN files/WS01.txt with two paths, WHEN render"
+    build_run dashfiles
+    add_ws WS01 ws01 "Editing work" working
+    mkdir -p "$RUN_DIR/files"
+    printf '%s\n%s\n' 'src/auth/login.ts' 'src/auth/session.ts' > "$RUN_DIR/files/WS01.txt"
+    add_ws WS02 ws02 "No files" pending
+    run_dash --no-serve --once
+
+    assert_equals "0" "$DASH_RC" "render exits 0"
+    local static
+    static=$(static_html "$RUN_DIR/dashboard.html")
+    assert_contains "$static" 'now editing' "editing section header rendered"
+    assert_contains "$static" '<li>src/auth/login.ts</li>' "first path listed"
+    assert_contains "$static" '<li>src/auth/session.ts</li>' "second path listed"
+    assert_equals "1" "$(printf '%s\n' "$static" | grep -cF 'now editing' || true)" \
+        "exactly one editing section (only WS01 published a list)"
+
+    log_step "GIVEN no files/<ws>.txt published, WHEN render"
+    build_run dashnofiles
+    add_ws WS01 ws01 "Quiet work" pending
+    run_dash --no-serve --once
+    static=$(static_html "$RUN_DIR/dashboard.html")
+    assert_equals "0" "$(printf '%s\n' "$static" | grep -cF 'now editing' || true)" \
+        "no editing section without a published list"
+}
+
+test_goal_blurb_rendered_and_escaped() {
+    log_step "GIVEN goal.txt, WHEN render"
+    build_run dashgoal
+    add_ws WS01 ws01 "Goal work" pending
+    printf 'Ship the wiki portal & gate\nsecond line ignored\n' > "$RUN_DIR/goal.txt"
+    run_dash --no-serve --once
+
+    assert_equals "0" "$DASH_RC" "render exits 0"
+    local static
+    static=$(static_html "$RUN_DIR/dashboard.html")
+    assert_contains "$static" '<p class="goal" id="goal">Ship the wiki portal &amp; gate</p>' \
+        "goal blurb rendered under the title, escaped"
+    assert_not_contains "$static" 'second line ignored' "only the first line renders"
+
+    log_step "GIVEN no goal.txt, WHEN render"
+    build_run dashnogoal
+    add_ws WS01 ws01 "Bare work" pending
+    run_dash --no-serve --once
+    assert_contains "$(static_html "$RUN_DIR/dashboard.html")" \
+        '<p class="goal" id="goal" hidden></p>' \
+        "goal element present but hidden when no goal is set"
 }
 
 test_open_flow() {
@@ -466,6 +619,10 @@ test_port_precedence
 test_empty_roster_empty_state
 test_usage_and_data_errors
 test_urlencode
+test_inline_js_live_layer_contract
+test_events_tail_written_and_capped_at_30
+test_now_editing_section_from_files_fixture
+test_goal_blurb_rendered_and_escaped
 test_open_flow
 
 print_test_summary

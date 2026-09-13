@@ -1297,6 +1297,108 @@ test_usage_and_data_errors() {
 }
 
 # ============================================================================
+# spawn :: dashboard URL line (operator pointer after a real-tmux launch)
+# ============================================================================
+test_spawn_tmux_branch_prints_dashboard_url() {
+    # Hint variant only: a fresh run dir has no .dashboard.pid, so
+    # _fleet_dash_serve_is_serving is false. The "live" variant needs a real
+    # http.server process behind the pidfile and is not faked here.
+    log_step "GIVEN a stub-tmux spawn with no dashboard server running, WHEN the banner matches"
+    make_engine_project eng-dashurl
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+
+    run_fleet spawn WS01
+    assert_equals "0" "$FLEET_RC" "spawn exits 0"
+    assert_success "stdout carries the dashboard URL shape" \
+        grep -Eq 'dashboard.*http://127\.0\.0\.1:[0-9]+/dashboard\.html' <<<"$FLEET_OUT"
+    assert_contains "$FLEET_OUT" "start: fleet dashboard --open" "not-serving variant carries the start hint"
+}
+
+# ============================================================================
+# heartbeat :: --files (dashboard "now editing" source, files/<ws>.txt)
+# ============================================================================
+test_heartbeat_files_writes_and_bare_heartbeat_leaves_untouched() {
+    log_step "GIVEN a roster row, WHEN heartbeat --files with two paths"
+    make_project hb-files
+    add_ws WS01 ws01 "Work" working "src/a.md"
+
+    run_fleet heartbeat WS01 --files "src/a.ts,src/b.ts"
+    assert_equals "0" "$FLEET_RC" "heartbeat --files exits 0"
+    assert_file_exists "$RUN_DIR/files/WS01.txt" "files/<ws>.txt written in the run dir"
+    assert_equals "2" "$(wc -l < "$RUN_DIR/files/WS01.txt")" "exactly two lines"
+    assert_equals "src/a.ts" "$(sed -n 1p "$RUN_DIR/files/WS01.txt")" "first path on line 1"
+    assert_equals "src/b.ts" "$(sed -n 2p "$RUN_DIR/files/WS01.txt")" "second path on line 2"
+
+    log_step "GIVEN the existing files/<ws>.txt, WHEN heartbeat without --files"
+    local before_content before_mtime
+    before_content=$(cat "$RUN_DIR/files/WS01.txt")
+    before_mtime=$(stat -c %Y "$RUN_DIR/files/WS01.txt")
+    sleep 1
+    run_fleet heartbeat WS01 "still on it"
+    assert_equals "0" "$FLEET_RC" "bare heartbeat exits 0"
+    assert_equals "$before_content" "$(cat "$RUN_DIR/files/WS01.txt")" "content untouched without --files"
+    assert_equals "$before_mtime" "$(stat -c %Y "$RUN_DIR/files/WS01.txt")" "mtime untouched without --files"
+}
+
+test_heartbeat_files_empty_value_truncates() {
+    log_step "GIVEN an existing files/<ws>.txt, WHEN heartbeat --files ''"
+    make_project hb-empty
+    add_ws WS01 ws01 "Work" working "src/a.md"
+    mkdir -p "$RUN_DIR/files"
+    printf 'src/old.ts\n' > "$RUN_DIR/files/WS01.txt"
+
+    run_fleet heartbeat WS01 --files ""
+    assert_equals "0" "$FLEET_RC" "empty --files value exits 0"
+    assert_equals "" "$(cat "$RUN_DIR/files/WS01.txt")" "file truncated to empty"
+}
+
+test_heartbeat_files_caps_at_20_paths() {
+    log_step "GIVEN a 25-path comma list, WHEN heartbeat --files"
+    make_project hb-cap
+    add_ws WS01 ws01 "Work" working "src/a.md"
+    local i list=""
+    for i in $(seq 1 25); do list+="${list:+,}src/f$i.ts"; done
+
+    run_fleet heartbeat WS01 --files "$list"
+    assert_equals "0" "$FLEET_RC" "heartbeat with 25 paths exits 0"
+    assert_equals "20" "$(wc -l < "$RUN_DIR/files/WS01.txt")" "capped at 20 lines"
+    assert_equals "src/f20.ts" "$(tail -n 1 "$RUN_DIR/files/WS01.txt")" "cap keeps the first 20 paths"
+}
+
+test_heartbeat_files_refuses_traversal_ws_id() {
+    # Plan 3.2 guard: ws ids are user-typed and compose files/<ws>.txt, so a
+    # traversal id must exit 64 before any roster lookup or path composition.
+    log_step "GIVEN ws id ../evil with --files, WHEN heartbeat"
+    make_project hb-evil
+    add_ws WS01 ws01 "Work" working "src/a.md"
+
+    run_fleet heartbeat ../evil --files "src/a.ts"
+    assert_equals "64" "$FLEET_RC" "traversal ws id exits 64 (guard, not unknown-workstream 65)"
+    assert_success "nothing written outside the run dir" test ! -e "$PROJ/planning/evil.txt"
+    assert_success "no files dir created by the refused call" test ! -e "$RUN_DIR/files"
+}
+
+# ============================================================================
+# init :: run goal (extra words after the slug become goal.txt)
+# ============================================================================
+test_init_goal_words_written_and_absent_without() {
+    log_step "GIVEN extra non-flag words after the slug, WHEN fleet init"
+    make_project init-goal
+    run_fleet init demo goal text words
+    assert_equals "0" "$FLEET_RC" "init with goal words exits 0"
+    local g="$PROJ/planning/fleet-demo/goal.txt"
+    assert_file_exists "$g" "goal.txt written in the new run dir"
+    assert_equals "goal text words" "$(cat "$g")" "goal is the joined single-line text"
+
+    log_step "GIVEN no extra words, WHEN fleet init"
+    run_fleet init nogoal
+    assert_equals "0" "$FLEET_RC" "init without goal words exits 0"
+    assert_success "no goal.txt without goal words" test ! -e "$PROJ/planning/fleet-nogoal/goal.txt"
+}
+
+# ============================================================================
 run_all_tests() {
     # setup_test() is skipped on purpose: it hard-fails without a Redis server,
     # which this suite never touches. Initialize the same counters/log it would.
@@ -1350,6 +1452,12 @@ run_all_tests() {
     test_watch_landed_done_dead_rows_never_pane_dead
     test_watch_pane_dead_workbench_bridge_unaffected
     test_usage_and_data_errors
+    test_spawn_tmux_branch_prints_dashboard_url
+    test_heartbeat_files_writes_and_bare_heartbeat_leaves_untouched
+    test_heartbeat_files_empty_value_truncates
+    test_heartbeat_files_caps_at_20_paths
+    test_heartbeat_files_refuses_traversal_ws_id
+    test_init_goal_words_written_and_absent_without
 
     print_test_summary
 }

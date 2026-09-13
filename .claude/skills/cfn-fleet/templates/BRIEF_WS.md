@@ -18,7 +18,9 @@ follow it in full.
 
 If you are a **codex** worker: you have no inbound messaging, so this brief and
 the roster files are your entire protocol. Heartbeat every ~10 minutes with
-`fleet heartbeat WSxx <note>`; commit only via `fleet commit WSxx -m <msg>`;
+`fleet heartbeat WSxx <note>`; whenever the set of files being edited changes,
+run `fleet heartbeat WSxx --files <comma-separated paths>` (feeds the
+dashboard "now editing" card); commit only via `fleet commit WSxx -m <msg>`;
 when the workstream is finished, write `handoffs/HANDOFF_WSxx.md` summarizing
 state, then heartbeat `done:` so the master sees it. You read `AGENTS.md`, not
 `CLAUDE.md`: read the repo's CLAUDE.md for its rules (style, test output
@@ -50,6 +52,9 @@ Do not edit anything outside these claims. Need more? Ask the master to
 - Commit only via `fleet commit WSxx -m <msg>` (claims-only staging, refuses
   unclaimed dirty files).
 - Heartbeat on pickup and after each chunk: `fleet heartbeat WSxx [note]`.
+  When the set of files being edited changes, add
+  `--files <comma-separated paths>` so the dashboard "now editing" card
+  stays current.
 - Migration number (if schema work): reserve with
   `fleet migrate-next WSxx <migrations_dir>` before creating any file.
 - You are a leaf: do not spawn other Claude sessions.

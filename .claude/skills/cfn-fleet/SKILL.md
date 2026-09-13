@@ -48,6 +48,8 @@ planning/fleet-<slug>/
   COORDINATION.md    the protocol doc workers are held to
   RUNBOOK.md         master session step sequence
   .roster.lock       flock target for roster writes
+  goal.txt           one-line run goal (init <slug> <goal words>); dashboard header blurb
+  files/WSxx.txt     per-worker now-editing paths (heartbeat --files); dashboard card section
 ```
 
 Status vocabulary (closed): `pending | started | working | blocked | landed |
@@ -57,19 +59,19 @@ done | dead`.
 
 | Command | Purpose |
 |---|---|
-| `init <slug> [--worktree] [--db none\|docker]` | Scaffold run dir; refuses duplicates (exit 65); installs the engine registry |
+| `init <slug> [goal words...] [--worktree] [--db none\|docker]` | Scaffold run dir; extra non-flag words join as the run goal (written to goal.txt, shown as the dashboard header blurb); refuses duplicates (exit 65); installs the engine registry |
 | `add WSxx "task" [--name s] [--claims p1,p2] [--engine e]` | Register a workstream (status=pending, heartbeat=0); `--engine` defaults to `claude-sub` |
 | `status [--tsv]` | Aligned table: ws_id, status, task(40), #claims, heartbeat age |
 | `claim WSxx <path...>` | Register file ownership; refuses overlapping claims (65), prefix dirs and glob scopes count as overlap |
-| `heartbeat WSxx [note...]` | Liveness ts; latest note replaces the previous |
+| `heartbeat WSxx [--files p1,p2,...] [note...]` | Liveness ts; latest note replaces the previous; `--files` publishes the comma-separated paths as the worker's now-editing list (`files/<ws>.txt`, one per line, shown on the dashboard card) |
 | `commit WSxx -m <msg>` | Guarded commit: stages ONLY claimed paths, refuses (66) on unclaimed dirty files |
 | `migrate-next WSxx <dir>` | Reserve next migration number (max+1, flocked); no silent collisions |
-| `spawn WSxx [--spares N] [--engine e] [--no-tmux] [--dry-run]` | Launch the worker's engine in a tmux pane on the run's socket, verify its banner, then send the thin prompt. Engine precedence: `--engine` > roster column > `FLEET_DEFAULT_ENGINE` > `claude-sub` |
+| `spawn WSxx [--spares N] [--engine e] [--no-tmux] [--dry-run]` | Launch the worker's engine in a tmux pane on the run's socket, verify its banner, then send the thin prompt. Prints the dashboard URL: `dashboard live: http://127.0.0.1:<port>/dashboard.html` when the dashboard server is up, otherwise `dashboard: <url> (start: fleet dashboard --open)`. Engine precedence: `--engine` > roster column > `FLEET_DEFAULT_ENGINE` > `claude-sub` |
 | `land WSxx [--no-ff]` | Worktree: merge `fleet/<WSxx>` + remove worktree; main: mark landed |
 | `handoff WSxx` | Write `handoffs/HANDOFF_WSxx.md` for compaction restart into a spare |
 | `db WSxx` / `db-clean [--all]` | Scratch postgres containers (only when `FLEET_DB=docker`) |
 | `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
-| `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained HTML tracking page from the roster (status pills, heartbeat age, engine, claims, STALE/DEAD badges, transition timeline), served on 127.0.0.1 for VS Code Simple Browser (below) |
+| `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained live-poll HTML tracking page from the roster (status tiles and meter, filter chips, sort, heartbeat age, engine, claims, now-editing lists, goal blurb, STALE/DEAD badges, transition timeline), served on 127.0.0.1 for VS Code Simple Browser (below) |
 
 Exit codes: `0` ok, `64` usage, `65` data error (bad WS id, overlap, duplicate),
 `66` guard refusal, `71` internal.
@@ -80,7 +82,10 @@ A worker's brief is `briefs/WSxx.md` (copy `briefs/BRIEF_WS.md` and fill in:
 task, claims, allowed commands, done criteria). The spawn prompt is one thin
 line: "read briefs/WSxx.md and start; coordinate only via roster files". Workers
 commit through `fleet commit`, heartbeat as they work, and never touch another
-row's claims. Spare sessions (`<name>-spare<k>`) stay empty until a handoff.
+row's claims. Whenever the set of files being edited changes, the worker runs
+`fleet heartbeat WSxx --files src/a.ts,src/b.ts`; the dashboard lists those
+paths on the worker's card under "now editing". Spare sessions
+(`<name>-spare<k>`) stay empty until a handoff.
 
 ## Engines
 
@@ -186,21 +191,44 @@ $HOME/.claude/skills/cfn-workbench/render.sh --slug fleet-<slug> --root <project
 `fleet dashboard` is the fleet-native tracking view: one self-contained HTML
 page rendered straight from `roster.tsv` (no event bridge, no workbench
 dependency), served on `127.0.0.1` so it opens in VS Code's built-in Simple
-Browser instead of Chrome. Per-worker cards show the status pill (closed
-vocab), task, engine, claims, notes, heartbeat age (ticks client-side,
-static age without JS), landed sha, and STALE (heartbeat older than
-`--stale-min` while started/working) and DEAD (status dead, or pane exited
-per the tmux session probe) badges; a timeline lists the last 30 status
-transitions.
+Browser instead of Chrome. The page is live: inline JS fetches `roster.tsv`
+and `dashboard-events-tail.jsonl` (the last 30 transitions, rewritten on
+every render pass) from the same server every `data-poll` seconds (default
+5, `--poll S`) and redraws tiles, meter, cards and timeline in place, so
+scroll position and the selected filter and sort survive each poll. Only the
+no-JS fallback does a full-page refresh, and only inside `<noscript>`. A
+live dot in the header pulses green while polls succeed and turns amber on
+a failed fetch (the last good page stays up; retry on the next tick).
+
+Per-worker cards show the status pill (closed vocab), task, engine, claims,
+notes, heartbeat age (ticks client-side), landed sha, and STALE (heartbeat
+older than `--stale-min` while started/working) and DEAD (status dead, or
+pane exited per the tmux session probe) badges. The header carries one stat
+tile per status (zero counts dimmed), a five-segment meter (queued / active
+/ blocked / landed / dead), filter chips per status, a sort control (status
+order or heartbeat age), and the run goal blurb from `<run-dir>/goal.txt`
+(written by `fleet init <slug> <goal words>`). Each card also lists the
+paths that worker published with `fleet heartbeat WSxx --files a,b` (stored
+one per line in `<run-dir>/files/<ws>.txt`) under "now editing", and shows
+nothing there until the worker publishes.
+
+The theme is dark by default; the header `theme` button toggles light/dark
+and persists the choice in `localStorage` under `fleet-dash-theme`, with the
+OS preference honored while no explicit choice is stored.
 
 ```bash
 $HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --open    # serve + open in Simple Browser
 $HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --stop    # tear the server down
 ```
 
-- State: the dashboard keeps its OWN `.dashboard.state` and appends
-  transitions to `<run-dir>/dashboard-events.jsonl`. It never touches
-  `.watch.state` (owned by `fleet watch`), so both can run concurrently.
+- State: the dashboard owns `.dashboard.state`, `dashboard-events.jsonl`,
+  `dashboard-events-tail.jsonl` (the bounded last-30 feed the page polls),
+  and `.dashboard.pid`. It never touches `.watch.state` (owned by
+  `fleet watch`), so both can run concurrently.
+- `fleet spawn` prints the dashboard URL when it launches workers:
+  `dashboard live: http://127.0.0.1:<port>/dashboard.html` when this server
+  is already serving, otherwise the same URL with
+  `(start: fleet dashboard --open)`.
 - Port: `--port` > `FLEET_DASHBOARD_PORT` env > `FLEET_DASHBOARD_PORT` in
   fleet.env > 4880. Server is `python3 -m http.server --bind 127.0.0.1`
   rooted at the run dir (pidfile `.dashboard.pid`, idempotent double-start,
@@ -210,9 +238,7 @@ $HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --stop    # tear the server d
   (Ctrl+Shift+P, "Simple Browser: Show"). Nothing outside VS Code is ever
   launched.
 - The dashboard deliberately never exits on ALL-DONE (unlike `fleet watch`):
-  `landed` means has-a-commit, not finished (trap 3). The page re-renders
-  when the roster/events change (default 5s poll) and meta-refreshes at the
-  same cadence.
+  `landed` means has-a-commit, not finished (trap 3).
 
 ## Master check cadence
 

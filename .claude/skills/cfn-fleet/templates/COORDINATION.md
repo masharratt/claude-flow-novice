@@ -35,6 +35,9 @@ Never pick a migration number by eye. Reserve with `fleet migrate-next WSxx
   "read briefs/WSxx.md and start" — thin message).
 - Workers heartbeat with `fleet heartbeat WSxx [note]` when they pick up or
   finish a chunk of work; the note replaces the previous one.
+- Whenever the set of files being edited changes, run
+  `fleet heartbeat WSxx --files <comma-separated paths>`: it feeds the
+  dashboard "now editing" card section.
 - Spare sessions (`<name>-spare<k>`) sit empty. When a worker's context
   compacts or dies, the master runs `fleet handoff WSxx`, and the spare reads
   `handoffs/HANDOFF_WSxx.md` as its new brief.

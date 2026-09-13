@@ -458,5 +458,17 @@ main() {
       || fleet_die 66 "spawn: spare $sname failed (launch failed or engine '$engine' never showed its banner)"
     echo "spawned $sname engine=$engine banner=\"$banner_line\""
   done
+
+  # Operator pointer to the dashboard (helpers live in lib/common.sh). The
+  # port resolution is pure (flag > env > fleet.env > 4880): nothing here
+  # binds a port. "live" vs the start hint depends only on the dashboard
+  # server's pidfile, never on this command.
+  local dash_port
+  dash_port=$(_fleet_dash_port "")
+  if _fleet_dash_serve_is_serving "$run_dir"; then
+    echo "dashboard live: http://127.0.0.1:$dash_port/dashboard.html"
+  else
+    echo "dashboard: http://127.0.0.1:$dash_port/dashboard.html (start: fleet dashboard --open)"
+  fi
   return 0
 }

@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# fleet init <slug> [--worktree] [--db none|docker]
+# fleet init <slug> [goal words...] [--worktree] [--db none|docker]
 # Scaffold planning/fleet-<slug> in the cwd (the target project): templates,
 # empty roster (header only), fleet.env, .roster.lock. Echoes the run dir path.
-# Refuses an existing run dir with exit 65.
+# Extra non-flag words after <slug> join as the run goal: trimmed, written to
+# goal.txt in the run dir when non-empty. Refuses an existing run dir with 65.
 main(){
   local slug="" worktree=off db=none
+  local -a goal_words=()
   while [ $# -gt 0 ]; do
     case "$1" in
       --worktree) worktree=on; shift;;
@@ -12,13 +14,13 @@ main(){
       --db) [ $# -ge 2 ] || fleet_die 64 "--db needs a value (none|docker)"
            db="$2"; shift 2;;
       --db=*) db="${1#--db=}"; shift;;
-      -h|--help) echo "usage: fleet init <slug> [--worktree] [--db none|docker]"; return 0;;
+      -h|--help) echo "usage: fleet init <slug> [goal words...] [--worktree] [--db none|docker]"; return 0;;
       *) if [ -z "$slug" ]; then slug="$1"; shift
-         else fleet_die 64 "unexpected argument: $1"; fi;;
+         else goal_words+=("$1"); shift; fi;;
     esac
   done
 
-  [ -n "$slug" ] || fleet_die 64 "usage: fleet init <slug> [--worktree] [--db none|docker]"
+  [ -n "$slug" ] || fleet_die 64 "usage: fleet init <slug> [goal words...] [--worktree] [--db none|docker]"
   # lowercase slug keeps run-dir basenames shell/docker-name safe
   [[ "$slug" =~ ^[a-z0-9][a-z0-9_-]*$ ]] \
     || fleet_die 64 "invalid slug '$slug' (lowercase alnum, '-', '_'; start alnum)"
@@ -43,6 +45,16 @@ main(){
   printf '%s\n' "$FLEET_ROSTER_HEADER" > "$base/roster.tsv"
   printf 'FLEET_WORKTREE=%s\nFLEET_DB=%s\n' "$worktree" "$db" > "$base/fleet.env"
   : > "$base/.roster.lock"
+
+  # Run goal: extra words joined with spaces, trimmed; only written when
+  # non-empty (the dashboard renders goal.txt as a header blurb when present).
+  if [ "${#goal_words[@]}" -gt 0 ]; then
+    local goal
+    goal="${goal_words[*]}"
+    goal="${goal#"${goal%%[![:space:]]*}"}"
+    goal="${goal%"${goal##*[![:space:]]}"}"
+    [ -n "$goal" ] && printf '%s\n' "$goal" > "$base/goal.txt"
+  fi
 
   printf '%s\n' "$base"
 }

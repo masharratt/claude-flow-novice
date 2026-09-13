@@ -206,6 +206,12 @@ _fleet_path_claimed(){
   for c in $claims; do
     [ -n "$c" ] || continue
     [ "$path" = "$c" ] && return 0        # exact file
+    # A directory claim may carry a trailing slash (roster rows written for
+    # shared-directory arrangements do). Strip it, or the prefix pattern
+    # becomes "dir//*" and never matches a real path (measured 2026-09-11:
+    # fleet commit refused every file under four trailing-slash claims).
+    c="${c%/}"
+    [ "$path" = "$c" ] && return 0
     # shellcheck disable=SC2053
     [[ "$path" == "$c"/* ]] && return 0   # file under a claimed dir
     # shellcheck disable=SC2053
@@ -304,4 +310,40 @@ _fleet_tmux_pane_alive() {
     *"no server running"*|*"error connecting"*) return 0 ;;
   esac
   return 1
+}
+
+# --- Dashboard helpers shared beyond cmd-dashboard.sh ------------------------
+# Lives here, not in cmd-dashboard.sh: the dispatcher sources common.sh plus
+# only the invoked cmd file, so `fleet spawn` would never see definitions
+# left in cmd-dashboard.sh (plan 1.0). Bodies are verbatim moves.
+
+# _fleet_dash_port [FLAG_VALUE]: resolved dashboard port. Precedence:
+# --port flag > FLEET_DASHBOARD_PORT env > fleet.env FLEET_DASHBOARD_PORT >
+# 4880 (unassigned per project-ports.md).
+_fleet_dash_port() {
+  local flag="${1:-}"
+  if [ -n "$flag" ]; then
+    printf '%s\n' "$flag"
+    return 0
+  fi
+  if [ -n "${FLEET_DASHBOARD_PORT:-}" ]; then
+    printf '%s\n' "$FLEET_DASHBOARD_PORT"
+    return 0
+  fi
+  local v
+  v=$(fleet_env_get FLEET_DASHBOARD_PORT)
+  printf '%s\n' "${v:-4880}"
+}
+
+# _fleet_dash_serve_is_serving RUN_DIR: 0 when the pidfile names a live
+# python3 http.server. The /proc/<pid>/cmdline check is load-bearing: a
+# recycled pid whose cmdline is not http.server is "not serving", so --stop
+# never kills an innocent process.
+_fleet_dash_serve_is_serving() {
+  local rd="$1" pid
+  [ -f "$rd/.dashboard.pid" ] || return 1
+  pid=$(cat "$rd/.dashboard.pid" 2>/dev/null) || return 1
+  [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+  [ -r "/proc/$pid/cmdline" ] || return 1
+  tr '\0' ' ' < "/proc/$pid/cmdline" | grep -q 'http.server'
 }
