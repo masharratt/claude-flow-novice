@@ -15,8 +15,9 @@
 #               files and byte-compared: a hand edit to a generated section
 #               drifts, while wiki:enrich block edits are absorbed by the
 #               merge step and correctly do not. The `**Last Updated:**` date
-#               line is clock output, not store content, and is excluded from
-#               the comparison so midnight cannot manufacture drift.
+#               line is clock output, not store content, and is normalized to
+#               a fixed placeholder on both sides of the comparison so
+#               midnight cannot manufacture drift.
 #   --enrich    after the deterministic pass, print instructions for the
 #               Claude enrichment pass (the skill runs it as a follow-up
 #               conversation step) and an `ENRICH PENDING` line; still exit 0.
@@ -114,12 +115,15 @@ wiki_sync_check() { # <repo> <store> <coupling-window> -> 0 in-sync, 1 stale
         return 1
     fi
 
-    # clock line is not content; drop it on both sides before comparing
+    # clock line is not content; normalize it to a fixed placeholder on BOTH
+    # sides before comparing (replacement, not deletion: line counts stay
+    # comparable, so a missing or variant stamp on one side still reads as
+    # drift). Nothing else is normalized — all other bytes must match exactly.
     local bad=0 f
     for f in feature-status.md state-machines.md; do
         if ! diff -q \
-            <(grep -v '^\*\*Last Updated:\*\*' "$repo/readme/$f") \
-            <(grep -v '^\*\*Last Updated:\*\*' "$sandbox/readme/$f") >/dev/null 2>&1; then
+            <(sed 's/^\*\*Last Updated:\*\*[[:space:]].*$/**Last Updated:** <clock-stamp>/' "$repo/readme/$f") \
+            <(sed 's/^\*\*Last Updated:\*\*[[:space:]].*$/**Last Updated:** <clock-stamp>/' "$sandbox/readme/$f") >/dev/null 2>&1; then
             echo "WIKI STALE: $repo (fp $marker == $fresh but readme/$f differs from regeneration)" >&2
             bad=1
         fi

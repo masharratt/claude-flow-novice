@@ -90,6 +90,61 @@ PY
 }
 
 # ---------------------------------------------------------------------------
+# Clock-line drift (CI red 2026-09-13): the **Last Updated:** stamp is clock
+# output, not store content, so a day rollover between the last sync and the
+# check must NOT read as drift. Rewrite ONLY the date to yesterday and the
+# check must still pass; any other line changed must still fail.
+case_clock_line_drift() {
+    local REPO="$T/clock"
+    make_git_repo "$REPO"
+    if ! run_in "$LIB/sync.sh" wiki_sync "$REPO" >"$T/clock-sync.log" 2>&1; then
+        no "clock-line-drift: sync failed: $(tail -3 "$T/clock-sync.log")"
+        return
+    fi
+    git -C "$REPO" add -A
+    git -C "$REPO" commit -qm "sync output"
+
+    # rewind ONLY the clock stamp in both projections (every other byte kept)
+    python3 - "$REPO" <<'PY' || { no "clock-line-drift: date rewrite failed"; return; }
+import os
+import re
+import sys
+
+repo = sys.argv[1]
+n = 0
+for name in ("feature-status.md", "state-machines.md"):
+    path = os.path.join(repo, "readme", name)
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
+    new = re.sub(r"(\*\*Last Updated:\*\*) \d{4}-\d{2}-\d{2}( wiki sync)",
+                 r"\1 2020-01-01\2", text)
+    if new != text:
+        n += 1
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(new)
+assert n == 2, "expected both projections to carry a rewriteable stamp, rewrote %d" % n
+PY
+
+    local rc=0
+    run_in "$LIB/sync.sh" wiki_sync --check "$REPO" >"$T/clock-check.log" 2>&1 || rc=$?
+    if [ "$rc" -eq 0 ]; then
+        ok "clock-line-drift: yesterday-stamped projections pass --check (exit 0)"
+    else
+        no "clock-line-drift: --check exit=$rc on date-only drift (want 0): $(tail -2 "$T/clock-check.log")"
+    fi
+
+    # companion: a real content change still drifts
+    printf 'extra content line\n' >>"$REPO/readme/feature-status.md"
+    rc=0
+    run_in "$LIB/sync.sh" wiki_sync --check "$REPO" >"$T/clock-check2.log" 2>&1 || rc=$?
+    if [ "$rc" -eq 1 ] && grep -q "WIKI STALE" "$T/clock-check2.log"; then
+        ok "clock-line-drift: real content change still exits 1 with WIKI STALE"
+    else
+        no "clock-line-drift: appended line exit=$rc (want 1)"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 case_drift_detects() {
     if [ ! -f "$LIB/sync.sh" ]; then no "drift-detects: lib/sync.sh exists"; return; fi
     ok "drift-detects: lib/sync.sh exists"
@@ -338,6 +393,7 @@ case_sessionstart_warn() {
 
 # ---------------------------------------------------------------------------
 case_drift_detects
+case_clock_line_drift
 case_ci_shape
 case_post_commit_fires
 case_sessionstart_warn
