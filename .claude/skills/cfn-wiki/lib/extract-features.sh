@@ -32,7 +32,11 @@
 #
 # Coupling: file pairs touched by the same commit (git log --name-only),
 # counted across history, ranked by count then name, top 20. Paths under
-# .wiki/ are excluded so regeneration commits never self-couple.
+# .wiki/ are excluded so regeneration commits never self-couple. An optional
+# second arg windows the walk to the most recent N commits (lib/sync.sh passes
+# WIKI_COUPLING_COMMITS: the O(k^2) walk is too slow on 1455-commit repos);
+# without the arg the full history is walked, so standalone behavior is
+# unchanged.
 #
 # Determinism: files sorted, edges sorted, coupling ranked with a stable
 # tiebreak. Repeated runs differ only in meta.generated_at, which
@@ -44,6 +48,9 @@
 
 wiki_extract() {
     local repo="${1:?wiki_extract: repo path required}"
+    # optional coupling window: most recent N commits counted for co-change
+    # pairs; empty/absent -> full history (standalone behavior unchanged)
+    local coupling_commits="${2:-}"
     if [ ! -d "$repo" ]; then
         echo "wiki_extract: no such repo: $repo" >&2
         return 1
@@ -54,7 +61,7 @@ wiki_extract() {
     local tmp="$store.tmp"
 
     local mode
-    if ! mode="$(python3 - "$repo" "$tmp" <<'PY'
+    if ! mode="$(python3 - "$repo" "$tmp" "$coupling_commits" <<'PY'
 import datetime
 import json
 import os
@@ -64,6 +71,12 @@ import subprocess
 import sys
 
 repo, out_path = sys.argv[1], sys.argv[2]
+try:
+    coupling_window = int(sys.argv[3]) if len(sys.argv) > 3 and sys.argv[3].strip() else None
+except ValueError:
+    coupling_window = None
+if coupling_window is not None and coupling_window <= 0:
+    coupling_window = None  # 0 / negative: no window, full history
 
 SNAPSHOT = os.path.join(repo, ".wiki", "cache", "cbm.db")
 EDGE_TYPES = ("CALLS", "IMPORTS", "INHERITS")
@@ -194,11 +207,14 @@ features = [{"fid": slug(d),
 
 # --- coupling: file pairs changing together in git history ---------------------
 # cfn: O(k^2) per commit over its file set; cap the set if monster commits appear
-def git_coupling(r, top_n):
+def git_coupling(r, top_n, window=None):
+    cmd = ["git", "-C", r, "log"]
+    if window:
+        cmd += ["-n", str(window)]
+    cmd += ["--name-only", "--format=%x01%H"]
     try:
         log = subprocess.run(
-            ["git", "-C", r, "log", "--name-only", "--format=%x01%H"],
-            capture_output=True, text=True, check=True).stdout
+            cmd, capture_output=True, text=True, check=True).stdout
     except (OSError, subprocess.CalledProcessError):
         return []  # not a git repo (or git missing): coupling stays empty
     commits = []
@@ -221,7 +237,7 @@ def git_coupling(r, top_n):
     return [{"files": [a, b], "count": c} for (a, b), c in ranked[:top_n]]
 
 
-coupling = git_coupling(repo, COUPLING_TOP)
+coupling = git_coupling(repo, COUPLING_TOP, coupling_window)
 
 store = {
     "features": features,
