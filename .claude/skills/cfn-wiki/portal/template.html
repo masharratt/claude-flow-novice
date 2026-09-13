@@ -5,281 +5,205 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Codebase Wiki</title>
 <style>
-/* Theme tokens: explicit light palette on :root, dark overrides under
-   prefers-color-scheme, explicit [data-theme] wins in both directions. */
 :root {
-  color-scheme: light dark;
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #eef0f3;
-  --text: #1a1d21;
-  --dim: #57606a;
-  --line: #d9dde3;
-  --accent: #2456d6;
-  --accent-soft: #e3eafc;
-  --ok: #1a7f37;
-  --ok-soft: #ddf3e4;
-  --warn: #9a6700;
-  --warn-soft: #fff0c2;
-  --bad: #b3261e;
-  --bad-soft: #fde7e5;
-  --info: #2456d6;
-  --info-soft: #e3eafc;
-  --st-prod: #1a7f37;   --st-prod-soft: #ddf3e4;
-  --st-beta: #2456d6;   --st-beta-soft: #e3eafc;
-  --st-dev: #57606a;    --st-dev-soft: #eef0f3;
-  --st-stub: #9a6700;   --st-stub-soft: #fff0c2;
-  --st-deprecated: #b3261e; --st-deprecated-soft: #fde7e5;
-  --edge: #6f87c7;
-  --paper: #f8f9fb;     /* diagram backing stays light in both themes */
-  --radius: 10px;
-  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+  --bg:#f3f3ed; --surface:#fffefa; --surface-2:#ebeee7; --text:#233c38;
+  --dim:#62736b; --line:#d5ddd3; --accent:#1b6959; --accent-soft:#e0eee5;
+  --ok:#237044; --ok-soft:#e1f0e5; --warn:#88591c; --warn-soft:#f9edcf;
+  --bad:#ac4436; --bad-soft:#fbe7df; --info:#396959; --info-soft:#e3eee6;
+  --st-prod:#237044; --st-prod-soft:#e1f0e5; --st-beta:#366e9b; --st-beta-soft:#e4edf6;
+  --st-dev:#62736b; --st-dev-soft:#ebeee7; --st-stub:#88591c; --st-stub-soft:#f9edcf;
+  --st-deprecated:#ac4436; --st-deprecated-soft:#fbe7df;
+  --edge:#668f80; --paper:#fafbf8; --radius:14px;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #14161a;
-    --surface: #1d2026;
-    --surface-2: #262a31;
-    --text: #e8eaed;
-    --dim: #9aa3af;
-    --line: #363c45;
-    --accent: #7d9ef7;
-    --accent-soft: #24304d;
-    --ok: #4ec06a;
-    --ok-soft: #1d3527;
-    --warn: #d9a52a;
-    --warn-soft: #3a3016;
-    --bad: #ef6b61;
-    --bad-soft: #3c211f;
-    --info: #7d9ef7;
-    --info-soft: #24304d;
-    --st-prod: #4ec06a;   --st-prod-soft: #1d3527;
-    --st-beta: #7d9ef7;   --st-beta-soft: #24304d;
-    --st-dev: #9aa3af;    --st-dev-soft: #262a31;
-    --st-stub: #d9a52a;   --st-stub-soft: #3a3016;
-    --st-deprecated: #ef6b61; --st-deprecated-soft: #3c211f;
-    --edge: #5b74b3;
-    --paper: #f4f5f7;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #14161a;
-  --surface: #1d2026;
-  --surface-2: #262a31;
-  --text: #e8eaed;
-  --dim: #9aa3af;
-  --line: #363c45;
-  --accent: #7d9ef7;
-  --accent-soft: #24304d;
-  --ok: #4ec06a;
-  --ok-soft: #1d3527;
-  --warn: #d9a52a;
-  --warn-soft: #3a3016;
-  --bad: #ef6b61;
-  --bad-soft: #3c211f;
-  --info: #7d9ef7;
-  --info-soft: #24304d;
-  --st-prod: #4ec06a;   --st-prod-soft: #1d3527;
-  --st-beta: #7d9ef7;   --st-beta-soft: #24304d;
-  --st-dev: #9aa3af;    --st-dev-soft: #262a31;
-  --st-stub: #d9a52a;   --st-stub-soft: #3a3016;
-  --st-deprecated: #ef6b61; --st-deprecated-soft: #3c211f;
-  --edge: #5b74b3;
-  --paper: #f4f5f7;
-}
+:root[data-theme="dark"] {--bg:#14241f; --surface:#1c3029; --surface-2:#273d34; --text:#e4ece1;
+--dim:#a5b9a9; --line:#3c5345; --accent:#a9d6af; --accent-soft:#304e3b;
+--ok:#99d6a6; --ok-soft:#284834; --warn:#e9c17a; --warn-soft:#493d25;
+--bad:#f0a38d; --bad-soft:#4e342b; --info:#b5d4bc; --info-soft:#2b4235;
+--st-prod:#99d6a6; --st-prod-soft:#284834; --st-beta:#a0c3ea; --st-beta-soft:#293f52;
+--st-dev:#a5b9a9; --st-dev-soft:#273d34; --st-stub:#e9c17a; --st-stub-soft:#493d25;
+--st-deprecated:#f0a38d; --st-deprecated-soft:#4e342b; --edge:#84ad91; color-scheme:dark;}
+@media(prefers-color-scheme:dark) { :root:not([data-theme="light"]) {--bg:#14241f; --surface:#1c3029; --surface-2:#273d34; --text:#e4ece1;
+--dim:#a5b9a9; --line:#3c5345; --accent:#a9d6af; --accent-soft:#304e3b;
+--ok:#99d6a6; --ok-soft:#284834; --warn:#e9c17a; --warn-soft:#493d25;
+--bad:#f0a38d; --bad-soft:#4e342b; --info:#b5d4bc; --info-soft:#2b4235;
+--st-prod:#99d6a6; --st-prod-soft:#284834; --st-beta:#a0c3ea; --st-beta-soft:#293f52;
+--st-dev:#a5b9a9; --st-dev-soft:#273d34; --st-stub:#e9c17a; --st-stub-soft:#493d25;
+--st-deprecated:#f0a38d; --st-deprecated-soft:#4e342b; --edge:#84ad91; color-scheme:dark;} }
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { margin:0; background:var(--bg); color:var(--text); font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+button,input,select,textarea { font:inherit; }
+button { color:var(--text); background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:8px 12px; cursor:pointer; }
+button:hover { background:var(--surface-2); }
+button:disabled { opacity:.45; cursor:default; }
+:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+button.primary { background:var(--accent); color:var(--surface); border-color:var(--accent); }
+button.danger { color:var(--bad); }
+a { color:var(--accent); text-underline-offset:3px; }
+code,.mono { font-family:var(--mono); font-size:12px; overflow-wrap:anywhere; }
+h1,h2,h3,p { margin-top:0; }
+h1 { font-size:18px; letter-spacing:-.4px; margin:0; }
+h2 { font-size:19px; letter-spacing:-.3px; margin:0 0 14px; }
+h3 { font-size:16px; }
+.skip-link { position:fixed; top:-80px; left:16px; z-index:100; padding:12px; background:var(--surface); }
+.skip-link:focus { top:8px; }
+header { background:var(--surface); border-bottom:1px solid var(--line); }
+.head-inner,.banners,nav.tabs,main,footer { max-width:1560px; margin:auto; padding-left:36px; padding-right:36px; }
+.head-inner { padding-top:22px; padding-bottom:16px; }
+.head-row { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.brand { display:flex; align-items:center; gap:12px; }
+.brand-mark { display:grid; place-items:center; width:42px; height:42px; border-radius:12px; background:#21483e; color:#e8efd9; font-family:Georgia,serif; font-size:26px; }
+.repo { display:block; color:var(--dim); font:12px var(--mono); margin-top:2px; overflow-wrap:anywhere; }
+.head-meta { color:var(--dim); font-size:11px; margin-top:12px; }
+.banners { display:grid; gap:8px; }
+.banner { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:8px; font-size:12px; }
+.banner-text { flex:1; min-width:0; }
+.banner.stale { background:var(--warn-soft); color:var(--warn); }
+.banner.degraded { background:var(--info-soft); color:var(--info); }
+.banner button { padding:4px 9px; background:transparent; border-color:currentColor; }
+nav.tabs { display:flex; gap:24px; overflow-x:auto; padding-top:18px; }
+.tab { flex-shrink:0; padding:12px 2px; border:none; border-bottom:3px solid transparent; border-radius:0; color:var(--dim); background:transparent; }
+.tab[aria-selected="true"] { color:var(--accent); border-bottom-color:var(--accent); font-weight:700; }
+.tab:hover { background:transparent; color:var(--text); }
+.tab-index { font:11px var(--mono); margin-right:7px; opacity:.65; }
+main { padding-top:30px; padding-bottom:70px; }
+.view-intro { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; margin-bottom:24px; }
+.eyebrow { font-size:10px; text-transform:uppercase; letter-spacing:1.8px; font-weight:700; color:var(--accent); margin-bottom:7px; }
+.view-intro h2 { font:38px/1.15 Georgia,"Times New Roman",serif; letter-spacing:-1px; margin-bottom:10px; }
+.view-intro p { color:var(--dim); max-width:640px; margin-bottom:0; }
+.view-count { font:12px var(--mono); color:var(--dim); flex-shrink:0; padding:8px 0; }
+.card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px; min-width:0; }
+.empty-state { padding:32px 20px; color:var(--dim); text-align:center; }
+.empty-state p { margin:4px 0; }
+.toolbar { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:20px; }
+.field { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.field.search { flex:1; min-width:160px; }
+.field label { font-size:11px; font-weight:600; color:var(--dim); }
+input,select { background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:10px 12px; min-width:0; }
+.result-count { color:var(--dim); font-size:12px; align-self:center; }
+.arch-grid { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:20px; align-items:start; }
+.arch-grid>div,.arch-side { min-width:0; }
+.arch-side .field { margin-bottom:12px; }
+.module-list { display:flex; flex-direction:column; gap:3px; max-height:255px; overflow:auto; margin:10px -5px 0; padding:0 5px; }
+.module-item { display:flex; gap:8px; align-items:center; justify-content:space-between; text-align:left; padding:7px 9px; border-color:transparent; background:transparent; font:12px/1.5 var(--mono); }
+.module-item span:first-child { overflow-wrap:anywhere; min-width:0; }
+.module-item small { white-space:nowrap; color:var(--dim); }
+.module-item[aria-pressed="true"] { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+#arch-detail h3 { font:600 15px var(--mono); overflow-wrap:anywhere; margin-bottom:8px; }
+#arch-detail .count { color:var(--dim); font-size:12px; margin-bottom:10px; }
+#arch-detail-body { max-height:340px; overflow:auto; margin:12px 0; }
+#arch-detail ul { padding-left:18px; overflow-wrap:anywhere; margin:8px 0; }
+#arch-detail .edge-line { font-size:12px; padding:4px 0; overflow-wrap:anywhere; }
+.edge-line .t { color:var(--dim); }
+#arch-detail-placeholder { color:var(--dim); font-size:13px; }
+.arch-scroll { background:var(--surface); }
+#arch-svg text { font-family:var(--mono); font-size:12px; fill:var(--text); }
+#arch-svg .edge { fill:none; stroke:var(--edge); stroke-opacity:.4; }
+#arch-svg .edge:hover,#arch-svg .edge.connected { stroke-opacity:1; }
+#arch-svg .muted { opacity:.12; }
+#arch-svg .node-hit { cursor:pointer; }
+#arch-svg .node-circle { fill:var(--accent-soft); stroke:var(--edge); }
+#arch-svg .node-hit:hover .node-circle,#arch-svg .node-hit.selected .node-circle { fill:var(--accent); stroke:var(--accent); stroke-width:3px; }
+.legend { display:flex; flex-wrap:wrap; gap:6px 16px; color:var(--dim); font-size:11px; margin-top:12px; }
+.legend svg { vertical-align:middle; margin-right:4px; }
+.graph-notice { font-size:12px; color:var(--dim); padding:12px 16px; background:var(--surface); border:1px solid var(--line); border-radius:8px; margin-bottom:12px; }
+.diagram-shell { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface); min-width:0; }
+.diagram-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:5px; padding:8px 10px; border-bottom:1px solid var(--line); background:var(--surface); }
+.diagram-toolbar button { padding:5px 9px; min-height:32px; font-size:12px; }
+.diagram-toolbar output { min-width:44px; text-align:center; font:11px var(--mono); color:var(--dim); }
+.diagram-caption { flex:1; min-width:50px; font-size:11px; color:var(--dim); }
+.diagram-viewport { height:380px; overflow:auto; overscroll-behavior:contain; padding:16px; background:var(--paper); color:#24292f; cursor:grab; }
+.diagram-viewport:active { cursor:grabbing; }
+.diagram-viewport.arch-scroll { height:570px; background-color:var(--surface); background-image:radial-gradient(var(--line) .8px,transparent .8px); background-size:20px 20px; }
+.diagram-viewport svg { display:block; margin:0 auto; max-width:none !important; flex-shrink:0; }
+#diagram-dialog { width:calc(100vw - 40px); max-width:1800px; height:calc(100dvh - 40px); max-height:none; padding:20px; border:1px solid var(--line); border-radius:16px; background:var(--bg); color:var(--text); }
+#diagram-dialog::backdrop { background:rgba(11,29,24,.65); }
+.dialog-head { display:flex; gap:16px; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.dialog-head h2 { margin:0; font-size:18px; }
+#diagram-dialog[open] { display:flex; flex-direction:column; }
+#diagram-dialog-host { flex:1; min-height:0; display:flex; }
+#diagram-dialog-host .diagram-shell { width:100%; display:flex; flex-direction:column; }
+#diagram-dialog-host .diagram-viewport { height:auto; flex:1; min-height:0; }
+.grid-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; }
+.feat-card { display:flex; flex-direction:column; gap:12px; margin:0; }
+.card-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.fid { font:600 14px var(--mono); overflow-wrap:anywhere; }
+.desc { margin:0; }
+.desc.empty { color:var(--dim); font-size:13px; }
+.file-list { list-style:none; margin:0; padding:0; font:11px/1.8 var(--mono); color:var(--dim); overflow-wrap:anywhere; }
+.card-foot { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:auto; padding-top:12px; border-top:1px solid var(--line); font-size:11px; color:var(--dim); }
+.spacer { flex:1; }
+.chip { display:inline-block; border-radius:5px; padding:2px 8px; font-size:11px; font-weight:600; background:var(--surface-2); color:var(--dim); }
+.chip.st-prod { background:var(--st-prod-soft); color:var(--st-prod); }
+.chip.st-beta { background:var(--st-beta-soft); color:var(--st-beta); }
+.chip.st-dev { background:var(--st-dev-soft); color:var(--st-dev); }
+.chip.st-stub { background:var(--st-stub-soft); color:var(--st-stub); }
+.chip.st-deprecated { background:var(--st-deprecated-soft); color:var(--st-deprecated); }
+.note-btn { font-size:12px; }
+.note-btn.has-note { border-color:var(--accent); color:var(--accent); }
+.note-btn.has-note::before { content:""; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin-right:6px; }
+#state-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.entity-card { margin:0; }
+.entity-card .src { font:11px/1.5 var(--mono); color:var(--dim); overflow-wrap:anywhere; margin:8px 0 16px; }
+.state-chips { display:flex; flex-wrap:wrap; gap:5px; margin:12px 0; }
+.table-scroll { overflow:auto; }
+.trans-table { width:100%; border-collapse:collapse; font-size:12px; margin:10px 0; }
+.trans-table th,.trans-table td { text-align:left; padding:9px; border-bottom:1px solid var(--line); vertical-align:top; }
+.trans-table th { font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:var(--dim); }
+.trans-table td:first-child,.trans-table td:nth-child(2) { font-family:var(--mono); }
+.entity-card details { margin-top:14px; }
+summary { cursor:pointer; color:var(--accent); font-size:12px; }
+#erd-svg text { font-family:var(--mono); font-size:11px; fill:#24292f; }
+#erd-svg .t-title { font-weight:700; font-size:12px; }
+#erd-svg .t-box { fill:#fff; stroke:#b7bec9; }
+#erd-svg .t-head { fill:#e5ede8; }
+#erd-svg .t-row-sep { stroke:#e3e7ec; }
+#erd-svg .fk { fill:none; stroke:#246b59; stroke-opacity:.7; }
+#erd-svg .fk-arrow { fill:#246b59; }
+.rls-list { list-style:none; padding:0; font-size:12px; }
+.rls-list li { display:flex; gap:10px; flex-wrap:wrap; padding:6px 0; border-bottom:1px solid var(--line); }
+.rls-list .tbl,.rls-list .pol { font-family:var(--mono); }
+.rls-list .pol,.rls-list .cmd { color:var(--dim); }
+#rls-host { margin-top:16px; }
+.change-columns { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+.spark-row { display:flex; gap:5px; align-items:flex-end; min-height:210px; overflow:auto; padding:12px 0; }
+.spark-bar { display:flex; flex-direction:column; align-items:center; gap:5px; min-width:28px; flex:1; }
+.spark-bar .bar { width:100%; max-width:38px; background:var(--accent); border-radius:4px 4px 0 0; min-height:2px; }
+.spark-bar .n { font-size:11px; color:var(--dim); }
+.spark-bar .lbl { font:10px var(--mono); color:var(--dim); writing-mode:vertical-rl; height:68px; }
+.hotspot { display:flex; align-items:center; gap:12px; padding:10px 0; font-size:12px; border-bottom:1px solid var(--line); }
+.hotspot .path { width:55%; font-family:var(--mono); overflow-wrap:anywhere; }
+.hotspot .track,.story-row .track { flex:1; height:6px; background:var(--surface-2); border-radius:4px; overflow:hidden; }
+.hotspot .fill,.story-row .fill { height:100%; background:var(--edge); }
+.hotspot .n { color:var(--dim); min-width:28px; text-align:right; }
+.story-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:14px 0; border-bottom:1px solid var(--line); }
+.story-row .fid { min-width:130px; font-size:12px; }
+.story-row .when { color:var(--dim); font:11px var(--mono); }
+.story-row .bar-wrap { flex:1; min-width:80px; }
+#anno { position:fixed; right:20px; bottom:20px; z-index:40; width:390px; max-width:calc(100vw - 40px); max-height:calc(100dvh - 40px); overflow:auto; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:0 12px 60px #132b3830; }
+#anno h3 { margin:0; font:600 13px var(--mono); overflow-wrap:anywhere; }
+.anno-head { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+#anno label { display:block; font-size:12px; margin:16px 0 8px; color:var(--dim); }
+#anno-note { width:100%; min-height:140px; resize:vertical; color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:12px; }
+#anno-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:14px; }
+#anno-status,.anno-hint { font-size:12px; color:var(--dim); }
+#anno-status.err { color:var(--bad); }
+#anno-status.ok { color:var(--ok); }
+footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
+@media (max-width:1050px) { .arch-grid { grid-template-columns:minmax(0,1fr) 260px; } .head-inner,.banners,nav.tabs,main,footer { padding-left:22px; padding-right:22px; } }
+@media (max-width:800px) { .arch-grid,.change-columns { grid-template-columns:1fr; } .arch-side { display:grid; grid-template-columns:1fr 1fr; gap:16px; } #state-grid { grid-template-columns:1fr; } .diagram-viewport.arch-scroll { height:440px; } .view-intro { align-items:start; flex-direction:column; gap:10px; } .view-count { padding:0; } }
+@media (max-width:480px) { .head-inner,.banners,nav.tabs,main,footer { padding-left:16px; padding-right:16px; } .head-row { align-items:start; } .brand-mark { display:none; } .head-row>button { font-size:11px; white-space:nowrap; } nav.tabs { gap:20px; } .tab-index { display:none; } .view-intro h2 { font-size:32px; } .arch-side { grid-template-columns:1fr; gap:0; } .grid-cards { grid-template-columns:1fr; } .card { padding:16px; } .diagram-viewport.arch-scroll { height:380px; } .diagram-caption { display:none; } #diagram-dialog { padding:12px; width:calc(100vw - 16px); height:calc(100dvh - 16px); } .banner { align-items:start; } }
 
-* { box-sizing: border-box; }
-[hidden] { display: none !important; }   /* class display rules must not beat hidden */
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-  padding: 0 16px;
-}
-code, .mono { font-family: var(--mono); font-size: 12px; }
-h1 { font-size: 18px; margin: 0; }
-h2 { font-size: 14px; margin: 0 0 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-button {
-  font: inherit; color: var(--text); background: var(--surface);
-  border: 1px solid var(--line); border-radius: 8px;
-  padding: 5px 12px; cursor: pointer;
-}
-button:hover { background: var(--surface-2); }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-button.primary:hover { filter: brightness(1.08); }
-button.danger { color: var(--bad); border-color: var(--bad); background: var(--surface); }
-
-/* header */
-header {
-  position: sticky; top: 0; z-index: 20; background: var(--bg);
-  border-bottom: 1px solid var(--line);
-  padding: 12px 0 0; margin: 0 -16px;
-}
-.head-inner { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
-.head-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; justify-content: space-between; }
-.head-row .repo { color: var(--dim); font-family: var(--mono); font-size: 13px; }
-.head-meta { color: var(--dim); font-size: 12px; margin: 4px 0 8px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
-
-/* banners */
-.banners { max-width: 1080px; margin: 0 auto; padding: 8px 16px 0; display: flex; flex-direction: column; gap: 6px; }
-.banner {
-  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-  border-radius: 8px; padding: 8px 12px; font-size: 13px;
-}
-.banner .banner-text { flex: 1; min-width: 200px; }
-.banner.stale { background: var(--warn-soft); color: var(--warn); }
-.banner.degraded { background: var(--info-soft); color: var(--info); }
-.banner button { padding: 1px 10px; font-size: 12px; }
-.banner b { font-weight: 700; }
-
-/* tabs */
-nav.tabs { max-width: 1080px; margin: 8px auto 0; padding: 0 16px; display: flex; gap: 6px; flex-wrap: wrap; }
-.tab {
-  border: 1px solid transparent; border-bottom: none; background: transparent;
-  border-radius: 8px 8px 0 0; padding: 7px 14px; color: var(--dim);
-}
-.tab[aria-selected="true"] {
-  background: var(--surface); border-color: var(--line);
-  color: var(--text); font-weight: 600;
-}
-
-/* main */
-main { max-width: 1080px; margin: 0 auto; padding: 16px 0 80px; }
-.panel[hidden] { display: none; }
-.card {
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px;
-}
-.empty-state { color: var(--dim); text-align: center; padding: 32px 16px; }
-.empty-state p { margin: 4px 0; }
-
-/* architecture */
-.arch-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
-.arch-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; }
-#arch-svg { display: block; margin: 0 auto; min-width: 480px; max-width: 100%; height: auto; }
-#arch-svg text { font-family: var(--mono); font-size: 12px; fill: var(--text); }
-#arch-svg .edge { fill: none; stroke: var(--edge); stroke-opacity: 0.45; }
-#arch-svg .edge:hover { stroke-opacity: 1; }
-#arch-svg .node-hit { cursor: pointer; }
-#arch-svg .node-circle { fill: var(--surface-2); stroke: var(--line); }
-#arch-svg .node-hit:hover .node-circle,
-#arch-svg .node-hit.selected .node-circle { stroke: var(--accent); stroke-width: 2.5px; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--dim); font-size: 12px; margin-top: 8px; }
-.legend svg { vertical-align: middle; margin-right: 4px; }
-#arch-detail h3 { margin: 0 0 6px; font-family: var(--mono); font-size: 14px; word-break: break-all; }
-#arch-detail .count { color: var(--dim); font-size: 12px; margin-bottom: 8px; }
-#arch-detail ul { margin: 6px 0; padding-left: 18px; font-size: 12px; color: var(--dim); }
-#arch-detail ul code { color: var(--text); }
-#arch-detail .edge-line { font-family: var(--mono); font-size: 12px; padding: 1px 0; }
-#arch-detail .edge-line .t { color: var(--dim); }
-
-/* catalog */
-.grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
-.feat-card { display: flex; flex-direction: column; gap: 8px; margin-bottom: 0; }
-.card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.fid { font-family: var(--mono); font-size: 13px; font-weight: 700; word-break: break-all; }
-.desc { margin: 0; color: var(--text); }
-.feat-card .desc.empty { color: var(--dim); font-style: italic; }
-.file-list { list-style: none; margin: 0; padding: 0; font-family: var(--mono); font-size: 11.5px; color: var(--dim); word-break: break-all; }
-.file-list li { padding: 1px 0; }
-.card-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: auto; padding-top: 4px; font-size: 12px; color: var(--dim); }
-.card-foot .spacer { flex: 1; }
-.chip {
-  display: inline-block; border-radius: 999px; padding: 1px 9px;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
-  background: var(--surface-2); color: var(--dim);
-}
-.chip.st-prod      { background: var(--st-prod-soft); color: var(--st-prod); }
-.chip.st-beta      { background: var(--st-beta-soft); color: var(--st-beta); }
-.chip.st-dev       { background: var(--st-dev-soft); color: var(--st-dev); }
-.chip.st-stub      { background: var(--st-stub-soft); color: var(--st-stub); }
-.chip.st-deprecated{ background: var(--st-deprecated-soft); color: var(--st-deprecated); }
-.note-btn::after { content: ""; }
-.note-btn.has-note { border-color: var(--accent); color: var(--accent); }
-.note-btn.has-note::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 5px; }
-
-/* data and state */
-#erd-scroll { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; }
-#erd-svg { display: block; }
-#erd-svg text { font-family: var(--mono); font-size: 11px; fill: #24292f; }
-#erd-svg .t-title { font-weight: 700; font-size: 12px; }
-#erd-svg .t-box { fill: #ffffff; stroke: #b7bec9; rx: 6; }
-#erd-svg .t-head { fill: #eef1f5; stroke: none; }
-#erd-svg .t-row-sep { stroke: #e3e7ec; }
-#erd-svg .fk { fill: none; stroke: #2456d6; stroke-opacity: 0.7; }
-#erd-svg .fk-arrow { fill: #2456d6; }
-.rls-list { margin: 10px 0 0; padding: 0; list-style: none; font-size: 12.5px; }
-.rls-list li { padding: 3px 0; border-bottom: 1px dotted var(--line); display: flex; gap: 8px; flex-wrap: wrap; }
-.rls-list .tbl { font-family: var(--mono); }
-.rls-list .pol { font-family: var(--mono); color: var(--dim); }
-.rls-list .cmd { color: var(--dim); }
-.entity-card { margin-bottom: 0; }
-.entity-card .src { color: var(--dim); font-family: var(--mono); font-size: 11.5px; word-break: break-all; }
-.state-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
-.diagram-paper { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow-x: auto; margin-top: 8px; }
-.diagram-paper svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
-.trans-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
-.trans-table th, .trans-table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.trans-table th { color: var(--dim); font-weight: 600; }
-.trans-table td:first-child, .trans-table td:nth-child(2) { font-family: var(--mono); }
-
-/* change story */
-.spark-row { display: flex; align-items: flex-end; gap: 4px; height: 130px; padding: 8px 4px 0; overflow-x: auto; }
-.spark-bar { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 26px; flex: 1; }
-.spark-bar .bar { width: 100%; max-width: 38px; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
-.spark-bar .n { font-size: 11px; color: var(--dim); }
-.spark-bar .lbl { font-size: 10px; color: var(--dim); white-space: nowrap; writing-mode: vertical-rl; text-orientation: mixed; height: 64px; overflow: hidden; }
-.hotspot { display: flex; align-items: center; gap: 10px; padding: 3px 0; font-size: 12.5px; }
-.hotspot .path { font-family: var(--mono); width: 45%; word-break: break-all; }
-.hotspot .track { flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
-.hotspot .fill { height: 100%; background: var(--edge); }
-.hotspot .n { color: var(--dim); min-width: 34px; text-align: right; }
-.story-row { display: flex; gap: 12px; align-items: baseline; padding: 4px 0; border-bottom: 1px dotted var(--line); font-size: 12.5px; flex-wrap: wrap; }
-.story-row .fid { flex: 0 0 auto; min-width: 90px; }
-.story-row .when { color: var(--dim); font-family: var(--mono); font-size: 11.5px; }
-.story-row .bar-wrap { flex: 1; min-width: 80px; }
-.story-row .track { height: 7px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
-.story-row .fill { height: 100%; background: var(--accent); opacity: 0.75; }
-
-/* annotation drawer */
-#anno {
-  position: fixed; right: 16px; bottom: 16px; z-index: 40;
-  width: 360px; max-width: calc(100vw - 32px);
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 14px 16px;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
-}
-#anno h3 { margin: 0; font-family: var(--mono); font-size: 13px; word-break: break-all; }
-.anno-head { display: flex; justify-content: space-between; align-items: start; gap: 8px; margin-bottom: 8px; }
-#anno label { display: block; font-size: 12px; color: var(--dim); margin: 8px 0 4px; }
-#anno-note { width: 100%; min-height: 96px; resize: vertical; font: inherit; color: var(--text);
-  background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
-#anno-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-#anno-status { font-size: 12px; color: var(--dim); }
-#anno-status.err { color: var(--bad); font-weight: 600; }
-#anno-status.ok { color: var(--ok); }
-.anno-hint { font-size: 12px; color: var(--dim); margin: 6px 0 0; }
-
-footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--dim); font-size: 12px; }
-
-@media (max-width: 860px) {
-  .arch-grid { grid-template-columns: 1fr; }
-}
-@media (max-width: 640px) {
-  #anno { left: 16px; right: 16px; width: auto; }
-  .hotspot .path { width: 100%; }
-  .hotspot { flex-wrap: wrap; }
-}
 </style>
 </head>
 <body>
+<a href="#main" class="skip-link">Skip to wiki content</a>
 <header>
   <div class="head-inner">
     <div class="head-row">
-      <h1>Codebase Wiki <span class="repo" id="h-repo"></span></h1>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">W</span><div><h1>Codebase Wiki</h1><span class="repo" id="h-repo"></span></div></div>
       <button id="theme-toggle" title="Cycle color theme (auto, light, dark)">Theme: auto</button>
     </div>
     <div class="head-meta" id="head-meta"></div>
@@ -295,75 +219,85 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
     </div>
   </div>
   <nav class="tabs" role="tablist" aria-label="Wiki views">
-    <button class="tab" role="tab" id="tab-arch" data-view="arch" aria-controls="view-arch" aria-selected="true">Architecture</button>
-    <button class="tab" role="tab" id="tab-catalog" data-view="catalog" aria-controls="view-catalog" aria-selected="false">Features</button>
-    <button class="tab" role="tab" id="tab-data" data-view="data" aria-controls="view-data" aria-selected="false">Data &amp; State</button>
-    <button class="tab" role="tab" id="tab-change" data-view="change" aria-controls="view-change" aria-selected="false">Change Story</button>
+    <button class="tab" role="tab" id="tab-arch" data-view="arch" aria-controls="view-arch" aria-selected="true"><span class="tab-index" aria-hidden="true">01</span>Architecture</button>
+    <button class="tab" role="tab" id="tab-catalog" data-view="catalog" aria-controls="view-catalog" aria-selected="false"><span class="tab-index" aria-hidden="true">02</span>Features</button>
+    <button class="tab" role="tab" id="tab-data" data-view="data" aria-controls="view-data" aria-selected="false"><span class="tab-index" aria-hidden="true">03</span>Data &amp; State</button>
+    <button class="tab" role="tab" id="tab-change" data-view="change" aria-controls="view-change" aria-selected="false"><span class="tab-index" aria-hidden="true">04</span>Change Story</button>
   </nav>
 </header>
 
-<main>
+<main id="main" tabindex="-1">
   <section class="panel" id="view-arch" role="tabpanel" aria-labelledby="tab-arch">
+    <div class="view-intro"><div><div class="eyebrow">Explore the system</div><h2>A map of the codebase</h2><p>Trace connections between modules, then inspect their files and source details.</p></div><div class="view-count" id="count-arch"></div></div>
     <div class="arch-grid">
       <div>
-        <div class="arch-scroll" id="arch-scroll"></div>
+        <p class="graph-notice" id="graph-notice" hidden></p><div class="arch-scroll" id="arch-scroll"></div>
         <div class="legend" id="arch-legend">
           <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="2"/></svg>CALLS</span>
           <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="2" stroke-dasharray="5 3"/></svg>IMPORTS</span>
           <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="2" stroke-dasharray="1 3"/></svg>INHERITS</span>
-          <span>edge width and node size scale with weight / file count</span>
+          <span>Line width: relationship weight · Node size: indexed symbols</span>
         </div>
       </div>
+      <div class="arch-side">
+      <section class="card"><h2>Module index</h2><div class="field"><label for="module-search">Find a module or file</label><input id="module-search" type="search" placeholder="Search modules…"></div><span class="result-count" id="module-count" role="status"></span><div id="module-list" class="module-list"></div></section>
+      <p class="card" id="arch-detail-placeholder">Select a node or a module to see its connections and source files.</p>
       <aside class="card" id="arch-detail" hidden>
         <h3 id="arch-detail-name"></h3>
         <div class="count" id="arch-detail-count"></div>
         <div id="arch-detail-body"></div>
         <button class="note-btn" id="arch-detail-note">Note</button>
       </aside>
+      </div>
     </div>
   </section>
 
   <section class="panel" id="view-catalog" role="tabpanel" aria-labelledby="tab-catalog" hidden>
-    <div class="grid-cards" id="catalog-grid"></div>
+    <div class="view-intro"><div><div class="eyebrow">Browse the capabilities</div><h2>The feature library</h2><p>Find what exists, how mature it is, and where its implementation lives.</p></div><div class="view-count" id="count-catalog"></div></div>
+    <div class="toolbar"><div class="field search"><label for="feature-search">Find a feature</label><input id="feature-search" type="search" placeholder="Search names, descriptions or source files…"></div><div class="field"><label for="feature-status">Maturity</label><select id="feature-status"><option value="">All statuses</option><option>prod</option><option>beta</option><option>dev</option><option>stub</option><option>deprecated</option></select></div><button id="feature-reset">Reset</button><span id="feature-count" class="result-count" role="status"></span></div>
+    <div class="grid-cards" id="catalog-grid"></div><p class="card empty-state" id="feature-empty" hidden>No matching features. Try another search or reset the filters.</p>
   </section>
 
   <section class="panel" id="view-data" role="tabpanel" aria-labelledby="tab-data" hidden>
+    <div class="view-intro"><div><div class="eyebrow">Understand the contracts</div><h2>Data & state</h2><p>Explore relationships and lifecycle transitions. Expand any diagram for a closer look.</p></div><div class="view-count" id="count-data"></div></div>
     <h2>Data model</h2>
     <div id="erd-host"></div>
     <div id="rls-host"></div>
     <h2 style="margin-top: 22px;">State machines</h2>
-    <div class="grid-cards" id="state-grid"></div>
+    <div class="toolbar"><div class="field search"><label for="state-search">Find a state machine</label><input id="state-search" type="search" placeholder="Search entities, states or transitions…"></div><span id="state-count" class="result-count" role="status"></span></div><div class="grid-cards" id="state-grid"></div><p class="card empty-state" id="state-empty" hidden>No matching state machines.</p>
   </section>
 
   <section class="panel" id="view-change" role="tabpanel" aria-labelledby="tab-change" hidden>
-    <h2>Commits per week</h2>
+    <div class="view-intro"><div><div class="eyebrow">Follow the evolution</div><h2>The change story</h2><p>See where work is concentrated and how features have evolved over the recorded commit window.</p></div><div class="view-count" id="count-change"></div></div>
+    <div class="change-columns"><div><h2>Commits per week</h2>
     <div class="card" id="spark-host"></div>
-    <h2>Hotspots</h2>
+    </div><div><h2>Hotspots</h2>
     <div class="card" id="hotspot-host"></div>
-    <h2>Feature timeline</h2>
+    </div></div><h2>Feature timeline</h2>
     <div class="card" id="story-host"></div>
   </section>
 </main>
 
 <footer id="foot"></footer>
 
-<aside id="anno" hidden>
+<aside id="anno" role="dialog" aria-labelledby="anno-target" hidden>
   <div class="anno-head">
     <h3 id="anno-target"></h3>
     <button id="anno-close" title="Close" aria-label="Close note editor">x</button>
   </div>
-  <label for="anno-note">Note</label>
+  <label for="anno-note">Reader note · saves automatically</label>
   <textarea id="anno-note" placeholder="What should a reader know about this?"></textarea>
   <div id="anno-actions">
     <button class="primary" id="anno-save">Save note</button>
     <button class="danger" id="anno-delete" hidden>Delete</button>
-    <span id="anno-status"></span>
+    <span id="anno-status" role="status"></span>
   </div>
   <p class="anno-hint" id="anno-hint" hidden>
     Static view: notes need the local server. Run <code>wiki serve</code> and reload.
   </p>
 </aside>
 
+<dialog id="diagram-dialog" aria-labelledby="diagram-title"><div class="dialog-head"><h2 id="diagram-title">Diagram</h2><button id="diagram-close">Close diagram</button></div><div id="diagram-dialog-host"></div></dialog>
 <script type="application/json" id="wiki-payload">__WIKI_PAYLOAD__</script>
 <script>
 (function () {
@@ -436,7 +370,7 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
   });
 
   // ---------- header + banners ----------
-  $("h-repo").textContent = META.repo ? "· " + META.repo : "";
+  $("h-repo").textContent = META.repo || "Repository reference";
   var metaBits = [];
   if (META.generated_at) metaBits.push("generated " + shortDate(META.generated_at));
   if (META.fingerprint) metaBits.push("fingerprint " + String(META.fingerprint).slice(0, 8));
@@ -444,8 +378,7 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
   var featCount = (catalog.features || []).length;
   metaBits.push(featCount + (featCount === 1 ? " feature" : " features"));
   $("head-meta").textContent = metaBits.join("  ·  ");
-  $("foot").textContent = "cfn-wiki portal: self-contained page, no external requests. " +
-    "Regenerate with: wiki build.";
+  $("foot").textContent = "Codebase Wiki · Built " + (META.generated_at || "from a local snapshot") + ". Refresh this reference with wiki build.";
 
   if (META.stale) {
     $("stale-text").textContent =
@@ -466,17 +399,33 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
   // ---------- tabs ----------
   var VIEWS = ["arch", "catalog", "data", "change"];
   function selectView(name) {
+    if (VIEWS.indexOf(name) < 0) name = "arch";
     VIEWS.forEach(function (v) {
       var tab = $("tab-" + v);
       var panel = $("view-" + v);
       var on = v === name;
       tab.setAttribute("aria-selected", on ? "true" : "false");
       panel.hidden = !on;
+      tab.tabIndex = on ? 0 : -1;
     });
   }
   VIEWS.forEach(function (v) {
-    $("tab-" + v).addEventListener("click", function () { selectView(v); });
+    $("tab-" + v).addEventListener("click", function () { location.hash = v; selectView(v); window.scrollTo(0, 0); });
+    $("tab-" + v).addEventListener("keydown", function (ev) {
+      var i = VIEWS.indexOf(v), next;
+      if (ev.key === "ArrowRight") next = VIEWS[(i + 1) % VIEWS.length];
+      if (ev.key === "ArrowLeft") next = VIEWS[(i + VIEWS.length - 1) % VIEWS.length];
+      if (ev.key === "Home") next = VIEWS[0];
+      if (ev.key === "End") next = VIEWS[VIEWS.length - 1];
+      if (next) { ev.preventDefault(); location.hash = next; selectView(next); $("tab-" + next).focus(); window.scrollTo(0, 0); }
+    });
   });
+
+  window.addEventListener("hashchange", function () {
+    var view = location.hash.slice(1);
+    if (VIEWS.indexOf(view) >= 0) selectView(view);
+  });
+  selectView(location.hash.slice(1));
 
   var SERVER_MODE = location.protocol === "http:" || location.protocol === "https:";
 
@@ -497,10 +446,12 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
     s.textContent = text;
     s.className = cls || "";
     if (annoStatusTimer) clearTimeout(annoStatusTimer);
-    annoStatusTimer = setTimeout(function () { s.textContent = ""; }, 4000);
+    if (cls !== "err") annoStatusTimer = setTimeout(function () { s.textContent = ""; }, 4000);
   }
   function annoSave() {
     if (!SERVER_MODE) return;
+    clearTimeout(annoDebounce);
+    annoDebounce = null;
     var id = $("anno-target").textContent;
     var note = $("anno-note").value;
     $("anno-save").disabled = true;
@@ -512,17 +463,19 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
     }).then(function (res) {
       return res.json().then(function (j) { return { ok: res.ok, j: j }; });
     }).then(function (r) {
-      $("anno-save").disabled = false;
+      var current = $("anno-target").textContent === id && $("anno-note").value === note;
+      if (current) $("anno-save").disabled = false;
       if (r.ok) {
         if ((note || "").length) annos[id] = { note: note, updatedAt: new Date().toISOString() };
         else delete annos[id];
-        $("anno-delete").hidden = !(annos[id] && annos[id].note);
+        if (current) $("anno-delete").hidden = !(annos[id] && annos[id].note);
         annoPaintButtons();
-        annoSetStatus("Saved " + new Date().toLocaleTimeString(), "ok");
+        if (current) annoSetStatus("Saved " + new Date().toLocaleTimeString(), "ok");
       } else {
-        annoSetStatus(r.j && r.j.error ? r.j.error : "Save failed", "err");
+        if (current) annoSetStatus(r.j && r.j.error ? r.j.error : "Save failed", "err");
       }
     }).catch(function (err) {
+      if ($("anno-target").textContent !== id) return;
       $("anno-save").disabled = false;
       annoSetStatus(err && err.message ? err.message : "Server unreachable", "err");
     });
@@ -538,11 +491,20 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
     $("anno-note").value = "";
     annoSave();
   });
-  $("anno-close").addEventListener("click", function () { $("anno").hidden = true; });
+  var annoTrigger = null;
+  function closeAnno() {
+    if (annoDebounce) annoSave();
+    $("anno").hidden = true;
+    if (annoTrigger && annoTrigger.isConnected) annoTrigger.focus();
+  }
+  $("anno-close").addEventListener("click", closeAnno);
   document.addEventListener("keydown", function (ev) {
-    if (ev.key === "Escape") $("anno").hidden = true;
+    if (ev.key === "Escape" && !$("anno").hidden && !$("diagram-dialog").open) closeAnno();
   });
   function openAnno(target) {
+    if (annoDebounce) annoSave();
+    annoTrigger = document.activeElement;
+    annoSetStatus("", "");
     $("anno-target").textContent = target;
     $("anno-note").value = annoGet(target);
     $("anno-delete").hidden = !annoGet(target);
@@ -587,8 +549,9 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
 
     // deterministic circle layout (single node centered, two on a line)
     var n = nodes.length;
-    var R = Math.max(150, Math.min(300, 34 * n));
-    var W = Math.max(560, 2 * R + 220);
+    var R = Math.max(160, Math.min(320, 20 * n));
+    var labelPad = 230;
+    var W = Math.max(560, 2 * R + 2 * labelPad);
     var H = Math.max(380, 2 * R + 170);
     var cx = W / 2, cy = H / 2 - 8;
     var pos = {};
@@ -611,7 +574,7 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
 
     var svg = svgEl("svg", {
       id: "arch-svg", viewBox: "0 0 " + W + " " + H,
-      width: W, height: H, role: "img",
+      width: W, height: H, role: "group",
       "aria-label": "Module dependency graph"
     });
 
@@ -627,7 +590,7 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
       var ky = my + (dx / len) * off;
       var w = 1 + 4 * ((e.weight || 0) / maxWeight);
       var p = svgEl("path", {
-        class: "edge",
+        class: "edge", "data-source": e.source, "data-target": e.target,
         d: "M " + a.x + " " + a.y + " Q " + kx + " " + ky + " " + b.x + " " + b.y,
         "stroke-width": w.toFixed(2),
         "stroke-dasharray": DASH[e.type] != null ? DASH[e.type] : ""
@@ -642,7 +605,7 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
       var ax = b.x - 14 * Math.cos(ang), ay = b.y - 14 * Math.sin(ang);
       var s = 6;
       svg.appendChild(svgEl("polygon", {
-        class: "fk-arrow",
+        class: "fk-arrow", "data-source": e.source, "data-target": e.target,
         points: (ax) + "," + (ay) + " " +
                 (ax - s * Math.cos(ang - 0.42)) + "," + (ay - s * Math.sin(ang - 0.42)) + " " +
                 (ax - s * Math.cos(ang + 0.42)) + "," + (ay - s * Math.sin(ang + 0.42)),
@@ -653,12 +616,15 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
     nodes.forEach(function (nd) {
       var p = pos[nd.id];
       var r = 9 + 13 * Math.sqrt((nd.count || 0) / maxCount);
-      var g = svgEl("g", { class: "node-hit", "data-node": nd.id, tabindex: "0", role: "button" });
+      var g = svgEl("g", { class: "node-hit", "data-node": nd.id, tabindex: "0", role: "button", "aria-label": nd.label || nd.id, "aria-pressed": "false" });
       var circ = svgEl("circle", { class: "node-circle", cx: p.x, cy: p.y, r: r.toFixed(1) });
       var label = svgEl("text", {
-        x: p.x, y: p.y + r + 15, "text-anchor": "middle"
+        x: p.x + (p.x > cx + 20 ? r + 8 : p.x < cx - 20 ? -r - 8 : 0),
+        y: p.y + (Math.abs(p.x - cx) > 20 ? 4 : r + 17),
+        "text-anchor": p.x > cx + 20 ? "start" : p.x < cx - 20 ? "end" : "middle"
       });
-      label.textContent = nd.label || nd.id;
+      var nodeLabel = nd.label || nd.id;
+      label.textContent = nodeLabel.length > 23 ? nodeLabel.slice(0, 21) + "…" : nodeLabel;
       var t = svgEl("title", {});
       t.textContent = nd.label || nd.id;
       g.appendChild(circ);
@@ -673,12 +639,46 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
     });
 
     host.appendChild(svg);
+    enhanceDiagram(host, "Module dependencies");
+    if (!edges.length) {
+      $("graph-notice").hidden = false;
+      $("graph-notice").textContent = "No dependency edges were extracted in this snapshot. Use the module index to explore source files.";
+    }
+    nodes.forEach(function (nd) {
+      var button = el("button", "module-item");
+      button.dataset.node = nd.id;
+      button.dataset.search = [nd.id, nd.label].concat(nd.files || []).join(" ").toLowerCase();
+      button.setAttribute("aria-pressed", "false");
+      button.appendChild(el("span", "", nd.label || nd.id));
+      button.appendChild(el("small", "", (nd.files || []).length + " files"));
+      button.addEventListener("click", function () { selectNode(nd.id); });
+      $("module-list").appendChild(button);
+    });
+    function filterModules() {
+      var query = $("module-search").value.toLowerCase().trim(), count = 0;
+      $("module-list").querySelectorAll("button").forEach(function (b) { b.hidden = b.dataset.search.indexOf(query) < 0; if (!b.hidden) count++; });
+      $("module-count").textContent = count + " of " + nodes.length + " modules";
+    }
+    $("module-search").addEventListener("input", filterModules);
+    filterModules();
 
     function selectNode(id) {
       var nd = byId[id];
+      var connected = {};
+      connected[id] = true;
+      edges.forEach(function (e) { if (e.source === id || e.target === id) { connected[e.source] = true; connected[e.target] = true; } });
+      svg.querySelectorAll("[data-source]").forEach(function (edge) {
+        var on = edge.getAttribute("data-source") === id || edge.getAttribute("data-target") === id;
+        edge.classList.toggle("muted", !on);
+        edge.classList.toggle("connected", on);
+      });
+      $("module-list").querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.node === id ? "true" : "false"); });
+      $("arch-detail-placeholder").hidden = true;
       Array.prototype.forEach.call(svg.querySelectorAll(".node-hit"), function (g) {
         var on = g.getAttribute("data-node") === id;
         g.classList.toggle("selected", on);
+        g.setAttribute("aria-pressed", on ? "true" : "false");
+        g.classList.toggle("muted", !connected[g.getAttribute("data-node")]);
       });
       $("arch-detail").hidden = false;
       $("arch-detail-name").textContent = nd.label || id;
@@ -688,7 +688,7 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
       body.textContent = "";
 
       if ((nd.files || []).length) {
-        body.appendChild(el("p", "count", "Files"));
+        body.appendChild(el("p", "count", "Source files (" + nd.files.length + ")"));
         var ul = el("ul");
         nd.files.forEach(function (f) {
           var li = el("li");
@@ -740,13 +740,15 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
     feats.forEach(function (f) {
       var card = el("article", "card feat-card");
       card.setAttribute("data-fid", f.fid || "");
+      card.dataset.status = f.status || "dev";
+      card.dataset.search = [f.fid, f.description].concat(f.files || []).join(" ").toLowerCase();
       var head = el("div", "card-head");
       head.appendChild(el("code", "fid", f.fid || "(unnamed)"));
       head.appendChild(el("span", "chip st-" + (f.status || "dev"), f.status || "dev"));
       card.appendChild(head);
 
       if (f.description) card.appendChild(el("p", "desc", f.description));
-      else card.appendChild(el("p", "desc empty", "No description yet. Add one in the wiki:enrich block."));
+      else card.appendChild(el("p", "desc empty", "This feature has no description yet."));
 
       var ul = el("ul", "file-list");
       (f.files || []).slice(0, 8).forEach(function (fp) {
@@ -762,7 +764,7 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
         f.coupling_count === 1 ? "couples with 1 file group"
                                : "coupling: " + (f.coupling_count || 0) + " file groups"));
       foot.appendChild(el("span", "spacer"));
-      var page = el("a", "", "page");
+      var page = el("a", "", "Read feature page");
       page.href = SERVER_MODE ? "/wiki/" + encodeURIComponent(f.fid)
                               : "readme/wiki/" + f.fid + "/wiki.md";
       page.title = "Generated feature page";
@@ -812,6 +814,7 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
     }
     ents.forEach(function (e) {
       var card = el("article", "card entity-card");
+      card.dataset.search = [e.name, e.source].concat(e.states || []).concat((e.transitions || []).map(function (t) { return [t.from,t.to,t.trigger,t.guard].join(" "); })).join(" ").toLowerCase();
       var head = el("div", "card-head");
       head.appendChild(el("code", "fid", e.name || "(unnamed)"));
       var btn = el("button", "note-btn", "Note");
@@ -825,7 +828,8 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
         var paper = el("div", "diagram-paper");
         paper.innerHTML = e.svg;   // sanitized at build time by build-portal.sh
         card.appendChild(paper);
-      } else {
+      }
+      {
         if ((e.states || []).length) {
           var chips = el("div", "state-chips");
           e.states.forEach(function (s) { chips.appendChild(el("span", "chip", s)); });
@@ -849,10 +853,27 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
             tb.appendChild(tr);
           });
           tbl.appendChild(tb);
-          card.appendChild(tbl);
+          var tableScroll = el("div", "table-scroll");
+          tableScroll.tabIndex = 0;
+          tableScroll.setAttribute("role", "region");
+          tableScroll.setAttribute("aria-label", (e.name || "Entity") + " transitions");
+          tableScroll.appendChild(tbl);
+          if (e.svg) {
+            var details = el("details");
+            details.appendChild(el("summary", "", "Transition reference (" + e.transitions.length + ")"));
+            details.appendChild(tableScroll);
+            card.appendChild(details);
+          } else {
+            card.appendChild(el("p", "count", "Diagram unavailable. Transition reference shown below."));
+            card.appendChild(tableScroll);
+          }
         }
       }
+      if (!e.svg && !(e.transitions || []).length) {
+        card.appendChild(el("p", "count", "No diagram or transitions documented."));
+      }
       grid.appendChild(card);
+      if (e.svg) enhanceDiagram(paper, e.name || "State machine");
     });
   }
 
@@ -957,6 +978,7 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
     scroll.id = "erd-scroll";
     scroll.appendChild(svg);
     host.appendChild(scroll);
+    enhanceDiagram(scroll, "Entity relationships");
   }
 
   // ---------- change story view ----------
@@ -1047,12 +1069,145 @@ footer { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; color: var(--d
     });
   }
 
+
+  // ---------- diagram workspaces ----------
+  var expandedDiagram = null;
+  function enhanceDiagram(viewport, title) {
+    var svg = viewport.querySelector("svg");
+    if (!svg) return;
+    var box = svg.viewBox.baseVal;
+    var naturalW = box.width || parseFloat(svg.getAttribute("width")) || 800;
+    var naturalH = box.height || parseFloat(svg.getAttribute("height")) || 500;
+    var shell = el("div", "diagram-shell");
+    viewport.parentNode.insertBefore(shell, viewport);
+    var bar = el("div", "diagram-toolbar");
+    bar.setAttribute("role", "group");
+    bar.setAttribute("aria-label", title + " diagram controls");
+    bar.appendChild(el("span", "diagram-caption", "Scroll or drag to explore"));
+    shell.appendChild(bar);
+    shell.appendChild(viewport);
+    viewport.classList.add("diagram-viewport");
+    viewport.tabIndex = 0;
+    viewport.setAttribute("role", "region");
+    viewport.setAttribute("aria-label", title + " diagram canvas");
+    var zoom = 1, fitMode = true;
+    function button(label, action, accessible) {
+      var b = el("button", "", label);
+      if (accessible) b.setAttribute("aria-label", accessible);
+      b.addEventListener("click", action);
+      bar.appendChild(b);
+      return b;
+    }
+    var minus = button("−", function () { scale(zoom / 1.25); }, "Zoom out");
+    var output = el("output", "", "100%");
+    output.setAttribute("aria-label", "Diagram zoom");
+    bar.appendChild(output);
+    var plus = button("+", function () { scale(zoom * 1.25); }, "Zoom in");
+    button("Fit", fit);
+    button("100%", function () { scale(1); });
+    var expand = button("Expand", function () {
+      if (expandedDiagram) return;
+      var marker = document.createComment("diagram position");
+      shell.parentNode.insertBefore(marker, shell);
+      expandedDiagram = {shell:shell, marker:marker, trigger:expand, fit:fit};
+      $("diagram-title").textContent = title;
+      $("diagram-dialog-host").appendChild(shell);
+      expand.hidden = true;
+      $("diagram-dialog").showModal();
+      fit();
+      $("diagram-close").focus();
+    });
+    function scale(value, fitting) {
+      if (!viewport.clientWidth) return;
+      var old = zoom;
+      var cx = (viewport.scrollLeft + viewport.clientWidth / 2) / old;
+      var cy = (viewport.scrollTop + viewport.clientHeight / 2) / old;
+      zoom = Math.max(.1, Math.min(4, value));
+      fitMode = !!fitting;
+      svg.style.width = naturalW * zoom + "px";
+      svg.style.height = naturalH * zoom + "px";
+      output.textContent = Math.round(zoom * 100) + "%";
+      if (svg.id === "arch-svg") {
+        svg.querySelectorAll("text").forEach(function (label) { label.style.fontSize = Math.max(12, 11 / zoom) + "px"; });
+      }
+      minus.disabled = zoom <= .1;
+      plus.disabled = zoom >= 4;
+      viewport.scrollLeft = fitting ? 0 : cx * zoom - viewport.clientWidth / 2;
+      viewport.scrollTop = fitting ? 0 : cy * zoom - viewport.clientHeight / 2;
+    }
+    function fit() {
+      if (!viewport.clientWidth) return;
+      scale(Math.min(2.5, (viewport.clientWidth - 34) / naturalW, (viewport.clientHeight - 34) / naturalH), true);
+    }
+    var observer = new ResizeObserver(function () { if (fitMode) fit(); });
+    observer.observe(viewport);
+    viewport.addEventListener("keydown", function (ev) {
+      if (ev.target !== viewport) return;
+      if (ev.key === "+" || ev.key === "=") { ev.preventDefault(); scale(zoom * 1.25); }
+      if (ev.key === "-") { ev.preventDefault(); scale(zoom / 1.25); }
+      if (ev.key === "0") { ev.preventDefault(); fit(); }
+    });
+    var drag = null;
+    viewport.addEventListener("pointerdown", function (ev) {
+      if (ev.pointerType !== "mouse" || ev.button !== 0 || ev.target.closest(".node-hit,a,button")) return;
+      drag = {x:ev.clientX, y:ev.clientY, left:viewport.scrollLeft, top:viewport.scrollTop};
+      viewport.setPointerCapture(ev.pointerId);
+      ev.preventDefault();
+    });
+    viewport.addEventListener("pointermove", function (ev) {
+      if (!drag) return;
+      viewport.scrollLeft = drag.left - (ev.clientX - drag.x);
+      viewport.scrollTop = drag.top - (ev.clientY - drag.y);
+    });
+    viewport.addEventListener("pointerup", function () { drag = null; });
+    viewport.addEventListener("pointercancel", function () { drag = null; });
+    fit();
+  }
+  $("diagram-close").addEventListener("click", function () { $("diagram-dialog").close(); });
+  $("diagram-dialog").addEventListener("close", function () {
+    var d = expandedDiagram;
+    if (!d) return;
+    d.marker.replaceWith(d.shell);
+    d.trigger.hidden = false;
+    expandedDiagram = null;
+    d.fit();
+    d.trigger.focus();
+  });
+
+  function wireFilters() {
+    function filterFeatures() {
+      var q = $("feature-search").value.toLowerCase().trim(), status = $("feature-status").value, count = 0;
+      var cards = $("catalog-grid").querySelectorAll(".feat-card");
+      cards.forEach(function (c) { c.hidden = c.dataset.search.indexOf(q) < 0 || !!(status && c.dataset.status !== status); if (!c.hidden) count++; });
+      $("feature-count").textContent = count + " of " + cards.length + " features";
+      $("feature-empty").hidden = count > 0 || cards.length === 0;
+    }
+    $("feature-search").addEventListener("input", filterFeatures);
+    $("feature-status").addEventListener("change", filterFeatures);
+    $("feature-reset").addEventListener("click", function () { $("feature-search").value = ""; $("feature-status").value = ""; filterFeatures(); });
+    filterFeatures();
+    function filterStates() {
+      var q = $("state-search").value.toLowerCase().trim(), count = 0;
+      var cards = $("state-grid").querySelectorAll(".entity-card");
+      cards.forEach(function (c) { c.hidden = c.dataset.search.indexOf(q) < 0; if (!c.hidden) count++; });
+      $("state-count").textContent = count + " of " + cards.length + " entities";
+      $("state-empty").hidden = count > 0 || cards.length === 0;
+    }
+    $("state-search").addEventListener("input", filterStates);
+    filterStates();
+    $("count-arch").textContent = ((P.arch || {}).nodes || []).length + " modules · " + ((P.arch || {}).edges || []).length + " relationships";
+    $("count-catalog").textContent = featCount + " documented features";
+    $("count-data").textContent = ((P.state || {}).entities || []).length + " state machines";
+    $("count-change").textContent = ((P.change || {}).commits || []).length + " commits in snapshot";
+  }
+
   // ---------- boot ----------
   try {
     renderArch();
     renderCatalog();
     renderData();
     renderChange();
+    wireFilters();
     if (SERVER_MODE) {
       fetch("/api/annotations").then(function (res) { return res.json(); })
         .then(function (doc) {

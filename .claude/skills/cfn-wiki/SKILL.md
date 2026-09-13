@@ -28,6 +28,39 @@ No args prints usage to stderr and exits 2; an unknown command exits 64.
 | `lint` | `[dir]` | Lint generated wiki pages + projections for contract violations (missing Source grounding, bad status tokens, missing sections). | 0 clean, 1 violations |
 | `stop` | | Stop a running portal server and clear `.wiki/cache/serve.pid`. | 0 stopped, 1 not running |
 
+## Portal experience
+
+The portal is a codebase reference with four linked views: Architecture,
+Features, Data & State, and Change Story. View URLs use `#arch`, `#catalog`,
+`#data`, and `#change`; arrow keys move between tabs.
+
+- Architecture pairs the dependency graph with a module index searchable by
+  module name or source file. Selecting a module highlights its connections
+  and shows source files, related modules, and notes. Node size represents
+  indexed symbols; edge width represents relationship weight.
+- Features can be searched by name, description, or file and filtered by
+  maturity. Reset clears both filters.
+- Data & State gives ER and state diagrams dedicated canvases. Each offers
+  Fit, 100%, zoom, and Expand controls. Drag or scroll to pan; a focused
+  canvas also accepts `+`, `-`, and `0` (Fit). Escape closes the expanded
+  diagram and restores focus. Diagram paper stays light in both themes so
+  pre-rendered Mermaid colors remain legible.
+- State machines are searchable by entity, source, state, trigger, or guard.
+  Transition tables remain available below SVG diagrams and serve as the
+  fallback when Mermaid rendering is unavailable.
+- Notes autosave through the local annotation server. Save errors retain
+  the draft and show feedback; file-based viewing disables editing.
+  Theme choice is saved locally in the browser.
+
+Keep the portal self-contained and preserve the existing payload, Mermaid
+pre-rendering, and annotation API contracts when changing its UI.
+
+Browser regression coverage: `node tests/test-wiki-portal-ui.cjs` with
+Playwright installed. `PLAYWRIGHT_MODULE` may point to an existing module,
+and `CHROME_PATH` may select an installed Chrome executable. Tests use
+throwaway wiki data and ephemeral servers, including SVG and table fallback
+cases. The build/server suite remains `bash tests/test-wiki-portal.sh`.
+
 ## Environment
 
 `.claude/skills/cfn-wiki/lib/wiki-env.sh` is the sole exporter of
