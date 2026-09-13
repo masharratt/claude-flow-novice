@@ -604,6 +604,11 @@ case_change_window() {
     GIT_AUTHOR_DATE="$d_now" GIT_COMMITTER_DATE="$d_now" \
         git -C "$REPO" commit -qm "scratch util tweak"
 
+    # stage the never-committed sources: tracked for feature identity (src
+    # must exist as a feature), but no commit ever touches them, so src keeps
+    # a zero-commit story entry
+    git -C "$REPO" add src main.py service.py
+
     bash -c '
         set -uo pipefail
         source "$1/extract-features.sh"

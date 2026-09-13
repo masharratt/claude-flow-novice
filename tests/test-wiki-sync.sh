@@ -295,9 +295,13 @@ case_sessionstart_warn() {
     make_git_repo "$REPO"
     run_in "$LIB/sync.sh" wiki_sync "$REPO" >/dev/null 2>&1 || { no "sessionstart-warn: sync failed"; return; }
 
-    # stale the tree behind the store: new source dir, no sync
+    # stale the tree behind the store: new source dir, no sync. Stage it:
+    # the canonical enumerator tracks git state, so the drift signal is the
+    # tracked set growing behind the projections (untracked-only files are
+    # never wiki content).
     mkdir -p "$REPO/fresh"
     printf 'x = 1\n' >"$REPO/fresh/mod.py"
+    git -C "$REPO" add fresh/mod.py
     local out err rc=0
     CLAUDE_PROJECT_DIR="$REPO" bash "$NOTIFY" >"$T/notify.out" 2>"$T/notify.err" || rc=$?
     out="$(cat "$T/notify.out")"; err="$(cat "$T/notify.err")"

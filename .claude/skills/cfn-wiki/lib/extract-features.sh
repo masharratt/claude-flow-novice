@@ -54,15 +54,21 @@
 #      features[] fids/files/entrypoints, so a snapshot store and a
 #      degraded store of the same tree are fingerprint-identical.
 #
-# File enumeration (dual mode):
-#   - Inside a git worktree: tracked files only (git ls-files). Untracked and
+# File enumeration (three modes):
+#   - tracked-git: inside a git worktree whose tracked set is non-empty.
+#     Tracked files only (git ls-files; staged files count). Untracked and
 #     gitignored files are local machine state; they must never enter
 #     features[]/entrypoints, so a dirty worktree fingerprints identically
 #     to a clean clone. Snapshot-only paths are also kept out of the module
 #     set in this mode (CBM may have indexed untracked files).
-#   - Not a git worktree (plain dirs, test temp copies): raw filesystem
-#     walk, skipping EXCLUDE_DIRS and junk extensions, with the snapshot
-#     paths unioned into the module set as before.
+#   - empty-git-fallback: inside a worktree but with an EMPTY tracked set
+#     (git init without staging/commits). Git's view carries no content, so
+#     extraction falls back to the filesystem walk exactly as non-git.
+#   - non-git: not a worktree (or git missing). Raw filesystem walk, skipping
+#     EXCLUDE_DIRS and junk extensions, with the snapshot paths unioned into
+#     the module set.
+#   The two fallback modes behave identically; they are named separately only
+#   to make the mode decision explicit.
 #
 # Modules group usable-path snapshot nodes (or, degraded, the file tree) by
 # top-level directory; repo-root files each form their own module named by
@@ -151,7 +157,7 @@ def entry_name(rel):
     return stem in ENTRY_STEMS
 
 
-# --- canonical file enumeration (dual mode, see header) ----------------------
+# --- canonical file enumeration (three modes, see header) --------------------
 git_mode = True
 try:
     tracked = subprocess.run(
@@ -160,6 +166,10 @@ try:
 except (OSError, subprocess.CalledProcessError):
     git_mode = False
     tracked = b""
+if git_mode and not any(tracked.split(b"\0")):
+    # empty-git-fallback: a worktree with zero tracked entries (init without
+    # staging) has no canonical git content; treat it as non-git.
+    git_mode = False
 if git_mode:
     files = sorted({p.decode("utf-8", "surrogateescape").replace("\\", "/")
                     for p in tracked.split(b"\0") if p})

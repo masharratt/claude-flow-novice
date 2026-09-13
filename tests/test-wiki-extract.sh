@@ -487,6 +487,66 @@ case_worktree_dirt_invariant() {
 }
 
 # ---------------------------------------------------------------------------
+case_empty_git_fallback() {
+    # empty-git-fallback mode: git init with NOTHING staged or committed has
+    # an empty tracked set; git's view carries no content, so extraction must
+    # fall back to the filesystem walk and yield the same features as a
+    # non-git copy. Staging switches to tracked-git mode (staged counts as
+    # tracked); committing keeps the tracked set (and the fp) unchanged.
+    local REPO_E="$T/fx-$$_e"
+    make_repo_copy_tree "$REPO_E"
+    git -C "$REPO_E" init -q
+    git -C "$REPO_E" config user.email empty-git@example.com
+    git -C "$REPO_E" config user.name "Empty Git"
+
+    local store="$REPO_E/.wiki/store.json"
+    if run_extract "$REPO_E" >"$T/extract-e1.log" 2>&1; then
+        ok "empty-git: zero-track extract exit 0"
+    else
+        no "empty-git: zero-track extract failed: $(tail -5 "$T/extract-e1.log")"
+        return
+    fi
+    local fids_walk
+    fids_walk=$(store_val "$store" "','.join(f['fid'] for f in s['features'])")
+    case ",$fids_walk," in
+        *,parsing,*reporting,*)
+            ok "empty-git: zero-track repo still yields tree features ($fids_walk)" ;;
+        *) no "empty-git: zero-track features empty/wrong: $fids_walk" ;;
+    esac
+
+    # staging without committing: staged files are tracked
+    git -C "$REPO_E" add parsing reporting src main.py service.py util.py
+    if run_extract "$REPO_E" >"$T/extract-e2.log" 2>&1; then
+        ok "empty-git: staged extract exit 0"
+    else
+        no "empty-git: staged extract failed: $(tail -5 "$T/extract-e2.log")"
+        return
+    fi
+    local fids_staged fp_staged
+    fids_staged=$(store_val "$store" "','.join(f['fid'] for f in s['features'])")
+    fp_staged=$(fp_of "$store")
+    [ "$fids_staged" = "$fids_walk" ] \
+        && ok "empty-git: staged features match walk features ($fids_staged)" \
+        || no "empty-git: staged fids differ ($fids_staged vs $fids_walk)"
+
+    # committing does not change the tracked set: same features; the new
+    # commit does add git coupling, which is canonical content
+    git -C "$REPO_E" commit -qm "baseline"
+    if run_extract "$REPO_E" >"$T/extract-e3.log" 2>&1; then
+        local fids_committed
+        fids_committed=$(store_val "$store" "','.join(f['fid'] for f in s['features'])")
+        if [ "$fids_committed" = "$fids_staged" ] \
+            && [ "$(store_val "$store" "len(s['coupling'])")" -gt 0 ]; then
+            ok "empty-git: commit keeps features, adds coupling (canonical)"
+        else
+            no "empty-git: post-commit fids/coupling wrong ($fids_committed)"
+        fi
+    else
+        no "empty-git: committed extract failed"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 case_fp_stable() {
     if [ ! -f "$LIB/fingerprint.sh" ]; then no "fp-stable: lib/fingerprint.sh exists"; return; fi
     ok "fp-stable: lib/fingerprint.sh exists"
@@ -796,6 +856,7 @@ case_fp_stable
 case_fp_mode_invariant
 case_features_mode_invariant
 case_worktree_dirt_invariant
+case_empty_git_fallback
 case_minimal_schema_snapshot
 case_real_shape_snapshot
 case_extract_fixture
