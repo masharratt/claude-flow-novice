@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-09-13 (nitpicky 1.3.0: bulk triage, dup clustering, coverage, redaction) | **Version:** 2.21.0 | **Status:** Production
+**Last Updated:** 2026-09-13 (nitpicky extracted to public repo masharratt/nitpicky-ui, symlinked) | **Version:** 2.21.0 | **Status:** Production
 
 ## Status Legend
 
@@ -132,7 +132,7 @@ This file MUST be updated when:
 | cfn-validation-framework | ✅ Prod | ✅ | `cfn-validation-framework/` | Test validation |
 | cfn-edit-safety | ✅ Prod | ✅ 17/17 | `cfn-edit-safety/` | Pre/post-edit backup and validation pipeline. Post-edit validators (TS/ESLint/Prettier/shellcheck/cargo check) run non-blocking in a warning bucket; missing tools SKIP. 12 jest tests; hook suite 152 passed. Phase 2.7 wires cargo check. (CHANGELOG.md) |
 | cfn-persona-verify | ⚠️ Beta | ✅ 21/21 | `cfn-persona-verify/` | Role-coherence gate: flags builds that are tests-green but nonsense for the actor (e.g. manager with no approval capability). 21 negative controls enforce the schema. Wired into cfn-loop-task Phase 4 gate (frontend=yes AND role docs). Observe-only by default. (CHANGELOG.md) |
-| nitpicky (pre-launch review portal) | dev | ✅ 70/70 | `nitpicky/` | Launch-readiness walkthrough: isolated-browser lens agents screenshot every page/state; merge flags contaminated evidence, clusters cross-lens duplicates, reports coverage, scrubs secrets; portal persists fix/deny/defer + bulk decisions to disk; Export writes hand-off CHECKLIST.md. |
+| nitpicky (pre-launch review portal) | dev | ✅ 70/70 | `nitpicky/` → [masharratt/nitpicky-ui](https://github.com/masharratt/nitpicky-ui) | Launch-readiness walkthrough: isolated-browser lens agents screenshot every page/state; merge flags contaminated evidence, clusters cross-lens duplicates, reports coverage, scrubs secrets; portal persists fix/deny/defer + bulk decisions to disk; Export writes hand-off CHECKLIST.md. Public repo; local dir is a symlink — commit code changes in that repo. |
 
 ### Planning & Management Skills
 
