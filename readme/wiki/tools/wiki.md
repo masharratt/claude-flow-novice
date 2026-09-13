@@ -20,5 +20,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=tools fp=54c415e9e7e8ce000c0e65df9897f2ac593b6d873b18c0da5389b2fb1c5df3ce -->
-_No curated description yet. Edit this wiki:enrich block to describe tools._
+**Status:** dev
+**Description:** React Flow web app that renders the CFN pipeline as an interactive graph with categorized nodes, states and costs for developers tracing the workflow.
 <!-- /wiki:enrich -->

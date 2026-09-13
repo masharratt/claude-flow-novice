@@ -14,5 +14,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=templates fp=e0ffe622344898c9e33ef25463d0b0fcb61dbda518e6a3549598a532c5a3a32f -->
-_No curated description yet. Edit this wiki:enrich block to describe templates._
+**Status:** stub
+**Description:** Starter TypeScript template wiring SQLite, Postgres and Redis for new CFN integrations. Deliberate scaffolding with placeholder logic, not working product code.
 <!-- /wiki:enrich -->

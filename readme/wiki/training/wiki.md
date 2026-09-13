@@ -14,5 +14,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=training fp=edd7caa9200b4220a1495622c3ceee6e46c9f9cac02d703b3206dff8bfd6e722 -->
-_No curated description yet. Edit this wiki:enrich block to describe training._
+**Status:** stub
+**Description:** Training examples demonstrating database integration patterns with typed errors for onboarding. Reference material only, a single example present, not production code.
 <!-- /wiki:enrich -->

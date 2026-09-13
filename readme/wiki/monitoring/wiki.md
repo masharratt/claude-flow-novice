@@ -21,5 +21,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=monitoring fp=b844ee9a5275118ec6ff53b2ee306c6b454d48cac4fac961a04e48b91735869d -->
-_No curated description yet. Edit this wiki:enrich block to describe monitoring._
+**Status:** dev
+**Description:** Express dashboard API and shell monitors that track CFN container teams, Redis task state, Docker health and agent costs, including sprint cost tracking and anomaly detection.
 <!-- /wiki:enrich -->

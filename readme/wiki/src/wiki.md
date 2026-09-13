@@ -57,5 +57,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=src fp=6540664b23f61e936f424c967d6433345d0ca2416fa6d018c33bd7860a5a47cd -->
-_No curated description yet. Edit this wiki:enrich block to describe src._
+**Status:** dev
+**Description:** Core TypeScript for the CFN loop: GOAP planners for agent selection, orchestration and error recovery, a dependency extractor and product owner decision logic.
 <!-- /wiki:enrich -->

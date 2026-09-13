@@ -259,5 +259,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=packages fp=0585d277fdbe6703e03d3b2e186f1745fac254343b7486a1a97e33ee184e5245 -->
-_No curated description yet. Edit this wiki:enrich block to describe packages._
+**Status:** dev
+**Description:** Web portal and component library for observing CFN agent fleets: Express and Socket.IO APIs over Redis, a React client and reusable dashboard components, most with tests.
 <!-- /wiki:enrich -->

@@ -27,5 +27,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=api-gateway fp=d7c568d77a3888a80e901a0b840b41cd88d2bae9b2b1ac6a4c8bb43b92d6e35d -->
-_No curated description yet. Edit this wiki:enrich block to describe api-gateway._
+**Status:** dev
+**Description:** Express JWT authentication service that issues, refreshes, revokes and validates access tokens with Redis backing, rate limiting and shell test suites for gateway callers.
 <!-- /wiki:enrich -->

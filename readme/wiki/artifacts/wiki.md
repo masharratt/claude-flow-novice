@@ -16,5 +16,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=artifacts fp=d3dcbe4134b7a52e936dfcbf2aac020384f4228406e0c89a1440698827af7673 -->
-_No curated description yet. Edit this wiki:enrich block to describe artifacts._
+**Status:** dev
+**Description:** Storage area for agent task outputs: project scope schema SQL with validation queries and example agent workspace deliverables. Mostly one-off outputs, not maintained product code.
 <!-- /wiki:enrich -->

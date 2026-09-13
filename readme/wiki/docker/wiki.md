@@ -72,5 +72,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=docker fp=2fd432e94aa6758bd5192fbc022741f7ef81dd46b0c883b56128e5c2257593fa -->
-_No curated description yet. Edit this wiki:enrich block to describe docker._
+**Status:** dev
+**Description:** Docker images, coordinator services and provisioning scripts that run CFN Loop agent teams in isolated containers, with a documented env contract, memory tiers and runtime settings.
 <!-- /wiki:enrich -->

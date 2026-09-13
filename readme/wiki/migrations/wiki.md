@@ -16,5 +16,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=migrations fp=1ab2ea2d8f69f661d1d7095599c967c5e7f7b8ddaf76b182cc755650c5ff5a83 -->
-_No curated description yet. Edit this wiki:enrich block to describe migrations._
+**Status:** dev
+**Description:** PostgreSQL migrations tuning the coordination database: agent table indexes, materialized views for cost aggregation and a tamper-evident audit log table.
 <!-- /wiki:enrich -->

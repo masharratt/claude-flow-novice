@@ -14,5 +14,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=database fp=d64c3e7409d072f25c6bc60bc6c53553b38ae1456c32b4ccd1fe76ccabe84805 -->
-_No curated description yet. Edit this wiki:enrich block to describe database._
+**Status:** dev
+**Description:** PostgreSQL schema for hierarchical scope management, defining scopes, boundaries and relationships with constraint checks. Standalone schema from a completed sprint task.
 <!-- /wiki:enrich -->

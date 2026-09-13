@@ -32,5 +32,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=deployment fp=bf4dc11a474fe765e4e7560203e19815b9dfbc7a1eddf5e7c847b110a6d85ae8 -->
-_No curated description yet. Edit this wiki:enrich block to describe deployment._
+**Status:** dev
+**Description:** Shell scripts that deploy CFN C-suite agent teams across environments with canary rollout, rollback, migration runs and org-wide coordination tests for operators.
 <!-- /wiki:enrich -->

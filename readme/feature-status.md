@@ -39,97 +39,113 @@
 ### api-gateway
 
 <!-- wiki:enrich id=api-gateway fp=d7c568d77a3888a80e901a0b840b41cd88d2bae9b2b1ac6a4c8bb43b92d6e35d -->
-_No curated description yet. Edit this wiki:enrich block to describe api-gateway._
+**Status:** dev
+**Description:** Express JWT authentication service that issues, refreshes, revokes and validates access tokens with Redis backing, rate limiting and shell test suites for gateway callers.
 <!-- /wiki:enrich -->
 
 ### artifacts
 
 <!-- wiki:enrich id=artifacts fp=d3dcbe4134b7a52e936dfcbf2aac020384f4228406e0c89a1440698827af7673 -->
-_No curated description yet. Edit this wiki:enrich block to describe artifacts._
+**Status:** dev
+**Description:** Storage area for agent task outputs: project scope schema SQL with validation queries and example agent workspace deliverables. Mostly one-off outputs, not maintained product code.
 <!-- /wiki:enrich -->
 
 ### benchmark
 
 <!-- wiki:enrich id=benchmark fp=fc1bea1f1d98c9e0e346c9af537561da5e90613812ac4dd3051619525adb157f -->
-_No curated description yet. Edit this wiki:enrich block to describe benchmark._
+**Status:** dev
+**Description:** Benchmark suite measuring CFN infrastructure options: Node versus Rust message bus throughput, agent messaging latency, load tests and spawn cost, driven by one runner script.
 <!-- /wiki:enrich -->
 
 ### config
 
 <!-- wiki:enrich id=config fp=d97ebba8982315083386c4c0220acc5a33b7a0505472828c7499a76c6ff790f6 -->
-_No curated description yet. Edit this wiki:enrich block to describe config._
+**Status:** dev
+**Description:** Redis connection module offering client creation with retry strategy, health checks and fallback URLs, plus unit tests. Used by CFN services needing shared Redis setup.
 <!-- /wiki:enrich -->
 
 ### database
 
 <!-- wiki:enrich id=database fp=d64c3e7409d072f25c6bc60bc6c53553b38ae1456c32b4ccd1fe76ccabe84805 -->
-_No curated description yet. Edit this wiki:enrich block to describe database._
+**Status:** dev
+**Description:** PostgreSQL schema for hierarchical scope management, defining scopes, boundaries and relationships with constraint checks. Standalone schema from a completed sprint task.
 <!-- /wiki:enrich -->
 
 ### deployment
 
 <!-- wiki:enrich id=deployment fp=bf4dc11a474fe765e4e7560203e19815b9dfbc7a1eddf5e7c847b110a6d85ae8 -->
-_No curated description yet. Edit this wiki:enrich block to describe deployment._
+**Status:** dev
+**Description:** Shell scripts that deploy CFN C-suite agent teams across environments with canary rollout, rollback, migration runs and org-wide coordination tests for operators.
 <!-- /wiki:enrich -->
 
 ### docker
 
 <!-- wiki:enrich id=docker fp=2fd432e94aa6758bd5192fbc022741f7ef81dd46b0c883b56128e5c2257593fa -->
-_No curated description yet. Edit this wiki:enrich block to describe docker._
+**Status:** dev
+**Description:** Docker images, coordinator services and provisioning scripts that run CFN Loop agent teams in isolated containers, with a documented env contract, memory tiers and runtime settings.
 <!-- /wiki:enrich -->
 
 ### lib
 
 <!-- wiki:enrich id=lib fp=1bbfb6fc01b5096f503b15a14f259f3ffb980b877e9fea1257ce30282278f43d -->
-_No curated description yet. Edit this wiki:enrich block to describe lib._
+**Status:** dev
+**Description:** MDAP TypeScript library that decomposes coding tasks by domain, implements them through the GLM model and validates results in gate-checked iterations, with secure execution helpers.
 <!-- /wiki:enrich -->
 
 ### migrations
 
 <!-- wiki:enrich id=migrations fp=1ab2ea2d8f69f661d1d7095599c967c5e7f7b8ddaf76b182cc755650c5ff5a83 -->
-_No curated description yet. Edit this wiki:enrich block to describe migrations._
+**Status:** dev
+**Description:** PostgreSQL migrations tuning the coordination database: agent table indexes, materialized views for cost aggregation and a tamper-evident audit log table.
 <!-- /wiki:enrich -->
 
 ### monitoring
 
 <!-- wiki:enrich id=monitoring fp=b844ee9a5275118ec6ff53b2ee306c6b454d48cac4fac961a04e48b91735869d -->
-_No curated description yet. Edit this wiki:enrich block to describe monitoring._
+**Status:** dev
+**Description:** Express dashboard API and shell monitors that track CFN container teams, Redis task state, Docker health and agent costs, including sprint cost tracking and anomaly detection.
 <!-- /wiki:enrich -->
 
 ### packages
 
 <!-- wiki:enrich id=packages fp=0585d277fdbe6703e03d3b2e186f1745fac254343b7486a1a97e33ee184e5245 -->
-_No curated description yet. Edit this wiki:enrich block to describe packages._
+**Status:** dev
+**Description:** Web portal and component library for observing CFN agent fleets: Express and Socket.IO APIs over Redis, a React client and reusable dashboard components, most with tests.
 <!-- /wiki:enrich -->
 
 ### planning
 
 <!-- wiki:enrich id=planning fp=6efcb16208864720c81be53fea6b99b01c1c923c43e7b80c1f50882222073f0f -->
-_No curated description yet. Edit this wiki:enrich block to describe planning._
+**Status:** dev
+**Description:** Working store of CFN planning artifacts for each epic: phase and sprint reports, completed epic test harnesses, megaplan dry-run scripts and archived migration work.
 <!-- /wiki:enrich -->
 
 ### src
 
 <!-- wiki:enrich id=src fp=6540664b23f61e936f424c967d6433345d0ca2416fa6d018c33bd7860a5a47cd -->
-_No curated description yet. Edit this wiki:enrich block to describe src._
+**Status:** dev
+**Description:** Core TypeScript for the CFN loop: GOAP planners for agent selection, orchestration and error recovery, a dependency extractor and product owner decision logic.
 <!-- /wiki:enrich -->
 
 ### templates
 
 <!-- wiki:enrich id=templates fp=e0ffe622344898c9e33ef25463d0b0fcb61dbda518e6a3549598a532c5a3a32f -->
-_No curated description yet. Edit this wiki:enrich block to describe templates._
+**Status:** stub
+**Description:** Starter TypeScript template wiring SQLite, Postgres and Redis for new CFN integrations. Deliberate scaffolding with placeholder logic, not working product code.
 <!-- /wiki:enrich -->
 
 ### tools
 
 <!-- wiki:enrich id=tools fp=54c415e9e7e8ce000c0e65df9897f2ac593b6d873b18c0da5389b2fb1c5df3ce -->
-_No curated description yet. Edit this wiki:enrich block to describe tools._
+**Status:** dev
+**Description:** React Flow web app that renders the CFN pipeline as an interactive graph with categorized nodes, states and costs for developers tracing the workflow.
 <!-- /wiki:enrich -->
 
 ### training
 
 <!-- wiki:enrich id=training fp=edd7caa9200b4220a1495622c3ceee6e46c9f9cac02d703b3206dff8bfd6e722 -->
-_No curated description yet. Edit this wiki:enrich block to describe training._
+**Status:** stub
+**Description:** Training examples demonstrating database integration patterns with typed errors for onboarding. Reference material only, a single example present, not production code.
 <!-- /wiki:enrich -->
 
 ## Appendix. Imported notes (unmatched)

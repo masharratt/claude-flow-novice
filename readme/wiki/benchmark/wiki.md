@@ -22,5 +22,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=benchmark fp=fc1bea1f1d98c9e0e346c9af537561da5e90613812ac4dd3051619525adb157f -->
-_No curated description yet. Edit this wiki:enrich block to describe benchmark._
+**Status:** dev
+**Description:** Benchmark suite measuring CFN infrastructure options: Node versus Rust message bus throughput, agent messaging latency, load tests and spawn cost, driven by one runner script.
 <!-- /wiki:enrich -->

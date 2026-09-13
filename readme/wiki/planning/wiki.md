@@ -40,5 +40,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=planning fp=6efcb16208864720c81be53fea6b99b01c1c923c43e7b80c1f50882222073f0f -->
-_No curated description yet. Edit this wiki:enrich block to describe planning._
+**Status:** dev
+**Description:** Working store of CFN planning artifacts for each epic: phase and sprint reports, completed epic test harnesses, megaplan dry-run scripts and archived migration work.
 <!-- /wiki:enrich -->

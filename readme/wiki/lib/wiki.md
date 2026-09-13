@@ -29,5 +29,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=lib fp=1bbfb6fc01b5096f503b15a14f259f3ffb980b877e9fea1257ce30282278f43d -->
-_No curated description yet. Edit this wiki:enrich block to describe lib._
+**Status:** dev
+**Description:** MDAP TypeScript library that decomposes coding tasks by domain, implements them through the GLM model and validates results in gate-checked iterations, with secure execution helpers.
 <!-- /wiki:enrich -->

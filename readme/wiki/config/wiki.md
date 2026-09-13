@@ -15,5 +15,6 @@
 No co-change pairs recorded for these files.
 
 <!-- wiki:enrich id=config fp=d97ebba8982315083386c4c0220acc5a33b7a0505472828c7499a76c6ff790f6 -->
-_No curated description yet. Edit this wiki:enrich block to describe config._
+**Status:** dev
+**Description:** Redis connection module offering client creation with retry strategy, health checks and fallback URLs, plus unit tests. Used by CFN services needing shared Redis setup.
 <!-- /wiki:enrich -->
