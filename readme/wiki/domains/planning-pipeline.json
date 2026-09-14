@@ -2,12 +2,14 @@
   "id": "planning-pipeline",
   "name": "Planning Pipeline",
   "purpose": "Decomposes epics into sprint tasks and gates plans behind executable acceptance criteria before implementation starts.",
-  "capabilities": [],
+  "capabilities": [
+    "plan-gates",
+    "work-decomposition"
+  ],
   "entities": [],
   "shared_contracts": [],
   "unknowns": [
-    "Domain page is map-derived, not yet source-reviewed.",
-    "capabilities list is intentionally empty: plan-gates and work-decomposition are pending their own acceptance and join this list as they land."
+    "Domain page is map-derived, not yet source-reviewed."
   ],
   "status_reason": "; verified against sources 2026-09-14 (map-run verify pass)",
   "evidence": [

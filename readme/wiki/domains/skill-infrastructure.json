@@ -2,12 +2,14 @@
   "id": "skill-infrastructure",
   "name": "Skill Infrastructure and Enforcement",
   "purpose": "Propagates reviewed skills to every project sharing this repo and enforces edit, spawn and doc rules through hooks.",
-  "capabilities": [],
+  "capabilities": [
+    "edit-safety-hooks",
+    "skill-propagation"
+  ],
   "entities": [],
   "shared_contracts": [],
   "unknowns": [
-    "Domain page is map-derived, not yet source-reviewed.",
-    "capabilities list is intentionally empty: skill-propagation and edit-safety-hooks are pending their own acceptance and join this list as they land."
+    "Domain page is map-derived, not yet source-reviewed."
   ],
   "status_reason": "; verified against sources 2026-09-14 (map-run verify pass)",
   "evidence": [

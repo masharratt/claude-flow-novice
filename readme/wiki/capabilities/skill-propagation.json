@@ -61,25 +61,25 @@
       "path": ".claude/skills/cfn-skill-management/lib/propagation/src/skill-propagator.ts",
       "line": 29,
       "claim": "SkillPropagator.propagate() is the TypeScript mirror of the same 8-step workflow over injected FileSystemAdapter/DatabaseAdapter/Logger: each failed validation throws Error (validation, skill-not-found, version, content-hash) instead of exiting; metadata fields fall back to existing DB values; step 8 notify runs only when options.notifyAgents or enableAgentNotifications is set; it returns a PropagationResult with old/new version, change type, hash, metadata and affectedAgents.",
-      "sha256": "770a03999ca634aee33943755e68cebe503d3450b4535775d0119206ed37ebde"
+      "sha256": "4169fe6cb71e1a52aa7e36cb299434acc1c3fc9e4c8ae82e835408779f3ad89b"
     },
     {
       "path": ".claude/skills/cfn-skill-management/lib/propagation/src/skill-propagator.ts",
       "line": 187,
       "claim": "updateSkillRecord builds a dynamic 'UPDATE skills SET <keys>, updated_at = datetime(now) WHERE id = ?' from the updates object, and recordApprovalHistory (line 209) INSERTs into approval_history with source 'propagate-skill-update' and reasoning 'Skill update propagated through automated workflow' - the same registry-only write as the shell twin.",
-      "sha256": "770a03999ca634aee33943755e68cebe503d3450b4535775d0119206ed37ebde"
+      "sha256": "4169fe6cb71e1a52aa7e36cb299434acc1c3fc9e4c8ae82e835408779f3ad89b"
     },
     {
       "path": ".claude/skills/cfn-skill-management/lib/propagation/src/skill-validator.ts",
       "line": 17,
       "claim": "validateParameters accumulates all errors into one ValidationResult (missing skillName/newVersion/updatePath, name regex, VersionManager.isValidVersion MAJOR.MINOR.PATCH, changeType restricted to patch/minor/major, file exists+readable, and DB present at options.databasePath or the './.claude/skills-database/skills.db' default); validateSkillExists wraps its COUNT query in try/catch returning false on any DB error.",
-      "sha256": "872f7c13e2508beb7ef9a5e3b0dfd1b1a804b750a2682880c426ed31f3a1d674"
+      "sha256": "be34ee67550653b663d006b512b0e4c88d17545aa7e23a97673d1c3a7e16d656"
     },
     {
       "path": ".claude/skills/cfn-skill-management/lib/propagation/src/skill-validator.ts",
       "line": 96,
       "claim": "validateVersionIncrement rejects 'same' (version unchanged) and 'downgrade' outright and errors when the detected change type differs from expected; validateContentHashChanged (line 162) rejects an identical old/new hash ('no actual content changes detected'), and validateSkillStructure (line 144) only checks that <skillPath>/SKILL.md exists.",
-      "sha256": "872f7c13e2508beb7ef9a5e3b0dfd1b1a804b750a2682880c426ed31f3a1d674"
+      "sha256": "be34ee67550653b663d006b512b0e4c88d17545aa7e23a97673d1c3a7e16d656"
     }
   ],
   "evidence": [

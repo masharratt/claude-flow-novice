@@ -101,6 +101,8 @@
     "bcad0af8c13f592041d8dd4808c60edd",
     "3287522f6968ddb9d9954b46161bc27e"
   ],
-  "domains": [],
+  "domains": [
+    "delivery-loop"
+  ],
   "unknowns": []
 }

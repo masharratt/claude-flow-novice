@@ -49,25 +49,25 @@
       "path": "lib/mdap/decomposers/architecture.ts",
       "line": 53,
       "claim": "decomposeArchitecture is the baseline decomposer (ArchitectureDecomposerPayload.previousContext?: never - runs first with no prior context); its prompt asks an expert-architect persona for atomic microTasks (id/title/description/priority/rationale/dependencies), recommendations, components (service|api|database|frontend|middleware|gateway with responsibilities/dependencies) and boundaries (sync|async|event|data with protocol/constraints), demanding comment-free strict JSON, then calls callGLMWithThinking at temperature 0.7.",
-      "sha256": "4a9aecc31ea4db6e92a0993eacbb5a21b4961b65576a4670f4a501a382090068"
+      "sha256": "e1436dde68d0e18557f75a4325f1eb332867758990af912f95e9e04aecb3e5c5"
     },
     {
       "path": "lib/mdap/implementer.ts",
       "line": 227,
       "claim": "parseFixInstructions extracts JSON from the model response and rejects it unless fixes is an array whose entries have line >= 1, action in replace/insert_before/insert_after/delete, and content defined for every action except delete - this is the deterministic validation layer between LLM output and patch application.",
-      "sha256": "9cf48e542694728117d8d1eb45bff3067599c297869836e749f1cbc8b40a6868"
+      "sha256": "0b911098f5ff7b39c712d3c4d494d3caa28dcdcde2a7fe8751f105eda96550a7"
     },
     {
       "path": "lib/mdap/implementer.ts",
       "line": 268,
       "claim": "buildImplementationPrompt has three shapes: rawOutput mode passes the task description through untouched; diff mode builds an error-fixing prompt with per-error line/code/message (+suggestion), error-region code context via extractErrorContext, related files truncated to 1500 chars, the exact JSON fixes format, and language-specific guidance (TS2304/TS2339/TS2345/TS2322 for TypeScript, E0599/E0560/E0308/E0277/E0382 for Rust).",
-      "sha256": "9cf48e542694728117d8d1eb45bff3067599c297869836e749f1cbc8b40a6868"
+      "sha256": "0b911098f5ff7b39c712d3c4d494d3caa28dcdcde2a7fe8751f105eda96550a7"
     },
     {
       "path": "lib/mdap/implementer.ts",
       "line": 469,
       "claim": "implement() in diff mode runs a while retryCount <= MAX_DIFF_RETRIES loop: first attempt uses buildImplementationPrompt, retries use buildNackPrompt (which reports syntax-invalid bracket imbalance, each failed fix with reason, the previous fixes JSON and the original errors); each attempt calls callGLMFast (maxTokens 2048, temperature 0.3, thinking disabled for fast implementation), parses fixes, applies them via lazily-imported diff-applicator applyFixes, and breaks only when result.success && syntaxValid.",
-      "sha256": "9cf48e542694728117d8d1eb45bff3067599c297869836e749f1cbc8b40a6868"
+      "sha256": "0b911098f5ff7b39c712d3c4d494d3caa28dcdcde2a7fe8751f105eda96550a7"
     },
     {
       "path": "lib/mdap/secure-execution.ts",

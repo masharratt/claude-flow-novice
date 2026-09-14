@@ -31,79 +31,79 @@
       "path": "packages/web-portal/src/server/routes/api/agents.ts",
       "line": 19,
       "claim": "agents.ts declares exactly three routes (GET /hierarchy, GET /:id/status, POST /:id/intervene); only intervene imports authenticateJWT and requireAdmin (line 19) - the two GETs carry no auth middleware and are public.",
-      "sha256": "c5d4a73eb53cbabfd97be6f4ac2d29a0e64357f456aa127d2dd8a82863c1471d"
+      "sha256": "bc96b6a356e1d3a58df4fb02b7bc8119624b03c3f1503c400ac2c1d573a183b0"
     },
     {
       "path": "packages/web-portal/src/server/routes/api/agents.ts",
       "line": 33,
       "claim": "GET /api/agents/hierarchy returns transparencyService.getAgentHierarchy filtered by optional status/type with Cache-Control public max-age=30 (line 43); GET /:id/status (line 61) sets no-cache headers and maps a service error whose message includes 'not found' to 404 AGENT_NOT_FOUND (line 73) instead of surfacing a 500.",
-      "sha256": "c5d4a73eb53cbabfd97be6f4ac2d29a0e64357f456aa127d2dd8a82863c1471d"
+      "sha256": "bc96b6a356e1d3a58df4fb02b7bc8119624b03c3f1503c400ac2c1d573a183b0"
     },
     {
       "path": "packages/web-portal/src/server/routes/api/agents.ts",
       "line": 82,
       "claim": "POST /:id/intervene chains authenticateJWT -> requireAdmin -> interventionRateLimiter (documented 10 req/min per IP) -> validate(params AgentIdParamSchema, body InterventionRequestSchema); it calls transparencyService.interventeAgent(id, action, reason) (line 105, spelling as in source) and returns triggeredBy req.user.userId as the audit trail; the MED-003 fix (lines 86, 102) is the added auth chain.",
-      "sha256": "c5d4a73eb53cbabfd97be6f4ac2d29a0e64357f456aa127d2dd8a82863c1471d"
+      "sha256": "bc96b6a356e1d3a58df4fb02b7bc8119624b03c3f1503c400ac2c1d573a183b0"
     },
     {
       "path": "packages/web-portal/src/server/middleware/rbac.ts",
       "line": 13,
       "claim": "ROLE_HIERARCHY ranks guest=0, user=1, service=2, admin=3; hasRole compares numeric levels (line 27), so an unknown user role scores -1 against any requirement and an unknown required role scores 999 - missing or mistyped roles fail closed.",
-      "sha256": "92eb1b8a4bb5e2ad344d69ece0f5716ca14db7727053123288fd24f5d25f1d84"
+      "sha256": "2d195ac66443e7f4e93242ae5c509c473ee7ed6a9a460fc818775d89b05d8d54"
     },
     {
       "path": "packages/web-portal/src/server/middleware/rbac.ts",
       "line": 36,
       "claim": "hasPermission grants on exact permission match, a first-segment wildcard ('agents:*' covers 'agents:read'/'agents:write', lines 50-51) or the global '*' wildcard (line 57); requirePermission (line 161) and requireAnyPermission (line 195) build on it.",
-      "sha256": "92eb1b8a4bb5e2ad344d69ece0f5716ca14db7727053123288fd24f5d25f1d84"
+      "sha256": "2d195ac66443e7f4e93242ae5c509c473ee7ed6a9a460fc818775d89b05d8d54"
     },
     {
       "path": "packages/web-portal/src/server/middleware/rbac.ts",
       "line": 67,
       "claim": "auditAuthorizationFailure logs timestamp/ip/path/method/userId/userRole/reason/required via console.warn; the production audit-service call is commented out, so the denial audit trail is console-only.",
-      "sha256": "92eb1b8a4bb5e2ad344d69ece0f5716ca14db7727053123288fd24f5d25f1d84"
+      "sha256": "2d195ac66443e7f4e93242ae5c509c473ee7ed6a9a460fc818775d89b05d8d54"
     },
     {
       "path": "packages/web-portal/src/server/middleware/rbac.ts",
       "line": 93,
       "claim": "requireRole throws 401 UNAUTHORIZED 'Authentication required' when req.user is absent (line 98) and 403 FORBIDDEN carrying requiredRole/userRole when the hierarchy level is short; requireAnyRole (line 127) is the multi-role variant, requireAdmin (line 230) is requireRole('admin'), and allowPublic (line 238) is a documented no-op next().",
-      "sha256": "92eb1b8a4bb5e2ad344d69ece0f5716ca14db7727053123288fd24f5d25f1d84"
+      "sha256": "2d195ac66443e7f4e93242ae5c509c473ee7ed6a9a460fc818775d89b05d8d54"
     },
     {
       "path": "packages/web-portal/src/api/cfn-metrics.ts",
       "line": 10,
       "claim": "CFNLoopMetrics exposes taskId, iteration, maxIterations, loop3Confidence[], loop2Consensus, productOwnerDecision ('PROCEED'|'ITERATE'|'ABORT'|'PENDING', line 16), status ('running'|'completed'|'failed'), startTime/lastUpdate and agents{loop3,loop2,productOwner}; CFNLoopEvent (line 27) types live events as iteration/confidence/consensus/decision/status.",
-      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+      "sha256": "a190ca72d695484537d21ff4aaf8997280a7165ae7e976aede4f55033f05ce47"
     },
     {
       "path": "packages/web-portal/src/api/cfn-metrics.ts",
       "line": 80,
       "claim": "getMetrics(taskId) reads Redis keys swarm:<taskId>:epic-context (line 84), success-criteria, per-agent *-*-*:confidence, consensus, product-owner-decision, iteration, status, start-time and last-update; it returns null when neither context nor success-criteria exists AND null on any thrown error, so 'task absent' and 'Redis down' are indistinguishable to the caller; defaults are maxIterations 10, decision PENDING, status running.",
-      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+      "sha256": "a190ca72d695484537d21ff4aaf8997280a7165ae7e976aede4f55033f05ce47"
     },
     {
       "path": "packages/web-portal/src/api/cfn-metrics.ts",
       "line": 167,
       "claim": "getLatestMetrics scans KEYS swarm:*:status and picks the task with the newest last-update (tasks.sort line 191, epoch fallback 1970); listActiveTasks (line 242) dedupes the same scan and swallows errors to []; clearMetrics (line 272) DELs every swarm:<taskId>:* key.",
-      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+      "sha256": "a190ca72d695484537d21ff4aaf8997280a7165ae7e976aede4f55033f05ce47"
     },
     {
       "path": "packages/web-portal/src/api/cfn-metrics.ts",
       "line": 206,
       "claim": "subscribe(taskId, cb) pSubscribes (line 214) to pattern swarm:<taskId>:* on a dedicated subscription client; mapEventType maps channel suffixes iteration/confidence/consensus/status identity, product-owner-decision -> 'decision', and any unrecognized suffix falls back to 'status'; parseMessage returns JSON.parse output or the raw string.",
-      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+      "sha256": "a190ca72d695484537d21ff4aaf8997280a7165ae7e976aede4f55033f05ce47"
     },
     {
       "path": "packages/web-portal/src/api/cfn-metrics.ts",
       "line": 258,
       "claim": "getHistoricalMetrics is an acknowledged stub: it returns only current metrics with a comment that history would need an additional Redis structure (sorted sets) - no time-window metrics exist.",
-      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+      "sha256": "a190ca72d695484537d21ff4aaf8997280a7165ae7e976aede4f55033f05ce47"
     },
     {
       "path": "packages/web-portal/src/api/cfn-metrics.ts",
       "line": 312,
       "claim": "getCFNMetricsClient (line 312) is a process-wide singleton; cfnMetricsHandler (line 322) answers 404 'Task not found' for an absent taskId (line 332) or 404 'No active tasks found' when no swarm:*:status keys exist (line 338), 500 'Internal server error' on throw; cfnMetricsWebSocketHandler (line 351) sends an initial frame then update frames per event, unsubscribes on ws close, and closes 1011 'Internal server error' on failure (line 372).",
-      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+      "sha256": "a190ca72d695484537d21ff4aaf8997280a7165ae7e976aede4f55033f05ce47"
     }
   ],
   "evidence": [

@@ -3,13 +3,14 @@
   "name": "Delivery Loop",
   "purpose": "Executes planned work through agent orchestration and refuses to call a task done until deliverable and test evidence passes its exit gates.",
   "capabilities": [
-    "task-verification"
+    "loop-orchestration",
+    "task-verification",
+    "test-result-parsing"
   ],
   "entities": [],
   "shared_contracts": [],
   "unknowns": [
-    "Domain page is map-derived, not yet source-reviewed.",
-    "capabilities list is intentionally partial: loop-orchestration and test-result-parsing are pending their own acceptance and join this list as they land."
+    "Domain page is map-derived, not yet source-reviewed."
   ],
   "status_reason": "; verified against sources 2026-09-14 (map-run verify pass)",
   "evidence": [

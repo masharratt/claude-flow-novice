@@ -73,7 +73,7 @@
       "path": "migrations/001_add_agent_indexes.sql",
       "line": 6,
       "claim": "The migration file itself is hand-run idempotent SQL: CREATE INDEX IF NOT EXISTS on agents(team_id), (status), (spawned_at), composites (team_id,status), (status,spawned_at), (team_id,spawned_at,status), and (completed_at), closed by a verification SELECT of indexname/indexdef from pg_indexes for public.agents; it neither inserts into schema_migrations nor is invoked by migrate.sh.",
-      "sha256": "40a3e7281d55ff9f8928ccac6903477c4519a549d5bc998aa8dd6e007211f719"
+      "sha256": "c5f0d3c5b15027b732643990bc5185c718d76cc9abe5eab42d6dce74a5b281a7"
     }
   ],
   "evidence": [

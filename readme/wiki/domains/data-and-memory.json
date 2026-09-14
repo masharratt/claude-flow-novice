@@ -2,11 +2,14 @@
   "id": "data-and-memory",
   "name": "Data and Memory",
   "purpose": "Persists decisions, agent memory and database schemas with scoped access and cleanup.",
-  "capabilities": [],
+  "capabilities": [
+    "agent-memory",
+    "database-sync",
+    "decision-log"
+  ],
   "entities": [],
   "shared_contracts": [],
   "unknowns": [
-    "Domain page is map-derived, not yet source-reviewed.",
-    "capabilities list is intentionally empty: decision-log, agent-memory, database-sync are pending their own acceptance and join this list as they land."
+    "Domain page is map-derived, not yet source-reviewed."
   ]
 }

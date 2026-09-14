@@ -13,55 +13,55 @@
       "path": "packages/web-components/src/components/CFNLoopDashboard/CFNLoopDashboard.tsx",
       "line": 1,
       "claim": "Imports MUI Stepper/Step/StepLabel/StepContent, Chip, @mui/lab Timeline primitives and a styles module; loopStepConfigs hardcodes the five loop steps the dashboard renders (Loop 0 Epic/Sprint 'Multi-phase orchestration', Loop 1 Phase Execution, Loop 2 Validation 'Consensus validation (>=0.90)', Loop 3 Implementation 'Primary swarm (>=0.75)', Loop 4 Product Owner 'GOAP decision gate'), each with an icon. Helpers: getConfidenceColor returns success at >= threshold, warning at >= 0.8x threshold, else error; getStatusIcon maps completed/failed/blocked/in-progress to CheckCircle/Error/Warning/Hourglass with a disabled Hourglass default; getDecisionColor maps PROCEED/DEFER/ESCALATE to success/warning/error.",
-      "sha256": "6fd271049fbb1f4133ecb433230e8edd57a01df5a35bc2dce58d666e121e7fba"
+      "sha256": "845f565d8eaac2485a69945194fa9fc45cdcb1209d5b70d1dbe917d690ca7895"
     },
     {
       "path": "packages/web-components/src/components/CFNLoopDashboard/CFNLoopDashboard.tsx",
       "line": 120,
       "claim": "The component is presentational and props-driven: required loopState plus onAgentSelect, showDetailedMetrics (default false), maxActivities (default 10), refreshInterval, onRefresh, className, data-testid default 'cfn-loop-dashboard'. No fetching: the useEffect only setInterval-calls the host's onRefresh when both refreshInterval and onRefresh are provided. Derived metrics memo computes completedLoops (status==='completed'), progressPercent, and avgConfidence as sum of confidence values divided by the count of loops that have a confidence. Renders header (objective, swarmId, phase chip, refresh button) and four ConfidenceCards: overall confidence, loops completed x/y, avg loop confidence, agent activity count, all colored through getConfidenceColor with a 0.75 threshold.",
-      "sha256": "6fd271049fbb1f4133ecb433230e8edd57a01df5a35bc2dce58d666e121e7fba"
+      "sha256": "845f565d8eaac2485a69945194fa9fc45cdcb1209d5b70d1dbe917d690ca7895"
     },
     {
       "path": "packages/web-components/src/components/CFNLoopDashboard/CFNLoopDashboard.tsx",
       "line": 241,
       "claim": "The CFN Loop Stepper is a vertical MUI Stepper with activeStep = loopState.currentPhase.currentLoop; each of the five loopStepConfigs renders a Step whose completion/error comes from the matching loopState.loops entry (matched by loopType), with optional status and confidence-percent Chips. Only the active step gets StepContent, and the consensus validator list (agentId, recommendation count, score colored against the consensus threshold, default 0.75) is additionally gated behind showDetailedMetrics; retryCount/maxRetries and duration metrics render when retryCount is defined.",
-      "sha256": "6fd271049fbb1f4133ecb433230e8edd57a01df5a35bc2dce58d666e121e7fba"
+      "sha256": "845f565d8eaac2485a69945194fa9fc45cdcb1209d5b70d1dbe917d690ca7895"
     },
     {
       "path": "packages/web-components/src/components/CFNLoopDashboard/CFNLoopDashboard.tsx",
       "line": 361,
       "claim": "The tail of the file: an optional productOwnerDecision section (decision chip via getDecisionColor, reasoning text, decision-confidence and next-steps-count metric boxes, and a next-steps list with arrow icons) and the Recent Agent Activity @mui/lab Timeline mapping recentActivity (sliced by maxActivities) to TimelineItems with success/failure-colored dots, agent avatar, name:action title, agentType chip, and an optional TrendingUp confidence chip; clicking an activity item calls onAgentSelect(activity.agentId). The component ends here with a default export at line 469.",
-      "sha256": "6fd271049fbb1f4133ecb433230e8edd57a01df5a35bc2dce58d666e121e7fba"
+      "sha256": "845f565d8eaac2485a69945194fa9fc45cdcb1209d5b70d1dbe917d690ca7895"
     },
     {
       "path": "packages/web-components/src/components/FleetOverview/FleetOverview.tsx",
       "line": 1,
       "claim": "FleetOverview is a 'Comprehensive fleet management dashboard with grid/list views, pagination, and real-time updates' built from MUI controls (Select, TextField, Pagination, ToggleButtonGroup, CircularProgress, Alert) and a styled-component vocabulary imported from FleetOverview.styles: FleetContainer, FleetHeader, FilterControls, StatisticsGrid, StatCard, GridView, ListView, AgentCard(+Header/Info/Avatar/Footer), StatusChip, ConnectionIndicator, ProgressBar/ProgressFill, MetricsGrid, MetricItem, ErrorBadge, EmptyState, PaginationContainer, LoadingOverlay. Local formatters: formatDuration (h/m/s), formatBytes (B..GB), formatTimeSince ('Just now', 'Nm/Nh/Nd ago').",
-      "sha256": "5974fd48f1fd0da955b291b520d36929adbf41f7597a8846556ef790cc1b0727"
+      "sha256": "0c0a065c24c43a3dc917f4a0a9cdc02cab1196d7bc73a5bb0d3ad425c86d92c8"
     },
     {
       "path": "packages/web-components/src/components/FleetOverview/FleetOverview.tsx",
       "line": 121,
       "claim": "getProgressSeverity colors bars success >=80, warning >=50, else error; getStatusIcon maps active/busy to PlayArrow, paused Pause, error Error, terminated Stop, idle CheckCircle, default Timer. calculateStatistics walks the agents array into a FleetStatistics (counts by status active/idle/paused/error/terminated/offline, avgHealth, avgEfficiency, totalTokens, totalTasks) and returns the zeroed object immediately when agents.length === 0. AgentCardComponent renders avatar (or first 2 chars of name), name/type/activity, StatusChip with icon, connection indicator, and progress bar when agent.progress > 0.",
-      "sha256": "5974fd48f1fd0da955b291b520d36929adbf41f7597a8846556ef790cc1b0727"
+      "sha256": "0c0a065c24c43a3dc917f4a0a9cdc02cab1196d7bc73a5bb0d3ad425c86d92c8"
     },
     {
       "path": "packages/web-components/src/components/FleetOverview/FleetOverview.tsx",
       "line": 241,
       "claim": "AgentCard tail: health bar, MetricsGrid (CPU percent, memory as formatBytes(memoryUsage) or percent, tokens toLocaleString, efficiency percent), up to two recent errors rendered as ErrorBadge with WarningIcon, and a footer with formatTimeSince(lastActivity) plus an ETA from estimatedCompletion. The FleetOverview component accepts a wide prop surface (agents, selectedAgentId, onAgentSelect, onRefresh, autoRefresh default false, refreshInterval default 5000, filter, sort default name/asc, viewMode default grid, enablePagination default true, pageSize default 12, enableVirtualScrolling default false, showStatistics/showFilters/showSort/showViewToggle, compact, className, websocketUrl, enableRealTime default false, loading, error, onAgentAction) and keeps filter/sort/viewMode/lastUpdated/realTimeData as local state.",
-      "sha256": "5974fd48f1fd0da955b291b520d36929adbf41f7597a8846556ef790cc1b0727"
+      "sha256": "0c0a065c24c43a3dc917f4a0a9cdc02cab1196d7bc73a5bb0d3ad425c86d92c8"
     },
     {
       "path": "packages/web-components/src/components/FleetOverview/FleetOverview.tsx",
       "line": 361,
       "claim": "Real-time path: a useEffect opens a WebSocket only when enableRealTime && websocketUrl; onmessage JSON.parses inside try/catch, and on a parse error logs console.error and keeps going (last state stays rendered); messages of type 'agent-update' with an id are stored in a realTimeData Map and spread-merged over the props agents in enhancedAgents. filteredAgents applies filter.status, filter.connectionStatus, filter.swarmId, filter.minHealth, filter.errorsOnly (agents with errors) and a case-insensitive search over name/type/activity, then sorts by name/status/created/lastActivity/efficiency with asc/desc direction. Pagination is derived in an effect that clamps page to totalPages (or 1).",
-      "sha256": "5974fd48f1fd0da955b291b520d36929adbf41f7597a8846556ef790cc1b0727"
+      "sha256": "0c0a065c24c43a3dc917f4a0a9cdc02cab1196d7bc73a5bb0d3ad425c86d92c8"
     },
     {
       "path": "packages/web-components/src/components/FleetOverview/FleetOverview.tsx",
       "line": 481,
       "claim": "paginatedAgents slices filteredAgents by page only when enablePagination && !enableVirtualScrolling; statistics memo recompute on enhancedAgents; autoRefresh effect setInterval-calls onRefresh (and stamps lastUpdated) with cleanup; handleRefresh toggles isRefreshing around the awaited onRefresh. The header renders a status Select (All/idle/active/busy/paused/error/offline; 'all' clears the filter), a search TextField, a sort Select (name/status/created/Activity/efficiency) and a grid/list ToggleButtonGroup.",
-      "sha256": "5974fd48f1fd0da955b291b520d36929adbf41f7597a8846556ef790cc1b0727"
+      "sha256": "0c0a065c24c43a3dc917f4a0a9cdc02cab1196d7bc73a5bb0d3ad425c86d92c8"
     }
   ],
   "evidence": [

@@ -31,19 +31,19 @@
       "path": ".claude/skills/decision-log/schema.sql",
       "line": 48,
       "claim": "The curated decisions table stores project, slug (matching planning/DECISIONS_<slug>.md), decision_id (stable within a plan, D1, D2, ...), title, chosen, rationale, alternatives, status constrained to proposed|accepted|superseded, blocking, session_id, superseded_by, timestamp, with UNIQUE(project, slug, decision_id). The header comment (schema.sql:44-47) states it is written by record.sh (cfn-decide phase) and read by decisions.sh, deliberately separate from the raw messages conversation index.",
-      "sha256": "a10aa117d2c0f7f613398f2d398fef30f06ca454a1c66d85c8c88327b052f7e7"
+      "sha256": "a45259f7fd56b73a937de532706fa003d6cf741824713c371b67fcbefe46e85b"
     },
     {
       "path": ".claude/skills/decision-log/schema.sql",
       "line": 15,
       "claim": "A second layer indexes raw conversation: messages (session_id, project, uuid UNIQUE, role user|assistant, content, timestamp) mirrored into messages_fts (FTS5, tokenize='porter unicode61') by messages_ai insert and messages_ad delete triggers, with indexes on session_id/uuid/project/timestamp. ingest_state (schema.sql:38-42) tracks ingestion progress per session file (session_file PRIMARY KEY, last_line, updated_at), implying a separate ingester outside these scope files.",
-      "sha256": "a10aa117d2c0f7f613398f2d398fef30f06ca454a1c66d85c8c88327b052f7e7"
+      "sha256": "a45259f7fd56b73a937de532706fa003d6cf741824713c371b67fcbefe46e85b"
     },
     {
       "path": ".claude/skills/decision-log/schema.sql",
       "line": 71,
       "claim": "decisions_fts is an FTS5 mirror over title/chosen/rationale/alternatives kept consistent by three triggers: decisions_ai (insert), decisions_ad (delete) and decisions_au (update, which rewrites the old row out then the new row in), so the upsert path stays searchable.",
-      "sha256": "a10aa117d2c0f7f613398f2d398fef30f06ca454a1c66d85c8c88327b052f7e7"
+      "sha256": "a45259f7fd56b73a937de532706fa003d6cf741824713c371b67fcbefe46e85b"
     },
     {
       "path": ".claude/skills/decision-log/query.sh",

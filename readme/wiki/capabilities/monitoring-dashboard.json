@@ -19,55 +19,55 @@
       "path": "monitoring/server.js",
       "line": 8,
       "claim": "Express app on PORT env or 5555; Redis client hardcoded to redis://localhost:6379; opens SQLite DB at ../claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db via initializeSQLite() at startup (non-fatal on error, logged via .catch(console.error)).",
-      "sha256": "1cecd2971d9513928e90be8fea938b825d3fc1d282f0e2322fe3430707acde28"
+      "sha256": "fd422f193a9ea61c2676652bc58ac9bbcf6d231f735bfa543b6765681fdf02b3"
     },
     {
       "path": "monitoring/server.js",
       "line": 94,
       "claim": "GET /api/containers lists all Docker containers and filters to CFN-related names (cfn, redis, cadvisor, consensus, agent-comm), returning total/running/failed plus per-container name/status/memory/image/ports; list-level cpu is always 'N/A'; 500 on Docker error. GET /api/containers/:name/stats (line 233) returns real cpu_usage, memory usage/limit and summed network rx/tx from the Docker stats API.",
-      "sha256": "1cecd2971d9513928e90be8fea938b825d3fc1d282f0e2322fe3430707acde28"
+      "sha256": "fd422f193a9ea61c2676652bc58ac9bbcf6d231f735bfa543b6765681fdf02b3"
     },
     {
       "path": "monitoring/server.js",
       "line": 137,
       "claim": "GET /api/system reads /proc/meminfo and /proc/loadavg through a bash spawn helper and returns memoryTotal, memoryUsed and the 1-minute load.",
-      "sha256": "1cecd2971d9513928e90be8fea938b825d3fc1d282f0e2322fe3430707acde28"
+      "sha256": "fd422f193a9ea61c2676652bc58ac9bbcf6d231f735bfa543b6765681fdf02b3"
     },
     {
       "path": "monitoring/server.js",
       "line": 162,
       "claim": "GET /api/cfn scans Redis keys cfn_loop:* and parses *:context:* values into activeTasks/completedTasks/failedTasks and avgConfidence; healthyAgents comes from `ps aux | grep 'claude-flow-novice agent' | wc -l`; memoryAlerts is hardcoded 0 ('Would need telemetry integration'). Failure path: on any Redis error the route returns an all-zero default payload instead of a 500, so the dashboard shows zeros rather than an error when Redis is down.",
-      "sha256": "1cecd2971d9513928e90be8fea938b825d3fc1d282f0e2322fe3430707acde28"
+      "sha256": "fd422f193a9ea61c2676652bc58ac9bbcf6d231f735bfa543b6765681fdf02b3"
     },
     {
       "path": "monitoring/server.js",
       "line": 255,
       "claim": "GET /api/agents queries the SQLite agents table (SELECT * FROM agents ORDER BY spawned_at DESC), 500ing when the DB never initialized; GET /api/redis/signals (line 290) lists swarm:* keys with values, emitting per-key error entries rather than aborting; GET /api/health (line 336) reports status/uptime; GET / (line 345) serves dashboard.html; SIGINT closes Redis and SQLite gracefully.",
-      "sha256": "1cecd2971d9513928e90be8fea938b825d3fc1d282f0e2322fe3430707acde28"
+      "sha256": "fd422f193a9ea61c2676652bc58ac9bbcf6d231f735bfa543b6765681fdf02b3"
     },
     {
       "path": "monitoring/dashboard.html",
       "line": 243,
       "claim": "The page ('CFN Docker Monitoring Dashboard', title at line 6) renders cards for System Overview (total/running/failed containers, system load), Memory Usage (with progress bar), CFN Loop Status (active/completed/failed tasks, avg confidence), Agent Health (healthy/stuck agents, memory alerts, timeout rate), CFN Agents from SQLite (line 325), Redis Swarm Signals (line 341), plus a Container Status list (line 359) and a Recent Logs panel (line 369); a status bar shows system status, last-update time and a manual Refresh button wired to refreshData().",
-      "sha256": "ed58118d1dfdba51f5966bc2a17b94683d3aba6a551cd7424031f11180cf3a1f"
+      "sha256": "012e4eecfb989d7e547337a3634595a2342628fdfa78d1c5b535fdad31b9b33a"
     },
     {
       "path": "monitoring/dashboard.html",
       "line": 382,
       "claim": "Five fetchers poll the server APIs (/api/containers, /api/system, /api/cfn, /api/agents, /api/redis/signals), each returning null on fetch failure instead of throwing.",
-      "sha256": "ed58118d1dfdba51f5966bc2a17b94683d3aba6a551cd7424031f11180cf3a1f"
+      "sha256": "012e4eecfb989d7e547337a3634595a2342628fdfa78d1c5b535fdad31b9b33a"
     },
     {
       "path": "monitoring/dashboard.html",
       "line": 516,
       "claim": "refreshData() failure path is asymmetric: container/system/cfn stats fall back to hardcoded demo mock data under the comment 'Simulate API calls with mock data for demo' (fake containers like cfn-orchestrator, 16GB/8.5GB memory), so those cards keep showing plausible-but-fake numbers when the APIs are down; the SQLite and Redis cards instead show 0 and 'Disconnected'.",
-      "sha256": "ed58118d1dfdba51f5966bc2a17b94683d3aba6a551cd7424031f11180cf3a1f"
+      "sha256": "012e4eecfb989d7e547337a3634595a2342628fdfa78d1c5b535fdad31b9b33a"
     },
     {
       "path": "monitoring/dashboard.html",
       "line": 654,
       "claim": "Init and scheduling: refreshData() runs once at script load, then setInterval(refreshData, 10000) auto-refreshes every 10 seconds; a thrown error inside refreshData logs 'Failed to refresh dashboard data' to the Recent Logs panel (capped at 50 entries) and shows the alert bar via showAlert().",
-      "sha256": "ed58118d1dfdba51f5966bc2a17b94683d3aba6a551cd7424031f11180cf3a1f"
+      "sha256": "012e4eecfb989d7e547337a3634595a2342628fdfa78d1c5b535fdad31b9b33a"
     },
     {
       "path": "monitoring/cost-anomaly-detection.sh",
