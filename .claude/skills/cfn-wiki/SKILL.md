@@ -47,10 +47,15 @@ Repo defaults to the working directory. `doctor` uses the working directory or
 | `doctor [--install]` | Resolve CBM and check dependencies. Install explicitly fetches pinned CBM. |
 | `import-existing [repo]` | Carry handwritten legacy rows into enrichment before the first generation. |
 | `sync [repo] [--enrich] [--check] [--no-hooks]` | Refresh CBM on manual sync, extract content fingerprints, resolve enrichment and regenerate Markdown. `--check` checks projection drift without indexing or writing tracked files. `--no-hooks` skips indexing and the lock for post-commit callers. |
-| `build [repo]` | Build `.wiki/portal/index.html` with inlined payload, source excerpts and diagrams. |
+| `build [repo] [--paged] [--static-out <dir>]` | Build the portal. Default: one self-contained `.wiki/portal/index.html` with inlined payload, source excerpts and diagrams. `--paged` (large repos): small shell plus `pages/<view>.html`, per-feature pages and `data/*.json`; the shell payload holds only meta and coverage. `--static-out <dir>` copies the paged distribution to a portable directory. Serve a paged build with `wiki serve --static` (a plain `wiki serve` rebuilds the single-file page). |
 | `serve [repo] [--port N] [--static] [--stop]` | Serve locally on port 4885; static serves the existing build read-only. |
 | `stop [repo]` | Stop the local portal. |
 | `lint [repo]` | Check page contracts and authored knowledge shape; review-needed warnings are separate from structural validity. |
+| `discover [repo]` | Build `.wiki/discovery.sqlite`: classify tracked files (reasons recorded), extract symbols via language adapters and the optional CBM snapshot, surface route/job/manifest candidates. Prints bounded counts and the tree revision; never dumps the file list. |
+| `query [repo] <kind> [filters]` | Bounded, revision-pinned reads over the discovery index: kinds `files / symbols / relations / candidates / span / graph`. Hard caps: 40 results and 8 KiB per list query, 120 lines and 8 KiB per span. `--path-prefix` for area sweeps; a flag the kind ignores fails loudly. Cursors are revision-pinned; reuse against a moved revision exits 2. |
+| `work [repo] <verb>` | Durable documentation queue in `.wiki/work/jobs.sqlite` (never cleared by sync or rebuild). Verbs: `plan --map` (validates a documentation map, incl. that each capability's scope paths exist), `next` (atomic lease; stamps the job at the current revision), `evidence` (bounded retrieval accounted to the attempt), `checkpoint`, `submit` (refuses stale or promotion-invalid shapes), `review` (accepted / revision_requested / rejected; schema validity alone never accepts), `promote` (freshness-rechecked, journal-first, crash-recoverable), `status`, `export`/`import`, `unblock`, `release` (safe lease release), `requeue` (operator path for accepted-but-unpromotable jobs). |
+| `coverage [repo] [--json]` | Three separate measures with denominators: classified in-scope files, explained capabilities (author jobs in the reviewed map), currently-reviewed explained capabilities. Excluded, unknown, stale and blocked areas are listed by name, never folded into a completeness percentage. |
+| `migrate [repo] --to 2` | Explicit knowledge v1 to v2 migration (manifest plus domains/capabilities/entities shards). Validates, backs up, is idempotent, and never runs implicitly during build or sync. |
 
 `sync --enrich` prints the pending authoring workflow. It does not invoke a
 model: the agent must perform the source review, author the knowledge, then
@@ -91,3 +96,22 @@ run those in an isolated copy when the fixture has user edits.
 Validate the reader journey as well as the controls: from Start here, follow a
 capability, explain an unresolved or failed outcome, inspect its evidence, and
 identify the implementation and tests to change. Report coverage honestly.
+
+## Honest limits
+
+- Budgets bound only evidence delivered through `work evidence` and `query`:
+  an agent reading files directly bypasses accounting. Route source access
+  through the bounded commands and report any bypass.
+- Token counts are byte-estimated (bytes divided by four) unless the host
+  reports measured usage; they are never exact billing.
+- Non-git repositories fingerprint path plus size, so same-size edits go
+  undetected until the next content-affecting change.
+- Freshness and fingerprints hash git blobs, so unstaged worktree edits and
+  CRLF differences do not affect them; that also means content changes are
+  only seen after they are staged or committed.
+- Promotions recheck the whole-tree revision: land review-to-promotion
+  serially in a quiet tree, or expect conservative refusals.
+- Scale: `tests/wiki-scale-bench.sh` measures 1k/10k/100k-file synthetic
+  repos (measured table in `planning/cfn-wiki/SCALE_report.md`); enable the
+  100k tier with `WIKI_SCALE_MAX=100000`. Single-file portal payloads grow
+  roughly 6.5x per 10x files; switch large repos to `build --paged`.

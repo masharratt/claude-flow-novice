@@ -1,21 +1,40 @@
 #!/usr/bin/env bash
 # cfn-wiki portal builder: assembles the payload from the five view modules,
 # pre-renders mermaid state diagrams to inline SVG via mmdc (table fallback
-# when mmdc is missing or a render fails), inlines everything into
-# portal/template.html, and writes the self-contained page atomically.
+# when mmdc is missing or a render fails), then delegates to assemble.py.
+#
+# Two build modes share one assembly core (portal/assemble.py):
+#   wiki_build_portal        single self-contained page (small-wiki default)
+#   wiki_build_portal_paged  small shell + pages/<view>.html + pages/
+#                            capability-<fid>.html + data/*.json (large
+#                            portals; the shell payload holds only
+#                            {meta, coverage}, never view payloads or
+#                            source excerpts)
 #
 # Contract: wiki_build_portal <store> <repo> [out]
 #   store = <repo>/.wiki/store.json
 #   out   = <repo>/.wiki/portal/index.html (default)
 # -> writes out; prints the out path on stdout; exit 0.
+# A single-file build also clears any pages/ and data/ left by an earlier
+# paged build so the distribution always matches the requested mode.
 # Exit 1 (message on stderr, no partial output) on: missing store/template,
 # a view failure, or a selfcheck violation (placeholder left, payload not
 # parseable, any external ref: <link>, src=/href= to http(s), @import,
-# url(http) in the built page.
+# url(http) in any built page).
+#
+# Contract: wiki_build_portal_paged <store> <repo> [out-dir]
+#   out-dir = <repo>/.wiki/portal (default)
+# -> writes <out-dir>/index.html, <out-dir>/pages/, <out-dir>/data/;
+#    prints the out-dir path on stdout; exit 0. Same selfchecks per page
+#    plus the shell payload contract in assemble.py.
 #
 # Payload shape (API, consumed by template.html):
-#   {arch, catalog, state, change, data,
+#   {arch, catalog, state, change, data, coverage,
 #    meta: {repo, generated_at, stale, degraded, fingerprint}}
+#   Paged pages add meta.mode ("paged" | "shell") and meta.page
+#   (view name or "capability:<fid>"); single-file pages carry neither.
+#   coverage: the `wiki coverage --json` report (three measures with
+#             denominators plus excluded/unknown/stale/blocked areas)
 #   stale:    store meta.fingerprint differs from the wiki-fp marker in
 #             <repo>/readme/feature-status.md (missing file or marker = stale,
 #             same rule as wiki sync --check)
@@ -24,48 +43,60 @@
 #             entity's mermaid diagram; absent -> template renders the
 #             transitions table fallback.
 
-wiki_build_portal() {
-    local store="${1:?wiki_build_portal: store path required}"
-    local repo="${2:?wiki_build_portal: repo path required}"
-    local out="${3:-$repo/.wiki/portal/index.html}"
+# Resolve template + lib dir next to this file.
+_wiki_portal_paths() {
+    local self_dir
+    self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    WIKI_PORTAL_TEMPLATE="$self_dir/template.html"
+    WIKI_PORTAL_LIB="$self_dir/../lib"
+    WIKI_PORTAL_ASSEMBLE="$self_dir/assemble.py"
+}
 
+# Check the inputs both modes need: store, template, assembler, lib views.
+# _wiki_portal_check_inputs <store> <template> <assemble> <lib_dir>
+_wiki_portal_check_inputs() {
+    local store="$1" template="$2" assemble="$3" lib_dir="$4"
     if [ ! -f "$store" ]; then
         echo "wiki_build_portal: no store at $store (run wiki sync first)" >&2
         return 1
     fi
-    local portal_dir self_dir
-    self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    local template="$self_dir/template.html"
-    local lib_dir="$self_dir/../lib"
-    if [ ! -f "$template" ]; then
-        echo "wiki_build_portal: template missing: $template" >&2
-        return 1
-    fi
-
-    local work
-    work="$(mktemp -d "${TMPDIR:-/tmp}/wiki-build-XXXXXX")"
-
-    # --- run the five views ------------------------------------------------
-    local v src
-    for v in arch catalog state change data; do
-        src="$lib_dir/view-$v.sh"
-        if [ ! -f "$src" ]; then
-            echo "wiki_build_portal: view module missing: $src" >&2
-            rm -rf "$work"
+    local f
+    for f in "$template" "$assemble"; do
+        if [ ! -f "$f" ]; then
+            echo "wiki_build_portal: file missing: $f" >&2
             return 1
         fi
+    done
+    local v
+    for v in arch catalog state change data; do
+        if [ ! -f "$lib_dir/view-$v.sh" ]; then
+            echo "wiki_build_portal: view module missing: $lib_dir/view-$v.sh" >&2
+            return 1
+        fi
+    done
+}
+
+# Run the five view modules into <work>/view-<v>.json.
+# _wiki_portal_run_views <work> <store> <repo> <lib_dir>
+_wiki_portal_run_views() {
+    local work="$1" store="$2" repo="$3" lib_dir="$4" v src
+    for v in arch catalog state change data; do
+        src="$lib_dir/view-$v.sh"
         if ! bash -c 'source "$1" && shift && "$@"' _ "$src" \
                 "wiki_view_$v" "$store" "$repo" \
                 >"$work/view-$v.json" 2>"$work/view-$v.err"; then
             echo "wiki_build_portal: wiki_view_$v failed: $(tail -1 "$work/view-$v.err")" >&2
-            rm -rf "$work"
             return 1
         fi
     done
+}
 
-    # --- mermaid pre-render (best effort, table fallback on any failure) ---
-    if command -v mmdc >/dev/null 2>&1; then
-        python3 - "$work" <<'PY'
+# Mermaid pre-render (best effort, table fallback on any failure).
+# _wiki_portal_render_mermaid <work>
+_wiki_portal_render_mermaid() {
+    local work="$1"
+    command -v mmdc >/dev/null 2>&1 || return 0
+    python3 - "$work" <<'PY'
 # pick entities whose diagram is a mermaid fence and write one .mmd per entity
 import json
 import os
@@ -90,200 +121,39 @@ for i, e in enumerate(state.get("entities", [])):
 with open(os.path.join(work, "mmd", "plan.json"), "w", encoding="utf-8") as out:
     json.dump(plan, out)
 PY
-        if [ -f "$work/mmd/plan.json" ]; then
-            mkdir -p "$work/svg"
-            while IFS= read -r mmd; do
-                [ -n "$mmd" ] || continue
-                idx="$(basename "$mmd" .mmd)"
-                timeout 120 mmdc -i "$mmd" -o "$work/svg/$idx.svg" \
-                    -b transparent >/dev/null 2>&1 || {
+    if [ -f "$work/mmd/plan.json" ]; then
+        mkdir -p "$work/svg"
+        while IFS= read -r mmd; do
+            [ -n "$mmd" ] || continue
+            idx="$(basename "$mmd" .mmd)"
+            timeout 120 mmdc -i "$mmd" -o "$work/svg/$idx.svg" \
+                -b transparent >/dev/null 2>&1 || {
                     echo "wiki_build_portal: mmdc failed for entity $idx; using table fallback" >&2
                     rm -f "$work/svg/$idx.svg"
                 }
-            done < <(find "$work/mmd" -name '*.mmd' | sort)
-        fi
+        done < <(find "$work/mmd" -name '*.mmd' | sort)
     fi
-
-    # --- assemble payload + inline into the template ------------------------
-    if ! python3 - "$work" "$store" "$repo" "$template" "$lib_dir" <<'PY' >/dev/null
-# merge the five views, attach sanitized mermaid SVGs, compute meta, inline
-import glob
-import json
-import os
-import re
-import subprocess
-import sys
-import uuid
-from datetime import datetime, timezone
-
-work, store_path, repo, template_path = (
-    sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
-sys.path.insert(0, sys.argv[5])
-from knowledge import source_signature
-
-
-def load(name):
-    with open(os.path.join(work, name), encoding="utf-8") as fh:
-        return json.load(fh)
-
-
-arch = load("view-arch.json")
-catalog = load("view-catalog.json")
-state = load("view-state.json")
-change = load("view-change.json")
-data = load("view-data.json")
-
-with open(store_path, encoding="utf-8") as fh:
-    store = json.load(fh)
-meta = store.get("meta", {})
-
-# stale: same rule as wiki sync --check (marker vs fresh fingerprint)
-stale = True
-marker = ""
-fs_path = os.path.join(repo, "readme", "feature-status.md")
-if os.path.isfile(fs_path):
-    try:
-        with open(fs_path, encoding="utf-8") as fh:
-            for line in fh:
-                m = re.search(r"wiki-fp:\s*([0-9a-f]{64})", line)
-                if m:
-                    marker = m.group(1)
-                    break
-    except OSError:
-        pass
-fp = meta.get("fingerprint", "")
-if marker and fp and marker == fp:
-    stale = False
-    import hashlib
-    watched = dict(store.get("knowledge_inputs", {}))
-    for feature in store.get("features", []):
-        watched.update(feature.get("content_hashes", {}))
-    for path, expected in watched.items():
-        try:
-            with open(os.path.join(repo, path), "rb") as source:
-                actual = hashlib.sha256(source.read()).hexdigest()
-        except OSError:
-            actual = "missing"
-        if actual != expected:
-            stale = True
-            break
-
-degraded = ""
-if meta.get("cbm_mode") != "snapshot":
-    degraded = ("CBM snapshot unavailable: git-only extraction"
-                " (dependency edges and symbol counts are unavailable;"
-                " run: wiki doctor --install)")
-
-if meta.get("cbm_mode") == "snapshot":
-    provenance = os.path.join(repo, ".wiki/cache/cbm-source.sha256")
-    try:
-        with open(provenance) as fh:
-            index_current = fh.read().strip() == source_signature(repo)
-    except OSError:
-        index_current = False
-    if not index_current:
-        degraded = "Dependency index freshness is unverified or sources changed. Run wiki sync with CBM available."
-
-# attach sanitized mmdc SVGs (fail closed: anything suspicious -> no svg)
-MERMAID_SVG_SAFE_HREF = re.compile(r"(?:xlink:)?href\s*=\s*[\"']\s*(?:https?:)?//",
-                                   re.I)
-
-
-def sanitize_svg(text):
-    m = re.search(r"<svg[\s\S]*</svg>", text)
-    if not m:
-        return None
-    svg = m.group(0)
-    if re.search(r"<script\b", svg, re.I):
-        return None
-    if re.search(r"@import\b", svg, re.I):
-        return None
-    if MERMAID_SVG_SAFE_HREF.search(svg):
-        return None
-    if re.search(r"url\(\s*[\"']?\s*(?:https?:)?//", svg, re.I):
-        return None
-    if re.search(r"data:text/html", svg, re.I):
-        return None
-    return svg
-
-
-plan_path = os.path.join(work, "mmd", "plan.json")
-if os.path.isfile(plan_path):
-    with open(plan_path, encoding="utf-8") as fh:
-        plan = json.load(fh)
-    for item in plan:
-        svg_path = os.path.join(work, "svg", "%d.svg" % item["index"])
-        if not os.path.isfile(svg_path):
-            continue  # mmdc failed or missing; table fallback stands
-        try:
-            with open(svg_path, encoding="utf-8") as fh:
-                svg = sanitize_svg(fh.read())
-        except OSError:
-            svg = None
-        if svg:
-            state["entities"][item["index"]]["svg"] = svg
-
-payload = {
-    "arch": arch,
-    "catalog": catalog,
-    "state": state,
-    "change": change,
-    "data": data,
-    "meta": {
-        "repo": os.path.basename(os.path.normpath(repo)),
-        "generated_at": datetime.now(timezone.utc)
-            .strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "stale": stale,
-        "degraded": degraded,
-        "fingerprint": fp,
-    },
 }
 
-with open(template_path, encoding="utf-8") as fh:
-    html = fh.read()
-placeholder = "__WIKI_PAYLOAD__"
-if placeholder not in html:
-    sys.exit("wiki_build_portal: template has no %s slot" % placeholder)
-
-# `</` inside JSON strings becomes the valid escape `<\/`, so a literal
-# "</script>" in a description can never close the payload tag early
-blob = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
-html = html.replace(placeholder, blob)
-
-out_html = os.path.join(work, "index.html")
-tmp = out_html + ".tmp-" + uuid.uuid4().hex
-with open(tmp, "w", encoding="utf-8") as fh:
-    fh.write(html)
-os.replace(tmp, out_html)
-print(out_html)
-PY
-    then
-        echo "wiki_build_portal: payload assembly failed" >&2
-        rm -rf "$work"
-        return 1
+# Selfcheck one assembled page: no placeholder, payload parses, no external
+# refs or remote CSS. _wiki_portal_selfcheck_html <html-file> <label>
+_wiki_portal_selfcheck_html() {
+    local file="$1" label="$2" built rc=0
+    built="$(cat "$file")"
+    if printf '%s' "$built" | grep -q '__WIKI_PAYLOAD__'; then
+        echo "$label: placeholder left in output" >&2
+        rc=1
     fi
-
-    # --- selfcheck on the assembled page (hard fail: generator bug) ---------
-    local built
-    built="$(cat "$work/index.html")"
-    local rc=0
-    {
-        if printf '%s' "$built" | grep -q '__WIKI_PAYLOAD__'; then
-            echo "wiki_build_portal: placeholder left in output" >&2
-            rc=1
-        fi
-        if printf '%s' "$built" | grep -qE '<link|src="http|href="http'; then
-            echo "wiki_build_portal: external ref in output (self-contained contract)" >&2
-            rc=1
-        fi
-        if printf '%s' "$built" | grep -qE '@import|url\(["'"'"']?https?:'; then
-            echo "wiki_build_portal: remote CSS in output" >&2
-            rc=1
-        fi
-    }
+    if printf '%s' "$built" | grep -qE '<link|src="http|href="http'; then
+        echo "$label: external ref in output (self-contained contract)" >&2
+        rc=1
+    fi
+    if printf '%s' "$built" | grep -qE '@import|url\(["'"'"']?https?:'; then
+        echo "$label: remote CSS in output" >&2
+        rc=1
+    fi
     if [ "$rc" -ne 0 ]; then
-        rm -rf "$work"
-        return 1
+        return "$rc"
     fi
     if ! printf '%s' "$built" | python3 -c '
 import json, re, sys
@@ -294,19 +164,108 @@ if not m:
     sys.exit("payload script tag missing from built page")
 json.loads(m.group(1))   # raises on truncation or bad escaping
 '; then
-        echo "wiki_build_portal: built payload does not parse" >&2
+        echo "$label: built payload does not parse" >&2
+        return 1
+    fi
+}
+
+# Atomic single-file install. _wiki_portal_install <file> <out>
+_wiki_portal_install() {
+    local file="$1" out="$2" install_tmp
+    mkdir -p "$(dirname "$out")"
+    install_tmp="$(dirname "$out")/.index.html.tmp-$$-$(date +%s)"
+    mv "$file" "$install_tmp"
+    mv "$install_tmp" "$out"
+}
+
+wiki_build_portal() {
+    local store="${1:?wiki_build_portal: store path required}"
+    local repo="${2:?wiki_build_portal: repo path required}"
+    local out="${3:-$repo/.wiki/portal/index.html}"
+
+    _wiki_portal_paths
+    _wiki_portal_check_inputs "$store" "$WIKI_PORTAL_TEMPLATE" \
+        "$WIKI_PORTAL_ASSEMBLE" "$WIKI_PORTAL_LIB" || return 1
+
+    local work
+    work="$(mktemp -d "${TMPDIR:-/tmp}/wiki-build-XXXXXX")"
+
+    if ! _wiki_portal_run_views "$work" "$store" "$repo" "$WIKI_PORTAL_LIB"; then
+        rm -rf "$work"
+        return 1
+    fi
+    _wiki_portal_render_mermaid "$work"
+
+    if ! python3 "$WIKI_PORTAL_ASSEMBLE" single "$work" "$store" "$repo" \
+            "$WIKI_PORTAL_TEMPLATE" "$WIKI_PORTAL_LIB" \
+            "$work/index.html" >/dev/null; then
+        echo "wiki_build_portal: payload assembly failed" >&2
         rm -rf "$work"
         return 1
     fi
 
-    # --- atomic install ------------------------------------------------------
-    mkdir -p "$(dirname "$out")"
-    local install_tmp
-    install_tmp="$(dirname "$out")/.index.html.tmp-$$-$(date +%s)"
-    mv "$work/index.html" "$install_tmp"
-    mv "$install_tmp" "$out"
+    # --- selfcheck on the assembled page (hard fail: generator bug) ---------
+    if ! _wiki_portal_selfcheck_html "$work/index.html" "wiki_build_portal"; then
+        rm -rf "$work"
+        return 1
+    fi
+
+    # --- atomic install; single mode owns the whole distribution -----------
+    local portal_dir
+    portal_dir="$(dirname "$out")"
+    rm -rf "$portal_dir/pages" "$portal_dir/data"
+    _wiki_portal_install "$work/index.html" "$out"
     rm -rf "$work"
     printf '%s\n' "$out"
+}
+
+wiki_build_portal_paged() {
+    local store="${1:?wiki_build_portal_paged: store path required}"
+    local repo="${2:?wiki_build_portal_paged: repo path required}"
+    local out_dir="${3:-$repo/.wiki/portal}"
+
+    _wiki_portal_paths
+    _wiki_portal_check_inputs "$store" "$WIKI_PORTAL_TEMPLATE" \
+        "$WIKI_PORTAL_ASSEMBLE" "$WIKI_PORTAL_LIB" || return 1
+
+    local work
+    work="$(mktemp -d "${TMPDIR:-/tmp}/wiki-build-XXXXXX")"
+
+    if ! _wiki_portal_run_views "$work" "$store" "$repo" "$WIKI_PORTAL_LIB"; then
+        rm -rf "$work"
+        return 1
+    fi
+    _wiki_portal_render_mermaid "$work"
+
+    if ! python3 "$WIKI_PORTAL_ASSEMBLE" paged "$work" "$store" "$repo" \
+            "$WIKI_PORTAL_TEMPLATE" "$WIKI_PORTAL_LIB" \
+            "$work/root" >/dev/null; then
+        echo "wiki_build_portal_paged: payload assembly failed" >&2
+        rm -rf "$work"
+        return 1
+    fi
+
+    # --- selfcheck every assembled page (hard fail: generator bug) ---------
+    local page rc=0
+    while IFS= read -r page; do
+        if ! _wiki_portal_selfcheck_html "$page" \
+                "wiki_build_portal_paged: ${page#"$work/root"/}"; then
+            rc=1
+        fi
+    done < <(find "$work/root" -name '*.html' | sort)
+    if [ "$rc" -ne 0 ]; then
+        rm -rf "$work"
+        return 1
+    fi
+
+    # --- install: swap pages/ and data/ in, then the shell atomically ------
+    mkdir -p "$out_dir"
+    rm -rf "$out_dir/pages" "$out_dir/data"
+    mv "$work/root/pages" "$out_dir/pages"
+    mv "$work/root/data" "$out_dir/data"
+    _wiki_portal_install "$work/root/index.html" "$out_dir/index.html"
+    rm -rf "$work"
+    printf '%s\n' "$out_dir"
 }
 
 # Direct execution entry: wiki_build_portal <store> <repo> [out]

@@ -213,6 +213,21 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
   .review-warning { padding:12px 16px; background:#fff0ce; color:#594016; border-radius:8px; }
   .capability-kind { font-size:12px; opacity:.8; margin-bottom:8px; }
   .change-entry { padding:14px 0; border-bottom:1px solid var(--line, #d5ded9); overflow-wrap:anywhere; }
+
+  /* Phase 4: coverage panel/page (both modes) and the paged shell home */
+  .coverage-card { margin-bottom:20px; }
+  .coverage-card summary { font-weight:600; font-size:13px; }
+  .coverage-card > div { margin-top:12px; }
+  .cov-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; margin-bottom:16px; }
+  .cov-card h3 { margin:0 0 8px; }
+  .cov-num { font:600 26px/1.2 var(--mono); margin:0 0 6px; }
+  .cov-bar { height:8px; border-radius:4px; background:var(--surface-2); overflow:hidden; margin:4px 0 10px; }
+  .cov-bar span { display:block; height:100%; background:var(--accent); }
+  .cov-note { color:var(--dim); font-size:12px; margin:0 0 8px; }
+  .cov-list { list-style:none; margin:8px 0 0; padding:0; font:11px/1.8 var(--mono); color:var(--dim); overflow-wrap:anywhere; }
+  .cov-list li { padding:1px 0; }
+  .cov-line { margin:6px 0; }
+  .shell-links li { padding:5px 0; font-size:13px; }
 </style>
 </head>
 <body>
@@ -240,11 +255,30 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     <button class="tab" role="tab" id="tab-catalog" data-view="catalog" aria-controls="view-catalog" aria-selected="false"><span class="tab-index" aria-hidden="true">02</span>Features</button>
     <button class="tab" role="tab" id="tab-data" data-view="data" aria-controls="view-data" aria-selected="false"><span class="tab-index" aria-hidden="true">03</span>Data &amp; State</button>
     <button class="tab" role="tab" id="tab-change" data-view="change" aria-controls="view-change" aria-selected="false"><span class="tab-index" aria-hidden="true">04</span>Change Story</button>
+    <button class="tab" role="tab" id="tab-coverage" data-view="coverage" aria-controls="view-coverage" aria-selected="false" hidden><span class="tab-index" aria-hidden="true">05</span>Coverage</button>
   </nav>
 </header>
 
 <main id="main" tabindex="-1">
   <article id="capability-reader" hidden aria-label="Capability walkthrough"></article>
+  <details class="card coverage-card" id="coverage-panel" hidden>
+    <summary id="coverage-summary">Coverage</summary>
+    <div id="coverage-panel-body"></div>
+  </details>
+  <section class="panel" id="shell-home" hidden>
+    <div class="view-intro"><div><div class="eyebrow">Start here</div><h2>A paged wiki for a large repository</h2><p>Each view is a separate self-contained page. Search filters within the page you have open; this start screen stays small on purpose.</p></div></div>
+    <div class="card" id="shell-coverage"></div>
+    <div class="card">
+      <h2>Views</h2>
+      <ul class="cov-list shell-links">
+        <li><a href="pages/arch.html">01 Architecture</a></li>
+        <li><a href="pages/catalog.html">02 Features</a></li>
+        <li><a href="pages/data.html">03 Data &amp; State</a></li>
+        <li><a href="pages/change.html">04 Change Story</a></li>
+        <li><a href="pages/coverage.html">05 Coverage</a></li>
+      </ul>
+    </div>
+  </section>
   <section class="panel" id="view-arch" role="tabpanel" aria-labelledby="tab-arch">
     <section id="knowledge-start" class="card knowledge-intro" hidden></section>
     <div class="view-intro"><div><div class="eyebrow">Explore the system</div><h2>A map of the codebase</h2><p>Trace connections between modules, then inspect their files and source details.</p></div><div class="view-count" id="count-arch"></div></div>
@@ -295,9 +329,14 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     </div></div><h2>Recent changes</h2><div class="card" id="change-details"></div><h2>Activity by directory</h2>
     <div class="card" id="story-host"></div>
   </section>
+
+  <section class="panel" id="view-coverage" role="tabpanel" aria-labelledby="tab-coverage" hidden>
+    <div class="view-intro"><div><div class="eyebrow">Read the gaps honestly</div><h2>Coverage</h2><p>Three separate measures with their denominators, plus excluded, unclassified, stale and blocked areas listed by name.</p></div></div>
+    <div id="coverage-page-body"></div>
+  </section>
 </main>
 
-<footer id="foot"></footer>
+<footer id="foot"><span id="foot-text"></span><span id="foot-paged" hidden> Paged build: search filters within the current page; cross-page search needs the single-file build. Opening index.html directly navigates between page files; reader notes need wiki serve.</span></footer>
 
 <aside id="anno" role="dialog" aria-labelledby="anno-target" hidden>
   <div class="anno-head">
@@ -333,6 +372,28 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     return;
   }
   var META = P.meta || {};
+  var PAGED = META.mode === "paged" || META.mode === "shell";
+  var SHELL = META.mode === "shell";
+  var PAGE = META.page || "";
+  var PAGES_DIR = SHELL ? "pages/" : "";
+
+  // Paged navigation: one self-contained page per view and per feature. The
+  // shell sits one directory above pages/. pageName mirrors assemble.py
+  // page_name() so deep links always hit an emitted file.
+  function pageName(s) {
+    return String(s).replace(/[^A-Za-z0-9._-]/g, function (ch) {
+      var out = "";
+      Array.prototype.forEach.call(new TextEncoder().encode(ch), function (b) {
+        out += "%" + (b < 16 ? "0" : "") + b.toString(16).toUpperCase();
+      });
+      return out;
+    });
+  }
+  function pageFile(route) {
+    if (route.indexOf("capability/") === 0) return "capability-" + pageName(route.slice(11)) + ".html";
+    return route + ".html";
+  }
+  function goPage(route) { location.href = PAGES_DIR + pageFile(route); }
 
   // ---------- tiny helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -397,7 +458,8 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
   var featCount = (catalog.features || []).length;
   metaBits.push((catalog.features || []).filter(function (f) { return f.kind === "capability"; }).length + " authored capabilities · " + featCount + " catalog entries");
   $("head-meta").textContent = metaBits.join("  ·  ");
-  $("foot").textContent = "Codebase Wiki · Built " + (META.generated_at || "from a local snapshot") + ". Refresh this reference with wiki build.";
+  $("foot-text").textContent = "Codebase Wiki · Built " + (META.generated_at || "from a local snapshot") + ". Refresh this reference with wiki build.";
+  if (PAGED) $("foot-paged").hidden = false;
 
   if (META.stale) {
     $("stale-text").textContent =
@@ -417,10 +479,13 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
 
   // ---------- tabs ----------
   var VIEWS = ["arch", "catalog", "data", "change"];
+  // paged mode adds the coverage page as tab 05; single-file mode keeps
+  // exactly the four existing views (coverage is the collapsible panel)
+  var TAB_VIEWS = PAGED ? VIEWS.concat(["coverage"]) : VIEWS;
   function selectView(name) {
     $("capability-reader").hidden = true;
-    if (VIEWS.indexOf(name) < 0) name = "arch";
-    VIEWS.forEach(function (v) {
+    if (TAB_VIEWS.indexOf(name) < 0) name = "arch";
+    TAB_VIEWS.forEach(function (v) {
       var tab = $("tab-" + v);
       var panel = $("view-" + v);
       var on = v === name;
@@ -429,24 +494,36 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
       tab.tabIndex = on ? 0 : -1;
     });
   }
-  VIEWS.forEach(function (v) {
-    $("tab-" + v).addEventListener("click", function () { location.hash = v; selectView(v); window.scrollTo(0, 0); });
+  function activateTab(v) {
+    if (PAGED) { goPage(v); return; }
+    location.hash = v; selectView(v); window.scrollTo(0, 0);
+  }
+  TAB_VIEWS.forEach(function (v) {
+    $("tab-" + v).addEventListener("click", function () { activateTab(v); });
     $("tab-" + v).addEventListener("keydown", function (ev) {
-      var i = VIEWS.indexOf(v), next;
-      if (ev.key === "ArrowRight") next = VIEWS[(i + 1) % VIEWS.length];
-      if (ev.key === "ArrowLeft") next = VIEWS[(i + VIEWS.length - 1) % VIEWS.length];
-      if (ev.key === "Home") next = VIEWS[0];
-      if (ev.key === "End") next = VIEWS[VIEWS.length - 1];
-      if (next) { ev.preventDefault(); location.hash = next; selectView(next); $("tab-" + next).focus(); window.scrollTo(0, 0); }
+      var i = TAB_VIEWS.indexOf(v), next;
+      if (ev.key === "ArrowRight") next = TAB_VIEWS[(i + 1) % TAB_VIEWS.length];
+      if (ev.key === "ArrowLeft") next = TAB_VIEWS[(i + TAB_VIEWS.length - 1) % TAB_VIEWS.length];
+      if (ev.key === "Home") next = TAB_VIEWS[0];
+      if (ev.key === "End") next = TAB_VIEWS[TAB_VIEWS.length - 1];
+      if (next) { ev.preventDefault(); activateTab(next); if (!PAGED) $("tab-" + next).focus(); window.scrollTo(0, 0); }
     });
   });
+  if (PAGED) $("tab-coverage").hidden = false;
 
   window.addEventListener("hashchange", function () {
     var view = location.hash.slice(1);
+    if (PAGED) {
+      // paged pages route hashes to real pages; the shell hydrates instead
+      if (SHELL) { routeHash(); return; }
+      if (view.indexOf("capability/") === 0 && PAGE !== "capability:" + decodeURIComponent(view.slice(11))) goPage(view);
+      else if (TAB_VIEWS.indexOf(view) >= 0 && view !== PAGE) goPage(view);
+      return;
+    }
     if (view.indexOf("capability/") === 0) openCapability(decodeURIComponent(view.slice(11)));
     else selectView(view);
   });
-  selectView(location.hash.slice(1));
+  if (!SHELL) selectView(PAGED && PAGE ? PAGE : location.hash.slice(1));
 
   var SERVER_MODE = location.protocol === "http:" || location.protocol === "https:";
 
@@ -737,7 +814,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
       if (feat) {
         body.appendChild(el("p", "count", "Feature page"));
         var link = el("a", "", "readme/wiki/" + feat.fid + "/wiki.md");
-        link.href = "#capability/" + encodeURIComponent(feat.fid);
+        link.href = PAGED ? PAGES_DIR + pageFile("capability/" + feat.fid) : "#capability/" + encodeURIComponent(feat.fid);
         body.appendChild(link);
       }
       var noteBtn = $("arch-detail-note");
@@ -750,10 +827,24 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
 
   function openCapability(fid) {
     var feature = (catalog.features || []).find(function (f) { return f.fid === fid; });
-    if (!feature) { selectView("catalog"); return; }
-    VIEWS.forEach(function (v) { $("view-" + v).hidden = true; $("tab-" + v).setAttribute("aria-selected", "false"); });
+    if (!feature) {
+      if (PAGED) { goPage("catalog"); return; }
+      selectView("catalog"); return;
+    }
+    // in paged mode every feature has its own page; navigate there unless
+    // this already IS that page (payload page id prevents the loop)
+    if (PAGED && PAGE !== "capability:" + fid) { goPage("capability/" + fid); return; }
+    TAB_VIEWS.forEach(function (v) {
+      $("view-" + v).hidden = true;
+      var on = PAGED && v === "catalog";
+      $("tab-" + v).setAttribute("aria-selected", on ? "true" : "false");
+      if (PAGED) $("tab-" + v).tabIndex = on ? 0 : -1;
+    });
     var host = $("capability-reader"); host.textContent = ""; host.hidden = false;
-    var back = el("a", "", "Back to capabilities"); back.href = "#catalog"; back.addEventListener("click", function () { selectView("catalog"); }); host.appendChild(back);
+    var back = el("a", "", "Back to capabilities");
+    back.href = PAGED ? PAGES_DIR + "catalog.html" : "#catalog";
+    if (!PAGED) back.addEventListener("click", function () { selectView("catalog"); });
+    host.appendChild(back);
     host.appendChild(el("h1", "", feature.name));
     host.appendChild(el("p", "", feature.purpose || feature.description || "Directory inventory. Behavior has not been documented yet."));
     host.appendChild(el("p", "capability-kind", "Maturity: " + feature.status + ". " + feature.status_reason));
@@ -780,7 +871,9 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
       var values = feature[pair[1]] || []; if (typeof values === "string") values = [values];
       values.forEach(function (value) { list.appendChild(el("li", "", value)); }); host.appendChild(list);
     });
-    var states = el("a", "", "Explore runtime state transitions"); states.href = "#data"; host.appendChild(states);
+    var states = el("a", "", "Explore runtime state transitions");
+    states.href = PAGED ? PAGES_DIR + "data.html" : "#data";
+    host.appendChild(states);
     host.appendChild(el("h2", "", "Evidence and review"));
     host.appendChild(el("p", "", "Reviewed " + (feature.reviewed_at || "date not recorded") + ". Source excerpts are from this build; review warnings indicate differences from the reviewed version."));
     (feature.sources || []).forEach(function (source, i) {
@@ -801,7 +894,12 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     host.appendChild(el("p", "", overview.coverage || "Directory names and dependency counts do not establish behavior or maturity."));
     var questions = el("ul"); (overview.questions || []).forEach(function (q) { questions.appendChild(el("li", "", q)); }); host.appendChild(questions);
     var links = el("div", "capability-start");
-    caps.forEach(function (c) { var a = el("a", "", c.name + " →"); a.href = "#capability/" + encodeURIComponent(c.fid); a.addEventListener("click", function () { openCapability(c.fid); }); links.appendChild(a); }); host.appendChild(links);
+    caps.forEach(function (c) {
+      var a = el("a", "", c.name + " →");
+      a.href = PAGED ? PAGES_DIR + pageFile("capability/" + c.fid) : "#capability/" + encodeURIComponent(c.fid);
+      if (!PAGED) a.addEventListener("click", function () { openCapability(c.fid); });
+      links.appendChild(a);
+    }); host.appendChild(links);
   }
 
   // ---------- catalog view ----------
@@ -844,14 +942,11 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
                                : "coupling: " + (f.coupling_count || 0) + " file groups"));
       foot.appendChild(el("span", "spacer"));
       var page = el("a", "", "Read feature page");
-      page.href = SERVER_MODE ? "/wiki/" + encodeURIComponent(f.fid)
-                              : "readme/wiki/" + f.fid + "/wiki.md";
       page.title = "Generated feature page";
-      {
-        page.href = "#capability/" + encodeURIComponent(f.fid);
-        page.textContent = f.kind === "capability" ? "Follow the execution flow" : "Inspect directory";
-        page.addEventListener("click", function () { openCapability(f.fid); });
-      }
+      page.href = PAGED ? PAGES_DIR + pageFile("capability/" + f.fid)
+                        : "#capability/" + encodeURIComponent(f.fid);
+      page.textContent = f.kind === "capability" ? "Follow the execution flow" : "Inspect directory";
+      if (!PAGED) page.addEventListener("click", function () { openCapability(f.fid); });
       foot.appendChild(page);
       var btn = el("button", "note-btn", "Note");
       btn.setAttribute("data-annotate", "feature:" + (f.fid || ""));
@@ -1265,6 +1360,13 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     d.trigger.focus();
   });
 
+  function updateCounts() {
+    $("count-arch").textContent = ((P.arch || {}).nodes || []).length + " modules · " + ((P.arch || {}).edges || []).length + " relationships";
+    $("count-catalog").textContent = (catalog.features || []).length + " documented features";
+    $("count-data").textContent = ((P.state || {}).entities || []).length + " state machines";
+    $("count-change").textContent = ((P.change || {}).commits || []).length + " commits in snapshot";
+  }
+
   function wireFilters() {
     function filterFeatures() {
       var q = $("feature-search").value.toLowerCase().trim(), status = $("feature-status").value, count = 0;
@@ -1286,20 +1388,189 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     }
     $("state-search").addEventListener("input", filterStates);
     filterStates();
-    $("count-arch").textContent = ((P.arch || {}).nodes || []).length + " modules · " + ((P.arch || {}).edges || []).length + " relationships";
-    $("count-catalog").textContent = featCount + " documented features";
-    $("count-data").textContent = ((P.state || {}).entities || []).length + " state machines";
-    $("count-change").textContent = ((P.change || {}).commits || []).length + " commits in snapshot";
+    updateCounts();
+  }
+
+  // ---------- coverage (three measures, honest gaps) ----------
+  function frac(m) {
+    if (!m || m.error || typeof m.covered !== "number") return "n/a";
+    return m.covered + " / " + (typeof m.denominator === "number" ? m.denominator : 0);
+  }
+  function coverageCard(m, title) {
+    var card = el("div", "card cov-card");
+    card.appendChild(el("h3", "", title));
+    if (!m || m.error) {
+      card.appendChild(el("p", "desc empty", (m && m.error) ? m.error : "Measure unavailable."));
+      return card;
+    }
+    card.appendChild(el("p", "cov-num", frac(m)));
+    var bar = el("div", "cov-bar");
+    var fill = el("span");
+    var denom = typeof m.denominator === "number" ? m.denominator : 0;
+    fill.style.width = (denom > 0 ? Math.round(100 * m.covered / denom) : 0) + "%";
+    bar.appendChild(fill);
+    card.appendChild(bar);
+    card.appendChild(el("p", "cov-note", m.measure || ""));
+    return card;
+  }
+  function listCard(title, lines, note) {
+    var card = el("div", "card");
+    card.appendChild(el("h3", "", title));
+    if (note) card.appendChild(el("p", "cov-note", note));
+    if (!lines.length) { card.appendChild(el("p", "desc empty", "None listed.")); return card; }
+    var ul = el("ul", "cov-list");
+    lines.forEach(function (line) { ul.appendChild(el("li", "", line)); });
+    card.appendChild(ul);
+    return card;
+  }
+  // one builder feeds the single-file collapsible panel, the paged coverage
+  // page and the served shell hydration: same payload key, same rendering
+  function renderCoverageInto(host, cov) {
+    host.textContent = "";
+    var grid = el("div", "cov-grid");
+    grid.appendChild(coverageCard(cov && cov.inventory, "Inventory"));
+    grid.appendChild(coverageCard(cov && cov.explanation, "Explanation"));
+    grid.appendChild(coverageCard(cov && cov.review, "Review"));
+    host.appendChild(grid);
+    if (cov && cov.error) {
+      var err = el("p", "card empty-state");
+      err.appendChild(el("p", "", cov.error));
+      host.appendChild(err);
+    }
+    if (cov && cov.knowledge_error) {
+      var kerr = el("p", "card empty-state");
+      kerr.appendChild(el("p", "", "Authored knowledge unavailable: " + cov.knowledge_error));
+      host.appendChild(kerr);
+    }
+    var inv = (cov && cov.inventory) || {};
+    var unknown = (inv.unclassified_paths || []).slice();
+    if (inv.unclassified_paths_truncated) unknown.push("(list truncated; more in the discovery index)");
+    var excluded = (inv.excluded_paths || []).slice();
+    if (inv.excluded_paths_truncated) excluded.push("(list truncated; more in the discovery index)");
+    var stale = ((cov && cov.stale_areas) || []).map(function (s) { return (s.capability || "?") + ": " + (s.reason || ""); });
+    if (META.stale) stale.push("The build itself is stale: sources changed since the last wiki sync (run: wiki sync).");
+    var blocked = ((cov && cov.blocked_areas) || []).map(function (b) { return (b.job || "?") + ": " + (b.reason || ""); });
+    var grid2 = el("div", "cov-grid");
+    grid2.appendChild(listCard(
+      "Unclassified (unknown)", unknown,
+      typeof inv.unclassified === "number" ? inv.unclassified + " in-scope file(s) are not yet classified." : ""));
+    grid2.appendChild(listCard(
+      "Excluded by policy", excluded,
+      (cov && cov.exclusions && cov.exclusions.note) || ""));
+    grid2.appendChild(listCard("Needs re-review (stale)", stale, ""));
+    grid2.appendChild(listCard("Blocked areas", blocked, ""));
+    host.appendChild(grid2);
+  }
+  function renderCoveragePanel() {
+    var cov = P.coverage;
+    var inv = (cov && cov.inventory) || {};
+    $("coverage-panel").hidden = false;
+    if (cov && !cov.error && !inv.error) {
+      $("coverage-summary").textContent = "Coverage: " + frac(cov.inventory) + " in-scope files classified · " +
+        frac(cov.explanation) + " capabilities explained · " + frac(cov.review) + " reviewed";
+    } else {
+      $("coverage-summary").textContent = "Coverage: unavailable (run: wiki discover, then wiki build)";
+    }
+    renderCoverageInto($("coverage-panel-body"), cov);
+  }
+  function renderCoveragePage() {
+    renderCoverageInto($("coverage-page-body"), P.coverage);
+  }
+
+  // ---------- paged shell ----------
+  function renderCoverageSummary(host, cov) {
+    host.textContent = "";
+    host.appendChild(el("h2", "", "Coverage summary"));
+    if (!cov || cov.error) {
+      host.appendChild(el("p", "desc empty", (cov && cov.error) || "Coverage report unavailable (run: wiki discover, then wiki build)."));
+      return;
+    }
+    [["Inventory", cov.inventory], ["Explanation", cov.explanation], ["Review", cov.review]].forEach(function (pair) {
+      var row = el("p", "cov-line");
+      row.appendChild(el("strong", "", pair[0] + ": "));
+      row.appendChild(document.createTextNode(frac(pair[1]) + " " + ((pair[1] || {}).measure || "")));
+      host.appendChild(row);
+    });
+    var more = el("a", "", "Open the coverage page");
+    more.href = "pages/coverage.html";
+    host.appendChild(more);
+  }
+  function renderShellHome() {
+    TAB_VIEWS.forEach(function (v, i) {
+      $("view-" + v).hidden = true;
+      $("tab-" + v).setAttribute("aria-selected", "false");
+      // keyboard roving tabindex: exactly one tab stays reachable from
+      // the shell start screen (the first), instead of none
+      $("tab-" + v).tabIndex = i === 0 ? 0 : -1;
+    });
+    $("shell-home").hidden = false;
+    renderCoverageSummary($("shell-coverage"), P.coverage);
+  }
+  function renderView(name) {
+    if (name === "arch") { renderArch(); renderKnowledge(); }
+    else if (name === "catalog") renderCatalog();
+    else if (name === "data") renderData();
+    else if (name === "change") renderChange();
+    else if (name === "coverage") renderCoveragePage();
+  }
+  var VIEW_HOSTS = {
+    arch: ["arch-scroll", "module-list", "knowledge-start"],
+    catalog: ["catalog-grid"],
+    data: ["erd-host", "rls-host", "state-grid"],
+    change: ["change-details", "spark-host", "hotspot-host", "story-host"],
+    coverage: ["coverage-page-body"]
+  };
+  function clearViewHosts(name) {
+    (VIEW_HOSTS[name] || []).forEach(function (id) { var n = $(id); if (n) n.textContent = ""; });
+    if (name === "arch") { $("arch-detail").hidden = true; $("arch-detail-placeholder").hidden = false; }
+  }
+  // served-mode deep links: fetch the view payload and render it inside the
+  // shell without a full reload. file mode cannot fetch local JSON, so it
+  // falls back to normal navigation to the page file.
+  function hydrate(route, doc) {
+    P[route] = doc;
+    if (route === "catalog") catalog = P.catalog || {};
+    clearViewHosts(route);
+    renderView(route);
+    updateCounts();
+    $("shell-home").hidden = true;
+    selectView(route);
+    window.scrollTo(0, 0);
+  }
+  function routeHash() {
+    var h = location.hash.slice(1);
+    if (!h) return;
+    if (h.indexOf("capability/") === 0) { location.href = PAGES_DIR + pageFile(h); return; }
+    if (TAB_VIEWS.indexOf(h) < 0) return;
+    if (!SERVER_MODE) { location.href = PAGES_DIR + pageFile(h); return; }
+    fetch("data/" + h + ".json").then(function (res) {
+      if (!res.ok) throw new Error("fetch failed for " + h);
+      return res.json();
+    }).then(function (doc) { hydrate(h, doc); })
+      .catch(function () { location.href = PAGES_DIR + pageFile(h); });
   }
 
   // ---------- boot ----------
   try {
-    renderArch();
-    renderCatalog();
-    renderKnowledge();
-    renderData();
-    renderChange();
-    wireFilters();
+    if (SHELL) {
+      renderShellHome();
+      routeHash();
+    } else if (PAGE.indexOf("capability:") === 0) {
+      wireFilters();
+      openCapability(PAGE.slice(11));
+    } else if (PAGE) {
+      renderView(PAGE);
+      wireFilters();
+      selectView(PAGE);
+    } else {
+      renderArch();
+      renderCatalog();
+      renderKnowledge();
+      renderData();
+      renderChange();
+      renderCoveragePanel();
+      wireFilters();
+    }
     if (SERVER_MODE) {
       fetch("/api/annotations").then(function (res) { return res.json(); })
         .then(function (doc) {
@@ -1309,7 +1580,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
           annoSetStatus("Notes unavailable: server unreachable", "err");
         });
     }
-    if (location.hash.indexOf("#capability/") === 0) openCapability(decodeURIComponent(location.hash.slice(12)));
+    if (!PAGED && location.hash.indexOf("#capability/") === 0) openCapability(decodeURIComponent(location.hash.slice(12)));
     document.body.dataset.ready = "1";
   } catch (err) {
     var fatal = el("div", "card empty-state");

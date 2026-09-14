@@ -25,6 +25,13 @@ Adopt per repo by config only. The skill lives in this repo (`.claude/skills/cfn
    (fnmatch, shallowest match wins; e.g. `"apps/*"` -> fid `apps-attendee`)
    instead of top-level dirs; unset = top-level rule.
 
+Large repos: the default single-file portal grows roughly 6.5x per 10x
+tracked files (measured in `planning/cfn-wiki/SCALE_report.md`; 1.2 MB at
+10k files). Switch big repos to `wiki build <repo> --paged` (small shell
+plus per-view and per-feature pages; navigable from `file://` without a
+server) and benchmark adoption first with `tests/wiki-scale-bench.sh`
+(defaults to 1k/10k tiers; `WIKI_SCALE_MAX=100000` enables the top tier).
+
 2. Install the CBM binary once per machine: `wiki doctor --install`
    (pinned v0.10.8, portable linux-amd64 build into `~/.local/share/cfn-wiki/`).
 

@@ -14,6 +14,8 @@ Routes:
   GET  /api/annotations   -> {"version", "updated_at", "annotations": {...}}
   POST /api/annotations   -> patch {id, note, clientTs?}; empty note deletes
   GET  /wiki/<fid>        -> generated feature page readme/wiki/<fid>/wiki.md
+  GET  /pages/<name>.html -> paged-build page (wiki build --paged)
+  GET  /data/<name>.json  -> paged-build view payload for shell hydration
 
 Exit codes: 0 = served until interrupt, 2 = bad inputs/state, 3 = port busy.
 """
@@ -33,6 +35,9 @@ MAX_NOTE = 20000
 # annotation targets: feature:<fid> | entity:<entity name> | module:<module id>
 ID_RE = re.compile(r"^(feature|entity|module):[^\x00-\x1f]{1,200}$")
 FID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$")
+# paged portal assets: single filename, no separators, no traversal
+PAGE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._%-]{0,120}\.html$")
+DATA_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.json$")
 
 
 def now_iso() -> str:
@@ -163,6 +168,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(404, {"error": "portal not built; run: wiki build"})
         elif path.startswith("/wiki/"):
             self._serve_wiki_page(path[len("/wiki/"):])
+        elif path.startswith("/pages/"):
+            self._serve_portal_asset(path[len("/pages/"):],
+                                     self.portal_dir / "pages",
+                                     PAGE_NAME_RE, "text/html; charset=utf-8")
+        elif path.startswith("/data/"):
+            self._serve_portal_asset(path[len("/data/"):],
+                                     self.portal_dir / "data",
+                                     DATA_NAME_RE, "application/json")
         else:
             self._json(404, {"error": "not found"})
 
@@ -211,6 +224,19 @@ class Handler(BaseHTTPRequestHandler):
             self._json(404, {"error": "not found"})
             return
         self._send(200, page.read_bytes(), "text/markdown; charset=utf-8")
+
+    def _serve_portal_asset(self, name: str, base: Path, name_re, ctype: str,
+                            ) -> None:
+        # regex-validated single filename: the resolved file always sits
+        # directly inside base, never above it
+        if not name_re.match(name):
+            self._json(404, {"error": "not found"})
+            return
+        asset = (base / name).resolve()
+        if asset.parent != base.resolve() or not asset.is_file():
+            self._json(404, {"error": "not found"})
+            return
+        self._send(200, asset.read_bytes(), ctype)
 
 
 class PayloadTooLarge(Exception):

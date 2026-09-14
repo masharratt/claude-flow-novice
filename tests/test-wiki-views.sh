@@ -248,9 +248,6 @@ PY
     # wiki_env_load resolution. Snapshot-only subcase; skips without a binary.
     local cand="${CBM_BIN:-}"
     if [ -z "$cand" ] || [ ! -x "$cand" ]; then
-        [ -x /tmp/cbm-test/codebase-memory-mcp ] && cand=/tmp/cbm-test/codebase-memory-mcp
-    fi
-    if [ -z "$cand" ] || [ ! -x "$cand" ]; then
         cand="$(env HOME="$HOME" PATH="$PATH" bash -c '
             source "$1/wiki-env.sh"
             wiki_env_load "$2"
@@ -386,8 +383,8 @@ EOF
         || no "catalog-vocab: stdout is not a single JSON object"
     local keys
     keys="$(json_get "$out" "sorted(d.keys())")"
-    [ "$keys" = "['empty', 'features']" ] \
-        && ok "catalog-vocab: top-level keys exactly features+empty" \
+    [ "$keys" = "['domains', 'empty', 'entities', 'features', 'knowledge', 'overview']" ] \
+        && ok "catalog-vocab: top-level keys exactly features+empty+knowledge model" \
         || no "catalog-vocab: top-level keys=$keys"
     [ "$(json_get "$out" "d['empty']")" = "False" ] \
         && ok "catalog-vocab: non-empty store -> empty=false" \
@@ -425,7 +422,7 @@ sys.exit(1 if bad else 0)
         && ok "catalog-vocab: missing block -> empty description" \
         || no "catalog-vocab: src description not empty"
     keys="$(json_get "$out" "sorted(d['features'][0].keys())")"
-    [ "$keys" = "['coupling_count', 'description', 'fid', 'files', 'status']" ] \
+    [ "$keys" = "['body', 'coupling_count', 'dependencies', 'description', 'edges', 'fid', 'files', 'kind', 'limitations', 'name', 'needs_review', 'status', 'status_reason']" ] \
         && ok "catalog-vocab: feature keys exactly fid/status/description/files/coupling_count" \
         || no "catalog-vocab: feature keys=$keys"
 
@@ -457,120 +454,60 @@ sys.exit(1 if bad else 0)
 
 # ---------------------------------------------------------------------------
 case_state_entities() {
-    if [ ! -f "$LIB/view-state.sh" ]; then no "state-entities: lib/view-state.sh exists"; return; fi
-    ok "state-entities: lib/view-state.sh exists"
-
-    local REPO="$T/state"
+    local REPO="$T/state" out
     make_repo_copy "$REPO"
-    bash -c '
-        set -uo pipefail
-        source "$1/extract-features.sh"
-        wiki_extract "$2" >/dev/null 2>&1
-    ' _ "$LIB" "$REPO" || { no "state-entities: extract failed"; return; }
-    if bash -c '
-        set -uo pipefail
-        source "$1/gen-projections.sh"
-        wiki_gen_projections "$2/.wiki/store.json" "$2" >/dev/null 2>&1
-    ' _ "$LIB" "$REPO"; then
-        ok "state-entities: generated state-machines skeleton"
-    else
-        no "state-entities: wiki_gen_projections failed"
-        return
-    fi
-    [ -f "$REPO/readme/state-machines.md" ] \
-        && ok "state-entities: state-machines.md present" \
-        || { no "state-entities: state-machines.md missing"; return; }
-
+    bash -c 'source "$1/extract-features.sh"; source "$1/gen-projections.sh"; wiki_extract "$2"; wiki_gen_projections "$2/.wiki/store.json" "$2"' _ "$LIB" "$REPO" >"$T/state-gen.log" 2>&1 || { no "state-entities: generation failed"; return; }
     run_view "$LIB/view-state.sh" wiki_view_state "$REPO/.wiki/store.json"
-    [ "$VIEW_RC" -eq 0 ] && ok "state-entities: exit 0" \
-        || { no "state-entities: exit=$VIEW_RC: $(tail -2 "$T/view.stderr")"; return; }
-    local out
-    out="$(save_view state)"
-    is_one_json_object "$out" \
-        && ok "state-entities: stdout is exactly one JSON object" \
-        || no "state-entities: stdout is not a single JSON object"
-    local keys names
-    keys="$(json_get "$out" "sorted(d.keys())")"
-    [ "$keys" = "['empty', 'entities']" ] \
-        && ok "state-entities: top-level keys exactly entities+empty" \
-        || no "state-entities: top-level keys=$keys"
-    [ "$(json_get "$out" "d['empty']")" = "False" ] \
-        && ok "state-entities: entities found -> empty=false" \
-        || no "state-entities: empty flag wrong"
-
-    # every fixture feature parsed as an entity, in file order
-    names="$(json_get "$out" "','.join(e['name'] for e in d['entities'])")"
-    [ "$names" = "parsing,reporting,src" ] \
-        && ok "state-entities: all three fixture entities parsed in order ($names)" \
-        || no "state-entities: entities=$names (want parsing,reporting,src)"
-
-    # each entity: Source grounding, states, transitions, diagram
-    if python3 - "$out" <<'PY'
-import json
-import sys
-
-d = json.load(open(sys.argv[1], encoding="utf-8"))
-want_states = ["prod", "beta", "dev", "stub", "deprecated"]
-problems = []
-for e in d["entities"]:
-    first_file = {"parsing": "parsing/__init__.py",
-                  "reporting": "reporting/__init__.py",
-                  "src": "src/report.ts"}[e["name"]]
-    if e["source"] != "%s:1" % first_file:
-        problems.append("%s source=%r (want %s:1)" % (e["name"], e["source"], first_file))
-    if e["states"] != want_states:
-        problems.append("%s states=%r" % (e["name"], e["states"]))
-    if len(e["transitions"]) != 5:
-        problems.append("%s transitions=%d" % (e["name"], len(e["transitions"])))
-    else:
-        t0 = e["transitions"][0]
-        if sorted(t0.keys()) != ["from", "guard", "to", "trigger"]:
-            problems.append("%s transition keys=%r" % (e["name"], sorted(t0.keys())))
-        elif (t0["from"], t0["to"]) != ("(new)", "stub"):
-            problems.append("%s first transition=%r" % (e["name"], t0))
-        elif not all(t["trigger"] and t["guard"] for t in e["transitions"]):
-            problems.append("%s empty trigger/guard cell" % e["name"])
-    if "stateDiagram-v2" not in e["diagram"]:
-        problems.append("%s diagram missing mermaid body" % e["name"])
-if problems:
-    print("\n".join(problems))
-    sys.exit(1)
-sys.exit(0)
-PY
-    then
-        ok "state-entities: every entity has source/states/5 transitions/mermaid diagram"
-    else
-        no "state-entities: entity parse problems (see above)"
-    fi
-
-    keys="$(json_get "$out" "sorted(d['entities'][0].keys())")"
-    [ "$keys" = "['diagram', 'name', 'source', 'states', 'transitions']" ] \
-        && ok "state-entities: entity keys exactly name/source/states/transitions/diagram" \
-        || no "state-entities: entity keys=$keys"
-
-    # >300-line skeleton: the TOC heading must not become a phantom entity
-    [ "$(json_get "$out" "len(d['entities'])")" -eq 3 ] \
-        && ok "state-entities: no phantom entities from non-numbered headings" \
-        || no "state-entities: entity count drifted"
-
-    # missing file -> empty-state payload, exit 0
-    local REPO2="$T/state-none"
-    make_repo_copy "$REPO2"
-    bash -c '
-        set -uo pipefail
-        source "$1/extract-features.sh"
-        wiki_extract "$2" >/dev/null 2>&1
-    ' _ "$LIB" "$REPO2" || { no "state-entities: second extract failed"; return; }
-    run_view "$LIB/view-state.sh" wiki_view_state "$REPO2/.wiki/store.json"
-    [ "$VIEW_RC" -eq 0 ] && ok "state-entities: missing file exit 0" \
-        || { no "state-entities: missing file exit=$VIEW_RC"; return; }
-    out="$(save_view state-none)"
-    [ "$(json_get "$out" "d['empty']")" = "True" ] \
-        && [ "$(json_get "$out" "d['entities']")" = "[]" ] \
-        && ok "state-entities: missing file -> {entities: [], empty: true}" \
-        || no "state-entities: missing-file payload wrong: $(head -c 200 "$out")"
+    out="$(save_view state-empty)"
+    [ "$(json_get "$out" "d['entities']")" = "[]" ] \
+        && ok "state-entities: directory inventory generates no fictional states" \
+        || no "state-entities: fictional states generated"
+    cat >"$REPO/readme/state-machines.md" <<'MD'
+# State Machines
+## 1. Job
+**Source:** parsing/parser.py:12
+### States
+| State | Meaning |
+|---|---|
+| queued | Awaiting execution |
+| done | Result recorded |
+### Transitions
+| From | To | Trigger | Guard |
+|---|---|---|---|
+| queued | done | execute | result exists |
+### Diagram
+```mermaid
+stateDiagram-v2
+  queued --> done
+```
+## Appendix. Imported legacy notes
+**Source:** unrelated.py:99
+### States
+| State | Meaning |
+|---|---|
+| unrelated | Must not be part of Job |
+MD
+    run_view "$LIB/view-state.sh" wiki_view_state "$REPO/.wiki/store.json"
+    out="$(save_view state-real)"
+    if python3 - "$out" <<'PYSTATE'
+import json, sys
+p=json.load(open(sys.argv[1]))
+assert p['empty'] is False and len(p['entities']) == 1
+job=p['entities'][0]
+assert job['name']=='Job' and job['source']=='parsing/parser.py:12'
+assert job['states']==['queued','done']
+assert job['transitions']==[{'from':'queued','to':'done','trigger':'execute','guard':'result exists'}]
+assert 'queued --> done' in job['diagram']
+PYSTATE
+    then ok "state-entities: runtime model parsed and appendix isolated"
+    else no "state-entities: runtime model or appendix isolation failed"; fi
+    rm "$REPO/readme/state-machines.md"
+    run_view "$LIB/view-state.sh" wiki_view_state "$REPO/.wiki/store.json"
+    out="$(save_view state-missing)"
+    [ "$(json_get "$out" "d['empty']")" = True ] \
+        && ok "state-entities: missing documentation stays empty" \
+        || no "state-entities: missing documentation not empty"
 }
-
 # ---------------------------------------------------------------------------
 case_change_window() {
     if [ ! -f "$LIB/view-change.sh" ]; then no "change-window: lib/view-change.sh exists"; return; fi
@@ -635,7 +572,7 @@ case_change_window() {
 
     # commit shape + conventional type extraction
     keys="$(json_get "$out" "sorted(d['commits'][0].keys())")"
-    [ "$keys" = "['date', 'files_count', 'sha', 'type']" ] \
+    [ "$keys" = "['capabilities', 'date', 'files_count', 'sha', 'subject', 'type']" ] \
         && ok "change-window: commit keys exactly sha/date/type/files_count" \
         || no "change-window: commit keys=$keys"
     local types
