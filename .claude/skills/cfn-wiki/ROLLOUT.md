@@ -31,8 +31,8 @@ Adopt per repo by config only. The skill lives in this repo (`.claude/skills/cfn
 3. First sync — ORDER MATTERS (import refuses GENERATED files):
 
    ```bash
-   bash $HOME/.claude/skills/cfn-wiki/lib/wiki.sh doctor <repo>
-   bash $HOME/.claude/skills/cfn-wiki/lib/import-existing.sh  # via: source lib/wiki-env.sh + source lib/import-existing.sh; wiki_import_existing <repo>
+   WIKI_DOCTOR_REPO=<repo> bash $HOME/.claude/skills/cfn-wiki/lib/wiki.sh doctor
+   bash $HOME/.claude/skills/cfn-wiki/lib/wiki.sh import-existing <repo>
    bash $HOME/.claude/skills/cfn-wiki/lib/wiki.sh sync <repo> --enrich
    bash $HOME/.claude/skills/cfn-wiki/lib/wiki.sh build <repo>
    bash $HOME/.claude/skills/cfn-wiki/lib/wiki.sh serve <repo>
@@ -62,7 +62,7 @@ Adopt per repo by config only. The skill lives in this repo (`.claude/skills/cfn
 
 | Layer | Undo |
 |---|---|
-| Generated md | `git revert` / `git checkout HEAD -- readme/` (they are tracked; every regen is a normal diff) |
+| Generated md | Restore the pre-edit backup; preserve authored knowledge and reader notes. |
 | Working state | `rm -rf <repo>/.wiki` |
 | Skill | remove `.claude/skills/cfn-wiki/` in this repo (global symlink means every project loses it) |
 | CBM | `rm -rf ~/.cache/codebase-memory-mcp ~/.local/share/cfn-wiki` |
@@ -73,11 +73,11 @@ Adopt per repo by config only. The skill lives in this repo (`.claude/skills/cfn
 A commit that adds/renames a feature dir flips the fingerprint, so CI runs
 red on that exact commit until the follow-up `wiki sync` commit — the husky
 regen is post-commit by design (it can never block or rewrite a commit).
-Follow the red with `wiki sync && git commit -am "chore(wiki): sync"`.
+Run `wiki sync` and review the generated diff. Commit only when the task authorizes it.
 
 ## Deferred decisions (from planning/cfn-wiki/REVIEW_cfn-wiki.md)
 
-- Enrichment authoring: manual `wiki sync --enrich` only; revisit if staleness notices get noisy.
+- Authoring: read AUTHORING.md and track capabilities in readme/wiki/knowledge.json. Manual enrichment remains a source-review task.
 - CBM pinned v0.10.8; upgrade trigger: CVE in its parsing stack or a needed graph feature; re-run `wiki doctor` after.
 - CodeSearch join deferred; trigger: entity-level pages need richer symbols than CBM nodes.
 - `include_data_in_md` flips if any wiki'd repo becomes public.

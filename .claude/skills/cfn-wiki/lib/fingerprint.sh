@@ -1,31 +1,9 @@
 #!/usr/bin/env bash
-# cfn-wiki store fingerprint: sha256 over the canonical feature subset of a
-# store.json.
-#
-# Contract: wiki_fingerprint <store.json> -> 64-hex sha256 on stdout, exit 0.
-# Missing file or unparseable JSON -> message on stderr, exit 1.
-#
-# Inputs hashed (the canonical subset):
-#   features[].fid, features[].files, features[].entrypoints
-# Lists are order-normalized (features by fid, files/entrypoints sorted) so
-# store ordering never leaks into the hash.
-#
-# Inputs excluded BY DESIGN:
-#   coupling[] is a function of git log AT QUERY TIME (a sliding window over
-#   recent commits), not of the tree: the window slides as commits land, so
-#   any coupling-derived input would drift the marker on every commit
-#   boundary crossing. CBM-derived data (module node counts, module-level
-#   edges, meta.edge_type_counts, cbm_mode) is enrichment: CBM graph
-#   resolution is toolchain-dependent, so it can never be cross-machine
-#   stable. Volatile meta (generated_at, repo, meta.fingerprint itself) is
-#   environment output. With this subset, the same tracked tree hashes
-#   identically across machines, modes, and commits; a change to tracked
-#   feature content or entrypoints flips the hash.
-#
-# Consumers: the sync drift gate hashes the whole store (drift = any
-# regenerable byte changed); the per-feature enrich preservation in Phase 3
-# keys off this same function.
-
+# wiki_fingerprint <store> hashes sorted feature identity, source-content
+# hashes and authored knowledge inputs. CBM graph weights, git coupling and
+# timestamps stay outside the canonical hash. Missing/unreadable stores fail.
+# Per-feature fingerprints use the same fields in knowledge.py and
+# merge-enrichment.sh; old prose retains its reviewed fingerprint.
 WIKI_FINGERPRINT_LOADED=1
 
 wiki_fingerprint() {
@@ -53,11 +31,12 @@ if not isinstance(store, dict):
 features = sorted(
     ({"entrypoints": sorted(str(e) for e in f.get("entrypoints") or []),
       "fid": str(f.get("fid", "")),
-      "files": sorted(str(p) for p in f.get("files") or [])}
+      "files": sorted(str(p) for p in f.get("files") or []),
+      **({"content_hashes": f["content_hashes"]} if "content_hashes" in f else {})}
      for f in store.get("features") or [] if isinstance(f, dict)),
     key=lambda f: f["fid"])
 
-blob = json.dumps({"features": features}, sort_keys=True,
+blob = json.dumps({"features": features, "knowledge_inputs": store.get("knowledge_inputs", {})}, sort_keys=True,
                   separators=(",", ":"), ensure_ascii=True)
 print(hashlib.sha256(blob.encode("utf-8")).hexdigest())
 PY

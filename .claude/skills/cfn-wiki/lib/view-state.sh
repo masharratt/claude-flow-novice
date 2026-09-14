@@ -109,8 +109,15 @@ if os.path.isfile(md):
                     section = None
                     in_fence = False
                     continue
+                if line.startswith("## "):
+                    flush()
+                    section = None
+                    in_fence = False
+                    continue
                 if current is None:
                     continue
+                if line.startswith("Source changed; review"):
+                    current["needs_review"] = True
                 sm = SOURCE.match(line)
                 if sm:
                     current["source"] = SOURCE_ANNO.sub("", sm.group(1)).strip()

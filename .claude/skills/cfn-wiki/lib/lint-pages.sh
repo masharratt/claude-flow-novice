@@ -23,6 +23,21 @@ wiki_lint() {
     fi
 
     local errors=0 pages=0 page tok
+    local lib
+    lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if ! python3 - "$dir" "$lib" <<'PYMODEL'
+import sys
+sys.path.insert(0, sys.argv[2])
+from knowledge import load_knowledge
+try:
+    doc = load_knowledge(sys.argv[1])
+    for c in doc['capabilities']:
+        if c['needs_review']:
+            print('REVIEW NEEDED: ' + c['fid'])
+except (ValueError, OSError, KeyError, TypeError) as exc:
+    sys.exit('ERROR: wiki knowledge: ' + str(exc))
+PYMODEL
+    then errors=$((errors + 1)); fi
     while IFS= read -r page; do
         pages=$((pages + 1))
         if ! grep -q '\*\*Source:\*\*' "$page"; then

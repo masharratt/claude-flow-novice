@@ -105,7 +105,7 @@ PY
     fi
 
     # --- assemble payload + inline into the template ------------------------
-    if ! python3 - "$work" "$store" "$repo" "$template" <<'PY' >/dev/null
+    if ! python3 - "$work" "$store" "$repo" "$template" "$lib_dir" <<'PY' >/dev/null
 # merge the five views, attach sanitized mermaid SVGs, compute meta, inline
 import glob
 import json
@@ -118,6 +118,8 @@ from datetime import datetime, timezone
 
 work, store_path, repo, template_path = (
     sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+sys.path.insert(0, sys.argv[5])
+from knowledge import source_signature
 
 
 def load(name):
@@ -152,12 +154,35 @@ if os.path.isfile(fs_path):
 fp = meta.get("fingerprint", "")
 if marker and fp and marker == fp:
     stale = False
+    import hashlib
+    watched = dict(store.get("knowledge_inputs", {}))
+    for feature in store.get("features", []):
+        watched.update(feature.get("content_hashes", {}))
+    for path, expected in watched.items():
+        try:
+            with open(os.path.join(repo, path), "rb") as source:
+                actual = hashlib.sha256(source.read()).hexdigest()
+        except OSError:
+            actual = "missing"
+        if actual != expected:
+            stale = True
+            break
 
 degraded = ""
 if meta.get("cbm_mode") != "snapshot":
     degraded = ("CBM snapshot unavailable: git-only extraction"
-                " (edges and node counts are approximate;"
+                " (dependency edges and symbol counts are unavailable;"
                 " run: wiki doctor --install)")
+
+if meta.get("cbm_mode") == "snapshot":
+    provenance = os.path.join(repo, ".wiki/cache/cbm-source.sha256")
+    try:
+        with open(provenance) as fh:
+            index_current = fh.read().strip() == source_signature(repo)
+    except OSError:
+        index_current = False
+    if not index_current:
+        degraded = "Dependency index freshness is unverified or sources changed. Run wiki sync with CBM available."
 
 # attach sanitized mmdc SVGs (fail closed: anything suspicious -> no svg)
 MERMAID_SVG_SAFE_HREF = re.compile(r"(?:xlink:)?href\s*=\s*[\"']\s*(?:https?:)?//",

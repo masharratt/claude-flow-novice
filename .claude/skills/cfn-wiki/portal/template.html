@@ -196,6 +196,23 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
 @media (max-width:800px) { .arch-grid,.change-columns { grid-template-columns:1fr; } .arch-side { display:grid; grid-template-columns:1fr 1fr; gap:16px; } #state-grid { grid-template-columns:1fr; } .diagram-viewport.arch-scroll { height:440px; } .view-intro { align-items:start; flex-direction:column; gap:10px; } .view-count { padding:0; } }
 @media (max-width:480px) { .head-inner,.banners,nav.tabs,main,footer { padding-left:16px; padding-right:16px; } .head-row { align-items:start; } .brand-mark { display:none; } .head-row>button { font-size:11px; white-space:nowrap; } nav.tabs { gap:20px; } .tab-index { display:none; } .view-intro h2 { font-size:32px; } .arch-side { grid-template-columns:1fr; gap:0; } .grid-cards { grid-template-columns:1fr; } .card { padding:16px; } .diagram-viewport.arch-scroll { height:380px; } .diagram-caption { display:none; } #diagram-dialog { padding:12px; width:calc(100vw - 16px); height:calc(100dvh - 16px); } .banner { align-items:start; } }
 
+
+  .knowledge-intro { padding:28px; margin-bottom:24px; border-left:4px solid var(--accent, #246b59); }
+  .knowledge-intro p { max-width:78ch; line-height:1.65; }
+  .knowledge-intro h2 { font-size:clamp(24px, 3vw, 36px); }
+  .capability-start { display:flex; flex-wrap:wrap; gap:12px; margin-top:18px; }
+  #capability-reader { max-width:1040px; margin:0 auto; }
+  #capability-reader h1 { font-size:clamp(28px, 4vw, 46px); margin:24px 0 16px; }
+  #capability-reader p, #capability-reader li { line-height:1.7; max-width:85ch; }
+  .flow-steps { list-style:none; padding:0; counter-reset:flow; }
+  .flow-step { counter-increment:flow; position:relative; margin:0 0 14px; padding:22px 24px 22px 70px; border:1px solid var(--line, #d5ded9); border-radius:12px; }
+  .flow-step:before { content:counter(flow); position:absolute; left:20px; top:22px; width:30px; height:30px; border-radius:50%; background:#246b59; color:white; text-align:center; line-height:30px; }
+  .flow-step h3 { margin:0 0 8px; }
+  .evidence-block { margin:12px 0; padding:16px; border:1px solid var(--line, #d5ded9); border-radius:10px; overflow-wrap:anywhere; }
+  .evidence-block pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; }
+  .review-warning { padding:12px 16px; background:#fff0ce; color:#594016; border-radius:8px; }
+  .capability-kind { font-size:12px; opacity:.8; margin-bottom:8px; }
+  .change-entry { padding:14px 0; border-bottom:1px solid var(--line, #d5ded9); overflow-wrap:anywhere; }
 </style>
 </head>
 <body>
@@ -227,7 +244,9 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
 </header>
 
 <main id="main" tabindex="-1">
+  <article id="capability-reader" hidden aria-label="Capability walkthrough"></article>
   <section class="panel" id="view-arch" role="tabpanel" aria-labelledby="tab-arch">
+    <section id="knowledge-start" class="card knowledge-intro" hidden></section>
     <div class="view-intro"><div><div class="eyebrow">Explore the system</div><h2>A map of the codebase</h2><p>Trace connections between modules, then inspect their files and source details.</p></div><div class="view-count" id="count-arch"></div></div>
     <div class="arch-grid">
       <div>
@@ -253,7 +272,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
   </section>
 
   <section class="panel" id="view-catalog" role="tabpanel" aria-labelledby="tab-catalog" hidden>
-    <div class="view-intro"><div><div class="eyebrow">Browse the capabilities</div><h2>The feature library</h2><p>Find what exists, how mature it is, and where its implementation lives.</p></div><div class="view-count" id="count-catalog"></div></div>
+    <div class="view-intro"><div><div class="eyebrow">Browse the capabilities</div><h2>Capabilities and directory inventory</h2><p>Start with an authored walkthrough. Directory entries help locate code; their status may be unassessed.</p></div><div class="view-count" id="count-catalog"></div></div>
     <div class="toolbar"><div class="field search"><label for="feature-search">Find a feature</label><input id="feature-search" type="search" placeholder="Search names, descriptions or source files…"></div><div class="field"><label for="feature-status">Maturity</label><select id="feature-status"><option value="">All statuses</option><option>prod</option><option>beta</option><option>dev</option><option>stub</option><option>deprecated</option></select></div><button id="feature-reset">Reset</button><span id="feature-count" class="result-count" role="status"></span></div>
     <div class="grid-cards" id="catalog-grid"></div><p class="card empty-state" id="feature-empty" hidden>No matching features. Try another search or reset the filters.</p>
   </section>
@@ -273,7 +292,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     <div class="card" id="spark-host"></div>
     </div><div><h2>Hotspots</h2>
     <div class="card" id="hotspot-host"></div>
-    </div></div><h2>Feature timeline</h2>
+    </div></div><h2>Recent changes</h2><div class="card" id="change-details"></div><h2>Activity by directory</h2>
     <div class="card" id="story-host"></div>
   </section>
 </main>
@@ -376,7 +395,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
   if (META.fingerprint) metaBits.push("fingerprint " + String(META.fingerprint).slice(0, 8));
   var catalog = P.catalog || {};
   var featCount = (catalog.features || []).length;
-  metaBits.push(featCount + (featCount === 1 ? " feature" : " features"));
+  metaBits.push((catalog.features || []).filter(function (f) { return f.kind === "capability"; }).length + " authored capabilities · " + featCount + " catalog entries");
   $("head-meta").textContent = metaBits.join("  ·  ");
   $("foot").textContent = "Codebase Wiki · Built " + (META.generated_at || "from a local snapshot") + ". Refresh this reference with wiki build.";
 
@@ -399,6 +418,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
   // ---------- tabs ----------
   var VIEWS = ["arch", "catalog", "data", "change"];
   function selectView(name) {
+    $("capability-reader").hidden = true;
     if (VIEWS.indexOf(name) < 0) name = "arch";
     VIEWS.forEach(function (v) {
       var tab = $("tab-" + v);
@@ -423,7 +443,8 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
 
   window.addEventListener("hashchange", function () {
     var view = location.hash.slice(1);
-    if (VIEWS.indexOf(view) >= 0) selectView(view);
+    if (view.indexOf("capability/") === 0) openCapability(decodeURIComponent(view.slice(11)));
+    else selectView(view);
   });
   selectView(location.hash.slice(1));
 
@@ -716,8 +737,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
       if (feat) {
         body.appendChild(el("p", "count", "Feature page"));
         var link = el("a", "", "readme/wiki/" + feat.fid + "/wiki.md");
-        link.href = SERVER_MODE ? "/wiki/" + encodeURIComponent(feat.fid)
-                                : "readme/wiki/" + feat.fid + "/wiki.md";
+        link.href = "#capability/" + encodeURIComponent(feat.fid);
         body.appendChild(link);
       }
       var noteBtn = $("arch-detail-note");
@@ -726,6 +746,62 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     }
     // expose for the annotation painter (button inside the detail panel)
     renderArch.selectNode = selectNode;
+  }
+
+  function openCapability(fid) {
+    var feature = (catalog.features || []).find(function (f) { return f.fid === fid; });
+    if (!feature) { selectView("catalog"); return; }
+    VIEWS.forEach(function (v) { $("view-" + v).hidden = true; $("tab-" + v).setAttribute("aria-selected", "false"); });
+    var host = $("capability-reader"); host.textContent = ""; host.hidden = false;
+    var back = el("a", "", "Back to capabilities"); back.href = "#catalog"; back.addEventListener("click", function () { selectView("catalog"); }); host.appendChild(back);
+    host.appendChild(el("h1", "", feature.name));
+    host.appendChild(el("p", "", feature.purpose || feature.description || "Directory inventory. Behavior has not been documented yet."));
+    host.appendChild(el("p", "capability-kind", "Maturity: " + feature.status + ". " + feature.status_reason));
+    if (feature.needs_review) host.appendChild(el("p", "review-warning", "Sources changed since review. The explanation is preserved, but needs checking against current code."));
+    if (feature.kind !== "capability") {
+      host.appendChild(el("p", "", "This entry groups source files by directory. It is not a traced capability."));
+      var files = el("ul"); (feature.files || []).forEach(function (path) { files.appendChild(el("li", "", path)); }); host.appendChild(files);
+      window.scrollTo(0, 0); return;
+    }
+    host.appendChild(el("h2", "", "From trigger to outcome"));
+    var steps = el("ol", "flow-steps");
+    (feature.flow || []).forEach(function (step) {
+      var item = el("li", "flow-step"); item.appendChild(el("h3", "", step.title)); item.appendChild(el("p", "", step.detail));
+      var src = (feature.sources || []).findIndex(function (s) { return s.path === step.source; });
+      var link = el("button", "", "Inspect source evidence");
+      link.addEventListener("click", function () { var target = $("evidence-" + src); if (target) {
+        if (step.excerpt) { target.querySelector("pre").textContent = step.excerpt; target.querySelector("summary").textContent = step.source + ":" + step.line; }
+        target.open = true; target.scrollIntoView({block:"center"}); target.focus(); } });
+      item.appendChild(link); steps.appendChild(item);
+    });
+    host.appendChild(steps);
+    [["Failures and recovery", "failures"], ["Where to make a change", "change_guidance"], ["Limits of this explanation", "limitations"]].forEach(function (pair) {
+      host.appendChild(el("h2", "", pair[0])); var list = el("ul");
+      var values = feature[pair[1]] || []; if (typeof values === "string") values = [values];
+      values.forEach(function (value) { list.appendChild(el("li", "", value)); }); host.appendChild(list);
+    });
+    var states = el("a", "", "Explore runtime state transitions"); states.href = "#data"; host.appendChild(states);
+    host.appendChild(el("h2", "", "Evidence and review"));
+    host.appendChild(el("p", "", "Reviewed " + (feature.reviewed_at || "date not recorded") + ". Source excerpts are from this build; review warnings indicate differences from the reviewed version."));
+    (feature.sources || []).forEach(function (source, i) {
+      var box = el("details", "evidence-block"); box.id = "evidence-" + i; box.tabIndex = -1;
+      box.appendChild(el("summary", "", source.path + ":" + source.line + (source.needs_review ? " (review needed)" : "")));
+      box.appendChild(el("p", "", source.claim)); box.appendChild(el("pre", "", source.excerpt || "Source unavailable in this build.")); host.appendChild(box);
+    });
+    var note = el("button", "note-btn", "Leave a reader note"); note.setAttribute("data-annotate", "feature:" + feature.fid); host.appendChild(note);
+    window.scrollTo(0, 0);
+  }
+
+  function renderKnowledge() {
+    var overview = catalog.overview || {}, caps = (catalog.features || []).filter(function (f) { return f.kind === "capability"; });
+    var host = $("knowledge-start"); host.hidden = false;
+    host.appendChild(el("p", "eyebrow", "Start here"));
+    host.appendChild(el("h2", "", overview.title || "What does this system do?"));
+    host.appendChild(el("p", "", overview.summary || "This wiki currently contains a directory inventory. Authored capability walkthroughs have not been added yet."));
+    host.appendChild(el("p", "", overview.coverage || "Directory names and dependency counts do not establish behavior or maturity."));
+    var questions = el("ul"); (overview.questions || []).forEach(function (q) { questions.appendChild(el("li", "", q)); }); host.appendChild(questions);
+    var links = el("div", "capability-start");
+    caps.forEach(function (c) { var a = el("a", "", c.name + " →"); a.href = "#capability/" + encodeURIComponent(c.fid); a.addEventListener("click", function () { openCapability(c.fid); }); links.appendChild(a); }); host.appendChild(links);
   }
 
   // ---------- catalog view ----------
@@ -743,9 +819,12 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
       card.dataset.status = f.status || "dev";
       card.dataset.search = [f.fid, f.description].concat(f.files || []).join(" ").toLowerCase();
       var head = el("div", "card-head");
-      head.appendChild(el("code", "fid", f.fid || "(unnamed)"));
+      head.appendChild(el("span", "fid", f.name || f.fid || "(unnamed)"));
       head.appendChild(el("span", "chip st-" + (f.status || "dev"), f.status || "dev"));
       card.appendChild(head);
+      card.appendChild(el("p", "capability-kind", f.kind === "capability" ? "Authored capability" : "Directory inventory"));
+      if (f.needs_review) card.appendChild(el("p", "review-warning", "Source changed: explanation needs review"));
+      if (f.status_reason) card.appendChild(el("p", "capability-kind", f.status_reason));
 
       if (f.description) card.appendChild(el("p", "desc", f.description));
       else card.appendChild(el("p", "desc empty", "This feature has no description yet."));
@@ -768,6 +847,11 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
       page.href = SERVER_MODE ? "/wiki/" + encodeURIComponent(f.fid)
                               : "readme/wiki/" + f.fid + "/wiki.md";
       page.title = "Generated feature page";
+      {
+        page.href = "#capability/" + encodeURIComponent(f.fid);
+        page.textContent = f.kind === "capability" ? "Follow the execution flow" : "Inspect directory";
+        page.addEventListener("click", function () { openCapability(f.fid); });
+      }
       foot.appendChild(page);
       var btn = el("button", "note-btn", "Note");
       btn.setAttribute("data-annotate", "feature:" + (f.fid || ""));
@@ -814,6 +898,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     }
     ents.forEach(function (e) {
       var card = el("article", "card entity-card");
+      if (e.needs_review) card.appendChild(el("p", "review-warning", "Source changed: runtime model needs review."));
       card.dataset.search = [e.name, e.source].concat(e.states || []).concat((e.transitions || []).map(function (t) { return [t.from,t.to,t.trigger,t.guard].join(" "); })).join(" ").toLowerCase();
       var head = el("div", "card-head");
       head.appendChild(el("code", "fid", e.name || "(unnamed)"));
@@ -993,6 +1078,12 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
   function renderChange() {
     var change = P.change || {};
     var commits = change.commits || [];
+    var details = $("change-details");
+    commits.filter(function (c) { return c.subject; }).slice(0, 20).forEach(function (c) {
+      var row = el("div", "change-entry"); row.appendChild(el("strong", "", c.subject));
+      row.appendChild(el("p", "capability-kind", shortDate(c.date) + " · " + String(c.sha || "").slice(0, 8) + " · " + (c.files_count || 0) + " files")); details.appendChild(row);
+    });
+    if (!details.childNodes.length) details.appendChild(el("p", "", "No commit descriptions recorded in this build."));
     var spark = $("spark-host");
     if (!commits.length) {
       emptyCard(spark, "No commits in the window.", "Commit history appears after the repo has tracked commits.");
@@ -1205,6 +1296,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
   try {
     renderArch();
     renderCatalog();
+    renderKnowledge();
     renderData();
     renderChange();
     wireFilters();
@@ -1217,6 +1309,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
           annoSetStatus("Notes unavailable: server unreachable", "err");
         });
     }
+    if (location.hash.indexOf("#capability/") === 0) openCapability(decodeURIComponent(location.hash.slice(12)));
     document.body.dataset.ready = "1";
   } catch (err) {
     var fatal = el("div", "card empty-state");

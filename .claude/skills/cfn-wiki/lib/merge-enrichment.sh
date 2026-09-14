@@ -1,35 +1,10 @@
 #!/usr/bin/env bash
-# cfn-wiki enrichment merge: resolve wiki:enrich block bodies for generation.
-#
-# A wiki:enrich block in generated markdown looks like:
-#   <!-- wiki:enrich id=<fid> fp=<feature-fp> -->
-#   ...curated text...
-#   <!-- /wiki:enrich -->
-#
-# Preservation rule (plan: fuzzy-whistling-eich): a block is preserved across
-# a regeneration iff its stored fp equals the CURRENT feature fingerprint, a
-# sha256 over the feature's canonical slice {fid, files, entrypoints}
-# (order-normalized, canonicalized exactly like lib/fingerprint.sh). CBM
-# enrichment (edge weights) is deliberately excluded: it is toolchain-
-# dependent, and a weight change is not a feature-content change. A stale
-# block (canonical content changed) is dropped; the regenerated block
-# re-attaches the enrichment text from .wiki/enrich/blocks/<id>.md, the
-# import source.
-#
-# Public functions:
-#   wiki_feature_fp <store> <fid>        print the feature slice fp (exit 1 if
-#                                        the fid is not in the store)
-#   wiki_enrich_extract <md> <outdir>    pull blocks out of generated md into
-#                                        <outdir>/<id>.md + <id>.fp; prints count
-#   wiki_enrich_body <store> <id>        print the resolved body for id
-#                                        (id may be "<fid>" or "entity-<fid>")
-#   wiki_enrich_resolve <store>          resolve every store fid into
-#                                        .wiki/enrich/resolved/<id>.md (+ .fp)
-#   wiki_merge_enrich <store> <out_md_dir> [extra.md...]
-#                                        extract from the two projections (plus
-#                                        any extra generated md) then resolve;
-#                                        prints a preserved/stale/default tally
-
+# Resolve tracked wiki:enrich blocks into a rebuildable working cache.
+# Text and its original reviewed fingerprint survive source changes. The
+# shared model reports mismatches as review-needed; it never erases prose.
+# Import sources are fallback only. Orphans remain in the Markdown appendix.
+# Public functions: wiki_feature_fp, wiki_enrich_extract, wiki_enrich_body,
+# wiki_enrich_resolve and wiki_merge_enrich.
 WIKI_MERGE_ENRICH_LOADED=1
 
 wiki_enrich_dir() { # <store> -> absolute .wiki/enrich dir
@@ -67,6 +42,8 @@ slice_ = {
     "fid": str(feature.get("fid", "")),
     "files": sorted(str(p) for p in feature.get("files") or []),
 }
+if "content_hashes" in feature:
+    slice_["content_hashes"] = feature["content_hashes"]
 blob = json.dumps(slice_, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 print(hashlib.sha256(blob.encode("utf-8")).hexdigest())
 PY
@@ -132,8 +109,7 @@ wiki_enrich_pick() { # <store> <id>
         entity-*) fid="${id#entity-}" ;;
     esac
     fp="$(wiki_feature_fp "$store" "$fid" 2>/dev/null || true)"
-    if [ -n "$fp" ] && [ -s "$extract/$id.md" ] && [ -f "$extract/$id.fp" ] \
-        && [ "$(cat "$extract/$id.fp" 2>/dev/null)" = "$fp" ]; then
+    if [ -n "$fp" ] && [ -s "$extract/$id.md" ] && [ -f "$extract/$id.fp" ]; then
         ENRICH_SRC="$extract/$id.md"
         ENRICH_STATE="preserved"
     elif [ -f "$blocks/$id.md" ]; then
@@ -169,7 +145,11 @@ wiki_enrich_resolve() { # <store> -> writes resolved/<id>.md and .fp
             else
                 wiki_enrich_body "$store" "$id" >"$resolved/$id.md"
             fi
-            printf '%s\n' "${fp:-none}" >"$resolved/$id.fp"
+            if [ "$ENRICH_STATE" = "preserved" ] && [ -f "$base/extract/$id.fp" ]; then
+                cat "$base/extract/$id.fp" >"$resolved/$id.fp"
+            else
+                printf '%s\n' "${fp:-none}" >"$resolved/$id.fp"
+            fi
         done
     done <<EOF
 $(wiki_store_fids "$store")

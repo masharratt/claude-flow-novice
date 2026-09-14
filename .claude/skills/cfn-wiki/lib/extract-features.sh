@@ -130,8 +130,9 @@ PY
     fi
 
     local mode
-    if ! mode="$(python3 - "$repo" "$tmp" "$features_glob" <<'PY'
+    if ! mode="$(python3 - "$repo" "$tmp" "$features_glob" "${2:-500}" <<'PY'
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -333,6 +334,13 @@ else:
     chosen = [d for d in top_dirs
               if d not in FEATURE_EXCLUDE and not d.startswith(".")]
 
+def file_digest(rel):
+    try:
+        with open(os.path.join(repo, rel), "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()
+    except OSError:
+        return "missing"
+
 features = []
 for d in chosen:
     if features_glob:
@@ -343,6 +351,7 @@ for d in chosen:
     features.append({"fid": slug(d),
                      "name": d,
                      "files": dfiles,
+                     "content_hashes": {p: file_digest(p) for p in dfiles},
                      "entrypoints": eps,
                      # enrichment: nested glob fids approximate with their
                      # top-level module's edge weight
@@ -353,7 +362,7 @@ for d in chosen:
 def git_coupling(r, top_n):
     try:
         log = subprocess.run(
-            ["git", "-C", r, "log", "--name-only", "--format=%x01%H"],
+            ["git", "-C", r, "log", "-n", sys.argv[4], "--name-only", "--format=%x01%H"],
             capture_output=True, text=True, check=True).stdout
     except (OSError, subprocess.CalledProcessError):
         return []  # not a git repo (or git missing): coupling stays empty
@@ -383,7 +392,25 @@ def git_coupling(r, top_n):
 
 coupling = git_coupling(repo, COUPLING_TOP)
 
+knowledge_path = "readme/wiki/knowledge.json"
+knowledge_inputs = {}
+if os.path.isfile(os.path.join(repo, knowledge_path)):
+    with open(os.path.join(repo, knowledge_path)) as fh:
+        authored = json.load(fh)
+    knowledge_inputs[knowledge_path] = file_digest(knowledge_path)
+    for capability in authored.get("capabilities", []):
+        if not isinstance(capability, dict):
+            # version 2 manifest: capabilities are shard ids, not inline
+            # objects; their shards are covered by the knowledge digest
+            continue
+        for source in capability.get("sources", []):
+            path = source["path"]
+            if os.path.isabs(path) or ".." in path.split("/"):
+                raise ValueError("invalid knowledge source path")
+            knowledge_inputs[path] = file_digest(path)
+
 store = {
+    "knowledge_inputs": knowledge_inputs,
     "features": features,
     "modules": modules,
     "edges": edges_out,

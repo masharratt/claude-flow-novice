@@ -38,6 +38,15 @@ wiki_cbm_index() {
     local project
     project="$(basename "$repo")"
 
+    local lib source_fp
+    lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    source_fp="$(python3 - "$repo" "$lib" <<'PYSOURCE'
+import sys
+sys.path.insert(0, sys.argv[2])
+from knowledge import source_signature
+print(source_signature(sys.argv[1]))
+PYSOURCE
+)" || return 1
     if ! "$CBM_BIN" cli --progress index_repository --repo-path "$repo" --mode "$mode" --name "$project"; then
         echo "wiki: CBM index failed for $repo (binary: $CBM_BIN)" >&2
         return 1
@@ -58,14 +67,24 @@ wiki_cbm_index() {
     fi
 
     mkdir -p "$repo/.wiki/cache"
-    cp "$src" "$repo/.wiki/cache/cbm.db" 2>/dev/null || true
-    if [ ! -s "$repo/.wiki/cache/cbm.db" ]; then
-        # The index step reported success but left nothing usable to copy
-        # (e.g. CBM deduped the clone into a parent project's db by canonical
-        # root). A failed copy with a present binary is loud: this is NOT the
-        # degraded path, which stays exit 0.
+    if ! python3 - "$src" "$repo/.wiki/cache/cbm.db" <<'PYCOPY'
+import os, sqlite3, sys
+source, target = sys.argv[1:]
+tmp = target + '.tmp'
+if os.path.getsize(source) == 0:
+    sys.exit('empty CBM index')
+try:
+    with sqlite3.connect('file:' + source + '?mode=ro', uri=True) as src:
+        with sqlite3.connect(tmp) as dst:
+            src.backup(dst)
+    os.replace(tmp, target)
+finally:
+    if os.path.exists(tmp): os.remove(tmp)
+PYCOPY
+    then
         echo "wiki: CBM index copy failed (expected $src)" >&2
         return 1
     fi
+    printf '%s\n' "$source_fp" >"$repo/.wiki/cache/cbm-source.sha256"
     echo "wiki: indexed $repo (mode=$mode) -> .wiki/cache/cbm.db"
 }

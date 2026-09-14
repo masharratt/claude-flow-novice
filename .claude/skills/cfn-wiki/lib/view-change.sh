@@ -42,7 +42,7 @@ wiki_view_change() {
         return 1
     fi
 
-    python3 - "$store" "$repo" "$window" <<'PY'
+    python3 - "$store" "$repo" "$window" "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" <<'PY'
 import datetime
 import json
 import re
@@ -87,8 +87,12 @@ def commit_type(subject):
     return "other"
 
 
+sys.path.insert(0, sys.argv[4])
+from knowledge import model
+resolved_features = model(sys.argv[1])["features"]
+
 story_files = {f.get("fid", ""): set(f.get("files", []))
-               for f in store.get("features", [])}
+               for f in resolved_features}
 
 commits, hotspot_counts = [], {}
 story = {fid: {"first_commit_date": None, "commit_count": 0}
@@ -117,7 +121,8 @@ for block in log.split("\x01"):
     sha, date, subject = parts[0].strip(), parts[1].strip(), parts[2].strip()
     files = [ln.strip() for ln in lines[1:] if ln.strip()]
     commits.append({"sha": sha, "date": date,
-                    "type": commit_type(subject),
+                    "type": commit_type(subject), "subject": subject,
+                    "capabilities": [fid for fid, paths in story_files.items() if paths.intersection(files)],
                     "files_count": len(files)})
     for fp in files:
         hotspot_counts[fp] = hotspot_counts.get(fp, 0) + 1

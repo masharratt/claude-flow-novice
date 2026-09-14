@@ -184,6 +184,9 @@ if os.path.isfile(fs_path):
                 fid = slug(name)
                 body = ["<!-- imported from readme/feature-status.md -->",
                         "**Row:** " + name]
+                status = col("status")
+                if status:
+                    body += ["", "**Status:** " + status]
                 desc = col("description")
                 deps = col("dependencies")
                 lim = col("known limitations")

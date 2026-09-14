@@ -46,6 +46,7 @@ source "$WIKI_SYNC_LIB_DIR/gen-projections.sh"    # brings merge-enrichment.sh
 source "$WIKI_SYNC_LIB_DIR/gen-pages.sh"
 # shellcheck disable=SC1091
 source "$WIKI_SYNC_LIB_DIR/lint-pages.sh"
+source "$WIKI_SYNC_LIB_DIR/cbm-index.sh"
 
 WIKI_COUPLING_COMMITS="${WIKI_COUPLING_COMMITS:-500}"
 
@@ -64,18 +65,14 @@ ENRICH PENDING
 Deterministic sync is complete; the Claude enrichment pass has not run for
 $1. Run it as a conversation step (never inside this script):
 
-  1. Read .wiki/store.json features and the default
-     "_No curated description yet._" bodies under
-     .wiki/enrich/resolved/<fid>.md.
-  2. For each feature, write a 1-3 sentence curated description into the
-     wiki:enrich block in readme/feature-status.md, readme/state-machines.md
-     (entity-<fid>) and readme/wiki/<fid>/wiki.md.
-  3. Re-run \`wiki sync\`: blocks whose feature fingerprint is unchanged are
-     preserved; the resolved copies under .wiki/enrich/ refresh from your
-     edited blocks.
+  Read SKILL.md and AUTHORING.md in the cfn-wiki skill.
+  Author grounded capabilities in readme/wiki/knowledge.json, including
+  source hashes, flows, failures and actual runtime entities. Review reader
+  notes in .wiki/annotations.json; promote corrections into knowledge only
+  after checking their evidence. Run wiki sync, build, and the reader checks.
+  Directory prose remains editable in wiki:enrich blocks. Source changes
+  preserve that prose and mark it for review; generation is not verification.
 
-One-time, on repos with hand-written docs: run \`wiki import-existing\`
-BEFORE the first enrichment so existing rows are carried into blocks/.
 EOF
 }
 
@@ -128,6 +125,24 @@ wiki_sync_check() { # <repo> <store> <coupling-window> -> 0 in-sync, 1 stale
             bad=1
         fi
     done
+    local features_dir generated relative
+    features_dir="$(wiki_config_features_dir "$repo")"
+    mkdir -p "$sandbox/.wiki"
+    if [ -f "$repo/.wiki/config.json" ]; then
+        cp "$repo/.wiki/config.json" "$sandbox/.wiki/config.json"
+    fi
+    if ! WIKI_ENRICH_READY=1 wiki_gen_pages "$store" "$sandbox" >/dev/null 2>&1; then
+        echo "WIKI STALE: feature page regeneration failed" >&2
+        bad=1
+    else
+        while IFS= read -r generated; do
+            relative="${generated#"$sandbox/"}"
+            if ! cmp -s "$generated" "$repo/$relative"; then
+                echo "WIKI STALE: $relative differs from regeneration" >&2
+                bad=1
+            fi
+        done < <(find "$sandbox/$features_dir" -type f -name wiki.md | sort)
+    fi
     rm -rf "$sandbox"
     return "$bad"
 }
@@ -179,9 +194,20 @@ wiki_sync() {
         return $?
     fi
 
+    if [ "$no_hooks" -eq 0 ]; then
+        wiki_cbm_index "$repo" || return 1
+    fi
+    # Read all tracked enrichment before writing either projection.
+    local pages_root
+    pages_root="$repo/$(wiki_config_features_dir "$repo")"
+    local -a pages=()
+    if [ -d "$pages_root" ]; then
+        mapfile -t pages < <(find "$pages_root" -name wiki.md -type f | sort)
+    fi
     wiki_extract "$repo" "$cap" || return 1
-    wiki_gen_projections "$store" "$repo" || return 1
-    wiki_gen_pages "$store" "$repo" || return 1
+    wiki_merge_enrich "$store" "$repo/readme" "${pages[@]}" || return 1
+    WIKI_ENRICH_READY=1 wiki_gen_projections "$store" "$repo" || return 1
+    WIKI_ENRICH_READY=1 wiki_gen_pages "$store" "$repo" || return 1
     wiki_lint "$repo" || return 1
 
     if [ "$enrich" -eq 1 ]; then
