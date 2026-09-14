@@ -28,11 +28,13 @@ commands:
   doctor   verify CBM binary, cache-dir coherence, portal deps (--install fetches CBM)
   discover build the bounded discovery index (.wiki/discovery.sqlite) and print counts
   query    bounded, paginated queries: files | symbols | relations | candidates | span | graph
-  work     durable documentation queue: plan | next | evidence | checkpoint | submit | review | promote | status | export | import | unblock
+  work     durable documentation queue: plan | next | evidence | checkpoint | submit | review | promote | status | export | import | unblock | release | requeue
   migrate  explicit knowledge migration (only --to 2)
   coverage report inventory, explanation and review coverage with blocked areas
   sync     re-index + regenerate wiki projections (--check exits 1 on drift)
-  build    build self-contained portal HTML into .wiki/portal/
+  build    build the portal into .wiki/portal/ (single self-contained page;
+           --paged emits a small shell + pages/ + data/ for large repos,
+           --static-out <dir> copies the paged distribution out)
   serve    serve the portal locally (port ${WIKI_PORT:-4885}); --stop to halt
   lint     lint generated wiki pages for contract violations
   stop     stop a running portal server
@@ -72,7 +74,7 @@ main() {
     fi
     if [ "$cmd" = work ]; then
         if [ "$#" -lt 2 ]; then
-            echo "wiki: work requires a subcommand (plan|next|evidence|checkpoint|submit|review|promote|status|export|import|unblock) and <repo>" >&2
+            echo "wiki: work requires a subcommand (plan|next|evidence|checkpoint|submit|review|promote|status|export|import|unblock|release|requeue) and <repo>" >&2
             wiki_usage
             return 64
         fi

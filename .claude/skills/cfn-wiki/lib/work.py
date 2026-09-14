@@ -6,8 +6,8 @@ planning/cfn-wiki/CONTRACTS_work-knowledge-v2.md sections 2 through 4:
 the .wiki/work/jobs.sqlite store (never cleared by sync, rebuild or
 migration), the job state machine with BEGIN IMMEDIATE lease safety, the
 work CLI (plan/next/evidence/checkpoint/submit/review/promote/status/
-export/import), budget inheritance and journal-first promotion with
-backups and crash recovery.
+unblock/release/requeue/export/import), budget inheritance and
+journal-first promotion with backups and crash recovery.
 
 Host agent invocation stays outside these commands: no model calls, no
 claude -p. Stdlib only. No em dashes in code or comments by repo rule.
@@ -318,7 +318,24 @@ def next_job_id(con, job_type, slug):
     return '%s-%s-%d' % (job_type, slug, value)
 
 
-def validate_map(mapping):
+SCOPE_PATH_TOKEN = re.compile(
+    r'\.?[A-Za-z0-9_][A-Za-z0-9_.-]*\.[A-Za-z0-9]{1,4}')
+
+
+def scope_path_tokens(scope):
+    """Path-like tokens in a capability scope: any token holding a slash
+    plus plain filenames with a short extension. Scopes that name no paths
+    (ids, plain words) yield no tokens and skip the disk check."""
+    tokens = []
+    for token in re.split(r'[,\s]+', str(scope or '')):
+        if not token:
+            continue
+        if '/' in token or SCOPE_PATH_TOKEN.fullmatch(token):
+            tokens.append(token)
+    return tokens
+
+
+def validate_map(mapping, repo=None):
     if not isinstance(mapping, dict):
         raise WorkError('map must be a JSON object')
     if mapping.get('version') != 1:
@@ -342,6 +359,13 @@ def validate_map(mapping):
         if entry.get('type') and entry['type'] not in JOB_TYPES:
             raise WorkError('map capability %s has an invalid type %r'
                             % (ref, entry['type']))
+        if repo is not None:
+            paths = scope_path_tokens(entry.get('scope'))
+            if paths and not any(os.path.exists(os.path.join(repo, path))
+                                 for path in paths):
+                raise WorkError(
+                    'map capability %s scope names paths that do not exist '
+                    'on disk: %s' % (ref, ', '.join(paths)))
     cap_ids = {e.get('id') for e in mapping.get('capabilities', [])}
     for entry in mapping.get('questions', []):
         if not isinstance(entry, dict) or not entry.get('question'):
@@ -417,7 +441,7 @@ def cmd_plan(args):
         raise WorkError('cannot read map: %s' % exc)
     except ValueError as exc:
         raise WorkError('map is not valid JSON: %s' % exc)
-    validate_map(mapping)
+    validate_map(mapping, repo)
     config = load_work_config(repo)
     revision = current_revision(repo)
     con = open_jobs(repo, create=True)
@@ -1324,6 +1348,83 @@ def cmd_unblock(args):
     return 0
 
 
+def cmd_release(args):
+    """Safe release of a stray lease: leased/in_progress returns to queued
+    with the lease cleared, the open attempt ended and any checkpoint kept
+    on the attempt row (contracts section 5, operator path)."""
+    repo = os.path.abspath(args.repo)
+    con = open_jobs(repo, create=True)
+    now = now_epoch()
+    try:
+        begin_immediate(con)
+        job = fetch_job(con, args.job)
+        if job['status'] not in ('leased', 'in_progress'):
+            raise WorkError('job %s is %s, not held by a lease; nothing to '
+                            'release' % (job['id'], job['status']),
+                            exit_code=2)
+        if args.owner and job['lease_owner'] != args.owner:
+            raise WorkError('job %s is leased by %s, not %r; refusing to '
+                            'release' % (job['id'], job['lease_owner'],
+                                         args.owner), exit_code=2)
+        attempt = latest_attempt(con, job['id'], open_only=True)
+        checkpoint = attempt['checkpoint_path'] if attempt is not None else None
+        if attempt is not None:
+            con.execute('UPDATE attempts SET ended_epoch=?, outcome=? '
+                        'WHERE id=?', (now, 'released', attempt['id']))
+        touch(con, job['id'], status='queued', lease_owner=None,
+              lease_expires_epoch=None)
+        con.execute('COMMIT')
+    except BaseException:
+        rollback(con)
+        con.close()
+        raise
+    con.close()
+    emit({'job': job['id'], 'status': 'queued',
+          'attempt': attempt['id'] if attempt is not None else None,
+          'checkpoint': checkpoint,
+          'note': 'lease released safely; checkpoint retained on the '
+                  'attempt row'})
+    return 0
+
+
+def cmd_requeue(args):
+    """Operator path for accepted-but-unpromotable jobs: promotion was
+    refused and rolled back, so the job sits accepted with no lease back.
+    Requeue returns it to queued with the reason recorded; a job whose
+    promotion committed is never touched."""
+    repo = os.path.abspath(args.repo)
+    con = open_jobs(repo, create=True)
+    try:
+        begin_immediate(con)
+        job = fetch_job(con, args.job)
+        if job['status'] != 'accepted':
+            raise WorkError('job %s is %s, not accepted; requeue is the '
+                            'operator path for accepted-but-unpromotable '
+                            'jobs' % (job['id'], job['status']), exit_code=2)
+        committed = con.execute(
+            'SELECT id FROM promotions WHERE job_id=? AND state=?',
+            (job['id'], 'committed')).fetchone()
+        if committed is not None:
+            raise WorkError('job %s has a committed promotion (%d) whose '
+                            'writes are live in readme/wiki; requeue never '
+                            'touches promoted work'
+                            % (job['id'], committed['id']), exit_code=2)
+        attempt_count = job['attempt_count']
+        touch(con, job['id'], status='queued', blocked_reason=args.reason,
+              blocked_on=None, lease_owner=None, lease_expires_epoch=None)
+        con.execute('COMMIT')
+    except BaseException:
+        rollback(con)
+        con.close()
+        raise
+    con.close()
+    emit({'job': job['id'], 'status': 'queued', 'reason': args.reason,
+          'attempt_count': attempt_count,
+          'note': 'accepted-but-unpromotable job requeued; the reason stays '
+                  'recorded on the row for the audit trail'})
+    return 0
+
+
 def rows_as_dicts(con, table):
     return [dict(row) for row in con.execute('SELECT * FROM %s' % table)]
 
@@ -1493,6 +1594,10 @@ def cmd_import(args):
 # ---------------------------------------------------------------------------
 # migrate (delegates to knowledge) and coverage
 
+# Capped name samples for the portal coverage view: lists stay bounded while
+# still naming areas instead of showing bare counts.
+NAME_SAMPLE_CAP = 20
+
 
 def cmd_migrate(args):
     repo = os.path.abspath(args.repo)
@@ -1509,6 +1614,15 @@ def cmd_migrate(args):
 
 def coverage_report(repo):
     report = {'revision': safe_revision(repo)}
+
+    def class_paths(con, file_class):
+        # capped, deterministically ordered name sample for the portal lists
+        rows = con.execute(
+            'SELECT path FROM files WHERE class = ? ORDER BY path LIMIT ?',
+            (file_class, NAME_SAMPLE_CAP + 1)).fetchall()
+        return ([r[0] for r in rows[:NAME_SAMPLE_CAP]],
+                len(rows) > NAME_SAMPLE_CAP)
+
     index = discovery.index_path(repo)
     if os.path.exists(index):
         con = discovery.open_index(repo)
@@ -1517,6 +1631,8 @@ def coverage_report(repo):
                 'SELECT class, COUNT(*) FROM files GROUP BY class'
             ).fetchall())
             total = sum(by_class.values())
+            excluded_paths, excluded_more = class_paths(con, 'excluded')
+            unclassified_paths, unclassified_more = class_paths(con, 'unknown')
         finally:
             con.close()
         excluded = by_class.get('excluded', 0)
@@ -1526,6 +1642,10 @@ def coverage_report(repo):
             'covered': in_scope - unclassified, 'denominator': total,
             'in_scope': in_scope, 'excluded': excluded,
             'unclassified': unclassified, 'by_class': by_class,
+            'excluded_paths': excluded_paths,
+            'excluded_paths_truncated': excluded_more,
+            'unclassified_paths': unclassified_paths,
+            'unclassified_paths_truncated': unclassified_more,
             'measure': 'classified in-scope files'}
         report['exclusions'] = {
             'excluded_files': excluded,
@@ -1545,6 +1665,7 @@ def coverage_report(repo):
         model = None
         explained = 0
         reviewed = []
+        authored = []
         report['knowledge_error'] = str(exc)
     report['explanation'] = {
         'covered': explained, 'denominator': explained,
@@ -1573,6 +1694,10 @@ def coverage_report(repo):
         finally:
             con.close()
     report['blocked_areas'] = blocked_areas
+    report['stale_areas'] = [
+        {'capability': c['fid'],
+         'reason': 'sources changed since the explanation was reviewed'}
+        for c in authored if c.get('needs_review')]
     return report
 
 
@@ -1673,6 +1798,16 @@ def build_parser():
     unblock.add_argument('--job', required=True)
     unblock.add_argument('--reason')
 
+    release = sub.add_parser('release')
+    release.add_argument('repo')
+    release.add_argument('--job', required=True)
+    release.add_argument('--owner')
+
+    requeue = sub.add_parser('requeue')
+    requeue.add_argument('repo')
+    requeue.add_argument('--job', required=True)
+    requeue.add_argument('--reason', required=True)
+
     export = sub.add_parser('export')
     export.add_argument('repo')
     export.add_argument('--out', required=True)
@@ -1696,7 +1831,8 @@ COMMANDS = {
     'plan': cmd_plan, 'next': cmd_next, 'evidence': cmd_evidence,
     'checkpoint': cmd_checkpoint, 'submit': cmd_submit,
     'review': cmd_review, 'promote': cmd_promote, 'status': cmd_status,
-    'unblock': cmd_unblock, 'export': cmd_export, 'import': cmd_import,
+    'unblock': cmd_unblock, 'release': cmd_release, 'requeue': cmd_requeue,
+    'export': cmd_export, 'import': cmd_import,
     'migrate': cmd_migrate, 'coverage': cmd_coverage,
 }
 
