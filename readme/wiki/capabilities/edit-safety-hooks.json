@@ -3,7 +3,7 @@
   "fid": "edit-safety-hooks",
   "name": "Enforcing rules with hooks",
   "status": "dev",
-  "status_reason": "Source review of the five guard scripts plus .claude/hooks.json in the discovery snapshot. No runtime verification that a rule added at each named extension point actually fires; hook registration (settings.json) is absent from the index so where guards register is unverified.",
+  "status_reason": "Source review of the five guard scripts plus .claude/hooks.json in the discovery snapshot. No runtime verification that a rule added at each named extension point actually fires; hook registration (settings.json) is absent from the index so where guards register is unverified.; verified against sources 2026-09-14 (map-run verify pass)",
   "description": "Guards fire on edit and spawn: a pre-edit backup wrapper, a post-edit node pipeline (exit 0 unless --blocking), a doc-lint PostToolUse gate, a spawn depth/brief guard (exit 2 blocks), and the edit-safety CLI that rolls edits back from .backups.",
   "purpose": "Guards fire at three points, each with its own block semantics. Before an edit, cfn-invoke-pre-edit.sh (a PreToolUse wrapper and the live portable implementation; the dist/cli replacement named in its sibling's deprecation header lost its source and dist/ is gitignored, so it is absent from fresh clones) validates file and args, delegates to cfn-edit-safety/lib/backup/backup.sh, prints only the backup directory on stdout and exits 1 when the backup fails or yields no usable directory; stdout and stderr must stay separate because merging once folded a stderr banner into BACKUP_PATH and broke every rollback built from it. After an edit, cfn-invoke-post-edit.sh resolves .claude/hooks/post-edit-pipeline.js against the real repo root (pwd -P, so invocation through the ~/.claude symlink works), gates on cfn-post-edit.config.json .enabled (default true), and runs the pipeline with node: it always exits 0 unless called with --blocking, which propagates the pipeline's exit code; separately cfn-doc-lint-hook.sh is a PostToolUse (Edit|Write) hook that fires only when the edited basename matches feature-status.md / state-machines.md / *-state-machine*.md / *feature-status*.md, prints the linter's ERROR lines to stderr, and escalates from exit 0 to exit 2 only when CFN_DOC_LINT_BLOCK=1. On spawn, cfn-spawn-depth-guard.sh reads the PreToolUse payload: an agent_id key appears only when the call originates inside a subagent, and such nested spawns are blocked with exit 2 unless the agent_type is allowlisted in ~/.claude/nested-spawn-allowlist.txt (override CFN_NESTED_SPAWN_ALLOWFILE); a main-chat spawn prompt over CFN_BRIEF_MAX_BYTES (default 4096 bytes) is a warning by default, logged to ~/.claude/brief-size-warn.log, and CFN_BRIEF_GUARD=deny turns it into an exit-2 block (off disables). Failure path: backups land under .backups/<agent_id>/<ts>_<hash>/ with metadata.json (timestamp, agent_id, original_file); edit-safety.sh's edit subcommand (safe_edit) backs up, evals the edit command, validates via lib/hooks/post-edit-handler.sh, cp-rolls-back on edit failure or when validation output matches critical/error/failed without an auto-resolve-available or file/script-not-found marker (infrastructure problems deliberately do not roll back), and discards the single-edit backup on success; its rollback/list/cleanup subcommands delegate to lib/backup/restore.sh and lib/backup/cleanup.sh over the same backups root, though its own header documents that real agents call the two hook wrappers directly (backup.sh), not safe_edit. No commit-time guard exists among these five files. To add a new enforcement rule: an edit-content rule becomes a phase in post-edit-pipeline.js (blocking rides the wrapper's --blocking exit propagation), a doc-contract rule extends cfn-doc-lint/execute.sh (the hook and CFN_DOC_LINT_BLOCK stay unchanged), a spawn-side rule adds a payload check in cfn-spawn-depth-guard.sh where exit 2 blocks, and backup-behavior changes go in cfn-edit-safety/lib/backup/backup.sh.",
   "reviewed_at": "2026-09-14",
@@ -89,16 +89,8 @@
     }
   ],
   "evidence": [
-    "221fdf4e90c936aa1c59b29193442463",
-    "9f883f3e97bfb62e136726a086b81be3",
-    "a525e4634690960dd9424e952c62a0aa",
-    "faf58eaa7069af30bec2e57444b9c8b5",
-    "2cafd6d4b053c066d08352edb200d64a",
-    "5b23732f12a1c6201c0055035ff0c10c",
-    "5ba9e2445404d93c3d624bc633373afd",
-    "3456d20dfe5430289657bdc49a038e85",
-    "c903b1bfe9e64af1b1ce4014917b6307",
-    "007ce4cebb267a756e3514cae1437900"
+    "c00ea9d5297775f0d16295f748aacc2d",
+    "15cf25faeb615fb49d19f006a68e8870"
   ],
   "domains": [
     "skill-infrastructure"

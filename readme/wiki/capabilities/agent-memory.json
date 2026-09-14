@@ -1,0 +1,78 @@
+{
+  "id": "agent-memory",
+  "fid": "agent-memory",
+  "name": "Agent memory persistence and TTL expiry",
+  "status": "dev",
+  "status_reason": "Source review of the three scoped scripts only. No runtime verification that the node adapter writes or the cleanup DELETEs run against a live database.; verified against sources 2026-09-14 (map author pass)",
+  "description": "Agent output reaches a SQLite memory_store via a jq-escaped inline node call to SQLiteAdapter.set and a bash CLI wrapper over dist/cli/memory-cli.js; a TTL script expires rows per ACL retention tier, syncs Redis, and VACUUMs.",
+  "purpose": "Agent output reaches SQLite two ways. lib/auto/persist-agent-output.sh takes TASK_ID AGENT_ID AGENT_OUTPUT CONFIDENCE ITERATION, rejects fewer than 5 args with a usage line and exit 1, JSON-escapes the output with jq -R -s '.', normalizes confidence via printf %.2f, then runs an inline node script that requires ./src/cli/sqlite-adapter (cwd-relative) and calls SQLiteAdapter.set('agent/<AGENT_ID>/output/<TASK_ID>', {output, confidence, iteration, ISO timestamp, parsed_data:null}, {aclLevel:1, tags:['agent-output','agent-<id>','task-<id>']}); no expiry is passed at write time. Any adapter throw is caught, logged as 'Memory persistence failed:' and exits 1. lib/sqlite/memory-cli.sh is the operator half: it checks node exists (exit 1 with an install hint if not), mkdir -p .artifacts/memory, and forwards set/get/delete/query/list verbatim to $PROJECT_ROOT/dist/cli/memory-cli.js, exiting 1 when the compiled CLI is absent. Expiry is lib/sqlite/ttl-cleanup.sh: parameterized execute_query DELETEs remove memory_store rows WHERE acl_level = ?1 AND expires_at <= datetime('now','-'||?2||' days') AND acl_level != 5, with retention 1d ACL1 agent, 7d ACL2 team, 2d ACL3 swarm, 30d ACL4 project, ACL5 system never. DRY_RUN counts instead of deleting; afterward it reconciles Redis memory:* keys (DEL when TTL is -1 and SQLite says acl_level <= 4), VACUUM+ANALYZE, and writes logs/cleanup-report-*.txt. Failure path: missing DB exits 1 up front under set -e; Redis unreachable is only a WARNING, so SQLite cleanup proceeds without the sync.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": ".claude/skills/cfn-memory-persistence/lib/auto/persist-agent-output.sh",
+      "line": 26,
+      "claim": "Persistence is an inline node -e script: requires './src/cli/sqlite-adapter' (relative to the caller's cwd), constructs SQLiteAdapter, and calls adapter.set('agent/${AGENT_ID}/output/${TASK_ID}', {output, confidence, iteration, timestamp: new Date().toISOString(), parsed_data: null}, {aclLevel: 1, tags: ['agent-output', 'agent-<id>', 'task-<id>']}). No expires_at/TTL is passed at write time; a throw is caught and reported as 'Memory persistence failed:' with process.exit(1).",
+      "sha256": "d1359b62ee8ae2cfd82e561bdf08dfd9ab0c97728393dfc3e8df6f5294ce447f"
+    },
+    {
+      "path": ".claude/skills/cfn-memory-persistence/lib/auto/persist-agent-output.sh",
+      "line": 8,
+      "claim": "Guard rails before the node call: set -euo pipefail; fewer than 5 positional args prints usage and exits 1; CONFIDENCE is normalized to two decimals with printf %.2f; AGENT_OUTPUT is JSON-escaped with jq -R -s '.' before interpolation into the node script.",
+      "sha256": "d1359b62ee8ae2cfd82e561bdf08dfd9ab0c97728393dfc3e8df6f5294ce447f"
+    },
+    {
+      "path": ".claude/skills/cfn-memory-persistence/lib/sqlite/memory-cli.sh",
+      "line": 21,
+      "claim": "memory-cli.sh is a thin bash wrapper, not the storage engine: MEMORY_CLI_DIST=$PROJECT_ROOT/dist/cli/memory-cli.js; check_dependencies (line 39) exits 1 when node is missing; run_memory_cli (line 47) runs node on the dist file or exits 1 when it is absent; main (line 61) mkdir -p $PROJECT_ROOT/.artifacts/memory then forwards set/get/delete/query/list args verbatim. All SQLite semantics live in the out-of-scope compiled JS.",
+      "sha256": "58b42d206a34482f2083cce2dca585a3f2143230abd4b4a70b67334589602aa3"
+    },
+    {
+      "path": ".claude/skills/cfn-memory-persistence/lib/sqlite/ttl-cleanup.sh",
+      "line": 84,
+      "claim": "Expiry DELETE is parameterized through shared-lib execute_query: DELETE FROM memory_store WHERE acl_level = ?1 AND expires_at <= datetime('now', '-' || ?2 || ' days') AND acl_level != 5. Note the predicate is now-minus-retention, so a row is removed only after its expires_at is retention-days in the past (a grace window past expiry). DRY_RUN (line 78) runs the equivalent COUNT and deletes nothing. The hardcoded acl_level != 5 makes the System tier undeletable at the SQL level, not just by convention.",
+      "sha256": "c1bf2cc1bd0a3caf9021d84fc555c5cdbff71fd08dca52dea6037cd5db832201"
+    },
+    {
+      "path": ".claude/skills/cfn-memory-persistence/lib/sqlite/ttl-cleanup.sh",
+      "line": 207,
+      "claim": "Retention matrix hardcoded in main(): cleanup_acl_level 1 1 (Agent 1 day), 2 7 (Team 7 days), 3 2 (Swarm 2 days), 4 30 (Project 30 days); Level 5 System is never cleaned (line 211). Main then runs cleanup_redis_ttl, optimize_database (VACUUM + ANALYZE, line 147) and generate_report (line 162, writes logs/cleanup-report-<timestamp>.txt with per-ACL active/expired counts and total bytes).",
+      "sha256": "c1bf2cc1bd0a3caf9021d84fc555c5cdbff71fd08dca52dea6037cd5db832201"
+    },
+    {
+      "path": ".claude/skills/cfn-memory-persistence/lib/sqlite/ttl-cleanup.sh",
+      "line": 100,
+      "claim": "sync_redis_cleanup (called after each successful DELETE at line 84) re-selects 'SELECT key FROM memory_store WHERE acl_level = ?1 AND expires_at <= datetime(now)' - the same predicate the DELETE just removed - so the Redis DEL loop normally iterates zero keys and the SQLite-to-Redis cleanup is effectively a no-op; Redis DEL failures are swallowed with || true.",
+      "sha256": "c1bf2cc1bd0a3caf9021d84fc555c5cdbff71fd08dca52dea6037cd5db832201"
+    },
+    {
+      "path": ".claude/skills/cfn-memory-persistence/lib/sqlite/ttl-cleanup.sh",
+      "line": 113,
+      "claim": "cleanup_redis_ttl is the Redis-side staleness pass: scans redis-cli --scan --pattern 'memory:*'; a key with TTL -1 (no expiry) is looked up in memory_store by exact key and DELeted from Redis when its acl_level <= 4 (forcing re-hydration under TTL); a TTL of -2 triggers a harmless DEL of a nonexistent key. Config/CLI: DB_PATH defaults to cwd-relative ./swarm-memory.db overridable via --db-path (also --redis-host/port, --log-file, --dry-run); a missing DB file exits 1 at line 35 under set -e, while Redis being down is only a WARNING so SQLite cleanup continues.",
+      "sha256": "c1bf2cc1bd0a3caf9021d84fc555c5cdbff71fd08dca52dea6037cd5db832201"
+    },
+    {
+      "path": ".claude/skills/cfn-memory-persistence/lib/sqlite/ttl-cleanup.sh",
+      "line": 11,
+      "claim": "All mutating SQL goes through the shared parameterized-query library sourced from $PROJECT_ROOT/.claude/shared-lib/bootstrap/sqlite-params.sh (execute_query/execute_select with ?1/?2 placeholders); only the read-only get_db_stats heredoc talks to sqlite3 directly.",
+      "sha256": "c1bf2cc1bd0a3caf9021d84fc555c5cdbff71fd08dca52dea6037cd5db832201"
+    }
+  ],
+  "evidence": [
+    "0ccf492436e11edd7673ca65a50536f7",
+    "21a56e5937368036abcf61137c997cf1",
+    "745b8dd0305741689a8c453f8abec189",
+    "86879297b8865ee84a25f666d9cac1ad",
+    "b5447f75f594690b58b2896dcef13663"
+  ],
+  "domains": [
+    "data-and-memory"
+  ],
+  "unknowns": [
+    "SQLiteAdapter internals (src/cli/sqlite-adapter) and dist/cli/memory-cli.js are outside the scoped files and were not read: how expires_at and acl_level are written on set(), which .db file the adapter opens, and whether the adapter assigns a TTL from aclLevel are unverified - the persist script itself passes no expiry, so the expires_at values that ttl-cleanup.sh judges must come from the adapter.",
+    "Whether ttl-cleanup.sh's default DB (cwd-relative ./swarm-memory.db) and the adapter's database are the same file is unverified; if they differ, cleanup never expires persisted agent outputs.",
+    "Callers of persist-agent-output.sh (hook or orchestrator) and the cwd they invoke it from were not traced; the './src/cli/sqlite-adapter' relative require makes the working directory load-bearing for whether persistence works at all.",
+    "Redis key naming consistency: whether SQLite key values like agent/<id>/output/<task> and the scanned Redis 'memory:*' pattern (plus cleanup_redis_ttl's exact-match WHERE key = ?1) share one namespace was not verifiable from these three files.",
+    "No runtime execution was performed; retention semantics (rows deleted only once expires_at is retention-days in the past) is read from the SQL predicate, and the sync_redis_cleanup no-op observation is code-reading, not an observed run."
+  ]
+}

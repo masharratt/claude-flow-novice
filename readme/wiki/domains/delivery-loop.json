@@ -10,5 +10,9 @@
   "unknowns": [
     "Domain page is map-derived, not yet source-reviewed.",
     "capabilities list is intentionally partial: loop-orchestration and test-result-parsing are pending their own acceptance and join this list as they land."
+  ],
+  "status_reason": "; verified against sources 2026-09-14 (map-run verify pass)",
+  "evidence": [
+    "d4cde9417795d640de18538e66178182"
   ]
 }

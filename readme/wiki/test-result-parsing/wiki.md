@@ -5,7 +5,7 @@
 
 **Status:** dev
 
-Source review of the two parsers and their callers in cfn-loop-orchestration-v2. No runtime verification of extending them to a new runner format was performed.
+Source review of the two parsers and their callers in cfn-loop-orchestration-v2. No runtime verification of extending them to a new runner format was performed.; verified against sources 2026-09-14 (map-run verify pass)
 
 **Source:**
 

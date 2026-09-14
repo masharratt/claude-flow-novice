@@ -5,7 +5,7 @@
 
 **Status:** dev
 
-Source review of the bash wrapper, the complete Orchestrator class body (orchestrate.ts lines 1-1333) and both scoped helpers. No runtime orchestration run was executed or observed; the in-scope agent-spawner.ts is an explicit migration placeholder and the module's own CLI entry never calls execute().
+Source review of the bash wrapper, the complete Orchestrator class body (orchestrate.ts lines 1-1333) and both scoped helpers. No runtime orchestration run was executed or observed; the in-scope agent-spawner.ts is an explicit migration placeholder and the module's own CLI entry never calls execute().; verified against sources 2026-09-14 (map-run verify pass)
 
 **Source:**
 

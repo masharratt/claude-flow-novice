@@ -8,5 +8,9 @@
   "unknowns": [
     "Domain page is map-derived, not yet source-reviewed.",
     "capabilities list is intentionally empty: skill-propagation and edit-safety-hooks are pending their own acceptance and join this list as they land."
+  ],
+  "status_reason": "; verified against sources 2026-09-14 (map-run verify pass)",
+  "evidence": [
+    "5abc6fa256efd4b966d0d67d6211c5c0"
   ]
 }

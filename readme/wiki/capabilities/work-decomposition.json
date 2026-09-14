@@ -1,0 +1,92 @@
+{
+  "id": "work-decomposition",
+  "fid": "work-decomposition",
+  "name": "Epic to sprint and task decomposition",
+  "status": "dev",
+  "status_reason": "Source review of the four scoped scripts, each read end to end; no runtime execution, test run, or caller tracing was performed. Stage-to-stage wiring is inferred absence (nothing in these files consumes another's output), not a whole-repo search.; verified against sources 2026-09-14 (map author pass)",
+  "description": "Epic decomposition emits sprint JSON with depends_on/blocks edges; sprint execution validates deliverables to PROCEED/ITERATE; the task decomposer writes templated subtask plans with per-agent tool budgets and Redis keys; a keyword scorer rates descriptions low/medium/high.",
+  "purpose": "An epic enters as --description plus --acceptance-criteria in decompose-epic.sh (cfn-planning), which greps 'requires/depends on' phrases out of the criteria and emits sprint JSON whose waves carry deliverable file lists, estimated_iterations, a low/medium complexity tag, depends_on/blocks edges and recommended agents; the emitted plan is a hardcoded Authentication-System template (its own comment calls the complexity step a placeholder), and execute-sprint.sh (cfn-sprint-execution) adjudicates one wave by piping the inline --sprint-config JSON through jq and testing each .deliverables[] path for existence, printing PROCEED with exit 0 when all exist or ITERATE with exit 1 naming the first missing file. Below the wave, estimate-complexity.sh (cfn-task-intelligence) scores a task description on five keyword factors (steps, security, scope, dependencies, tech stack) into low (total 2 or less, 2 iterations, confidence 0.80), medium (4 or less) or high (iterations capped at 7, confidence 0.70) as JSON with the factor breakdown, and task-decomposer.sh (cfn-task-planning) routes by description keywords to a subtask template: a typescript recon/pattern/fix/validate chain or an exploration scan/analyze pair, written to .artifacts/task-decomposition/<task>-subtasks.json with per-subtask prompt files, a dependency_order and Redis context keys, plus a <task-id>:decomposition key when redis-cli is installed. Failure paths: all four scripts exit 1 on bad arguments (unknown flag, missing description/criteria/sprint-config/task-id, non-numeric tool budget, complexity outside low/medium/high), task-decomposer returns 1 'Task decomposition failed' if the plan file was not written, and nothing in these files wires the stages together: decompose-epic and estimate-complexity output is not consumed by the other two, so an operator or agent script must carry the JSON between epic, wave and task levels.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": ".claude/skills/cfn-planning/lib/epic/decompose-epic.sh",
+      "line": 8,
+      "claim": "Epic entry point accepts only --description and --acceptance-criteria (any other flag prints 'Unknown parameter' and exits 1); main() exits 1 when either is missing; extract_dependencies() greps 'requires|depends on' phrases out of the criteria into DEPENDENCIES, which is assigned and then never consumed by the generator.",
+      "sha256": "acc1e739de286932fe448a250ad00cc2fef0250189adca5de2ed2dd726d665b3"
+    },
+    {
+      "path": ".claude/skills/cfn-planning/lib/epic/decompose-epic.sh",
+      "line": 40,
+      "claim": "generate_sprint_sequence() bumps a local complexity variable from description keywords (OAuth2/security=2, dashboard/admin=1, session/token=1) but that variable is never used: the emitted plan is a fixed Authentication-System example (total_sprints 5, 15 estimated iterations) whose two listed sprints carry deliverable file paths, acceptance_criteria, estimated_iterations, low/medium complexity, depends_on/blocks edges (sprint 2 depends_on [\"1\"]) and agents_recommended; the source comment itself labels the complexity determination a placeholder.",
+      "sha256": "acc1e739de286932fe448a250ad00cc2fef0250189adca5de2ed2dd726d665b3"
+    },
+    {
+      "path": ".claude/skills/cfn-sprint-execution/lib/execution/execute-sprint.sh",
+      "line": 35,
+      "claim": "Sprint adjudication takes --sprint-config (the JSON is piped as a string through jq -r '.deliverables[]', so the config must be inline JSON, not a file path) and --mode (default 'standard', only echoed); validate_deliverables() tests each extracted path with [[ -f ]], printing 'Deliverable missing: <file>' and returning 1 on the first gap, or 'All deliverables present' return 0; a missing --sprint-config exits 1 up front.",
+      "sha256": "55370e77ecbbfb3a3ded542e61fd32b64ab2418bf9d75dd29d6b77c0e889a451"
+    },
+    {
+      "path": ".claude/skills/cfn-sprint-execution/lib/execution/execute-sprint.sh",
+      "line": 57,
+      "claim": "main() is the wave gate: validation success prints PROCEED and exits 0, failure prints ITERATE and exits 1; there is no other execution logic in the file (66 lines total), the deliverable existence check is the entire sprint 'execution'.",
+      "sha256": "55370e77ecbbfb3a3ded542e61fd32b64ab2418bf9d75dd29d6b77c0e889a451"
+    },
+    {
+      "path": ".claude/skills/cfn-task-intelligence/lib/complexity/estimate-complexity.sh",
+      "line": 31,
+      "claim": "Five keyword factors scored against the lowercased description: steps (count of action-verb hits / 3), security (up to 3: auth/jwt/oauth/rbac keywords, compliance gdpr/hipaa/pci/sox, encryption/ssl/tls), scope (file mentions: more than 5 files scores 3, 2 or more scores 2, else 1; system-wide/entire system/all forces 3), dependencies (up to 3: api/third-party, database/sql/migration, microservices/distributed), tech stack (new/unfamiliar +1, experimental/cutting-edge/beta +2, legacy/migration/refactor +1); summed into TOTAL_SCORE. The header comment notes pipefail was deliberately removed for compatibility, and --task-type is parsed but never used.",
+      "sha256": "6bad0ec088dc9a4aa9305c0d34ef2cfeecb757335c6a1af607113bf9310c8a30"
+    },
+    {
+      "path": ".claude/skills/cfn-task-intelligence/lib/complexity/estimate-complexity.sh",
+      "line": 98,
+      "claim": "Band mapping: TOTAL_SCORE 2 or less is low with 2 estimated iterations and confidence 0.80; 4 or less is medium with iterations equal to the score and confidence 0.75; anything higher is high with iterations equal to the score capped at 7 and confidence 0.70; a missing --description prints usage to stderr and exits 1, an unknown flag exits 1; output (line 128) is JSON with complexity, estimated_iterations, confidence, the per-factor breakdown including total, and a reasoning string built from the nonzero factors.",
+      "sha256": "6bad0ec088dc9a4aa9305c0d34ef2cfeecb757335c6a1af607113bf9310c8a30"
+    },
+    {
+      "path": ".claude/skills/cfn-task-planning/lib/decomposition/task-decomposer.sh",
+      "line": 25,
+      "claim": "Decomposition output goes to ${CLAUDE_PROJECT_DIR:-$PWD}/.artifacts/task-decomposition (subtask JSON) with a prompts/ subdir for per-subtask agent prompts; the header comment states this is deliberately not $HOME and never under .claude/skills (CFN source shared by reverse symlinks), and .artifacts is gitignored; defaults are tool budget 10 and complexity medium; --help exits 0, missing task id or description prints help and exits 1, a non-numeric --tool-budget exits 1, and complexity must be low/medium/high (case at line 161) or exit 1.",
+      "sha256": "ac2c4161c2a7158f82232194b1c52802d35a0b157289dcec26d2629ae512b4aa"
+    },
+    {
+      "path": ".claude/skills/cfn-task-planning/lib/decomposition/task-decomposer.sh",
+      "line": 172,
+      "claim": "The decomposer's own complexity analysis (analyze_task_complexity) is a keyword score: +3 for '(fix|create|modify|update|delete|write).*file', +2 for explore/find/search/scan/directory/folder, +4 for multiple/batch/all/every/comprehensive, +2 for typescript/tsx/interface/type/complex, +2 for dependency/import/require/module; main() computes and prints this score but never uses it: strategy routing is a separate grep on the description (typescript|tsx|ts27|ts23|error|fix picks the typescript template, explore|find|search|scan the exploration template, and the 'general' fallback reuses the typescript template anyway).",
+      "sha256": "ac2c4161c2a7158f82232194b1c52802d35a0b157289dcec26d2629ae512b4aa"
+    },
+    {
+      "path": ".claude/skills/cfn-task-planning/lib/decomposition/task-decomposer.sh",
+      "line": 205,
+      "claim": "The typescript-error-fixing template hardcodes four subtasks with fixed tool budgets: recon (researcher, 5, deliverables file-list.txt + error-classification.json), pattern (analyst, 8), fix (backend-developer, 15, batch_processing max 3 files per batch across 5 batches), validate (tester, 10), plus coordination.dependency_order [recon,pattern,fix,validate] and redis_context_keys <task_id>:<stage>:results per stage; the exploration template is scan (researcher, 6) and analyze (analyst, 8); the CLI --tool-budget and --complexity arguments are validated and echoed in the header but never influence the template budgets.",
+      "sha256": "ac2c4161c2a7158f82232194b1c52802d35a0b157289dcec26d2629ae512b4aa"
+    },
+    {
+      "path": ".claude/skills/cfn-task-planning/lib/decomposition/task-decomposer.sh",
+      "line": 415,
+      "claim": "After the plan file exists, create_agent_prompts() renders one markdown prompt per subtask (recommended tool sequence, deliverables, 'store results in <task_id>:<subtask_id>:results' and 'signal completion via Redis LPUSH to <task_id>:<subtask_id>:done') into prompts/; when redis-cli is on PATH the whole plan is SET under <task-id>:decomposition (line 424); main returns 0 on success, or prints 'Task decomposition failed' and returns 1 when the plan file was not written (which, since main is the last call under set -euo pipefail, is the script exit code).",
+      "sha256": "ac2c4161c2a7158f82232194b1c52802d35a0b157289dcec26d2629ae512b4aa"
+    }
+  ],
+  "evidence": [
+    "c909785869d9958162bc8169c86a7fa1",
+    "13d7d5a894ef8df59e794df28e580465",
+    "a908333838b62edb49a272baedd2f5bc",
+    "a3d1d3058b59e8db5f1d13f1f4cb019c",
+    "b2ac6cbbb1303b3e0dd129b718a746c8",
+    "a75411c4fb8d0002ddc6387302359b1e",
+    "c26e8f8cb84db6c9bad68452615f7f21",
+    "7303858a9990d0184715cb9705023bd9"
+  ],
+  "domains": [
+    "planning-pipeline"
+  ],
+  "unknowns": [
+    "Stage wiring is inferred absence, not a search: the symbols/relations queries for these skill areas returned an empty index, so no caller of any of the four scripts was located; whether a skill SKILL.md or other lib chains decompose-epic.sh output into execute-sprint.sh --sprint-config was not read (outside the scoped files).",
+    "execute-sprint.sh pipes the --sprint-config string through jq rather than reading a file, while decompose-epic.sh emits its sprint JSON to stdout with deliverables nested per sprint object (jq path .sprints[].deliverables[]), so the exact handoff shape between the two is unverified and may require an agent to reshape the JSON.",
+    "The consumer of estimate-complexity.sh's JSON was not located; within the scoped files, task-decomposer.sh does not read it (it computes its own printed-only score), so which stage attaches complexity ratings to tasks in practice is unverified.",
+    "The Redis handoff keys (<task-id>:decomposition, per-subtask results/done keys written into the prompt text) were read as emitted strings only; whether any coordinator or agent actually LPUSHes done or reads the results keys was not verified."
+  ]
+}

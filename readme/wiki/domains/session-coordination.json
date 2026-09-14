@@ -1,0 +1,12 @@
+{
+  "id": "session-coordination",
+  "name": "Multi-Session Coordination",
+  "purpose": "Coordinates parallel Claude sessions and containerized agent teams working on one repository.",
+  "capabilities": [],
+  "entities": [],
+  "shared_contracts": [],
+  "unknowns": [
+    "Domain page is map-derived, not yet source-reviewed.",
+    "capabilities list is intentionally empty: fleet-roster, agent-containers are pending their own acceptance and join this list as they land."
+  ]
+}

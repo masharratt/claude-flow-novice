@@ -1,0 +1,162 @@
+{
+  "id": "fleet-roster",
+  "fid": "fleet-roster",
+  "name": "Coordinating parallel fleet sessions",
+  "status": "dev",
+  "status_reason": "Source review of cmd-spawn.sh, cmd-claim.sh, cmd-land.sh and lib/common.sh, all four read end to end. No runtime verification of a real multi-session run was performed; migration coordination was seen only as roster columns.",
+  "description": "One flock-serialized TSV roster is the coordination plane: claim refuses overlapping paths (65), spawn gates status=started on the engine banner (66 on timeout, row stays pending), land refuses unclaimed dirty files or a dirty worktree (66) then records landed_sha.",
+  "purpose": "Parallel sessions coordinate through one TSV roster under a run dir (planning/fleet-*, resolved via FLEET_RUN_DIR or a walk-up search, else exit 64): `fleet claim WSxx <path...>` refuses exit 65 when a path overlaps any other row's claim (same path, directory prefix, or glob directory scope) and otherwise appends it to the claims column, and every roster write goes through roster_set, which holds an exclusive flock on .roster.lock and rewrites the row atomically (tmp+mv; exit 71 on lock/rewrite failure, 65 on unknown workstream/field). `fleet spawn WSxx` launches the worker engine into a tmux session on the run's dedicated socket (FLEET_WORKTREE=on: a dedicated git worktree on branch fleet/<WSxx>; default: repo root), exits 66 before any side effect on a missing engine set-var (row stays pending) or after launch when the engine banner never matches within FLEET_BANNER_TIMEOUT (last 10 pane lines printed), flips the row to started only after the banner matches, and only then sends a thin \"read briefs/<ws>.md and start; coordinate only via roster files\" prompt. `fleet land WSxx` is the collision gate: it exits 66 when the worktree has uncommitted changes (worktree mode, which then merges fleet/<WSxx> ff-only, or --no-ff, removes the worktree) or when git status --porcelain -uall minus the run dir shows any unclaimed dirty file (main mode, message names the files), then records landed_sha plus status=landed and best-effort echoes handoffs/ files whose names carry the workstream id or name.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": ".claude/skills/cfn-fleet/lib/common.sh",
+      "line": 37,
+      "claim": "FLEET_ROSTER_HEADER pins the canonical roster layout (ws_id, name, task, status, claims, landed_sha, migration_num, scratch_db, heartbeat, notes, engine); columns are APPEND-only so positional cut/awk consumers keep their indexes, and pre-engine 10-column rosters are migrated on first write.",
+      "sha256": "316128f28b55869716a73fc850069d21ff74c6101c9c9171058b69fc09a6df72"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/common.sh",
+      "line": 39,
+      "claim": "Run-dir resolution precedence: $FLEET_RUN_DIR > nearest planning/fleet-* walking up from cwd (newest mtime per level) > exit 64; fleet.env defaults FLEET_WORKTREE=off and FLEET_DB=none (lines 69-76).",
+      "sha256": "316128f28b55869716a73fc850069d21ff74c6101c9c9171058b69fc09a6df72"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/common.sh",
+      "line": 164,
+      "claim": "roster_set rewrites one cell under an exclusive flock on .roster.lock, atomically (tmp in the same dir, mv over), flattening tabs/newlines in values to keep the TSV parseable; flock or rewrite failure exits 71, unknown workstream/field exits 65 (body 167-187).",
+      "sha256": "316128f28b55869716a73fc850069d21ff74c6101c9c9171058b69fc09a6df72"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/common.sh",
+      "line": 144,
+      "claim": "_roster_migrate_locked upgrades a stale-header roster to the canonical header (rows padded with empty trailing cells) under migrate-on-first-write policy: readers see missing canonical fields as empty via a canonical-index fallback, the first writer upgrades under the lock it already holds, awk/mv failure returns 71.",
+      "sha256": "316128f28b55869716a73fc850069d21ff74c6101c9c9171058b69fc09a6df72"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/common.sh",
+      "line": 196,
+      "claim": "The claim guard is shared by cmd-commit.sh and cmd-land.sh from common.sh; the commit copy originally lacked the fleet-run-dir exclusion, so another workstream's roster heartbeat under planning/fleet-* would 66 every commit in real runs.",
+      "sha256": "316128f28b55869716a73fc850069d21ff74c6101c9c9171058b69fc09a6df72"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/common.sh",
+      "line": 209,
+      "claim": "Directory claims may carry a trailing slash (stripped before the prefix match); measured 2026-09-11, fleet commit refused every file under four trailing-slash claims before the strip.",
+      "sha256": "316128f28b55869716a73fc850069d21ff74c6101c9c9171058b69fc09a6df72"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/common.sh",
+      "line": 223,
+      "claim": "_fleet_all_dirty lists dirty plus untracked (porcelain -uall) repo-relative paths with rename sides split so each side is claim-checked independently, and never lists the run dir (control-plane state every workstream writes: heartbeats, briefs, handoffs); _fleet_unclaimed_dirty (line 247) returns the subset not covered by claims.",
+      "sha256": "316128f28b55869716a73fc850069d21ff74c6101c9c9171058b69fc09a6df72"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-claim.sh",
+      "line": 2,
+      "claim": "fleet claim WSxx <path...> appends repo-relative paths/globs to the row's claims, refusing exit 65 when a new path overlaps any OTHER row's claims: same path, one a prefix directory of the other, or a glob whose directory scope overlaps (a glob scopes to its containing directory, e.g. docs/*.md -> docs); duplicates against the row's own claims are skipped and 'no new claims' returns 0.",
+      "sha256": "ccce1711aef5acabf235474786e0121c6f6ff381e10587f71f05cf9881530809"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-claim.sh",
+      "line": 44,
+      "claim": "The overlap check iterates every other row's claims column (awk over rows with non-empty $5, so empty-claim rows keep field positions) and dies 65 with 'claim X for WS overlaps Y owned by WSz'; accepted claims are written through roster_set claims (line 47), inheriting its flock.",
+      "sha256": "ccce1711aef5acabf235474786e0121c6f6ff381e10587f71f05cf9881530809"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
+      "line": 13,
+      "claim": "Documented 9-step spawn order: engine resolution (--engine flag > roster column > FLEET_DEFAULT_ENGINE > claude-sub), set-var resolution (missing $SOURCE_VAR exits 66 before any side effect), warn-only guard rails, tmux launch with env passed via argv never disk, one-line exec pane command with optional heartbeat ticker, trust-prompt poll (FLEET_TRUST_TIMEOUT default 15s), banner verification (FLEET_BANNER_TIMEOUT default 20s; timeout prints the last 10 pane lines, row stays pending, exit 66), thin prompt only after the banner, spares launched to the banner with no prompt.",
+      "sha256": "4461f40005e2709924f8c72023126260b3ea15fe29aee3bcdc9da4efb372ff81"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
+      "line": 288,
+      "claim": "Spawn gates: exit 65 when the workstream is not in the roster (fleet add first) or when briefs/<ws>.md is missing; exit 64 outside a git repo or on a malformed workstream id (the id is baked unquoted into the pane shell string, so it must match ^[A-Za-z0-9._-]+$, line 440).",
+      "sha256": "4461f40005e2709924f8c72023126260b3ea15fe29aee3bcdc9da4efb372ff81"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
+      "line": 132,
+      "claim": "Codex guard rails: the codex engine requires a literal codex=true line in the project CLAUDE.md (dies 66 naming the file); an OPENAI_API_KEY set in the master env that the engine does not unset dies 66 (silently bills the API instead of the ChatGPT plan); auth_mode != chatgpt in ~/.codex/auth.json is a warning only (lines 144-155, 361-362).",
+      "sha256": "4461f40005e2709924f8c72023126260b3ea15fe29aee3bcdc9da4efb372ff81"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
+      "line": 386,
+      "claim": "Worktree mode (FLEET_WORKTREE=on) creates .claude/worktrees/<ws-lowercase> on branch fleet/<WSxx> if absent (reusing the branch when refs/heads/fleet/<WSxx> exists), sets the session cwd to the worktree, and claims stay in the shared roster (header lines 55-57).",
+      "sha256": "4461f40005e2709924f8c72023126260b3ea15fe29aee3bcdc9da4efb372ff81"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
+      "line": 397,
+      "claim": "The pane command is one line: export FLEET_RUN_DIR=<run dir>; unset <engine unset list>; exec <bin> <args> (exec so the pane dies with the engine and tmux has-session detects death); the activity-gated heartbeat ticker (FLEET_TICK_SECS, default 30s, off/0 disables) is spliced in front as a backgrounded loop that stamps the shared heartbeat cell.",
+      "sha256": "4461f40005e2709924f8c72023126260b3ea15fe29aee3bcdc9da4efb372ff81"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
+      "line": 401,
+      "claim": "The worker prompt is thin by design: 'read <brief path> and start; coordinate only via roster files' \u2014 the brief body never rides the prompt; briefs live at <run-dir>/briefs/<ws>.md.",
+      "sha256": "4461f40005e2709924f8c72023126260b3ea15fe29aee3bcdc9da4efb372ff81"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
+      "line": 470,
+      "claim": "A failed launch or missing banner dies 66 leaving the row pending ('a worker on the wrong model must not reach started'); on banner match the row gets status=started, heartbeat=now, engine column written, and only then is the prompt sent (lines 466-478).",
+      "sha256": "4461f40005e2709924f8c72023126260b3ea15fe29aee3bcdc9da4efb372ff81"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
+      "line": 485,
+      "claim": "Post-first-request auth failures (401 Authentication Failed / invalid_api_key, polled 12s) are a loud warning only \u2014 the row is already started and the master decides (measured 2026-09-09: two glm workers reached started on an expired z.ai token and sat in retry loops); spare sessions die 66 on launch/banner failure and never receive the prompt (lines 489-494).",
+      "sha256": "4461f40005e2709924f8c72023126260b3ea15fe29aee3bcdc9da4efb372ff81"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-land.sh",
+      "line": 4,
+      "claim": "Land's guard class originates from a real run (FormField incident, run e59a7826): unclaimed dirty files swept into another session's landing; main mode refuses them with 66 using the same shared matcher as the commit guard, and worktree mode merges fleet/<WSxx> into the current branch (ff-only default, --no-ff flag), removes the worktree, and records landed_sha.",
+      "sha256": "20a93a68288c4af95e8cd3aba27b4f6b238620ca72dd3f5884aed0b7a4ace3a4"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-land.sh",
+      "line": 51,
+      "claim": "Worktree-mode land: exit 65 when no worktree exists at .claude/worktrees/<ws> (nothing to merge), exit 66 when the worktree has uncommitted changes ('commit or clean first'), then merge fleet/<WSxx> --ff-only (or --no-ff 'fleet: land <ws>') and git worktree remove.",
+      "sha256": "20a93a68288c4af95e8cd3aba27b4f6b238620ca72dd3f5884aed0b7a4ace3a4"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-land.sh",
+      "line": 68,
+      "claim": "Main-mode land computes _fleet_unclaimed_dirty(claims, run_dir_rel) over git status --porcelain -uall and exits 66 listing every unclaimed dirty file ('claim them or clean first') before any merge bookkeeping; the run dir is excluded as control-plane state.",
+      "sha256": "20a93a68288c4af95e8cd3aba27b4f6b238620ca72dd3f5884aed0b7a4ace3a4"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-land.sh",
+      "line": 74,
+      "claim": "On success land writes landed_sha (short HEAD) and status=landed via roster_set and echoes 'landed <ws> <sha>'; a best-effort residual sweep then echoes handoffs/ files whose filename contains the ws id or roster name (case-insensitive) as 'residual: <file> (dispatch or record open)', and an absent/unreadable handoffs dir can never fail the land (lines 78-96).",
+      "sha256": "20a93a68288c4af95e8cd3aba27b4f6b238620ca72dd3f5884aed0b7a4ace3a4"
+    }
+  ],
+  "evidence": [
+    "fd5e1f1f21ae72020455291fe22ae846",
+    "ce147e29ad711e88724c3324649253d2",
+    "e71df0c35914301a9da5e49950c39956",
+    "0eebcd781179d5f1daa17c7384e882e5",
+    "3ed60f9defc50165bbea6c2515f5a621",
+    "06efaa03cb3d6a9d28adcd08e086ecba",
+    "8ae77ee73cf7ad19831f6bf51d3eb0a6",
+    "f1a84223a076e9a4572dacd4e36fb22c",
+    "04a1d46d9b97660989258fc5a209ec95",
+    "8304be7699660eabd3d26f093190e4cc"
+  ],
+  "domains": [
+    "session-coordination"
+  ],
+  "unknowns": [
+    "Migration isolation is visible only as the roster columns migration_num and scratch_db (common.sh:37) plus the FLEET_DB=none default; the command that allocates scratch databases or serializes migration numbers is outside the four scope files and was not read.",
+    "engines.sh (engine registry: bin, args, set/unset lists, trust_keys, banner_regex) and heartbeat-ticker.sh are sourced by these files but out of scope; their fields are documented here only as consumed.",
+    "cmd-commit.sh shares the claim guard via common.sh (comment at common.sh:196) but was not read; how a worker's mid-work commits are staged per-claim is inferred from the shared helper only.",
+    "The writer side of handoffs/ is unknown: land only scans filenames for the ws id/name; who writes handoff files and their full naming contract was not read.",
+    "The full roster status vocabulary is not enumerated in these files: pending is implied by spawn's failure path and landed by land; other statuses (e.g. blocked) and the commands that set them (fleet add/init, cmd-db) are out of scope.",
+    "Both tmux pane-death detection (_fleet_tmux_pane_alive, common.sh:313-325) and dashboard/watch behavior were read only as helpers; how the master detects a dead or wedged worker end to end was not traced."
+  ]
+}

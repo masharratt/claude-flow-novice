@@ -1,0 +1,12 @@
+{
+  "id": "autonomous-implementation",
+  "name": "Autonomous Implementation Engine",
+  "purpose": "The MDAP library decomposes a request by concern, implements changes through a provider client, and applies reviewed diffs under security checks.",
+  "capabilities": [],
+  "entities": [],
+  "shared_contracts": [],
+  "unknowns": [
+    "Domain page is map-derived, not yet source-reviewed.",
+    "capabilities list is intentionally empty: mdap-engine are pending their own acceptance and join this list as they land."
+  ]
+}

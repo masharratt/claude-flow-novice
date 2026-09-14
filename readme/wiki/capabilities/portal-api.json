@@ -1,0 +1,131 @@
+{
+  "id": "portal-api",
+  "fid": "portal-api",
+  "name": "Portal API: events, agents, metrics and RBAC",
+  "status": "dev",
+  "status_reason": "Source review of all four scope files read in full (148, 125, 240 and 382 lines). No runtime verification: no portal server was started and no Redis instance was queried.; verified against sources 2026-09-14",
+  "description": "The portal exposes /api/events (API-key ingest and query), /api/agents (public hierarchy/status reads, admin-only intervene) and CFN Loop metrics read from Redis swarm:<taskId>:* keys; rbac.ts gates writes via a guest<user<service<admin hierarchy plus permission wildcards.",
+  "purpose": "The portal API splits into three slices with three different auth gates. /api/events (events.ts) is service-to-service: router.use applies authenticateApiKey plus a 1000-req/15-min rate limiter to every route, then validateRequest JSON-schema middleware checks each payload before delegating to eventStoreController. POST / requires phaseId/agentId/eventType/payload, POST /batch takes a 1-1000 element events array with the same per-event required fields, GET / filters by phaseId/agentId/eventType/startDate/endDate with limit clamped to 1-1000 plus offset, and GET /phase/:phaseId, GET /agent/:agentId, GET /stats and DELETE /:eventId complete the surface; a bad payload is rejected by the validation middleware before the controller runs. /api/agents (agents.ts) is split by verb: GET /hierarchy and GET /:id/status are unauthenticated reads from transparencyService (hierarchy served with Cache-Control public max-age=30, status no-cache), and a service error containing 'not found' is mapped to 404 AGENT_NOT_FOUND instead of a 500. POST /:id/intervene is the only RBAC-gated write: authenticateJWT, then requireAdmin, then interventionRateLimiter, then InterventionRequestSchema (action, reason), calling transparencyService.interventeAgent (spelling as in source) and echoing triggeredBy req.user.userId as the audit trail (the MED-003 fix added the auth chain). rbac.ts supplies the gate: ROLE_HIERARCHY ranks guest=0 < user=1 < service=2 < admin=3, so an unknown role scores -1 and fails closed; requireRole throws 401 UNAUTHORIZED when req.user is absent and 403 FORBIDDEN with requiredRole/userRole details when the level is short; requirePermission adds exact match plus first-segment wildcards ('agents:*' covers 'agents:read') and the global '*' admin wildcard; every denial is console.warn-audited with ip/path/method/userId/role (the production audit-service hook is commented out). Metrics (cfn-metrics.ts) are not wired routes but a CFNMetricsClient singleton that reads Redis keys swarm:<taskId>:epic-context, success-criteria, per-agent *-*-*:confidence, consensus, product-owner-decision, iteration, status, start-time and last-update into CFNLoopMetrics (productOwnerDecision PROCEED/ITERATE/ABORT/PENDING, maxIterations default 10, agents grouped loop3/loop2/productOwner). getLatestMetrics scans KEYS swarm:*:status and sorts by last-update; live updates arrive via pSubscribe on swarm:<taskId>:* with the channel suffix mapped to iteration/confidence/consensus/decision/status (unknown suffix falls back to 'status'). Failure paths: getMetrics returns null both when the task is absent and when Redis throws, so the HTTP handler answers 404 'Task not found' (or 'No active tasks found') and 500 only on connect-time errors; listActiveTasks swallows errors to []. The WebSocket handler pushes an initial frame then update frames, unsubscribes on close, and closes 1011 on failure. getHistoricalMetrics is an acknowledged stub returning current metrics only.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": "packages/web-portal/src/server/routes/api/events.ts",
+      "line": 17,
+      "claim": "Every /api/events route sits behind authenticateApiKey and a shared rate limiter of 1000 requests per 15 minutes (router.use, lines 17-18); handlers delegate to eventStoreController imported from event-store.integration.js.",
+      "sha256": "cb7b19dcd56f1f6491234e4dc60b44f50c940a186455c6da131bc7080e24f797"
+    },
+    {
+      "path": "packages/web-portal/src/server/routes/api/events.ts",
+      "line": 23,
+      "claim": "POST /api/events validates body {phaseId, agentId, eventType, payload} (all minLength 1, optional timestamp date-time and metadata object) via validateRequest; POST /api/events/batch (line 41) requires an events array with minItems 1, maxItems 1000 (line 51) and the same per-event required fields.",
+      "sha256": "cb7b19dcd56f1f6491234e4dc60b44f50c940a186455c6da131bc7080e24f797"
+    },
+    {
+      "path": "packages/web-portal/src/server/routes/api/events.ts",
+      "line": 71,
+      "claim": "GET /api/events queries with optional phaseId/agentId/eventType/startDate/endDate filters, limit clamped 1-1000 and offset >= 0; GET /phase/:phaseId (line 89) and GET /agent/:agentId (line 109) reuse the limit cap; GET /stats (line 129) is registered with no validation schema and DELETE /:eventId (line 135) validates only the eventId param.",
+      "sha256": "cb7b19dcd56f1f6491234e4dc60b44f50c940a186455c6da131bc7080e24f797"
+    },
+    {
+      "path": "packages/web-portal/src/server/routes/api/agents.ts",
+      "line": 19,
+      "claim": "agents.ts declares exactly three routes (GET /hierarchy, GET /:id/status, POST /:id/intervene); only intervene imports authenticateJWT and requireAdmin (line 19) - the two GETs carry no auth middleware and are public.",
+      "sha256": "c5d4a73eb53cbabfd97be6f4ac2d29a0e64357f456aa127d2dd8a82863c1471d"
+    },
+    {
+      "path": "packages/web-portal/src/server/routes/api/agents.ts",
+      "line": 33,
+      "claim": "GET /api/agents/hierarchy returns transparencyService.getAgentHierarchy filtered by optional status/type with Cache-Control public max-age=30 (line 43); GET /:id/status (line 61) sets no-cache headers and maps a service error whose message includes 'not found' to 404 AGENT_NOT_FOUND (line 73) instead of surfacing a 500.",
+      "sha256": "c5d4a73eb53cbabfd97be6f4ac2d29a0e64357f456aa127d2dd8a82863c1471d"
+    },
+    {
+      "path": "packages/web-portal/src/server/routes/api/agents.ts",
+      "line": 82,
+      "claim": "POST /:id/intervene chains authenticateJWT -> requireAdmin -> interventionRateLimiter (documented 10 req/min per IP) -> validate(params AgentIdParamSchema, body InterventionRequestSchema); it calls transparencyService.interventeAgent(id, action, reason) (line 105, spelling as in source) and returns triggeredBy req.user.userId as the audit trail; the MED-003 fix (lines 86, 102) is the added auth chain.",
+      "sha256": "c5d4a73eb53cbabfd97be6f4ac2d29a0e64357f456aa127d2dd8a82863c1471d"
+    },
+    {
+      "path": "packages/web-portal/src/server/middleware/rbac.ts",
+      "line": 13,
+      "claim": "ROLE_HIERARCHY ranks guest=0, user=1, service=2, admin=3; hasRole compares numeric levels (line 27), so an unknown user role scores -1 against any requirement and an unknown required role scores 999 - missing or mistyped roles fail closed.",
+      "sha256": "92eb1b8a4bb5e2ad344d69ece0f5716ca14db7727053123288fd24f5d25f1d84"
+    },
+    {
+      "path": "packages/web-portal/src/server/middleware/rbac.ts",
+      "line": 36,
+      "claim": "hasPermission grants on exact permission match, a first-segment wildcard ('agents:*' covers 'agents:read'/'agents:write', lines 50-51) or the global '*' wildcard (line 57); requirePermission (line 161) and requireAnyPermission (line 195) build on it.",
+      "sha256": "92eb1b8a4bb5e2ad344d69ece0f5716ca14db7727053123288fd24f5d25f1d84"
+    },
+    {
+      "path": "packages/web-portal/src/server/middleware/rbac.ts",
+      "line": 67,
+      "claim": "auditAuthorizationFailure logs timestamp/ip/path/method/userId/userRole/reason/required via console.warn; the production audit-service call is commented out, so the denial audit trail is console-only.",
+      "sha256": "92eb1b8a4bb5e2ad344d69ece0f5716ca14db7727053123288fd24f5d25f1d84"
+    },
+    {
+      "path": "packages/web-portal/src/server/middleware/rbac.ts",
+      "line": 93,
+      "claim": "requireRole throws 401 UNAUTHORIZED 'Authentication required' when req.user is absent (line 98) and 403 FORBIDDEN carrying requiredRole/userRole when the hierarchy level is short; requireAnyRole (line 127) is the multi-role variant, requireAdmin (line 230) is requireRole('admin'), and allowPublic (line 238) is a documented no-op next().",
+      "sha256": "92eb1b8a4bb5e2ad344d69ece0f5716ca14db7727053123288fd24f5d25f1d84"
+    },
+    {
+      "path": "packages/web-portal/src/api/cfn-metrics.ts",
+      "line": 10,
+      "claim": "CFNLoopMetrics exposes taskId, iteration, maxIterations, loop3Confidence[], loop2Consensus, productOwnerDecision ('PROCEED'|'ITERATE'|'ABORT'|'PENDING', line 16), status ('running'|'completed'|'failed'), startTime/lastUpdate and agents{loop3,loop2,productOwner}; CFNLoopEvent (line 27) types live events as iteration/confidence/consensus/decision/status.",
+      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+    },
+    {
+      "path": "packages/web-portal/src/api/cfn-metrics.ts",
+      "line": 80,
+      "claim": "getMetrics(taskId) reads Redis keys swarm:<taskId>:epic-context (line 84), success-criteria, per-agent *-*-*:confidence, consensus, product-owner-decision, iteration, status, start-time and last-update; it returns null when neither context nor success-criteria exists AND null on any thrown error, so 'task absent' and 'Redis down' are indistinguishable to the caller; defaults are maxIterations 10, decision PENDING, status running.",
+      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+    },
+    {
+      "path": "packages/web-portal/src/api/cfn-metrics.ts",
+      "line": 167,
+      "claim": "getLatestMetrics scans KEYS swarm:*:status and picks the task with the newest last-update (tasks.sort line 191, epoch fallback 1970); listActiveTasks (line 242) dedupes the same scan and swallows errors to []; clearMetrics (line 272) DELs every swarm:<taskId>:* key.",
+      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+    },
+    {
+      "path": "packages/web-portal/src/api/cfn-metrics.ts",
+      "line": 206,
+      "claim": "subscribe(taskId, cb) pSubscribes (line 214) to pattern swarm:<taskId>:* on a dedicated subscription client; mapEventType maps channel suffixes iteration/confidence/consensus/status identity, product-owner-decision -> 'decision', and any unrecognized suffix falls back to 'status'; parseMessage returns JSON.parse output or the raw string.",
+      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+    },
+    {
+      "path": "packages/web-portal/src/api/cfn-metrics.ts",
+      "line": 258,
+      "claim": "getHistoricalMetrics is an acknowledged stub: it returns only current metrics with a comment that history would need an additional Redis structure (sorted sets) - no time-window metrics exist.",
+      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+    },
+    {
+      "path": "packages/web-portal/src/api/cfn-metrics.ts",
+      "line": 312,
+      "claim": "getCFNMetricsClient (line 312) is a process-wide singleton; cfnMetricsHandler (line 322) answers 404 'Task not found' for an absent taskId (line 332) or 404 'No active tasks found' when no swarm:*:status keys exist (line 338), 500 'Internal server error' on throw; cfnMetricsWebSocketHandler (line 351) sends an initial frame then update frames per event, unsubscribes on ws close, and closes 1011 'Internal server error' on failure (line 372).",
+      "sha256": "ba2ba23b91eea7792d017ba67d4ae23565bcb5a91565fa8b5e9305a2eb494fad"
+    }
+  ],
+  "evidence": [
+    "16b92883da7b72316ecc9c2fb1e3c291",
+    "984037688425d5cbacfad670f5a41530",
+    "a42d496e1a5f45c32d1e8e539f7c9e35",
+    "eae3613218ab9137de417b045af8acab",
+    "5bb96ae05d1edb10578b31e70c3d5400",
+    "240097af5df5fe2430d056f8eeb587fe",
+    "e7284e8e1145f0e6d8f55d7fe0618ac3",
+    "e4bef0a3004039b35d4e53310cead28b",
+    "6eccde0e88adcae1bc927da2e9fe273b",
+    "f3d9a562c928c9f3f746ca3d8197caed"
+  ],
+  "domains": [
+    "web-interfaces"
+  ],
+  "unknowns": [
+    "Where cfnMetricsHandler and cfnMetricsWebSocketHandler are mounted (route path, and whether any auth or RBAC middleware guards them) is outside the four scope files and was not traced.",
+    "eventStoreController (event-store.integration.js) and transparencyService implementations were not read: the events persistence backend, the real error contract beneath agents.ts, and whether getAgentHierarchy itself applies any role filtering are unverified.",
+    "Which routes beyond POST /api/agents/:id/intervene actually consume requireRole, requireAnyRole, requirePermission or requireAnyPermission was not surveyed; the RBAC answer covers the middleware contract plus its one in-scope consumer. The /api/events slice authenticates by API key, not RBAC roles.",
+    "interventionRateLimiter's configured limits live in middleware/rate-limiter.js, not read here; the 10 req/min per IP figure is the route file's own comment, not the limiter implementation.",
+    "No runtime verification: no request was issued against a running portal and no Redis instance was queried, so key shapes and 404/500 behavior are read from source only."
+  ]
+}

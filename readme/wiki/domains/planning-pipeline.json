@@ -8,5 +8,9 @@
   "unknowns": [
     "Domain page is map-derived, not yet source-reviewed.",
     "capabilities list is intentionally empty: plan-gates and work-decomposition are pending their own acceptance and join this list as they land."
+  ],
+  "status_reason": "; verified against sources 2026-09-14 (map-run verify pass)",
+  "evidence": [
+    "a6afe50e18addceca21a96c9688df6a9"
   ]
 }

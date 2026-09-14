@@ -1,0 +1,88 @@
+{
+  "id": "pipeline-visualizer",
+  "fid": "pipeline-visualizer",
+  "name": "Rendering a pipeline as an interactive graph",
+  "status": "dev",
+  "status_reason": "Static source review of the three scope files plus the imported PipelineNode.tsx (2026-09-14); the app was neither built nor rendered, so layout of the filtered views and the drag-reset effect are derived from code reading, not observed at runtime.",
+  "description": "ReactFlow+dagre viewer for the daily-coverage V4 agent pipeline: typed node/edge data in pipeline.ts, automatic TB dagre layout, category-styled custom nodes with cost/state/source annotations, and three view filters (full, happy path, tools only) in PipelineGraph.tsx.",
+  "purpose": "A pipeline renders as a graph in three layers. Data: pipeline.ts models each stage as a reactflow Node<PipelineNodeData> \u2014 label plus one of six NodeCategory values (external/setup/tool/decision/outcome/database) and optional file:line citation, description, cost, states \u2014 declared per category with placeholder positions and flattened into one exported array; edges come from the edge() factory, which stamps one of four EdgeTypes (trigger/conditional/db-write/loop-back) that drives stroke color and animation, with ids of the form source->target plus an optional ::suffix so parallel edges between the same pair stay unique. Layout: PipelineGraph registers the custom node (nodeTypes = { pipeline: PipelineNode }) and runs layoutWithDagre over the filtered set \u2014 fixed 200x110 boxes, rankdir TB, nodesep 80, ranksep 100 \u2014 then re-centers each position by half the box, so the data module's placeholder positions never matter. Interaction: useNodesState/useEdgesState hold the graph; viewMode ('v4-full' | 'v4-happy-path' | 'v4-tools-only') flows through filterByView() (node allowlist Sets plus edge rules: happy path drops loop-back ids and any edge touching a decision node; tools-only keeps trigger edges only) and a useEffect re-filters, re-lays-out and setNodes/setEdges on every switch. To add a stage: append a node object to its category array and the edge() calls; it appears in v4-full immediately and in the other views only when its id joins that view's allowlist Set. Failure path is drawn, not hidden: conditional edges route decisions to outcome-failed / outcome-insufficient, orange loop-back edges draw the four retry cycles (fabrication retry, quality regen, rewrite re-validate, episode retry), and green db-write edges show persistence side effects to deep_dives / pipeline_stages / extracted_facts / Memgraph. Two consequences to know: switching views resets manually dragged positions (the effect replaces nodes wholesale), and because happy-path drops every edge incident to a decision node it renders disconnected islands \u2014 synthesis, quality and audio lose their only inbound edges \u2014 rather than one continuous path.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": "tools/pipeline-visualizer/src/data/pipeline.ts",
+      "line": 3,
+      "claim": "NodeCategory fixes six node kinds (external/setup/tool/decision/outcome/database); PipelineNodeData (line 12) carries label + category plus optional file/line source citation, description, states list, cost string, and bg/border overrides; every node is declared with type 'pipeline' and a placeholder position {x:0,y:0} that layout later overwrites.",
+      "sha256": "62c6f2a1a2a9506805f7807c040b0533daa3b5453d7a113caec69fbcbd34f434"
+    },
+    {
+      "path": "tools/pipeline-visualizer/src/data/pipeline.ts",
+      "line": 392,
+      "claim": "edge() factory stamps each edge with one of four EdgeType values (trigger/conditional/db-write/loop-back); the type drives stroke color via EDGE_COLORS (line 383), strokeWidth 2, animated true unless db-write, and rides in edge.data.connectionType; ids are `${source}->${target}` plus optional `::idSuffix` so the parallel decision-budget->tool-audio pair (budget OK vs budget critical) stays unique. edgeCounter (line 390) is incremented then reset but never used in ids \u2014 a vestige.",
+      "sha256": "62c6f2a1a2a9506805f7807c040b0533daa3b5453d7a113caec69fbcbd34f434"
+    },
+    {
+      "path": "tools/pipeline-visualizer/src/data/pipeline.ts",
+      "line": 418,
+      "claim": "The exported edge list encodes the whole control flow including failure: conditional edges route decisions to outcome-insufficient / outcome-failed (novelty at 443, finalize at 475-476), loop-back edges draw the four retry cycles (fabrication-retry 452, quality-regen 457, rewrite-revalidate 460, ep-retry 470), and db-write edges (479-484) fan tool side effects out to the deep_dives, pipeline_stages, extracted_facts and Memgraph nodes.",
+      "sha256": "62c6f2a1a2a9506805f7807c040b0533daa3b5453d7a113caec69fbcbd34f434"
+    },
+    {
+      "path": "tools/pipeline-visualizer/src/data/pipeline.ts",
+      "line": 548,
+      "claim": "filterByView(view) derives subgraphs: v4-full returns everything; v4-happy-path keeps only nodes in HAPPY_PATH_NODE_IDS (line 490) and edges whose endpoints are both visible, whose id is not in LOOP_BACK_EDGE_IDS, and which touch no decision node (DECISION_NODE_IDS at 538); v4-tools-only keeps TOOLS_ONLY_NODE_IDS (line 515) nodes and only trigger-typed edges. A stage absent from an allowlist Set silently disappears from that view while remaining in v4-full.",
+      "sha256": "62c6f2a1a2a9506805f7807c040b0533daa3b5453d7a113caec69fbcbd34f434"
+    },
+    {
+      "path": "tools/pipeline-visualizer/src/components/PipelineGraph.tsx",
+      "line": 23,
+      "claim": "layoutWithDagre builds a dagre graphlib with rankdir 'TB' (an 'LR' parameter exists in the signature but no caller passes it), nodesep 80, ranksep 100, margin 40, fixed 200x110 node boxes, runs dagre.layout, then re-centers each node by subtracting half width/height \u2014 the placeholder positions from the data module are never read.",
+      "sha256": "87669e1ed15aeaa8d01697e2c308b761e1519e0c9145abc6f70cfc84c58922a0"
+    },
+    {
+      "path": "tools/pipeline-visualizer/src/components/PipelineGraph.tsx",
+      "line": 82,
+      "claim": "PipelineGraph holds viewMode state (default 'v4-full'), derives filtered via filterByView and laidOut via layoutWithDagre in useMemos feeding useNodesState/useEdgesState, and on every viewMode change a useEffect (line 93) re-runs filter+layout and calls setNodes/setEdges \u2014 wholesale replacement that resets any manually dragged node positions.",
+      "sha256": "87669e1ed15aeaa8d01697e2c308b761e1519e0c9145abc6f70cfc84c58922a0"
+    },
+    {
+      "path": "tools/pipeline-visualizer/src/components/PipelineGraph.tsx",
+      "line": 196,
+      "claim": "ReactFlow mounts with the custom nodeTypes registry ({ pipeline: PipelineNode }, line 18), fitView with padding 0.2, zoom clamped 0.1-2, nodesDraggable true, nodesConnectable false, elementsSelectable true, plus Background dots, Controls and a category-colored MiniMap; absolutely-positioned overlay panels render the view toggle (3 buttons), the node/edge legend and the title 'daily-coverage V4 agentic pipeline'.",
+      "sha256": "87669e1ed15aeaa8d01697e2c308b761e1519e0c9145abc6f70cfc84c58922a0"
+    },
+    {
+      "path": "tools/pipeline-visualizer/src/App.tsx",
+      "line": 3,
+      "claim": "App is a 12-line shell that renders PipelineGraph inside a full-viewport (100vw/100vh) div \u2014 all graph logic lives in the component and data modules, nothing else in the entry component.",
+      "sha256": "b046d8282abc438399a6cfb1884574a2e08e1bfe29607be223c2a34680ddbf28"
+    },
+    {
+      "path": "tools/pipeline-visualizer/src/components/PipelineNode.tsx",
+      "line": 13,
+      "claim": "The custom node renders per-category styles from CATEGORY_STYLES (line 4): decision nodes circular (borderRadius 50%, centered text), database nodes radius-12, data.bg/border overrides honored (used by outcome nodes), plus optional description, monospace cost, color-coded state chips (ready/completed green, failed red, insufficient_info amber, default slate) and a file:line citation; the component is memoized with top-target / bottom-source Handles colored by border.",
+      "sha256": "0cc42906684cb5f81711e1248e4b3dc47ab490511928ad96400136a4fb3be77f"
+    }
+  ],
+  "evidence": [
+    "b57c89d907ef7d84b49fcb0e1e207993",
+    "8ec5b3863dc69f1b06a2d813787292ee",
+    "b351aa268b4cafdd574293a9ce6eaa9f",
+    "58e8baafa34024aaa0888f1ccdfd0f9e",
+    "bd723074b90f692410872a334db92452",
+    "9852f652a1b27d0ca14c87da3f0e5461",
+    "9cf43c77b69cdd1e47d48fb187c944ec",
+    "a585ad294f6e5cd108fbb60fa78d7041",
+    "fb97d91361a41ccb7ae968f63b6ea864"
+  ],
+  "domains": [
+    "web-interfaces"
+  ],
+  "unknowns": [
+    "The happy-path 'disconnected islands' consequence is derived by enumerating filterByView's edge rules against the edge list, not observed in a rendered app; no build or browser run was performed.",
+    "PipelineNode.tsx was read only as a supporting import beyond the declared scope (lines 1-102, ending at its export); whether anything follows in the file was not verified.",
+    "Entry wiring beyond App.tsx (main.tsx, package.json, build config) was not read: how the visualizer is built or served, and which reactflow/dagre versions it pins, is unverified.",
+    "layoutWithDagre accepts an 'LR' direction but no UI control or caller passes it; whether a horizontal layout exists anywhere is unknown.",
+    "No tests for filterByView, the edge() factory or the layout were seen in the files read; coverage of the view filters is unverified."
+  ]
+}

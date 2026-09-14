@@ -3,7 +3,7 @@
   "fid": "plan-gates",
   "name": "Gating plans before implementation",
   "status": "dev",
-  "status_reason": "Source review of the four bar/extract scripts via bounded evidence spans. No checker was executed and the megaplan orchestrator wiring that invokes them was not read.",
+  "status_reason": "Source review of the four bar/extract scripts via bounded evidence spans. No checker was executed and the megaplan orchestrator wiring that invokes them was not read.; verified against sources 2026-09-14 (map-run verify pass)",
   "description": "Static gates a planning artifact must clear: Bar A (check-verifiable-static.sh) machine-decidability of the VERIFY manifest, Bar B (check-haiku-static.sh) vague-phrase scan of the PLAN; only bless-verify.sh may pin a manifest, and per-part phases read extract-sections.sh slices.",
   "purpose": "Before implementation starts the plan bundle passes two static gates: the VERIFY manifest must clear Bar A (top-level keys slug/acs/done_rule/coverage, per-AC id/check/kind/pass/maps_to/evidence, closed kind vocabulary, executed evidence or stage-honest PENDING, decidable weasel-free pass predicates, absence checks paired with population assertions, equal coverage counters) and the PLAN file must clear Bar B (no banned vague phrases from weasel-phrases.txt). When a checker finds any error-severity item it exits 1 with a JSON findings array naming ac_id/field/issue, and bless-verify.sh then refuses to bless (exit 1, 'REFUSED: Bar A static check has error-severity findings', sidecar left untouched), so the manifest is never pinned; warnings alone exit 0 and do not block. If the static checker file itself is missing, bless-verify warns and blesses ungated, and exit 2 everywhere means usage or missing input, not a gate verdict.",
   "reviewed_at": "2026-09-14",
@@ -113,15 +113,8 @@
     }
   ],
   "evidence": [
-    "103a4f8dba9da14da2e7834b5186b510",
-    "fe635f049da3e3f8c14d9fc052dc88d5",
-    "85998f0bd0975ecd87cc5ee529ef4c56",
-    "b1e83c37baacdef1d7811be267d74061",
-    "4c9d16358a7fd7228c733b74b6be3836",
-    "97b136b368ea91766729964f32fa7229",
-    "ca02e15b4dfd2ee6d34a7a58b696912f",
-    "7893fdfdf251538eb03888a9b8b3901c",
-    "11810cd81e593995895d84debd81664b"
+    "2a5fb49600d22c58fc771dd3223c0a8b",
+    "f11c49662449700c37cbaf1edd10de70"
   ],
   "domains": [
     "planning-pipeline"

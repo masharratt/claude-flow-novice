@@ -1,0 +1,12 @@
+{
+  "id": "web-interfaces",
+  "name": "Web Interfaces and Observability",
+  "purpose": "Serves loop, fleet and pipeline state to browsers through the portal API, shared dashboard components and monitoring pages.",
+  "capabilities": [],
+  "entities": [],
+  "shared_contracts": [],
+  "unknowns": [
+    "Domain page is map-derived, not yet source-reviewed.",
+    "capabilities list is intentionally empty: portal-api, dashboard-components, monitoring-dashboard, pipeline-visualizer are pending their own acceptance and join this list as they land."
+  ]
+}

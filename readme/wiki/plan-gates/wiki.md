@@ -5,7 +5,7 @@
 
 **Status:** dev
 
-Source review of the four bar/extract scripts via bounded evidence spans. No checker was executed and the megaplan orchestrator wiring that invokes them was not read.
+Source review of the four bar/extract scripts via bounded evidence spans. No checker was executed and the megaplan orchestrator wiring that invokes them was not read.; verified against sources 2026-09-14 (map-run verify pass)
 
 **Source:**
 

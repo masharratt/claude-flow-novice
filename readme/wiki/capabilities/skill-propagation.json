@@ -1,0 +1,109 @@
+{
+  "id": "skill-propagation",
+  "fid": "skill-propagation",
+  "name": "Propagating reviewed skill updates",
+  "status": "dev",
+  "status_reason": "Source review of two shell workflow scripts and two TypeScript propagation classes within the evidence budget; neither pipeline was executed, and the Postgres-to-SQLite bridge and the physical file-distribution layer sit outside the four scope files.",
+  "description": "Review happens in Postgres (review-skill.sh flips workflow_patterns to APPROVED); propagation then re-registers the skill in SQLite skills.db (version, sha256 hash, frontmatter metadata) via propagate-skill-update.sh or its TypeScript SkillPropagator twin. Neither stage copies files.",
+  "purpose": "An expert runs review-skill.sh --skill-id UUID --action approve, which gates on workflow_patterns.status being PENDING_REVIEW or NEEDS_CORRECTION and in one Postgres transaction writes skill_approvals, flips the row to APPROVED and logs pattern_state_history plus workflow_audit_log (bad state, unknown option, missing args or query failure all exit 1). A separate propagator then re-registers the update in the local SQLite registry: propagate-skill-update.sh (or the TypeScript SkillPropagator over injected fs/db adapters, mirroring the same steps but throwing Error instead of exiting) validates inputs (exit 1 params/injection/traversal, exit 2 unreadable file, exit 3 missing DB, exit 4 unknown skill), rejects unchanged versions, downgrades and change-type mismatches with exit 4, refuses sha256-identical content with exit 5, rewrites the skills row (version, content_hash, content_path, frontmatter-refreshed metadata) and inserts an auto-approval_history row (exit 6 on DB failure), exiting 0 on success. Distribution to consumers is registry bookkeeping only: notify_affected_agents lists DISTINCT agent_type rows from agent_skill_mappings in the log (comments say 'For now, we just list the agents'; 'Affected agents should reload skill content on next invocation'), and no code in these files copies skill content anywhere, so the physical path to every sharing project and the bridge from the Postgres approval to the SQLite registry both live outside this scope.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": ".claude/skills/cfn-knowledge-base/lib/workflow/review-skill.sh",
+      "line": 1,
+      "claim": "Expert review CLI over PostgreSQL: pulls CFN_DB_* and CFN_EXPERT_ID from the invoking project's .env (grep-extracted, never sourced; default DB cfn_workflow) and runs statements through execute_query, a PGPASSWORD-wrapped psql -t -A call; actions are approve/reject/correct plus --list-pending, --check-sla, --init.",
+      "sha256": "aaae3d928b23a44fc63211466f0d760c88ba4af065ff3343bdd800788ba95f05"
+    },
+    {
+      "path": ".claude/skills/cfn-knowledge-base/lib/workflow/review-skill.sh",
+      "line": 125,
+      "claim": "approve_skill refuses any state except PENDING_REVIEW or NEEDS_CORRECTION ('Cannot approve skill in state...') and commits one BEGIN/COMMIT transaction that inserts a skill_approvals row, UPDATEs workflow_patterns to APPROVED, and appends pattern_state_history and workflow_audit_log entries; a failed transaction reports rollback, and every failure path funnels through error_exit, which exits 1.",
+      "sha256": "aaae3d928b23a44fc63211466f0d760c88ba4af065ff3343bdd800788ba95f05"
+    },
+    {
+      "path": ".claude/skills/cfn-knowledge-base/lib/workflow/review-skill.sh",
+      "line": 566,
+      "claim": "main dispatches --init, --list-pending and --check-sla to their own exit-0 paths; the default review action requires both --skill-id and --action or it falls into usage() which exits 1; unknown options exit 1 via error_exit.",
+      "sha256": "aaae3d928b23a44fc63211466f0d760c88ba4af065ff3343bdd800788ba95f05"
+    },
+    {
+      "path": ".claude/skills/cfn-knowledge-base/lib/workflow/propagate-skill-update.sh",
+      "line": 150,
+      "claim": "validate_parameters enforces the failure ladder: exit 1 for missing params, a non ^[a-zA-Z0-9_-]+$ skill name (injection guard), bad MAJOR.MINOR.PATCH format, or a path outside CONTENT_BASE_DIR (traversal guard); exit 2 for a missing or unreadable update file; exit 3 when the SQLite skills DB is absent; exit 4 when the skill name has no row, listing available skills as a hint.",
+      "sha256": "e5280e93f7953e65c9513e8391330eec5040d4c4e6774247d0bd83cbdd331505"
+    },
+    {
+      "path": ".claude/skills/cfn-knowledge-base/lib/workflow/propagate-skill-update.sh",
+      "line": 296,
+      "claim": "validate_version_increment derives the actual change from compare_versions (line 256: major/minor/patch/downgrade/same by numeric component compare) and error_exits 4 on 'same', 'downgrade', or a mismatch between detected and declared change type.",
+      "sha256": "e5280e93f7953e65c9513e8391330eec5040d4c4e6774247d0bd83cbdd331505"
+    },
+    {
+      "path": ".claude/skills/cfn-knowledge-base/lib/workflow/propagate-skill-update.sh",
+      "line": 519,
+      "claim": "main runs eight steps in order (validate, lookup skill, version check, sha256 content hash, frontmatter metadata refresh with per-field fallback to existing DB values, update record, approval history, optional notify) and error_exits 5 when the new sha256 equals the stored hash ('update not needed (version would increment without content changes)'); Phase 4 Postgres status is skipped when PHASE4_POSTGRES_HOST is unset; agent notify runs only when the 5th arg or ENABLE_AGENT_NOTIFICATIONS is 'true'; success prints a summary and exits 0.",
+      "sha256": "e5280e93f7953e65c9513e8391330eec5040d4c4e6774247d0bd83cbdd331505"
+    },
+    {
+      "path": ".claude/skills/cfn-knowledge-base/lib/workflow/propagate-skill-update.sh",
+      "line": 355,
+      "claim": "update_skill_record only rewrites the SQLite registry row (UPDATE skills SET version/content_hash/content_path/tags/category/owner/approval_level, error_exit 6 on failure) and record_approval_history (line 394) INSERTs an approval_history row with decision='approved', approver='phase4-edge-case-tracker' and reasoning crediting 'expert review and validation' - no step copies the update file anywhere.",
+      "sha256": "e5280e93f7953e65c9513e8391330eec5040d4c4e6774247d0bd83cbdd331505"
+    },
+    {
+      "path": ".claude/skills/cfn-knowledge-base/lib/workflow/propagate-skill-update.sh",
+      "line": 484,
+      "claim": "notify_affected_agents queries DISTINCT agent_type from agent_skill_mappings for the skill id (numeric-only guard) and only prints the list: the code comments state 'Optional: Create notification records... For now, we just list the agents', ending with the log line 'Affected agents should reload skill content on next invocation'.",
+      "sha256": "e5280e93f7953e65c9513e8391330eec5040d4c4e6774247d0bd83cbdd331505"
+    },
+    {
+      "path": ".claude/skills/cfn-skill-management/lib/propagation/src/skill-propagator.ts",
+      "line": 29,
+      "claim": "SkillPropagator.propagate() is the TypeScript mirror of the same 8-step workflow over injected FileSystemAdapter/DatabaseAdapter/Logger: each failed validation throws Error (validation, skill-not-found, version, content-hash) instead of exiting; metadata fields fall back to existing DB values; step 8 notify runs only when options.notifyAgents or enableAgentNotifications is set; it returns a PropagationResult with old/new version, change type, hash, metadata and affectedAgents.",
+      "sha256": "770a03999ca634aee33943755e68cebe503d3450b4535775d0119206ed37ebde"
+    },
+    {
+      "path": ".claude/skills/cfn-skill-management/lib/propagation/src/skill-propagator.ts",
+      "line": 187,
+      "claim": "updateSkillRecord builds a dynamic 'UPDATE skills SET <keys>, updated_at = datetime(now) WHERE id = ?' from the updates object, and recordApprovalHistory (line 209) INSERTs into approval_history with source 'propagate-skill-update' and reasoning 'Skill update propagated through automated workflow' - the same registry-only write as the shell twin.",
+      "sha256": "770a03999ca634aee33943755e68cebe503d3450b4535775d0119206ed37ebde"
+    },
+    {
+      "path": ".claude/skills/cfn-skill-management/lib/propagation/src/skill-validator.ts",
+      "line": 17,
+      "claim": "validateParameters accumulates all errors into one ValidationResult (missing skillName/newVersion/updatePath, name regex, VersionManager.isValidVersion MAJOR.MINOR.PATCH, changeType restricted to patch/minor/major, file exists+readable, and DB present at options.databasePath or the './.claude/skills-database/skills.db' default); validateSkillExists wraps its COUNT query in try/catch returning false on any DB error.",
+      "sha256": "872f7c13e2508beb7ef9a5e3b0dfd1b1a804b750a2682880c426ed31f3a1d674"
+    },
+    {
+      "path": ".claude/skills/cfn-skill-management/lib/propagation/src/skill-validator.ts",
+      "line": 96,
+      "claim": "validateVersionIncrement rejects 'same' (version unchanged) and 'downgrade' outright and errors when the detected change type differs from expected; validateContentHashChanged (line 162) rejects an identical old/new hash ('no actual content changes detected'), and validateSkillStructure (line 144) only checks that <skillPath>/SKILL.md exists.",
+      "sha256": "872f7c13e2508beb7ef9a5e3b0dfd1b1a804b750a2682880c426ed31f3a1d674"
+    }
+  ],
+  "evidence": [
+    "eaa195e976d7b8aab77bc6a7ab22b107",
+    "2339bde3067e29303509e123a1905a6d",
+    "a8eed67728589d35ceb854121b706936",
+    "2ca406920e8db11d8e51a5b331ac3cc7",
+    "29bc239b49d978eeaf7676f5ba01aa5d",
+    "3ce7da019100ce1a5b35516bc8b46568",
+    "4400b11b002eab30d3134ac653c1c1b1",
+    "30c9b28182d850da2707ece8d35a5ac8",
+    "1478aa2c5e7ed4475b2a4c98b8425317",
+    "2db5864c17f38c433d065446cbe31248",
+    "daa3e125d6f0dca92e84e957f7e19a26",
+    "651959a5d08b7fb184899889810abc90"
+  ],
+  "domains": [
+    "skill-infrastructure"
+  ],
+  "unknowns": [
+    "How an APPROVED workflow_patterns row (Postgres, cfn_workflow) reaches the SQLite skills registry that propagate reads (CFN_SKILLS_DB_PATH) is not shown in the four scope files; review-skill.sh's header comment names a sibling deploy-approved-skill.sh that was not read.",
+    "No code in scope copies skill content between projects; the physical distribution layer (per repo docs the reverse-symlinked ~/.claude dirs shared by all projects) is outside these files and unverified here.",
+    "skill-propagator.ts beyond line 240 (the notifyAffectedAgents helper body and any CLI/build entry) and the caller that instantiates SkillPropagator were not read; the symbols query returned no TypeScript adapter results, so which command exposes the TS path is unverified.",
+    "review-skill.sh reject_skill and request_correction were read only through their first lines (209-233): their full state transitions (other than reject requiring --feedback) and list_pending_skills/check_sla_status/send_approval_notification bodies are unverified; SLA thresholds 48h/168h appear only as config constants.",
+    "Neither pipeline was executed; exit-code behavior is read from source, not observed at runtime."
+  ]
+}

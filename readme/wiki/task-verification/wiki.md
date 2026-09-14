@@ -5,7 +5,7 @@
 
 **Status:** dev
 
-Implemented runner and regression suite. This page is a source review, not a certification of every CFN workflow or deployment.; verified against sources 2026-09-14 (pilot verify pass)
+Implemented runner and regression suite. This page is a source review, not a certification of every CFN workflow or deployment.; verified against sources 2026-09-14 (pilot verify pass); verified against sources 2026-09-14 (map-run verify pass)
 
 **Source:**
 

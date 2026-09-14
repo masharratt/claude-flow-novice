@@ -1,0 +1,12 @@
+{
+  "id": "wiki-knowledge",
+  "name": "Wiki and Work Tracking",
+  "purpose": "Indexes the repository into a source-grounded wiki, queues documentation work with evidence rules, and serves the local portal.",
+  "capabilities": [],
+  "entities": [],
+  "shared_contracts": [],
+  "unknowns": [
+    "Domain page is map-derived, not yet source-reviewed.",
+    "capabilities list is intentionally empty: wiki-pipeline, wiki-portal are pending their own acceptance and join this list as they land."
+  ]
+}

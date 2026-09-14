@@ -11,7 +11,7 @@
 |---|---|
 | prod | 0 |
 | beta | 0 |
-| dev | 19 |
+| dev | 33 |
 | stub | 2 |
 | deprecated | 0 |
 
@@ -30,10 +30,24 @@ Authored capabilities come first. Directory entries are an inventory, not indepe
 | Feature | Status | Description | Dependencies | Known Limitations |
 |---|---|---|---|---|
 | Proving a task is complete | dev | Runs acceptance checks, distinguishes failed checks from unresolved evidence, and records the result used by the task exit workflow. | Bash, jq, GNU timeout; psql for configured database checks; each check's declared tools and services. | This walkthrough covers task verification, not agent spawning or every CLI execution mode. See the capability page for full limits. |
-| Parsing test-runner summaries | dev | Parses captured runner stdout into pass/fail/skip/collected counts that gate-check.sh and verify-run.sh adjudicate; a parallel TypeScript parser (parse-test-results.ts, consumer unverified) covers a different framework union. | - | Source review of the two parsers and their callers in cfn-loop-orchestration-v2. No runtime verification of extending them to a new runner format was performed. |
-| Gating plans before implementation | dev | Static gates a planning artifact must clear: Bar A (check-verifiable-static.sh) machine-decidability of the VERIFY manifest, Bar B (check-haiku-static.sh) vague-phrase scan of the PLAN; only bless-verify.sh may pin a manifest, and per-part phases read extract-sections.sh slices. | - | Source review of the four bar/extract scripts via bounded evidence spans. No checker was executed and the megaplan orchestrator wiring that invokes them was not read. |
-| Running the orchestration loop | dev | Orchestrates the CFN Loop v3.0.0: spawn Loop 3 implementers, wait via file-based coordination, run tests on deliverables, gate-check the pass rate, spawn Loop 2 validators for consensus, then a product-owner skill decides PROCEED/ITERATE/ABORT; orchestrate.sh is a thin node wrapper. | - | Source review of the bash wrapper, the complete Orchestrator class body (orchestrate.ts lines 1-1333) and both scoped helpers. No runtime orchestration run was executed or observed; the in-scope agent-spawner.ts is an explicit migration placeholder and the module's own CLI entry never calls execute(). |
-| Enforcing rules with hooks | dev | Guards fire on edit and spawn: a pre-edit backup wrapper, a post-edit node pipeline (exit 0 unless --blocking), a doc-lint PostToolUse gate, a spawn depth/brief guard (exit 2 blocks), and the edit-safety CLI that rolls edits back from .backups. | - | Source review of the five guard scripts plus .claude/hooks.json in the discovery snapshot. No runtime verification that a rule added at each named extension point actually fires; hook registration (settings.json) is absent from the index so where guards register is unverified. |
+| Parsing test-runner summaries | dev | Parses captured runner stdout into pass/fail/skip/collected counts that gate-check.sh and verify-run.sh adjudicate; a parallel TypeScript parser (parse-test-results.ts, consumer unverified) covers a different framework union. | - | Source review of the two parsers and their callers in cfn-loop-orchestration-v2. No runtime verification of extending them to a new runner format was performed.; verified against sources 2026-09-14 (map-run verify pass) |
+| Gating plans before implementation | dev | Static gates a planning artifact must clear: Bar A (check-verifiable-static.sh) machine-decidability of the VERIFY manifest, Bar B (check-haiku-static.sh) vague-phrase scan of the PLAN; only bless-verify.sh may pin a manifest, and per-part phases read extract-sections.sh slices. | - | Source review of the four bar/extract scripts via bounded evidence spans. No checker was executed and the megaplan orchestrator wiring that invokes them was not read.; verified against sources 2026-09-14 (map-run verify pass) |
+| Running the orchestration loop | dev | Orchestrates the CFN Loop v3.0.0: spawn Loop 3 implementers, wait via file-based coordination, run tests on deliverables, gate-check the pass rate, spawn Loop 2 validators for consensus, then a product-owner skill decides PROCEED/ITERATE/ABORT; orchestrate.sh is a thin node wrapper. | - | Source review of the bash wrapper, the complete Orchestrator class body (orchestrate.ts lines 1-1333) and both scoped helpers. No runtime orchestration run was executed or observed; the in-scope agent-spawner.ts is an explicit migration placeholder and the module's own CLI entry never calls execute().; verified against sources 2026-09-14 (map-run verify pass) |
+| Enforcing rules with hooks | dev | Guards fire on edit and spawn: a pre-edit backup wrapper, a post-edit node pipeline (exit 0 unless --blocking), a doc-lint PostToolUse gate, a spawn depth/brief guard (exit 2 blocks), and the edit-safety CLI that rolls edits back from .backups. | - | Source review of the five guard scripts plus .claude/hooks.json in the discovery snapshot. No runtime verification that a rule added at each named extension point actually fires; hook registration (settings.json) is absent from the index so where guards register is unverified.; verified against sources 2026-09-14 (map-run verify pass) |
+| Epic to sprint and task decomposition | dev | Epic decomposition emits sprint JSON with depends_on/blocks edges; sprint execution validates deliverables to PROCEED/ITERATE; the task decomposer writes templated subtask plans with per-agent tool budgets and Redis keys; a keyword scorer rates descriptions low/medium/high. | - | Source review of the four scoped scripts, each read end to end; no runtime execution, test run, or caller tracing was performed. Stage-to-stage wiring is inferred absence (nothing in these files consumes another's output), not a whole-repo search.; verified against sources 2026-09-14 (map author pass) |
+| Coordinating parallel fleet sessions | dev | One flock-serialized TSV roster is the coordination plane: claim refuses overlapping paths (65), spawn gates status=started on the engine banner (66 on timeout, row stays pending), land refuses unclaimed dirty files or a dirty worktree (66) then records landed_sha. | - | Source review of cmd-spawn.sh, cmd-claim.sh, cmd-land.sh and lib/common.sh, all four read end to end. No runtime verification of a real multi-session run was performed; migration coordination was seen only as roster columns. |
+| Containerized agent team lifecycle | dev | Provisions per-team Docker enclaves (workspace, skills copy, bridge network, team Redis, coordinator container) from YAML via provision-team.sh; a Redis/Postgres main coordinator watches heartbeats; team init.sh readies workspaces. Agent spawn/teardown is a stub. | - | Static source review of the four scope files on 2026-09-14; no team was provisioned or run. agent-manager.js is an unimplemented Phase-2 stub, so the agent spawn/monitor/teardown half of the answer is documented from TODO comments, not observed behavior. |
+| Propagating reviewed skill updates | dev | Review happens in Postgres (review-skill.sh flips workflow_patterns to APPROVED); propagation then re-registers the skill in SQLite skills.db (version, sha256 hash, frontmatter metadata) via propagate-skill-update.sh or its TypeScript SkillPropagator twin. Neither stage copies files. | - | Source changed; explanation needs review. Source review of two shell workflow scripts and two TypeScript propagation classes within the evidence budget; neither pipeline was executed, and the Postgres-to-SQLite bridge and the physical file-distribution layer sit outside the four scope files. |
+| Recording and querying past decisions | dev | Past decisions live in one SQLite DB at ~/.claude/decision-log/decisions.db: curated plan decisions in a decisions table written by record.sh (cfn-decide phase, upsert per project/slug/decision_id), raw conversation in messages; query.sh BM25-searches only the messages FTS mirror. | - | Source changed; explanation needs review. Source review of the three decision-log scripts (schema.sql, record.sh, query.sh). No runtime verification: no record-then-query round-trip against a live decisions.db was executed.; verified against sources 2026-09-14 |
+| Agent memory persistence and TTL expiry | dev | Agent output reaches a SQLite memory_store via a jq-escaped inline node call to SQLiteAdapter.set and a bash CLI wrapper over dist/cli/memory-cli.js; a TTL script expires rows per ACL retention tier, syncs Redis, and VACUUMs. | - | Source review of the three scoped scripts only. No runtime verification that the node adapter writes or the cleanup DELETEs run against a live database.; verified against sources 2026-09-14 (map author pass) |
+| Schema-sync after migrations and split read-only/read-write container DB access | dev | After a migration, supabase-schema-sync regenerates agent-facing schema docs under .claude/skills/db-query from information_schema; docker containers split DB access by Postgres user: readonly_user plus a write-verb denylist for queries, admin_user for migrations. | - | Source changed; explanation needs review. Source review of supabase-schema-sync/execute.sh, both docker DB skill scripts, and migrations/001_add_agent_indexes.sql; no live database run, PostToolUse-hook trace, or role-provisioning evidence verified.; verified against sources 2026-09-14 (map author pass) |
+| Portal API: events, agents, metrics and RBAC | dev | The portal exposes /api/events (API-key ingest and query), /api/agents (public hierarchy/status reads, admin-only intervene) and CFN Loop metrics read from Redis swarm:<taskId>:* keys; rbac.ts gates writes via a guest<user<service<admin hierarchy plus permission wildcards. | - | Source changed; explanation needs review. Source review of all four scope files read in full (148, 125, 240 and 382 lines). No runtime verification: no portal server was started and no Redis instance was queried.; verified against sources 2026-09-14 |
+| Loop and fleet dashboard components | dev | Presentational MUI components in packages/web-components: CFNLoopDashboard (5-loop stepper, confidence cards, consensus metrics, activity timeline) and FleetOverview (agent cards with filter/sort/pagination, WebSocket real-time merge). Portal composition unverified. | - | Source changed; explanation needs review. Source review of both component files at revision f248664d. The portal container scope file is absent from the discovery index and FleetOverview's render tail past line 600 was not read (evidence budget), so composition and runtime behavior are unverified.; verified against sources 2026-09-14 (map author pass) |
+| Monitoring dashboard tracking and local startup | dev | Express server (default port 5555) serving a static HTML dashboard that polls Docker containers, host memory/load, CFN loop Redis keys, SQLite agent rows and swarm:* signals every 10s; started from monitoring/ via start-dashboard.sh, while a companion script flags >20% Prometheus cost spikes. | - | Source changed; explanation needs review. Source review of server.js, dashboard.html and both shell scripts in monitoring/. No local run of the dashboard or the anomaly script was performed; runtime behavior claims follow from the code paths read.; verified against sources 2026-09-14 (author pass) |
+| Rendering a pipeline as an interactive graph | dev | ReactFlow+dagre viewer for the daily-coverage V4 agent pipeline: typed node/edge data in pipeline.ts, automatic TB dagre layout, category-styled custom nodes with cost/state/source annotations, and three view filters (full, happy path, tools only) in PipelineGraph.tsx. | - | Source changed; explanation needs review. Static source review of the three scope files plus the imported PipelineNode.tsx (2026-09-14); the app was neither built nor rendered, so layout of the filtered views and the drag-reset effect are derived from code reading, not observed at runtime. |
+| MDAP request decomposition to reviewed patches | dev | Parallel GLM decomposition of a task into architecture/testing/performance/security micro-tasks, implemented as validated line-fix patches and gated by a whitelisted test command pass rate. | - | Source changed; explanation needs review. Source review of orchestrator, implementer, glm-client, secure-execution and the architecture decomposer within a bounded evidence budget; no runtime execution of the pipeline was performed. |
+| Building the source-grounded wiki | dev | Discovery index (.wiki/discovery.sqlite) from git or walk enumeration with per-language adapters and CBM import; sha256-verified knowledge claims; SQLite job queue with byte-metered evidence budgets; deterministic sync regen with a drift gate. | - | Self-documentation of the wiki's own engine: source review at revision f248664d3997407020c8b57de4fbc92515788cfd; the only runtime exercised is the lease/evidence/submit path used while authoring this capability. Verified against sources 2026-09-14. |
+| Building and serving the wiki portal | dev | Assembles a self-contained HTML portal from the wiki store's five view modules (single-file or paged mode, one shared assembly core, per-page selfcheck) and serves it locally with an atomic, origin-gated annotation store. | wiki-pipeline | Source review of build-portal.sh, server.py, lib/serve.sh and portal/serve.sh at revision f248664d3997407020c8b57de4fbc92515788cfd; no build or serve was executed in this pass, so failure paths are read from the code, not observed. Verified against sources 2026-09-14. |
 | api-gateway | dev | Express JWT authentication service that issues, refreshes, revokes and validates access tokens with Redis backing, rate limiting and shell test suites for gateway callers. | - | Source changed; explanation needs review. Curated status |
 | artifacts | dev | Storage area for agent task outputs: project scope schema SQL with validation queries and example agent workspace deliverables. Mostly one-off outputs, not maintained product code. | - | Source changed; explanation needs review. Curated status |
 | benchmark | dev | Benchmark suite measuring CFN infrastructure options: Node versus Rust message bus throughput, agent messaging latency, load tests and spawn cost, driven by one runner script. | - | Source changed; explanation needs review. Curated status |
@@ -55,23 +69,79 @@ Authored capabilities come first. Directory entries are an inventory, not indepe
 
 ### Proving a task is complete
 
-[Read the execution flow](wiki/task-verification/wiki.md). Implemented runner and regression suite. This page is a source review, not a certification of every CFN workflow or deployment.; verified against sources 2026-09-14 (pilot verify pass)
+[Read the execution flow](wiki/task-verification/wiki.md). Implemented runner and regression suite. This page is a source review, not a certification of every CFN workflow or deployment.; verified against sources 2026-09-14 (pilot verify pass); verified against sources 2026-09-14 (map-run verify pass)
 
 ### Parsing test-runner summaries
 
-[Read the execution flow](wiki/test-result-parsing/wiki.md). Source review of the two parsers and their callers in cfn-loop-orchestration-v2. No runtime verification of extending them to a new runner format was performed.
+[Read the execution flow](wiki/test-result-parsing/wiki.md). Source review of the two parsers and their callers in cfn-loop-orchestration-v2. No runtime verification of extending them to a new runner format was performed.; verified against sources 2026-09-14 (map-run verify pass)
 
 ### Gating plans before implementation
 
-[Read the execution flow](wiki/plan-gates/wiki.md). Source review of the four bar/extract scripts via bounded evidence spans. No checker was executed and the megaplan orchestrator wiring that invokes them was not read.
+[Read the execution flow](wiki/plan-gates/wiki.md). Source review of the four bar/extract scripts via bounded evidence spans. No checker was executed and the megaplan orchestrator wiring that invokes them was not read.; verified against sources 2026-09-14 (map-run verify pass)
 
 ### Running the orchestration loop
 
-[Read the execution flow](wiki/loop-orchestration/wiki.md). Source review of the bash wrapper, the complete Orchestrator class body (orchestrate.ts lines 1-1333) and both scoped helpers. No runtime orchestration run was executed or observed; the in-scope agent-spawner.ts is an explicit migration placeholder and the module's own CLI entry never calls execute().
+[Read the execution flow](wiki/loop-orchestration/wiki.md). Source review of the bash wrapper, the complete Orchestrator class body (orchestrate.ts lines 1-1333) and both scoped helpers. No runtime orchestration run was executed or observed; the in-scope agent-spawner.ts is an explicit migration placeholder and the module's own CLI entry never calls execute().; verified against sources 2026-09-14 (map-run verify pass)
 
 ### Enforcing rules with hooks
 
-[Read the execution flow](wiki/edit-safety-hooks/wiki.md). Source review of the five guard scripts plus .claude/hooks.json in the discovery snapshot. No runtime verification that a rule added at each named extension point actually fires; hook registration (settings.json) is absent from the index so where guards register is unverified.
+[Read the execution flow](wiki/edit-safety-hooks/wiki.md). Source review of the five guard scripts plus .claude/hooks.json in the discovery snapshot. No runtime verification that a rule added at each named extension point actually fires; hook registration (settings.json) is absent from the index so where guards register is unverified.; verified against sources 2026-09-14 (map-run verify pass)
+
+### Epic to sprint and task decomposition
+
+[Read the execution flow](wiki/work-decomposition/wiki.md). Source review of the four scoped scripts, each read end to end; no runtime execution, test run, or caller tracing was performed. Stage-to-stage wiring is inferred absence (nothing in these files consumes another's output), not a whole-repo search.; verified against sources 2026-09-14 (map author pass)
+
+### Coordinating parallel fleet sessions
+
+[Read the execution flow](wiki/fleet-roster/wiki.md). Source review of cmd-spawn.sh, cmd-claim.sh, cmd-land.sh and lib/common.sh, all four read end to end. No runtime verification of a real multi-session run was performed; migration coordination was seen only as roster columns.
+
+### Containerized agent team lifecycle
+
+[Read the execution flow](wiki/agent-containers/wiki.md). Static source review of the four scope files on 2026-09-14; no team was provisioned or run. agent-manager.js is an unimplemented Phase-2 stub, so the agent spawn/monitor/teardown half of the answer is documented from TODO comments, not observed behavior.
+
+### Propagating reviewed skill updates
+
+[Read the execution flow](wiki/skill-propagation/wiki.md). Source review of two shell workflow scripts and two TypeScript propagation classes within the evidence budget; neither pipeline was executed, and the Postgres-to-SQLite bridge and the physical file-distribution layer sit outside the four scope files.
+
+### Recording and querying past decisions
+
+[Read the execution flow](wiki/decision-log/wiki.md). Source review of the three decision-log scripts (schema.sql, record.sh, query.sh). No runtime verification: no record-then-query round-trip against a live decisions.db was executed.; verified against sources 2026-09-14
+
+### Agent memory persistence and TTL expiry
+
+[Read the execution flow](wiki/agent-memory/wiki.md). Source review of the three scoped scripts only. No runtime verification that the node adapter writes or the cleanup DELETEs run against a live database.; verified against sources 2026-09-14 (map author pass)
+
+### Schema-sync after migrations and split read-only/read-write container DB access
+
+[Read the execution flow](wiki/database-sync/wiki.md). Source review of supabase-schema-sync/execute.sh, both docker DB skill scripts, and migrations/001_add_agent_indexes.sql; no live database run, PostToolUse-hook trace, or role-provisioning evidence verified.; verified against sources 2026-09-14 (map author pass)
+
+### Portal API: events, agents, metrics and RBAC
+
+[Read the execution flow](wiki/portal-api/wiki.md). Source review of all four scope files read in full (148, 125, 240 and 382 lines). No runtime verification: no portal server was started and no Redis instance was queried.; verified against sources 2026-09-14
+
+### Loop and fleet dashboard components
+
+[Read the execution flow](wiki/dashboard-components/wiki.md). Source review of both component files at revision f248664d. The portal container scope file is absent from the discovery index and FleetOverview's render tail past line 600 was not read (evidence budget), so composition and runtime behavior are unverified.; verified against sources 2026-09-14 (map author pass)
+
+### Monitoring dashboard tracking and local startup
+
+[Read the execution flow](wiki/monitoring-dashboard/wiki.md). Source review of server.js, dashboard.html and both shell scripts in monitoring/. No local run of the dashboard or the anomaly script was performed; runtime behavior claims follow from the code paths read.; verified against sources 2026-09-14 (author pass)
+
+### Rendering a pipeline as an interactive graph
+
+[Read the execution flow](wiki/pipeline-visualizer/wiki.md). Static source review of the three scope files plus the imported PipelineNode.tsx (2026-09-14); the app was neither built nor rendered, so layout of the filtered views and the drag-reset effect are derived from code reading, not observed at runtime.
+
+### MDAP request decomposition to reviewed patches
+
+[Read the execution flow](wiki/mdap-engine/wiki.md). Source review of orchestrator, implementer, glm-client, secure-execution and the architecture decomposer within a bounded evidence budget; no runtime execution of the pipeline was performed.
+
+### Building the source-grounded wiki
+
+[Read the execution flow](wiki/wiki-pipeline/wiki.md). Self-documentation of the wiki's own engine: source review at revision f248664d3997407020c8b57de4fbc92515788cfd; the only runtime exercised is the lease/evidence/submit path used while authoring this capability. Verified against sources 2026-09-14.
+
+### Building and serving the wiki portal
+
+[Read the execution flow](wiki/wiki-portal/wiki.md). Source review of build-portal.sh, server.py, lib/serve.sh and portal/serve.sh at revision f248664d3997407020c8b57de4fbc92515788cfd; no build or serve was executed in this pass, so failure paths are read from the code, not observed. Verified against sources 2026-09-14.
 
 ### api-gateway
 

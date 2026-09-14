@@ -5,7 +5,7 @@
 
 **Status:** dev
 
-Source review of the five guard scripts plus .claude/hooks.json in the discovery snapshot. No runtime verification that a rule added at each named extension point actually fires; hook registration (settings.json) is absent from the index so where guards register is unverified.
+Source review of the five guard scripts plus .claude/hooks.json in the discovery snapshot. No runtime verification that a rule added at each named extension point actually fires; hook registration (settings.json) is absent from the index so where guards register is unverified.; verified against sources 2026-09-14 (map-run verify pass)
 
 **Source:**
 

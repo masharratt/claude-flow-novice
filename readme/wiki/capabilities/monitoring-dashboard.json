@@ -1,0 +1,109 @@
+{
+  "id": "monitoring-dashboard",
+  "fid": "monitoring-dashboard",
+  "name": "Monitoring dashboard tracking and local startup",
+  "status": "dev",
+  "status_reason": "Source review of server.js, dashboard.html and both shell scripts in monitoring/. No local run of the dashboard or the anomaly script was performed; runtime behavior claims follow from the code paths read.; verified against sources 2026-09-14 (author pass)",
+  "description": "Express server (default port 5555) serving a static HTML dashboard that polls Docker containers, host memory/load, CFN loop Redis keys, SQLite agent rows and swarm:* signals every 10s; started from monitoring/ via start-dashboard.sh, while a companion script flags >20% Prometheus cost spikes.",
+  "purpose": "Start it with `bash monitoring/start-dashboard.sh` run FROM the monitoring/ directory (it exits 1 elsewhere): the script verifies Node >= 16, runs npm install when node_modules is missing, warns without failing when Docker is down or Redis at localhost:6379 is unreachable, then runs npm start (pass --dev for nodemon auto-reload). The Express server (PORT env or 5555) serves dashboard.html at / and JSON under /api/*. The dashboard tracks: CFN-related Docker containers (names matching cfn/redis/cadvisor/consensus/agent-comm; total/running/failed counts plus per-container cpu/memory/network via /api/containers/:name/stats), host memory and load read from /proc/meminfo and /proc/loadavg, CFN loop task status (active/completed/failed, avg confidence) parsed from Redis keys cfn_loop:*:context:, agent health (a ps-aux count of 'claude-flow-novice agent' processes), agent rows from the SQLite DB at ../claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db (SELECT * FROM agents ORDER BY spawned_at DESC), and Redis swarm:* signals. The page calls refreshData() on load and every 10 s (setInterval(refreshData, 10000)). Failure path: if Redis is down /api/cfn returns all-zero defaults and the SQLite/Redis cards show 0 and 'Disconnected', but the container/system/cfn cards silently fall back to hardcoded demo mock data ('Simulate API calls with mock data for demo'), so on-screen numbers may not be live; a thrown refresh error is logged to the Recent Logs panel and raises the alert bar. cost-anomaly-detection.sh is a standalone companion (not wired into the server): per team it compares the last-1h rate of Prometheus metric zai_api_cost_usd against the same window offset 24h back and POSTs a webhook alert plus pushgateway gauge when the ratio exceeds ANOMALY_THRESHOLD (default 1.20); modes are detect (default), health (Prometheus reachability + metric count) and test (10% threshold).",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": "monitoring/start-dashboard.sh",
+      "line": 34,
+      "claim": "Startup contract: must be run from the monitoring/ directory (checks package.json and server.js exist, exits 1 otherwise); verifies Node >= 16 via sort -V; npm-installs when node_modules is absent; only WARNS (no exit) when docker info fails or redis-cli ping to localhost:6379 fails, noting 'CFN metrics will show default values'; finally runs npm run dev under --dev (nodemon) else npm start.",
+      "sha256": "ba0b655cc7c1b1a025396874f69716fd1c8036f20027e05e2249d05599f95f5d"
+    },
+    {
+      "path": "monitoring/server.js",
+      "line": 8,
+      "claim": "Express app on PORT env or 5555; Redis client hardcoded to redis://localhost:6379; opens SQLite DB at ../claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db via initializeSQLite() at startup (non-fatal on error, logged via .catch(console.error)).",
+      "sha256": "1cecd2971d9513928e90be8fea938b825d3fc1d282f0e2322fe3430707acde28"
+    },
+    {
+      "path": "monitoring/server.js",
+      "line": 94,
+      "claim": "GET /api/containers lists all Docker containers and filters to CFN-related names (cfn, redis, cadvisor, consensus, agent-comm), returning total/running/failed plus per-container name/status/memory/image/ports; list-level cpu is always 'N/A'; 500 on Docker error. GET /api/containers/:name/stats (line 233) returns real cpu_usage, memory usage/limit and summed network rx/tx from the Docker stats API.",
+      "sha256": "1cecd2971d9513928e90be8fea938b825d3fc1d282f0e2322fe3430707acde28"
+    },
+    {
+      "path": "monitoring/server.js",
+      "line": 137,
+      "claim": "GET /api/system reads /proc/meminfo and /proc/loadavg through a bash spawn helper and returns memoryTotal, memoryUsed and the 1-minute load.",
+      "sha256": "1cecd2971d9513928e90be8fea938b825d3fc1d282f0e2322fe3430707acde28"
+    },
+    {
+      "path": "monitoring/server.js",
+      "line": 162,
+      "claim": "GET /api/cfn scans Redis keys cfn_loop:* and parses *:context:* values into activeTasks/completedTasks/failedTasks and avgConfidence; healthyAgents comes from `ps aux | grep 'claude-flow-novice agent' | wc -l`; memoryAlerts is hardcoded 0 ('Would need telemetry integration'). Failure path: on any Redis error the route returns an all-zero default payload instead of a 500, so the dashboard shows zeros rather than an error when Redis is down.",
+      "sha256": "1cecd2971d9513928e90be8fea938b825d3fc1d282f0e2322fe3430707acde28"
+    },
+    {
+      "path": "monitoring/server.js",
+      "line": 255,
+      "claim": "GET /api/agents queries the SQLite agents table (SELECT * FROM agents ORDER BY spawned_at DESC), 500ing when the DB never initialized; GET /api/redis/signals (line 290) lists swarm:* keys with values, emitting per-key error entries rather than aborting; GET /api/health (line 336) reports status/uptime; GET / (line 345) serves dashboard.html; SIGINT closes Redis and SQLite gracefully.",
+      "sha256": "1cecd2971d9513928e90be8fea938b825d3fc1d282f0e2322fe3430707acde28"
+    },
+    {
+      "path": "monitoring/dashboard.html",
+      "line": 243,
+      "claim": "The page ('CFN Docker Monitoring Dashboard', title at line 6) renders cards for System Overview (total/running/failed containers, system load), Memory Usage (with progress bar), CFN Loop Status (active/completed/failed tasks, avg confidence), Agent Health (healthy/stuck agents, memory alerts, timeout rate), CFN Agents from SQLite (line 325), Redis Swarm Signals (line 341), plus a Container Status list (line 359) and a Recent Logs panel (line 369); a status bar shows system status, last-update time and a manual Refresh button wired to refreshData().",
+      "sha256": "ed58118d1dfdba51f5966bc2a17b94683d3aba6a551cd7424031f11180cf3a1f"
+    },
+    {
+      "path": "monitoring/dashboard.html",
+      "line": 382,
+      "claim": "Five fetchers poll the server APIs (/api/containers, /api/system, /api/cfn, /api/agents, /api/redis/signals), each returning null on fetch failure instead of throwing.",
+      "sha256": "ed58118d1dfdba51f5966bc2a17b94683d3aba6a551cd7424031f11180cf3a1f"
+    },
+    {
+      "path": "monitoring/dashboard.html",
+      "line": 516,
+      "claim": "refreshData() failure path is asymmetric: container/system/cfn stats fall back to hardcoded demo mock data under the comment 'Simulate API calls with mock data for demo' (fake containers like cfn-orchestrator, 16GB/8.5GB memory), so those cards keep showing plausible-but-fake numbers when the APIs are down; the SQLite and Redis cards instead show 0 and 'Disconnected'.",
+      "sha256": "ed58118d1dfdba51f5966bc2a17b94683d3aba6a551cd7424031f11180cf3a1f"
+    },
+    {
+      "path": "monitoring/dashboard.html",
+      "line": 654,
+      "claim": "Init and scheduling: refreshData() runs once at script load, then setInterval(refreshData, 10000) auto-refreshes every 10 seconds; a thrown error inside refreshData logs 'Failed to refresh dashboard data' to the Recent Logs panel (capped at 50 entries) and shows the alert bar via showAlert().",
+      "sha256": "ed58118d1dfdba51f5966bc2a17b94683d3aba6a551cd7424031f11180cf3a1f"
+    },
+    {
+      "path": "monitoring/cost-anomaly-detection.sh",
+      "line": 9,
+      "claim": "Standalone companion script, independent of the dashboard server: config via env (PROMETHEUS_URL default http://localhost:9090, ALERT_WEBHOOK, ANOMALY_THRESHOLD default 1.20, BASELINE_WINDOW 24h, CHECK_WINDOW 1h, LOG_FILE default /var/log/cfn/cost-anomaly-detection.log); queries Prometheus with curl+jq.",
+      "sha256": "3d8eef3702c7dc634c23f89f30e4865640a327ab54c4da5568cfbb7150387ee0"
+    },
+    {
+      "path": "monitoring/cost-anomaly-detection.sh",
+      "line": 87,
+      "claim": "detect_anomalies() iterates teams from label_values(zai_api_cost_usd, team), compares the last-1h rate against the same window offset 24h, and when ratio > threshold calls send_alert() (webhook POST + pushgateway gauges at localhost:9091); teams without baseline data are skipped, not alerted. main() dispatches modes detect (default) / health (Prometheus /-/healthy plus metric count) / test (threshold lowered to 1.10).",
+      "sha256": "3d8eef3702c7dc634c23f89f30e4865640a327ab54c4da5568cfbb7150387ee0"
+    }
+  ],
+  "evidence": [
+    "e43b30bc3b0d1c8d0610ef304f4c261a",
+    "fe98e3006f62984d4ba3195c76b4286a",
+    "2959f187d2b48d7e7486631bb81c2b84",
+    "a32f824642af66d26ec57c9a88dcb193",
+    "c83a30fab2a049d773a09293e3ffd918",
+    "5763f9bd50c46ec3d35870bda2ab01b5",
+    "dcfb3cf33c8e9e53d6f60ae0cbf25e87",
+    "29402e221da1c1da4541a29e44822a32",
+    "7eb7160503c5d5708486087f0cc621b4",
+    "41775d9ff09306579e73d8bba39e6ba3",
+    "7d3c844170d27be5d60f2a1eba3640f5",
+    "706bbd76821ff16e3ddf39990f28c34a"
+  ],
+  "domains": [
+    "web-interfaces"
+  ],
+  "unknowns": [
+    "monitoring/package.json (npm start / npm run dev scripts, dependency versions) is outside the declared scope and was not read; what npm start actually executes is inferred only from start-dashboard.sh calling it.",
+    "Whether anything schedules cost-anomaly-detection.sh (cron, CI, compose) or surfaces its alerts anywhere in the dashboard was not traced; no cross-reference between the script and server.js/dashboard.html was evidenced.",
+    "Whether the dashboard ever calls the per-container endpoint /api/containers/:name/stats was not observed in the spans read (fetchers at dashboard.html:382-450 cover only the five list endpoints), so real CPU usage may be surfaced by nothing.",
+    "Producers of the SQLite agents table and the swarm:* Redis keys (the cfn-redis-coordination skill) were not traced; the dashboard only consumes them.",
+    "memoryAlerts is hardcoded 0 in server.js:208 ('Would need telemetry integration') and stuckAgents is always 0 ('simplified' check), so two Agent Health tiles cannot show nonzero values in this revision."
+  ]
+}

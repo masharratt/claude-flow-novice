@@ -1,0 +1,168 @@
+{
+  "id": "wiki-pipeline",
+  "fid": "wiki-pipeline",
+  "name": "Building the source-grounded wiki",
+  "status": "dev",
+  "status_reason": "Self-documentation of the wiki's own engine: source review at revision f248664d3997407020c8b57de4fbc92515788cfd; the only runtime exercised is the lease/evidence/submit path used while authoring this capability. Verified against sources 2026-09-14.",
+  "description": "Discovery index (.wiki/discovery.sqlite) from git or walk enumeration with per-language adapters and CBM import; sha256-verified knowledge claims; SQLite job queue with byte-metered evidence budgets; deterministic sync regen with a drift gate.",
+  "purpose": "Three lib layers cooperate. discovery.py builds .wiki/discovery.sqlite: compute_revision pins a fingerprint (git HEAD, plus '-dirty-<16hex>' over porcelain status entries when the tree is dirty; 'nogit-<r16>' over sorted path+size pairs otherwise, where same-size edits go undetected); enumeration comes from enumerate_git (tracked via git ls-files -z, plus untracked-but-not-ignored when the scope asks) or enumerate_tree (bounded walk that records scope-excluded files without reading their content and breaks symlink cycles via a visited set); rebuild_index classifies entries and runs per-language adapters: python-ast for defs/classes/imports, regex adapters for JS functions/classes/routes and bash function defs plus same-file call relations, manifest-json for package names and depends_on edges, then merges a read-only CBM snapshot import (.wiki/cache/cbm.db; rows whose file_path is outside the enumerated in-scope set are dropped as stale) and adds job candidates from .github/workflows yml stems. discover() reuses the stored index when its meta revision and schema_version match, else rebuilds through a .tmp file. knowledge.py grounds the claims: verify_sources requires every cited source to carry a positive line, a claim and a 64-hex sha256, recomputes canonical_digest over the git blob bytes (so CRLF or unstaged edits cannot make freshness machine-dependent; worktree read fallback for non-git/untracked paths), sets needs_review on hash mismatch or a cited line past end of file, and attaches 24-line numbered excerpts; load_knowledge validates the whole document at load (unique kebab-case fids, required capability fields, entities citing capability source files with states and trigger/guard transitions); plan_candidate_writes turns a review-accepted candidate into ordered writes confined to readme/wiki/ (v2 shard files with the manifest last, v1 one merged knowledge.json keyed by fid/name), rejecting any step path outside readme/wiki/ or containing '..'. work.py queues the documentation itself: cmd_next leases the first queued job ordered by priority, creation time, then id whose dependencies are ALL accepted, stamps input_revision at the CURRENT revision (so a job planned at an older revision becomes submittable again by re-leasing), mints a w-<pid>-<hex> owner with a work_lease_seconds expiry, and writes brief.json; evidence queries are byte-metered: each packet's accounted_bytes accumulate onto the job budget, the attempt and a run-allowance counter, and exhaustion blocks the job (attempt outcome budget_exhausted, blocked_on 'prerequisite:explicit budget increase') with a fail message directing the worker to checkpoint and split the question or get an explicit budget increase; lease_guard exits 2 on late operations when the lease expired and the job was recovered to queued, the owner mismatches, or the job is not under a worker lease; cmd_submit refuses stale submissions (input_revision != current repository revision) with exit 2 telling the worker to take a fresh lease, shape-checks the candidate by running knowledge.plan_candidate_writes at submit time (a candidate that cannot be planned fails here, while the job stays leased, instead of crashing at promotion), then stores candidate.json and moves the job to awaiting_review with the lease cleared; cmd_review accepts (recording accept:<job>:revision and accept:<job>:knowledge_digest meta rows so promotion can detect concurrent knowledge edits since acceptance) or answers revision_requested, which requeues automatically only while prior revision_requested reviews stay within the retry budget (default 2) and otherwise blocks with 'revision retry limit reached'. sync.sh regenerates the docs deterministically (extract -> gen_projections -> gen_pages -> lint, exit 0, no LLM anywhere in the path) and its --check drift gate writes nothing tracked: it re-extracts, fingerprints the store, and exits 1 with 'WIKI STALE: <repo> (fp <a> != <b>)' when the wiki-fp: marker in readme/feature-status.md is missing or mismatches, or when sandbox regeneration fails; on a fingerprint match it regenerates projections into a temp sandbox seeded with the committed files and byte-compares, so hand edits to generated sections drift while wiki:enrich block edits are absorbed, with the Last Updated clock line normalized to a placeholder on both sides. The extract coupling walk is O(k^2) and windowed to WIKI_COUPLING_COMMITS (default 500, overridable via .wiki/config.json coupling_commits), with gen and check sharing the window so their fingerprints agree.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": ".claude/skills/cfn-wiki/lib/discovery.py",
+      "line": 264,
+      "claim": "git_revision fingerprints the repo as git rev-parse HEAD when 'git status --porcelain -z --untracked-files=all' is empty, else '<head>-dirty-<first16 of sha256 over sorted status entries>'; a git-status failure falls back to walk_revision, which returns 'nogit-<r16>' from sha256 over sorted path\\0size\\0 pairs of the bounded walk and explicitly does not detect same-size edits.",
+      "sha256": "2d3565852832fd96f97d088f3579852b4b8dada2e7e5e6b179edd6be7ec18b43"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/discovery.py",
+      "line": 304,
+      "claim": "enumerate_tree is the bounded filesystem walk: it yields an entry per surfaced path including scope-excluded files (content never read; caller records class 'excluded'), prunes .git and scope-pruned directories, and classifies symlinks as out-of-root, dangling, or in-root with a visited_resolved set that breaks cycles and maps alias paths under the symlink prefix.",
+      "sha256": "2d3565852832fd96f97d088f3579852b4b8dada2e7e5e6b179edd6be7ec18b43"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/discovery.py",
+      "line": 397,
+      "claim": "enumerate_git lists tracked files via 'git ls-files -z' and appends untracked-but-not-ignored files via '--others --exclude-standard' when the scope's include_untracked is set; ls-files failure raises DiscoveryError.",
+      "sha256": "2d3565852832fd96f97d088f3579852b4b8dada2e7e5e6b179edd6be7ec18b43"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/discovery.py",
+      "line": 537,
+      "claim": "Per-language adapters: adapter_python_ast AST-parses and emits function/class symbols plus 'imports' relations (SyntaxError yields nothing); adapter_js_grep regex-extracts JS functions/classes and HTTP routes; adapter_bash_grep emits 'command' symbols for bash function defs plus same-file 'calls' relations, skipping the definition lines; adapter_manifest_json emits the package name symbol and 'depends_on' relations from dependencies/devDependencies; adapter_for looks the adapter up by language.",
+      "sha256": "2d3565852832fd96f97d088f3579852b4b8dada2e7e5e6b179edd6be7ec18b43"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/discovery.py",
+      "line": 622,
+      "claim": "import_cbm imports symbols and edges from a CBM snapshot at .wiki/cache/cbm.db read-only; rows whose file_path is not in the enumerated in-scope set are skipped (stale snapshot), and text_factory decodes utf-8 with 'replace' because real snapshots carry non-UTF-8 node names that would otherwise abort the whole import mid-iteration; a missing snapshot or sqlite error returns empty imports.",
+      "sha256": "2d3565852832fd96f97d088f3579852b4b8dada2e7e5e6b179edd6be7ec18b43"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/discovery.py",
+      "line": 728,
+      "claim": "discover() loads/creates the scope policy, computes the revision, and reuses .wiki/discovery.sqlite unchanged when the stored meta revision and schema_version match (returning counts with rebuilt: False); otherwise it enumerates the repo and hands off to rebuild_index.",
+      "sha256": "2d3565852832fd96f97d088f3579852b4b8dada2e7e5e6b179edd6be7ec18b43"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/discovery.py",
+      "line": 761,
+      "claim": "rebuild_index classifies every entry, runs the per-language adapter for each in-scope file, records JS routes and manifest names as candidate rows, merges CBM symbols/relations, turns .github/workflows/*.yml stems into 'job' candidates by path convention, counts classes, and writes the index through index_path + '.tmp'.",
+      "sha256": "2d3565852832fd96f97d088f3579852b4b8dada2e7e5e6b179edd6be7ec18b43"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/knowledge.py",
+      "line": 42,
+      "claim": "canonical_digest hashes the git index blob ('git cat-file blob :<path>') so identical bytes appear on every machine for the same commit; worktree CRLF normalization or unstaged edits previously made freshness machine-dependent (CI red 2026-09-14), so it falls back to a worktree read only for non-git repos and untracked paths.",
+      "sha256": "c8b0e8fc901915a37e9d3740d6231e700454dde9acb31fe02f2291c9ea35902d"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/knowledge.py",
+      "line": 57,
+      "claim": "verify_sources enforces grounding: each source needs a positive integer line, a claim, and a 64-hex sha256 (ValueError otherwise); it sets needs_review when the current canonical digest differs from the authored sha256 or the cited line exceeds the file's line count, and attaches a 24-line numbered excerpt; normalize_capability then derives the capability's needs_review from any flagged source and its files list from the evidence keys.",
+      "sha256": "c8b0e8fc901915a37e9d3740d6231e700454dde9acb31fe02f2291c9ea35902d"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/knowledge.py",
+      "line": 113,
+      "claim": "_load_v1 validates the document on load: unique kebab-case capability fids, required keys (name, description, purpose, status, status_reason, sources, flow, failures, change_guidance), status in the closed STATUSES vocabulary, and entities that cite a capability source path at a positive line with non-empty states and trigger/guard transitions between known states.",
+      "sha256": "c8b0e8fc901915a37e9d3740d6231e700454dde9acb31fe02f2291c9ea35902d"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/knowledge.py",
+      "line": 362,
+      "claim": "knowledge_state_digest hashes knowledge.json plus every referenced v2 shard's bytes (b'missing' placeholder for absent shards) and is used by promotion to detect concurrent knowledge edits since acceptance.",
+      "sha256": "c8b0e8fc901915a37e9d3740d6231e700454dde9acb31fe02f2291c9ea35902d"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/knowledge.py",
+      "line": 384,
+      "claim": "plan_candidate_writes builds the ordered write plan applying an accepted candidate to readme/wiki/**: v2 targets get per-collection shard writes (capabilities default evidence/domains/unknowns to []) with the manifest rewritten last; v1 gets one merged knowledge.json write keyed by fid/name; every step path must normalize to a readme/wiki/ prefix with no '..' segment or the plan raises ValueError.",
+      "sha256": "c8b0e8fc901915a37e9d3740d6231e700454dde9acb31fe02f2291c9ea35902d"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/work.py",
+      "line": 618,
+      "claim": "cmd_next leases the first queued job ordered by priority ASC, created_epoch ASC, id ASC whose dependencies are all in the accepted set (no eligible job emits {'job': None, 'reason': 'no eligible jobs'}); it stamps input_revision at the CURRENT revision so a job planned at an older revision becomes submittable by re-leasing, mints owner 'w-<pid>-<hex4>' with a work_lease_seconds expiry, inserts an attempt row and writes brief.json.",
+      "sha256": "f9a22fc234b3b41468462a3175b0149feb9e9d9da85d02b9807fc936e75d198b"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/work.py",
+      "line": 682,
+      "claim": "lease_guard, shared by evidence/checkpoint/submit, raises exit-code-2 WorkErrors: 'late operation ... expired and was recovered to queued' when the job bounced back to queued, the same when the lease timestamp expired (first recovering other expired leases), a not-under-lease error for other statuses, and an owner-mismatch error; a valid 'leased' job is promoted to 'in_progress'.",
+      "sha256": "f9a22fc234b3b41468462a3175b0149feb9e9d9da85d02b9807fc936e75d198b"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/work.py",
+      "line": 703,
+      "claim": "block_on_exhaustion ends the attempt with outcome 'budget_exhausted' and blocks the job with blocked_on 'prerequisite:explicit budget increase', clearing the lease; run_evidence_query delegates to the Phase 1 evidence layer with the attempt identity so the cumulative per-attempt budget refusal actually fires, reading the revision from discovery index meta.",
+      "sha256": "f9a22fc234b3b41468462a3175b0149feb9e9d9da85d02b9807fc936e75d198b"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/work.py",
+      "line": 745,
+      "claim": "cmd_evidence pre-checks the run allowance under an immediate transaction and on exhaustion blocks the job and fails with 'checkpoint the partial work and record an explicit budget increase or split the job'; an EvidenceError containing 'budget exhausted' re-blocks with a reason distinguishing run-allowance exhaustion from attempt-budget exhaustion ('checkpoint and split the question'); on success it appends the packet evidence ids and adds accounted bytes to the job budget, the attempt's bytes_delivered and a run_allowance_used_bytes meta counter; checkpoints are JSON objects capped by size with decisions/evidence_refs/unknowns/next_actions lists.",
+      "sha256": "f9a22fc234b3b41468462a3175b0149feb9e9d9da85d02b9807fc936e75d198b"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/work.py",
+      "line": 937,
+      "claim": "cmd_submit runs maintenance and lease_guard, then refuses with exit code 2 'stale submission: job was planned at revision X but the repository is at Y; checkpoint the partial work and take a fresh lease' when input_revision != current_revision; it shape-checks the candidate by calling knowledge.plan_candidate_writes at submit time so an unplannable candidate fails HERE (job stays leased) rather than crashing at promotion, then stores candidate.json in the attempt dir and sets status awaiting_review with the lease cleared.",
+      "sha256": "f9a22fc234b3b41468462a3175b0149feb9e9d9da85d02b9807fc936e75d198b"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/work.py",
+      "line": 993,
+      "claim": "cmd_review accepts by setting status accepted and recording meta rows accept:<job>:revision and accept:<job>:knowledge_digest; a revision_requested decision requeues the job only while the count of prior revision_requested reviews is within the budget's retries (default 2), otherwise blocks with 'revision retry limit reached (N automatic requeues used)'.",
+      "sha256": "f9a22fc234b3b41468462a3175b0149feb9e9d9da85d02b9807fc936e75d198b"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/sync.sh",
+      "line": 7,
+      "claim": "Default sync is extract -> gen_projections -> gen_pages -> lint and exits 0, deterministic only with no LLM call anywhere in the path; only .wiki/ scratch and the generated projections are ever written; --enrich still exits 0 but prints ENRICH PENDING instructions for the follow-up Claude pass, and --no-hooks skips the flock guard the post-commit hook already holds.",
+      "sha256": "4693f86665eef909bb5296e3b9891309b9b2ad3238b076f93481d1b84e41f353"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/sync.sh",
+      "line": 9,
+      "claim": "--check writes nothing to tracked files: it re-runs extract + fingerprint and compares against the 'wiki-fp:' marker in readme/feature-status.md; a missing marker or fingerprint mismatch exits 1 with 'WIKI STALE: <repo> (fp <a> != <b>)' on stderr; on a match the projections are regenerated into a temp sandbox seeded with the committed files and byte-compared, so hand edits to generated sections drift while wiki:enrich block edits are absorbed; the '**Last Updated:**' clock line is normalized to a fixed placeholder on both sides so midnight cannot manufacture drift.",
+      "sha256": "4693f86665eef909bb5296e3b9891309b9b2ad3238b076f93481d1b84e41f353"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/sync.sh",
+      "line": 79,
+      "claim": "wiki_sync_check implements the gate: wiki_extract, wiki_fingerprint over the fresh store, sed parse of the wiki-fp marker, and three WIKI STALE stderr exits (no marker, fp mismatch, sandbox regeneration failed) before byte-comparing feature-status.md and state-machines.md between sandbox and repo.",
+      "sha256": "4693f86665eef909bb5296e3b9891309b9b2ad3238b076f93481d1b84e41f353"
+    },
+    {
+      "path": ".claude/skills/cfn-wiki/lib/sync.sh",
+      "line": 29,
+      "claim": "The extract git-coupling walk is O(k^2), so sync windows it to WIKI_COUPLING_COMMITS (default 500, overridable via .wiki/config.json 'coupling_commits'); gen and check both go through the same window so their fingerprints always agree, while standalone extract stays uncapped.",
+      "sha256": "4693f86665eef909bb5296e3b9891309b9b2ad3238b076f93481d1b84e41f353"
+    }
+  ],
+  "evidence": [
+    "c19f4d1cd7412123744dbf7c5274d0e6",
+    "14574bcb698a946934ea64bdff3984f5",
+    "59875f55096470dcebfd8804363a01cb",
+    "9ec1b4e9ac2ad3a3f4fb78763c5b2702",
+    "bfc9b87b3a5897c1c4ec40bdbd477777",
+    "f6ea5e60aeccdec4e1b11bcc32f9bae0",
+    "8ce6cfa991faada14c533be2d4313b5e",
+    "559e01f71487de2503646634f856598d",
+    "ce66f88a2ae7cac73e01479f6020d6c8",
+    "ade1b13722f2311c925d63b99d6d62bf"
+  ],
+  "domains": [
+    "wiki-knowledge"
+  ],
+  "unknowns": [
+    "ScopePolicy/load_scope internals (discovery.py lines 152-258) were not read: which glob patterns prune directories and how readme/wiki/scope.json defaults are created are known only from call sites (prune_dir in the walk, include_untracked in enumerate_git).",
+    "rebuild_index's tail past line 821 (SQLite schema DDL, the .tmp swap-in) and the query layer (envelope, encode/decode_cursor, index_counts, open_index, LIST_QUERIES) were not read; the symbols-table layout is inferred from adapter row shapes only.",
+    "work.py promotion and recovery paths were not read: cmd_promote, apply_write, _restore_backups, cmd_release, cmd_plan, auto_unblock and the maintenance/lease-expiry recovery sweep; how an accepted candidate's plan_candidate_writes steps are applied and rolled back is unverified.",
+    "The Phase 1 evidence layer (evidence.py: span_query, graph_query, Usage, load_config) that actually enforces per-attempt byte caps was not read; only work.py's wrappers around it are evidenced.",
+    "sync.sh past line 120 (the default-mode write path, gen-pages/lint stages, post-commit hook flock wiring) and its sourced libs (extract-features.sh, gen-projections.sh, fingerprint.sh, merge-enrichment.sh) were not read.",
+    "Whether verify_sources' canonical_digest and the work layer's source_sha256 evidence field use the same hash input (git blob vs indexed content) was not verified in code; both are sha256 over file content but the equality is assumed from this authoring run."
+  ]
+}

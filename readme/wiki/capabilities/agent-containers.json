@@ -1,0 +1,109 @@
+{
+  "id": "agent-containers",
+  "fid": "agent-containers",
+  "name": "Containerized agent team lifecycle",
+  "status": "dev",
+  "status_reason": "Static source review of the four scope files on 2026-09-14; no team was provisioned or run. agent-manager.js is an unimplemented Phase-2 stub, so the agent spawn/monitor/teardown half of the answer is documented from TODO comments, not observed behavior.",
+  "description": "Provisions per-team Docker enclaves (workspace, skills copy, bridge network, team Redis, coordinator container) from YAML via provision-team.sh; a Redis/Postgres main coordinator watches heartbeats; team init.sh readies workspaces. Agent spawn/teardown is a stub.",
+  "purpose": "provision-team.sh turns a team YAML (parsed with yq) into an isolated enclave in flag-gated, idempotent steps: workspace dirs chowned 1000:1000 (disk quota displayed but the setquota call is commented out), a copy of only the allowed skills, bridge network team-<id> on 172.18.<subnet>.0/24, team Redis pinned to .20 with a persistent volume, a teams-table row via INSERT ... ON CONFLICT DO NOTHING (failure swallowed as a warning), and a coordinator container on cfn-coordination that gets /var/run/docker.sock, the workspace rw and team.yaml ro, then is attached to the team network; iptables DOCKER-USER rules let agents reach only their coordinator (.10) and Redis (.20) and DROP everything toward other team subnets and the coordination network. Coordination is Redis+Postgres: main coordinator.js subscribes to main:escalations (handling is still a TODO, it only logs), polls team:*:coordinator:heartbeat keys every 30s into a 60s-TTL main:health key, exits 0 on SIGTERM after closing Redis/Postgres and exit 1 on fatal init error; failure paths in the provisioner are exit 1 for unknown option, missing --config, missing config file, or absent yq, and inside the team container init.sh exits 1 when python3 or node is missing before installing workspace deps. Teardown barely exists: agent-manager.js spawnAgent/terminateAgent/monitorAgentHealth/recoverFailedAgent are empty Phase-2 stubs, so containers, the network and the cfn-redis-<id>-data volume persist until removed by hand.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": "docker/scripts/provision-team.sh",
+      "line": 16,
+      "claim": "Runs under set -euo pipefail with strict argument handling: unknown option exits 1 (L69), missing --config exits 1 (L78), missing config file exits 1 (L83), absent yq exits 1 (L102); each provisioning step is gated individually by --create-workspace/--create-network/--spawn-redis/--spawn-coordinator and every mutation has a --dry-run mirror.",
+      "sha256": "2a0745df5df5ef22059153a00126902ba48169368b67d8248b00857c750c55e0"
+    },
+    {
+      "path": "docker/scripts/provision-team.sh",
+      "line": 124,
+      "claim": "Step 1 creates $WORKSPACE_PATH/code and $WORKSPACE_PATH/skills owned 1000:1000 mode 755; the setquota disk-quota call is commented out, so DISK_QUOTA from the YAML is echoed in the summary but never enforced on the filesystem.",
+      "sha256": "2a0745df5df5ef22059153a00126902ba48169368b67d8248b00857c750c55e0"
+    },
+    {
+      "path": "docker/scripts/provision-team.sh",
+      "line": 148,
+      "claim": "Step 2 copies only the YAML's allowed_skills from /skills/<skill> into the team workspace (chowned 1000:1000); a missing skill directory is a warning, not an error, and this step is gated on --create-workspace rather than having its own flag.",
+      "sha256": "2a0745df5df5ef22059153a00126902ba48169368b67d8248b00857c750c55e0"
+    },
+    {
+      "path": "docker/scripts/provision-team.sh",
+      "line": 168,
+      "claim": "Step 3 creates bridge network team-<TEAM_ID> on 172.18.<SUBNET_ID>.0/24 with labels cfn.network=team and cfn.team=<id>; an existing network is tolerated with a warning instead of failing.",
+      "sha256": "2a0745df5df5ef22059153a00126902ba48169368b67d8248b00857c750c55e0"
+    },
+    {
+      "path": "docker/scripts/provision-team.sh",
+      "line": 197,
+      "claim": "Step 4 spawns cfn-redis-<TEAM_ID> pinned to 172.18.<SUBNET_ID>.20 with --memory 512m --cpus 0.5, restart unless-stopped, persistent volume cfn-redis-<TEAM_ID>-data and maxmemory-policy volatile-lru; an existing container is tolerated.",
+      "sha256": "2a0745df5df5ef22059153a00126902ba48169368b67d8248b00857c750c55e0"
+    },
+    {
+      "path": "docker/scripts/provision-team.sh",
+      "line": 231,
+      "claim": "Step 5 (gated on --spawn-coordinator, not a database flag) registers the team via docker exec cfn-postgres psql INSERT INTO teams ... 'active' ... ON CONFLICT (id) DO NOTHING; psql errors are swallowed as 'Database registration skipped (table may not exist yet)' and registration is skipped entirely when cfn-postgres is not running.",
+      "sha256": "2a0745df5df5ef22059153a00126902ba48169368b67d8248b00857c750c55e0"
+    },
+    {
+      "path": "docker/scripts/provision-team.sh",
+      "line": 259,
+      "claim": "Step 6 spawns cfn-docker-team-coordinator-<TEAM_ID> (2g/1.0 cpu, restart unless-stopped) on network cfn-coordination at the config's coordinator IP, mounting /var/run/docker.sock, the team workspace rw and team.yaml ro, with TEAM_ID/TEAM_NAME/REDIS_HOST/POSTGRES_HOST/BUDGET_ALLOCATED/MAX_AGENTS/MAIN_COORDINATOR_HOST env, then docker network connect attaches it to team-<TEAM_ID>; a missing cfn-docker-team-coordinator:latest image downgrades to a warning that the coordinator must be spawned manually.",
+      "sha256": "2a0745df5df5ef22059153a00126902ba48169368b67d8248b00857c750c55e0"
+    },
+    {
+      "path": "docker/scripts/provision-team.sh",
+      "line": 312,
+      "claim": "Step 7 (reuses --create-network) appends DOCKER-USER iptables rules: ACCEPT from the agent block 172.18.<SUBNET_ID>.11/28 to the coordinator (.10) and Redis (.20), DROP to the other team subnets 1-7 and to the coordination network 172.18.0.0/24; every rule is 2>/dev/null || true so firewall failure never fails provisioning.",
+      "sha256": "2a0745df5df5ef22059153a00126902ba48169368b67d8248b00857c750c55e0"
+    },
+    {
+      "path": "docker/coordinator/main/coordinator.js",
+      "line": 41,
+      "claim": "initialize() connects the main coordinator to shared Redis (default host cfn-redis-shared) and a pg Pool (default cfn-postgres / database cfn_corporate), both configurable via REDIS_HOST/POSTGRES_* env; identity defaults to main-<pid> via COORDINATOR_ID.",
+      "sha256": "bee48e9efd4d4058df16483ef3dd43fbd43d481556e397e559dc3ee832b4b44b"
+    },
+    {
+      "path": "docker/coordinator/main/coordinator.js",
+      "line": 72,
+      "claim": "handleEscalations() subscribes a duplicated Redis client to the main:escalations channel, JSON-parses each message and logs it, but the actual handling (budget increase, agent restart, task redistribution) is a TODO block, so escalations are consumed and recorded, not acted on.",
+      "sha256": "bee48e9efd4d4058df16483ef3dd43fbd43d481556e397e559dc3ee832b4b44b"
+    },
+    {
+      "path": "docker/coordinator/main/coordinator.js",
+      "line": 95,
+      "claim": "monitorHealth() runs every 30s: redisClient.keys('team:*:coordinator:heartbeat') counts active teams and a health object (active_teams, redis_connected, postgres_connected) is written to key main:health with a 60s TTL; main() (L124) wires initialize/handleEscalations/monitorHealth, exits 0 on SIGTERM after redisClient.quit() and pgPool.end(), and process.exit(1) on any fatal init error.",
+      "sha256": "bee48e9efd4d4058df16483ef3dd43fbd43d481556e397e559dc3ee832b4b44b"
+    },
+    {
+      "path": "docker/coordinator/team/agent-manager.js",
+      "line": 1,
+      "claim": "The entire 34-line agent lifecycle module is a stub: 'TODO: Implement agent management logic / This module will be expanded in Phase 2' with empty exported bodies for spawnAgent (select image, create container, register in DB), terminateAgent (stop container, mark terminated, clean up), monitorAgentHealth (heartbeat age, container status, resources) and recoverFailedAgent (restore state from PostgreSQL, respawn with same ID, resume from checkpoint); none of it executes.",
+      "sha256": "6630d6f666274127359bc47b3b1040c85ff521e149dab207ff0da669b851db02"
+    },
+    {
+      "path": "docker/teams/engineering/scripts/init.sh",
+      "line": 1,
+      "claim": "Per-team init runs inside the agent container (sourced by the base entrypoint.sh before agent execution) under set -euo pipefail: exits 1 if python3 or node is unavailable, npm-installs when /workspace/package.json exists without node_modules, pip-installs /workspace/requirements.txt only when it differs from the image's /app/requirements.txt, and sets a global git identity 'CFN Engineering Agent' <cfn-engineering@company.com> when the workspace git lacks config.",
+      "sha256": "d839e252cb092aaeb09e98e9bc9e03fd936f36703ed2ff9968eb7168432e13db"
+    }
+  ],
+  "evidence": [
+    "3bfa7c96c19aa0f02fcdf5f24c4ebde8",
+    "76ae0718cf688fc3c96c3cefc3274c2d",
+    "eb15bc92b5949a2d3cce9fdb51b5a689",
+    "986e2dfc4168255b8531e2fb7940b0c8",
+    "71041b7cc45e651b5b59842526bbb04f",
+    "18d332fac322adfb9bbf004c4f338bf0",
+    "2559862b9ada7d78c34e7e0c839fae50"
+  ],
+  "domains": [
+    "session-coordination"
+  ],
+  "unknowns": [
+    "No teardown path exists in the four scope files: provision-team.sh has no decommission/cleanup mode, terminateAgent is an empty stub, and the coordinator's SIGTERM handler only closes its own Redis/Postgres connections, so which component (if any) removes network team-<id>, cfn-redis-<id>, its -data volume, the coordinator container and the appended iptables rules is unverified.",
+    "The team coordinator container's own code is out of scope: whether it actually publishes the team:*:coordinator:heartbeat keys that main's monitorHealth polls, and what it publishes to main:escalations, is inferred from key and channel names only.",
+    "The teams table schema (cfn_corporate.teams) and whether the ON CONFLICT DO NOTHING registration carries state later reads depend on were not examined.",
+    "Whether provision-team.sh is invoked by any higher-level orchestrator or only run by hand (the usage header and 'Next Steps' summary suggest manual invocation with a config file such as docker/config/teams/seo.yaml) was not checked."
+  ]
+}

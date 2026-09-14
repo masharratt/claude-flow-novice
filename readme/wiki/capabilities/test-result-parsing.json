@@ -3,7 +3,7 @@
   "fid": "test-result-parsing",
   "name": "Parsing test-runner summaries",
   "status": "dev",
-  "status_reason": "Source review of the two parsers and their callers in cfn-loop-orchestration-v2. No runtime verification of extending them to a new runner format was performed.",
+  "status_reason": "Source review of the two parsers and their callers in cfn-loop-orchestration-v2. No runtime verification of extending them to a new runner format was performed.; verified against sources 2026-09-14 (map-run verify pass)",
   "description": "Parses captured runner stdout into pass/fail/skip/collected counts that gate-check.sh and verify-run.sh adjudicate; a parallel TypeScript parser (parse-test-results.ts, consumer unverified) covers a different framework union.",
   "purpose": "Test summaries enter the CFN Loop as captured stdout: gate-check.sh and verify-run.sh both source cli/lib/parse-test-summary.sh, which turns the runner's summary line into PTS_* counts that drive the pass-rate gate and per-AC adjudication, while the orchestrator has a parallel TypeScript parser in parse-test-results.ts. When the output matches no branch the parser returns 1 with PTS_RUNNER=unknown, and the callers degrade to exit-code-only: verify-run.sh adjudicates exit 0 as exit_code_only 'runner summary unrecognized, no proof any test ran' and gate-check.sh exits 2 'no tests detected' because no counts were parsed. To teach the loop a new runner format, add a grep branch to parse_test_summary() ordered most-specific-first and keyed on a runner-unique line shape; both shell callers pick it up automatically because they source the shared lib.",
   "reviewed_at": "2026-09-14",
@@ -59,14 +59,8 @@
     }
   ],
   "evidence": [
-    "ffeb644a3251660e9a9fc60e330c16fd",
-    "0af5568a7861ef02684bb34f6cccf33a",
-    "0455060fee4b5c72c9128bf4eab20f27",
-    "3ebc0b67e1bb2248dad9991fd52c06a3",
-    "fe6e234e283a6b7229565739eb1578cb",
-    "429279862d851a7fe484024d6b2c1930",
-    "4d5a51c9b5c10ccb5931a99a33b218ec",
-    "81b0d5a086bce2deca3b7f313b85d6b4"
+    "b926e2d27e917c396108182ac42fa7d5",
+    "b0a0a71ec0a6bec9743b000c76f16e25"
   ],
   "domains": [
     "delivery-loop"

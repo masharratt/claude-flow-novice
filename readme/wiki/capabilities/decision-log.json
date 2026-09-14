@@ -1,0 +1,93 @@
+{
+  "id": "decision-log",
+  "fid": "decision-log",
+  "name": "Recording and querying past decisions",
+  "status": "dev",
+  "status_reason": "Source review of the three decision-log scripts (schema.sql, record.sh, query.sh). No runtime verification: no record-then-query round-trip against a live decisions.db was executed.; verified against sources 2026-09-14",
+  "description": "Past decisions live in one SQLite DB at ~/.claude/decision-log/decisions.db: curated plan decisions in a decisions table written by record.sh (cfn-decide phase, upsert per project/slug/decision_id), raw conversation in messages; query.sh BM25-searches only the messages FTS mirror.",
+  "purpose": "Decisions are recorded at plan time by record.sh, invoked once per blocking decision from the cfn-decide phase: it takes --slug/--id/--title/--chosen (all required) plus --rationale/--alternatives/--status/--blocking/--supersede/--project/--session/--timestamp, pipes the idempotent schema.sql through sqlite3 first (auto-creating the schema on a fresh or pre-decisions-table DB), then upserts into the decisions table on UNIQUE(project, slug, decision_id), so re-recording the same decision_id updates in place instead of duplicating. Storage is a single SQLite DB at ~/.claude/decision-log/decisions.db (DB_PATH overrides both scripts): three layers, curated decisions, raw conversation messages, and ingest_state tracking per-session-file ingestion progress; both text tables carry FTS5 mirrors (porter unicode61 tokenizer, so 'testing' matches 'test') maintained by insert/delete/update triggers. To query when a similar fork reappears, run query.sh '<terms> [limit=10] [project] [context-window]': the term is sanitized by stripping everything non-alphanumeric (FTS5 chokes on punctuation), matched against messages_fts with BM25 ranking scaled by an age penalty (rank * (1.0 + 0.5 * age_days/30), ascending, so older hits demote), optionally filtered to one project, and printed pipe-separated as id, role, first 300 chars of content, project, timestamp. Failure paths: query.sh exits 1 with 'No database found. Run init.sh first.' when the DB file is absent and exits 1 with usage on an empty term; record.sh exits 1 when a required flag is missing and exit 2 on an unknown flag. To retire an old decision, record the successor with --supersede <Dn>, which flips the prior row to status='superseded' and sets its superseded_by to the new decision_id within the same project+slug (statuses are constrained to proposed|accepted|superseded). Caveats: query.sh searches only the conversation messages index, never the curated decisions/decisions_fts tables, whose reader is a separate decisions.sh named only in a schema comment; and the 4th context-window argument is parsed but never used in the SQL.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": ".claude/skills/decision-log/record.sh",
+      "line": 3,
+      "claim": "record.sh writes a structured decision record: called from the cfn-decide phase, one invocation per BLOCKING decision, upserting on (project, slug, decision_id). Required flags are --slug --id --title --chosen; a missing one exits 1 with usage (record.sh:39-42) and an unknown flag exits 2 (record.sh:35). project defaults to the git toplevel basename (fallback CLAUDE_PROJECT_DIR or pwd), timestamp to now UTC.",
+      "sha256": "d13dd2bda4803e4cd960b361e181269945d7cb6496d9448f81a0604781d83b04"
+    },
+    {
+      "path": ".claude/skills/decision-log/record.sh",
+      "line": 47,
+      "claim": "Every write first pipes schema.sql through sqlite3 to ensure the schema: all statements are CREATE ... IF NOT EXISTS so it is idempotent, and it migrates an existing decisions.db that predates the decisions table. This is why record.sh succeeds on a fresh DB while query.sh refuses one.",
+      "sha256": "d13dd2bda4803e4cd960b361e181269945d7cb6496d9448f81a0604781d83b04"
+    },
+    {
+      "path": ".claude/skills/decision-log/record.sh",
+      "line": 67,
+      "claim": "INSERT ... ON CONFLICT(project, slug, decision_id) DO UPDATE refreshes title/chosen/rationale/alternatives/status/blocking/session_id/timestamp in place; superseded_by is never set by the upsert (inserted as ''), only by the --supersede UPDATE (record.sh:77-80) which flips the prior decision to status='superseded' and points superseded_by at the new decision_id within the same project+slug. Values are single-quote-escaped through q() before string interpolation into SQL.",
+      "sha256": "d13dd2bda4803e4cd960b361e181269945d7cb6496d9448f81a0604781d83b04"
+    },
+    {
+      "path": ".claude/skills/decision-log/schema.sql",
+      "line": 48,
+      "claim": "The curated decisions table stores project, slug (matching planning/DECISIONS_<slug>.md), decision_id (stable within a plan, D1, D2, ...), title, chosen, rationale, alternatives, status constrained to proposed|accepted|superseded, blocking, session_id, superseded_by, timestamp, with UNIQUE(project, slug, decision_id). The header comment (schema.sql:44-47) states it is written by record.sh (cfn-decide phase) and read by decisions.sh, deliberately separate from the raw messages conversation index.",
+      "sha256": "a10aa117d2c0f7f613398f2d398fef30f06ca454a1c66d85c8c88327b052f7e7"
+    },
+    {
+      "path": ".claude/skills/decision-log/schema.sql",
+      "line": 15,
+      "claim": "A second layer indexes raw conversation: messages (session_id, project, uuid UNIQUE, role user|assistant, content, timestamp) mirrored into messages_fts (FTS5, tokenize='porter unicode61') by messages_ai insert and messages_ad delete triggers, with indexes on session_id/uuid/project/timestamp. ingest_state (schema.sql:38-42) tracks ingestion progress per session file (session_file PRIMARY KEY, last_line, updated_at), implying a separate ingester outside these scope files.",
+      "sha256": "a10aa117d2c0f7f613398f2d398fef30f06ca454a1c66d85c8c88327b052f7e7"
+    },
+    {
+      "path": ".claude/skills/decision-log/schema.sql",
+      "line": 71,
+      "claim": "decisions_fts is an FTS5 mirror over title/chosen/rationale/alternatives kept consistent by three triggers: decisions_ai (insert), decisions_ad (delete) and decisions_au (update, which rewrites the old row out then the new row in), so the upsert path stays searchable.",
+      "sha256": "a10aa117d2c0f7f613398f2d398fef30f06ca454a1c66d85c8c88327b052f7e7"
+    },
+    {
+      "path": ".claude/skills/decision-log/query.sh",
+      "line": 5,
+      "claim": "Both scripts default DB_PATH to ~/.claude/decision-log/decisions.db with the DB_PATH env var overriding, so recording and querying hit the same database.",
+      "sha256": "3d2b5379487a065d56f2b41bff374238327007446fe64591bb4222466267c009"
+    },
+    {
+      "path": ".claude/skills/decision-log/query.sh",
+      "line": 7,
+      "claim": "Failure path: when the DB file does not exist query.sh prints '[decision-log] No database found. Run init.sh first.' to stderr and exits 1; an empty search term also exits 1 with usage examples (query.sh 'database mock testing', limit, project filter). init.sh is outside the scope files.",
+      "sha256": "3d2b5379487a065d56f2b41bff374238327007446fe64591bb4222466267c009"
+    },
+    {
+      "path": ".claude/skills/decision-log/query.sh",
+      "line": 42,
+      "claim": "Ranking is BM25 rank scaled by an age penalty: rank * (1.0 + 0.5 * (julianday('now') - julianday(m.timestamp)) / 30.0), ordered ascending with LIMIT, so a match roughly 30 days old has its score multiplied by 1.5 and demoted below a fresher equivalent.",
+      "sha256": "3d2b5379487a065d56f2b41bff374238327007446fe64591bb4222466267c009"
+    },
+    {
+      "path": ".claude/skills/decision-log/query.sh",
+      "line": 45,
+      "claim": "The MATCH runs over messages_fts joined back to messages: query.sh searches only the conversation index, never the curated decisions or decisions_fts tables. The search term is sanitized by stripping all non-alphanumeric characters (FTS5 chokes on punctuation); the project filter is an equality clause with single-quote escaping; output is pipe-separated id, role, substr(content, 1, 300), project, timestamp.",
+      "sha256": "3d2b5379487a065d56f2b41bff374238327007446fe64591bb4222466267c009"
+    },
+    {
+      "path": ".claude/skills/decision-log/query.sh",
+      "line": 15,
+      "claim": "The 4th argument context-window defaults to 1 but is never referenced in the SQL, a dead parameter despite the header comment claiming 'returns matching messages with surrounding context'; the query returns single matched rows, no context join.",
+      "sha256": "3d2b5379487a065d56f2b41bff374238327007446fe64591bb4222466267c009"
+    }
+  ],
+  "evidence": [
+    "14bfe48880fad631f26fbd08ffb755fd",
+    "e635cf6f45e22ad27627f7acd120240b",
+    "9a513eee2b5c5a5cba6a9864546d5367"
+  ],
+  "domains": [
+    "data-and-memory"
+  ],
+  "unknowns": [
+    "decisions.sh, named in schema.sql:46 as the reader for the curated decisions table, is outside the scope files: how the structured decisions (as opposed to conversation messages) are actually queried is unverified.",
+    "init.sh and whatever populates messages and ingest_state (the conversation ingestion pipeline) was not read; the existence of a working ingestion path is inferred from schema comments and query.sh's error message only.",
+    "Whether the cfn-decide phase actually invokes record.sh is taken from record.sh's own header comment; the caller was not in scope and not traced.",
+    "No runtime verification: the live ~/.claude/decision-log/decisions.db was not opened and no record-then-query round-trip was executed; trigger correctness and FTS behavior are read from source, not observed."
+  ]
+}
