@@ -335,6 +335,19 @@ else:
               if d not in FEATURE_EXCLUDE and not d.startswith(".")]
 
 def file_digest(rel):
+    # Canonical content = the git index blob, NOT worktree bytes: a
+    # worktree can carry unstaged edits or CRLF where the blob is LF
+    # (text=auto), and hashing worktree bytes made the same commit
+    # fingerprint differently per machine (CI red 2026-09-14). Falls back
+    # to the worktree read only when git cannot serve the blob (degraded,
+    # non-git repos).
+    try:
+        blob = subprocess.run(
+            ["git", "-C", repo, "cat-file", "blob", ":%s" % rel],
+            capture_output=True, check=True).stdout
+        return hashlib.sha256(blob).hexdigest()
+    except (OSError, subprocess.CalledProcessError):
+        pass
     try:
         with open(os.path.join(repo, rel), "rb") as fh:
             return hashlib.sha256(fh.read()).hexdigest()
