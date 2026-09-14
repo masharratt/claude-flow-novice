@@ -149,3 +149,41 @@ Return: artifact path, byte count, 3-line summary, [OPEN] list, [PARKED] list.
 ## Related
 
 `cfn-megaplan` (full), `cfn-megaplan-lite` (medium single features), `cfn-megaplan/bars/check-size.sh`, `cfn-megaplan/lib/extract-sections.sh`, `cfn-loop-task`, `/goal` (Claude Code native; https://code.claude.com/docs/en/goal).
+
+## Put these four lines in every write_plan brief
+
+Every sonnet write_plan in one three-part run failed the same static bars and needed a repair
+spawn each, at roughly 130K to 230K subagent tokens and 4 to 9 minutes apiece. All four are
+prevented by one instruction up front.
+
+1. **`check-phase-width.sh` counts any table row whose second cell matches `^\d+\.\d+[a-z]?$`
+   as a step row.** A TDD Sequence table with a bare `2.1` in its first column doubles the
+   step count and pulls every test file into the file union: 14 steps read as 28, 8 files as
+   19. Header the column `Bound to step` and write the cells `step 2.1`.
+2. **`check-verifiable-static.sh` requires a `playwright:` check form for kind `e2e`.** Vitest
+   against a real local database is kind `integration` (or `assembled-path`), never `e2e`.
+   Pass cells must lead with a decidable predicate: `exit 0 and stdout contains "1 passed"`,
+   `exit 0 and stdout == "OK"`, `value == false`, `returns N rows`.
+3. **`check-produce-consume.sh` accepts only `<path>` or `<path>:<ExportedSymbol>` tokens.**
+   Parenthetical prose, dotted method paths (`createStore.markStored`) and re-producing a
+   symbol that a later step merely extends all error. The first creator produces; extenders
+   consume.
+4. **Consumes cells never hold step numbers.** The bar treats a non-matching Consumes token as
+   a pre-existing symbol BY DESIGN, so a bare `3.2` grades as a warn ("dangling consume,
+   treated as pre-existing") and silently drops the ordering edge. One plan produced 49 warns,
+   0 errors, and `derive-lanes.sh` built 2 waves where 4 were needed; two of the hidden edges
+   were literal imports of a constant another lane creates. Before blessing, grep the Consumes
+   column for tokens matching `^[0-9]+\.[0-9]+$`, and treat a warn count near the step count
+   as a red.
+
+Tell the write_plan agent to run `check-produce-consume.sh` itself before returning. They do
+not do it unprompted.
+
+## The Success Criteria table needs a lint row
+
+A plan whose Success Criteria table listed typecheck, per-suite tests, guards, grep checks and
+doc-lint, but not `pnpm lint`, shipped two unused imports. ESLint caught both at the pre-push
+gate on a different session one commit later. `tsc --noEmit` does not flag an unused import by
+default, so a table built on "typecheck plus tests" has a real gap. Include a `pnpm lint` row
+(or the package-scoped `pnpm -C <package> lint`) alongside typecheck, not only at the
+repo-wide gate.

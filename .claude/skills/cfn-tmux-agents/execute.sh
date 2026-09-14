@@ -258,7 +258,8 @@ cmd_send() {
   tmux -L "$TA_SOCK" has-session -t "$name" 2>/dev/null \
     || _ta_die 65 "send: no session '$name' on socket $TA_SOCK"
   _ta_send_followup "$TA_SOCK" "$name" "$text"
-  echo "sent $name: ${text:0:60}${text:60:+...}"
+  local tail=""; [ "${#text}" -gt 60 ] && tail="..."
+  echo "sent $name: ${text:0:60}${tail}"
 }
 
 cmd_status() {

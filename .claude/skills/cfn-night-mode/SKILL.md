@@ -72,3 +72,22 @@ Registrations live in `~/.claude/settings.local.json` (machine-local, never comm
 - `jq` (hooks and settings transforms; guards fail open without it)
 - `sqlite3` (decision store, same DB as decision-log)
 - `$HOME/.claude/skills/decision-log/record.sh` (single writer for decisions)
+
+## The flag file does not expire
+
+`$HOME/.claude/.night-mode-active` holds only a timestamp and no TTL. It read
+`2026-08-27T04:44:42Z` when inspected on 2026-09-02, six days stale, and was still gating
+pushes and outward-facing work in every session that saw it. Check its age before treating
+night mode as a live instruction rather than a leftover from a previous batch.
+
+Decisions log through `$HOME/.claude/skills/decision-log/record.sh` (listed under
+Dependencies above), which exists and works:
+
+```bash
+bash $HOME/.claude/skills/decision-log/record.sh --slug night-$(date +%F) --id D-n \
+  --title "..." --chosen "..." --rationale "..."
+```
+
+This skill's own directory holds only `SKILL.md` and `night-mode.sh` and has never held a
+`record.sh`. A 2026-09-01 handoff claimed that file was "missing from disk" and treated
+decisions as unloggable, which sent a session hunting for a script that was never there.
