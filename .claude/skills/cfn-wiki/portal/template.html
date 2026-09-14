@@ -446,7 +446,29 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
           return "<li>" + mdInline(l.trim().replace(/^[-*] /, "")) + "</li>";
         }).join("") + "</ul>";
       } else {
-        out += "<p>" + lines.map(mdInline).join("<br>") + "</p>";
+        var text = lines.join(" ");
+        // work-queue authors write long single-paragraph purposes; a
+        // 400+ character block is split at sentence boundaries so the
+        // page reads as paragraphs instead of one wall. The split keys
+        // on punctuation FOLLOWED BY WHITESPACE (lookbehind), so dotted
+        // identifiers like sync.sh never split; concatenation of the
+        // parts equals the source (whitespace-normalized only), so no
+        // content can be dropped. Older engines without lookbehind keep
+        // the single paragraph rather than risk loss.
+        if (text.length > 400) {
+          try {
+            var sentences = text.split(/(?<=[.!?])\s+/);
+            var para = "";
+            sentences.forEach(function (sn) {
+              if ((para + " " + sn).length > 400 && para.trim()) {
+                out += "<p>" + mdInline(para.trim()) + "</p>"; para = sn;
+              } else { para = para ? para + " " + sn : sn; }
+            });
+            if (para.trim()) out += "<p>" + mdInline(para.trim()) + "</p>";
+          } catch (e) { out += "<p>" + mdInline(text) + "</p>"; }
+        } else {
+          out += "<p>" + lines.map(mdInline).join("<br>") + "</p>";
+        }
       }
     });
     return out;
@@ -950,10 +972,15 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
         target.open = true; target.scrollIntoView({block:"center"}); target.focus(); } });
       item.appendChild(link); steps.appendChild(item);
     });
-    host.appendChild(steps);
+    // capabilities authored through the work queue may not carry a
+    // structured flow yet; the purpose prose above already carries the
+    // journey, so an empty list reads better than an empty section
+    if (steps.childNodes.length) host.appendChild(steps);
+    else host.appendChild(el("p", "capability-kind", "The purpose above describes the full journey; a step-by-step flow has not been authored yet."));
     [["Failures and recovery", "failures"], ["Where to make a change", "change_guidance"], ["Limits of this explanation", "limitations"]].forEach(function (pair) {
-      host.appendChild(el("h2", "", pair[0])); var list = el("ul");
       var values = feature[pair[1]] || []; if (typeof values === "string") values = [values];
+      if (!values.length) return;
+      host.appendChild(el("h2", "", pair[0])); var list = el("ul");
       values.forEach(function (value) { list.appendChild(el("li", "", value)); }); host.appendChild(list);
     });
     var states = el("a", "", "Explore runtime state transitions");
