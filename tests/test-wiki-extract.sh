@@ -610,6 +610,84 @@ case_index_copy_asserted() {
 }
 
 # ---------------------------------------------------------------------------
+case_monorepo_features_glob() {
+    # .wiki/config.json "features_glob" re-roots the canonical rule: features
+    # are the shallowest dirs matching the fnmatch glob that hold >=1 tracked
+    # code file. Absent key -> byte-identical top-level behavior.
+    local REPO_G="$T/fx-$$_g"
+    mkdir -p "$REPO_G/apps/alpha" "$REPO_G/apps/beta" "$REPO_G/packages/x"
+    printf 'print("alpha")\n' >"$REPO_G/apps/alpha/index.py"
+    printf 'x = 1\n' >"$REPO_G/apps/alpha/util.py"
+    printf 'print("beta")\n' >"$REPO_G/apps/beta/index.py"
+    printf 'x = 1\n' >"$REPO_G/packages/x/lib.py"
+    git -C "$REPO_G" init -q
+    git -C "$REPO_G" config user.email monorepo@example.com
+    git -C "$REPO_G" config user.name "Monorepo"
+    git -C "$REPO_G" add -A
+    git -C "$REPO_G" commit -qm "monorepo tree"
+
+    local store="$REPO_G/.wiki/store.json"
+    if run_extract "$REPO_G" >"$T/extract-g0.log" 2>&1; then
+        ok "monorepo-glob: no-config extract exit 0"
+    else
+        no "monorepo-glob: no-config extract failed: $(tail -5 "$T/extract-g0.log")"
+        return
+    fi
+    local fids0
+    fids0=$(store_val "$store" "','.join(f['fid'] for f in s['features'])")
+    [ "$fids0" = "apps,packages" ] \
+        && ok "monorepo-glob: absent key keeps top-level rule (apps,packages)" \
+        || no "monorepo-glob: absent-key fids=$fids0 (want apps,packages)"
+
+    mkdir -p "$REPO_G/.wiki"
+    printf '{"features_glob": "apps/*"}\n' >"$REPO_G/.wiki/config.json"
+    if run_extract "$REPO_G" >"$T/extract-g1.log" 2>&1; then
+        ok "monorepo-glob: glob extract exit 0"
+    else
+        no "monorepo-glob: glob extract failed: $(tail -5 "$T/extract-g1.log")"
+        return
+    fi
+
+    local fids1
+    fids1=$(store_val "$store" "','.join(f['fid'] for f in s['features'])")
+    [ "$fids1" = "apps-alpha,apps-beta" ] \
+        && ok "monorepo-glob: features exactly the glob matches (apps-alpha,apps-beta)" \
+        || no "monorepo-glob: glob fids=$fids1 (want apps-alpha,apps-beta)"
+    store_val "$store" "dict((f['fid'], f['files']) for f in s['features'])['apps-alpha']" | grep -q "apps/alpha/util.py" \
+        && ok "monorepo-glob: glob feature files include everything beneath the dir" \
+        || no "monorepo-glob: apps-alpha file list wrong: $(store_val "$store" "[f['files'] for f in s['features'] if f['fid'] == 'apps-alpha']")"
+    store_val "$store" "[f['entrypoints'] for f in s['features'] if f['fid'] == 'apps-alpha']" | grep -q "apps/alpha/index.py" \
+        && ok "monorepo-glob: entrypoint stems still detected (index)" \
+        || no "monorepo-glob: apps-alpha entrypoints missing index.py"
+    [ "$(store_val "$store" "any(f['fid'] == 'packages' for f in s['features'])")" = "False" ] \
+        && ok "monorepo-glob: non-matching dir (packages) is not a feature" \
+        || no "monorepo-glob: packages leaked into glob features"
+
+    # fp stability across re-extract with the same config
+    local fp1 fp2
+    fp1=$(fp_of "$store")
+    if run_extract "$REPO_G" >"$T/extract-g2.log" 2>&1; then
+        fp2=$(fp_of "$store")
+        [ "$fp1" = "$fp2" ] \
+            && ok "monorepo-glob: fingerprint stable across glob re-extract" \
+            || no "monorepo-glob: fp drifted on re-extract ($fp1 vs $fp2)"
+    else
+        no "monorepo-glob: re-extract failed"
+    fi
+
+    # removing the config returns to the top-level rule (zero regression)
+    rm -f "$REPO_G/.wiki/config.json"
+    if run_extract "$REPO_G" >"$T/extract-g3.log" 2>&1; then
+        fids0=$(store_val "$store" "','.join(f['fid'] for f in s['features'])")
+        [ "$fids0" = "apps,packages" ] \
+            && ok "monorepo-glob: config removal restores top-level rule" \
+            || no "monorepo-glob: post-removal fids=$fids0 (want apps,packages)"
+    else
+        no "monorepo-glob: post-removal extract failed"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 case_fp_stable() {
     if [ ! -f "$LIB/fingerprint.sh" ]; then no "fp-stable: lib/fingerprint.sh exists"; return; fi
     ok "fp-stable: lib/fingerprint.sh exists"
@@ -923,6 +1001,7 @@ case_fp_mode_invariant
 case_features_mode_invariant
 case_worktree_dirt_invariant
 case_empty_git_fallback
+case_monorepo_features_glob
 case_minimal_schema_snapshot
 case_real_shape_snapshot
 case_extract_fixture

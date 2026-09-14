@@ -197,24 +197,32 @@ every render pass) from the same server every `data-poll` seconds (default
 5, `--poll S`) and redraws tiles, meter, cards and timeline in place, so
 scroll position and the selected filter and sort survive each poll. Only the
 no-JS fallback does a full-page refresh, and only inside `<noscript>`. A
-live dot in the header pulses green while polls succeed and turns amber on
+live dot in the header stays green while polls succeed and turns amber on
 a failed fetch (the last good page stays up; retry on the next tick).
 
 Per-worker cards show the status pill (closed vocab), task, engine, claims,
 notes, heartbeat age (ticks client-side), landed sha, and STALE (heartbeat
 older than `--stale-min` while started/working) and DEAD (status dead, or
-pane exited per the tmux session probe) badges. The header carries one stat
-tile per status (zero counts dimmed), a five-segment meter (queued / active
-/ blocked / landed / dead), filter chips per status, a sort control (status
-order or heartbeat age), and the run goal blurb from `<run-dir>/goal.txt`
+pane exited per the tmux session probe) badges. The overview separates
+needs-attention (blocked, stale, or dead),
+in-flight (started + working), landed, and finished (done only) counts.
+Click a summary to filter the roster. A seven-status legend and grouped
+status-distribution bar show the whole run. Workstreams sort by attention first;
+status order and oldest-heartbeat-first are also available. Search matches worker
+IDs, names, tasks, engines, claims, notes, and commit IDs. Filters and search
+survive live refreshes; Reset view clears them. Activity appears alongside the
+workstream cards. A failed roster fetch shows an explicit paused-updates notice
+and retains the last received roster and timestamp. Local filtering never advances
+that timestamp. The overview includes the run goal blurb from `<run-dir>/goal.txt`
 (written by `fleet init <slug> <goal words>`). Each card also lists the
 paths that worker published with `fleet heartbeat WSxx --files a,b` (stored
 one per line in `<run-dir>/files/<ws>.txt`) under "now editing", and shows
 nothing there until the worker publishes.
 
-The theme is dark by default; the header `theme` button toggles light/dark
-and persists the choice in `localStorage` under `fleet-dash-theme`, with the
-OS preference honored while no explicit choice is stored.
+The dashboard uses a graphite and cyan operations theme. It defaults to dark;
+the header theme button toggles light/dark and persists the choice in
+`localStorage` under `fleet-dash-theme`. Summary panels and worker cards stack on
+narrow screens; the header stops sticking so it does not crowd out the roster.
 
 ```bash
 $HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --open    # serve + open in Simple Browser

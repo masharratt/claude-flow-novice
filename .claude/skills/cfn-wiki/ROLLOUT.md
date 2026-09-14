@@ -9,6 +9,7 @@ Adopt per repo by config only. The skill lives in this repo (`.claude/skills/cfn
    ```json
    {
      "cbm_binary": "/tmp/cbm-test/codebase-memory-mcp",
+     "features_glob": "apps/*",
      "features_dir": "readme/wiki/",
      "browser": "vscode",
      "coupling_commits": 500,
@@ -20,6 +21,9 @@ Adopt per repo by config only. The skill lives in this repo (`.claude/skills/cfn
    default). `browser` defaults to VS Code Simple Browser; `"system"` opens
    the OS default browser instead. `include_data_in_md: false` keeps ERD/RLS
    detail out of the committed md (for any repo that may go public).
+   `features_glob` (monorepos): re-roots features at the matching dirs
+   (fnmatch, shallowest match wins; e.g. `"apps/*"` -> fid `apps-attendee`)
+   instead of top-level dirs; unset = top-level rule.
 
 2. Install the CBM binary once per machine: `wiki doctor --install`
    (pinned v0.10.8, portable linux-amd64 build into `~/.local/share/cfn-wiki/`).

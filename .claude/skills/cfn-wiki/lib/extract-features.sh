@@ -48,7 +48,15 @@
 #      main/index/app/__main__/server (name heuristic only; CBM entry-point
 #      flags are toolchain-dependent and would break mode invariance).
 #      Root-level entrypoint files stay modules.
-#   4. The CBM snapshot only ENRICHES the store: per-feature edge weight,
+#   4. Monorepo override: .wiki/config.json key "features_glob" (fnmatch-
+#      style, e.g. "apps/*" or "apps/*/*") re-roots the rule: features are
+#      the SHALLOWEST dirs matching the glob that contain >=1 tracked code
+#      file anywhere beneath them; fid = slug of the full repo-relative dir
+#      path ("apps/attendee" -> "apps-attendee"). The glob is an explicit
+#      whitelist: FEATURE_EXCLUDE and the hidden-dir rule do not apply in
+#      this mode. Blank/invalid/absent key -> byte-identical top-level
+#      behavior.
+#   5. The CBM snapshot only ENRICHES the store: per-feature edge weight,
 #      module node counts, module-level edges, meta.edge_type_counts and
 #      meta.cbm_mode. Presence or absence of a snapshot never changes
 #      features[] fids/files/entrypoints, so a snapshot store and a
@@ -100,8 +108,29 @@ wiki_extract() {
     local store="$repo/.wiki/store.json"
     local tmp="$store.tmp"
 
+    # monorepo override: features_glob from .wiki/config.json (blank/invalid
+    # or absent -> empty string -> default top-level rule)
+    local features_glob=""
+    local cfg="$repo/.wiki/config.json"
+    if [ -f "$cfg" ]; then
+        features_glob="$(python3 - "$cfg" <<'PY'
+import json
+import sys
+
+try:
+    with open(sys.argv[1], encoding="utf-8") as fh:
+        cfg = json.load(fh)
+except (OSError, ValueError):
+    sys.exit(0)
+g = cfg.get("features_glob")
+if isinstance(g, str) and g.strip():
+    print(g.strip())
+PY
+)" || features_glob=""
+    fi
+
     local mode
-    if ! mode="$(python3 - "$repo" "$tmp" <<'PY'
+    if ! mode="$(python3 - "$repo" "$tmp" "$features_glob" <<'PY'
 import datetime
 import json
 import os
@@ -111,6 +140,7 @@ import subprocess
 import sys
 
 repo, out_path = sys.argv[1], sys.argv[2]
+features_glob = sys.argv[3] if len(sys.argv) > 3 else ""
 
 SNAPSHOT = os.path.join(repo, ".wiki", "cache", "cbm.db")
 EDGE_TYPES = ("CALLS", "IMPORTS", "INHERITS")
@@ -281,22 +311,43 @@ for (s, t, _), c in agg.items():
     edge_touch[t] = edge_touch.get(t, 0) + c
 
 # --- features (canonical rule documented in the header) ------------------------
-# Every non-excluded top-level dir with >=1 code file is a feature, snapshot
-# or not; edge_touch only enriches the per-feature edges field.
-top_dirs = sorted({module_of(f) for flist in mod_files.values() for f in flist
-                   if "/" in f})
-candidates = [d for d in top_dirs
+if features_glob:
+    # monorepo override: shallowest dirs matching the fnmatch glob that hold
+    # >=1 tracked code file beneath them. fnmatch's "*" crosses "/", so keep
+    # only matches with no matched proper ancestor (one feature per real dir).
+    import fnmatch
+
+    all_dirs = set()
+    for f in code_set:
+        parts = f.split("/")
+        for i in range(1, len(parts)):
+            all_dirs.add("/".join(parts[:i]))
+    matched = sorted(d for d in all_dirs
+                     if fnmatch.fnmatchcase(d, features_glob))
+    chosen = [d for d in matched
+              if not any(o != d and d.startswith(o + "/") for o in matched)
+              and any(f.startswith(d + "/") for f in code_set)]
+else:
+    top_dirs = sorted({module_of(f) for flist in mod_files.values()
+                       for f in flist if "/" in f})
+    chosen = [d for d in top_dirs
               if d not in FEATURE_EXCLUDE and not d.startswith(".")]
 
 features = []
-for d in candidates:
-    dfiles = mod_files.get(d, [])
+for d in chosen:
+    if features_glob:
+        dfiles = sorted(f for f in code_set if f.startswith(d + "/"))
+    else:
+        dfiles = mod_files.get(d, [])
     eps = sorted({f for f in dfiles if entry_name(f)})
     features.append({"fid": slug(d),
                      "name": d,
                      "files": dfiles,
                      "entrypoints": eps,
-                     "edges": edge_touch.get(d, 0)})
+                     # enrichment: nested glob fids approximate with their
+                     # top-level module's edge weight
+                     "edges": edge_touch.get(d, edge_touch.get(d.split("/")[0], 0)
+                                            if "/" in d else 0)})
 
 # --- coupling: file pairs changing together in git history ---------------------
 def git_coupling(r, top_n):

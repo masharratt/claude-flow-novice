@@ -170,6 +170,11 @@ test_render_structure_cards_title_count_pills() {
     assert_contains "$(cat "$html")" 'id="sort" class="sortsel"' "sort select present"
     assert_contains "$(cat "$html")" 'class="live-dot" id="live-dot" data-state="ok"' \
         "live dot span carries data-state"
+    assert_contains "$(static_html "$html")" 'data-view="attention"' "attention summary is a view, not a roster state"
+    assert_contains "$(static_html "$html")" 'id="sum-done"' "finished count is separate from landed"
+    assert_contains "$(static_html "$html")" 'id="search"' "search is available"
+    assert_contains "$(static_html "$html")" 'id="connection-warning"' "connection failure has a text notice"
+    assert_equals "3" "$(static_html "$html" | grep -oF '</article>' | wc -l)" "static cards are closed siblings"
     assert_contains "$DASH_OUT" "dashboard.html" "stdout names the rendered page"
     assert_success "--no-serve never writes a pidfile" test ! -f "$RUN_DIR/.dashboard.pid"
 }
@@ -218,7 +223,7 @@ test_status_pills_all_seven_statuses() {
     run_dash --no-serve --once
 
     local html="$RUN_DIR/dashboard.html" s
-    for s in pending started working blocked landed done dead; do
+    for s in pending started working blocked landed "done" dead; do
         assert_equals "1" "$(grep -cF "class=\"pill st-$s\"" "$html" || true)" \
             "exactly one whitelist pill for $s"
         assert_equals "1" "$(static_html "$html" | grep -oF "data-st=\"$s\"" | wc -l || true)" \
@@ -324,7 +329,7 @@ test_transitions_own_state_jsonl_and_watch_state_untouched() {
     log_step "WHEN an unchanged roster renders again"
     run_dash --no-serve --once
     assert_equals "1" "$(wc -l < "$events")" "unchanged roster appends nothing"
-    assert_contains "$(cat "$RUN_DIR/dashboard.html")" 'WS01</span> pending -&gt; started' \
+    assert_contains "$(cat "$RUN_DIR/dashboard.html")" 'WS01</span><span class="tl-change">pending -&gt; started' \
         "timeline shows the transition newest-first"
     assert_success ".watch.state still absent" test ! -f "$RUN_DIR/.watch.state"
 }

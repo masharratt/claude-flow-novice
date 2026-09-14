@@ -255,7 +255,7 @@ _fleet_dash_render() {
   local -a fields=("${_FIELDS[@]}")
 
   local -A counts=()
-  local cards="" row i
+  local cards="" row i n_attention=0 n_total=0
   local ws name task status claims sha notes hb engine
   while IFS= read -r row || [ -n "$row" ]; do
     [ -n "$row" ] || continue
@@ -291,6 +291,11 @@ _fleet_dash_render() {
         dead=1 ;;
     esac
 
+    n_total=$(( n_total + 1 ))
+    if [ "$status" = blocked ] || [ "$stale" -eq 1 ] || [ "$dead" -eq 1 ]; then
+      n_attention=$(( n_attention + 1 ))
+    fi
+
     # "Now editing" source file for this card (plan 1.6). The ws id is
     # user-typed: guard the charset before composing the path, and skip the
     # section silently when the worker has not published a list.
@@ -325,38 +330,43 @@ _fleet_dash_render() {
     _fleet_dash_style
     printf '</head>\n<body data-poll="%s" data-stale-min="%s" data-engine-default="%s">\n' \
       "$poll" "$stale_min" "$(_fleet_html_escape "$eng_default")"
-    printf '<header class="top"><div class="head-card">\n'
-    printf '<div class="head-row"><h1>fleet <span class="slug">%s</span></h1>\n' \
-      "$(_fleet_html_escape "$slug")"
-    printf '<div class="head-actions">'
-    printf '<span class="live-dot" id="live-dot" data-state="ok" title="live: fetching roster"></span>'
-    printf '<button type="button" id="theme-toggle" class="chipbtn" title="switch color theme">theme</button>'
-    printf '</div></div>\n'
+    printf '<header class="top"><div class="head-card"><div class="head-row">'
+    printf '<div class="brand"><span class="fleet-mark" aria-hidden="true">▰</span><strong>fleet</strong><span class="brand-divider">/</span><span class="brand-label">OPERATIONS</span></div>'
+    printf '<div class="head-actions"><span class="connection" role="status"><span class="live-dot" id="live-dot" data-state="ok" title="live: fetching roster"></span><span id="live-label">Connecting</span></span>'
+    printf '<button type="button" id="theme-toggle" class="chipbtn" aria-label="Switch color theme">theme</button></div></div></div></header>\n'
+    printf '<div class="shell"><section class="overview" aria-label="Run overview">'
+    printf '<div class="run-heading"><div><p class="eyebrow">FLEET CONTROL / RUN OVERVIEW</p><h1><span class="slug">%s</span></h1>' "$(_fleet_html_escape "$slug")"
     if [ -n "$goal" ]; then
       printf '<p class="goal" id="goal">%s</p>\n' "$(_fleet_html_escape "$goal")"
     else
       printf '<p class="goal" id="goal" hidden></p>\n'
     fi
-    printf '<div class="pills"><span class="pill meta-pill">stale-min %s</span>' "$stale_min"
-    printf '<span class="pill meta-pill" id="updated-pill">updated %s</span></div>\n' \
-      "$(_fleet_html_escape "$updated")"
-    _fleet_dash_filters
-    _fleet_dash_tiles counts
+    printf '</div><div class="run-meta"><span class="pill meta-pill" title="Heartbeat threshold: stale-min %s">Stale after %s min</span>' "$stale_min" "$stale_min"
+    printf '<span class="pill meta-pill" id="updated-pill">Snapshot %s</span></div></div>\n' "$(_fleet_html_escape "$updated")"
+    printf '<div class="summary" aria-label="Fleet health">'
+    printf '<button class="summary-card attention" data-view="attention" aria-pressed="false"><span class="summary-label">Needs attention <span aria-hidden="true">↗</span></span><strong id="sum-attention">%s</strong><span class="summary-hint">Blocked, stale or stopped</span></button>' "$n_attention"
+    printf '<button class="summary-card active" data-view="active" aria-pressed="false"><span class="summary-label">In flight <span aria-hidden="true">↗</span></span><strong id="sum-active">%s</strong><span class="summary-hint">Started + working</span></button>' "$n_active"
+    printf '<button class="summary-card landed" data-view="landed" aria-pressed="false"><span class="summary-label">Landed <span aria-hidden="true">↗</span></span><strong id="sum-landed">%s</strong><span class="summary-hint">Commit exists, work may continue</span></button>' "${counts[landed]:-0}"
+    printf '<button class="summary-card complete" data-view="done" aria-pressed="false"><span class="summary-label">Finished <span aria-hidden="true">↗</span></span><strong id="sum-done">%s<span class="summary-total"> / %s</span></strong><span class="summary-hint">Workstreams marked done</span></button></div>' "${counts[done]:-0}" "$n_total"
+    printf '<div class="distribution"><div class="distribution-title"><span class="eyebrow">Status distribution</span><span id="fleet-total">%s workstreams</span></div>' "$n_total"
     _fleet_dash_meter "$n_queued" "$n_active" "$n_blocked" "$n_landed" "$n_dead"
-    printf '</div></header>\n'
-    printf '<main class="grid" id="cards">\n'
+    _fleet_dash_tiles counts
+    printf '</div></section>\n'
+    printf '<div id="connection-warning" role="status" hidden>Updates paused. Showing the last received roster; retrying automatically.</div>'
+    printf '<div class="workspace"><main class="board"><div class="section-heading"><h2>Workstreams</h2><span id="visible-count">%s total</span></div>' "$n_total"
+    _fleet_dash_filters
+    printf '<div class="grid" id="cards">\n'
     if [ -n "$cards" ]; then
       printf '%s\n' "$cards"
     else
       printf '<div class="card empty-state"><p>No workstreams yet</p>'
       printf '<p>Add one with: fleet add WSxx "task"</p></div>\n'
     fi
-    printf '</main>\n'
-    printf '<section class="timeline"><h2>Transitions (newest first)</h2>\n'
-    printf '<div id="tl">\n'
+    printf '</div></main>\n'
+    printf '<aside class="activity"><div class="section-heading"><h2>Activity</h2><span class="eyebrow">LATEST 30</span></div><p class="activity-sub">Status transitions · newest first · UTC</p><div class="timeline" id="tl">\n'
     _fleet_dash_events_html "$events"
-    printf '</div>\n</section>\n'
-    printf '<footer>landed means the workstream has a commit, not that it is finished</footer>\n'
+    printf '</div><div class="operator-note"><span class="eyebrow">READING THE SIGNALS</span><p><b>Stale</b> means an active worker has missed its heartbeat threshold.</p><p><b>Dead</b> means a stopped worker. A blocked worker may still be alive.</p><p>landed means the workstream has a commit, not that it is finished</p></div></aside></div>\n'
+    printf '<footer><span>Fleet coordination</span><span>Local roster · refresh every %s seconds</span></footer></div>\n' "$poll"
     _fleet_dash_script
     printf '</body>\n</html>\n'
   } > "$tmp"
@@ -370,17 +380,20 @@ _fleet_dash_render() {
 # survives every poll; the JS only toggles the .on class.
 _fleet_dash_filters() {
   local s
-  printf '<div class="filters" id="filters">\n'
-  printf '<button type="button" class="filterchip on" data-filter="all">all</button>\n'
+  printf '<div class="search-row"><input id="search" type="search" aria-label="Search workstreams" placeholder="Search workstreams, tasks, engines or claims...">\n'
+  printf '<div class="filters" id="filters" role="group" aria-label="Filter by status">\n'
+  printf '<button type="button" class="filterchip on" data-filter="all" aria-pressed="true">All</button>\n'
   # shellcheck disable=SC1010  # 'done' is a roster status value, not the keyword
   for s in pending started working blocked landed done dead; do
-    printf '<button type="button" class="filterchip" data-filter="%s"><span class="dot st-%s"></span>%s</button>\n' \
+    printf '<button type="button" class="filterchip" data-filter="%s" aria-pressed="false"><span class="dot st-%s"></span>%s</button>\n' \
       "$s" "$s" "$s"
   done
-  printf '<select id="sort" class="sortsel" title="sort cards">'
-  printf '<option value="status">sort: status</option>'
-  printf '<option value="hb">sort: heartbeat age</option></select>\n'
-  printf '</div>\n'
+  printf '</div><div class="sort-row"><button type="button" id="clear-filters" class="chipbtn">Reset view</button>'
+  printf '<label for="sort">Order</label><select id="sort" class="sortsel" title="sort cards">'
+  printf '<option value="attention">Needs attention first</option>'
+  printf '<option value="status">Status order</option>'
+  printf '<option value="hb">Oldest heartbeat first</option></select>\n'
+  printf '</div></div>\n'
 }
 
 # _fleet_dash_tiles COUNTS: 7 stat tiles (dot + label + count) in
@@ -442,11 +455,11 @@ _fleet_dash_card() {
 
   local out=""
   out+="<article class=\"card\" data-ws=\"$(_fleet_html_escape "$ws")\" data-status=\"$(_fleet_html_escape "$status")\">"$'\n'
+  out+="<div class=\"worker-identity\"><span class=\"ws-id\">$(_fleet_html_escape "$ws")</span><span class=\"ws-name\">$(_fleet_html_escape "$name")</span></div>"
   out+='<div class="head">'
   out+="<span class=\"pill $st_class\"><span class=\"dot\"></span>$(_fleet_html_escape "$status")</span>"
   [ "$stale" -eq 1 ] && out+='<span class="badge stale">&#9888; STALE</span>'
   [ "$dead" -eq 1 ] && out+='<span class="badge dead">&#10005; DEAD</span>'
-  out+="<span class=\"ws-name\">$(_fleet_html_escape "$name")</span>"
   out+="</div>"$'\n'
   [ -n "$task" ] && out+="<p class=\"task\">$(_fleet_html_escape "$task")</p>"$'\n'
   out+='<div class="meta">'
@@ -487,6 +500,7 @@ _fleet_dash_card() {
     out+='</ul>'$'\n'
   fi
   [ -n "$notes" ] && out+="<p class=\"notes\">$(_fleet_html_escape "$notes")</p>"$'\n'
+  out+='</article>'
   printf '%s\n' "$out"
 }
 
@@ -531,7 +545,7 @@ _fleet_dash_events_html() {
     case "$to" in
       pending|started|working|blocked|landed|done|dead) to_class="st-$to" ;;
     esac
-    printf '<li class="tl-item"><span class="dot %s"></span><time>%s</time> <span class="tl-ws">%s</span> %s -&gt; %s</li>\n' \
+    printf '<li class="tl-item"><span class="dot %s"></span><time>%s</time> <span class="tl-ws">%s</span><span class="tl-change">%s -&gt; %s</span></li>\n' \
       "$to_class" \
       "$(_fleet_dash_ts_text "$ts")" \
       "$(_fleet_html_escape "$ws")" \
@@ -658,40 +672,126 @@ _fleet_dash_style() {
   --seg-landed: #27b05c;  --seg-landed-ink: #14161a;
   --seg-dead: #c72f63;    --seg-dead-ink: #ffffff;
 }
+
+/* Operations theme: cool graphite, signal cyan, warm intervention states. */
+:root, :root[data-theme="dark"] { --bg: #0c131b; --surface: #131e29; --surface-2: #1b2a38; --line: #2b3d4d; --text: #e9f0f6; --dim: #9aafbf; --accent: #6ed6e5; --accent-soft: #17333e; --radius: 12px; --ok: #7cd9b1; }
+:root[data-theme="light"] { --bg: #edf2f5; --surface: #ffffff; --surface-2: #e4edf2; --line: #c7d6df; --text: #142d3e; --dim: #526b7c; --accent: #126779; --accent-soft: #daeff3; --ok: #236a49; --warn: #805811; --st-blocked: #805811; --badge-stale-ink: #805811; }
 * { box-sizing: border-box; }
-body {
-  margin: 0; padding: 16px; background: var(--bg); color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 14px; line-height: 1.45;
-}
-/* Sticky header, full-bleed over the body padding. */
-header.top {
-  position: sticky; top: 0; z-index: 10; background: var(--bg);
-  border-bottom: 1px solid var(--line);
-  margin: -16px -16px 0; padding: 12px 16px 12px;
-}
-.head-card { max-width: 1100px; margin: 0 auto; }
-.head-row {
-  display: flex; flex-wrap: wrap; gap: 8px 16px;
-  align-items: baseline; justify-content: space-between;
-}
-h1 { margin: 0; font-size: 18px; }
-h1 .slug { color: var(--dim); font-weight: 600; }
-h2 { font-size: 14px; margin: 0 0 8px; color: var(--dim); }
-.head-actions { display: flex; align-items: center; gap: 10px; }
-.goal {
-  margin: 4px 0 0; color: var(--dim); font-size: 12px;
-  max-width: 90ch; overflow-wrap: anywhere;
-}
-.goal[hidden] { display: none; }
-.pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.pill {
-  display: inline-flex; align-items: center; gap: 5px; padding: 1px 9px;
-  border-radius: 999px; font-size: 12px;
-  background: var(--surface); border: 1px solid var(--line); color: var(--dim);
-}
-/* Status chips: soft background + strong foreground, dot mirrors the fg.
-   Color is never the only signal, the label always sits beside the dot. */
+[hidden] { display: none !important; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+header.top { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
+.head-card { max-width: 1600px; padding: 17px 36px; margin: auto; }
+.head-row, .head-actions, .brand { display: flex; align-items: center; gap: 18px; }
+.head-row { justify-content: space-between; }
+.brand strong { font-size: 25px; letter-spacing: -1px; font-weight: 750; }
+.fleet-mark { width: 32px; height: 32px; display: grid; place-items: center; background: var(--accent); color: var(--bg); border-radius: 7px; font-size: 24px; }
+.brand-divider { color: var(--line); font-size: 24px; }
+.brand-label, .eyebrow { font: 10px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: 1.6px; color: var(--dim); }
+.connection { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--dim); }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.live-dot[data-state="ok"] { background: var(--ok); }
+.live-dot[data-state="err"] { background: var(--warn); }
+.shell { max-width: 1600px; margin: auto; padding: 32px 36px 22px; }
+.overview { margin-bottom: 32px; }
+.run-heading { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
+.run-heading .eyebrow { margin: 0 0 9px; }
+h1 { font-size: 29px; font-weight: 650; line-height: 1.2; letter-spacing: -.8px; margin: 0; overflow-wrap: anywhere; }
+.goal { color: var(--dim); font-size: 14px; margin: 10px 0 0; max-width: 75ch; overflow-wrap: anywhere; }
+.run-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; padding-top: 5px; }
+.meta-pill { color: var(--dim); font-size: 10px; white-space: nowrap; }
+.summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 26px; }
+.summary-card { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); padding: 19px 21px; box-shadow: 0 4px 20px #0000000d; }
+.summary-card:hover, .summary-card[aria-pressed="true"] { border-color: var(--accent); background: var(--surface-2); }
+.summary-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); }
+.summary-label > span { color: var(--dim); }
+.summary-card strong { display: block; font: 500 36px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; margin: 12px 0 8px; letter-spacing: -1.5px; }
+.summary-total { font-size: 18px; color: var(--dim); }
+.summary-hint { font-size: 10px; color: var(--dim); }
+.summary-card.attention strong { color: var(--st-blocked); }
+.summary-card.active strong { color: var(--accent); }
+.summary-card.landed strong { color: var(--st-landed); }
+.summary-card.complete strong { color: var(--text); }
+.distribution-title { display: flex; justify-content: space-between; color: var(--dim); font-size: 11px; margin-bottom: 9px; }
+.meter { display: flex; height: 8px; gap: 3px; border-radius: 5px; overflow: hidden; background: var(--surface-2); }
+.seg { min-width: 4px; flex-basis: 0; }
+.seg-n, .seg-label { display: none; }
+.seg-queued { background: var(--st-pending); } .seg-active { background: var(--st-working); } .seg-blocked { background: var(--st-blocked); } .seg-landed { background: var(--st-landed); } .seg-dead { background: var(--st-dead); }
+.tiles { display: flex; flex-wrap: wrap; gap: 8px 21px; margin-top: 12px; }
+.tile { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; color: var(--text); }
+.tile-n { font: 12px ui-monospace, monospace; margin-left: 3px; }
+.tile.zero { color: var(--dim); }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 30px; align-items: start; }
+.board { min-width: 0; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+h2 { font-size: 17px; font-weight: 600; letter-spacing: -.3px; margin: 0; }
+#visible-count { color: var(--dim); font-size: 11px; }
+.search-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px; }
+#search { width: 100%; font-size: 12px; padding: 11px 14px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 8px; }
+#search::placeholder { color: var(--dim); }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
+.filterchip, .chipbtn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; font-size: 11px; color: var(--dim); border: 1px solid var(--line); background: transparent; border-radius: 6px; }
+.filterchip:hover, .chipbtn:hover { background: var(--surface-2); color: var(--text); }
+.filterchip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.sort-row { display: flex; align-items: center; gap: 10px; width: 100%; color: var(--dim); font-size: 10px; }
+#clear-filters { margin-right: auto; padding-left: 0; border-color: transparent; }
+.sortsel { padding: 6px 9px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; font-size: 11px; max-width: 100%; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; min-width: 0; }
+.card[data-status="blocked"], .card:has(.badge.stale) { border-top: 2px solid var(--st-blocked); }
+.card[data-status="dead"], .card:has(.badge.dead) { border-top: 2px solid var(--st-dead); }
+.worker-identity { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; overflow-wrap: anywhere; }
+.ws-id { font: 12px ui-monospace, monospace; color: var(--accent); background: var(--accent-soft); padding: 4px 7px; border-radius: 5px; }
+.ws-name { color: var(--dim); font-size: 12px; }
+.head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.pill:not(.meta-pill) { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 5px; font-size: 10px; }
+.task { font-size: 16px; line-height: 1.5; font-weight: 600; margin: 13px 0 16px; overflow-wrap: anywhere; }
+.card .meta { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; color: var(--dim); font-size: 10px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.chip { font-size: 10px; color: var(--dim); }
+.engine { color: var(--accent); }
+.engine::before { content: 'Engine '; color: var(--dim); }
+.hb-age { font: 10px ui-monospace, monospace; }
+.hb-age::before { content: 'Heartbeat '; font-family: system-ui, sans-serif; }
+.hb-age[data-epoch]::after { content: ' ago'; }
+code.sha { color: var(--st-landed); font: 10px ui-monospace, monospace; }
+code.sha::before { content: 'Commit '; color: var(--dim); }
+.badge { padding: 3px 7px; border-radius: 4px; font-size: 9px; font-weight: 700; letter-spacing: .4px; }
+.badge.stale { background: var(--badge-stale-bg); color: var(--badge-stale-ink); }
+.badge.dead { background: var(--badge-dead-bg); color: var(--badge-dead-ink); }
+.editing { margin-top: 16px; }
+.editing-h { display: block; font: 9px ui-monospace, monospace; letter-spacing: 1.4px; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
+.files { margin: 0; padding: 0; list-style: none; }
+.files li { overflow-wrap: anywhere; font: 11px/1.8 ui-monospace, monospace; color: var(--text); }
+.files-more { color: var(--dim); }
+.claims { display: flex; flex-wrap: wrap; align-items: center; list-style: none; padding: 0; margin: 15px 0 0; gap: 5px; }
+.claims::before { content: 'Owns'; color: var(--dim); font-size: 10px; margin-right: 4px; }
+.claim { display: inline-block; font: 10px ui-monospace, monospace; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; overflow-wrap: anywhere; }
+.notes { font-size: 12px; color: var(--dim); padding: 10px 12px; border-left: 2px solid var(--line); background: var(--bg); margin: 16px 0 0; overflow-wrap: anywhere; }
+.notes::before { content: 'LATEST NOTE'; display: block; font: 9px ui-monospace, monospace; letter-spacing: 1px; margin-bottom: 5px; }
+.card[data-status="blocked"] .notes { border-color: var(--st-blocked); }
+.activity { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 21px; position: sticky; top: 92px; max-height: calc(100dvh - 120px); overflow: auto; }
+.activity .section-heading { margin-bottom: 4px; }
+.activity-sub { font-size: 10px; color: var(--dim); margin: 0 0 22px; }
+.timeline ul { list-style: none; margin: 0; padding: 0; }
+.tl-item { display: grid; grid-template-columns: 8px 1fr; gap: 5px 9px; border-bottom: 1px solid var(--line); padding: 12px 0; font-size: 10px; color: var(--dim); overflow-wrap: anywhere; }
+.tl-item time { font: 10px ui-monospace, monospace; grid-column: 2; }
+.tl-item .tl-ws { color: var(--text); font: 12px ui-monospace, monospace; grid-column: 2; }
+.tl-change { grid-column: 2; color: var(--dim); }
+.tl-item .dot { grid-row: 1 / 3; align-self: center; }
+.timeline-empty { color: var(--dim); font-size: 12px; border: 1px dashed var(--line); border-radius: 7px; padding: 24px 15px; text-align: center; }
+.operator-note { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 22px; }
+.operator-note p { font-size: 11px; color: var(--dim); }
+.operator-note b { color: var(--text); font-weight: 500; }
+.empty-state { grid-column: 1 / -1; color: var(--dim); text-align: center; padding: 38px 20px; }
+.empty-state p:first-child { font-size: 17px; color: var(--text); }
+#connection-warning { padding: 12px 16px; border: 1px solid var(--warn); background: var(--st-blocked-soft); color: var(--warn); border-radius: 8px; margin-bottom: 22px; font-size: 12px; }
+footer { display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid var(--line); padding-top: 18px; margin-top: 30px; color: var(--dim); font: 10px ui-monospace, monospace; }
+@media (min-width: 1650px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .workspace { grid-template-columns: minmax(0, 1fr) 245px; gap: 20px; } .grid { grid-template-columns: 1fr; } .shell, .head-card { padding-left: 24px; padding-right: 24px; } .summary-card { padding: 16px; } }
+@media (max-width: 760px) { header.top { position: static; } .shell { padding: 22px 16px; } .head-card { padding: 14px 16px; } .brand { gap: 10px; } .brand-label, .brand-divider { display: none; } .head-actions { gap: 10px; } .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .summary-card strong { font-size: 29px; } .summary-hint { font-size: 10px; } .summary-card { padding: 14px; } .workspace { grid-template-columns: 1fr; } .activity { position: static; max-height: none; } .run-heading { flex-direction: column; gap: 14px; } .run-meta { align-items: flex-start; flex-direction: row; flex-wrap: wrap; } h1 { font-size: 25px; } .tiles { gap: 8px 16px; } .card { padding: 18px; } .sort-row { flex-wrap: wrap; } footer { flex-wrap: wrap; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 .pill.st-pending   { background: var(--st-pending-soft);   border-color: transparent; color: var(--st-pending);   font-weight: 600; }
 .pill.st-started   { background: var(--st-started-soft);   border-color: transparent; color: var(--st-started);   font-weight: 600; }
 .pill.st-working   { background: var(--st-working-soft);   border-color: transparent; color: var(--st-working);   font-weight: 600; }
@@ -710,130 +810,7 @@ h2 { font-size: 14px; margin: 0 0 8px; color: var(--dim); }
 .dot.st-done    { background: var(--st-done); }
 .dot.st-dead    { background: var(--st-dead); }
 .dot.st-unknown { background: var(--st-unknown); }
-/* Live dot: green while polls succeed, amber while they fail. */
-.live-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.live-dot[data-state="ok"] { background: var(--ok); animation: live-pulse 2.4s ease-out infinite; }
-.live-dot[data-state="err"] { background: var(--warn); animation: none; }
-@keyframes live-pulse {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 45%, transparent); }
-  100% { box-shadow: 0 0 0 7px transparent; }
-}
-@media (prefers-reduced-motion: reduce) { .live-dot[data-state="ok"] { animation: none; } }
-.chipbtn {
-  font: inherit; font-size: 12px; border: 1px solid var(--line);
-  background: var(--surface); color: var(--dim); border-radius: 999px;
-  padding: 2px 10px; cursor: pointer;
-}
-.chipbtn:hover { background: var(--surface-2); color: var(--text); }
-.filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
-.filterchip {
-  font: inherit; font-size: 12px; display: inline-flex; align-items: center;
-  gap: 6px; border: 1px solid var(--line); background: var(--surface);
-  color: var(--dim); border-radius: 999px; padding: 2px 10px; cursor: pointer;
-}
-.filterchip .dot { width: 7px; height: 7px; }
-.filterchip.on {
-  background: var(--accent-soft); color: var(--accent);
-  border-color: var(--accent); font-weight: 600;
-}
-.sortsel {
-  font: inherit; font-size: 12px; background: var(--surface); color: var(--text);
-  border: 1px solid var(--line); border-radius: 8px; padding: 2px 6px;
-  margin-left: auto;
-}
-/* Stat tiles: one per closed-vocab status, zeros dimmed. */
-.tiles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.tile {
-  display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
-  padding: 4px 10px; color: var(--text);
-}
-.tile .tile-n { font-weight: 700; font-variant-numeric: tabular-nums; }
-.tile.zero { color: var(--dim); }
-.tile.zero .tile-n { font-weight: 400; }
-/* Meter: five grouped segments with 2px gaps and in-segment count labels. */
-.meter {
-  display: flex; gap: 2px; height: 22px; margin-top: 8px;
-  background: var(--surface-2); border-radius: 6px; overflow: hidden;
-}
-.seg {
-  min-width: 34px; display: flex; align-items: center; justify-content: center;
-  gap: 4px; font-size: 11px; font-weight: 600; overflow: hidden; white-space: nowrap;
-}
-.seg.zero { opacity: 0.45; }
-.seg-queued  { background: var(--seg-queued);  color: var(--seg-queued-ink); }
-.seg-active  { background: var(--seg-active);  color: var(--seg-active-ink); }
-.seg-blocked { background: var(--seg-blocked); color: var(--seg-blocked-ink); }
-.seg-landed  { background: var(--seg-landed);  color: var(--seg-landed-ink); }
-.seg-dead    { background: var(--seg-dead);    color: var(--seg-dead-ink); }
-.grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 12px; max-width: 1100px; margin: 14px auto 0;
-}
-.card {
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 12px 14px;
-}
-.card .head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.card p { margin: 8px 0 0; }
-.task { font-weight: 600; color: var(--text); }
-.card .meta {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  margin-top: 8px; color: var(--dim); font-size: 12px;
-}
-.ws-name { color: var(--dim); font-weight: 600; }
-.chip {
-  display: inline-block; background: var(--surface-2); border: 1px solid var(--line);
-  color: var(--dim); border-radius: 999px; padding: 0 8px; font-size: 11px;
-}
-.chip.engine {
-  background: var(--accent-soft); color: var(--accent);
-  border-color: transparent; font-weight: 600;
-}
-.chip.claim { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.hb-age { font-variant-numeric: tabular-nums; }
-code.sha {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
-  background: var(--surface-2); border: 1px solid var(--line);
-  border-radius: 5px; padding: 0 5px;
-}
-.badge {
-  display: inline-block; padding: 0 7px; border-radius: 4px; font-size: 11px;
-  font-weight: 700; letter-spacing: 0.04em;
-}
-.badge.stale { background: var(--badge-stale-bg); color: var(--badge-stale-ink); }
-.badge.dead  { background: var(--badge-dead-bg);  color: var(--badge-dead-ink); }
-/* Now-editing section: the worker's published file list. */
-.editing { margin-top: 10px; }
-.editing-h {
-  display: block; color: var(--dim); font-size: 10px; font-weight: 700;
-  letter-spacing: 0.06em; text-transform: uppercase;
-}
-.editing ul.files { list-style: none; margin: 4px 0 0; padding: 0; }
-.editing ul.files li {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
-  padding: 1px 0; overflow-wrap: anywhere;
-}
-.editing li.files-more { color: var(--dim); }
-.claims { list-style: none; display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 0; padding: 0; }
-.notes { font-size: 12px; color: var(--dim); }
-.timeline { margin: 18px auto 0; max-width: 1100px; }
-.timeline ul { list-style: none; margin: 0; padding: 0; }
-.tl-item {
-  display: flex; align-items: baseline; gap: 7px; padding: 3px 0;
-  border-bottom: 1px dotted var(--line); font-size: 13px;
-}
-.tl-item .dot { width: 7px; height: 7px; align-self: center; }
-.tl-item time, .tl-ws { color: var(--dim); }
-.timeline-empty { color: var(--dim); font-size: 13px; }
-.empty-state { color: var(--dim); text-align: center; padding: 28px 12px; }
-.empty-state p { margin: 4px 0; }
-footer { margin: 18px auto 0; max-width: 1100px; color: var(--dim); font-size: 12px; }
-@media (max-width: 480px) {
-  body { padding: 10px; }
-  header.top { margin: -10px -10px 0; padding: 10px; }
-  .seg-label { display: none; }
-}
+
 </style>
 STYLE
 }
@@ -901,7 +878,9 @@ _fleet_dash_script() {
 
   /* Module state: the selected filter and sort survive every re-render. */
   var filter = "all";
-  var sortMode = "status";
+  var sortMode = "attention";
+  var query = "";
+  var lastReceivedAt = null;
   var lastRosterText = null;
 
   var els = {};
@@ -922,6 +901,8 @@ _fleet_dash_script() {
     els.live.setAttribute("data-state", state);
     els.live.setAttribute("title",
       state === "ok" ? "live: fetching roster" : "fetch failed, retrying");
+    document.getElementById("live-label").textContent = state === "ok" ? "Live updates" : "Updates paused";
+    document.getElementById("connection-warning").hidden = state === "ok";
   }
 
   function cachebust() { return String(Date.now()); }
@@ -943,11 +924,12 @@ _fleet_dash_script() {
     }
     var h = '<article class="card" data-ws="' + esc(row.ws_id || "") +
       '" data-status="' + esc(st) + '">';
+    h += '<div class="worker-identity"><span class="ws-id">' + esc(row.ws_id || "") + '</span><span class="ws-name">' + esc(row.name || "") + '</span></div>';
     h += '<div class="head"><span class="pill ' + sc +
       '"><span class="dot"></span>' + esc(st) + '</span>';
     if (stale) h += '<span class="badge stale">&#9888; STALE</span>';
     if (st === "dead") h += '<span class="badge dead">&#10005; DEAD</span>';
-    h += '<span class="ws-name">' + esc(row.name || "") + '</span></div>';
+    h += '</div>';
     if (row.task) h += '<p class="task">' + esc(row.task) + '</p>';
     h += '<div class="meta"><span class="chip engine">' + esc(eng) + '</span>';
     if (hb > 0) {
@@ -970,13 +952,26 @@ _fleet_dash_script() {
     return h + '</article>';
   }
 
+  function needsAttention(row) {
+    var st = String(row.status || "");
+    var hb = intOr(row.heartbeat || "");
+    var threshold = intOr(document.body.getAttribute("data-stale-min") || "0");
+    return st === "blocked" || st === "dead" ||
+      ((st === "started" || st === "working") && hb > 0 && Math.floor((Date.now() / 1000 - hb) / 60) > threshold);
+  }
+
   function sortRows(rows) {
     var copy = rows.slice();
-    if (sortMode === "hb") {
+    if (sortMode === "attention") {
+      copy.sort(function (x, y) {
+        var attention = Number(needsAttention(y)) - Number(needsAttention(x));
+        return attention || stRank(String(x.status || "")) - stRank(String(y.status || ""));
+      });
+    } else if (sortMode === "hb") {
       copy.sort(function (x, y) {
         var xh = intOr(x.heartbeat || ""), yh = intOr(y.heartbeat || "");
         if ((xh > 0) !== (yh > 0)) return (xh > 0) ? -1 : 1;
-        return yh - xh;  /* stalest heartbeat first */
+        return xh - yh;  /* stalest heartbeat first */
       });
     } else {
       copy.sort(function (x, y) {
@@ -1025,7 +1020,10 @@ _fleet_dash_script() {
     var tiles = tilesHtml(counts);
     var meter = meterHtml(counts);
     var visible = sortRows(rows).filter(function (r) {
-      return filter === "all" || String(r.status || "") === filter;
+      var match = filter === "all" || String(r.status || "") === filter ||
+        (filter === "attention" && needsAttention(r)) ||
+        (filter === "active" && (r.status === "started" || r.status === "working"));
+      return match && (!query || [r.ws_id, r.name, r.task, r.engine, r.claims, r.notes, r.landed_sha].join(" ").toLowerCase().includes(query));
     });
     var cards;
     if (visible.length) {
@@ -1041,10 +1039,13 @@ _fleet_dash_script() {
     if (els.tiles) els.tiles.innerHTML = tiles;
     if (els.meter) els.meter.innerHTML = meter;
     if (els.cards) els.cards.innerHTML = cards;
-    if (els.updated) {
-      els.updated.textContent = "updated " +
-        new Date().toISOString().replace("T", " ").slice(0, 19) + "Z";
-    }
+    document.getElementById("sum-attention").textContent = rows.filter(needsAttention).length;
+    document.getElementById("sum-active").textContent = (counts.started || 0) + (counts.working || 0);
+    document.getElementById("sum-landed").textContent = counts.landed || 0;
+    document.getElementById("sum-done").innerHTML = (counts.done || 0) + '<span class="summary-total"> / ' + rows.length + '</span>';
+    document.getElementById("fleet-total").textContent = rows.length + " workstreams";
+    document.getElementById("visible-count").textContent = visible.length + " of " + rows.length + " shown";
+    syncControls();
     if (els.cards) {
       Array.prototype.forEach.call(
         els.cards.querySelectorAll('.card[data-ws]'),
@@ -1072,8 +1073,8 @@ _fleet_dash_script() {
       return '<li class="tl-item"><span class="dot ' +
         stClass(String(ev.to || "")) + '"></span><time>' + ts +
         '</time> <span class="tl-ws">' + esc(String(ev.ws || "")) +
-        '</span> ' + esc(String(ev.from || "")) + ' -&gt; ' +
-        esc(String(ev.to || "")) + '</li>';
+        '</span><span class="tl-change">' + esc(String(ev.from || "")) + ' -&gt; ' +
+        esc(String(ev.to || "")) + '</span></li>';
     }).join("") + '</ul>';
   }
 
@@ -1094,7 +1095,7 @@ _fleet_dash_script() {
 
   function loadEditing(card) {
     var ws = card.getAttribute("data-ws");
-    if (!ws) return;
+    if (!ws || !/^[A-Za-z0-9._-]+$/.test(ws)) return;
     fetch("files/" + encodeURIComponent(ws) + ".txt?ts=" + cachebust())
       .then(function (resp) {
         if (!resp.ok) { clearEditing(card); return null; }
@@ -1144,6 +1145,8 @@ _fleet_dash_script() {
       })
       .then(function (text) {
         renderRoster(text);
+        lastReceivedAt = Date.now();
+        if (els.updated) els.updated.textContent = "Received " + new Date(lastReceivedAt).toISOString().slice(11, 19) + " UTC";
         setLive("ok");
       })
       .catch(function () {
@@ -1178,7 +1181,20 @@ _fleet_dash_script() {
   function applyTheme(theme, btn) {
     document.documentElement.setAttribute("data-theme",
       theme === "light" ? "light" : "dark");
-    if (btn) btn.textContent = "theme: " + (theme === "light" ? "light" : "dark");
+    if (btn) {
+      btn.textContent = theme === "light" ? "Dark mode" : "Light mode";
+      btn.setAttribute("aria-label", theme === "light" ? "Switch to dark theme" : "Switch to light theme");
+    }
+  }
+
+  function syncControls() {
+    document.querySelectorAll(".filterchip").forEach(function (button) {
+      var selected = button.getAttribute("data-filter") === filter;
+      button.classList.toggle("on", selected); button.setAttribute("aria-pressed", String(selected));
+    });
+    document.querySelectorAll("[data-view]").forEach(function (button) {
+      button.setAttribute("aria-pressed", String(button.getAttribute("data-view") === filter));
+    });
   }
 
   function wireControls() {
@@ -1188,10 +1204,7 @@ _fleet_dash_script() {
         var btn = e.target.closest(".filterchip");
         if (!btn) return;
         filter = btn.getAttribute("data-filter") || "all";
-        Array.prototype.forEach.call(
-          filters.querySelectorAll(".filterchip"),
-          function (b) { b.className = "filterchip" + (b === btn ? " on" : ""); }
-        );
+        syncControls();
         rerenderLocal();
       });
     }
@@ -1201,6 +1214,20 @@ _fleet_dash_script() {
         rerenderLocal();
       });
     }
+    document.getElementById("search").addEventListener("input", function () {
+      query = this.value.trim().toLowerCase(); rerenderLocal();
+    });
+    document.getElementById("clear-filters").addEventListener("click", function () {
+      filter = "all"; query = ""; sortMode = "attention";
+      document.getElementById("search").value = ""; els.sort.value = "attention";
+      syncControls(); rerenderLocal();
+    });
+    document.querySelectorAll("[data-view]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var view = this.getAttribute("data-view"); filter = filter === view ? "all" : view;
+        syncControls(); rerenderLocal();
+      });
+    });
     var tbtn = document.getElementById("theme-toggle");
     if (tbtn) {
       var theme = "dark";
