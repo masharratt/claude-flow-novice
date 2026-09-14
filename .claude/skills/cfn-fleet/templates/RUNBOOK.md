@@ -28,7 +28,9 @@ from the target project root unless resolving a different run dir on purpose.
    lines; stop when it prints `ALL-DONE`. Alternative: `fleet dashboard --open`
    serves a self-contained HTML tracking page on 127.0.0.1:4880 and opens it in
    VS Code Simple Browser (status, heartbeat age, claims, STALE/DEAD, timeline;
-   safe beside `fleet watch`); `fleet dashboard --stop` tears it down.
+   safe beside `fleet watch`); `fleet dashboard --stop` tears it down. Drop a
+   `glossary.tsv` (code TAB meaning) beside roster.tsv to get a Code key panel
+   and hover tooltips on project codes in tasks and notes.
    Standard cadence: the main chat runs a fleet check every **15 minutes**
    regardless of watch/dashboard activity — `fleet status`, react to STALE/DEAD,
    unblock workers, land finished lanes (see SKILL.md "Master check cadence").

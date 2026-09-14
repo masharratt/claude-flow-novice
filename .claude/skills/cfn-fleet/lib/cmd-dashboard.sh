@@ -41,6 +41,84 @@ _fleet_json_escape() {
   printf '%s' "$s"
 }
 
+# _fleet_dash_status_help STATUS: plain-English title text for a roster
+# status. Pinned twin of the STATUS_HELP map in the page JS (_fleet_dash_script
+# renders it verbatim); keep the two in sync. The landed/done wording is the
+# known trap: landed means a commit exists, done is the real finish signal.
+_fleet_dash_status_help() {
+  case "$1" in
+    pending) printf 'Queued, not started yet' ;;
+    started) printf 'Worker spawned, first heartbeat received' ;;
+    working) printf 'Actively working, heartbeats fresh' ;;
+    blocked) printf 'Waiting on something it does not control' ;;
+    landed)  printf 'Has at least one commit. Not necessarily finished: a fresh heartbeat means work continues' ;;
+    done)    printf 'Worker reported finished with a clean tree' ;;
+    dead)    printf 'Worker process stopped' ;;
+    *)       printf '' ;;
+  esac
+}
+
+# _fleet_dash_glossary_read RUN_DIR: echo valid `code TAB meaning` rows from
+# <run-dir>/glossary.tsv (optional file; absent prints nothing). Skips: blank
+# lines, `#` comments, a header row whose first cell is `code`, codes outside
+# ^[A-Za-z0-9][A-Za-z0-9._+-]*$ and codes with no digit (the digit rule stops
+# English words like `done` from becoming highlight codes). Meaning capped at
+# 160 chars. Bad rows warn on stderr and are skipped, never fatal.
+_fleet_dash_glossary_read() {
+  local f="$1/glossary.tsv"
+  [ -f "$f" ] || return 0
+  local code meaning
+  while IFS=$'\t' read -r code meaning || [ -n "$code" ]; do
+    [ -n "$code" ] || continue
+    case "$code" in '#'*) continue ;; esac
+    [ "$code" = "code" ] && continue
+    if [[ ! "$code" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]]; then
+      echo "fleet dashboard: WARN glossary: bad code row skipped: $code" >&2
+      continue
+    fi
+    if [[ ! "$code" =~ [0-9] ]]; then
+      echo "fleet dashboard: WARN glossary: digit-less code skipped: $code" >&2
+      continue
+    fi
+    meaning=$(printf '%s' "$meaning" | cut -c1-160)
+    [ -n "$meaning" ] || continue
+    printf '%s\t%s\n' "$code" "$meaning"
+  done < "$f"
+}
+
+# _fleet_dash_glossary_html RUN_DIR: the Code key panel for the Activity
+# aside. Always emits the #glossary container (hidden when empty) so the live
+# JS has a stable mount when the file appears mid-run; rows group aliases
+# (codes sharing one meaning) into a single `CODE / CODE` row, sorted by
+# code. The JS term-highlighting mirrors this merge.
+_fleet_dash_glossary_html() {
+  local rows
+  rows=$(_fleet_dash_glossary_read "$1")
+  if [ -z "$rows" ]; then
+    printf '<div class="glossary" id="glossary" hidden></div>\n'
+    return 0
+  fi
+  local -A bym=()
+  local code meaning m
+  while IFS=$'\t' read -r code meaning; do
+    [ -n "$code" ] || continue
+    if [ -z "${bym[$meaning]+set}" ]; then
+      bym["$meaning"]="$code"
+    else
+      bym["$meaning"]="${bym[$meaning]} / $code"
+    fi
+  done <<< "$rows"
+  {
+    printf '<div class="glossary" id="glossary"><div class="section-heading"><h2>Code key</h2></div>'
+    printf '<p class="activity-sub">Project codes used in tasks and notes. Hover a highlighted code for its meaning.</p><div class="gl-list">\n'
+    for m in "${!bym[@]}"; do
+      printf '<div class="gl-row"><code class="gl-code">%s</code><span class="gl-meaning">%s</span></div>\n' \
+        "$(_fleet_html_escape "${bym[$m]}")" "$(_fleet_html_escape "$m")"
+    done | LC_ALL=C sort
+    printf '</div></div>\n'
+  }
+}
+
 main() {
   local port="" poll=5 stale_min=5 once=0 no_serve=0 do_stop=0 do_open=0
   while [ $# -gt 0 ]; do
@@ -365,7 +443,9 @@ _fleet_dash_render() {
     printf '</div></main>\n'
     printf '<aside class="activity"><div class="section-heading"><h2>Activity</h2><span class="eyebrow">LATEST 30</span></div><p class="activity-sub">Status transitions · newest first · UTC</p><div class="timeline" id="tl">\n'
     _fleet_dash_events_html "$events"
-    printf '</div><div class="operator-note"><span class="eyebrow">READING THE SIGNALS</span><p><b>Stale</b> means an active worker has missed its heartbeat threshold.</p><p><b>Dead</b> means a stopped worker. A blocked worker may still be alive.</p><p>landed means the workstream has a commit, not that it is finished</p></div></aside></div>\n'
+    printf '</div>'
+    _fleet_dash_glossary_html "$run_dir"
+    printf '<div class="operator-note"><span class="eyebrow">READING THE SIGNALS</span><p><b>Stale</b> means an active worker has missed its heartbeat threshold.</p><p><b>Dead</b> means a stopped worker. A blocked worker may still be alive.</p><p><b>landed</b> means the workstream has a commit, not that it is finished.</p><p><b>done</b> means the worker reported finished with a clean tree: the real finish signal.</p></div></aside></div>\n'
     printf '<footer><span>Fleet coordination</span><span>Local roster · refresh every %s seconds</span></footer></div>\n' "$poll"
     _fleet_dash_script
     printf '</body>\n</html>\n'
@@ -385,8 +465,8 @@ _fleet_dash_filters() {
   printf '<button type="button" class="filterchip on" data-filter="all" aria-pressed="true">All</button>\n'
   # shellcheck disable=SC1010  # 'done' is a roster status value, not the keyword
   for s in pending started working blocked landed done dead; do
-    printf '<button type="button" class="filterchip" data-filter="%s" aria-pressed="false"><span class="dot st-%s"></span>%s</button>\n' \
-      "$s" "$s" "$s"
+    printf '<button type="button" class="filterchip" data-filter="%s" aria-pressed="false" title="%s"><span class="dot st-%s"></span>%s</button>\n' \
+      "$s" "$(_fleet_html_escape "$(_fleet_dash_status_help "$s")")" "$s" "$s"
   done
   printf '</div><div class="sort-row"><button type="button" id="clear-filters" class="chipbtn">Reset view</button>'
   printf '<label for="sort">Order</label><select id="sort" class="sortsel" title="sort cards">'
@@ -408,7 +488,7 @@ _fleet_dash_tiles() {
     [[ "$n" =~ ^[0-9]+$ ]] || n=0
     zero=""
     [ "$n" -eq 0 ] && zero=" zero"
-    out+="<span class=\"tile${zero}\" data-st=\"$s\">"
+    out+="<span class=\"tile${zero}\" data-st=\"$s\" title=\"$(_fleet_html_escape "$(_fleet_dash_status_help "$s")")\">"
     out+="<span class=\"dot st-$s\"></span><span class=\"tile-label\">$s</span>"
     out+="<span class=\"tile-n\">$n</span></span>"
   done
@@ -457,7 +537,7 @@ _fleet_dash_card() {
   out+="<article class=\"card\" data-ws=\"$(_fleet_html_escape "$ws")\" data-status=\"$(_fleet_html_escape "$status")\">"$'\n'
   out+="<div class=\"worker-identity\"><span class=\"ws-id\">$(_fleet_html_escape "$ws")</span><span class=\"ws-name\">$(_fleet_html_escape "$name")</span></div>"
   out+='<div class="head">'
-  out+="<span class=\"pill $st_class\"><span class=\"dot\"></span>$(_fleet_html_escape "$status")</span>"
+  out+="<span class=\"pill $st_class\" title=\"$(_fleet_html_escape "$(_fleet_dash_status_help "$status")")\"><span class=\"dot\"></span>$(_fleet_html_escape "$status")</span>"
   [ "$stale" -eq 1 ] && out+='<span class="badge stale">&#9888; STALE</span>'
   [ "$dead" -eq 1 ] && out+='<span class="badge dead">&#10005; DEAD</span>'
   out+="</div>"$'\n'
@@ -499,7 +579,7 @@ _fleet_dash_card() {
     done
     out+='</ul>'$'\n'
   fi
-  [ -n "$notes" ] && out+="<p class=\"notes\">$(_fleet_html_escape "$notes")</p>"$'\n'
+  [ -n "$notes" ] && out+="<div class=\"notes\" tabindex=\"0\" aria-expanded=\"false\"><span class=\"notes-h\">LATEST NOTE</span><p class=\"notes-body\">$(_fleet_html_escape "$notes")</p></div>"$'\n'
   out+='</article>'
   printf '%s\n' "$out"
 }
@@ -768,9 +848,19 @@ code.sha::before { content: 'Commit '; color: var(--dim); }
 .claims { display: flex; flex-wrap: wrap; align-items: center; list-style: none; padding: 0; margin: 15px 0 0; gap: 5px; }
 .claims::before { content: 'Owns'; color: var(--dim); font-size: 10px; margin-right: 4px; }
 .claim { display: inline-block; font: 10px ui-monospace, monospace; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; overflow-wrap: anywhere; }
-.notes { font-size: 12px; color: var(--dim); padding: 10px 12px; border-left: 2px solid var(--line); background: var(--bg); margin: 16px 0 0; overflow-wrap: anywhere; }
-.notes::before { content: 'LATEST NOTE'; display: block; font: 9px ui-monospace, monospace; letter-spacing: 1px; margin-bottom: 5px; }
+.notes { font-size: 12px; color: var(--dim); padding: 10px 12px; border-left: 2px solid var(--line); background: var(--bg); margin: 16px 0 0; cursor: zoom-in; }
+.notes.expanded { cursor: zoom-out; }
+.notes-h { display: block; font: 9px ui-monospace, monospace; letter-spacing: 1px; margin-bottom: 5px; }
+.notes-body { margin: 0; overflow-wrap: anywhere; }
+.notes:not(.expanded) .notes-body { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
 .card[data-status="blocked"] .notes { border-color: var(--st-blocked); }
+.term { border-bottom: 1px dotted var(--accent); cursor: help; }
+.glossary { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 22px; }
+.glossary .section-heading { margin-bottom: 4px; }
+.gl-list { display: grid; gap: 10px; margin-top: 14px; }
+.gl-row { display: grid; grid-template-columns: minmax(64px, auto) 1fr; gap: 8px; align-items: start; font-size: 11px; }
+.gl-code { font: 10px ui-monospace, monospace; color: var(--accent); background: var(--accent-soft); padding: 2px 5px; border-radius: 4px; overflow-wrap: anywhere; justify-self: start; }
+.gl-meaning { color: var(--dim); overflow-wrap: anywhere; }
 .activity { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 21px; position: sticky; top: 92px; max-height: calc(100dvh - 120px); overflow: auto; }
 .activity .section-heading { margin-bottom: 4px; }
 .activity-sub { font-size: 10px; color: var(--dim); margin: 0 0 22px; }
@@ -850,6 +940,94 @@ _fleet_dash_script() {
     return i < 0 ? VOCAB.length : i;
   }
 
+  /* Status title texts. Pinned twin of _fleet_dash_status_help in the bash
+     renderer; keep the two in sync. */
+  var STATUS_HELP = {
+    pending: "Queued, not started yet",
+    started: "Worker spawned, first heartbeat received",
+    working: "Actively working, heartbeats fresh",
+    blocked: "Waiting on something it does not control",
+    landed: "Has at least one commit. Not necessarily finished: a fresh heartbeat means work continues",
+    done: "Worker reported finished with a clean tree",
+    dead: "Worker process stopped"
+  };
+
+  function statusTitle(st) {
+    return STATUS_HELP[st] || "";
+  }
+
+  /* Glossary: rows come from glossary.tsv (same guards as the bash reader:
+     charset + at least one digit). termRe wraps code occurrences in task and
+     note text; lookarounds, not \b, because a code may end in . or -. Codes
+     sharing one meaning merge into one legend row, mirroring
+     _fleet_dash_glossary_html. A failed fetch keeps the last good glossary. */
+  var glossaryText = null;
+  var termRe = null;
+  var termTitles = {};
+
+  function escRe(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function buildTerms(text) {
+    termRe = null;
+    termTitles = {};
+    var rows = parseTsv(text);
+    var codes = [];
+    rows.forEach(function (r) {
+      var c = String(r.code || ""), m = String(r.meaning || "");
+      if (!/^[A-Za-z0-9][A-Za-z0-9._+-]*$/.test(c)) return;
+      if (!/[0-9]/.test(c)) return;
+      if (!m) return;
+      if (!termTitles[c]) { termTitles[c] = m; codes.push(c); }
+    });
+    if (!codes.length) return;
+    /* Longest first so ART-01 wins over any shorter prefix code. */
+    codes.sort(function (a, b) { return b.length - a.length; });
+    termRe = new RegExp("(?<![A-Za-z0-9])(?:" +
+      codes.map(escRe).join("|") + ")(?![A-Za-z0-9])", "g");
+  }
+
+  /* Input is already escaped by the caller; codes carry no escapable
+     characters, so matching on the escaped string is exact. */
+  function termify(escaped) {
+    if (!termRe) return escaped;
+    return escaped.replace(termRe, function (m) {
+      return '<span class="term" title="' + esc(termTitles[m] || "") + '">' + m + '</span>';
+    });
+  }
+
+  function glossaryHtml(text) {
+    var groups = [];   /* [{codes: [..], meaning: ..}] in first-seen order */
+    var bym = {};
+    parseTsv(text).forEach(function (r) {
+      var c = String(r.code || ""), m = String(r.meaning || "");
+      if (!/^[A-Za-z0-9][A-Za-z0-9._+-]*$/.test(c)) return;
+      if (!/[0-9]/.test(c)) return;
+      if (!m) return;
+      if (bym[m]) { bym[m].codes.push(c); return; }
+      var g = {codes: [c], meaning: m};
+      bym[m] = g;
+      groups.push(g);
+    });
+    if (!groups.length) return "";
+    groups.sort(function (a, b) { return a.codes[0] < b.codes[0] ? -1 : 1; });
+    return '<div class="section-heading"><h2>Code key</h2></div>' +
+      '<p class="activity-sub">Project codes used in tasks and notes. Hover a highlighted code for its meaning.</p>' +
+      '<div class="gl-list">' + groups.map(function (g) {
+        return '<div class="gl-row"><code class="gl-code">' + esc(g.codes.join(" / ")) +
+          '</code><span class="gl-meaning">' + esc(g.meaning) + '</span></div>';
+      }).join("") + '</div>';
+  }
+
+  function renderGlossary() {
+    var el = document.getElementById("glossary");
+    if (!el) return;
+    var inner = (glossaryText === null) ? "" : glossaryHtml(glossaryText);
+    el.innerHTML = inner;
+    el.hidden = !inner;
+  }
+
   function fmtAge(s) {
     if (s < 60) return s + "s";
     if (s < 3600) return Math.floor(s / 60) + "m";
@@ -926,11 +1104,11 @@ _fleet_dash_script() {
       '" data-status="' + esc(st) + '">';
     h += '<div class="worker-identity"><span class="ws-id">' + esc(row.ws_id || "") + '</span><span class="ws-name">' + esc(row.name || "") + '</span></div>';
     h += '<div class="head"><span class="pill ' + sc +
-      '"><span class="dot"></span>' + esc(st) + '</span>';
+      '" title="' + esc(statusTitle(st)) + '"><span class="dot"></span>' + esc(st) + '</span>';
     if (stale) h += '<span class="badge stale">&#9888; STALE</span>';
     if (st === "dead") h += '<span class="badge dead">&#10005; DEAD</span>';
     h += '</div>';
-    if (row.task) h += '<p class="task">' + esc(row.task) + '</p>';
+    if (row.task) h += '<p class="task">' + termify(esc(row.task)) + '</p>';
     h += '<div class="meta"><span class="chip engine">' + esc(eng) + '</span>';
     if (hb > 0) {
       var age = now - hb;
@@ -948,7 +1126,7 @@ _fleet_dash_script() {
       });
       h += '</ul>';
     }
-    if (row.notes) h += '<p class="notes">' + esc(row.notes) + '</p>';
+    if (row.notes) h += '<div class="notes" tabindex="0" aria-expanded="false"><span class="notes-h">LATEST NOTE</span><p class="notes-body">' + termify(esc(row.notes)) + '</p></div>';
     return h + '</article>';
   }
 
@@ -985,7 +1163,7 @@ _fleet_dash_script() {
     return VOCAB.map(function (st) {
       var n = counts[st] || 0;
       return '<span class="tile' + (n === 0 ? ' zero' : '') +
-        '" data-st="' + st + '"><span class="dot ' + stClass(st) +
+        '" data-st="' + st + '" title="' + esc(statusTitle(st)) + '"><span class="dot ' + stClass(st) +
         '"></span><span class="tile-label">' + st +
         '</span><span class="tile-n">' + n + '</span></span>';
     }).join("");
@@ -1161,6 +1339,19 @@ _fleet_dash_script() {
       })
       .then(renderTimeline)
       .catch(function () { /* keep the last timeline */ });
+    fetch("glossary.tsv?ts=" + cb)
+      .then(function (resp) {
+        if (!resp.ok) throw new Error("glossary http " + resp.status);
+        return resp.text();
+      })
+      .then(function (text) {
+        if (text === glossaryText) return;
+        glossaryText = text;
+        buildTerms(text);
+        renderGlossary();
+        rerenderLocal();  /* rewrap terms in the cards already on screen */
+      })
+      .catch(function () { /* keep the last glossary and terms */ });
     pollGoal(cb);
   }
 
@@ -1206,6 +1397,25 @@ _fleet_dash_script() {
         filter = btn.getAttribute("data-filter") || "all";
         syncControls();
         rerenderLocal();
+      });
+    }
+    /* Note expand/collapse: delegated, survives every card re-render. */
+    function toggleNote(n) {
+      var open = n.getAttribute("aria-expanded") === "true";
+      n.setAttribute("aria-expanded", String(!open));
+      n.classList.toggle("expanded", !open);
+    }
+    if (els.cards) {
+      els.cards.addEventListener("click", function (e) {
+        var n = e.target.closest(".notes");
+        if (n) toggleNote(n);
+      });
+      els.cards.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        var n = e.target.closest(".notes");
+        if (!n) return;
+        e.preventDefault();
+        toggleNote(n);
       });
     }
     if (els.sort) {
@@ -1276,13 +1486,13 @@ _fleet_dash_selfcheck() {
 }
 
 # _fleet_dash_fingerprint RUN_DIR: cheap change signal for the poll loop:
-# mtime+size of the three files the page is built from, hashed. A file that
+# mtime+size of the files the page is built from, hashed. A file that
 # does not exist yet contributes a stable "missing" marker, so its first
 # appearance flips the fingerprint.
 _fleet_dash_fingerprint() {
   local rd="$1" f
   {
-    for f in roster.tsv dashboard-events.jsonl fleet.env; do
+    for f in roster.tsv dashboard-events.jsonl fleet.env glossary.tsv; do
       if [ -f "$rd/$f" ]; then
         stat -c '%Y %s' "$rd/$f"
       else

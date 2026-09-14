@@ -47,7 +47,8 @@
     "pipeline-visualizer",
     "mdap-engine",
     "wiki-pipeline",
-    "wiki-portal"
+    "wiki-portal",
+    "fleet-dashboard"
   ],
   "entities": [
     "acceptance-check-result-entity"

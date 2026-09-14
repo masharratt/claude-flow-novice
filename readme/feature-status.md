@@ -11,7 +11,7 @@
 |---|---|
 | prod | 0 |
 | beta | 0 |
-| dev | 33 |
+| dev | 34 |
 | stub | 2 |
 | deprecated | 0 |
 
@@ -48,6 +48,7 @@ Authored capabilities come first. Directory entries are an inventory, not indepe
 | MDAP request decomposition to reviewed patches | dev | Parallel GLM decomposition of a task into architecture/testing/performance/security micro-tasks, implemented as validated line-fix patches and gated by a whitelisted test command pass rate. | - | Source changed; explanation needs review. Source review of orchestrator, implementer, glm-client, secure-execution and the architecture decomposer within a bounded evidence budget; no runtime execution of the pipeline was performed. |
 | Building the source-grounded wiki | dev | Discovery index (.wiki/discovery.sqlite) from git or walk enumeration with per-language adapters and CBM import; sha256-verified knowledge claims; SQLite job queue with byte-metered evidence budgets; deterministic sync regen with a drift gate. | - | Self-documentation of the wiki's own engine: source review at revision f248664d3997407020c8b57de4fbc92515788cfd; the only runtime exercised is the lease/evidence/submit path used while authoring this capability. Verified against sources 2026-09-14. |
 | Building and serving the wiki portal | dev | Assembles a self-contained HTML portal from the wiki store's five view modules (single-file or paged mode, one shared assembly core, per-page selfcheck) and serves it locally with an atomic, origin-gated annotation store. | wiki-pipeline | Source review of build-portal.sh, server.py, lib/serve.sh and portal/serve.sh at revision f248664d3997407020c8b57de4fbc92515788cfd; no build or serve was executed in this pass, so failure paths are read from the code, not observed. Verified against sources 2026-09-14. |
+| Fleet run dashboard | dev | Self-contained HTML dashboard rendered from roster.tsv: live polling cards and tiles, optional per-run glossary.tsv code key with inline term tooltips, plain-English status tooltips stating the landed vs done trap, and clamped expandable notes. | fleet-roster | Source changed; explanation needs review. Implemented and verified against a Playwright browser suite (tests/test-cfn-fleet-dashboard-ui.cjs) covering the glossary legend, inline term tooltips, status tooltips, notes clamp and live updates; run against synthetic rosters, not a real multi-session run. |
 | api-gateway | dev | Express JWT authentication service that issues, refreshes, revokes and validates access tokens with Redis backing, rate limiting and shell test suites for gateway callers. | - | Source changed; explanation needs review. Curated status |
 | artifacts | dev | Storage area for agent task outputs: project scope schema SQL with validation queries and example agent workspace deliverables. Mostly one-off outputs, not maintained product code. | - | Source changed; explanation needs review. Curated status |
 | benchmark | dev | Benchmark suite measuring CFN infrastructure options: Node versus Rust message bus throughput, agent messaging latency, load tests and spawn cost, driven by one runner script. | - | Source changed; explanation needs review. Curated status |
@@ -142,6 +143,10 @@ Authored capabilities come first. Directory entries are an inventory, not indepe
 ### Building and serving the wiki portal
 
 [Read the execution flow](wiki/wiki-portal/wiki.md). Source review of build-portal.sh, server.py, lib/serve.sh and portal/serve.sh at revision f248664d3997407020c8b57de4fbc92515788cfd; no build or serve was executed in this pass, so failure paths are read from the code, not observed. Verified against sources 2026-09-14.
+
+### Fleet run dashboard
+
+[Read the execution flow](wiki/fleet-dashboard/wiki.md). Implemented and verified against a Playwright browser suite (tests/test-cfn-fleet-dashboard-ui.cjs) covering the glossary legend, inline term tooltips, status tooltips, notes clamp and live updates; run against synthetic rosters, not a real multi-session run.
 
 ### api-gateway
 

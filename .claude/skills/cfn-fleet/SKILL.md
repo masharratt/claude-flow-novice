@@ -50,6 +50,8 @@ planning/fleet-<slug>/
   .roster.lock       flock target for roster writes
   goal.txt           one-line run goal (init <slug> <goal words>); dashboard header blurb
   files/WSxx.txt     per-worker now-editing paths (heartbeat --files); dashboard card section
+  glossary.tsv       optional code key (code TAB meaning) for the dashboard:
+                     Code key panel + inline tooltips on codes in task/notes
 ```
 
 Status vocabulary (closed): `pending | started | working | blocked | landed |
@@ -238,6 +240,18 @@ paths that worker published with `fleet heartbeat WSxx --files a,b` (stored
 one per line in `<run-dir>/files/<ws>.txt`) under "now editing", and shows
 nothing there until the worker publishes.
 
+Project codes (M1, ART-01, ...) get translations when the run drops a
+`<run-dir>/glossary.tsv`: one `code TAB meaning` row per code, optional
+`code TAB meaning` header, `#` comments allowed. Codes must match
+`^[A-Za-z0-9][A-Za-z0-9._+-]*$` and contain at least one digit (stops English
+words from highlighting). The dashboard renders a Code key panel in the
+Activity aside, merges codes that share one meaning into a single row
+(`ART-01 / ART01`), and the live JS underlines every code occurrence in task
+and note text with a hover tooltip carrying its meaning. Absent file renders
+nothing; status pills, tiles and filter chips carry plain-English tooltips
+(landed: commit exists, work may continue; done: worker reported finished
+with a clean tree). Long notes clamp to 4 lines and expand on click.
+
 The dashboard uses a graphite and cyan operations theme. It defaults to dark;
 the header theme button toggles light/dark and persists the choice in
 `localStorage` under `fleet-dash-theme`. Summary panels and worker cards stack on
@@ -417,6 +431,27 @@ unclaimed dirt and committed with `--force-with-note`, so the commits stayed pat
 - **A landing script whose output is piped to `tail` cannot refuse.** The pipe swallows the
   exit status, so a rebase conflict reads as landed and the next wave is spawned from a base
   missing the lane. Run landing scripts bare and branch on their exit code.
+
+### 7. Main-in-place on a dirty shared checkout, and a number that is only free on your branch (2026-09-14)
+
+- **`fleet commit` refuses every lane on a checkout other sessions are working in.** The guard exits 66 when
+  ANY unclaimed dirty file exists, and on a shared checkout there always is one (a peer's half-edited
+  file, a Codex desktop snapshot). Every lane of the airtable-prebook run blocked on its first commit.
+  When the lane's own edits all sit inside its claims, `fleet commit WSxx -m <msg> --force-with-note`
+  still stages only the claimed paths. Put that line in the brief for any main-in-place run on a shared
+  checkout instead of letting three workers discover it one at a time.
+- **`fleet migrate-next` reserves `max + 1` over the CURRENT tree only.** Unmerged branches (a Codex lane
+  landing late) can already hold that number and even have applied it to the cloud. Measured
+  2026-09-14: `dev` stopped at 0119, `codex/matching-*` held 0120 to 0126, migrate-next handed out 0120
+  and the lane renumbered to 0127 with the files, check ids and README row already written. Before
+  reserving, list migrations on every live branch (`git ls-tree --name-only <branch> <migrations dir>`)
+  and take one past the highest anywhere; put the number the brief expects in the brief as an assumption
+  the worker must re-check, not a fact.
+- **Fixtures that model a pair backwards break when a guard learns the real order.** A migration that
+  made the booking gate honour published sessions turned three adversarial fixtures red: they inserted
+  the session before the booking that "minted" it, with no `created_from_booking_id`. Lane-scoped test
+  runs never touched those files, so the master's landing gate found it. Grade the landing gate over
+  every consumer the plan's blast radius names, not over the lanes' claimed files.
 
 ### Two smaller ones
 

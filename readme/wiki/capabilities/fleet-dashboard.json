@@ -1,0 +1,53 @@
+{
+  "id": "fleet-dashboard",
+  "fid": "fleet-dashboard",
+  "name": "Fleet run dashboard",
+  "status": "dev",
+  "status_reason": "Implemented and verified against a Playwright browser suite (tests/test-cfn-fleet-dashboard-ui.cjs) covering the glossary legend, inline term tooltips, status tooltips, notes clamp and live updates; run against synthetic rosters, not a real multi-session run.",
+  "description": "Self-contained HTML dashboard rendered from roster.tsv: live polling cards and tiles, optional per-run glossary.tsv code key with inline term tooltips, plain-English status tooltips stating the landed vs done trap, and clamped expandable notes.",
+  "purpose": "cmd-dashboard.sh renders <run-dir>/dashboard.html straight from roster.tsv (columns parsed by header name), serves the run dir on 127.0.0.1 via python3 http.server, and re-renders on a fingerprint of roster.tsv, dashboard-events.jsonl, fleet.env and glossary.tsv. An optional glossary.tsv (code TAB meaning rows; codes must match ^[A-Za-z0-9][A-Za-z0-9._+-]*$ and contain a digit, so English words cannot become codes) renders a Code key panel in the Activity aside, merging codes that share one meaning into a single row, while the inline JS refetches glossary.tsv each poll and wraps code occurrences in task and note text with a lookaround-bounded regex carrying the meaning as a hover tooltip. Status pills, tiles and filter chips carry plain-English title texts: landed says a commit exists and work may continue, done says the worker reported finished with a clean tree. Long notes clamp to 4 lines and expand on click or Enter. All interpolated strings pass through _fleet_html_escape (bash) or esc() (JS); hostile roster and glossary cells stay literal.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [
+    "fleet-roster"
+  ],
+  "sources": [
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-dashboard.sh",
+      "line": 48,
+      "claim": "_fleet_dash_status_help maps each closed-vocab status to plain-English title text (landed: has at least one commit, not necessarily finished, fresh heartbeat means work continues; done: worker reported finished with a clean tree); the page JS carries a pinned STATUS_HELP twin.",
+      "sha256": "261909c3890cf8421819afa68c685639153120e597d27a4982ff126bf129a953"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-dashboard.sh",
+      "line": 67,
+      "claim": "glossary.tsv parsing skips blank lines, # comments, a header row whose first cell is code, codes outside ^[A-Za-z0-9][A-Za-z0-9._+-]*$ and digit-less codes (WARN on stderr, never fatal); meanings cap at 160 chars.",
+      "sha256": "261909c3890cf8421819afa68c685639153120e597d27a4982ff126bf129a953"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-dashboard.sh",
+      "line": 94,
+      "claim": "The Code key panel always emits the #glossary container (hidden when empty) so the live JS has a stable mount when the file appears mid-run; codes sharing one meaning merge into a single CODE / CODE row.",
+      "sha256": "261909c3890cf8421819afa68c685639153120e597d27a4982ff126bf129a953"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-dashboard.sh",
+      "line": 993,
+      "claim": "termify wraps code occurrences in already-escaped task and note text with span.term title tooltips, matching via (?<![A-Za-z0-9])CODE(?![A-Za-z0-9]) lookarounds (a \\b boundary never fires after a code ending in . or -), longest code first; a failed glossary fetch keeps the last good glossary and terms.",
+      "sha256": "261909c3890cf8421819afa68c685639153120e597d27a4982ff126bf129a953"
+    },
+    {
+      "path": "tests/test-cfn-fleet-dashboard-ui.cjs",
+      "line": 33,
+      "claim": "Browser suite asserts the legend keeps valid rows only (header, invalid-code and digit-less rows skipped; aliases merged), hostile glossary meanings stay escaped, term tooltips carry meanings in task and notes, the plain word done stays unwrapped, landed pill tooltip warns landed is not finished, notes clamp to 4 lines and toggle on click and Enter, glossary edits apply live, and the no-JS page shows the bash-rendered legend without inline wrapping.",
+      "sha256": "6633574e4cb74149d5719b30213f5d77192e80e0b86af87f194c4a89307f542e"
+    }
+  ],
+  "evidence": [],
+  "domains": [
+    "session-coordination"
+  ],
+  "unknowns": [
+    "The serve loop (python3 http.server lifecycle, port fallback chain, --stop teardown) was exercised only as the suite's spawned server on an ephemeral port, not against the documented 4880 default.",
+    "Theme persistence and responsive breakpoints are covered by the suite's checks but were not reviewed against a design system."
+  ]
+}
