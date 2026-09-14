@@ -61,3 +61,4 @@ Non-project dev tooling that binds loopback:
 | Tool | Port | Notes |
 |------|------|-------|
 | cfn-fleet dashboard | **4880** | `fleet dashboard` python3 http.server, 127.0.0.1 only, rooted at the fleet run dir. Per-run pidfile `.dashboard.pid`; move with `--port` or `FLEET_DASHBOARD_PORT`. Busy port exits 66. |
+| cfn-wiki portal | **4885** | `wiki serve` python3 annotation server, 127.0.0.1 only, rooted at `<repo>/.wiki/portal/`. Pidfile `.wiki/cache/serve.pid`; move with `--port` or `WIKI_PORT`. Opens VS Code Simple Browser by default (`browser: system` in `.wiki/config.json` for the OS browser). |
