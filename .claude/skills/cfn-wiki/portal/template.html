@@ -228,6 +228,14 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
   .cov-list li { padding:1px 0; }
   .cov-line { margin:6px 0; }
   .shell-links li { padding:5px 0; font-size:13px; }
+/* Authored markdown blocks (overview summary, capability purpose). */
+.md p { margin: 0 0 14px; line-height: 1.65; }
+.md p:last-child { margin-bottom: 0; }
+.md ul { margin: 0 0 14px; padding-left: 22px; }
+.md ul:last-child { margin-bottom: 0; }
+.md li { margin: 6px 0; line-height: 1.55; }
+.md code { font-family: var(--mono, ui-monospace, monospace); font-size: 0.9em; background: var(--accent-soft, #eef1f4); border-radius: 4px; padding: 1px 5px; overflow-wrap: anywhere; }
+.md b { font-weight: 650; }
 </style>
 </head>
 <body>
@@ -407,6 +415,49 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     if (cls) n.className = cls;
     if (text != null) n.textContent = text;
     return n;
+  }
+  /* Minimal markdown for authored long text (overview.summary, capability
+     purpose): blank-line paragraphs, "- "/"* " bullet lists, `code`, **bold**.
+     The text is escaped BEFORE any tag is added and only these four shapes
+     are recognized, so hostile markup inside the source stays literal. */
+  function escHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function mdInline(s) {
+    var out = "", re = /(`[^`]+`|\*\*[^*]+\*\*)/g, last = 0, m;
+    while ((m = re.exec(s))) {
+      out += escHtml(s.slice(last, m.index));
+      var tok = m[0];
+      if (tok.charAt(0) === "`") out += "<code>" + escHtml(tok.slice(1, -1)) + "</code>";
+      else out += "<b>" + escHtml(tok.slice(2, -2)) + "</b>";
+      last = m.index + tok.length;
+    }
+    return out + escHtml(s.slice(last));
+  }
+  function mdHtml(src) {
+    var out = "";
+    String(src).split(/\n{2,}/).forEach(function (block) {
+      var lines = block.split("\n").filter(function (l) { return l.trim().length > 0; });
+      if (!lines.length) return;
+      var bullets = lines.every(function (l) { return /^[-*] /.test(l.trim()); });
+      if (bullets) {
+        out += "<ul>" + lines.map(function (l) {
+          return "<li>" + mdInline(l.trim().replace(/^[-*] /, "")) + "</li>";
+        }).join("") + "</ul>";
+      } else {
+        out += "<p>" + lines.map(mdInline).join("<br>") + "</p>";
+      }
+    });
+    return out;
+  }
+  function mdBlock(host, src, fallback) {
+    var v = (src != null && src !== "") ? src : fallback;
+    if (v == null || v === "") return;
+    var d = document.createElement("div");
+    d.className = "md";
+    d.innerHTML = mdHtml(v);
+    host.appendChild(d);
   }
   function shortDate(iso) {
     return (iso || "").slice(0, 10);
@@ -880,7 +931,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     if (!PAGED) back.addEventListener("click", function () { selectView("catalog"); });
     host.appendChild(back);
     host.appendChild(el("h1", "", feature.name));
-    host.appendChild(el("p", "", feature.purpose || feature.description || "Directory inventory. Behavior has not been documented yet."));
+    mdBlock(host, feature.purpose || feature.description, "Directory inventory. Behavior has not been documented yet.");
     host.appendChild(el("p", "capability-kind", "Maturity: " + feature.status + ". " + feature.status_reason));
     if (feature.needs_review) host.appendChild(el("p", "review-warning", "Sources changed since review. The explanation is preserved, but needs checking against current code."));
     if (feature.kind !== "capability") {
@@ -924,7 +975,7 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
     var host = $("knowledge-start"); host.hidden = false;
     host.appendChild(el("p", "eyebrow", "Start here"));
     host.appendChild(el("h2", "", overview.title || "What does this system do?"));
-    host.appendChild(el("p", "", overview.summary || "This wiki currently contains a directory inventory. Authored capability walkthroughs have not been added yet."));
+    mdBlock(host, overview.summary, "This wiki currently contains a directory inventory. Authored capability walkthroughs have not been added yet.");
     host.appendChild(el("p", "", overview.coverage || "Directory names and dependency counts do not establish behavior or maturity."));
     var questions = el("ul"); (overview.questions || []).forEach(function (q) { questions.appendChild(el("li", "", q)); }); host.appendChild(questions);
     var links = el("div", "capability-start");

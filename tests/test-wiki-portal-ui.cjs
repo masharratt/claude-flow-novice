@@ -30,8 +30,12 @@ const payload = {
     nodes: ['auth', 'api', 'ui'].map((id, i) => ({ id, label: id, count: i + 1, files: [id + '/entry.ts'] })),
     edges: [{ source: 'api', target: 'auth', type: 'IMPORTS', weight: 3 }],
   },
-  catalog: { features: [
-    { fid: 'auth', name: 'Sign in', kind: 'capability', purpose: 'Establish a session.', status_reason: 'Fixture evidence.', reviewed_at: '2026-09-13', needs_review: true, sources: [{path: 'auth/entry.ts', line: 1, claim: 'Creates a session.', excerpt: '1: function signIn() {}', needs_review: true}], flow: [{title:'Create session', detail:'Validate credentials and persist the session.', source:'auth/entry.ts'}], failures:['Invalid credentials remain signed out.'], change_guidance:['Update signIn and its tests.'], limitations:['Fixture only.'], status: 'prod', description: '<img src=x onerror=alert(1)>', files: ['auth/entry.ts'], coupling_count: 1 },
+  catalog: { overview: {
+      title: 'Markdown fixture',
+      summary: 'First paragraph with `inline code` and **bold** across one line.\n\n- bullet one\n- bullet two <img src=x onerror="window.mdInjected=1">\n\nSecond paragraph mentioning <b>raw tag</b> stays literal.',
+      coverage: 'Coverage stays one line.',
+    }, features: [
+    { fid: 'auth', name: 'Sign in', kind: 'capability', purpose: 'Establish a session.\n\n- `signIn` creates the session\n- token persisted atomically', status_reason: 'Fixture evidence.', reviewed_at: '2026-09-13', needs_review: true, sources: [{path: 'auth/entry.ts', line: 1, claim: 'Creates a session.', excerpt: '1: function signIn() {}', needs_review: true}], flow: [{title:'Create session', detail:'Validate credentials and persist the session.', source:'auth/entry.ts'}], failures:['Invalid credentials remain signed out.'], change_guidance:['Update signIn and its tests.'], limitations:['Fixture only.'], status: 'prod', description: '<img src=x onerror=alert(1)>', files: ['auth/entry.ts'], coupling_count: 1 },
     { fid: 'api', status: 'dev', description: 'Public endpoints', files: ['api/entry.ts'] },
   ] },
   state: { entities: [
@@ -96,8 +100,21 @@ async function until(check, label) {
   await page.keyboard.press('Enter');
   assert.equal(await page.locator('#arch-detail-name').textContent(), 'api');
   console.log('PASS: module search, keyboard selection, source details and connected edges');
+  // Authored markdown renders structure: paragraphs, bullets, inline code and
+  // bold; hostile markup inside the text stays literal.
+  const ks = page.locator('#knowledge-start');
+  assert.equal(await ks.locator('.md p').count(), 2, 'overview summary splits into paragraphs');
+  assert.equal(await ks.locator('.md ul li').count(), 2, 'bullet list renders as list items');
+  assert.equal(await ks.locator('.md code').first().textContent(), 'inline code', 'inline code ticks render as code');
+  assert.equal(await ks.locator('.md b').first().textContent(), 'bold', 'double-star renders as bold');
+  assert.equal(await ks.locator('.md img').count(), 0, 'hostile img inside a bullet never becomes an element');
+  assert.equal(await ks.locator('.md b').count(), 1, 'raw <b> tag in source text stays literal text');
+  assert.equal(await page.evaluate(() => window.mdInjected), undefined, 'markdown payload never executes');
+  assert.match(await ks.locator('.md p').nth(1).textContent(), /raw tag/, 'escaped angle brackets still readable');
   await page.locator('#knowledge-start a').click();
   assert.equal(await page.locator('#capability-reader').isVisible(), true);
+  assert.equal(await page.locator('#capability-reader .md ul li').count(), 2, 'capability purpose renders its bullet list');
+  assert.equal(await page.locator('#capability-reader .md code').first().textContent(), 'signIn', 'purpose inline code renders');
   assert.match(await page.locator('#capability-reader').textContent(), /Invalid credentials remain signed out/);
   assert.match(await page.locator('#capability-reader').textContent(), /Update signIn and its tests/);
   await page.getByRole('button', {name:'Inspect source evidence'}).click();
