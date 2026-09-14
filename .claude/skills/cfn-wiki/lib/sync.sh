@@ -122,6 +122,8 @@ wiki_sync_check() { # <repo> <store> <coupling-window> -> 0 in-sync, 1 stale
             <(sed 's/^\*\*Last Updated:\*\*[[:space:]].*$/**Last Updated:** <clock-stamp>/' "$repo/readme/$f") \
             <(sed 's/^\*\*Last Updated:\*\*[[:space:]].*$/**Last Updated:** <clock-stamp>/' "$sandbox/readme/$f") >/dev/null 2>&1; then
             echo "WIKI STALE: $repo (fp $marker == $fresh but readme/$f differs from regeneration)" >&2
+            diff <(cat "$repo/readme/$f") <(cat "$sandbox/readme/$f") \
+                | head -20 | sed 's/^/  drift /' >&2
             bad=1
         fi
     done
@@ -139,6 +141,8 @@ wiki_sync_check() { # <repo> <store> <coupling-window> -> 0 in-sync, 1 stale
             relative="${generated#"$sandbox/"}"
             if ! cmp -s "$generated" "$repo/$relative"; then
                 echo "WIKI STALE: $relative differs from regeneration" >&2
+                diff "$repo/$relative" "$generated" \
+                    | head -20 | sed 's/^/  drift /' >&2
                 bad=1
             fi
         done < <(find "$sandbox/$features_dir" -type f -name wiki.md | sort)
