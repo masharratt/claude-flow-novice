@@ -98,7 +98,11 @@ Every `query` subcommand prints one JSON object to stdout and exits 0, or prints
 
 Paths with spaces and non-ASCII survive; hidden implementation (`.claude/skills`) is included; credentials and out-of-root symlinks are excluded with reasons; parser gaps are visible (`adapter='none'` rows); every output cap holds including against a fixture with giant and minified lines; cursors are stable and revision-pinned; a source edit invalidates prior evidence (revision moves, old cursor fails); repeated queries reuse the disk packet while still accounting the delivery.
 
-## 8. Amendments accepted at the Phase 1 gate (2026-09-13)
+## 8. Budget retune decision (2026-09-14, from the completed 32-job map run)
+
+Defaults held across all 52 attempts (243 deliveries, 580 KB total): peak single-attempt usage 62.5 of 64 KiB (one author, completed), next-highest 47.8 KiB, most under 20 KiB; list and graph caps never hit except by design. DECISION: defaults unchanged. Retune trigger: if more than two jobs in any future run exhaust the 64 KiB attempt budget, raise `evidence_attempt_max_bytes` to 98304 in `.wiki/config.json` for that repo and record the change here.
+
+## 9. Amendments accepted at the Phase 1 gate (2026-09-13)
 
 Implementation report: [PHASE1_discovery-report.md](PHASE1_discovery-report.md). Accepted deviations, now part of the contract:
 

@@ -142,3 +142,20 @@ or a tier fails (kept for inspection).
 
 No ceiling violations were found, so nothing in
 `.claude/skills/cfn-wiki/lib/` or `readme/` was modified by this work.
+
+## Performance envelopes (set from the measured table, 2026-09-14)
+
+Expected envelopes for CI-class hardware (2 vCPU, 7 GB RAM runners and
+better), derived from the measured columns above. These are documented
+expectations for release review, deliberately NOT CI assertions (the
+plan forbids unmeasured thresholds; these come from the measurements):
+
+- discover wall: under 5 s at 1k, under 10 s at 10k, under 60 s at 100k
+- discover peak RSS: under 400 MB at every tier
+- discovery.sqlite: under 5 MB at 1k/10k, under 30 MB at 100k
+- any list or span query: under 0.5 s at every tier
+- ceiling invariants (120 lines / 8192 B spans, 40-item lists): hold at
+  every tier, asserted by the bench itself
+
+Breaching an envelope means re-measuring and re-documenting, not silently
+widening it.
