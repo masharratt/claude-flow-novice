@@ -1171,6 +1171,65 @@ test_land_worktree_dirty_refused() {
     assert_equals "started" "$(roster_field WS01 status)" "status untouched on refusal (spawn set started)"
 }
 
+test_land_residual_sweep_reports_addressed_files() {
+    # Process change (fleet-nitpicky-fixes): landing a lane orphans later
+    # residuals by design; the sweep surfaces handoffs/ files addressed to the
+    # landed ws so the master dispatches or records them open.
+    log_step "GIVEN handoffs/ files addressed to WS01, WHEN land"
+    make_project land-residual
+    add_ws WS01 ws01 "Work" working "src/a.md"
+    echo "relay note" > "$RUN_DIR/handoffs/TO_WS01_note.md"
+    echo "lowercase address" > "$RUN_DIR/handoffs/relays-from-ws01-quick.md"
+    echo "other lane" > "$RUN_DIR/handoffs/TO_WS02_other.md"
+    echo "authored here" > "$RUN_DIR/handoffs/NOTES-from-WS03.md"
+    run_fleet land WS01
+
+    assert_equals "0" "$FLEET_RC" "land with residuals still exits 0"
+    assert_contains "$FLEET_OUT" "residual: TO_WS01_note.md (dispatch or record open)" \
+        "sweep names the addressed file verbatim"
+    assert_contains "$FLEET_OUT" "residual: relays-from-ws01-quick.md (dispatch or record open)" \
+        "match is case-insensitive on the ws id"
+    assert_not_contains "$FLEET_OUT" "TO_WS02_other.md" "files for other lanes are not reported"
+    assert_not_contains "$FLEET_OUT" "NOTES-from-WS03.md" "files authored by other lanes are not reported"
+    assert_equals "landed" "$(roster_field WS01 status)" "status set to landed"
+}
+
+test_land_residual_sweep_silent_without_matches() {
+    log_step "GIVEN handoffs/ with no files addressed to the landed ws, WHEN land"
+    make_project land-residual-none
+    add_ws WS01 ws01 "Work" working "src/a.md"
+    echo "other lane" > "$RUN_DIR/handoffs/TO_WS02_other.md"
+    run_fleet land WS01
+
+    assert_equals "0" "$FLEET_RC" "land exits 0"
+    assert_not_contains "$FLEET_OUT" "residual:" "no residual line without matching handoffs"
+    assert_contains "$FLEET_OUT" "landed WS01" "land output unchanged apart from the sweep"
+}
+
+test_land_residual_sweep_tolerates_unreadable_handoffs() {
+    # Best-effort contract: a broken handoffs path can never fail the land.
+    log_step "GIVEN handoffs/ unreadable (chmod 000), WHEN land"
+    make_project land-residual-perm
+    add_ws WS01 ws01 "Work" working "src/a.md"
+    echo note > "$RUN_DIR/handoffs/TO_WS01_note.md"
+    chmod 000 "$RUN_DIR/handoffs"
+    run_fleet land WS01
+    chmod 755 "$RUN_DIR/handoffs"
+
+    assert_equals "0" "$FLEET_RC" "unreadable handoffs dir does not fail land"
+    assert_equals "landed" "$(roster_field WS01 status)" "status set to landed"
+
+    log_step "GIVEN handoffs replaced by a plain file, WHEN land"
+    make_project land-residual-notdir
+    add_ws WS01 ws01 "Work" working "src/a.md"
+    rm -rf "$RUN_DIR/handoffs"
+    printf 'not a dir\n' > "$RUN_DIR/handoffs"
+    run_fleet land WS01
+
+    assert_equals "0" "$FLEET_RC" "handoffs as a plain file does not fail land"
+    assert_equals "landed" "$(roster_field WS01 status)" "status set to landed"
+}
+
 # ============================================================================
 # handoff
 # ============================================================================
@@ -1645,6 +1704,9 @@ run_all_tests() {
     test_land_worktree_ff
     test_land_worktree_no_ff
     test_land_worktree_dirty_refused
+    test_land_residual_sweep_reports_addressed_files
+    test_land_residual_sweep_silent_without_matches
+    test_land_residual_sweep_tolerates_unreadable_handoffs
     test_handoff_fills_from_roster_and_git
     test_db_refuses_when_fleet_db_not_docker
     test_db_docker_lifecycle

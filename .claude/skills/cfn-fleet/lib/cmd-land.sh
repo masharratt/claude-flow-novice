@@ -74,4 +74,28 @@ main() {
   roster_set "$ws" landed_sha "$sha"
   roster_set "$ws" status landed
   echo "landed $ws $sha"
+
+  # Residual-disposition sweep (fleet-nitpicky-fixes process change): landing
+  # a lane orphans later residuals by design, so surface handoffs/ files
+  # addressed to this workstream for the master to dispatch or record open.
+  # Best effort only: an absent or unreadable handoffs dir is skipped silently
+  # and can never fail the land.
+  if [ -n "$run_dir" ]; then
+    local handoffs="$run_dir/handoffs"
+    if [ -d "$handoffs" ] && [ -r "$handoffs" ]; then
+      local f base lc name_lc
+      name_lc=$(roster_get "$ws" name)
+      name_lc="${name_lc,,}"
+      for f in "$handoffs"/*; do
+        [ -f "$f" ] || continue
+        base="${f##*/}"
+        lc="${base,,}"
+        # shellcheck disable=SC2053
+        if [[ "$lc" == *"${ws,,}"* ]] \
+          || { [ -n "$name_lc" ] && [[ "$lc" == *"$name_lc"* ]]; }; then
+          echo "residual: $base (dispatch or record open)"
+        fi
+      done
+    fi
+  fi
 }

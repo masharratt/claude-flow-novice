@@ -18,6 +18,11 @@ column). Claims are repo-relative paths or globs, space-separated. Overlapping
 claims are refused by `fleet claim`. Never edit a file another row claims; if
 you must, coordinate through the master session, never directly.
 
+## Inter-lane channel
+
+Lanes cannot message lanes. Write handoffs/TO_WSxx_<topic>.md; the master
+relays on its check, or a lane may read the handoffs/ directory.
+
 ## Commits
 
 All commits go through `fleet commit WSxx -m <msg>`. It stages ONLY the row's

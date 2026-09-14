@@ -49,8 +49,12 @@ Do not edit anything outside these claims. Need more? Ask the master to
 
 ## Protocol reminders
 
-- Commit only via `fleet commit WSxx -m <msg>` (claims-only staging, refuses
-  unclaimed dirty files).
+- Verify scoped suites and tsc on CLAIMED paths only; the full suite is the
+  master's landing gate, run after all lanes land. A full-suite failure inside
+  another lane's in-flight files is not yours to fix or wait on.
+- Never run raw `git commit`: everything lands via `fleet commit WSxx -m <msg>`
+  (claims-only staging, refuses unclaimed dirty files). If you believe a forced
+  commit is needed, stop and report to the master instead.
 - Heartbeat on pickup and after each chunk: `fleet heartbeat WSxx [note]`.
   When the set of files being edited changes, add
   `--files <comma-separated paths>` so the dashboard "now editing" card

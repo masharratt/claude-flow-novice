@@ -67,7 +67,7 @@ done | dead`.
 | `commit WSxx -m <msg>` | Guarded commit: stages ONLY claimed paths, refuses (66) on unclaimed dirty files |
 | `migrate-next WSxx <dir>` | Reserve next migration number (max+1, flocked); no silent collisions |
 | `spawn WSxx [--spares N] [--engine e] [--no-tmux] [--dry-run]` | Launch the worker's engine in a tmux pane on the run's socket, verify its banner, then send the thin prompt. Prints the dashboard URL: `dashboard live: http://127.0.0.1:<port>/dashboard.html` when the dashboard server is up, otherwise `dashboard: <url> (start: fleet dashboard --open)`. Engine precedence: `--engine` > roster column > `FLEET_DEFAULT_ENGINE` > `claude-sub`. Splices the activity-gated heartbeat ticker into the pane (`FLEET_TICK_SECS`, default 30s, `off` disables) |
-| `land WSxx [--no-ff]` | Worktree: merge `fleet/<WSxx>` + remove worktree; main: mark landed |
+| `land WSxx [--no-ff]` | Worktree: merge `fleet/<WSxx>` + remove worktree; main: mark landed; then sweep `handoffs/` for files addressed to the lane (`residual:` lines) |
 | `handoff WSxx` | Write `handoffs/HANDOFF_WSxx.md` for compaction restart into a spare |
 | `db WSxx` / `db-clean [--all]` | Scratch postgres containers (only when `FLEET_DB=docker`) |
 | `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. STALE fires when a started/working row's heartbeat ages past `--stale-min` (default 5 minutes). Heartbeat-only roster diffs never emit `CHANGE` (the spawn ticker rewrites that column every tick). Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
@@ -82,7 +82,13 @@ A worker's brief is `briefs/WSxx.md` (copy `briefs/BRIEF_WS.md` and fill in:
 task, claims, allowed commands, done criteria). The spawn prompt is one thin
 line: "read briefs/WSxx.md and start; coordinate only via roster files". Workers
 commit through `fleet commit`, heartbeat as they work, and never touch another
-row's claims. Whenever the set of files being edited changes, the worker runs
+row's claims. Verification is scoped: workers run suites and `tsc` on CLAIMED
+paths only, and the full suite is the master's landing gate, run after all
+lanes land (a full-suite failure inside another lane's in-flight files is not
+the lane's to fix or wait on). Raw `git commit` is never a worker command;
+everything lands via `fleet commit WSxx`, and a lane that believes a forced
+commit is needed stops and reports to the master. Whenever the set of files
+being edited changes, the worker runs
 `fleet heartbeat WSxx --files src/a.ts,src/b.ts`; the dashboard lists those
 paths on the worker's card under "now editing". Spare sessions
 (`<name>-spare<k>`) stay empty until a handoff.
@@ -265,7 +271,11 @@ $HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --stop    # tear the server d
 
 Standard timing: the main chat checks the fleet every **15 minutes**. Each
 check is one batch: `fleet status` (roster + heartbeat ages), react to STALE/
-DEAD rows, unblock or wake workers, land finished lanes. `fleet watch` (Monitor
+DEAD rows, unblock or wake workers, land finished lanes. Every land ends with a
+residual sweep: `handoffs/` files addressed to the landed lane print one
+`residual: <file> (dispatch or record open)` line each, and the master
+dispatches a follow-up or records the residual as open (no addressed files, no
+extra output). `fleet watch` (Monitor
 tool) and the dashboard run alongside but never replace the check — a watch
 stream goes quiet when nothing changes and poll loops die under memory pressure
 (trap 6); the 15-minute check is what catches a stalled run. STALE (default
