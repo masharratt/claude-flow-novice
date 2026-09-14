@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "overview": {
+    "title": "How CFN turns work into checked results",
+    "summary": "CFN combines agent workflows, verification gates and supporting infrastructure. Start with one source-backed walkthrough, then use the directory and dependency views to inspect implementation details.",
+    "coverage": "One capability has been traced in depth. The remaining directory entries are an inventory and have not been reviewed as independent capabilities.",
+    "questions": [
+      "Why can a successful command still leave a task unresolved?",
+      "What evidence does the task exit workflow require?",
+      "Where should I change test-result parsing?"
+    ]
+  },
+  "capabilities": [
+    {
+      "fid": "task-verification",
+      "name": "Proving a task is complete",
+      "status": "dev",
+      "status_reason": "Implemented runner and regression suite. This page is a source review, not a certification of every CFN workflow or deployment.",
+      "description": "Runs acceptance checks, distinguishes failed checks from unresolved evidence, and records the result used by the task exit workflow.",
+      "purpose": "A successful command is not always proof that a task meets its acceptance criteria. CFN uses a VERIFY manifest to name the checks and a results file to record what actually happened. This capability explains the boundary between executing a check and accepting its evidence.",
+      "reviewed_at": "2026-09-13",
+      "dependencies": "Bash, jq, GNU timeout; psql for configured database checks; each check's declared tools and services.",
+      "sources": [
+        {
+          "path": ".claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh",
+          "line": 373,
+          "claim": "run validates the manifest, executes checks, persists result rows and computes all_green; resolve stamps evidence; summary reads the stored verdict.",
+          "sha256": "2913d3aaaad3834356e1ce78707235616d3b5b9293b5a002c4f1d1523de822b0"
+        },
+        {
+          "path": ".claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh",
+          "line": 64,
+          "claim": "The pass-rate gate shares the summary parser and rejects zero tests or a shrinking baseline.",
+          "sha256": "e7d92ef65a444f21007ddbaae1e33b3e5ce3c7ba0c0eb452067cf388f0d7cc1a"
+        },
+        {
+          "path": ".claude/skills/cfn-loop-orchestration-v2/cli/lib/parse-test-summary.sh",
+          "line": 1,
+          "claim": "Shared runner-summary parsing determines collected, passed, failed, skipped and todo counts.",
+          "sha256": "053a3e3b343f118a0fa9b84cfeaf49f9b116444b9442decad666a139ba83610f"
+        },
+        {
+          "path": ".claude/skills/cfn-loop-orchestration-v2/lib/task-mode/exit-gate.md",
+          "line": 52,
+          "claim": "The task exit workflow invokes run, resolves missing evidence, reads summary, and then performs additional exit gates.",
+          "sha256": "6ea1a89676f7ba8d7632ba43f89adf3fe3e20319c50ac652d6a9d22581264a13"
+        },
+        {
+          "path": ".claude/skills/cfn-loop-orchestration-v2/cli/tests/test-verify-run.sh",
+          "line": 1,
+          "claim": "Regression coverage for verification manifests and evidence resolution; the file is evidence of test coverage, not of a passing run today.",
+          "sha256": "b1106206be0e3f1e22977cb34a3fbdcc97e8fa785e8b5073114cac0fc41f37d1"
+        }
+      ],
+      "flow": [
+        {
+          "title": "Start with acceptance criteria",
+          "detail": "The exit workflow supplies a VERIFY Markdown file. run reads its final fenced JSON block, checks the integrity sidecar when present, and chooses the result-file path. A missing sidecar warns and proceeds; a mismatched sidecar exits 4.",
+          "source": ".claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh",
+          "line": 373
+        },
+        {
+          "title": "Decide whether a check can run",
+          "detail": "For each selected acceptance criterion, resolve its working directory, classify the command, check required environment and services, and preflight tools. Missing prerequisites become blocked; missing tools become error; checks the runner cannot execute become needs_agent.",
+          "source": ".claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh",
+          "line": 461
+        },
+        {
+          "title": "Execute and judge the evidence",
+          "detail": "Executable checks run under a timeout with captured output. Authoritative checks are judged by exit status and, for recognized test runners, parsed test counts. Zero collected tests fail. A successful non-asserting command stays predicate_unverified with pass=null.",
+          "source": ".claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh",
+          "line": 530
+        },
+        {
+          "title": "Record the result",
+          "detail": "The runner writes mode, pass, reason, output_excerpt and evidence into VERIFY_RESULTS. all_green requires total>0, red=0 and unresolved=0. run exits 0 only for that condition; otherwise it exits 1.",
+          "source": ".claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh",
+          "line": 666
+        },
+        {
+          "title": "Resolve or return to implementation",
+          "detail": "The exit workflow sends unresolved checks for evidence capture. resolve requires an existing AC id, true/false verdict and at least three non-empty evidence lines; it stamps mode=resolved and recomputes the summary. Failed or unresolved criteria send the task back to its bounded iteration loop.",
+          "source": ".claude/skills/cfn-loop-orchestration-v2/lib/task-mode/exit-gate.md",
+          "line": 68
+        },
+        {
+          "title": "Apply the remaining exit gates",
+          "detail": "summary reads the stored all_green verdict. The wider task workflow still requires evidence backfill and re-blessing when applicable, a full-suite final gate, and deferral checks. Passing VERIFY is one prerequisite for finishing the task.",
+          "source": ".claude/skills/cfn-loop-orchestration-v2/lib/task-mode/exit-gate.md",
+          "line": 94
+        }
+      ],
+      "failures": [
+        "Exit 4 from run: the manifest differs from its integrity sidecar. Investigate and re-bless the intended manifest through the planning workflow.",
+        "blocked: restore the required service, environment or working directory, then rerun the affected checks. An absent dependency is not proof of a feature defect.",
+        "error with tool_missing: provide the missing executable and rerun. Empty command output must not become a false pass.",
+        "predicate_unverified: exit 0 did not assert the desired property. Make the check self-asserting or resolve it with captured evidence.",
+        "Recognized test-runner output reporting zero tests is a failed check. Inspect selectors and runner configuration.",
+        "Red or unresolved results keep all_green false. Repair the implementation or check, collect evidence, and run the gate again."
+      ],
+      "change_guidance": [
+        "Change command classification, preconditions or evidence judgment in cli/verify-run.sh. Test both successful and unresolved paths in cli/tests/test-verify-run.sh.",
+        "Change runner-summary interpretation in cli/lib/parse-test-summary.sh. Verify both gate-check.sh and verify-run.sh because they share this parser.",
+        "Change exit ordering and task-level iteration policy in lib/task-mode/exit-gate.md. The runner alone does not enforce the whole task workflow."
+      ],
+      "limitations": [
+        "This walkthrough covers task verification, not agent spawning or every CLI execution mode.",
+        "summary reads the saved summary; it does not rerun checks or revalidate the manifest hash. Its result is only as current as the results file.",
+        "resolve checks evidence shape and row existence, not whether the evidence semantically proves the claim. That still requires review.",
+        "State diagram nodes below are persisted result modes. pass and predicate_unverified are separate fields; executed does not necessarily mean passed."
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "name": "Acceptance-check result",
+      "capability": "task-verification",
+      "source": ".claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh:461",
+      "description": "run creates one result row per selected acceptance criterion. This diagram shows result modes, not feature maturity. resolve can update an existing row after receiving evidence; pass remains a separate true/false/null field.",
+      "states": [
+        "executed",
+        "blocked",
+        "error",
+        "needs_agent",
+        "resolved"
+      ],
+      "meanings": {
+        "executed": "Command ran; pass may be true, false or unresolved.",
+        "blocked": "Prerequisites unavailable; pass is null.",
+        "error": "Tool failure; pass is false.",
+        "needs_agent": "Runner cannot execute the check; pass is null.",
+        "resolved": "Evidence and an explicit verdict were stamped into an existing row."
+      },
+      "transitions": [
+        {
+          "from": "[*]",
+          "to": "executed",
+          "trigger": "run executes a supported check",
+          "guard": "Working directory, prerequisites and tools available"
+        },
+        {
+          "from": "[*]",
+          "to": "blocked",
+          "trigger": "run evaluates prerequisites",
+          "guard": "Required environment, service or directory unavailable"
+        },
+        {
+          "from": "[*]",
+          "to": "error",
+          "trigger": "Tool preflight or runtime diagnostic",
+          "guard": "Required executable is missing"
+        },
+        {
+          "from": "[*]",
+          "to": "needs_agent",
+          "trigger": "run classifies the check",
+          "guard": "Command not mechanically executable by this runner"
+        },
+        {
+          "from": "executed",
+          "to": "resolved",
+          "trigger": "resolve stamps a verdict",
+          "guard": "Existing AC id, true/false verdict, evidence file with at least three non-empty lines"
+        },
+        {
+          "from": "blocked",
+          "to": "resolved",
+          "trigger": "resolve stamps a verdict",
+          "guard": "Existing AC id, true/false verdict, evidence file with at least three non-empty lines"
+        },
+        {
+          "from": "error",
+          "to": "resolved",
+          "trigger": "resolve stamps a verdict",
+          "guard": "Existing AC id, true/false verdict, evidence file with at least three non-empty lines"
+        },
+        {
+          "from": "needs_agent",
+          "to": "resolved",
+          "trigger": "resolve stamps a verdict",
+          "guard": "Existing AC id, true/false verdict, evidence file with at least three non-empty lines"
+        }
+      ]
+    }
+  ]
+}

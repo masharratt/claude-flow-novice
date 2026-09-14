@@ -19,79 +19,79 @@
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
       "line": 1,
       "claim": "v3.0.0 module: imports gateCheck, collectConsensus/validateConsensus, spawnLoop3Agents/spawnLoop2Agents, decideNextAction + canonical mode-config from repo src/planning/orchestration, and FileCoordinator; declares LoopPhase 'loop3'|'loop2'|'product-owner'|'complete' and ProductOwnerDecision 'PROCEED'|'ITERATE'|'ABORT'|null as the journey's vocabulary.",
-      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+      "sha256": "d1f2a2daf8f6b7d5db7798faf676c7ba5321230d0c87467908f91404f7ddb690"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
       "line": 121,
       "claim": "Orchestrator class (after escapeShellArg at 144): validateConfig enforces mode in mvp/standard/enterprise, maxIterations integer 1..100 and per-agent timeouts 10..3600s; initializeState starts iteration 0, currentPhase 'loop3', budgetRemaining = budgetCap ?? 5.0.",
-      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+      "sha256": "d1f2a2daf8f6b7d5db7798faf676c7ba5321230d0c87467908f91404f7ddb690"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
       "line": 241,
       "claim": "Gate and consensus thresholds come from getCanonicalModeConfig (not hardcoded here); default timeouts are loop3Agent 300s, loop2Agent 300s, productOwner 60s; transitionPhase pushes a PhaseTransition into history; shouldTerminate returns true for PROCEED or ABORT, and for ITERATE only once iteration >= maxIterations.",
-      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+      "sha256": "d1f2a2daf8f6b7d5db7798faf676c7ba5321230d0c87467908f91404f7ddb690"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
       "line": 361,
       "claim": "checkGate(passRate) is the Loop3->Loop2 transition: it delegates to helpers gateCheck({passRate, mode, threshold}) and returns {passed, passRate, threshold, gap}; aggregateTestResults computes passRate = totalPass/total over recorded agent TestResults (0 when no tests); recordConsensusScore rejects scores outside 0.0-1.0; validateConsensus runs collectConsensus then validateConsensus against the mode threshold.",
-      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+      "sha256": "d1f2a2daf8f6b7d5db7798faf676c7ba5321230d0c87467908f91404f7ddb690"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
       "line": 481,
       "claim": "waitForAgentsToComplete filters failed spawns (console.warn 'Skipping failed agent'), then blocks on this.coordinator.waitForDone(taskId, ids, timeout) - file-based coordination where workers write done markers; done agents are marked complete, successful-but-unfinished ones get recordTimeout ('Agent timeout after Ns'); collectAgentOutputs pulls {testResult, confidence, deliverables} per agent via coordinator.getResult and records test results.",
-      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+      "sha256": "d1f2a2daf8f6b7d5db7798faf676c7ba5321230d0c87467908f91404f7ddb690"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
       "line": 601,
       "claim": "Before any test run, TEST_COMMAND (env, default 'npm test') is validated against ALLOWED_TEST_COMMANDS (npm test, npm run test, jest, mocha, yarn test) plus regexes for npm run test:* scripts and jest/mocha with a specific .test.[jt]s file; any '..' triggers a path-traversal error and non-allowed commands throw a shell-injection error (comment cites CVSS 8.5).",
-      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+      "sha256": "d1f2a2daf8f6b7d5db7798faf676c7ba5321230d0c87467908f91404f7ddb690"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
       "line": 721,
       "claim": "executeTestsOnDeliverables verifies every declared deliverable exists via fs.access under PROJECT_ROOT (env or cwd); missing deliverables become a TestResult of fail=missing-count; otherwise the allowlisted command runs via execSync and Jest-format 'N passing/failing/pending' regexes produce pass/fail/skip; a thrown execution counts ALL of that agent's deliverables as fails. Agents with no deliverables are skipped with a warning.",
-      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+      "sha256": "d1f2a2daf8f6b7d5db7798faf676c7ba5321230d0c87467908f91404f7ddb690"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
       "line": 841,
       "claim": "execute() is the driver: for iteration 1..maxIterations it transitions to loop3, spawns (config.loop3Agents or default ['backend-dev','coder']) via the module-level spawnLoop3Agents, waits, and on zero completions records ABORT and breaks; resetForIteration clears testResults, consensusScores, decision, errors and both agent sets; buildPlannerContext packs {iteration, maxIterations, gatePassed, consensusPassed, poConsulted, budgetRemaining, timeRemainingMs, dollarSpent} for the planner.",
-      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+      "sha256": "d1f2a2daf8f6b7d5db7798faf676c7ba5321230d0c87467908f91404f7ddb690"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
       "line": 961,
       "claim": "Failure paths all route through the GOAP planner: gate fail, zero Loop 2 completions, and failed consensus each call decideNextAction(buildPlannerContext(...)); plannerDecision.action === 'abort_mission' records ABORT and breaks (logging remaining budget), else feedback is prepared, state reset, and the loop continues or records ABORT at 'Max iterations reached'; Loop 3 costs $0.054 and Loop 2 $0.150 per iteration against budgetRemaining; Loop 2 defaults to ['code-reviewer','tester','security-specialist'] and validator confidence scores feed recordConsensusScore.",
-      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+      "sha256": "d1f2a2daf8f6b7d5db7798faf676c7ba5321230d0c87467908f91404f7ddb690"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
       "line": 1081,
       "claim": "Product-owner phase: execSync runs bash .claude/skills/cfn-product-owner-decision/execute-decision.sh with escapeShellArg-quoted args (--task-id, --agent-id, --consensus, --threshold, --iteration, --max-iterations, --timeout, optional --success-criteria) under a (productOwner timeout + 10s) clock; the output's JSON {\"decision\": PROCEED|ITERATE|ABORT} is parsed (with reasoning and confidence logged), falling back to a 'Decision: X' text match, and BOTH unparseable output and a thrown PO execution DEFAULT TO PROCEED; PROCEED breaks as SUCCESS, ITERATE stores feedback via coordinator.writeFeedback for iteration+1 then continues (ABORT at max iterations), ABORT breaks as 'FAILURE: Product Owner rejected'.",
-      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+      "sha256": "d1f2a2daf8f6b7d5db7798faf676c7ba5321230d0c87467908f91404f7ddb690"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
       "line": 1201,
       "claim": "End of run: finalDecision = getDecision() || 'ABORT' (an undecided loop reads as ABORT), a summary is printed and the decision returned. The CLI tail (require.main) parses --task-id/--mode/--max-iterations/--loop3-agents/--loop2-agents/--product-owner/--success-criteria, process.exit(1) when --task-id is missing, then constructs the Orchestrator, prints initial state JSON and process.exit(0) - it NEVER calls execute(), so the process exit code never reflects the PROCEED/ITERATE/ABORT decision.",
-      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+      "sha256": "d1f2a2daf8f6b7d5db7798faf676c7ba5321230d0c87467908f91404f7ddb690"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/iteration-manager.ts",
       "line": 1,
       "claim": "Complete 46-line helper: prepareIteration({currentIteration, feedback}) returns {nextIteration: current+1, feedback, timestamp}; wakeAgents(agentIds) returns signal strings 'wake:<agentId>:<Date.now()>'. No call site inside orchestrate.ts appears in the spans read, so its consumer is unverified.",
-      "sha256": "edb26ebfcdf0481498f03a5de6fe6bb99ba18f5f58de034858a31d49ad15ca4e"
+      "sha256": "52de8ff468625b059468dfdeba4037cb56958f3ea5a0354be6c17562629bb1d6"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/agent-spawner/agent-spawner.ts",
       "line": 1,
       "claim": "Complete 35-line file self-described as 'placeholder for migration': AgentSpawner.spawnAgents(taskId, loopNumber, agentCount, mode) returns synthetic AgentSpec objects (id `${taskId}-loop${loopNumber}-agent${i}`, type `loop${loopNumber}-agent`, memoryTier 2, memoryLimit '1g') and spawns no process; the real spawning in execute() goes through helpers/spawn-agents instead.",
-      "sha256": "01b98746cae5b487c424f76acb86a61a5a2ff3bb9191776d4c47984fa7c1f750"
+      "sha256": "10d25066137d8bf48fc88d2c55fd5700adbeab09e81f7f0ac4db0993ef93ed6e"
     }
   ],
   "evidence": [

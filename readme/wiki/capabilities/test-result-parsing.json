@@ -49,13 +49,13 @@
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/parse-test-results.ts",
       "line": 6,
       "claim": "The orchestrator's TypeScript parser covers a different framework union than the shell parser (jest/mocha/pytest/tap/go/junit/unknown: it has mocha, tap and junit but not vitest, node, cargo, nextest or playwright).",
-      "sha256": "35e7ccb04e49745a78c38dae0e6e2c1e7b542d73cf534ee734b296ded586437d"
+      "sha256": "057f6624f9f069fd7f0505871729e4cab6c8ad2a0fd7e5dd18dee51213dfca63"
     },
     {
       "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/parse-test-results.ts",
       "line": 307,
       "claim": "parseTestResults(framework, output) is the entry point: framework 'auto' routes through autoDetectFramework heuristics, and the switch handles only jest/mocha/pytest/tap/go; every other value, including a 'junit' argument, returns a zeroed framework='unknown' TestResults (passRate 0.0) rather than an error. Teaching this path a runner means a new parse function, a switch case, and an autoDetect heuristic.",
-      "sha256": "35e7ccb04e49745a78c38dae0e6e2c1e7b542d73cf534ee734b296ded586437d"
+      "sha256": "057f6624f9f069fd7f0505871729e4cab6c8ad2a0fd7e5dd18dee51213dfca63"
     }
   ],
   "evidence": [

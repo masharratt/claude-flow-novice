@@ -39,10 +39,26 @@ def load_knowledge(repo):
     return _load_v1(repo, doc)
 
 
+def canonical_digest(repo, rel):
+    """Hash the git index blob for a tracked path: identical bytes on
+    every machine for the same commit. Worktree bytes can differ from the
+    blob via CRLF normalization or unstaged edits, which made freshness
+    machine-dependent (CI red 2026-09-14). Falls back to the worktree
+    read for non-git repos and untracked paths."""
+    try:
+        blob = subprocess.run(
+            ['git', '-C', str(repo), 'cat-file', 'blob', ':%s' % rel],
+            capture_output=True, check=True).stdout
+        return hashlib.sha256(blob).hexdigest()
+    except (OSError, subprocess.CalledProcessError):
+        return digest(Path(repo) / rel)
+
+
 def verify_sources(repo, fid, sources):
-    """Verify authored sources against the worktree. Mutates each source
-    dict with needs_review and excerpt; returns the evidence dict keyed
-    by path. Shared by the version 1 and version 2 loaders."""
+    """Verify authored sources against the canonical (committed) content.
+    Mutates each source dict with needs_review and excerpt; returns the
+    evidence dict keyed by path. Shared by the version 1 and version 2
+    loaders."""
     evidence = {}
     for src in sources:
         if not isinstance(src.get('line'), int) or src['line'] < 1 or not src.get('claim'):
@@ -50,7 +66,7 @@ def verify_sources(repo, fid, sources):
         if not re.fullmatch(r'[0-9a-f]{64}', src.get('sha256', '')):
             raise ValueError(fid + ': source requires reviewed sha256')
         path = source_path(Path(repo), src['path'])
-        current = digest(path)
+        current = canonical_digest(repo, src['path'])
         src['needs_review'] = current != src['sha256']
         if current != 'missing' and src['line'] > len(path.read_text(errors='replace').splitlines()):
             src['needs_review'] = True
