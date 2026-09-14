@@ -7,7 +7,11 @@ the .wiki/work/jobs.sqlite store (never cleared by sync, rebuild or
 migration), the job state machine with BEGIN IMMEDIATE lease safety, the
 work CLI (plan/next/evidence/checkpoint/submit/review/promote/status/
 unblock/release/requeue/export/import), budget inheritance and
-journal-first promotion with backups and crash recovery.
+journal-first promotion with backups and crash recovery. Accepted jobs
+invalidate per evidence: acceptance records each cited [path, sha256]
+pair and both the stale cascade and the promotion freshness recheck
+compare those hashes, never the whole-tree revision (section 5
+amendment, 2026-09-14).
 
 Host agent invocation stays outside these commands: no model calls, no
 claude -p. Stdlib only. No em dashes in code or comments by repo rule.
@@ -258,18 +262,94 @@ def auto_unblock(con, now):
     return unblocked
 
 
+def accept_source_hashes_key(job_id):
+    return 'accept:%s:source_hashes' % job_id
+
+
+def candidate_source_hashes(repo, candidate):
+    """[path, sha256] pairs cited by a candidate: capability sources carry
+    their reviewed sha256, entity sources are path:line strings hashed
+    canonically at acceptance. The stale cascade and the promotion
+    freshness recheck compare these against the tree (per-evidence
+    invalidation, CONTRACTS section 5 amendment)."""
+    pairs, seen = [], set()
+
+    def record(path, sha):
+        if not isinstance(path, str) or not path:
+            return
+        if not isinstance(sha, str) or not re.fullmatch(r'[0-9a-f]{64}', sha):
+            return
+        key = (path, sha)
+        if key not in seen:
+            seen.add(key)
+            pairs.append([path, sha])
+
+    if not isinstance(candidate, dict):
+        return pairs
+    for cap in candidate.get('capabilities') or []:
+        if not isinstance(cap, dict):
+            continue
+        for src in cap.get('sources') or []:
+            if isinstance(src, dict):
+                record(src.get('path'), src.get('sha256'))
+    for entity in candidate.get('entities') or []:
+        if not isinstance(entity, dict):
+            continue
+        source = entity.get('source')
+        if isinstance(source, str) and ':' in source:
+            path = source.rpartition(':')[0]
+            sha = knowledge.canonical_digest(repo, path)
+            if sha != 'missing':
+                record(path, sha)
+    return pairs
+
+
+def load_accept_source_hashes(con, job_id):
+    """Recorded [path, sha256] pairs for an accepted job. Missing or
+    malformed rows yield an empty list (no cited evidence to compare)."""
+    row = con.execute('SELECT value FROM meta WHERE key=?',
+                      (accept_source_hashes_key(job_id),)).fetchone()
+    if row is None:
+        return []
+    try:
+        pairs = json.loads(row[0])
+    except ValueError:
+        return []
+    if not isinstance(pairs, list):
+        return []
+    return [pair for pair in pairs
+            if isinstance(pair, list) and len(pair) == 2
+            and isinstance(pair[0], str) and isinstance(pair[1], str)]
+
+
+def changed_source_paths(repo, pairs):
+    """Cited paths whose current canonical hash differs from the recorded
+    one, or that vanished from the tree. Canonical hashing goes through
+    the git index blob with a worktree fallback, so identical content
+    hashes the same on every machine."""
+    changed = []
+    for path, sha in pairs:
+        if knowledge.canonical_digest(repo, path) != sha:
+            changed.append(path)
+    return changed
+
+
 def stale_check(con, repo, now):
-    """Accepted jobs whose input revision moved go stale and requeue at the
-    current revision; accepted dependents cascade."""
+    """Accepted jobs whose CITED EVIDENCE moved go stale and requeue at
+    the current revision; accepted dependents cascade. Per the section 5
+    amendment a job stales only when one of its recorded [path, sha256]
+    pairs no longer matches the tree, so an unrelated tree change or
+    another job's promotion never re-stales it."""
     try:
         revision = current_revision(repo)
     except (discovery.DiscoveryError, OSError) as exc:
         raise WorkError('cannot compute revision: %s' % exc)
-    rows = con.execute("SELECT id, input_revision FROM jobs WHERE "
+    rows = con.execute("SELECT id FROM jobs WHERE "
                        "status='accepted'").fetchall()
     requeued = []
     pending = [row['id'] for row in rows
-               if row['input_revision'] != revision]
+               if changed_source_paths(repo, load_accept_source_hashes(
+                   con, row['id']))]
     seen = set()
     while pending:
         job_id = pending.pop(0)
@@ -1033,6 +1113,23 @@ def cmd_review(args):
                 "INSERT INTO meta (key, value) VALUES (?, ?) "
                 'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
                 ('accept:%s:revision' % job['id'], job['input_revision']))
+            # per-evidence fingerprints: the stale cascade and the
+            # promotion recheck compare these hashes, never the whole-tree
+            # revision (an unreadable candidate records no evidence)
+            source_hashes = []
+            candidate_path = job['candidate_path'] or attempt['candidate_path']
+            if candidate_path and os.path.exists(candidate_path):
+                try:
+                    with open(candidate_path, encoding='utf-8') as handle:
+                        source_hashes = candidate_source_hashes(
+                            repo, json.load(handle))
+                except (OSError, ValueError):
+                    source_hashes = []
+            con.execute(
+                "INSERT INTO meta (key, value) VALUES (?, ?) "
+                'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+                (accept_source_hashes_key(job['id']),
+                 json.dumps(source_hashes)))
             con.execute(
                 "INSERT INTO meta (key, value) VALUES (?, ?) "
                 'ON CONFLICT(key) DO UPDATE SET value=excluded.value',
@@ -1134,9 +1231,8 @@ def recover_promotions(repo, con):
                             % (row['id'], exc))
         con.execute('UPDATE promotions SET state=? WHERE id=?',
                     ('committed', row['id']))
-        # the completed writes moved the tree revision; record the new
-        # revision so the accepted job is not marked stale by its own
-        # promotion
+        # keep the job row's revision aligned with the tree its promoted
+        # writes landed in (staleness itself is decided per evidence)
         con.execute('UPDATE jobs SET input_revision=?, updated_epoch=? '
                     'WHERE id=?',
                     (current_revision(repo), now_epoch(), row['job_id']))
@@ -1162,9 +1258,8 @@ def cmd_promote(args):
     try:
         begin_immediate(con)
         # no maintenance scan here: the freshness recheck below is the whole
-        # point, and a stale scan would requeue accepted jobs (including
-        # ones whose revision moved only through their own promotion
-        # writes) before the recheck could name the reason
+        # point, and a scan would requeue accepted jobs whose cited sources
+        # moved before the recheck could name the reason
         recovered = recover_promotions(repo, con)
         job = fetch_job(con, args.job)
         if job['status'] != 'accepted':
@@ -1184,12 +1279,21 @@ def cmd_promote(args):
                           'nothing to apply'})
             return 0
         revision = current_revision(repo)
-        if job['input_revision'] != revision:
+        # freshness recheck is per evidence: only a cited path whose
+        # canonical hash moved (or vanished) refuses promotion. An
+        # unrelated tree change is not the candidate's problem.
+        changed = changed_source_paths(
+            repo, load_accept_source_hashes(con, job['id']))
+        if changed:
             con.execute('COMMIT')
-            fail('promotion refused: source changed since acceptance; job '
-                 'revision %s, current revision %s; the candidate must be '
-                 're-reviewed against the new revision'
-                 % (job['input_revision'], revision), revision, exit_code=2)
+            named = sorted(set(changed))
+            shown = ', '.join(named[:5])
+            if len(named) > 5:
+                shown += ', ... (%d more)' % (len(named) - 5)
+            fail('promotion refused: source changed since acceptance; cited '
+                 'paths no longer match their reviewed hashes: %s; the '
+                 'candidate must be re-reviewed against the current sources'
+                 % shown, revision, exit_code=2)
         digest = knowledge.knowledge_state_digest(repo)
         accepted_digest = meta_get(con, 'accept:%s:knowledge_digest'
                                    % job['id'])
@@ -1257,8 +1361,9 @@ def cmd_promote(args):
         begin_immediate(con)
         con.execute('UPDATE promotions SET state=? WHERE id=?',
                     ('committed', promotion_id))
-        # record the post-write revision: the accepted explanation now
-        # reflects the tree including its own promoted writes
+        # bookkeeping: the job row's revision reflects the tree including
+        # its own promoted writes (staleness is decided per evidence, so
+        # this stamp never protects or re-stales the job)
         con.execute('UPDATE jobs SET input_revision=?, updated_epoch=? '
                     'WHERE id=?',
                     (current_revision(repo), now_epoch(), job['id']))

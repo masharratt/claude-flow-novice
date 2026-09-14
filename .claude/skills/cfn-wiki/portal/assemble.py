@@ -188,9 +188,14 @@ def inline(template_html, payload):
     if PLACEHOLDER not in template_html:
         raise SystemExit("assemble: template has no %s slot" % PLACEHOLDER)
     # `</` inside JSON strings becomes the valid escape `<\/`, so a literal
-    # "</script>" in a description can never close the payload tag early
+    # "</script>" in a description can never close the payload tag early.
+    # The slot swaps to a per-build unique token before substitution so
+    # payload CONTENT quoting the literal placeholder (the wiki documents
+    # its own template) can never collide with the slot itself.
     blob = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
-    return template_html.replace(PLACEHOLDER, blob)
+    unique = PLACEHOLDER + "-" + uuid.uuid4().hex
+    staged = template_html.replace(PLACEHOLDER, unique, 1)
+    return staged.replace(unique, blob)
 
 
 def write_atomic(path, text):
@@ -201,16 +206,23 @@ def write_atomic(path, text):
 
 
 def check_page(html, label):
-    """Hard-fail checks for every emitted page (mirrors the bash selfcheck)."""
-    if PLACEHOLDER in html:
-        raise SystemExit("assemble: %s still holds the placeholder" % label)
+    """Hard-fail checks for every emitted page (mirrors the bash selfcheck).
+    The placeholder LITERAL may legitimately appear inside quoted content
+    (a capability citing the template); only an UNFILLED SLOT is fatal."""
     m = re.search(
         r"<script type=\"application/json\" id=\"wiki-payload\">(.*?)</script>",
         html, re.S)
     if not m:
         raise SystemExit("assemble: %s has no payload script tag" % label)
+    body = m.group(1).strip()
+    if not body.startswith("{") or not body.endswith("}"):
+        raise SystemExit("assemble: %s payload slot is not filled JSON" % label)
     json.loads(m.group(1))  # raises on truncation or bad escaping
-    hit = EXTERNAL_REF.search(html)
+    # External-ref scan covers only the RENDERED page, not the inert JSON
+    # payload: content may legitimately quote the check patterns (the
+    # wiki-portal capability cites the selfcheck verbatim).
+    rendered = html[:m.start()] + html[m.end():]
+    hit = EXTERNAL_REF.search(rendered)
     if hit:
         raise SystemExit(
             "assemble: external ref in %s near %r (self-contained contract)"

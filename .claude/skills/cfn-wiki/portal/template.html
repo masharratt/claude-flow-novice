@@ -821,6 +821,40 @@ footer { color:var(--dim); font-size:11px; padding-bottom:24px; }
       noteBtn.setAttribute("data-annotate", "module:" + id);
       noteBtn.classList.toggle("has-note", !!(annos["module:" + id] && annos["module:" + id].note));
     }
+    function clearNodeSelection() {
+      svg.querySelectorAll(".muted,.connected").forEach(function (n) {
+        n.classList.remove("muted"); n.classList.remove("connected");
+      });
+      svg.querySelectorAll(".node-hit").forEach(function (g) {
+        g.classList.remove("selected");
+        g.setAttribute("aria-pressed", "false");
+      });
+      $("module-list").querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
+      $("arch-detail").hidden = true;
+      $("arch-detail-placeholder").hidden = false;
+    }
+    // Clicking empty canvas restores every node; a pan gesture must not.
+    // The pan handler captures the pointer and suppresses click events,
+    // so deselect keys off pointerup on the scroll viewport with a
+    // movement threshold instead of a click listener.
+    var downAt = null;
+    var viewport = svg.parentElement;
+    viewport.addEventListener("pointerdown", function (ev) {
+      downAt = ev.target.closest && ev.target.closest(".node-hit,a,button") ? null
+        : [ev.clientX, ev.clientY];
+    });
+    viewport.addEventListener("pointerup", function (ev) {
+      if (!downAt) return;
+      var moved = Math.abs(ev.clientX - downAt[0]) + Math.abs(ev.clientY - downAt[1]);
+      downAt = null;
+      if (moved <= 6 && !(ev.target.closest && ev.target.closest(".node-hit,a,button"))) {
+        clearNodeSelection();
+      }
+    });
+    host.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") clearNodeSelection();
+    });
+    renderArch.clearNodeSelection = clearNodeSelection;
     // expose for the annotation painter (button inside the detail panel)
     renderArch.selectNode = selectNode;
   }

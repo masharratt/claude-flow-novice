@@ -140,15 +140,20 @@ PY
 _wiki_portal_selfcheck_html() {
     local file="$1" label="$2" built rc=0
     built="$(cat "$file")"
-    if printf '%s' "$built" | grep -q '__WIKI_PAYLOAD__'; then
-        echo "$label: placeholder left in output" >&2
-        rc=1
-    fi
-    if printf '%s' "$built" | grep -qE '<link|src="http|href="http'; then
+    # The placeholder literal may legitimately appear in quoted CONTENT
+    # (a capability citing the template); only an unfilled payload slot
+    # is a generator bug. Slot-fill verification lives in the python
+    # block below (precise tag extraction); a shell grep here proved
+    # brittle against byte-level content in the payload.
+    # External-ref and remote-CSS scans run on the RENDERED page with the
+    # inert JSON payload line stripped: content may legitimately quote the
+    # check patterns (the wiki-portal capability cites this selfcheck).
+    rendered="$(printf '%s' "$built" | grep -v 'id="wiki-payload">')"
+    if printf '%s' "$rendered" | grep -qE '<link|src="http|href="http'; then
         echo "$label: external ref in output (self-contained contract)" >&2
         rc=1
     fi
-    if printf '%s' "$built" | grep -qE '@import|url\(["'"'"']?https?:'; then
+    if printf '%s' "$rendered" | grep -qE '@import|url\(["'"'"']?https?:'; then
         echo "$label: remote CSS in output" >&2
         rc=1
     fi
@@ -162,6 +167,9 @@ m = re.search(r"<script type=\"application/json\" id=\"wiki-payload\">(.*?)</scr
               html, re.S)
 if not m:
     sys.exit("payload script tag missing from built page")
+body = m.group(1).strip()
+if not body.startswith("{") or not body.endswith("}"):
+    sys.exit("payload slot not filled with JSON")
 json.loads(m.group(1))   # raises on truncation or bad escaping
 '; then
         echo "$label: built payload does not parse" >&2

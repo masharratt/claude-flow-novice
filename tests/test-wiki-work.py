@@ -665,12 +665,72 @@ class SubmitReviewTests(Fixture):
         rc, status, _ = self.run_work('status', self.repo)
         self.assertEqual(self.job_row(beta)['status'], 'queued')
 
-    def test_accepted_job_goes_stale_on_revision_change(self):
+    def test_accepted_job_goes_stale_on_cited_source_change(self):
+        # Rewritten 2026-09-14: the stale cascade compares each accepted
+        # job's recorded source hashes, not the whole-tree revision. The
+        # candidate cites src/core.py, so only that file can stale it.
         self.discover()
         job = self.author_flow()
         self.write('src/core.py', 'def run_check():\n    return "different"\n')
         rc, status, _ = self.run_work('status', self.repo)
         self.assertEqual(self.job_row(job)['status'], 'queued')
+
+    def test_accepted_job_survives_unrelated_tree_change(self):
+        # Per-evidence invalidation: a file the candidate never cited must
+        # not stale the accepted job (the old whole-tree cascade requeued
+        # it on any tree movement).
+        self.discover()
+        job = self.author_flow()
+        self.write('src/unrelated.py', 'def bystander():\n    pass\n')
+        rc, status, _ = self.run_work('status', self.repo)
+        self.assertEqual(self.job_row(job)['status'], 'accepted')
+
+    def test_accepted_job_goes_stale_when_cited_path_vanishes(self):
+        self.discover()
+        job = self.author_flow()
+        (self.repo / 'src/core.py').unlink()
+        rc, status, _ = self.run_work('status', self.repo)
+        self.assertEqual(self.job_row(job)['status'], 'queued')
+
+    def test_acceptance_records_cited_source_hashes(self):
+        # Acceptance records the per-evidence fingerprints the cascade and
+        # the promotion recheck compare: capability sources carry their
+        # reviewed sha256, entity sources are hashed canonically at accept
+        # time and deduplicate against capability citations.
+        import hashlib
+        self.discover()
+        self.plan()
+        rc, leased, _ = self.next_job()
+        job = leased['job']
+        sha = hashlib.sha256(
+            (self.repo / 'src/core.py').read_bytes()).hexdigest()
+        cand = Path(self.temp.name) / 'cand.json'
+        cand.write_text(json.dumps(self.candidate(
+            capabilities=[{
+                'fid': 'cap-alpha', 'name': 'A', 'status': 'dev',
+                'status_reason': 'r', 'description': 'd', 'purpose': 'p',
+                'sources': [{'path': 'src/core.py', 'line': 1,
+                             'claim': 'run_check exists', 'sha256': sha}],
+                'flow': [], 'failures': [], 'change_guidance': []}],
+            entities=[{'name': 'Widget', 'source': 'src/core.py:2',
+                       'states': ['idle'],
+                       'transitions': [{'from': '[*]', 'to': 'idle',
+                                        'trigger': 't', 'guard': 'g'}]}])),
+            encoding='utf-8')
+        rc, submit, _ = self.run_work('submit', self.repo, '--job', job,
+                                      '--candidate', cand)
+        self.assertEqual(rc, 0, submit)
+        findings = Path(self.temp.name) / 'f.json'
+        findings.write_text(json.dumps({'findings': [], 'evidence_ids': []}),
+                            encoding='utf-8')
+        rc, review, _ = self.run_work(
+            'review', self.repo, '--job', job, '--decision', 'accepted',
+            '--findings', findings)
+        self.assertEqual(rc, 0, review)
+        row = self.sql('SELECT value FROM meta WHERE key=?',
+                       ('accept:%s:source_hashes' % job,))
+        self.assertEqual(len(row), 1)
+        self.assertEqual(json.loads(row[0][0]), [['src/core.py', sha]])
 
 
 class CheckpointTests(Fixture):
@@ -777,6 +837,69 @@ class PromoteTests(Fixture):
         rc, data, _ = self.run_work('promote', self.repo, '--job', job)
         self.assertEqual(rc, 2)
         self.assertIn('knowledge', data['error'])
+        # refused on the digest, not on evidence: the cited sources are
+        # unchanged, so the job stays accepted for a fresh review
+        self.assertEqual(self.job_row(job)['status'], 'accepted')
+
+    def test_promote_succeeds_after_unrelated_tree_change(self):
+        # The freshness recheck is per evidence: a file the candidate never
+        # cited cannot refuse promotion (the old whole-tree revision
+        # comparison refused exactly here).
+        self.discover()
+        job = self.author_flow()
+        self.write('src/unrelated.py', 'def bystander():\n    pass\n')
+        rc, data, _ = self.run_work('promote', self.repo, '--job', job)
+        self.assertEqual(rc, 0, data)
+        self.assertEqual(data['state'], 'committed')
+
+    def promoted_v2_job(self, fid):
+        """Push one v2 capability through accept and promote, return the
+        job id."""
+        import hashlib
+        sha = hashlib.sha256(
+            (self.repo / 'src/core.py').read_bytes()).hexdigest()
+        self.plan(self.simple_map(caps=((fid, 'Explain %s' % fid),)))
+        rc, leased, _ = self.next_job()
+        self.assertEqual(rc, 0, leased)
+        job = leased['job']
+        cand = Path(self.temp.name) / ('cand-%s.json' % fid)
+        cand.write_text(json.dumps(self.candidate(capabilities=[{
+            'fid': fid, 'name': fid.title(), 'status': 'dev',
+            'status_reason': 'r', 'description': 'd', 'purpose': 'p',
+            'reviewed_at': '2026-09-13', 'dependencies': '',
+            'sources': [{'path': 'src/core.py', 'line': 1,
+                         'claim': 'claim', 'sha256': sha}],
+            'flow': [], 'failures': [], 'change_guidance': []}])),
+            encoding='utf-8')
+        rc, submit, _ = self.run_work('submit', self.repo, '--job', job,
+                                      '--candidate', cand)
+        self.assertEqual(rc, 0, submit)
+        findings = Path(self.temp.name) / ('f-%s.json' % fid)
+        findings.write_text(json.dumps({'findings': [], 'evidence_ids': []}),
+                            encoding='utf-8')
+        rc, review, _ = self.run_work(
+            'review', self.repo, '--job', job, '--decision', 'accepted',
+            '--findings', findings)
+        self.assertEqual(rc, 0, review)
+        rc, data, _ = self.run_work('promote', self.repo, '--job', job)
+        self.assertEqual(rc, 0, data)
+        self.assertEqual(data['state'], 'committed')
+        return job
+
+    def test_promoted_job_survives_subsequent_promotion(self):
+        # Regression (whole-tree cascade): every promotion moved the tree
+        # revision and re-staled ALL previously promoted jobs, forcing the
+        # interim input_revision refresh. Per-evidence invalidation keeps a
+        # committed job accepted through a later job's promotion.
+        self.v2_repo()
+        first = self.promoted_v2_job('cap-first')
+        second = self.promoted_v2_job('cap-second')
+        rc, status, _ = self.run_work('status', self.repo)
+        self.assertEqual(self.job_row(first)['status'], 'accepted')
+        self.assertEqual(self.job_row(second)['status'], 'accepted')
+        self.assertEqual(
+            self.sql('SELECT state FROM promotions WHERE job_id=?',
+                     (first,))[0][0], 'committed')
 
     def test_promote_v2_writes_shard_manifest_and_journal(self):
         self.v2_repo()
