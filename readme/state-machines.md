@@ -794,10 +794,6 @@ _No curated description yet. Edit this wiki:enrich block to describe entity-arti
 _No curated description yet. Edit this wiki:enrich block to describe entity-benchmark._
 <!-- /wiki:enrich -->
 
-<!-- wiki:enrich id=entity-codex fp=7d416cd6ea6a6a40a3bcb9dfed91613114204806a3d3e679874aa59ce80f97ca -->
-_No curated description yet. Edit this wiki:enrich block to describe entity-codex._
-<!-- /wiki:enrich -->
-
 <!-- wiki:enrich id=entity-config fp=d97ebba8982315083386c4c0220acc5a33b7a0505472828c7499a76c6ff790f6 -->
 _No curated description yet. Edit this wiki:enrich block to describe entity-config._
 <!-- /wiki:enrich -->
@@ -816,10 +812,6 @@ _No curated description yet. Edit this wiki:enrich block to describe entity-dock
 
 <!-- wiki:enrich id=entity-lib fp=1bbfb6fc01b5096f503b15a14f259f3ffb980b877e9fea1257ce30282278f43d -->
 _No curated description yet. Edit this wiki:enrich block to describe entity-lib._
-<!-- /wiki:enrich -->
-
-<!-- wiki:enrich id=entity-logs fp=a43e384995ed5b63b297498764fb83fdc17bad61eee930c52b5b585c6b32b7e9 -->
-_No curated description yet. Edit this wiki:enrich block to describe entity-logs._
 <!-- /wiki:enrich -->
 
 <!-- wiki:enrich id=entity-migrations fp=1ab2ea2d8f69f661d1d7095599c967c5e7f7b8ddaf76b182cc755650c5ff5a83 -->
