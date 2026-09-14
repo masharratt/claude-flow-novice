@@ -57,8 +57,8 @@ case_skill_md_contract() {
 
     printf '%s\n' "$fm" | grep -Eq '^name:[[:space:]]*cfn-wiki[[:space:]]*$' \
         && ok "frontmatter name: cfn-wiki" || no "frontmatter name: cfn-wiki"
-    printf '%s\n' "$fm" | grep -Eq '^version:[[:space:]]*0\.1\.0[[:space:]]*$' \
-        && ok "frontmatter version: 0.1.0" || no "frontmatter version: 0.1.0"
+    printf '%s\n' "$fm" | grep -Eq '^[[:space:]]+version:[[:space:]]*0\.2\.0[[:space:]]*$' \
+        && ok "frontmatter metadata version: 0.2.0" || no "frontmatter metadata version: 0.2.0"
 
     local desc
     desc=$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)
@@ -103,8 +103,8 @@ case_dispatcher() {
     rm -f "$T/lib-stub/doctor.sh"
     rc=0
     bash "$T/lib-stub/wiki.sh" doctor >"$T/d.out" 2>"$T/d.err" || rc=$?
-    [ "$rc" -eq 0 ] && ok "stub: known command without impl exits 0" || no "stub: rc=$rc (want 0)"
-    grep -qi stub "$T/d.err" && ok "stub: stderr names the stub" || no "stub: stderr lacks 'stub'"
+    [ "$rc" -eq 69 ] && ok "missing implementation: command fails with exit 69" || no "missing implementation: rc=$rc (want 69)"
+    grep -qi "missing implementation" "$T/d.err" && ok "missing implementation: diagnostic present" || no "missing implementation: diagnostic absent"
 
     # delegation: lib/<cmd>.sh present -> sourced, wiki_<cmd> called with args
     cp -r "$LIB" "$T/lib-delegate"
@@ -282,11 +282,6 @@ case_cbm_fixture_index() {
     # real index path: run when a CBM binary is available. Candidate order:
     # $CBM_BIN env, the verification build, then the normal chain lookup.
     local cand="${CBM_BIN:-}"
-    if [ -z "$cand" ] || [ ! -x "$cand" ]; then
-        if [ -x /tmp/cbm-test/codebase-memory-mcp ]; then
-            cand=/tmp/cbm-test/codebase-memory-mcp
-        fi
-    fi
     if [ -z "$cand" ] || [ ! -x "$cand" ]; then
         cand=$(HOME="$HOME" PATH="$PATH" bash -c '
             source "$1/wiki-env.sh"

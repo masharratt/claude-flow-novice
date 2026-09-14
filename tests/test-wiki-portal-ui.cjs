@@ -14,7 +14,7 @@ try {
   // Graceful skip: playwright is an optional test dep (SKILL.md: "with
   // Playwright installed"). Point PLAYWRIGHT_MODULE at any checkout's
   // node_modules/playwright to run for real.
-  console.log('SKIP: test-wiki-portal-ui — playwright module not found; set PLAYWRIGHT_MODULE to run');
+  console.log('SKIP: test-wiki-portal-ui :  playwright module not found; set PLAYWRIGHT_MODULE to run');
   process.exit(0);
 }
 const root = process.env.WIKI_TEST_ROOT || path.resolve(__dirname, '..');
@@ -31,7 +31,7 @@ const payload = {
     edges: [{ source: 'api', target: 'auth', type: 'IMPORTS', weight: 3 }],
   },
   catalog: { features: [
-    { fid: 'auth', status: 'prod', description: '<img src=x onerror=alert(1)>', files: ['auth/entry.ts'], coupling_count: 1 },
+    { fid: 'auth', name: 'Sign in', kind: 'capability', purpose: 'Establish a session.', status_reason: 'Fixture evidence.', reviewed_at: '2026-09-13', needs_review: true, sources: [{path: 'auth/entry.ts', line: 1, claim: 'Creates a session.', excerpt: '1: function signIn() {}', needs_review: true}], flow: [{title:'Create session', detail:'Validate credentials and persist the session.', source:'auth/entry.ts'}], failures:['Invalid credentials remain signed out.'], change_guidance:['Update signIn and its tests.'], limitations:['Fixture only.'], status: 'prod', description: '<img src=x onerror=alert(1)>', files: ['auth/entry.ts'], coupling_count: 1 },
     { fid: 'api', status: 'dev', description: 'Public endpoints', files: ['api/entry.ts'] },
   ] },
   state: { entities: [
@@ -96,6 +96,20 @@ async function until(check, label) {
   await page.keyboard.press('Enter');
   assert.equal(await page.locator('#arch-detail-name').textContent(), 'api');
   console.log('PASS: module search, keyboard selection, source details and connected edges');
+  await page.locator('#knowledge-start a').click();
+  assert.equal(await page.locator('#capability-reader').isVisible(), true);
+  assert.match(await page.locator('#capability-reader').textContent(), /Invalid credentials remain signed out/);
+  assert.match(await page.locator('#capability-reader').textContent(), /Update signIn and its tests/);
+  await page.getByRole('button', {name:'Inspect source evidence'}).click();
+  assert.equal(await page.locator('#evidence-0').getAttribute('open'), '');
+  assert.match(await page.locator('#evidence-0 pre').textContent(), /function signIn/);
+  await page.reload();
+  assert.equal(await page.locator('#capability-reader').isVisible(), true);
+  assert.match(await page.locator('#capability-reader .review-warning').textContent(), /Sources changed/);
+  await page.getByRole('link', {name:'Back to capabilities'}).click();
+  assert.equal(await page.locator('#view-catalog').isVisible(), true);
+  console.log('PASS: start panel, capability flow, failures, change guidance, evidence and deep-link reload');
+
 
   await page.getByRole('tab', { name: 'Features', exact: false }).click();
   await page.locator('#feature-search').fill('auth/entry');

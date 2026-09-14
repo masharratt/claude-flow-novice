@@ -4,6 +4,16 @@
 #   no-external-refs:     template + built output contain zero <link> tags and
 #                         zero src=/href= pointing at http(s); no @import or
 #                         url(http in CSS (self-contained HTML contract).
+#   paged-build:          Phase 4 large-portal mode: wiki build --paged emits a
+#                         small shell plus pages/<view>.html, per-feature pages
+#                         and data/*.json; the shell payload holds ONLY
+#                         {meta, coverage} (no view payloads, no source
+#                         excerpts); deep-link anchors pages/<view>.html are
+#                         present in the shell; coverage carries the three
+#                         measures; served mode answers /pages and /data;
+#                         --static-out copies the distribution out; the
+#                         single-file default rebuild stays byte-identical
+#                         (timestamps normalized) and clears paged output.
 #   payload-inlined:      wiki_build_portal inlines a valid payload into the
 #                         __WIKI_PAYLOAD__ slot (placeholder absent afterwards),
 #                         payload parses as one JSON object with the six
@@ -322,8 +332,8 @@ case_payload_inlined() {
 
     local keys
     keys="$(json_get "$T/payload.json" "sorted(d.keys())")"
-    [ "$keys" = "['arch', 'catalog', 'change', 'data', 'meta', 'state']" ] \
-        && ok "payload-inlined: top-level keys exactly the six contract keys" \
+    [ "$keys" = "['arch', 'catalog', 'change', 'coverage', 'data', 'meta', 'state']" ] \
+        && ok "payload-inlined: top-level keys exactly the seven contract keys" \
         || no "payload-inlined: keys=$keys"
 
     # real fixture content, not lorem
@@ -357,6 +367,20 @@ case_payload_inlined() {
     [ "$(json_get "$T/payload.json" "len(d['meta']['fingerprint'])")" -eq 64 ] \
         && ok "payload-inlined: meta.fingerprint is 64 hex" \
         || no "payload-inlined: meta.fingerprint wrong"
+
+    # Phase 4: single-file mode carries the coverage payload key. The plain
+    # fixture has no discovery index, so inventory honestly reports its
+    # documented error instead of a measure.
+    local inv_state
+    inv_state="$(json_get "$T/payload.json" "d['coverage']['inventory'].get('measure') or d['coverage']['inventory'].get('error', '')")"
+    [ -n "$inv_state" ] \
+        && ok "payload-inlined: coverage inventory carries a measure or error" \
+        || no "payload-inlined: coverage inventory has neither measure nor error"
+    for m in explanation review; do
+        [ -n "$(json_get "$T/payload.json" "(d.get('coverage', {}).get('$m') or {}).get('measure', '')")" ] \
+            && ok "payload-inlined: coverage.$m carries a measure" \
+            || no "payload-inlined: coverage.$m missing a measure"
+    done
 
     # matching marker -> stale flips false on rebuild
     write_fixture_repo "$REPO" marker
@@ -618,11 +642,232 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
+# Phase 4 paged mode. The fixture gains an authored capability (v1 knowledge)
+# with real evidence so the build carries source excerpts: exactly the strings
+# the shell must NOT embed. write_paged_fixture_repo <dest>
+write_paged_fixture_repo() {
+    local dest="$1"
+    write_fixture_repo "$dest"
+    local sha
+    sha="$(git -C "$dest" cat-file blob :parsing_parser.py | sha256sum | cut -d' ' -f1)"
+    mkdir -p "$dest/readme/wiki"
+    cat >"$dest/readme/wiki/knowledge.json" <<EOF
+{
+  "version": 1,
+  "overview": {"title": "Fixture system",
+               "summary": "Parses lines and renders them.",
+               "coverage": "One capability traced end to end.",
+               "questions": ["Where do blank lines go?"]},
+  "capabilities": [
+    {"fid": "token-pipeline", "name": "Token pipeline",
+     "description": "Turns raw lines into tokens.",
+     "purpose": "Split every input line into token records for reporting.",
+     "status": "prod", "status_reason": "Fixture evidence covers the happy path.",
+     "reviewed_at": "2026-09-01",
+     "sources": [{"path": "parsing_parser.py", "line": 1,
+                  "claim": "Entry point splits a line.",
+                  "sha256": "$sha"}],
+     "flow": [{"title": "Split", "detail": "Whitespace split into tokens.",
+               "source": "parsing_parser.py", "line": 1}],
+     "failures": ["Blank lines produce no tokens."],
+     "change_guidance": ["Update tokenize and its fixture."]}
+  ],
+  "entities": []
+}
+EOF
+}
+
+case_paged_build() {
+    local REPO="$T/paged"
+    write_paged_fixture_repo "$REPO"
+    # discovery index so the inventory measure carries real file numbers
+    if python3 "$LIB/discovery.py" discover "$REPO" >/dev/null 2>&1; then
+        ok "paged: wiki discover built the fixture index"
+    else
+        no "paged: wiki discover failed on the fixture"
+    fi
+
+    # shellcheck disable=SC1090
+    source "$LIB/build.sh"
+
+    if wiki_build "$REPO" --paged; then
+        ok "paged: wiki build --paged exit 0"
+    else
+        no "paged: wiki build --paged rc=$?"
+        return
+    fi
+
+    local portal="$REPO/.wiki/portal" f
+    for f in index.html pages/arch.html pages/catalog.html pages/data.html \
+             pages/change.html pages/coverage.html \
+             pages/capability-token-pipeline.html pages/capability-parsing.html \
+             pages/capability-reporting.html \
+             data/arch.json data/catalog.json data/state.json data/change.json \
+             data/data.json data/coverage.json data/meta.json; do
+        [ -f "$portal/$f" ] && ok "paged: $f emitted" \
+            || no "paged: missing $portal/$f"
+    done
+
+    # the shell is small: payload keys are exactly {meta, coverage}, mode shell
+    extract_payload "$portal/index.html" "$T/shell-payload.json" \
+        && ok "paged: shell payload tag found" \
+        || { no "paged: shell payload extraction failed"; return; }
+    [ "$(json_get "$T/shell-payload.json" "sorted(d.keys())")" = "['coverage', 'meta']" ] \
+        && ok "paged: shell payload holds only meta + coverage" \
+        || no "paged: shell payload keys=$(json_get "$T/shell-payload.json" "sorted(d.keys())")"
+    [ "$(json_get "$T/shell-payload.json" "d['meta'].get('mode')")" = "shell" ] \
+        && ok "paged: shell meta.mode = shell" \
+        || no "paged: shell meta.mode wrong"
+
+    # grep-verifiable: no evidence packet text or page payloads in the shell
+    if grep -q 'def tokenize' "$portal/index.html"; then
+        no "paged: shell embeds source excerpts"
+    else
+        ok "paged: shell has no source-excerpt text"
+    fi
+    if grep -q 'Tokenizes raw lines into records' "$portal/index.html"; then
+        no "paged: shell embeds the catalog payload"
+    else
+        ok "paged: shell has no catalog payload text"
+    fi
+    if grep -q '"features"' "$portal/index.html"; then
+        no "paged: shell embeds a features array"
+    else
+        ok "paged: shell has no features array"
+    fi
+
+    # the excerpt lives on the capability page, and every page payload parses
+    grep -q 'def tokenize' "$portal/pages/capability-token-pipeline.html" \
+        && ok "paged: capability page carries its evidence excerpt" \
+        || no "paged: capability page lost the excerpt"
+    local pages_html total
+    total="$(find "$portal" -name '*.html' | wc -l)"
+    pages_html="$(python3 - "$portal" <<'PYCOUNT'
+import json, re, sys, glob
+bad = []
+for path in glob.glob(sys.argv[1] + "/**/*.html", recursive=True):
+    html = open(path, encoding="utf-8").read()
+    m = re.search(r"<script type=\"application/json\" id=\"wiki-payload\">(.*?)</script>",
+                  html, re.S)
+    if not m:
+        bad.append(path + ":no-tag")
+        continue
+    if "__WIKI_PAYLOAD__" in html:
+        bad.append(path + ":placeholder")
+    try:
+        json.loads(m.group(1))
+    except ValueError as exc:
+        bad.append("%s:%s" % (path, exc))
+print("\n".join(bad))
+PYCOUNT
+)"
+    [ -z "$pages_html" ] \
+        && ok "paged: all $total html files parse, no placeholders" \
+        || no "paged: bad pages: $pages_html"
+
+    # deep-link anchors: the shell statically links every view page
+    for v in arch catalog data change coverage; do
+        grep -q "pages/$v.html" "$portal/index.html" \
+            && ok "paged: shell links pages/$v.html" \
+            || no "paged: shell missing anchor pages/$v.html"
+    done
+    grep -q 'search filters within the current page' "$portal/index.html" \
+        && ok "paged: shell footer documents the search limitation" \
+        || no "paged: shell footer lacks the file-mode search note"
+
+    # coverage: three measures with denominators, in page, data and shell
+    [ "$(json_get "$portal/data/coverage.json" "d['inventory']['measure']")" = "classified in-scope files" ] \
+        && ok "paged: coverage.json inventory measure" \
+        || no "paged: coverage.json inventory measure wrong"
+    [ "$(json_get "$portal/data/coverage.json" "d['inventory']['denominator']")" -ge 1 ] \
+        && ok "paged: coverage inventory has a real denominator" \
+        || no "paged: coverage inventory denominator empty"
+    for m in explanation review; do
+        [ -n "$(json_get "$portal/data/coverage.json" "d['$m']['measure']")" ] \
+            && ok "paged: coverage $m measure present" \
+            || no "paged: coverage $m measure missing"
+    done
+    for k in excluded_paths unclassified_paths; do
+        [ "$(json_get "$portal/data/coverage.json" "'$k' in d['inventory']")" = "True" ] \
+            && ok "paged: inventory lists $k by name" \
+            || no "paged: inventory missing $k"
+    done
+    extract_payload "$portal/pages/coverage.html" "$T/cov-page.json"
+    [ "$(json_get "$T/cov-page.json" "sorted(d.keys())")" = "['coverage', 'meta']" ] \
+        && ok "paged: coverage page payload is coverage + meta" \
+        || no "paged: coverage page payload keys wrong"
+
+    # zero external refs across the whole paged distribution
+    local extbad=0
+    while IFS= read -r f; do
+        grep -qE '<link|src="http|href="http' "$f" && extbad=1
+        grep -qE '@import|url\(\s*["'"'"']?https?:' "$f" && extbad=1
+    done < <(find "$portal" -name '*.html')
+    [ "$extbad" -eq 0 ] \
+        && ok "paged: zero external refs across $total html files" \
+        || no "paged: external refs present in paged output"
+
+    # served mode: pages and data answer 200, traversal does not
+    if start_server "$REPO/.wiki"; then
+        ok "paged: server started on ephemeral port $SERVER_PORT"
+        for p in "/" "/pages/catalog.html" "/pages/capability-token-pipeline.html" \
+                 "/data/catalog.json" "/api/annotations"; do
+            [ "$(http_code "$SERVER_PORT" "$p")" = "200" ] \
+                && ok "paged: GET $p answers 200" \
+                || no "paged: GET $p not 200"
+        done
+        local trav
+        trav="$(http_code "$SERVER_PORT" "/pages/../store.json")"
+        if [ "$trav" = "200" ]; then
+            no "paged: traversal /pages/../store.json answered 200"
+        else
+            ok "paged: traversal outside pages/ refused ($trav)"
+        fi
+        stop_server
+    else
+        no "paged: server did not start on the paged portal"
+    fi
+
+    # --static-out copy-out
+    if wiki_build "$REPO" --paged --static-out "$T/export" >/dev/null 2>&1 \
+        && [ -f "$T/export/pages/arch.html" ] && [ -f "$T/export/index.html" ]; then
+        ok "paged: --static-out copies the whole distribution"
+    else
+        no "paged: --static-out copy incomplete"
+    fi
+
+    # single-file default: panel present, rebuild byte-identical, paged output cleared
+    wiki_build "$REPO" >/dev/null 2>&1 \
+        && ok "paged: default single-file rebuild exit 0" \
+        || no "paged: default single-file rebuild failed"
+    grep -q 'id="coverage-panel"' "$portal/index.html" \
+        && ok "paged: single-file build carries the coverage panel" \
+        || no "paged: single-file build lacks the coverage panel"
+    grep -q '"measure": "classified in-scope files"' "$portal/index.html" \
+        && ok "paged: single-file payload embeds coverage" \
+        || no "paged: single-file payload lacks coverage"
+    [ ! -d "$portal/pages" ] && [ ! -d "$portal/data" ] \
+        && ok "paged: single-file build clears paged output" \
+        || no "paged: single-file build left pages/ or data/ behind"
+    cp "$portal/index.html" "$T/single-golden.html"
+    wiki_build "$REPO" --paged >/dev/null 2>&1
+    wiki_build "$REPO" >/dev/null 2>&1
+    sed -E 's/"generated_at": "[^"]*"/"generated_at": "T"/' "$T/single-golden.html" >"$T/g1.html"
+    sed -E 's/"generated_at": "[^"]*"/"generated_at": "T"/' "$portal/index.html" >"$T/g2.html"
+    if cmp -s "$T/g1.html" "$T/g2.html"; then
+        ok "paged: single-file rebuild is byte-identical (timestamps normalized)"
+    else
+        no "paged: single-file rebuild drifted: $(cmp "$T/g1.html" "$T/g2.html" 2>&1 | head -1)"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 case_no_external_refs
 case_payload_inlined
 case_annotation_roundtrip
 case_serve_lifecycle
 case_browser_open_mode
+case_paged_build
 
 echo
 echo "wiki-portal: $PASS passed, $FAIL failed, $SKIP skipped"

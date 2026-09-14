@@ -973,7 +973,7 @@ case_extract_fixture() {
     # ---- degraded git-only mode: plain copy, no git, no snapshot ----
     mkdir -p "$REPO_B"
     cp -r "$FIXTURE/." "$REPO_B/"
-    rm -rf "$REPO_B/.wiki"
+    rm -rf "$REPO_B/.wiki" "$REPO_B/.git"
     local store_b="$REPO_B/.wiki/store.json"
     if run_extract "$REPO_B" >"$T/extract-b.log" 2>&1; then
         ok "extract-fixture: degraded (no CBM, no git) exit 0"
