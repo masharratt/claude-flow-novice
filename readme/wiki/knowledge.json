@@ -2,17 +2,25 @@
   "version": 2,
   "overview": {
     "title": "How CFN turns work into checked results",
-    "summary": "CFN combines agent workflows, verification gates and supporting infrastructure. Start with one source-backed walkthrough, then use the directory and dependency views to inspect implementation details.",
+    "summary": "A plan travels as two artifacts: the PLAN file and the VERIFY manifest (the final fenced JSON block of the VERIFY markdown). Before implementation the pair must clear two static gates: Bar A (check-verifiable-static.sh) machine-checks the manifest for decidable pass predicates, a closed kind vocabulary, paired coverage counters and executed evidence (PENDING tolerated only at plan stage), while Bar B (check-haiku-static.sh) scans the PLAN itself for banned vague phrases; only bless-verify.sh may pin a cleared manifest, producing the sha256 sidecar (.VERIFY_<slug>.sha256), a .blessed.json snapshot and the append-only .bless.json ledger that cfn-loop-task Step 0 and verify-run.sh consume (a mismatched sidecar makes verify-run exit 4). Implementation then runs as an orchestration loop over a task's declared deliverables: Loop 3 spawns implementers and waits on file-based done markers, executeTestsOnDeliverables existence-checks each deliverable and runs the allowlisted TEST_COMMAND parsing Jest-format summaries, the pass-rate gate decides the Loop 3 to Loop 2 transition, Loop 2 validators score confidence against a consensus threshold, and the product-owner script returns PROCEED, ITERATE or ABORT (an errored or unparseable PO run defaults to PROCEED). Completion is proven separately by the task exit workflow: verify-run.sh re-reads the manifest (sidecar checked when present), executes each runnable acceptance criterion under a timeout, adjudicates captured stdout through the shared parse-test-summary.sh (zero collected tests is red; an unrecognized summary degrades to exit-code-only, and a non-asserting exit 0 stays predicate_unverified), and writes VERIFY_RESULTS rows plus the all_green summary (total>0, red=0, unresolved=0) that the remaining exit gates build on: evidence resolve, exit-stage re-bless where surviving PENDING becomes a hard error, a full-suite final gate and deferral checks. Two gaps survive the accepted sources: no shard establishes who invokes the bar checkers inside megaplan or which step blocks implementation start (enforcement references appear only in comments of the scope files), and the loop-orchestration walkthrough never mentions the sidecar or manifest, so the handoff from the blessed VERIFY into the orchestration loop is unproven; additionally no process exit code reflects the PO decision, because the CLI tail never calls execute() and an undecided run reads as ABORT.",
     "coverage": "One capability has been traced in depth. The remaining directory entries are an inventory and have not been reviewed as independent capabilities.",
     "questions": [
-      "Why can a successful command still leave a task unresolved?",
-      "What evidence does the task exit workflow require?",
-      "Where should I change test-result parsing?"
+      "How does a caller learn the orchestrator's final decision, given no process exit code reflects PROCEED, ITERATE or ABORT?",
+      "Who invokes the megaplan bar checkers, and at which exact step does a failed gate block implementation from starting?",
+      "Does the orchestration loop consume the blessed VERIFY sidecar, or are the deliverable-plus-TEST_COMMAND gate and the verify-run.sh manifest path two separate verification entries?"
     ]
   },
-  "domains": [],
+  "domains": [
+    "delivery-loop",
+    "planning-pipeline",
+    "skill-infrastructure"
+  ],
   "capabilities": [
-    "task-verification"
+    "task-verification",
+    "test-result-parsing",
+    "plan-gates",
+    "loop-orchestration",
+    "edit-safety-hooks"
   ],
   "entities": [
     "acceptance-check-result-entity"

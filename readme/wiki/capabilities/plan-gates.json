@@ -1,0 +1,136 @@
+{
+  "id": "plan-gates",
+  "fid": "plan-gates",
+  "name": "Gating plans before implementation",
+  "status": "dev",
+  "status_reason": "Source review of the four bar/extract scripts via bounded evidence spans. No checker was executed and the megaplan orchestrator wiring that invokes them was not read.",
+  "description": "Static gates a planning artifact must clear: Bar A (check-verifiable-static.sh) machine-decidability of the VERIFY manifest, Bar B (check-haiku-static.sh) vague-phrase scan of the PLAN; only bless-verify.sh may pin a manifest, and per-part phases read extract-sections.sh slices.",
+  "purpose": "Before implementation starts the plan bundle passes two static gates: the VERIFY manifest must clear Bar A (top-level keys slug/acs/done_rule/coverage, per-AC id/check/kind/pass/maps_to/evidence, closed kind vocabulary, executed evidence or stage-honest PENDING, decidable weasel-free pass predicates, absence checks paired with population assertions, equal coverage counters) and the PLAN file must clear Bar B (no banned vague phrases from weasel-phrases.txt). When a checker finds any error-severity item it exits 1 with a JSON findings array naming ac_id/field/issue, and bless-verify.sh then refuses to bless (exit 1, 'REFUSED: Bar A static check has error-severity findings', sidecar left untouched), so the manifest is never pinned; warnings alone exit 0 and do not block. If the static checker file itself is missing, bless-verify warns and blesses ungated, and exit 2 everywhere means usage or missing input, not a gate verdict.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/bless-verify.sh",
+      "line": 2,
+      "claim": "bless-verify.sh is the ONLY supported way to bless a VERIFY manifest (S007): it replaces the bare 'sha256sum VERIFY > .sha256' one-liner with a gated, audited bless that (1) runs bars/check-verifiable-static.sh and REFUSES on any error-severity finding, (2) writes the sha256 sidecar in the same path/format so cfn-loop-task Step 0 and verify-run.sh need no change, (3) snapshots the manifest and appends a bless-ledger entry; beside the manifest it writes .VERIFY_<slug>.sha256, .blessed.json and the append-only .bless.json.",
+      "sha256": "f953a24a0a2e52ddd17fefac529becb18c461144494cc304aabdec3eae4b50a2"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/bless-verify.sh",
+      "line": 56,
+      "claim": "Exit contract: 0 = blessed; 1 = refused (Bar A static findings) with the sidecar left untouched; 2 = usage / file-not-found / jq-missing / no fenced json manifest block. The manifest is the LAST fenced json block (same awk extractor as verify-run.sh and check-verifiable-static.sh); deps are jq and sha256sum.",
+      "sha256": "f953a24a0a2e52ddd17fefac529becb18c461144494cc304aabdec3eae4b50a2"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/bless-verify.sh",
+      "line": 122,
+      "claim": "Failure path: when the static checker exits nonzero the bless prints 'REFUSED: Bar A static check has error-severity findings \u2014 fix them, then bless.' plus each offending 'ac_id [field] issue' line and exits 1; when the checker exits 2 (could not read the manifest) the bless exits 2; when the checker file is missing entirely the bless only warns and proceeds without the static gate.",
+      "sha256": "f953a24a0a2e52ddd17fefac529becb18c461144494cc304aabdec3eae4b50a2"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/bless-verify.sh",
+      "line": 33,
+      "claim": "The bless ledger scopes what is still owed after a re-bless: regate.bar_b is 'static+structural on PLAN' with bar_b_acs naming the steps bound to moved AC ids, and a live haiku probe (regate.probe) is owed only when an AC was ADDED or --force-full was passed; MECHANICAL fields (check, evidence, seeds, signal, trigger, requires) owe nothing beyond the static gate, every other AC field (pass, criterion, kind, maps_to, reference, binding) is SEMANTIC and scopes the LLM re-review to that AC.",
+      "sha256": "f953a24a0a2e52ddd17fefac529becb18c461144494cc304aabdec3eae4b50a2"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-verifiable-static.sh",
+      "line": 2,
+      "claim": "Bar A static checker mechanizes the verifiable-done gate (bars/verifiable-done.md) and runs BEFORE the LLM gate report: a FAIL means the VERIFY manifest is not machine-decidable and cfn-loop-task could not mechanically decide 'done'. Exit: 0 = clean or warnings only, 1 = one or more error-severity findings, 2 = usage / bad --stage / file-not-found / jq-missing / no json manifest block. Output is a JSON findings array on stdout, empty when clean.",
+      "sha256": "8b67e49af6154b875b4c7f5314ac7b84c35a373fb63ef51433967d6732a778a5"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-verifiable-static.sh",
+      "line": 7,
+      "claim": "Two-stage evidence contract: --stage plan (default) accepts 'evidence: \"PENDING: <reason>\"' as a warn because a check for unwritten code cannot have run, while --stage exit (completion-gate re-bless) turns every surviving PENDING marker into a hard error; at both stages an EMPTY evidence field is an error demanding the check be run once and its actual output pasted.",
+      "sha256": "8b67e49af6154b875b4c7f5314ac7b84c35a373fb63ef51433967d6732a778a5"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-verifiable-static.sh",
+      "line": 182,
+      "claim": "Required manifest shape: top-level keys slug, acs, done_rule, coverage are all mandatory (error if missing) and coverage must carry wiring_total and wiring_mapped keys unconditionally \u2014 an opt-in wiring gate is dodgeable by omission, which is the failure class the mandatory keys exist to prevent (S004 / MP-A).",
+      "sha256": "8b67e49af6154b875b4c7f5314ac7b84c35a373fb63ef51433967d6732a778a5"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-verifiable-static.sh",
+      "line": 231,
+      "claim": "Per-AC shape and taxonomy: every AC needs id, check, kind, pass, maps_to, evidence (error per missing field); kind must be an exact member of a closed vocabulary (unit integration e2e ui e2e/ui assembled-path wiring-guard db db-query http curl build type compile static lint migration-rehearsal perf a11y security) \u2014 an unrecognized kind is an error, not a warn (S007: 'kind: cargo-test' with a grep body used to sail through). Check form must then match the kind family (e.g. e2e/ui checks start with 'playwright:', http kinds start with curl, build kinds run tsc/cargo/go/next build/npm run, db kinds start with db-query or psql).",
+      "sha256": "8b67e49af6154b875b4c7f5314ac7b84c35a373fb63ef51433967d6732a778a5"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-verifiable-static.sh",
+      "line": 241,
+      "claim": "Run-before-bless evidence (1d): the check must have been EXECUTED once and its real output pasted before the manifest is hashed, because authoring happens against the plan and verification against the code and nothing else forces them to be the same statement (21/147 and 71/104 ACs went runtime-red against correct code). For runner kinds (unit integration e2e ui e2e/ui assembled-path) the pasted evidence is machine-parsed via the shared parse-test-summary.sh: zero tests collected is an error (evidence_zero_ran, the selector matched nothing and proves nothing); an unrecognizable runner summary is a warn; if the parser lib is unreachable the row degrades to warn, never a hard fail.",
+      "sha256": "8b67e49af6154b875b4c7f5314ac7b84c35a373fb63ef51433967d6732a778a5"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-verifiable-static.sh",
+      "line": 279,
+      "claim": "Check runnability lints: '<file>::<name>' selector shorthand is an error because no runner implements it (vitest and playwright read it as one filename, 0 tests); a dead -t/-g name selector whose file exists but holds no such title (or matches no title tree-wide) is an error at exit and a warn at plan stage when the file does not exist yet; a command that resolves to no absolute-path executable (shell function/alias like Claude Code's rg() wrapper) is tool_unavailable \u2014 warn at plan stage, error at exit, because verify-run.sh runs checks under 'bash -c' which inherits neither functions nor aliases. QUARANTINED: evidence pointers are exempt from the runnability lints but keep shape checks.",
+      "sha256": "8b67e49af6154b875b4c7f5314ac7b84c35a373fb63ef51433967d6732a778a5"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-verifiable-static.sh",
+      "line": 525,
+      "claim": "Pass decidability and weasel: shallow pass conditions ('does not throw', 'renders', 'exists', 'compiles', 'no error') are errors; a pass condition containing no comparison operator, quoted literal, row count, exit code, or exact string is 'not decidable' and an error; any weasel phrase (appropriately, as needed, TBD, properly, gracefully, where applicable, ...) inside the pass condition is an error.",
+      "sha256": "8b67e49af6154b875b4c7f5314ac7b84c35a373fb63ef51433967d6732a778a5"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-verifiable-static.sh",
+      "line": 541,
+      "claim": "Absence-assertion pairing: a check whose pass condition is 'nothing found' (grep -c -eq 0, NOT EXISTS, '= 0;', 'no rows', ...) must also carry a population assertion (-gt 0, test -s, wc -c, an exact nonzero count like 'tables=41') in the check or pass body, else it is an 'absence-only check' error \u2014 a grep that finds nothing passes on a scan that looked at nothing.",
+      "sha256": "8b67e49af6154b875b4c7f5314ac7b84c35a373fb63ef51433967d6732a778a5"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-verifiable-static.sh",
+      "line": 568,
+      "claim": "Coverage consistency: paired counters (fr, ec, cc, sm, obs, adv, wiring) must satisfy total == mapped when total is present \u2014 mapped missing or unequal (unmapped items) is an error; wiring_total == 0 is legal only with an explicit non-empty no_new_components_reason escape hatch.",
+      "sha256": "8b67e49af6154b875b4c7f5314ac7b84c35a373fb63ef51433967d6732a778a5"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-haiku-static.sh",
+      "line": 2,
+      "claim": "Bar B static scan is the mandatory first pass before the haiku probe and reads the PLAN file (not the manifest): banned vague phrases come from bars/weasel-phrases.txt \u2014 the same single source check-verifiable-static.sh uses, with an inline 11-phrase fallback for defence in depth \u2014 and each match is an error-severity finding {file, line, phrase}.",
+      "sha256": "cdca3f0ddba883038545d29cf166370ca0db5f5d20c75ce91d1fd02c44aa7623"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-haiku-static.sh",
+      "line": 11,
+      "claim": "Exit contract: 0 = no error-severity findings (warn findings alone never fail the gate), 1 = one or more error findings, 2 = usage or file error; phrases are matched case-insensitively with non-alphanumeric boundaries, one finding per matching line, so 'gracefully' is flagged unconditionally until the owning phase names the defined behavior instead.",
+      "sha256": "cdca3f0ddba883038545d29cf166370ca0db5f5d20c75ce91d1fd02c44aa7623"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/bars/check-haiku-static.sh",
+      "line": 87,
+      "claim": "Optional-DI mechanical assist (S005): when a core-fr-interfaces file is passed, lines of the PLAN that name one of those interface files and carry an optional-property token 'identifier?:' get a WARN finding (optional-property on core-fr dependency interface) \u2014 warn severity only, never fails the gate alone, and scoped strictly to the named interface files, never a repo-wide scan.",
+      "sha256": "cdca3f0ddba883038545d29cf166370ca0db5f5d20c75ce91d1fd02c44aa7623"
+    },
+    {
+      "path": ".claude/skills/cfn-megaplan/lib/extract-sections.sh",
+      "line": 2,
+      "claim": "Program mode writes ONE shared SPEC/ARCH/UX for a multi-part program, and per-part phases (test_plan, write_plan, Bar A) must read only their own slice: extract-sections.sh cuts that slice deterministically from '[part: <id>]' tags in headings and table rows, where 'shared' is a reserved id kept for every part and never itself queryable, an untagged heading counts as shared, and a child heading is dropped whenever an ancestor section is dropped. Exit: 0 ok, 1 reserved/unused, 2 usage error / file not found / unknown part id.",
+      "sha256": "1bf64b89fd0c693d103cd5d4bf19f1ff150bb75d6b342fee2df92426d0624bef"
+    }
+  ],
+  "evidence": [
+    "103a4f8dba9da14da2e7834b5186b510",
+    "fe635f049da3e3f8c14d9fc052dc88d5",
+    "85998f0bd0975ecd87cc5ee529ef4c56",
+    "b1e83c37baacdef1d7811be267d74061",
+    "4c9d16358a7fd7228c733b74b6be3836",
+    "97b136b368ea91766729964f32fa7229",
+    "ca02e15b4dfd2ee6d34a7a58b696912f",
+    "7893fdfdf251538eb03888a9b8b3901c",
+    "11810cd81e593995895d84debd81664b"
+  ],
+  "domains": [
+    "planning-pipeline"
+  ],
+  "unknowns": [
+    "Who invokes these checkers inside the cfn-megaplan pipeline and which exact step blocks implementation start was not read: enforcement references (cfn-loop-task Step 0 consuming the sidecar, verify-run.sh, gate-check.sh) appear only inside comments of the scope files.",
+    "The live haiku probe that Bar B static is the 'mandatory first pass' before: its behavior lives outside the scope files and was not examined.",
+    "bars/weasel-phrases.txt itself was not read; only the 11-phrase inline fallback lists shared by both checkers were seen, so the full live phrase set is unverified.",
+    "check-verifiable-static.sh beyond line 600 (stale-literal count warning mechanics, any done_rule checks, final emit) and bless-verify.sh beyond line 240 (final summary output) were not read.",
+    "bars/verifiable-done.md and bars/haiku-executable.md, the prose specs these checkers mechanize, were out of scope and unread."
+  ]
+}

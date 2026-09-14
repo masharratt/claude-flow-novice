@@ -1,0 +1,112 @@
+{
+  "id": "edit-safety-hooks",
+  "fid": "edit-safety-hooks",
+  "name": "Enforcing rules with hooks",
+  "status": "dev",
+  "status_reason": "Source review of the five guard scripts plus .claude/hooks.json in the discovery snapshot. No runtime verification that a rule added at each named extension point actually fires; hook registration (settings.json) is absent from the index so where guards register is unverified.",
+  "description": "Guards fire on edit and spawn: a pre-edit backup wrapper, a post-edit node pipeline (exit 0 unless --blocking), a doc-lint PostToolUse gate, a spawn depth/brief guard (exit 2 blocks), and the edit-safety CLI that rolls edits back from .backups.",
+  "purpose": "Guards fire at three points, each with its own block semantics. Before an edit, cfn-invoke-pre-edit.sh (a PreToolUse wrapper and the live portable implementation; the dist/cli replacement named in its sibling's deprecation header lost its source and dist/ is gitignored, so it is absent from fresh clones) validates file and args, delegates to cfn-edit-safety/lib/backup/backup.sh, prints only the backup directory on stdout and exits 1 when the backup fails or yields no usable directory; stdout and stderr must stay separate because merging once folded a stderr banner into BACKUP_PATH and broke every rollback built from it. After an edit, cfn-invoke-post-edit.sh resolves .claude/hooks/post-edit-pipeline.js against the real repo root (pwd -P, so invocation through the ~/.claude symlink works), gates on cfn-post-edit.config.json .enabled (default true), and runs the pipeline with node: it always exits 0 unless called with --blocking, which propagates the pipeline's exit code; separately cfn-doc-lint-hook.sh is a PostToolUse (Edit|Write) hook that fires only when the edited basename matches feature-status.md / state-machines.md / *-state-machine*.md / *feature-status*.md, prints the linter's ERROR lines to stderr, and escalates from exit 0 to exit 2 only when CFN_DOC_LINT_BLOCK=1. On spawn, cfn-spawn-depth-guard.sh reads the PreToolUse payload: an agent_id key appears only when the call originates inside a subagent, and such nested spawns are blocked with exit 2 unless the agent_type is allowlisted in ~/.claude/nested-spawn-allowlist.txt (override CFN_NESTED_SPAWN_ALLOWFILE); a main-chat spawn prompt over CFN_BRIEF_MAX_BYTES (default 4096 bytes) is a warning by default, logged to ~/.claude/brief-size-warn.log, and CFN_BRIEF_GUARD=deny turns it into an exit-2 block (off disables). Failure path: backups land under .backups/<agent_id>/<ts>_<hash>/ with metadata.json (timestamp, agent_id, original_file); edit-safety.sh's edit subcommand (safe_edit) backs up, evals the edit command, validates via lib/hooks/post-edit-handler.sh, cp-rolls-back on edit failure or when validation output matches critical/error/failed without an auto-resolve-available or file/script-not-found marker (infrastructure problems deliberately do not roll back), and discards the single-edit backup on success; its rollback/list/cleanup subcommands delegate to lib/backup/restore.sh and lib/backup/cleanup.sh over the same backups root, though its own header documents that real agents call the two hook wrappers directly (backup.sh), not safe_edit. No commit-time guard exists among these five files. To add a new enforcement rule: an edit-content rule becomes a phase in post-edit-pipeline.js (blocking rides the wrapper's --blocking exit propagation), a doc-contract rule extends cfn-doc-lint/execute.sh (the hook and CFN_DOC_LINT_BLOCK stay unchanged), a spawn-side rule adds a payload check in cfn-spawn-depth-guard.sh where exit 2 blocks, and backup-behavior changes go in cfn-edit-safety/lib/backup/backup.sh.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": ".claude/hooks/cfn-invoke-pre-edit.sh",
+      "line": 4,
+      "claim": "LIVE IMPLEMENTATION header: wired as a PreToolUse hook, the sole portable implementation producing the backups under .backups/; its stated 2026-02-20 removal date must not be acted on because the named replacement (dist/cli/pre-edit-hook.js) has source deleted (ec6203a3b) and dist/ is gitignored, absent from fresh clones.",
+      "sha256": "d1654833436eb1d0c8ca4a1fdbe901fba876bfe7d93d8aaea9c49cb33f7d61ce"
+    },
+    {
+      "path": ".claude/hooks/cfn-invoke-pre-edit.sh",
+      "line": 84,
+      "claim": "Delegates the backup to ../skills/cfn-edit-safety/lib/backup/backup.sh passing --agent-id (a bare positional used to silently leave agent_id=unknown), exits 1 on missing file, missing backup script, or failed backup; stdout carries the backup directory and nothing else.",
+      "sha256": "d1654833436eb1d0c8ca4a1fdbe901fba876bfe7d93d8aaea9c49cb33f7d61ce"
+    },
+    {
+      "path": ".claude/hooks/cfn-invoke-pre-edit.sh",
+      "line": 93,
+      "claim": "stdout/stderr separation contract: backup.sh writes the path to stdout and a banner to stderr; an earlier 2>&1 merge folded the banner into BACKUP_PATH (command substitution keeps interior newlines), naming no directory so every rollback built from it failed. A backup that produces no usable directory is a failed backup (exit 1) even when the helper exited 0.",
+      "sha256": "d1654833436eb1d0c8ca4a1fdbe901fba876bfe7d93d8aaea9c49cb33f7d61ce"
+    },
+    {
+      "path": ".claude/hooks/cfn-invoke-post-edit.sh",
+      "line": 108,
+      "claim": "The pipeline comes from cfn-post-edit.config.json (.pipeline default .claude/hooks/post-edit-pipeline.js, gated by .enabled // true); it is now the ONLY implementation after the divergent copy at config/hooks/post-edit-pipeline.js was deleted 2026-07-25, and relative paths resolve against the real CFN repo root via pwd -P so symlinked invocation from other projects works.",
+      "sha256": "a526e6a4726056a966414b824a0e40c397fa81128417ff5f8889df6191d3a45d"
+    },
+    {
+      "path": ".claude/hooks/cfn-invoke-post-edit.sh",
+      "line": 152,
+      "claim": "Runs node $PIPELINE $FILE_PATH with a swarm/<agent>/hook-results memory key and always exits 0 ('Always exit 0 unless blocking mode'); --blocking propagates the pipeline's nonzero exit instead, and an optional Redis publish (config redis.enabled) is best-effort. The script's own DEPRECATED header (removal 2026-02-20, replacement dist/cli/post-edit-hook.js) contradicts the pre-edit script's note that the dist artifact is unbuildable from a fresh clone.",
+      "sha256": "a526e6a4726056a966414b824a0e40c397fa81128417ff5f8889df6191d3a45d"
+    },
+    {
+      "path": ".claude/hooks/cfn-spawn-depth-guard.sh",
+      "line": 8,
+      "claim": "PreToolUse (Agent) hook. Depth rule (block): agent_id and agent_type appear in the payload ONLY when the call originates inside a subagent (verified 2026-09-03 against a live payload); nested spawns exit 2 with a BLOCKED message unless the agent_type is on its own line in ~/.claude/nested-spawn-allowlist.txt (CFN_NESTED_SPAWN_ALLOWFILE override).",
+      "sha256": "1367225f65e889e09672809c77c2e41552860f5b10d174bf32025d818f2f8274"
+    },
+    {
+      "path": ".claude/hooks/cfn-spawn-depth-guard.sh",
+      "line": 16,
+      "claim": "Brief-budget rule (warn by default): a main-chat spawn prompt over CFN_BRIEF_MAX_BYTES (default 4096) prints a stderr advisory and appends mode/size/max to CFN_BRIEF_WARN_LOG (default ~/.claude/brief-size-warn.log); CFN_BRIEF_GUARD=deny escalates to exit 2, off disables. Missing payload or missing jq exits 0 (guard never blocks on its own infrastructure).",
+      "sha256": "1367225f65e889e09672809c77c2e41552860f5b10d174bf32025d818f2f8274"
+    },
+    {
+      "path": ".claude/hooks/cfn-doc-lint-hook.sh",
+      "line": 1,
+      "claim": "PostToolUse (Edit|Write) hook, non-blocking by default: extracts file_path from the tool event (jq or grep fallback), stays silent unless basename matches feature-status.md/state-machines.md/state-machine.md/*-state-machine*.md/*feature-status*.md, runs cfn-doc-lint execute.sh, prints ERROR lines to stderr with suppressed-warn count, and exits 2 only when CFN_DOC_LINT_BLOCK=1 and errors exist (otherwise exit 0).",
+      "sha256": "5c0e1be477d9d682deca5016586de5cc43df6467d6048751788b04a307076af1"
+    },
+    {
+      "path": ".claude/skills/cfn-edit-safety/edit-safety.sh",
+      "line": 5,
+      "claim": "Header: rollback/list/cleanup delegate to lib/backup/restore.sh and lib/backup/cleanup.sh over the real backup directories the pre-edit hook writes (<repo_root>/.backups/<agent_id>/<ts>_<hash>/), fixing an older /tmp registry nothing populated; agents use cfn-invoke-pre-edit.sh / cfn-invoke-post-edit.sh directly (which call backup.sh), not this script's edit subcommand. Backups root defaults to $(pwd)/.backups, overridable via CFN_BACKUP_ROOT.",
+      "sha256": "05cff31f34bb55d6faa0fb4236c74049629dcec01e78098e1dd385af389cb340"
+    },
+    {
+      "path": ".claude/skills/cfn-edit-safety/edit-safety.sh",
+      "line": 132,
+      "claim": "safe_edit(): validate access, create_backup, eval the edit command (failure triggers rollback_file and returns the edit's exit code), run post-edit validation via lib/hooks/post-edit-handler.sh, then on validation failure consult should_rollback; on full success the single-edit backup is removed and empty parent dirs rmdir'd.",
+      "sha256": "05cff31f34bb55d6faa0fb4236c74049629dcec01e78098e1dd385af389cb340"
+    },
+    {
+      "path": ".claude/skills/cfn-edit-safety/edit-safety.sh",
+      "line": 241,
+      "claim": "should_rollback(): validation output matching critical/error/failed rolls back UNLESS it also matches auto-resolve.*available or file-not-found/script-not-found (missing validation infrastructure deliberately proceeds without rollback); a missing validation script never rolls back. rollback_file is a plain cp of the backup over the target.",
+      "sha256": "05cff31f34bb55d6faa0fb4236c74049629dcec01e78098e1dd385af389cb340"
+    },
+    {
+      "path": ".claude/skills/cfn-edit-safety/edit-safety.sh",
+      "line": 367,
+      "claim": "CLI dispatch: edit <file> <cmd> [agent], rollback <file> [--agent-id/--dry-run/--force] delegates to restore.sh --file (newest matching backup), list [file] lists one file via restore.sh --list or every metadata.json under the root newest-first, cleanup [--older-than/--keep-latest/--apply/--prune-orphans/--json] delegates to cleanup.sh (dry-run report by default, reclaims only with --apply).",
+      "sha256": "05cff31f34bb55d6faa0fb4236c74049629dcec01e78098e1dd385af389cb340"
+    },
+    {
+      "path": ".claude/hooks.json",
+      "line": 1,
+      "claim": "A 941-byte hooks.json exists registering SessionStart (hooks/cfn-pre-execution/session-start-context.sh) and PostToolUse Edit|Write|MultiEdit (node src/hooks/enhanced-hooks-cli.js post-edit ... --minimum-coverage 80 --structured) plus a memory block; its content is cited, but nothing read here shows any consumer of this file versus a settings.json hooks block.",
+      "sha256": "f6a19f77e53232de5fed5139f555d35245eb93b64cbf49f1e40fe17b3745a37e"
+    }
+  ],
+  "evidence": [
+    "221fdf4e90c936aa1c59b29193442463",
+    "9f883f3e97bfb62e136726a086b81be3",
+    "a525e4634690960dd9424e952c62a0aa",
+    "faf58eaa7069af30bec2e57444b9c8b5",
+    "2cafd6d4b053c066d08352edb200d64a",
+    "5b23732f12a1c6201c0055035ff0c10c",
+    "5ba9e2445404d93c3d624bc633373afd",
+    "3456d20dfe5430289657bdc49a038e85",
+    "c903b1bfe9e64af1b1ce4014917b6307",
+    "007ce4cebb267a756e3514cae1437900"
+  ],
+  "domains": [
+    "skill-infrastructure"
+  ],
+  "unknowns": [
+    "Where hooks actually register is unverified: the span query refuses .claude/settings.json ('not present in the discovery index'), so whether the live registration surface is a settings.json hooks block and whether .claude/hooks.json (content cited above, registers src/hooks/enhanced-hooks-cli.js) has zero consumers could not be decided from evidence.",
+    "No commit-time guard exists among the five scoped files; whether a commit-time or PreToolUse(Bash git-commit) guard registers outside them (e.g. in settings.json, unverifiable here) is unknown.",
+    "The internals of post-edit-pipeline.js, lib/backup/backup.sh, lib/hooks/post-edit-handler.sh, restore.sh and cleanup.sh were not read: only their invocation contracts are evidenced, so the exact shape of a 'new phase' inside the pipeline is convention, not evidence.",
+    "Whether the pre/post-edit wrappers, the spawn guard and the doc-lint hook are themselves registered (and with which matchers) could not be confirmed from the repo index; the pre-edit header says 'wired as a PreToolUse hook' and the spawn guard and doc-lint hook describe their trigger events in their own headers, but the registration records live outside the index."
+  ]
+}

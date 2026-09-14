@@ -367,3 +367,6 @@ src/planning/**/*.d.ts.map
 # Enrichment working dir: wiki:enrich block text is carried inside the
 # generated md (re-extracted on every sync), so .wiki/enrich/ is rebuildable.
 **/.wiki/enrich/
+
+# cfn-wiki durable work state (local queue/evidence; never tracked)
+**/.wiki/work/

@@ -2,7 +2,7 @@
   "fid": "task-verification",
   "name": "Proving a task is complete",
   "status": "dev",
-  "status_reason": "Implemented runner and regression suite. This page is a source review, not a certification of every CFN workflow or deployment.",
+  "status_reason": "Implemented runner and regression suite. This page is a source review, not a certification of every CFN workflow or deployment.; verified against sources 2026-09-14 (pilot verify pass)",
   "description": "Runs acceptance checks, distinguishes failed checks from unresolved evidence, and records the result used by the task exit workflow.",
   "purpose": "A successful command is not always proof that a task meets its acceptance criteria. CFN uses a VERIFY manifest to name the checks and a results file to record what actually happened. This capability explains the boundary between executing a check and accepting its evidence.",
   "reviewed_at": "2026-09-13",
@@ -97,7 +97,11 @@
     "State diagram nodes below are persisted result modes. pass and predicate_unverified are separate fields; executed does not necessarily mean passed."
   ],
   "id": "task-verification",
-  "evidence": [],
+  "evidence": [
+    "792f5f3806e41662a123e7615b537133",
+    "d4fdab59119eb84631d53318aea3c070",
+    "fd496141f1457ec0347a5752293a6514"
+  ],
   "domains": [],
   "unknowns": []
 }

@@ -1,0 +1,79 @@
+{
+  "id": "test-result-parsing",
+  "fid": "test-result-parsing",
+  "name": "Parsing test-runner summaries",
+  "status": "dev",
+  "status_reason": "Source review of the two parsers and their callers in cfn-loop-orchestration-v2. No runtime verification of extending them to a new runner format was performed.",
+  "description": "Parses captured runner stdout into pass/fail/skip/collected counts that gate-check.sh and verify-run.sh adjudicate; a parallel TypeScript parser (parse-test-results.ts, consumer unverified) covers a different framework union.",
+  "purpose": "Test summaries enter the CFN Loop as captured stdout: gate-check.sh and verify-run.sh both source cli/lib/parse-test-summary.sh, which turns the runner's summary line into PTS_* counts that drive the pass-rate gate and per-AC adjudication, while the orchestrator has a parallel TypeScript parser in parse-test-results.ts. When the output matches no branch the parser returns 1 with PTS_RUNNER=unknown, and the callers degrade to exit-code-only: verify-run.sh adjudicates exit 0 as exit_code_only 'runner summary unrecognized, no proof any test ran' and gate-check.sh exits 2 'no tests detected' because no counts were parsed. To teach the loop a new runner format, add a grep branch to parse_test_summary() ordered most-specific-first and keyed on a runner-unique line shape; both shell callers pick it up automatically because they source the shared lib.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/cli/lib/parse-test-summary.sh",
+      "line": 1,
+      "claim": "One shared summary-line parser sourced by both gate-check.sh and verify-run.sh (S002/S003 DRY hoist); sets PTS_RUNNER/PASS/FAIL/ERROR/SKIP/TODO/COLLECTED/FILTERED; returns 0 on a recognized runner and 1 on unknown, where unknown is explicitly not an error: callers fall back to exit-code-only semantics for runners like mocha/ava.",
+      "sha256": "053a3e3b343f118a0fa9b84cfeaf49f9b116444b9442decad666a139ba83610f"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/cli/lib/parse-test-summary.sh",
+      "line": 121,
+      "claim": "Branch dispatch tries node first (most specific shape), then cargo (must precede pytest: cargo's line satisfies pytest's regex and its 'ignored' would read as skip=0), nextest, playwright (matched by its 'Running N tests using M workers' header, never the generic 'N passed' tail), jest, vitest, pytest, and go (column-0 verdict lines; non-verbose go test deliberately stays unknown so callers keep exit-code semantics), else falls through to return 1.",
+      "sha256": "053a3e3b343f118a0fa9b84cfeaf49f9b116444b9442decad666a139ba83610f"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/cli/lib/parse-test-summary.sh",
+      "line": 241,
+      "claim": "jest/vitest regexes allow an optional '<task>:<script>:' monorepo prefix and every matching summary line is summed rather than tail -1: a measured turbo capture with 13 per-package summary lines read last-line-only as 13/13 green while 40 tests failed; pytest's collected total includes skipped (S003 denominator fix).",
+      "sha256": "053a3e3b343f118a0fa9b84cfeaf49f9b116444b9442decad666a139ba83610f"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh",
+      "line": 64,
+      "claim": "The pass-rate gate sources the shared parser, computes rate as PTS_PASS/PTS_COLLECTED, exits 2 with 'no tests detected' when no counts are found or total is 0 (0/0 must not pass), and exits 3 when the suite shrank versus --baseline before judging the rate.",
+      "sha256": "e7d92ef65a444f21007ddbaae1e33b3e5ce3c7ba0c0eb452067cf388f0d7cc1a"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh",
+      "line": 530,
+      "claim": "For authoritative executable checks, verify-run.sh writes captured stdout to a temp file and adjudicates on parse_test_summary: zero collected is a red zero_tests_ran failure naming runner and filtered_out; name-filtered runs are judged on pass/fail (skips are the selector working); skipped/todo present without a name filter is red; an unrecognized summary falls back to exit-code-only ('no proof any test ran' when exit 0).",
+      "sha256": "2913d3aaaad3834356e1ce78707235616d3b5b9293b5a002c4f1d1523de822b0"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/cli/check-test-hygiene.sh",
+      "line": 1,
+      "claim": "The third scope file is not a summary consumer at all: it scans test SOURCE files (changed via git diff, --all, or explicit) for .skip( / .skipIf( / .todo( / fit( / xdescribe( / pytest.mark.skip markers, suppresses findings on a same-line cfn-allow-skip: marker, emits a JSON findings array, and exits 1 when findings exist.",
+      "sha256": "438ce06ce4c6f42174bee90764da34ef0e236d24012700d6d33643b7ba04a078"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/parse-test-results.ts",
+      "line": 6,
+      "claim": "The orchestrator's TypeScript parser covers a different framework union than the shell parser (jest/mocha/pytest/tap/go/junit/unknown: it has mocha, tap and junit but not vitest, node, cargo, nextest or playwright).",
+      "sha256": "35e7ccb04e49745a78c38dae0e6e2c1e7b542d73cf534ee734b296ded586437d"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/parse-test-results.ts",
+      "line": 307,
+      "claim": "parseTestResults(framework, output) is the entry point: framework 'auto' routes through autoDetectFramework heuristics, and the switch handles only jest/mocha/pytest/tap/go; every other value, including a 'junit' argument, returns a zeroed framework='unknown' TestResults (passRate 0.0) rather than an error. Teaching this path a runner means a new parse function, a switch case, and an autoDetect heuristic.",
+      "sha256": "35e7ccb04e49745a78c38dae0e6e2c1e7b542d73cf534ee734b296ded586437d"
+    }
+  ],
+  "evidence": [
+    "ffeb644a3251660e9a9fc60e330c16fd",
+    "0af5568a7861ef02684bb34f6cccf33a",
+    "0455060fee4b5c72c9128bf4eab20f27",
+    "3ebc0b67e1bb2248dad9991fd52c06a3",
+    "fe6e234e283a6b7229565739eb1578cb",
+    "429279862d851a7fe484024d6b2c1930",
+    "4d5a51c9b5c10ccb5931a99a33b218ec",
+    "81b0d5a086bce2deca3b7f313b85d6b4"
+  ],
+  "domains": [
+    "delivery-loop"
+  ],
+  "unknowns": [
+    "No consumer of the TypeScript parser was located: the snapshot's symbols and relations queries returned empty, so which orchestrator code (if any) invokes parseTestResults or its 'CLI entry point for bash wrapper' is unverified.",
+    "Whether parse-test-summary.sh and gate-check.sh have a dedicated regression suite (e.g. under cli/tests/) was not checked; the claim that a new branch gets coverage is convention, not evidence read here.",
+    "verify-run.sh was read only at lines 495-614: how is_authoritative classifies which commands get summary parsing, and the rest of its flow, were not traced."
+  ]
+}

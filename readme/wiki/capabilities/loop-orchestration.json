@@ -1,0 +1,126 @@
+{
+  "id": "loop-orchestration",
+  "fid": "loop-orchestration",
+  "name": "Running the orchestration loop",
+  "status": "dev",
+  "status_reason": "Source review of the bash wrapper, the complete Orchestrator class body (orchestrate.ts lines 1-1333) and both scoped helpers. No runtime orchestration run was executed or observed; the in-scope agent-spawner.ts is an explicit migration placeholder and the module's own CLI entry never calls execute().",
+  "description": "Orchestrates the CFN Loop v3.0.0: spawn Loop 3 implementers, wait via file-based coordination, run tests on deliverables, gate-check the pass rate, spawn Loop 2 validators for consensus, then a product-owner skill decides PROCEED/ITERATE/ABORT; orchestrate.sh is a thin node wrapper.",
+  "purpose": "A run starts at cli/orchestrate.sh, a 21-line bash wrapper that only checks for resolve-provider-model.cjs beside it (exit 1 if missing) and execs node on it; the wrapper holds no loop logic. The engine is the Orchestrator class in orchestrate.ts, driven by execute(): each iteration transitions phase to loop3 and spawns implementer agents (default ['backend-dev','coder']) via helpers/spawn-agents, then waits on file-based coordination (coordinator.waitForDone) where spawn failures are warned-and-skipped and successful-but-silent agents become 'Agent timeout after Ns' errors. Zero completions aborts immediately (recordDecision('ABORT'), break). Surviving agents' outputs {testResult, confidence, deliverables} are collected via coordinator.getResult; executeTestsOnDeliverables then fs.access-checks each deliverable under PROJECT_ROOT (missing files count as fails), runs TEST_COMMAND (default 'npm test', allowlist-validated and '..'-blocked as shell-injection guards) via execSync, and parses Jest-format 'N passing/failing/pending' lines; a thrown run counts every deliverable as a fail. checkGate(passRate) delegates to helpers/gate-check with the mode's canonical threshold. Gate failure path: the GOAP planner decideNextAction is consulted on buildPlannerContext (gatePassed=false); action 'abort_mission' records ABORT and breaks, otherwise IterationFeedback {gatePassRate, previousFailures, reasons incl. the gap} is prepared, per-iteration state reset, and the loop continues, or records ABORT at 'Max iterations reached'. Gate pass transitions to loop2: validators (default ['code-reviewer','tester','security-specialist']) spawn and return confidence scores (validated 0.0-1.0) that must beat the consensus threshold; zero completions or failed consensus re-enter the same abort-or-iterate pattern, with Loop 3 charging $0.054 and Loop 2 $0.150 against budgetRemaining (default cap $5.0) per iteration. Consensus pass reaches the product-owner phase: execSync runs .claude/skills/cfn-product-owner-decision/execute-decision.sh with shell-escaped args under a PO-timeout+10s clock; the JSON {decision, reasoning, confidence} is parsed (fallback to 'Decision: X' text), and an unparseable or errored PO run DEFAULTS TO PROCEED. PROCEED breaks with 'SUCCESS: Product Owner approved'; ITERATE writes feedback via coordinator.writeFeedback for the next Loop 3 wave and continues; ABORT breaks with 'FAILURE: Product Owner rejected'. After the loop execute() returns getDecision() || 'ABORT', so an undecided exit reads as ABORT. Exit codes: the wrapper exits 1 only for a missing resolver; the module's CLI tail (require.main) exits 1 for a missing --task-id and otherwise prints INITIAL state and exits 0 WITHOUT ever calling execute() - no process exit code reflects the decision; observability is the returned value and the printed final summary, not the exit status.",
+  "reviewed_at": "2026-09-14",
+  "dependencies": [],
+  "sources": [
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh",
+      "line": 1,
+      "claim": "The bash side is a 21-line wrapper: it resolves resolve-provider-model.cjs next to itself, exits 1 only if that resolver file is missing, and exec node's it with all args. It contains no orchestration logic and never references orchestrate.ts directly.",
+      "sha256": "36d9d73a7ef97fd7f34daef0dfdded25ae7510f20c69a5575f605d76b312d501"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
+      "line": 1,
+      "claim": "v3.0.0 module: imports gateCheck, collectConsensus/validateConsensus, spawnLoop3Agents/spawnLoop2Agents, decideNextAction + canonical mode-config from repo src/planning/orchestration, and FileCoordinator; declares LoopPhase 'loop3'|'loop2'|'product-owner'|'complete' and ProductOwnerDecision 'PROCEED'|'ITERATE'|'ABORT'|null as the journey's vocabulary.",
+      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
+      "line": 121,
+      "claim": "Orchestrator class (after escapeShellArg at 144): validateConfig enforces mode in mvp/standard/enterprise, maxIterations integer 1..100 and per-agent timeouts 10..3600s; initializeState starts iteration 0, currentPhase 'loop3', budgetRemaining = budgetCap ?? 5.0.",
+      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
+      "line": 241,
+      "claim": "Gate and consensus thresholds come from getCanonicalModeConfig (not hardcoded here); default timeouts are loop3Agent 300s, loop2Agent 300s, productOwner 60s; transitionPhase pushes a PhaseTransition into history; shouldTerminate returns true for PROCEED or ABORT, and for ITERATE only once iteration >= maxIterations.",
+      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
+      "line": 361,
+      "claim": "checkGate(passRate) is the Loop3->Loop2 transition: it delegates to helpers gateCheck({passRate, mode, threshold}) and returns {passed, passRate, threshold, gap}; aggregateTestResults computes passRate = totalPass/total over recorded agent TestResults (0 when no tests); recordConsensusScore rejects scores outside 0.0-1.0; validateConsensus runs collectConsensus then validateConsensus against the mode threshold.",
+      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
+      "line": 481,
+      "claim": "waitForAgentsToComplete filters failed spawns (console.warn 'Skipping failed agent'), then blocks on this.coordinator.waitForDone(taskId, ids, timeout) - file-based coordination where workers write done markers; done agents are marked complete, successful-but-unfinished ones get recordTimeout ('Agent timeout after Ns'); collectAgentOutputs pulls {testResult, confidence, deliverables} per agent via coordinator.getResult and records test results.",
+      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
+      "line": 601,
+      "claim": "Before any test run, TEST_COMMAND (env, default 'npm test') is validated against ALLOWED_TEST_COMMANDS (npm test, npm run test, jest, mocha, yarn test) plus regexes for npm run test:* scripts and jest/mocha with a specific .test.[jt]s file; any '..' triggers a path-traversal error and non-allowed commands throw a shell-injection error (comment cites CVSS 8.5).",
+      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
+      "line": 721,
+      "claim": "executeTestsOnDeliverables verifies every declared deliverable exists via fs.access under PROJECT_ROOT (env or cwd); missing deliverables become a TestResult of fail=missing-count; otherwise the allowlisted command runs via execSync and Jest-format 'N passing/failing/pending' regexes produce pass/fail/skip; a thrown execution counts ALL of that agent's deliverables as fails. Agents with no deliverables are skipped with a warning.",
+      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
+      "line": 841,
+      "claim": "execute() is the driver: for iteration 1..maxIterations it transitions to loop3, spawns (config.loop3Agents or default ['backend-dev','coder']) via the module-level spawnLoop3Agents, waits, and on zero completions records ABORT and breaks; resetForIteration clears testResults, consensusScores, decision, errors and both agent sets; buildPlannerContext packs {iteration, maxIterations, gatePassed, consensusPassed, poConsulted, budgetRemaining, timeRemainingMs, dollarSpent} for the planner.",
+      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
+      "line": 961,
+      "claim": "Failure paths all route through the GOAP planner: gate fail, zero Loop 2 completions, and failed consensus each call decideNextAction(buildPlannerContext(...)); plannerDecision.action === 'abort_mission' records ABORT and breaks (logging remaining budget), else feedback is prepared, state reset, and the loop continues or records ABORT at 'Max iterations reached'; Loop 3 costs $0.054 and Loop 2 $0.150 per iteration against budgetRemaining; Loop 2 defaults to ['code-reviewer','tester','security-specialist'] and validator confidence scores feed recordConsensusScore.",
+      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
+      "line": 1081,
+      "claim": "Product-owner phase: execSync runs bash .claude/skills/cfn-product-owner-decision/execute-decision.sh with escapeShellArg-quoted args (--task-id, --agent-id, --consensus, --threshold, --iteration, --max-iterations, --timeout, optional --success-criteria) under a (productOwner timeout + 10s) clock; the output's JSON {\"decision\": PROCEED|ITERATE|ABORT} is parsed (with reasoning and confidence logged), falling back to a 'Decision: X' text match, and BOTH unparseable output and a thrown PO execution DEFAULT TO PROCEED; PROCEED breaks as SUCCESS, ITERATE stores feedback via coordinator.writeFeedback for iteration+1 then continues (ABORT at max iterations), ABORT breaks as 'FAILURE: Product Owner rejected'.",
+      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts",
+      "line": 1201,
+      "claim": "End of run: finalDecision = getDecision() || 'ABORT' (an undecided loop reads as ABORT), a summary is printed and the decision returned. The CLI tail (require.main) parses --task-id/--mode/--max-iterations/--loop3-agents/--loop2-agents/--product-owner/--success-criteria, process.exit(1) when --task-id is missing, then constructs the Orchestrator, prints initial state JSON and process.exit(0) - it NEVER calls execute(), so the process exit code never reflects the PROCEED/ITERATE/ABORT decision.",
+      "sha256": "af817fc2e60b60714fed8f640ecf72a023f1fe1f1cde74317e78fd787ff53317"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/iteration-manager.ts",
+      "line": 1,
+      "claim": "Complete 46-line helper: prepareIteration({currentIteration, feedback}) returns {nextIteration: current+1, feedback, timestamp}; wakeAgents(agentIds) returns signal strings 'wake:<agentId>:<Date.now()>'. No call site inside orchestrate.ts appears in the spans read, so its consumer is unverified.",
+      "sha256": "edb26ebfcdf0481498f03a5de6fe6bb99ba18f5f58de034858a31d49ad15ca4e"
+    },
+    {
+      "path": ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/agent-spawner/agent-spawner.ts",
+      "line": 1,
+      "claim": "Complete 35-line file self-described as 'placeholder for migration': AgentSpawner.spawnAgents(taskId, loopNumber, agentCount, mode) returns synthetic AgentSpec objects (id `${taskId}-loop${loopNumber}-agent${i}`, type `loop${loopNumber}-agent`, memoryTier 2, memoryLimit '1g') and spawns no process; the real spawning in execute() goes through helpers/spawn-agents instead.",
+      "sha256": "01b98746cae5b487c424f76acb86a61a5a2ff3bb9191776d4c47984fa7c1f750"
+    }
+  ],
+  "evidence": [
+    "220f69126b4f470a7331999c067be751",
+    "7e73a10b748d1fb1497eefa78e871111",
+    "cc97d9a7098a0aa7c20f8c55eccb9a8f",
+    "e23aa7d088e2dda44d10c0ad82d67635",
+    "0d9950acbfcc87f6c73d87c073e6be9e",
+    "01a47d9400ac2da77adb437e155287ba",
+    "3671e2f04db74ec0d860f44c294b71ef",
+    "be9af664f7b9031a2ab18854bf620351",
+    "21ddf2b1a2a605f970db4b452e58633f",
+    "5e3da14dae2ecfc320b7f28e317e43b2",
+    "c74b63df4931234be8bfad36e90d6df5",
+    "0340ab021418e473b5463cb2bfbd2d8f",
+    "1511f7d57a65cc5c3a2bd19350ac269a",
+    "b819ddc1deed6de0b5a19d726f8885a6",
+    "4d7a5743dad60306b57c51667172df06"
+  ],
+  "domains": [
+    "delivery-loop"
+  ],
+  "unknowns": [
+    "The wrapper-to-engine link is unverified: resolve-provider-model.cjs (what orchestrate.sh actually execs) was not read, so how (or whether) it constructs the Orchestrator, resolves provider/model, and awaits execute() is unknown.",
+    "helpers/spawn-agents.ts (the real CLI spawner used by execute()) was out of budget: the actual agent command line, model selection and SpawnResult shape are unmapped; the in-scope agent-spawner.ts spawns nothing.",
+    "helpers/gate-check.ts, helpers/consensus.ts and the canonical mode-config (src/planning/orchestration/mode-config) were not read: per-mode gate/consensus threshold values and gap computation are unverified.",
+    "decideNextAction (GOAP planner) was seen only at call sites, where solely action === 'abort_mission' is handled; what other actions it can return and what execute() would do with them is unverified.",
+    "cfn-product-owner-decision/execute-decision.sh internals were not read: which inputs drive its PROCEED/ITERATE/ABORT reasoning (beyond the args passed) is unknown.",
+    "iteration-manager.ts (prepareIteration/wakeAgents) has no call site in the orchestrate.ts spans read; which component consumes it is unverified.",
+    "No runtime run was executed or observed: every stage, decision and exit-code claim is source-read only, including that the CLI tail exits 0 without running the loop."
+  ]
+}
