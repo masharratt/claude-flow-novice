@@ -112,6 +112,12 @@ wiki_enrich_pick() { # <store> <id>
     if [ -n "$fp" ] && [ -s "$extract/$id.md" ] && [ -f "$extract/$id.fp" ]; then
         ENRICH_SRC="$extract/$id.md"
         ENRICH_STATE="preserved"
+    elif [ -z "$fp" ] && [ -s "$extract/$id.md" ]; then
+        # unclaimable id (feature can never exist, e.g. entity-archive for
+        # a hidden dir): the in-md extracted content is static hand-written
+        # prose; preserve it verbatim rather than dropping to a placeholder
+        ENRICH_SRC="$extract/$id.md"
+        ENRICH_STATE="preserved"
     elif [ -f "$blocks/$id.md" ]; then
         ENRICH_SRC="$blocks/$id.md"
         ENRICH_STATE="reattached"
@@ -171,6 +177,33 @@ EOF
 $({ ls "$base/blocks"/orphan-*.md 2>/dev/null;
     ls "$base/extract"/orphan-*.md 2>/dev/null; } \
         | sed 's#.*/##; s#\.md$##' | LC_ALL=C sort -u)
+EOF
+
+    # unclaimed ids: blocks the in-md extraction found whose id names no
+    # store feature (fid or entity-<fid>) and no orphan already handled.
+    # On a fresh clone these carry the only surviving copy; re-home them
+    # under orphan-<kind> names so the appendix renders them instead of
+    # silently dropping machine-local hand-written prose.
+    local claimed id rehomed
+    claimed="$(wiki_store_fids "$store" | sed -e 's/.*/& entity-&/' || true)"
+    while IFS= read -r id; do
+        [ -n "$id" ] || continue
+        case " $claimed " in
+            *" $id "*) continue ;;
+        esac
+        case "$id" in
+            orphan-*) continue ;;
+        esac
+        wiki_enrich_pick "$store" "$id"
+        [ -n "$ENRICH_SRC" ] || continue
+        case "$id" in
+            entity-*) rehomed="orphan-$id" ;;
+            *)        rehomed="orphan-feature-$id" ;;
+        esac
+        cat "$ENRICH_SRC" >"$resolved/$rehomed.md"
+        printf 'orphan\n' >"$resolved/$rehomed.fp"
+    done <<EOF
+$(ls "$base/extract"/*.md 2>/dev/null | sed 's#.*/##; s#\.md$##' | LC_ALL=C sort -u)
 EOF
 }
 

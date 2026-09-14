@@ -5,6 +5,16 @@
 
 **Last Updated:** 2026-09-14 wiki sync
 
+## Status Rollup
+
+| Status | Features |
+|---|---|
+| prod | 0 |
+| beta | 0 |
+| dev | 19 |
+| stub | 2 |
+| deprecated | 0 |
+
 ## Status Legend
 
 | Status | Meaning |
@@ -297,5 +307,294 @@ These legacy notes are preserved for reconciliation; they are not current runtim
 **Row:** verify-run S008 tool preflight
 
 **Description:** An absent binary used to score GREEN: `bash -c` emits no stdout, so a `... \
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-archive fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe archive._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-artifacts fp=orphan -->
+**Status:** dev
+**Description:** Storage area for agent task outputs: project scope schema SQL with validation queries and example agent workspace deliverables. Mostly one-off outputs, not maintained product code.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-backups fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe backups._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-benchmark fp=orphan -->
+**Status:** dev
+**Description:** Benchmark suite measuring CFN infrastructure options: Node versus Rust message bus throughput, agent messaging latency, load tests and spawn cost, driven by one runner script.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-codex fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe codex._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-config fp=orphan -->
+**Status:** dev
+**Description:** Redis connection module offering client creation with retry strategy, health checks and fallback URLs, plus unit tests. Used by CFN services needing shared Redis setup.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-database fp=orphan -->
+**Status:** dev
+**Description:** PostgreSQL schema for hierarchical scope management, defining scopes, boundaries and relationships with constraint checks. Standalone schema from a completed sprint task.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-deployment fp=orphan -->
+**Status:** dev
+**Description:** Shell scripts that deploy CFN C-suite agent teams across environments with canary rollout, rollback, migration runs and org-wide coordination tests for operators.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-docker fp=orphan -->
+**Status:** dev
+**Description:** Docker images, coordinator services and provisioning scripts that run CFN Loop agent teams in isolated containers, with a documented env contract, memory tiers and runtime settings.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-edit-safety-hooks fp=orphan -->
+## Purpose
+
+Guards fire at three points, each with its own block semantics. Before an edit, cfn-invoke-pre-edit.sh (a PreToolUse wrapper and the live portable implementation; the dist/cli replacement named in its sibling's deprecation header lost its source and dist/ is gitignored, so it is absent from fresh clones) validates file and args, delegates to cfn-edit-safety/lib/backup/backup.sh, prints only the backup directory on stdout and exits 1 when the backup fails or yields no usable directory; stdout and stderr must stay separate because merging once folded a stderr banner into BACKUP_PATH and broke every rollback built from it. After an edit, cfn-invoke-post-edit.sh resolves .claude/hooks/post-edit-pipeline.js against the real repo root (pwd -P, so invocation through the ~/.claude symlink works), gates on cfn-post-edit.config.json .enabled (default true), and runs the pipeline with node: it always exits 0 unless called with --blocking, which propagates the pipeline's exit code; separately cfn-doc-lint-hook.sh is a PostToolUse (Edit|Write) hook that fires only when the edited basename matches feature-status.md / state-machines.md / *-state-machine*.md / *feature-status*.md, prints the linter's ERROR lines to stderr, and escalates from exit 0 to exit 2 only when CFN_DOC_LINT_BLOCK=1. On spawn, cfn-spawn-depth-guard.sh reads the PreToolUse payload: an agent_id key appears only when the call originates inside a subagent, and such nested spawns are blocked with exit 2 unless the agent_type is allowlisted in ~/.claude/nested-spawn-allowlist.txt (override CFN_NESTED_SPAWN_ALLOWFILE); a main-chat spawn prompt over CFN_BRIEF_MAX_BYTES (default 4096 bytes) is a warning by default, logged to ~/.claude/brief-size-warn.log, and CFN_BRIEF_GUARD=deny turns it into an exit-2 block (off disables). Failure path: backups land under .backups/<agent_id>/<ts>_<hash>/ with metadata.json (timestamp, agent_id, original_file); edit-safety.sh's edit subcommand (safe_edit) backs up, evals the edit command, validates via lib/hooks/post-edit-handler.sh, cp-rolls-back on edit failure or when validation output matches critical/error/failed without an auto-resolve-available or file/script-not-found marker (infrastructure problems deliberately do not roll back), and discards the single-edit backup on success; its rollback/list/cleanup subcommands delegate to lib/backup/restore.sh and lib/backup/cleanup.sh over the same backups root, though its own header documents that real agents call the two hook wrappers directly (backup.sh), not safe_edit. No commit-time guard exists among these five files. To add a new enforcement rule: an edit-content rule becomes a phase in post-edit-pipeline.js (blocking rides the wrapper's --blocking exit propagation), a doc-contract rule extends cfn-doc-lint/execute.sh (the hook and CFN_DOC_LINT_BLOCK stay unchanged), a spawn-side rule adds a payload check in cfn-spawn-depth-guard.sh where exit 2 blocks, and backup-behavior changes go in cfn-edit-safety/lib/backup/backup.sh.
+
+## Execution flow
+
+## Failures and recovery
+
+
+## Where to make a change
+
+
+## Limits of this explanation
+
+
+## Evidence
+
+Reviewed: 2026-09-14
+
+- `.claude/hooks/cfn-invoke-pre-edit.sh:4`: LIVE IMPLEMENTATION header: wired as a PreToolUse hook, the sole portable implementation producing the backups under .backups/; its stated 2026-02-20 removal date must not be acted on because the named replacement (dist/cli/pre-edit-hook.js) has source deleted (ec6203a3b) and dist/ is gitignored, absent from fresh clones.
+- `.claude/hooks/cfn-invoke-pre-edit.sh:84`: Delegates the backup to ../skills/cfn-edit-safety/lib/backup/backup.sh passing --agent-id (a bare positional used to silently leave agent_id=unknown), exits 1 on missing file, missing backup script, or failed backup; stdout carries the backup directory and nothing else.
+- `.claude/hooks/cfn-invoke-pre-edit.sh:93`: stdout/stderr separation contract: backup.sh writes the path to stdout and a banner to stderr; an earlier 2>&1 merge folded the banner into BACKUP_PATH (command substitution keeps interior newlines), naming no directory so every rollback built from it failed. A backup that produces no usable directory is a failed backup (exit 1) even when the helper exited 0.
+- `.claude/hooks/cfn-invoke-post-edit.sh:108`: The pipeline comes from cfn-post-edit.config.json (.pipeline default .claude/hooks/post-edit-pipeline.js, gated by .enabled // true); it is now the ONLY implementation after the divergent copy at config/hooks/post-edit-pipeline.js was deleted 2026-07-25, and relative paths resolve against the real CFN repo root via pwd -P so symlinked invocation from other projects works.
+- `.claude/hooks/cfn-invoke-post-edit.sh:152`: Runs node $PIPELINE $FILE_PATH with a swarm/<agent>/hook-results memory key and always exits 0 ('Always exit 0 unless blocking mode'); --blocking propagates the pipeline's nonzero exit instead, and an optional Redis publish (config redis.enabled) is best-effort. The script's own DEPRECATED header (removal 2026-02-20, replacement dist/cli/post-edit-hook.js) contradicts the pre-edit script's note that the dist artifact is unbuildable from a fresh clone.
+- `.claude/hooks/cfn-spawn-depth-guard.sh:8`: PreToolUse (Agent) hook. Depth rule (block): agent_id and agent_type appear in the payload ONLY when the call originates inside a subagent (verified 2026-09-03 against a live payload); nested spawns exit 2 with a BLOCKED message unless the agent_type is on its own line in ~/.claude/nested-spawn-allowlist.txt (CFN_NESTED_SPAWN_ALLOWFILE override).
+- `.claude/hooks/cfn-spawn-depth-guard.sh:16`: Brief-budget rule (warn by default): a main-chat spawn prompt over CFN_BRIEF_MAX_BYTES (default 4096) prints a stderr advisory and appends mode/size/max to CFN_BRIEF_WARN_LOG (default ~/.claude/brief-size-warn.log); CFN_BRIEF_GUARD=deny escalates to exit 2, off disables. Missing payload or missing jq exits 0 (guard never blocks on its own infrastructure).
+- `.claude/hooks/cfn-doc-lint-hook.sh:1`: PostToolUse (Edit|Write) hook, non-blocking by default: extracts file_path from the tool event (jq or grep fallback), stays silent unless basename matches feature-status.md/state-machines.md/state-machine.md/*-state-machine*.md/*feature-status*.md, runs cfn-doc-lint execute.sh, prints ERROR lines to stderr with suppressed-warn count, and exits 2 only when CFN_DOC_LINT_BLOCK=1 and errors exist (otherwise exit 0).
+- `.claude/skills/cfn-edit-safety/edit-safety.sh:5`: Header: rollback/list/cleanup delegate to lib/backup/restore.sh and lib/backup/cleanup.sh over the real backup directories the pre-edit hook writes (<repo_root>/.backups/<agent_id>/<ts>_<hash>/), fixing an older /tmp registry nothing populated; agents use cfn-invoke-pre-edit.sh / cfn-invoke-post-edit.sh directly (which call backup.sh), not this script's edit subcommand. Backups root defaults to $(pwd)/.backups, overridable via CFN_BACKUP_ROOT.
+- `.claude/skills/cfn-edit-safety/edit-safety.sh:132`: safe_edit(): validate access, create_backup, eval the edit command (failure triggers rollback_file and returns the edit's exit code), run post-edit validation via lib/hooks/post-edit-handler.sh, then on validation failure consult should_rollback; on full success the single-edit backup is removed and empty parent dirs rmdir'd.
+- `.claude/skills/cfn-edit-safety/edit-safety.sh:241`: should_rollback(): validation output matching critical/error/failed rolls back UNLESS it also matches auto-resolve.*available or file-not-found/script-not-found (missing validation infrastructure deliberately proceeds without rollback); a missing validation script never rolls back. rollback_file is a plain cp of the backup over the target.
+- `.claude/skills/cfn-edit-safety/edit-safety.sh:367`: CLI dispatch: edit <file> <cmd> [agent], rollback <file> [--agent-id/--dry-run/--force] delegates to restore.sh --file (newest matching backup), list [file] lists one file via restore.sh --list or every metadata.json under the root newest-first, cleanup [--older-than/--keep-latest/--apply/--prune-orphans/--json] delegates to cleanup.sh (dry-run report by default, reclaims only with --apply).
+- `.claude/hooks.json:1`: A 941-byte hooks.json exists registering SessionStart (hooks/cfn-pre-execution/session-start-context.sh) and PostToolUse Edit|Write|MultiEdit (node src/hooks/enhanced-hooks-cli.js post-edit ... --minimum-coverage 80 --structured) plus a memory block; its content is cited, but nothing read here shows any consumer of this file versus a settings.json hooks block.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-lib fp=orphan -->
+**Status:** dev
+**Description:** MDAP TypeScript library that decomposes coding tasks by domain, implements them through the GLM model and validates results in gate-checked iterations, with secure execution helpers.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-logs fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe logs._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-loop-orchestration fp=orphan -->
+## Purpose
+
+A run starts at cli/orchestrate.sh, a 21-line bash wrapper that only checks for resolve-provider-model.cjs beside it (exit 1 if missing) and execs node on it; the wrapper holds no loop logic. The engine is the Orchestrator class in orchestrate.ts, driven by execute(): each iteration transitions phase to loop3 and spawns implementer agents (default ['backend-dev','coder']) via helpers/spawn-agents, then waits on file-based coordination (coordinator.waitForDone) where spawn failures are warned-and-skipped and successful-but-silent agents become 'Agent timeout after Ns' errors. Zero completions aborts immediately (recordDecision('ABORT'), break). Surviving agents' outputs {testResult, confidence, deliverables} are collected via coordinator.getResult; executeTestsOnDeliverables then fs.access-checks each deliverable under PROJECT_ROOT (missing files count as fails), runs TEST_COMMAND (default 'npm test', allowlist-validated and '..'-blocked as shell-injection guards) via execSync, and parses Jest-format 'N passing/failing/pending' lines; a thrown run counts every deliverable as a fail. checkGate(passRate) delegates to helpers/gate-check with the mode's canonical threshold. Gate failure path: the GOAP planner decideNextAction is consulted on buildPlannerContext (gatePassed=false); action 'abort_mission' records ABORT and breaks, otherwise IterationFeedback {gatePassRate, previousFailures, reasons incl. the gap} is prepared, per-iteration state reset, and the loop continues, or records ABORT at 'Max iterations reached'. Gate pass transitions to loop2: validators (default ['code-reviewer','tester','security-specialist']) spawn and return confidence scores (validated 0.0-1.0) that must beat the consensus threshold; zero completions or failed consensus re-enter the same abort-or-iterate pattern, with Loop 3 charging $0.054 and Loop 2 $0.150 against budgetRemaining (default cap $5.0) per iteration. Consensus pass reaches the product-owner phase: execSync runs .claude/skills/cfn-product-owner-decision/execute-decision.sh with shell-escaped args under a PO-timeout+10s clock; the JSON {decision, reasoning, confidence} is parsed (fallback to 'Decision: X' text), and an unparseable or errored PO run DEFAULTS TO PROCEED. PROCEED breaks with 'SUCCESS: Product Owner approved'; ITERATE writes feedback via coordinator.writeFeedback for the next Loop 3 wave and continues; ABORT breaks with 'FAILURE: Product Owner rejected'. After the loop execute() returns getDecision() || 'ABORT', so an undecided exit reads as ABORT. Exit codes: the wrapper exits 1 only for a missing resolver; the module's CLI tail (require.main) exits 1 for a missing --task-id and otherwise prints INITIAL state and exits 0 WITHOUT ever calling execute() - no process exit code reflects the decision; observability is the returned value and the printed final summary, not the exit status.
+
+## Execution flow
+
+## Failures and recovery
+
+
+## Where to make a change
+
+
+## Limits of this explanation
+
+
+## Evidence
+
+Reviewed: 2026-09-14
+
+- `.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh:1`: The bash side is a 21-line wrapper: it resolves resolve-provider-model.cjs next to itself, exits 1 only if that resolver file is missing, and exec node's it with all args. It contains no orchestration logic and never references orchestrate.ts directly.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts:1`: v3.0.0 module: imports gateCheck, collectConsensus/validateConsensus, spawnLoop3Agents/spawnLoop2Agents, decideNextAction + canonical mode-config from repo src/planning/orchestration, and FileCoordinator; declares LoopPhase 'loop3'|'loop2'|'product-owner'|'complete' and ProductOwnerDecision 'PROCEED'|'ITERATE'|'ABORT'|null as the journey's vocabulary.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts:121`: Orchestrator class (after escapeShellArg at 144): validateConfig enforces mode in mvp/standard/enterprise, maxIterations integer 1..100 and per-agent timeouts 10..3600s; initializeState starts iteration 0, currentPhase 'loop3', budgetRemaining = budgetCap ?? 5.0.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts:241`: Gate and consensus thresholds come from getCanonicalModeConfig (not hardcoded here); default timeouts are loop3Agent 300s, loop2Agent 300s, productOwner 60s; transitionPhase pushes a PhaseTransition into history; shouldTerminate returns true for PROCEED or ABORT, and for ITERATE only once iteration >= maxIterations.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts:361`: checkGate(passRate) is the Loop3->Loop2 transition: it delegates to helpers gateCheck({passRate, mode, threshold}) and returns {passed, passRate, threshold, gap}; aggregateTestResults computes passRate = totalPass/total over recorded agent TestResults (0 when no tests); recordConsensusScore rejects scores outside 0.0-1.0; validateConsensus runs collectConsensus then validateConsensus against the mode threshold.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts:481`: waitForAgentsToComplete filters failed spawns (console.warn 'Skipping failed agent'), then blocks on this.coordinator.waitForDone(taskId, ids, timeout) - file-based coordination where workers write done markers; done agents are marked complete, successful-but-unfinished ones get recordTimeout ('Agent timeout after Ns'); collectAgentOutputs pulls {testResult, confidence, deliverables} per agent via coordinator.getResult and records test results.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts:601`: Before any test run, TEST_COMMAND (env, default 'npm test') is validated against ALLOWED_TEST_COMMANDS (npm test, npm run test, jest, mocha, yarn test) plus regexes for npm run test:* scripts and jest/mocha with a specific .test.[jt]s file; any '..' triggers a path-traversal error and non-allowed commands throw a shell-injection error (comment cites CVSS 8.5).
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts:721`: executeTestsOnDeliverables verifies every declared deliverable exists via fs.access under PROJECT_ROOT (env or cwd); missing deliverables become a TestResult of fail=missing-count; otherwise the allowlisted command runs via execSync and Jest-format 'N passing/failing/pending' regexes produce pass/fail/skip; a thrown execution counts ALL of that agent's deliverables as fails. Agents with no deliverables are skipped with a warning.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts:841`: execute() is the driver: for iteration 1..maxIterations it transitions to loop3, spawns (config.loop3Agents or default ['backend-dev','coder']) via the module-level spawnLoop3Agents, waits, and on zero completions records ABORT and breaks; resetForIteration clears testResults, consensusScores, decision, errors and both agent sets; buildPlannerContext packs {iteration, maxIterations, gatePassed, consensusPassed, poConsulted, budgetRemaining, timeRemainingMs, dollarSpent} for the planner.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts:961`: Failure paths all route through the GOAP planner: gate fail, zero Loop 2 completions, and failed consensus each call decideNextAction(buildPlannerContext(...)); plannerDecision.action === 'abort_mission' records ABORT and breaks (logging remaining budget), else feedback is prepared, state reset, and the loop continues or records ABORT at 'Max iterations reached'; Loop 3 costs $0.054 and Loop 2 $0.150 per iteration against budgetRemaining; Loop 2 defaults to ['code-reviewer','tester','security-specialist'] and validator confidence scores feed recordConsensusScore.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts:1081`: Product-owner phase: execSync runs bash .claude/skills/cfn-product-owner-decision/execute-decision.sh with escapeShellArg-quoted args (--task-id, --agent-id, --consensus, --threshold, --iteration, --max-iterations, --timeout, optional --success-criteria) under a (productOwner timeout + 10s) clock; the output's JSON {"decision": PROCEED|ITERATE|ABORT} is parsed (with reasoning and confidence logged), falling back to a 'Decision: X' text match, and BOTH unparseable output and a thrown PO execution DEFAULT TO PROCEED; PROCEED breaks as SUCCESS, ITERATE stores feedback via coordinator.writeFeedback for iteration+1 then continues (ABORT at max iterations), ABORT breaks as 'FAILURE: Product Owner rejected'.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/orchestrate.ts:1201`: End of run: finalDecision = getDecision() || 'ABORT' (an undecided loop reads as ABORT), a summary is printed and the decision returned. The CLI tail (require.main) parses --task-id/--mode/--max-iterations/--loop3-agents/--loop2-agents/--product-owner/--success-criteria, process.exit(1) when --task-id is missing, then constructs the Orchestrator, prints initial state JSON and process.exit(0) - it NEVER calls execute(), so the process exit code never reflects the PROCEED/ITERATE/ABORT decision.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/iteration-manager.ts:1`: Complete 46-line helper: prepareIteration({currentIteration, feedback}) returns {nextIteration: current+1, feedback, timestamp}; wakeAgents(agentIds) returns signal strings 'wake:<agentId>:<Date.now()>'. No call site inside orchestrate.ts appears in the spans read, so its consumer is unverified.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/agent-spawner/agent-spawner.ts:1`: Complete 35-line file self-described as 'placeholder for migration': AgentSpawner.spawnAgents(taskId, loopNumber, agentCount, mode) returns synthetic AgentSpec objects (id `${taskId}-loop${loopNumber}-agent${i}`, type `loop${loopNumber}-agent`, memoryTier 2, memoryLimit '1g') and spawns no process; the real spawning in execute() goes through helpers/spawn-agents instead.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-migrations fp=orphan -->
+**Status:** dev
+**Description:** PostgreSQL migrations tuning the coordination database: agent table indexes, materialized views for cost aggregation and a tamper-evident audit log table.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-monitoring fp=orphan -->
+**Status:** dev
+**Description:** Express dashboard API and shell monitors that track CFN container teams, Redis task state, Docker health and agent costs, including sprint cost tracking and anomaly detection.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-packages fp=orphan -->
+**Status:** dev
+**Description:** Web portal and component library for observing CFN agent fleets: Express and Socket.IO APIs over Redis, a React client and reusable dashboard components, most with tests.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-plan-gates fp=orphan -->
+## Purpose
+
+Before implementation starts the plan bundle passes two static gates: the VERIFY manifest must clear Bar A (top-level keys slug/acs/done_rule/coverage, per-AC id/check/kind/pass/maps_to/evidence, closed kind vocabulary, executed evidence or stage-honest PENDING, decidable weasel-free pass predicates, absence checks paired with population assertions, equal coverage counters) and the PLAN file must clear Bar B (no banned vague phrases from weasel-phrases.txt). When a checker finds any error-severity item it exits 1 with a JSON findings array naming ac_id/field/issue, and bless-verify.sh then refuses to bless (exit 1, 'REFUSED: Bar A static check has error-severity findings', sidecar left untouched), so the manifest is never pinned; warnings alone exit 0 and do not block. If the static checker file itself is missing, bless-verify warns and blesses ungated, and exit 2 everywhere means usage or missing input, not a gate verdict.
+
+## Execution flow
+
+## Failures and recovery
+
+
+## Where to make a change
+
+
+## Limits of this explanation
+
+
+## Evidence
+
+Reviewed: 2026-09-14
+
+- `.claude/skills/cfn-megaplan/bars/bless-verify.sh:2`: bless-verify.sh is the ONLY supported way to bless a VERIFY manifest (S007): it replaces the bare 'sha256sum VERIFY > .sha256' one-liner with a gated, audited bless that (1) runs bars/check-verifiable-static.sh and REFUSES on any error-severity finding, (2) writes the sha256 sidecar in the same path/format so cfn-loop-task Step 0 and verify-run.sh need no change, (3) snapshots the manifest and appends a bless-ledger entry; beside the manifest it writes .VERIFY_<slug>.sha256, .blessed.json and the append-only .bless.json.
+- `.claude/skills/cfn-megaplan/bars/bless-verify.sh:56`: Exit contract: 0 = blessed; 1 = refused (Bar A static findings) with the sidecar left untouched; 2 = usage / file-not-found / jq-missing / no fenced json manifest block. The manifest is the LAST fenced json block (same awk extractor as verify-run.sh and check-verifiable-static.sh); deps are jq and sha256sum.
+- `.claude/skills/cfn-megaplan/bars/bless-verify.sh:122`: Failure path: when the static checker exits nonzero the bless prints 'REFUSED: Bar A static check has error-severity findings — fix them, then bless.' plus each offending 'ac_id [field] issue' line and exits 1; when the checker exits 2 (could not read the manifest) the bless exits 2; when the checker file is missing entirely the bless only warns and proceeds without the static gate.
+- `.claude/skills/cfn-megaplan/bars/bless-verify.sh:33`: The bless ledger scopes what is still owed after a re-bless: regate.bar_b is 'static+structural on PLAN' with bar_b_acs naming the steps bound to moved AC ids, and a live haiku probe (regate.probe) is owed only when an AC was ADDED or --force-full was passed; MECHANICAL fields (check, evidence, seeds, signal, trigger, requires) owe nothing beyond the static gate, every other AC field (pass, criterion, kind, maps_to, reference, binding) is SEMANTIC and scopes the LLM re-review to that AC.
+- `.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh:2`: Bar A static checker mechanizes the verifiable-done gate (bars/verifiable-done.md) and runs BEFORE the LLM gate report: a FAIL means the VERIFY manifest is not machine-decidable and cfn-loop-task could not mechanically decide 'done'. Exit: 0 = clean or warnings only, 1 = one or more error-severity findings, 2 = usage / bad --stage / file-not-found / jq-missing / no json manifest block. Output is a JSON findings array on stdout, empty when clean.
+- `.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh:7`: Two-stage evidence contract: --stage plan (default) accepts 'evidence: "PENDING: <reason>"' as a warn because a check for unwritten code cannot have run, while --stage exit (completion-gate re-bless) turns every surviving PENDING marker into a hard error; at both stages an EMPTY evidence field is an error demanding the check be run once and its actual output pasted.
+- `.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh:182`: Required manifest shape: top-level keys slug, acs, done_rule, coverage are all mandatory (error if missing) and coverage must carry wiring_total and wiring_mapped keys unconditionally — an opt-in wiring gate is dodgeable by omission, which is the failure class the mandatory keys exist to prevent (S004 / MP-A).
+- `.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh:231`: Per-AC shape and taxonomy: every AC needs id, check, kind, pass, maps_to, evidence (error per missing field); kind must be an exact member of a closed vocabulary (unit integration e2e ui e2e/ui assembled-path wiring-guard db db-query http curl build type compile static lint migration-rehearsal perf a11y security) — an unrecognized kind is an error, not a warn (S007: 'kind: cargo-test' with a grep body used to sail through). Check form must then match the kind family (e.g. e2e/ui checks start with 'playwright:', http kinds start with curl, build kinds run tsc/cargo/go/next build/npm run, db kinds start with db-query or psql).
+- `.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh:241`: Run-before-bless evidence (1d): the check must have been EXECUTED once and its real output pasted before the manifest is hashed, because authoring happens against the plan and verification against the code and nothing else forces them to be the same statement (21/147 and 71/104 ACs went runtime-red against correct code). For runner kinds (unit integration e2e ui e2e/ui assembled-path) the pasted evidence is machine-parsed via the shared parse-test-summary.sh: zero tests collected is an error (evidence_zero_ran, the selector matched nothing and proves nothing); an unrecognizable runner summary is a warn; if the parser lib is unreachable the row degrades to warn, never a hard fail.
+- `.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh:279`: Check runnability lints: '<file>::<name>' selector shorthand is an error because no runner implements it (vitest and playwright read it as one filename, 0 tests); a dead -t/-g name selector whose file exists but holds no such title (or matches no title tree-wide) is an error at exit and a warn at plan stage when the file does not exist yet; a command that resolves to no absolute-path executable (shell function/alias like Claude Code's rg() wrapper) is tool_unavailable — warn at plan stage, error at exit, because verify-run.sh runs checks under 'bash -c' which inherits neither functions nor aliases. QUARANTINED: evidence pointers are exempt from the runnability lints but keep shape checks.
+- `.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh:525`: Pass decidability and weasel: shallow pass conditions ('does not throw', 'renders', 'exists', 'compiles', 'no error') are errors; a pass condition containing no comparison operator, quoted literal, row count, exit code, or exact string is 'not decidable' and an error; any weasel phrase (appropriately, as needed, TBD, properly, gracefully, where applicable, ...) inside the pass condition is an error.
+- `.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh:541`: Absence-assertion pairing: a check whose pass condition is 'nothing found' (grep -c -eq 0, NOT EXISTS, '= 0;', 'no rows', ...) must also carry a population assertion (-gt 0, test -s, wc -c, an exact nonzero count like 'tables=41') in the check or pass body, else it is an 'absence-only check' error — a grep that finds nothing passes on a scan that looked at nothing.
+- `.claude/skills/cfn-megaplan/bars/check-verifiable-static.sh:568`: Coverage consistency: paired counters (fr, ec, cc, sm, obs, adv, wiring) must satisfy total == mapped when total is present — mapped missing or unequal (unmapped items) is an error; wiring_total == 0 is legal only with an explicit non-empty no_new_components_reason escape hatch.
+- `.claude/skills/cfn-megaplan/bars/check-haiku-static.sh:2`: Bar B static scan is the mandatory first pass before the haiku probe and reads the PLAN file (not the manifest): banned vague phrases come from bars/weasel-phrases.txt — the same single source check-verifiable-static.sh uses, with an inline 11-phrase fallback for defence in depth — and each match is an error-severity finding {file, line, phrase}.
+- `.claude/skills/cfn-megaplan/bars/check-haiku-static.sh:11`: Exit contract: 0 = no error-severity findings (warn findings alone never fail the gate), 1 = one or more error findings, 2 = usage or file error; phrases are matched case-insensitively with non-alphanumeric boundaries, one finding per matching line, so 'gracefully' is flagged unconditionally until the owning phase names the defined behavior instead.
+- `.claude/skills/cfn-megaplan/bars/check-haiku-static.sh:87`: Optional-DI mechanical assist (S005): when a core-fr-interfaces file is passed, lines of the PLAN that name one of those interface files and carry an optional-property token 'identifier?:' get a WARN finding (optional-property on core-fr dependency interface) — warn severity only, never fails the gate alone, and scoped strictly to the named interface files, never a repo-wide scan.
+- `.claude/skills/cfn-megaplan/lib/extract-sections.sh:2`: Program mode writes ONE shared SPEC/ARCH/UX for a multi-part program, and per-part phases (test_plan, write_plan, Bar A) must read only their own slice: extract-sections.sh cuts that slice deterministically from '[part: <id>]' tags in headings and table rows, where 'shared' is a reserved id kept for every part and never itself queryable, an untagged heading counts as shared, and a child heading is dropped whenever an ancestor section is dropped. Exit: 0 ok, 1 reserved/unused, 2 usage error / file not found / unknown part id.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-planning fp=orphan -->
+**Status:** dev
+**Description:** Working store of CFN planning artifacts for each epic: phase and sprint reports, completed epic test harnesses, megaplan dry-run scripts and archived migration work.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-src fp=orphan -->
+**Status:** dev
+**Description:** Core TypeScript for the CFN loop: GOAP planners for agent selection, orchestration and error recovery, a dependency extractor and product owner decision logic.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-task-verification fp=orphan -->
+## Purpose
+
+A successful command is not always proof that a task meets its acceptance criteria. CFN uses a VERIFY manifest to name the checks and a results file to record what actually happened. This capability explains the boundary between executing a check and accepting its evidence.
+
+## Execution flow
+
+1. **Start with acceptance criteria**: The exit workflow supplies a VERIFY Markdown file. run reads its final fenced JSON block, checks the integrity sidecar when present, and chooses the result-file path. A missing sidecar warns and proceeds; a mismatched sidecar exits 4.
+   Source: `.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh:373`
+
+2. **Decide whether a check can run**: For each selected acceptance criterion, resolve its working directory, classify the command, check required environment and services, and preflight tools. Missing prerequisites become blocked; missing tools become error; checks the runner cannot execute become needs_agent.
+   Source: `.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh:461`
+
+3. **Execute and judge the evidence**: Executable checks run under a timeout with captured output. Authoritative checks are judged by exit status and, for recognized test runners, parsed test counts. Zero collected tests fail. A successful non-asserting command stays predicate_unverified with pass=null.
+   Source: `.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh:530`
+
+4. **Record the result**: The runner writes mode, pass, reason, output_excerpt and evidence into VERIFY_RESULTS. all_green requires total>0, red=0 and unresolved=0. run exits 0 only for that condition; otherwise it exits 1.
+   Source: `.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh:666`
+
+5. **Resolve or return to implementation**: The exit workflow sends unresolved checks for evidence capture. resolve requires an existing AC id, true/false verdict and at least three non-empty evidence lines; it stamps mode=resolved and recomputes the summary. Failed or unresolved criteria send the task back to its bounded iteration loop.
+   Source: `.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/exit-gate.md:68`
+
+6. **Apply the remaining exit gates**: summary reads the stored all_green verdict. The wider task workflow still requires evidence backfill and re-blessing when applicable, a full-suite final gate, and deferral checks. Passing VERIFY is one prerequisite for finishing the task.
+   Source: `.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/exit-gate.md:94`
+
+## Failures and recovery
+
+- Exit 4 from run: the manifest differs from its integrity sidecar. Investigate and re-bless the intended manifest through the planning workflow.
+- blocked: restore the required service, environment or working directory, then rerun the affected checks. An absent dependency is not proof of a feature defect.
+- error with tool_missing: provide the missing executable and rerun. Empty command output must not become a false pass.
+- predicate_unverified: exit 0 did not assert the desired property. Make the check self-asserting or resolve it with captured evidence.
+- Recognized test-runner output reporting zero tests is a failed check. Inspect selectors and runner configuration.
+- Red or unresolved results keep all_green false. Repair the implementation or check, collect evidence, and run the gate again.
+
+## Where to make a change
+
+- Change command classification, preconditions or evidence judgment in cli/verify-run.sh. Test both successful and unresolved paths in cli/tests/test-verify-run.sh.
+- Change runner-summary interpretation in cli/lib/parse-test-summary.sh. Verify both gate-check.sh and verify-run.sh because they share this parser.
+- Change exit ordering and task-level iteration policy in lib/task-mode/exit-gate.md. The runner alone does not enforce the whole task workflow.
+
+## Limits of this explanation
+
+- This walkthrough covers task verification, not agent spawning or every CLI execution mode.
+- summary reads the saved summary; it does not rerun checks or revalidate the manifest hash. Its result is only as current as the results file.
+- resolve checks evidence shape and row existence, not whether the evidence semantically proves the claim. That still requires review.
+- State diagram nodes below are persisted result modes. pass and predicate_unverified are separate fields; executed does not necessarily mean passed.
+
+## Evidence
+
+Reviewed: 2026-09-13
+
+- `.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh:373`: run validates the manifest, executes checks, persists result rows and computes all_green; resolve stamps evidence; summary reads the stored verdict.
+- `.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh:64`: The pass-rate gate shares the summary parser and rejects zero tests or a shrinking baseline.
+- `.claude/skills/cfn-loop-orchestration-v2/cli/lib/parse-test-summary.sh:1`: Shared runner-summary parsing determines collected, passed, failed, skipped and todo counts.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/exit-gate.md:52`: The task exit workflow invokes run, resolves missing evidence, reads summary, and then performs additional exit gates.
+- `.claude/skills/cfn-loop-orchestration-v2/cli/tests/test-verify-run.sh:1`: Regression coverage for verification manifests and evidence resolution; the file is evidence of test coverage, not of a passing run today.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-templates fp=orphan -->
+**Status:** stub
+**Description:** Starter TypeScript template wiring SQLite, Postgres and Redis for new CFN integrations. Deliberate scaffolding with placeholder logic, not working product code.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-test-result-parsing fp=orphan -->
+## Purpose
+
+Test summaries enter the CFN Loop as captured stdout: gate-check.sh and verify-run.sh both source cli/lib/parse-test-summary.sh, which turns the runner's summary line into PTS_* counts that drive the pass-rate gate and per-AC adjudication, while the orchestrator has a parallel TypeScript parser in parse-test-results.ts. When the output matches no branch the parser returns 1 with PTS_RUNNER=unknown, and the callers degrade to exit-code-only: verify-run.sh adjudicates exit 0 as exit_code_only 'runner summary unrecognized, no proof any test ran' and gate-check.sh exits 2 'no tests detected' because no counts were parsed. To teach the loop a new runner format, add a grep branch to parse_test_summary() ordered most-specific-first and keyed on a runner-unique line shape; both shell callers pick it up automatically because they source the shared lib.
+
+## Execution flow
+
+## Failures and recovery
+
+
+## Where to make a change
+
+
+## Limits of this explanation
+
+
+## Evidence
+
+Reviewed: 2026-09-14
+
+- `.claude/skills/cfn-loop-orchestration-v2/cli/lib/parse-test-summary.sh:1`: One shared summary-line parser sourced by both gate-check.sh and verify-run.sh (S002/S003 DRY hoist); sets PTS_RUNNER/PASS/FAIL/ERROR/SKIP/TODO/COLLECTED/FILTERED; returns 0 on a recognized runner and 1 on unknown, where unknown is explicitly not an error: callers fall back to exit-code-only semantics for runners like mocha/ava.
+- `.claude/skills/cfn-loop-orchestration-v2/cli/lib/parse-test-summary.sh:121`: Branch dispatch tries node first (most specific shape), then cargo (must precede pytest: cargo's line satisfies pytest's regex and its 'ignored' would read as skip=0), nextest, playwright (matched by its 'Running N tests using M workers' header, never the generic 'N passed' tail), jest, vitest, pytest, and go (column-0 verdict lines; non-verbose go test deliberately stays unknown so callers keep exit-code semantics), else falls through to return 1.
+- `.claude/skills/cfn-loop-orchestration-v2/cli/lib/parse-test-summary.sh:241`: jest/vitest regexes allow an optional '<task>:<script>:' monorepo prefix and every matching summary line is summed rather than tail -1: a measured turbo capture with 13 per-package summary lines read last-line-only as 13/13 green while 40 tests failed; pytest's collected total includes skipped (S003 denominator fix).
+- `.claude/skills/cfn-loop-orchestration-v2/cli/gate-check.sh:64`: The pass-rate gate sources the shared parser, computes rate as PTS_PASS/PTS_COLLECTED, exits 2 with 'no tests detected' when no counts are found or total is 0 (0/0 must not pass), and exits 3 when the suite shrank versus --baseline before judging the rate.
+- `.claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh:530`: For authoritative executable checks, verify-run.sh writes captured stdout to a temp file and adjudicates on parse_test_summary: zero collected is a red zero_tests_ran failure naming runner and filtered_out; name-filtered runs are judged on pass/fail (skips are the selector working); skipped/todo present without a name filter is red; an unrecognized summary falls back to exit-code-only ('no proof any test ran' when exit 0).
+- `.claude/skills/cfn-loop-orchestration-v2/cli/check-test-hygiene.sh:1`: The third scope file is not a summary consumer at all: it scans test SOURCE files (changed via git diff, --all, or explicit) for .skip( / .skipIf( / .todo( / fit( / xdescribe( / pytest.mark.skip markers, suppresses findings on a same-line cfn-allow-skip: marker, emits a JSON findings array, and exits 1 when findings exist.
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/parse-test-results.ts:6`: The orchestrator's TypeScript parser covers a different framework union than the shell parser (jest/mocha/pytest/tap/go/junit/unknown: it has mocha, tap and junit but not vitest, node, cargo, nextest or playwright).
+- `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/parse-test-results.ts:307`: parseTestResults(framework, output) is the entry point: framework 'auto' routes through autoDetectFramework heuristics, and the switch handles only jest/mocha/pytest/tap/go; every other value, including a 'junit' argument, returns a zeroed framework='unknown' TestResults (passRate 0.0) rather than an error. Teaching this path a runner means a new parse function, a switch case, and an autoDetect heuristic.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-tools fp=orphan -->
+**Status:** dev
+**Description:** React Flow web app that renders the CFN pipeline as an interactive graph with categorized nodes, states and costs for developers tracing the workflow.
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-feature-training fp=orphan -->
+**Status:** stub
+**Description:** Training examples demonstrating database integration patterns with typed errors for onboarding. Reference material only, a single example present, not production code.
 <!-- /wiki:enrich -->
 

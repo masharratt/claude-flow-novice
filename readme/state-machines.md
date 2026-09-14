@@ -704,6 +704,84 @@ unresolved ──> resolved ──> published <──────┐
 ---
 <!-- /wiki:enrich -->
 
+<!-- wiki:enrich id=orphan-entity-api-gateway fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-api-gateway._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-archive fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-archive._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-artifacts fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-artifacts._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-backups fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-backups._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-benchmark fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-benchmark._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-codex fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-codex._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-config fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-config._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-database fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-database._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-deployment fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-deployment._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-docker fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-docker._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-lib fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-lib._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-logs fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-logs._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-migrations fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-migrations._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-monitoring fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-monitoring._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-packages fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-packages._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-planning fp=orphan -->
+<!-- imported from readme/state-machines.md -->
+
+**Imported entity:** CFN MegaPlan-Lite: Planning DAG
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-src fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-src._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-templates fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-templates._
+<!-- /wiki:enrich -->
+
+<!-- wiki:enrich id=orphan-entity-tools fp=orphan -->
+_No curated description yet. Edit this wiki:enrich block to describe entity-tools._
+<!-- /wiki:enrich -->
+
 <!-- wiki:enrich id=entity-api-gateway fp=d7c568d77a3888a80e901a0b840b41cd88d2bae9b2b1ac6a4c8bb43b92d6e35d -->
 _No curated description yet. Edit this wiki:enrich block to describe entity-api-gateway._
 <!-- /wiki:enrich -->
