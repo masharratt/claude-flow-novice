@@ -487,6 +487,51 @@ case_worktree_dirt_invariant() {
 }
 
 # ---------------------------------------------------------------------------
+case_tracked_content_blob_canonical() {
+    # Regression (CI red 2026-09-14): content_hashes hashed WORKTREE bytes,
+    # so a worktree whose tracked files differ from their blobs (CRLF
+    # normalization, unstaged edits) fingerprinted differently from a clean
+    # clone of the same commit. content_hashes must hash the git blob.
+    # The worktree-dirt case above covers untracked dirt only; this case
+    # varies TRACKED file content without committing.
+    local REPO_B="$T/fx-$$_b"
+    mkdir -p "$REPO_B"
+    cp -r "$FIXTURE/." "$REPO_B/"
+    rm -rf "$REPO_B/.wiki" "$REPO_B/readme"
+    git -C "$REPO_B" init -q
+    git -C "$REPO_B" config user.email blob-case@example.com
+    git -C "$REPO_B" config user.name "Blob Case"
+    git -C "$REPO_B" add parsing reporting src main.py service.py util.py
+    git -C "$REPO_B" commit -qm "fixture tree"
+
+    local store="$REPO_B/.wiki/store.json"
+    run_extract "$REPO_B" >/dev/null 2>&1 || { no "blob-canonical: clean extract failed"; return; }
+    local fp1
+    fp1=$(fp_of "$store")
+
+    # unstaged modification of a tracked feature file: bytes change in the
+    # worktree, blob unchanged -> fingerprint must NOT move
+    printf '\r\n# local crlf noise\r\n' >>"$REPO_B/parsing/parser.py"
+    printf 'def uncommitted_helper(): pass\n' >>"$REPO_B/service.py"
+    run_extract "$REPO_B" >/dev/null 2>&1 || { no "blob-canonical: dirty extract failed"; return; }
+    local fp2
+    fp2=$(fp_of "$store")
+    [ -n "$fp2" ] && [ "$fp1" = "$fp2" ] \
+        && ok "blob-canonical: unstaged tracked-file edits leave fp unchanged" \
+        || no "blob-canonical: fp moved on unstaged edits ($fp1 vs $fp2)"
+
+    # committing the edit is a real content change: fp must flip
+    git -C "$REPO_B" add parsing/parser.py service.py
+    git -C "$REPO_B" commit -qm "content change"
+    run_extract "$REPO_B" >/dev/null 2>&1 || { no "blob-canonical: post-commit extract failed"; return; }
+    local fp3
+    fp3=$(fp_of "$store")
+    [ -n "$fp3" ] && [ "$fp3" != "$fp1" ] \
+        && ok "blob-canonical: committing the edit flips the fp" \
+        || no "blob-canonical: fp did not flip after commit ($fp1 vs $fp3)"
+}
+
+# ---------------------------------------------------------------------------
 case_empty_git_fallback() {
     # empty-git-fallback mode: git init with NOTHING staged or committed has
     # an empty tracked set; git's view carries no content, so extraction must
@@ -785,11 +830,6 @@ case_extract_fixture() {
     # CBM candidate chain, mirroring Phase 1: env, verification build, normal chain
     local cand="${CBM_BIN:-}"
     if [ -z "$cand" ] || [ ! -x "$cand" ]; then
-        if [ -x /tmp/cbm-test/codebase-memory-mcp ]; then
-            cand=/tmp/cbm-test/codebase-memory-mcp
-        fi
-    fi
-    if [ -z "$cand" ] || [ ! -x "$cand" ]; then
         cand=$(env HOME="$HOME" PATH="$PATH" bash -c '
             source "$1/wiki-env.sh"
             wiki_env_load "$2"
@@ -834,7 +874,7 @@ case_extract_fixture() {
     keys=$(store_val "$store" "sorted(s.keys())" 2>/dev/null) \
         && ok "extract-fixture: store parses as JSON" \
         || { no "extract-fixture: store.json is not valid JSON"; return; }
-    [ "$keys" = "['coupling', 'edges', 'features', 'meta', 'modules']" ] \
+    [ "$keys" = "['coupling', 'edges', 'features', 'knowledge_inputs', 'meta', 'modules']" ] \
         && ok "extract-fixture: top-level keys exactly features/modules/edges/coupling/meta" \
         || no "extract-fixture: top-level keys=$keys"
 
@@ -851,7 +891,7 @@ case_extract_fixture() {
         *) no "extract-fixture: expected parsing+reporting fids, got: $fids" ;;
     esac
 
-    store_val "$store" "len(set(tuple(sorted(f.keys())) for f in s['features'])) == 1 and tuple(sorted(s['features'][0].keys())) == ('edges', 'entrypoints', 'fid', 'files', 'name')" | grep -q True \
+    store_val "$store" "len(set(tuple(sorted(f.keys())) for f in s['features'])) == 1 and tuple(sorted(s['features'][0].keys())) == ('content_hashes', 'edges', 'entrypoints', 'fid', 'files', 'name')" | grep -q True \
         && ok "extract-fixture: each feature has exactly fid/name/files/edges/entrypoints" \
         || no "extract-fixture: unexpected feature key set"
     store_val "$store" "all(f['files'] for f in s['features'])" | grep -q True \
@@ -1000,6 +1040,7 @@ case_index_copy_asserted
 case_fp_mode_invariant
 case_features_mode_invariant
 case_worktree_dirt_invariant
+case_tracked_content_blob_canonical
 case_empty_git_fallback
 case_monorepo_features_glob
 case_minimal_schema_snapshot

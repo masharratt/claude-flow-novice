@@ -185,7 +185,7 @@ EOF
     # under orphan-<kind> names so the appendix renders them instead of
     # silently dropping machine-local hand-written prose.
     local claimed id rehomed
-    claimed="$(wiki_store_fids "$store" | sed -e 's/.*/& entity-&/' || true)"
+    claimed="$(wiki_store_fids "$store" | sed 's/.*/& entity-&/' | tr '\n' ' ')"
     while IFS= read -r id; do
         [ -n "$id" ] || continue
         case " $claimed " in
