@@ -37,7 +37,7 @@ per level). No run dir: exit 64, "fleet init first".
 planning/fleet-<slug>/
   fleet.env          FLEET_WORKTREE=off|on, FLEET_DB=none|docker (init sets);
                      optional knobs: FLEET_DEFAULT_ENGINE, FLEET_TMUX_SOCKET,
-                     FLEET_TRUST_TIMEOUT, FLEET_BANNER_TIMEOUT
+                     FLEET_TRUST_TIMEOUT, FLEET_BANNER_TIMEOUT, FLEET_TICK_SECS
   roster.tsv         one row per workstream, flock-guarded, tab-separated:
                      ws_id name task status claims landed_sha
                      migration_num scratch_db heartbeat notes engine
@@ -66,11 +66,11 @@ done | dead`.
 | `heartbeat WSxx [--files p1,p2,...] [note...]` | Liveness ts; latest note replaces the previous; `--files` publishes the comma-separated paths as the worker's now-editing list (`files/<ws>.txt`, one per line, shown on the dashboard card) |
 | `commit WSxx -m <msg>` | Guarded commit: stages ONLY claimed paths, refuses (66) on unclaimed dirty files |
 | `migrate-next WSxx <dir>` | Reserve next migration number (max+1, flocked); no silent collisions |
-| `spawn WSxx [--spares N] [--engine e] [--no-tmux] [--dry-run]` | Launch the worker's engine in a tmux pane on the run's socket, verify its banner, then send the thin prompt. Prints the dashboard URL: `dashboard live: http://127.0.0.1:<port>/dashboard.html` when the dashboard server is up, otherwise `dashboard: <url> (start: fleet dashboard --open)`. Engine precedence: `--engine` > roster column > `FLEET_DEFAULT_ENGINE` > `claude-sub` |
+| `spawn WSxx [--spares N] [--engine e] [--no-tmux] [--dry-run]` | Launch the worker's engine in a tmux pane on the run's socket, verify its banner, then send the thin prompt. Prints the dashboard URL: `dashboard live: http://127.0.0.1:<port>/dashboard.html` when the dashboard server is up, otherwise `dashboard: <url> (start: fleet dashboard --open)`. Engine precedence: `--engine` > roster column > `FLEET_DEFAULT_ENGINE` > `claude-sub`. Splices the activity-gated heartbeat ticker into the pane (`FLEET_TICK_SECS`, default 30s, `off` disables) |
 | `land WSxx [--no-ff]` | Worktree: merge `fleet/<WSxx>` + remove worktree; main: mark landed |
 | `handoff WSxx` | Write `handoffs/HANDOFF_WSxx.md` for compaction restart into a spare |
 | `db WSxx` / `db-clean [--all]` | Scratch postgres containers (only when `FLEET_DB=docker`) |
-| `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
+| `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. STALE fires when a started/working row's heartbeat ages past `--stale-min` (default 5 minutes). Heartbeat-only roster diffs never emit `CHANGE` (the spawn ticker rewrites that column every tick). Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
 | `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained live-poll HTML tracking page from the roster (status tiles and meter, filter chips, sort, heartbeat age, engine, claims, now-editing lists, goal blurb, STALE/DEAD badges, transition timeline), served on 127.0.0.1 for VS Code Simple Browser (below) |
 
 Exit codes: `0` ok, `64` usage, `65` data error (bad WS id, overlap, duplicate),
@@ -124,7 +124,9 @@ with `tmux -L fleet-<slug> kill-server`):
 1. `new-session -e K=V` for every set-var, then one pane command:
    `export FLEET_RUN_DIR=<run dir>; unset <unset list>; exec <bin> <args>`.
    The `exec` makes the pane die with the engine, which is what `fleet watch`'s
-   `DEAD <ws> (pane exited)` detects.
+   `DEAD <ws> (pane exited)` detects. When the heartbeat ticker is enabled, a
+   backgrounded sidecar loop sourcing `lib/heartbeat-ticker.sh` is spliced in
+   front of that segment.
 2. Startup gates, one poll: the codex-cli update modal ("Update available
    ... Press enter to continue", codex-cli 0.153+) is dismissed with `2`
    (Skip) then Enter — bare Enter picks "1. Update now" = a surprise
@@ -137,6 +139,17 @@ with `tmux -L fleet-<slug> kill-server`):
    and only then the thin prompt. Timeout: the row stays `pending`, the last
    pane lines print, exit 66. A worker on the wrong model never reaches
    `started`; confirm the banner line in spawn's output before trusting a run.
+
+Heartbeat ticker: the spliced sidecar ticks every `FLEET_TICK_SECS` seconds
+(default 30; env > fleet.env; `off` or `0` disables). Each tick it captures
+the pane, filters out spinner and animation lines (braille frames,
+star-family glyphs, esc-hint and elapsed tokens), and stamps the roster
+heartbeat only when the filtered visible output changed since the last tick.
+A wedged worker whose output freezes stops beating, so `fleet watch`'s STALE
+(default 5 minutes) stays a real signal; a plain wall-clock ticker was
+rejected because it makes wedged agents look healthy. The sidecar survives
+the `exec` as a reparented child and dies with the pane, and it stamps only
+the heartbeat field: agent heartbeats still own notes, status and `--files`.
 
 Codex specifics: it reads `AGENTS.md`, not `CLAUDE.md`, so keep briefs
 self-contained or point at the repo's CLAUDE.md explicitly. It has no inbound
@@ -202,8 +215,8 @@ a failed fetch (the last good page stays up; retry on the next tick).
 
 Per-worker cards show the status pill (closed vocab), task, engine, claims,
 notes, heartbeat age (ticks client-side), landed sha, and STALE (heartbeat
-older than `--stale-min` while started/working) and DEAD (status dead, or
-pane exited per the tmux session probe) badges. The overview separates
+older than `--stale-min`, default 5 minutes, while started/working) and DEAD
+(status dead, or pane exited per the tmux session probe) badges. The overview separates
 needs-attention (blocked, stale, or dead),
 in-flight (started + working), landed, and finished (done only) counts.
 Click a summary to filter the roster. A seven-status legend and grouped
@@ -255,7 +268,11 @@ check is one batch: `fleet status` (roster + heartbeat ages), react to STALE/
 DEAD rows, unblock or wake workers, land finished lanes. `fleet watch` (Monitor
 tool) and the dashboard run alongside but never replace the check — a watch
 stream goes quiet when nothing changes and poll loops die under memory pressure
-(trap 6); the 15-minute check is what catches a stalled run.
+(trap 6); the 15-minute check is what catches a stalled run. STALE (default
+5 minutes, down from 15) is trustworthy between checks because heartbeats are
+stamped by spawn's activity-gated ticker, not by workers remembering to run
+`fleet heartbeat`: a wedged lane freezes its visible output and shows STALE
+before the next scheduled check.
 
 Mechanics: schedule the check with the Monitor tool or a session loop at a
 15-minute interval; do not hold a `sleep`-loop in a shell. A check that finds

@@ -42,7 +42,7 @@ _fleet_json_escape() {
 }
 
 main() {
-  local port="" poll=5 stale_min=15 once=0 no_serve=0 do_stop=0 do_open=0
+  local port="" poll=5 stale_min=5 once=0 no_serve=0 do_stop=0 do_open=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --port)      [ $# -ge 2 ] || fleet_die 64 "dashboard: --port needs a number"

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "include_untracked": false,
+  "include": [
+    {
+      "pattern": ".claude/skills/**",
+      "reason": "hidden implementation is in scope"
+    }
+  ],
+  "exclude": [
+    {
+      "pattern": ".git/**",
+      "reason": "repository metadata"
+    },
+    {
+      "pattern": "node_modules/**",
+      "reason": "dependencies"
+    },
+    {
+      "pattern": ".wiki/**",
+      "reason": "wiki working state"
+    },
+    {
+      "pattern": "**/__pycache__/**",
+      "reason": "build cache"
+    },
+    {
+      "pattern": "**/.venv/**",
+      "reason": "environment"
+    },
+    {
+      "pattern": "**/dist/**",
+      "reason": "build output"
+    },
+    {
+      "pattern": "**/build/**",
+      "reason": "build output"
+    },
+    {
+      "pattern": ".env",
+      "reason": "credentials"
+    },
+    {
+      "pattern": ".env.*",
+      "reason": "credentials"
+    },
+    {
+      "pattern": "**/*.pem",
+      "reason": "credentials"
+    }
+  ],
+  "policy_notes": "Excluded-by-policy files are listed in the index with class 'excluded' and their reason; their content is never read."
+}

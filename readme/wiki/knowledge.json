@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "overview": {
+    "title": "How CFN turns work into checked results",
+    "summary": "CFN combines agent workflows, verification gates and supporting infrastructure. Start with one source-backed walkthrough, then use the directory and dependency views to inspect implementation details.",
+    "coverage": "One capability has been traced in depth. The remaining directory entries are an inventory and have not been reviewed as independent capabilities.",
+    "questions": [
+      "Why can a successful command still leave a task unresolved?",
+      "What evidence does the task exit workflow require?",
+      "Where should I change test-result parsing?"
+    ]
+  },
+  "domains": [],
+  "capabilities": [
+    "task-verification"
+  ],
+  "entities": [
+    "acceptance-check-result-entity"
+  ]
+}

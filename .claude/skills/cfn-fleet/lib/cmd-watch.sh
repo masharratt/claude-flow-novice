@@ -6,7 +6,7 @@
 # field values persist in <run-dir>/.watch.state, so consecutive --once scans
 # (and loop polls) diff against the previous scan.
 #
-#   fleet watch [--stale-min 15] [--poll 60] [--once] [--emit-events]
+#   fleet watch [--stale-min 5] [--poll 60] [--once] [--emit-events]
 #
 # Events (one line each):
 #   CHANGE <ws> <field>   field value differs from the previous scan (first
@@ -83,7 +83,7 @@ _fleet_runplan_write() {
 }
 
 main() {
-  local stale_min=15 poll=60 once=0
+  local stale_min=5 poll=60 once=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --stale-min)
@@ -174,7 +174,12 @@ _fleet_watch_scan() {
         name)      name_val="$val" ;;
       esac
       if [ "$had_state" -eq 1 ]; then
-        if [ -n "${prev[$key]+set}" ]; then
+        # Heartbeat-only diffs never emit CHANGE: the activity-gated ticker
+        # rewrites the heartbeat column every tick and would flood the stream.
+        # The value is still recorded in .watch.state above.
+        if [ "${fields[$i]}" = "heartbeat" ]; then
+          :
+        elif [ -n "${prev[$key]+set}" ]; then
           [ "${prev[$key]}" = "$val" ] || change_events+=("CHANGE $ws ${fields[$i]}")
         else
           change_events+=("CHANGE $ws ${fields[$i]}")   # new row since last scan

@@ -595,6 +595,11 @@ test_spawn_real_tmux_engine_env_and_pane_command() {
         "pane command execs the engine with its args"
     assert_contains "$sk" "read $RUN_DIR/briefs/WS01.md and start; coordinate only via roster files" \
         "thin prompt sent after the banner, never the brief body"
+    assert_contains "$sk" "source $SKILL_DIR/lib/heartbeat-ticker.sh" \
+        "pane command sources the heartbeat-ticker lib"
+    assert_contains "$sk" \
+        "_fleet_tick_loop fleet-eng-glm ws01 WS01 $SKILL_DIR/lib/../cli/fleet $RUN_DIR 30" \
+        "ticker loop baked with socket, session, ws, fleet CLI, run dir and the default 30s tick"
     assert_equals "1" "$(grep -ac 'and start' "$TMUX_LOG")" "thin prompt sent exactly once"
     assert_not_contains "$(tmux_calls)" "Down" "no trust keys when no trust prompt appeared"
     assert_equals "started" "$(roster_field WS01 status)" "banner match sets started"
@@ -904,6 +909,176 @@ test_spawn_socket_default_and_override() {
     assert_contains "$FLEET_OUT" "tmux -L fleet-custom new-session" "fleet.env socket override wins"
 }
 
+test_spawn_ticker_knob_and_hostile_ws_guard() {
+    # Ticker knob: FLEET_TICK_SECS=7 bakes 7 as the tick interval; =off strips
+    # the whole ticker segment (no lib source, no loop call). Hostile ws id:
+    # the id is baked unquoted into the pane shell string, so it must die 64
+    # before anything is composed into a pane.
+    log_step "GIVEN FLEET_TICK_SECS=7, WHEN spawn via stub tmux"
+    make_engine_project eng-tick7
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+
+    export FLEET_TICK_SECS=7
+    run_fleet spawn WS01
+    unset FLEET_TICK_SECS
+    assert_equals "0" "$FLEET_RC" "spawn with FLEET_TICK_SECS=7 exits 0"
+    local sk
+    sk=$(tmux_calls "send-keys -t ws01 -l")
+    assert_contains "$sk" \
+        "_fleet_tick_loop fleet-eng-tick7 ws01 WS01 $SKILL_DIR/lib/../cli/fleet $RUN_DIR 7" \
+        "FLEET_TICK_SECS=7 bakes 7 as the tick interval"
+
+    log_step "GIVEN FLEET_TICK_SECS=off, WHEN spawn via stub tmux"
+    make_engine_project eng-tickoff
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+
+    export FLEET_TICK_SECS=off
+    run_fleet spawn WS01
+    unset FLEET_TICK_SECS
+    assert_equals "0" "$FLEET_RC" "spawn with FLEET_TICK_SECS=off exits 0"
+    sk=$(tmux_calls "send-keys -t ws01 -l")
+    assert_not_contains "$sk" "_fleet_tick_loop" "off removes the ticker loop call"
+    assert_not_contains "$sk" "heartbeat-ticker.sh" "off removes the ticker lib source"
+    assert_contains "$sk" "exec claude" "off keeps the plain engine pane command"
+
+    log_step "GIVEN a hostile ws id, WHEN spawn"
+    make_engine_project eng-tickevil
+    echo "b" > "$RUN_DIR/briefs/a;evil.md"
+    add_ws "a;evil" a-evil "Work" pending "src/a.md"
+
+    run_fleet spawn "a;evil"
+    assert_equals "64" "$FLEET_RC" "hostile ws id exits 64"
+    assert_contains "$FLEET_OUT" "invalid workstream id" "refusal names the ws guard"
+    assert_not_contains "$(tmux_calls)" "new-session" "no pane composed for a hostile ws id"
+    assert_equals "pending" "$(roster_field 'a;evil' status)" "hostile ws row stays pending"
+}
+
+# ============================================================================
+# heartbeat ticker (lib/heartbeat-ticker.sh): activity-gated sidecar unit tests
+# Sourced directly like the cmd files. _fleet_tick_once reads
+# FLEET_TICK_FLEET_CLI + FLEET_RUN_DIR from the env and captures the pane via
+# the same stub tmux the spawn tests use ($FLEET_CAPTURE_DIR, Nth call replays
+# N.txt). The spy CLI logs every beat, then delegates to the REAL cli/fleet so
+# the roster heartbeat stamp exercises the production heartbeat command.
+# ============================================================================
+make_ticker_fixture() { # $1 = slug: run dir, scripted captures, spy fleet CLI
+    local slug="$1"
+    make_project "$slug"
+    add_ws WS01 ws01 "Work" working "src/a.md"
+    CAPTURE_DIR="$TMP_DIR/capture-$slug"
+    rm -rf "$CAPTURE_DIR"
+    mkdir -p "$CAPTURE_DIR"
+    SPY_LOG="$TMP_DIR/tick-beats-$slug.log"
+    : > "$SPY_LOG"
+    cat > "$TMP_DIR/spy-fleet.sh" <<STUB
+#!/usr/bin/env bash
+printf 'beat %s\n' "\$*" >> "$SPY_LOG"
+exec "$SKILL_DIR/cli/fleet" "\$@"
+STUB
+    chmod +x "$TMP_DIR/spy-fleet.sh"
+}
+
+tick_beats() { grep -ac 'beat heartbeat WS01' "$SPY_LOG" || true; }
+
+tick_once_fixture() { # SOCKET WS: one _fleet_tick_once call on the stub PATH
+    PATH="$TMP_DIR/bin:$PATH" FLEET_RUN_DIR="$RUN_DIR" \
+        FLEET_TICK_FLEET_CLI="$TMP_DIR/spy-fleet.sh" FLEET_CAPTURE_DIR="$CAPTURE_DIR" \
+        _fleet_tick_once "$1" ws01 WS01
+}
+
+test_ticker_beats_on_visible_content_change() {
+    log_step "GIVEN the ticker lib, WHEN the pane's filtered visible output changes, THEN the heartbeat is stamped"
+    make_ticker_fixture tick-beat
+    # content A: a welcome line plus a spinner line (glyph, esc hint, elapsed
+    # token all filter away, leaving "Deliberating" as the content).
+    capture_script 1 "Welcome to Claude Code
+✻ Deliberating (esc to interrupt · 11s)"
+    # real content change: a new content line under the same spinner.
+    capture_script 2 "Welcome to Claude Code
+✻ Deliberating (esc to interrupt · 12s)
+Wrote src/login.ts"
+
+    # shellcheck disable=SC1091
+    source "$SKILL_DIR/lib/heartbeat-ticker.sh"
+    TICK_LAST_HASH=""
+    tick_once_fixture fleet-tick-beat
+    assert_equals "1" "$(tick_beats)" "first capture (content A) beats once"
+    assert_success "roster heartbeat advanced by the real heartbeat command" \
+        test "$(roster_field WS01 heartbeat)" -gt 0
+
+    tick_once_fixture fleet-tick-beat
+    assert_equals "2" "$(tick_beats)" "real content change beats again"
+    TICK_LAST_HASH=""
+}
+
+test_ticker_spinner_only_diff_does_not_beat() {
+    # Pins _fleet_tick_filter: braille frames, the star-family dingbats
+    # (U+2722-274B: the frame advanced ✻ -> ✽) and elapsed tokens are
+    # animation, not content; a capture differing only by them must hash
+    # equal to the previous one and not beat.
+    log_step "GIVEN a beat on content A, WHEN the next capture differs only by spinner glyphs and elapsed tokens, THEN no beat"
+    make_ticker_fixture tick-spin
+    capture_script 1 "Welcome to Claude Code
+✻ Deliberating (esc to interrupt · 11s)"
+    capture_script 2 "Welcome to Claude Code
+✽ Deliberating (esc to interrupt · 12s)
+⠋"
+
+    # shellcheck disable=SC1091
+    source "$SKILL_DIR/lib/heartbeat-ticker.sh"
+    TICK_LAST_HASH=""
+    tick_once_fixture fleet-tick-spin
+    assert_equals "1" "$(tick_beats)" "content A beats once (seeds the tick hash)"
+
+    tick_once_fixture fleet-tick-spin
+    assert_equals "1" "$(tick_beats)" "spinner-only diff does not beat"
+    TICK_LAST_HASH=""
+}
+
+test_ticker_empty_capture_skips() {
+    log_step "GIVEN a capture that filters to empty, WHEN a tick runs, THEN it skips silently"
+    make_ticker_fixture tick-empty
+    : > "$CAPTURE_DIR/1.txt"
+
+    # shellcheck disable=SC1091
+    source "$SKILL_DIR/lib/heartbeat-ticker.sh"
+    TICK_LAST_HASH=""
+    local out
+    out=$(tick_once_fixture fleet-tick-empty 2>&1)
+    assert_equals "0" "$(tick_beats)" "empty capture beats nothing"
+    assert_equals "" "$out" "empty-capture skip is silent"
+    TICK_LAST_HASH=""
+}
+
+test_ticker_tmux_absent_skips_silently() {
+    # Tooling tolerance (mirrors watch's missing-tmux rule): no tmux binary is
+    # a skipped tick, never an error and never a beat.
+    log_step "GIVEN no tmux binary on PATH, WHEN a tick runs, THEN rc 0, no output, no beat"
+    make_ticker_fixture tick-notmux
+    capture_script 1 "Welcome to Claude Code"
+    mkdir -p "$TMP_DIR/bin-notmux"
+    local b
+    for b in awk basename cat date dirname grep head mv sed sort tr; do
+        ln -sf "$(command -v "$b")" "$TMP_DIR/bin-notmux/$b"
+    done
+
+    # shellcheck disable=SC1091
+    source "$SKILL_DIR/lib/heartbeat-ticker.sh"
+    TICK_LAST_HASH=""
+    local out rc=0
+    out=$(PATH="$TMP_DIR/bin-notmux" FLEET_RUN_DIR="$RUN_DIR" \
+        FLEET_TICK_FLEET_CLI="$TMP_DIR/spy-fleet.sh" FLEET_CAPTURE_DIR="$CAPTURE_DIR" \
+        _fleet_tick_once fleet-tick-notmux ws01 WS01 2>&1) || rc=$?
+    assert_equals "0" "$rc" "missing tmux returns 0"
+    assert_equals "" "$out" "missing-tmux tick prints nothing"
+    assert_equals "0" "$(tick_beats)" "missing-tmux tick beats nothing"
+    TICK_LAST_HASH=""
+}
+
 # ============================================================================
 # land
 # ============================================================================
@@ -1086,23 +1261,23 @@ test_db_docker_lifecycle() {
 # watch
 # ============================================================================
 test_watch_once_stale_and_not_stale() {
-    log_step "GIVEN one 20-min-stale working row, one fresh started row, one pending, WHEN watch --once"
+    log_step "GIVEN one 6-min-stale working row, one fresh started row, one pending, WHEN watch --once"
     make_project watch-stale
     local now
     now=$(date +%s)
-    add_ws WS01 ws01 "Slow worker" working "src/a.md" "" "" "" "$((now - 1200))"
+    add_ws WS01 ws01 "Slow worker" working "src/a.md" "" "" "" "$((now - 360))"
     add_ws WS02 ws02 "Fresh worker" started "src/b.md" "" "" "" "$now"
     add_ws WS03 ws03 "Not picked up" pending "src/c.md"
     run_fleet watch --once
 
     assert_equals "0" "$FLEET_RC" "watch --once exits 0"
-    assert_contains "$FLEET_OUT" "STALE WS01 20" "20-min heartbeat flagged STALE at default 15m"
+    assert_contains "$FLEET_OUT" "STALE WS01 6" "6-min heartbeat flagged STALE at default 5m (would not fire at the old 15m default)"
     assert_not_contains "$FLEET_OUT" "STALE WS02" "fresh heartbeat not stale"
     assert_not_contains "$FLEET_OUT" "STALE WS03" "pending row (heartbeat 0) never stale"
     assert_not_contains "$FLEET_OUT" "ALL-DONE" "running fleet emits no ALL-DONE"
 
     run_fleet watch --once --stale-min 30
-    assert_not_contains "$FLEET_OUT" "STALE WS01" "--stale-min 30 hides 20-min heartbeat"
+    assert_not_contains "$FLEET_OUT" "STALE WS01" "--stale-min 30 hides 6-min heartbeat"
 }
 
 test_watch_once_dead() {
@@ -1144,6 +1319,33 @@ test_watch_change_detection() {
 
     run_fleet watch --once
     assert_not_contains "$FLEET_OUT" "CHANGE" "no phantom CHANGE on identical roster"
+}
+
+test_watch_heartbeat_only_diff_emits_no_change() {
+    # The activity-gated ticker rewrites the heartbeat column every tick; a
+    # heartbeat-only roster diff must stay silent (no CHANGE flood) while a
+    # real field diff still emits, and the new value must still be recorded
+    # in .watch.state for the next scan's diff.
+    log_step "GIVEN a roster whose only diff between scans is the heartbeat column, WHEN watch --once twice"
+    make_project watch-noise
+    local now
+    now=$(date +%s)
+    add_ws WS01 ws01 "Ticker worker" working "src/a.md" "" "" "" "$((now - 60))"
+
+    run_fleet watch --once
+    assert_not_contains "$FLEET_OUT" "CHANGE" "baseline scan emits no CHANGE"
+
+    fixture_set WS01 heartbeat "$now"
+    run_fleet watch --once
+    assert_not_contains "$FLEET_OUT" "CHANGE WS01 heartbeat" "heartbeat-only diff emits no CHANGE"
+    assert_not_contains "$FLEET_OUT" "CHANGE" "no other field rides along"
+    assert_not_contains "$FLEET_OUT" "STALE" "fresh heartbeat not stale"
+    assert_success "new heartbeat value still recorded in .watch.state" \
+        grep -qF "WS01|heartbeat"$'\t'"$now" "$RUN_DIR/.watch.state"
+
+    fixture_set WS01 status blocked
+    run_fleet watch --once
+    assert_contains "$FLEET_OUT" "CHANGE WS01 status" "status diff still emits CHANGE"
 }
 
 # --- watch :: dead-pane detection (engine rewrite: spawn's exec makes the pane
@@ -1431,6 +1633,11 @@ run_all_tests() {
     test_spawn_missing_source_var_blocks_before_tmux
     test_spawn_no_tmux_prints_var_references
     test_spawn_socket_default_and_override
+    test_spawn_ticker_knob_and_hostile_ws_guard
+    test_ticker_beats_on_visible_content_change
+    test_ticker_spinner_only_diff_does_not_beat
+    test_ticker_empty_capture_skips
+    test_ticker_tmux_absent_skips_silently
     test_land_main_mode_clean
     test_land_main_mode_unclaimed_dirty_refused
     test_land_main_mode_claimed_dirty_ok
@@ -1445,6 +1652,7 @@ run_all_tests() {
     test_watch_once_dead
     test_watch_once_all_done
     test_watch_change_detection
+    test_watch_heartbeat_only_diff_emits_no_change
     test_watch_dead_pane_detected
     test_watch_alive_pane_emits_no_dead
     test_watch_missing_tmux_skips_silently

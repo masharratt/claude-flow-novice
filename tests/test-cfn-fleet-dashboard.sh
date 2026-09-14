@@ -163,7 +163,7 @@ test_render_structure_cards_title_count_pills() {
         "status tile: working"
     assert_contains "$(static_html "$html")" 'class="tile zero" data-st="blocked"' \
         "zero count renders as a dimmed tile (blocked at 0)"
-    assert_contains "$(cat "$html")" 'stale-min 15' "header shows the staleness knob"
+    assert_contains "$(cat "$html")" 'stale-min 5' "header shows the staleness knob"
     assert_contains "$(cat "$html")" 'id="filters"' "filter chip row present"
     assert_contains "$(cat "$html")" 'class="filterchip on" data-filter="all"' \
         "all chip active by default"
@@ -252,7 +252,7 @@ test_stale_badge_derivation() {
     assert_equals "0" "$DASH_RC" "render exits 0"
     local html="$RUN_DIR/dashboard.html"
     assert_equals "1" "$(static_html "$html" | grep -cF 'badge stale' || true)" \
-        "exactly one STALE badge (20-min working row at default 15m)"
+        "exactly one STALE badge (20-min working row at default 5m)"
     assert_contains "$(static_html "$html")" '<span class="badge stale">&#9888; STALE</span>' \
         "STALE badge renders icon plus label"
     run_dash --no-serve --once --stale-min 30

@@ -1,0 +1,74 @@
+{
+  "name": "Acceptance-check result",
+  "capability": "task-verification",
+  "source": ".claude/skills/cfn-loop-orchestration-v2/cli/verify-run.sh:461",
+  "description": "run creates one result row per selected acceptance criterion. This diagram shows result modes, not feature maturity. resolve can update an existing row after receiving evidence; pass remains a separate true/false/null field.",
+  "states": [
+    "executed",
+    "blocked",
+    "error",
+    "needs_agent",
+    "resolved"
+  ],
+  "meanings": {
+    "executed": "Command ran; pass may be true, false or unresolved.",
+    "blocked": "Prerequisites unavailable; pass is null.",
+    "error": "Tool failure; pass is false.",
+    "needs_agent": "Runner cannot execute the check; pass is null.",
+    "resolved": "Evidence and an explicit verdict were stamped into an existing row."
+  },
+  "transitions": [
+    {
+      "from": "[*]",
+      "to": "executed",
+      "trigger": "run executes a supported check",
+      "guard": "Working directory, prerequisites and tools available"
+    },
+    {
+      "from": "[*]",
+      "to": "blocked",
+      "trigger": "run evaluates prerequisites",
+      "guard": "Required environment, service or directory unavailable"
+    },
+    {
+      "from": "[*]",
+      "to": "error",
+      "trigger": "Tool preflight or runtime diagnostic",
+      "guard": "Required executable is missing"
+    },
+    {
+      "from": "[*]",
+      "to": "needs_agent",
+      "trigger": "run classifies the check",
+      "guard": "Command not mechanically executable by this runner"
+    },
+    {
+      "from": "executed",
+      "to": "resolved",
+      "trigger": "resolve stamps a verdict",
+      "guard": "Existing AC id, true/false verdict, evidence file with at least three non-empty lines"
+    },
+    {
+      "from": "blocked",
+      "to": "resolved",
+      "trigger": "resolve stamps a verdict",
+      "guard": "Existing AC id, true/false verdict, evidence file with at least three non-empty lines"
+    },
+    {
+      "from": "error",
+      "to": "resolved",
+      "trigger": "resolve stamps a verdict",
+      "guard": "Existing AC id, true/false verdict, evidence file with at least three non-empty lines"
+    },
+    {
+      "from": "needs_agent",
+      "to": "resolved",
+      "trigger": "resolve stamps a verdict",
+      "guard": "Existing AC id, true/false verdict, evidence file with at least three non-empty lines"
+    }
+  ],
+  "id": "acceptance-check-result-entity",
+  "capability_refs": [
+    "task-verification"
+  ]
+}

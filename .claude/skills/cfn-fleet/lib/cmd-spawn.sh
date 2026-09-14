@@ -24,7 +24,9 @@
 #      set-var; values reach tmux via argv, never disk
 #   5. first pane command, one line: export FLEET_RUN_DIR=<run dir>;
 #      unset <unset list>; exec <bin> <args>  (exec so the pane dies with the
-#      engine and `tmux has-session` sees it)
+#      engine and `tmux has-session` sees it). The activity-gated heartbeat
+#      ticker, when enabled (FLEET_TICK_SECS, default 30s), is spliced in
+#      front of this segment as a backgrounded loop (lib/heartbeat-ticker.sh)
 #   6. trust prompt: poll capture-pane up to FLEET_TRUST_TIMEOUT (default 15s)
 #      for the folder-trust prompt text (derived from the engine bin: the
 #      registry pins trust_keys, not the prompt text); send the keys
@@ -61,6 +63,11 @@ if ! declare -F fleet_engine_get >/dev/null 2>&1; then
   # shellcheck source=engines.sh
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/engines.sh"
 fi
+
+# heartbeat-ticker.sh: the activity-gated heartbeat sidecar the tmux branch
+# below splices into worker panes. Functions only, silent, safe to re-source.
+# shellcheck source=heartbeat-ticker.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/heartbeat-ticker.sh"
 
 # _spawn_socket — dedicated tmux socket for this run; delegates to the shared
 # helper in lib/common.sh (same logic for watch, dashboard, and spawn).
@@ -424,6 +431,35 @@ main() {
 
   command -v tmux >/dev/null 2>&1 \
     || fleet_die 66 "spawn: tmux not available (use --no-tmux for copy-paste commands)"
+
+  # Activity-gated heartbeat ticker (before anything more is composed): the
+  # ws id is user-typed (roster cell) and gets baked unquoted into the pane
+  # shell string below, so validate it first. Then resolve the knob:
+  # FLEET_TICK_SECS env > fleet.env > 30s; `off`/0 disables the ticker;
+  # non-numeric garbage is treated as off with a stderr warning.
+  [[ "$ws" =~ ^[A-Za-z0-9._-]+$ ]] \
+    || fleet_die 64 "spawn: invalid workstream id '$ws' (allowed: letters, digits, dot, dash, underscore; the id is baked unquoted into the pane shell string)"
+  local tick_secs tick=""
+  tick_secs="${FLEET_TICK_SECS:-$(fleet_env_get FLEET_TICK_SECS)}"
+  tick_secs="${tick_secs:-30}"
+  case "$tick_secs" in
+    off|0) : ;;
+    *[!0-9]*)
+      echo "WARN spawn: FLEET_TICK_SECS='$tick_secs' is not a number or 'off'; heartbeat ticker disabled" >&2 ;;
+    *) tick="$tick_secs" ;;
+  esac
+  if [ -n "$tick" ]; then
+    # Splice the sidecar in front of the export/exec segment: the backgrounded
+    # compound survives the engine exec as a reparented child and dies with
+    # the pane. Alt-screen TUIs (vim, less) hide real activity from
+    # capture-pane, so such panes degrade to wall-clock beating; accepted
+    # (wedge detection is lost for those panes only). Spares reuse this same
+    # string, so their copies watch the main pane and stamp the same ws row.
+    local tick_lib tick_cli
+    tick_lib=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    tick_cli="$tick_lib/../cli/fleet"
+    pane_cmd="source $tick_lib/heartbeat-ticker.sh >/dev/null 2>&1 && FLEET_RUN_DIR=$run_dir FLEET_TICK_FLEET_CLI=$tick_cli _fleet_tick_loop $sock $name $ws $tick_cli $run_dir $tick >/dev/null 2>&1 & $pane_cmd"
+  fi
 
   # Warn-only check of the dedicated server's global env.
   _fleet_tmux_server_warn "$sock"
