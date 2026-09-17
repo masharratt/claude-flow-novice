@@ -1,7 +1,7 @@
 ---
 name: cfn-fleet
 description: "Multi-session fleet coordination: one master Claude Code session coordinates N worker sessions (each a full session with its own context and subagents) through a file-based roster in the target project. Thin messages (control plane), fat files (data plane): roster, briefs, and handoffs carry state; messages only assign/wake/block. Use when running parallel workstreams in one repo without cross-contaminating commits, claims, or migrations."
-version: 1.2.0
+version: 1.2.1
 tags: [fleet, multi-session, coordination, roster, workstreams, claims, tmux]
 status: beta
 ---
@@ -302,6 +302,38 @@ Mechanics: schedule the check with the Monitor tool or a session loop at a
 15-minute interval; do not hold a `sleep`-loop in a shell. A check that finds
 `ALL-DONE` plus every row `done:`-heartbeated and clean is the exit condition.
 
+### Per-lane verifiers
+
+Between a worker's `done:` note and the next 15-minute check the lane sits
+unverified, and the master reviewing lanes in its own context bloats the main
+chat. Close both: on a `done:` note (seen in a check batch or a `fleet watch`
+CHANGE line — notes are a roster column, so they emit CHANGE), spawn ONE fresh
+read-only verifier agent for that lane. Fresh, never a fork (context cost) and
+never a standing pool — workers cannot reach the master's subagents and codex
+lanes have no inbound messaging at all, so the roster is the only universal
+trigger.
+
+- Brief ≤ 2KB, fat-file style: lane id, run dir path, claimed paths, commit
+  range (worktree mode: `fleet/WSxx` vs integration branch; main mode: the
+  lane's commits by subject prefix), done criteria from `briefs/WSxx.md`, and
+  the verdict file path. End with the leaf-agent line.
+- Verdict file, not a message: the agent writes `reviews/WSxx.md` (PASS/FAIL +
+  findings) and tees suite output to `reviews/WSxx-suite.txt`; the master reads
+  one verdict line and cites the file. A verdict with no captured suite output
+  behind it is an assertion, not evidence — the agent must report pass/fail
+  counts from the file, and the master spot-checks when in doubt.
+- Scope = the worker's own rule: lane-scoped suites and `tsc` on claimed paths,
+  plus a diff review against the brief's done criteria. No full suite — a
+  failure inside another lane's in-flight files is not this lane's.
+- Verdict routing: PASS → land at the next check. FAIL → wake the worker with
+  the findings path (thin message), or record a residual handoff if the lane
+  is gone.
+- The verifier is a pre-land lane review only. It never replaces the landing
+  gate: full suite, rehearsal, and blast-radius grading stay with the master
+  (trap 7 — lane-scoped runs missed the backwards-fixture break; only the
+  master's gate caught it).
+- Never batch a verifier spawn with implementer spawns in the same message.
+
 ## Traps measured in real runs (read before running a fleet)
 
 Four families, all from runs on 2026-09-08 and 2026-09-09. Each one leaves the roster
@@ -446,7 +478,12 @@ unclaimed dirt and committed with `--force-with-note`, so the commits stayed pat
   and the lane renumbered to 0127 with the files, check ids and README row already written. Before
   reserving, list migrations on every live branch (`git ls-tree --name-only <branch> <migrations dir>`)
   and take one past the highest anywhere; put the number the brief expects in the brief as an assumption
-  the worker must re-check, not a fact.
+  the worker must re-check, not a fact. Then re-check at LANDING, not only at spawn: a number that was
+  free on every branch at fleet start can be taken by a peer's commit to the integration branch while
+  the run is in flight (measured later the same day: 0131 was free everywhere at 14:00, `dev` carried
+  a peer's 0131 by 16:30, caught only by a rebase rehearsal). The landing rehearsal's file-collision
+  list (`comm -12` of both sides' touched paths) is where it shows; grep the migrations directory on the
+  integration branch for the lane's number before the real rebase.
 - **Fixtures that model a pair backwards break when a guard learns the real order.** A migration that
   made the booking gate honour published sessions turned three adversarial fixtures red: they inserted
   the session before the booking that "minted" it, with no `created_from_booking_id`. Lane-scoped test
