@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CFN Status Line: provider | ctx% | git | diff stats | duration | worktree
+# CFN Status Line: provider | ctx% | git | diff stats | duration | worktree | session name
 
 input=$(cat)
 
@@ -122,10 +122,23 @@ if [ -n "$task" ]; then
   task_part="\033[36m» ${task}\033[0m"
 fi
 
-# --- Session id (first 8 chars; address for cross-session SendMessage) ---
+# --- Session name (the address for cross-session SendMessage) ---
+# The name is what other sessions address messages by; it lives in the
+# session registry (~/.claude/sessions/<pid>.json) keyed by sessionId. The
+# 8-char UUID prefix shown here before was never a valid address. 6-char
+# refs are minted fresh at listing time and stored nowhere, so they cannot
+# be displayed. CFN_SESSIONS_DIR overrides the registry dir for tests.
 sid_part=""
 if [ -n "$session_id" ]; then
-  sid_part="\033[2m${session_id:0:8}\033[0m"
+  sessions_dir="${CFN_SESSIONS_DIR:-$HOME/.claude/sessions}"
+  reg_file=$(grep -l "\"sessionId\":\"$session_id\"" "$sessions_dir"/*.json 2>/dev/null | head -1)
+  sname=""
+  [ -n "$reg_file" ] && sname=$(jq -r '.name // empty' "$reg_file" 2>/dev/null)
+  if [ -n "$sname" ]; then
+    sid_part="\033[2m$sname\033[0m"
+  else
+    sid_part="\033[2m${session_id:0:8}\033[0m"
+  fi
 fi
 
 # --- Assemble ---
