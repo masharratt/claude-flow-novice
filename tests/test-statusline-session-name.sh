@@ -27,7 +27,7 @@ FIXTURE_NAME="claude-flow-novice-b4"
 FIXTURE_DIR="$(mktemp -d)"
 trap 'rm -rf "$FIXTURE_DIR"' EXIT
 cat > "$FIXTURE_DIR/123.json" <<EOF
-{"pid":123,"sessionId":"$FIXTURE_SID","cwd":"/home/masha/projects/claude-flow-novice","name":"$FIXTURE_NAME","nameSource":"derived"}
+{"pid":123,"sessionId":"$FIXTURE_SID","cwd":"$HOME/projects/claude-flow-novice","name":"$FIXTURE_NAME","nameSource":"derived"}
 EOF
 EMPTY_DIR="$(mktemp -d)"
 
