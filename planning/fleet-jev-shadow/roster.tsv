@@ -1,0 +1,4 @@
+ws_id	name	task	status	claims	landed_sha	migration_num	scratch_db	heartbeat	notes	engine
+WS03	jev-wiring	Phase 3: SKILL.md shadow wiring and wiring test	landed	tests/test-jev-shadow-wiring.sh .claude/skills/cfn-vote-implement/SKILL.md	44c971513			1789936223	done: wiring+portability green, CRLF normalized, committed by master (codex sandbox cannot write .git)	codex
+WS04	jev-ci	Phase 4: ci.yml test list	landed	.github/workflows/ci.yml	8f1cbdad6			1789936129	done: ci.yml committed by master (codex sandbox cannot write .git)	codex
+WS02	jev-scripts	Phase 2: triage+record+report scripts and test	landed	tests/test-jev-vote-triage.sh .claude/skills/cfn-vote-implement/jev-triage.sh .claude/skills/cfn-vote-implement/jev-shadow-record.sh .claude/skills/cfn-vote-implement/jev-shadow-report.sh	dafb602aa			1789936830	done: all cases green (tests/test-jev-vote-triage.sh rc=0), committed 1ac54134c, claims clean	glm
