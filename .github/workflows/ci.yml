@@ -245,6 +245,15 @@ jobs:
       - name: Portable shim unit tests
         run: bash tests/test-portable-shims.sh
 
+      - name: Jev SystemOne tests
+        run: bash tests/test-jev-systemone.sh
+
+      - name: Jev vote-triage tests
+        run: bash tests/test-jev-vote-triage.sh
+
+      - name: Jev shadow-wiring tests
+        run: bash tests/test-jev-shadow-wiring.sh
+
       - name: Global config linker tests
         run: bash tests/test-link-global-config.sh
 
