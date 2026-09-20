@@ -13,7 +13,7 @@ status: production
 ## Inputs
 
 - `$1`: Path to a review manifest JSON, or `latest` to use the most recent manifest in `<project-root>/.cfn-cache/manifests/`
-- `--dry-run`: Show what would happen without implementing anything
+- `--dry-run`: Show what would happen without implementing anything. `--dry-run` skips both SHADOW steps entirely.
 
 ### Accepted Manifest Sources
 
@@ -50,6 +50,7 @@ Legacy `/tmp/cfn-*.json` paths are checked only as a fallback during transition.
 
 ## Voting Protocol
 
+0. SHADOW: logs only, decides nothing; output must not be shown to voters. Run `$HOME/.claude/skills/cfn-vote-implement/jev-triage.sh --manifest <path>`
 1. All 3 agents receive the full manifest simultaneously (parallel)
 2. Each agent independently votes YES/NO per suggestion with 1-2 sentence reasoning
 3. Votes are collected and tallied per suggestion:
@@ -60,6 +61,12 @@ Legacy `/tmp/cfn-*.json` paths are checked only as a fallback during transition.
 | **2/3** | Spawn `product-owner` agent (GOAP) to decide IMPLEMENT / DEFER / REJECT | Inline during vote pass |
 | **1/3** | Queue for batched user decision | Surfaced at end (after all 3/3 and 2/3 resolved) |
 | **0/3** | Skip silently | n/a |
+
+SHADOW: logs only, decides nothing; output must not be shown to voters. After tallying, run:
+
+```bash
+$HOME/.claude/skills/cfn-vote-implement/jev-shadow-record.sh --manifest <p> --tallies '<json>'
+```
 
 ## Implementation Protocol (3/3 items)
 
@@ -129,6 +136,12 @@ The manifest tracks processing state. If interrupted:
 - Already-skipped items are marked `"status": "skipped"`
 - Re-running picks up from where it left off
 
+SHADOW: logs only, decides nothing; output must not be shown to voters. After the manifest status writeback, run:
+
+```bash
+$HOME/.claude/skills/cfn-vote-implement/jev-shadow-record.sh --manifest <p> --finals '<json>'
+```
+
 ## Usage
 
 ```bash
@@ -141,6 +154,8 @@ The manifest tracks processing state. If interrupted:
 # Preview without implementing
 /cfn-vote-implement latest --dry-run
 ```
+
+On-demand report: `$HOME/.claude/skills/cfn-vote-implement/jev-shadow-report.sh --manifest <p>`; never part of any gate or exit code.
 
 ## Related
 
