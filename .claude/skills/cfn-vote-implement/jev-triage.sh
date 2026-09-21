@@ -51,14 +51,18 @@ BASE=$(basename "$MANIFEST")
 
 command -v jq >/dev/null 2>&1 || { printf 'jev-triage: error: jq not found on PATH\n' >&2; exit 0; }
 
-# append_line REC: single-line append under flock (many projects share one
-# inode through the reverse symlinks), plain append as fallback.
-append_line() {
-    (
-        flock 9 2>/dev/null
-        printf '%s\n' "$1" >> "$LOG_FILE"
-    ) 9>>"$LOG_FILE" 2>/dev/null || printf '%s\n' "$1" >> "$LOG_FILE"
-}
+# Shared shadow lib: jev_append_line, jev_status, jev_envelope. $HOME path so
+# the skill resolves from any project (reverse-symlink layout). Missing lib
+# is a silent-out (exit 0) failure, same as every other shadow-internal
+# failure: the loop must never block on telemetry.
+LIB_FILE="$HOME/.claude/cfn-scripts/jev-shadow-lib.sh"
+if [ -f "$LIB_FILE" ]; then
+    # shellcheck source=/dev/null
+    . "$LIB_FILE"
+else
+    printf 'jev-triage: error: shadow lib missing: %s\n' "$LIB_FILE" >&2
+    exit 0
+fi
 
 total=$(jq '.suggestions | length' "$MANIFEST" 2>/dev/null || echo "0")
 if [ "$total" -eq 0 ]; then
@@ -164,7 +168,7 @@ for ((start = 0; start < n; start += CHUNK)); do
             --argjson tokens "$usage_tokens" \
             '{type: "triage", ts: $ts, project: $project, cwd: $cwd, manifest: $manifest,
               suggestion_id: $id, choice: $choice, confidence: $conf, input_tokens: $tokens}')
-        append_line "$rec"
+        jev_append_line "$LOG_FILE" "$rec"
         logged=$((logged + 1))
     done
 done

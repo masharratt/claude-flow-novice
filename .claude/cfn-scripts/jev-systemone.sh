@@ -3,7 +3,9 @@
 # Generic Jev systemone caller, shared by the Jev shadow pilots (vote triage
 # first). Reads {state, questions, model?} JSON on stdin, issues one POST to
 # https://api.typesafe.ai/v1/systemone, and writes {answers, usage} JSON on
-# stdout. Single attempt, no retry: callers see failures immediately.
+# stdout. Single attempt, no retry: callers see failures immediately. The
+# request is bounded by --max-time 4 so a hung API cannot stall callers
+# beyond that; curl rc 28 (timeout) surfaces as exit 3 like any other rc.
 # Exit codes: 0 ok, 2 no API key, 3 http-or-parse error (including invalid
 # stdin). Exactly one stderr line on failure; the key value is never printed.
 set -euo pipefail
@@ -49,10 +51,10 @@ fi
 
 body=$(printf '%s' "$input" | jq -c --arg m "$model" '{model: $m, state: .state, questions: .questions}')
 
-# One POST, no retry. Silent curl: the single die line below is the whole
-# failure report, curl rc included.
+# One POST, no retry, bounded at 4s. Silent curl: the single die line below
+# is the whole failure report, curl rc included.
 rc=0
-response=$(curl -s --fail -X POST "$ENDPOINT" \
+response=$(curl -s --fail --max-time 4 -X POST "$ENDPOINT" \
     -H "authorization: Bearer $key" \
     -H "content-type: application/json" \
     --data-binary "$body" 2>/dev/null) || rc=$?

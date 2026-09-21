@@ -68,14 +68,17 @@ else
     }
 fi
 
-# append_line REC: single-line append under flock (many projects share one
-# inode through the reverse symlinks), plain append as fallback.
-append_line() {
-    (
-        flock 9 2>/dev/null
-        printf '%s\n' "$1" >> "$LOG_FILE"
-    ) 9>>"$LOG_FILE" 2>/dev/null || printf '%s\n' "$1" >> "$LOG_FILE"
-}
+# Shared shadow lib: jev_append_line, jev_status, jev_envelope. $HOME path so
+# the skill resolves from any project (reverse-symlink layout). Missing lib
+# is a silent-out (exit 0) failure: appends must never fail the caller loudly.
+LIB_FILE="$HOME/.claude/cfn-scripts/jev-shadow-lib.sh"
+if [ -f "$LIB_FILE" ]; then
+    # shellcheck source=/dev/null
+    . "$LIB_FILE"
+else
+    printf 'jev-shadow-record: error: shadow lib missing: %s\n' "$LIB_FILE" >&2
+    exit 0
+fi
 
 ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 project=$(basename "$(git -C "$(pwd)" rev-parse --show-toplevel 2>/dev/null || pwd)")
@@ -97,7 +100,7 @@ for id in $(jq -r 'keys[]' <<<"$MAP"); do
         --arg field "$value_field" \
         '{type: $type, ts: $ts, project: $project, cwd: $cwd, manifest: $manifest,
           suggestion_id: $id, ($field): $value}')
-    append_line "$rec"
+    jev_append_line "$LOG_FILE" "$rec"
     logged=$((logged + 1))
 done
 
