@@ -218,6 +218,14 @@ cmd_spawn() {
   if [ -z "$banner_line" ]; then
     echo "spawn: $name: no banner match within ${banner_timeout}s (regex: $banner_re); last pane lines:" >&2
     tmux -L "$TA_SOCK" capture-pane -p -t "$name" 2>/dev/null | tail -n 10 >&2
+    # SHADOW: jev classifies the miss tail (logs only); never blocks the dump + exit 68 below.
+    tail_file=$(mktemp) || tail_file=""
+    if [ -n "$tail_file" ]; then
+      tmux -L "$TA_SOCK" capture-pane -p -t "$name" 2>/dev/null | tail -n 10 > "$tail_file" 2>/dev/null || true
+      timeout 5 "$HOME/.claude/skills/cfn-tmux-agents/lib/jev-outcome.sh" \
+        --name "$name" --engine "$engine" --tail-file "$tail_file" >/dev/null 2>&1 || true
+      rm -f "$tail_file"
+    fi
     tmux -L "$TA_SOCK" kill-session -t "$name" 2>/dev/null || true
     exit 68
   fi
