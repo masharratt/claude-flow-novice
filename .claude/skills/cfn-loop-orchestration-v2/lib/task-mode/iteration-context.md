@@ -7,6 +7,8 @@
 **When iterating, build the retry context mechanically from the gate artifacts:**
 
 ```bash
+# SHADOW step 0 (Jev retry-context, logs only, decides nothing; the grep below stays authoritative):
+$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/jev-retry-context.sh --run-id "$RUN_ID" || true
 # Verbatim failing-test excerpts
 FAILING_EXCERPTS=$(grep -A5 "FAIL\|✗\|✕" /tmp/test-output-${RUN_ID}.txt | head -80)
 # Typecheck errors, if any

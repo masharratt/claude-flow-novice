@@ -474,7 +474,7 @@ $HOME/.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
 | 0 | rate >= threshold and total > 0 | Gate PASSED. Record `pass`/`total` from the JSON. Set `PREV_TOTAL=<total>` for the next iteration's baseline. Mark todo #3 completed, go to Step 3.5 then Phase 4 |
 | 1 | rate < threshold | Gate FAILED. Run the Step 3.2 flaky re-run FIRST (a green-on-rerun failure is not real). If reds persist: ITERATION++. If ITERATION > MAX_ITERATIONS report failure and EXIT. Else reset todo #2 to pending and go back to Phase 2 with the retry context (see Iteration Context Injection) |
 | 2 | no tests detected (0/0) | Gate FAILED. Treat exactly like exit 1. 0/0 never passes |
-| 3 | suite shrank (`total < baseline`) | The test suite has fewer tests than the prior iteration. ESCALATE to the user (Stop For) UNLESS a Phase-2 implementer JSON declared a non-null `tests_removed_reason`, in which case accept the shrink, update `PREV_TOTAL`, record the reason in the report, and treat the run per its rate (exit-0/1 logic above) |
+| 3 | suite shrank (`total < baseline`) | The test suite has fewer tests than the prior iteration. ESCALATE to the user (Stop For) UNLESS a Phase-2 implementer JSON declared a non-null `tests_removed_reason`, in which case accept the shrink, update `PREV_TOTAL`, record the reason in the report, and treat the run per its rate (exit-0/1 logic above). SHADOW: run `$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/jev-shrink-reason.sh --reason <s> --baseline <n> --total <n> --run-id <id>` before accepting (logs only, decides nothing) |
 
 The script prints `{"pass":N,"total":M,"rate":R,"passed":true|false}` (plus `baseline` and `shrunk` when `--baseline` is passed). Capture `pass` as PASS_COUNT and `total` as TOTAL_COUNT for the retry template, and carry TOTAL_COUNT forward as `PREV_TOTAL`.
 
@@ -666,6 +666,7 @@ Iteration 1 needs nothing here. Before respawning for iteration N>1, read
 `$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/iteration-context.md` and build the injection block it specifies
 (verbatim failing-test excerpts, typecheck errors, prior learnings, and the
 downstream-dependent respawn rule for lanes with produce/consume edges).
+SHADOW: retry-context prefilter runs, output at `/tmp/test-context-${RUN_ID}.md` (not yet authoritative).
 ## Worked Example
 
 Abbreviated end-to-end transcript: `$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/worked-example.md`.
@@ -702,7 +703,7 @@ Read it only if the phase order below is unclear. A normal run never needs it.
 - **Ask at most 4 questions per AskUserQuestion call** (tool limit and cognitive load).
 - **Treat test failures as iteration fuel: capture excerpts and respawn** (never stop the loop on a test failure).
 - **Run the test-hygiene scan before gate-check every iteration** (a `.skip`/`.only` without `// cfn-allow-skip:` is a gate FAIL, not a pass).
-- **Pass `--baseline PREV_TOTAL` from iteration 2 onward** (a shrinking suite is exit 3: escalate unless an implementer JSON declared `tests_removed_reason`).
+- **Pass `--baseline PREV_TOTAL` from iteration 2 onward** (a shrinking suite is exit 3: escalate unless an implementer JSON declared `tests_removed_reason`). SHADOW: run `$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/jev-shrink-reason.sh` with the reason, baseline, total, and run-id before accepting (logs only, decides nothing).
 - **In Phase 4, call `/cfn-vote-implement` with an EXPLICIT manifest path per manifest; NEVER `latest` when more than one manifest exists** (the mtime glob silently drops every manifest but the newest).
 - **Final done is all-green (`--threshold 1.0`) OR an explicit user-approved quarantine; 0.95 is never a done state** (the mode rate gate is Phase-3 iteration fuel only).
 - **Update todos at every phase boundary** (this is the coordinator's state machine).
