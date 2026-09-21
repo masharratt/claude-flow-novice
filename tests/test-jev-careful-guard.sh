@@ -94,7 +94,8 @@ CASE_CURL_RC="0"
 CASE_BODY=""
 run_hook() {
     RC=0
-    printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "$1" \
+    printf '{"tool_name":"Bash","tool_input":{"command":%s}}' \
+        "$(jq -Rn --arg c "$1" '$c')" \
         | env HOME="$FAKE_ROOT" CFN_DATA_DIR="$DATA_DIR" \
             TYPESAFE_API_KEY="$CASE_KEY" \
             JEV_CURL_RC="$CASE_CURL_RC" \
@@ -158,6 +159,26 @@ deny_case "disk-overwrite" "dd if=/dev/zero of=/dev/sda"
 
 log_step "CASE force-push long form also denied under the same rule"
 deny_case "force-push" "git push --force origin main"
+
+log_step "CASE quoted prose mentioning destructive commands is NOT denied"
+reset_case
+CASE_KEY="test-key-guard-123"
+CASE_BODY="$STUB_BODY"
+run_hook 'tmux send-keys -t ws02 "re your note: the git reset --hard incident was fixed by hand"'
+assert_equals "0" "$RC" "prose git reset --hard inside a quoted message is allowed"
+[ ! -f "$LOG_FILE" ] || assert_equals "0" "$(( $(wc -l < "$LOG_FILE") ))" "no deny line for prose git text"
+assert_equals "0" "$(grep -c '^curl ' "$CURL_LOG")" "prose allow path makes zero curl calls"
+
+run_hook 'echo "the docs describe rm -rf usage in the migration chapter" >> notes.md'
+assert_equals "0" "$RC" "prose rm -rf inside a quoted echo payload is allowed"
+[ ! -f "$LOG_FILE" ] || assert_equals "0" "$(( $(wc -l < "$LOG_FILE") ))" "no deny line for prose rm text"
+
+log_step "CASE separator-positioned destructive commands are still denied"
+deny_case "hard-reset" "cd /tmp && git reset --hard"
+deny_case "git-clean" "echo hi; git clean -f"
+
+log_step "CASE SQL strings keep whole-string matching (they execute as payloads)"
+deny_case "db-destruction" 'echo "drop table users" | psql -c -'
 
 log_step "CASE deny with the shadow off (no API key): skip line, verdict kept"
 reset_case

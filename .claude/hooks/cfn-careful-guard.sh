@@ -30,6 +30,11 @@ COMMAND=$(echo "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"//p' | 
 # Cut at the first quote that is not backslash-escaped.
 COMMAND=$(printf '%s' "$COMMAND" | sed 's/\(\(\\.\|[^"\\]\)*\)".*/\1/')
 
+# Unescape the sequences that appear in real commands (quoted payloads), so
+# matching and the deny log see the actual text. Other JSON escapes are rare
+# and left as-is.
+COMMAND=$(printf '%s' "$COMMAND" | sed 's/\\"/"/g; s/\\\\/\\/g')
+
 [ -z "$COMMAND" ] && exit 0
 
 # Normalize: lowercase for pattern matching
@@ -39,9 +44,21 @@ CMD_LOWER=$(echo "$COMMAND" | tr '[:upper:]' '[:lower:]')
 # and falls through to the single shared exit 2 at the end of the file.
 DENY_RULE=""
 
+# --- Anchored matching ---
+# Command-shaped rules below must match at the START of a command segment:
+# beginning of the command, or right after a separator (; & | ( or backtick).
+# This keeps quoted prose (tmux send-keys payloads, echo strings, chat text)
+# that merely MENTIONS a destructive command from being denied, while a real
+# command after a separator is still caught. The db rule stays whole-string:
+# destructive SQL genuinely travels inside quoted strings that execute.
+# cfn: anchored matching misses destructive commands inside quoted
+# bash -c / exec / ssh argument strings; add an argv-parsing stage if that
+# incident class is ever observed.
+ANCHOR='(^|[;&|(`][[:space:]]*)'
+
 # --- File destruction ---
 # Check for rm -rf / rm -r but allow safe dirs
-if echo "$CMD_LOWER" | grep -qE 'rm[[:space:]]+(-[a-z]*r[a-z]*f|--recursive|-[a-z]*f[a-z]*r)'; then
+if echo "$CMD_LOWER" | grep -qE "$ANCHOR"'rm[[:space:]]+(-[a-z]*r[a-z]*f|--recursive|-[a-z]*f[a-z]*r)'; then
     # Whitelisted safe deletion targets
     if echo "$CMD_LOWER" | grep -qE '(node_modules|\.next|dist|__pycache__|\.cache|\.turbo|/tmp/)'; then
         exit 0
@@ -55,15 +72,15 @@ elif echo "$CMD_LOWER" | grep -qiE '(drop[[:space:]]+table|drop[[:space:]]+datab
     echo "Confirm with the user before executing database destruction." >&2
     DENY_RULE=db-destruction
 # --- Git force operations ---
-elif echo "$CMD_LOWER" | grep -qE 'git[[:space:]]+push[[:space:]]+.*(-f|--force)'; then
+elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'git[[:space:]]+push[[:space:]]+.*(-f|--force)'; then
     echo "BLOCKED: Force push detected." >&2
     echo "Force push can overwrite remote history. Confirm with the user." >&2
     DENY_RULE=force-push
-elif echo "$CMD_LOWER" | grep -qE 'git[[:space:]]+reset[[:space:]]+--hard'; then
+elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'git[[:space:]]+reset[[:space:]]+--hard'; then
     echo "BLOCKED: Hard reset detected." >&2
     echo "This discards uncommitted changes. Confirm with the user." >&2
     DENY_RULE=hard-reset
-elif echo "$CMD_LOWER" | grep -qE 'git[[:space:]]+clean[[:space:]]+.*-f'; then
+elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'git[[:space:]]+clean[[:space:]]+.*-f'; then
     echo "BLOCKED: git clean -f detected." >&2
     echo "This removes untracked files permanently. Confirm with the user." >&2
     DENY_RULE=git-clean
@@ -71,17 +88,17 @@ elif echo "$CMD_LOWER" | grep -qE 'git[[:space:]]+clean[[:space:]]+.*-f'; then
 # scripts, NOT git checkout"), but never implemented. Discards uncommitted
 # work silently, and the pathspec forms are the destructive ones -- plain
 # `git checkout <branch>` is a normal branch switch and must stay allowed.
-elif echo "$CMD_LOWER" | grep -qE 'git[[:space:]]+checkout[[:space:]]+(--[[:space:]]+)?(\.|\*)([[:space:]]|$)'; then
+elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'git[[:space:]]+checkout[[:space:]]+(--[[:space:]]+)?(\.|\*)([[:space:]]|$)'; then
     echo "BLOCKED: git checkout of working-tree paths detected." >&2
     echo "This discards uncommitted changes. Use the edit-safety backup scripts to roll back." >&2
     DENY_RULE=checkout-paths
 # --- Container destruction ---
-elif echo "$CMD_LOWER" | grep -qE '(kubectl[[:space:]]+delete|docker[[:space:]]+system[[:space:]]+prune|docker[[:space:]]+rm[[:space:]]+-f)'; then
+elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'(kubectl[[:space:]]+delete|docker[[:space:]]+system[[:space:]]+prune|docker[[:space:]]+rm[[:space:]]+-f)'; then
     echo "BLOCKED: Destructive container operation detected." >&2
     echo "Confirm with the user before executing." >&2
     DENY_RULE=container-destruction
 # --- Disk overwrite ---
-elif echo "$CMD_LOWER" | grep -qE 'dd[[:space:]]+if=/dev/(zero|random|urandom)'; then
+elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'dd[[:space:]]+if=/dev/(zero|random|urandom)'; then
     echo "BLOCKED: Disk overwrite detected." >&2
     DENY_RULE=disk-overwrite
 fi
