@@ -38,7 +38,7 @@ run_gap() {
     local out="$1" err="$2"
     shift 2
     set +e
-    "$@" >"$out" 2>"$err"
+    HOME="$FAKE_ROOT" "$@" >"$out" 2>"$err"
     GAP_RC=$?
     set -e
     return 0
@@ -70,6 +70,10 @@ if [ ! -f "$SCRIPT_UNDER_TEST" ]; then
 fi
 mkdir -p "$FAKE_ROOT/.claude/cfn-scripts" "$FAKE_ROOT/.claude/skills/cfn-alpha-launch"
 cp "$PROJECT_ROOT/.claude/cfn-scripts/jev-systemone.sh" "$FAKE_ROOT/.claude/cfn-scripts/jev-systemone.sh"
+# Shadow lib too: the script under test loads it from $HOME/.claude/cfn-scripts/.
+if [ -f "$PROJECT_ROOT/.claude/cfn-scripts/jev-shadow-lib.sh" ]; then
+    cp "$PROJECT_ROOT/.claude/cfn-scripts/jev-shadow-lib.sh" "$FAKE_ROOT/.claude/cfn-scripts/"
+fi
 cp "$SCRIPT_UNDER_TEST" "$FAKE_ROOT/.claude/skills/cfn-alpha-launch/jev-gap-bucket.sh"
 chmod +x "$FAKE_ROOT/.claude/cfn-scripts/jev-systemone.sh" \
          "$FAKE_ROOT/.claude/skills/cfn-alpha-launch/jev-gap-bucket.sh"

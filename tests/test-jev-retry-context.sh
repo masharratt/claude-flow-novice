@@ -54,6 +54,10 @@ fi
 mkdir -p "$FAKE_ROOT/.claude/cfn-scripts" \
          "$FAKE_ROOT/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode"
 cp "$PROJECT_ROOT/.claude/cfn-scripts/jev-systemone.sh" "$FAKE_ROOT/.claude/cfn-scripts/jev-systemone.sh"
+# Shadow lib too: the script under test loads it from $HOME/.claude/cfn-scripts/.
+if [ -f "$PROJECT_ROOT/.claude/cfn-scripts/jev-shadow-lib.sh" ]; then
+    cp "$PROJECT_ROOT/.claude/cfn-scripts/jev-shadow-lib.sh" "$FAKE_ROOT/.claude/cfn-scripts/"
+fi
 cp "$TASK_MODE/jev-retry-context.sh" "$FAKE_ROOT/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/jev-retry-context.sh"
 chmod +x "$FAKE_ROOT/.claude/cfn-scripts/jev-systemone.sh" \
          "$FAKE_ROOT/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/jev-retry-context.sh"
@@ -66,7 +70,7 @@ run_sh() {
     local script="$1"
     shift
     RC=0
-    "$script" "$@" >"$STDOUT_FILE" 2>"$STDERR_FILE" || RC=$?
+    HOME="$FAKE_ROOT" "$script" "$@" >"$STDOUT_FILE" 2>"$STDERR_FILE" || RC=$?
     OUT=$(cat "$STDOUT_FILE")
     ERR=$(cat "$STDERR_FILE")
 }

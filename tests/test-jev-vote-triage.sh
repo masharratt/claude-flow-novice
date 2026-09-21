@@ -54,6 +54,10 @@ export JEV_CURL_LOG="$CURL_LOG"
 # so relative resolution and the settings fallback stay inside the sandbox.
 mkdir -p "$FAKE_ROOT/.claude/cfn-scripts" "$FAKE_ROOT/.claude/skills/cfn-vote-implement"
 cp "$PROJECT_ROOT/.claude/cfn-scripts/jev-systemone.sh" "$FAKE_ROOT/.claude/cfn-scripts/jev-systemone.sh"
+# Shadow lib too: the scripts under test load it from $HOME/.claude/cfn-scripts/.
+if [ -f "$PROJECT_ROOT/.claude/cfn-scripts/jev-shadow-lib.sh" ]; then
+    cp "$PROJECT_ROOT/.claude/cfn-scripts/jev-shadow-lib.sh" "$FAKE_ROOT/.claude/cfn-scripts/"
+fi
 for s in jev-triage.sh jev-shadow-record.sh jev-shadow-report.sh; do
     if [ ! -f "$SKILL_DIR/$s" ]; then
         log_error "FAIL: shadow script not found: $SKILL_DIR/$s"
@@ -135,7 +139,7 @@ run_sh() {
     local script="$1"
     shift
     RC=0
-    "$script" "$@" >"$STDOUT_FILE" 2>"$STDERR_FILE" || RC=$?
+    HOME="$FAKE_ROOT" "$script" "$@" >"$STDOUT_FILE" 2>"$STDERR_FILE" || RC=$?
     OUT=$(cat "$STDOUT_FILE")
     ERR=$(cat "$STDERR_FILE")
 }

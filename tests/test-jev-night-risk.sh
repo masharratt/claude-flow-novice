@@ -88,7 +88,7 @@ echo "=== unit: jev-night-risk.sh ==="
 
 # happy path: exit 0, one risk line with the full envelope, one API call
 assert_success "happy path exits 0" \
-    env -u JEV_MODEL bash "$SCORER" --title "Defer risky migration" --decision-id "D1" --slug "night-2026-09-20"
+    env -u JEV_MODEL HOME="$FAKE_ROOT" bash "$SCORER" --title "Defer risky migration" --decision-id "D1" --slug "night-2026-09-20"
 assert_equals "1" "$(n_log_lines)" "happy path appends exactly one log line"
 LINE1=$(head -1 "$LOG_FILE")
 assert_contains "$LINE1" '"type":"risk"' "line carries type=risk"
@@ -105,12 +105,12 @@ assert_not_contains "$LINE1" "Defer risky migration" "report title text is not e
 
 # idempotent on decision_id: no second line, no second API call
 assert_success "rerun same decision_id exits 0" \
-    bash "$SCORER" --title "Defer risky migration" --decision-id "D1" --slug "night-2026-09-20"
+    env HOME="$FAKE_ROOT" bash "$SCORER" --title "Defer risky migration" --decision-id "D1" --slug "night-2026-09-20"
 assert_equals "1" "$(n_log_lines)" "rerun appends no second line"
 assert_equals "1" "$(n_curl_calls)" "rerun makes no second API call"
 
 # missing key: skip, no line, no API call
-SKIP_OUT=$(env -u TYPESAFE_API_KEY bash "$SCORER" --title "Another item" --decision-id "D2" --slug "night-2026-09-20" 2>&1)
+SKIP_OUT=$(HOME="$FAKE_ROOT" env -u TYPESAFE_API_KEY bash "$SCORER" --title "Another item" --decision-id "D2" --slug "night-2026-09-20" 2>&1)
 assert_equals "0" "$?" "missing key exits 0"
 assert_contains "$SKIP_OUT" "skip" "missing key reports a skip line"
 assert_equals "1" "$(n_log_lines)" "missing key appends no log line"
@@ -119,13 +119,13 @@ assert_equals "1" "$(n_curl_calls)" "missing key makes no API call"
 # API failure: exit 0, error line, no log line. The rc override must be a
 # one-shot prefix on the COMMAND, not on an assignment line: a line made only
 # of VAR=x VAR2=$(...) assignments persists JEV_CURL_RC for the whole test.
-API_OUT=$(JEV_CURL_RC=500 bash "$SCORER" --title "Another item" --decision-id "D3" --slug "night-2026-09-20" 2>&1)
+API_OUT=$(HOME="$FAKE_ROOT" JEV_CURL_RC=500 bash "$SCORER" --title "Another item" --decision-id "D3" --slug "night-2026-09-20" 2>&1)
 assert_contains "$API_OUT" "error" "API failure reports an error line"
 assert_equals "1" "$(n_log_lines)" "API failure appends no log line"
 
 # response without an answer for the id: exit 0, error line, no log line
 printf '%s\n' '{"answers":{},"usage":{"input_tokens":10}}' > "$BODY_FILE"
-NOANS_OUT=$(bash "$SCORER" --title "Another item" --decision-id "D4" --slug "night-2026-09-20" 2>&1)
+NOANS_OUT=$(HOME="$FAKE_ROOT" bash "$SCORER" --title "Another item" --decision-id "D4" --slug "night-2026-09-20" 2>&1)
 assert_contains "$NOANS_OUT" "error" "missing answer reports an error line"
 assert_equals "1" "$(n_log_lines)" "missing answer appends no log line"
 
