@@ -236,6 +236,11 @@ if command -v jq >/dev/null 2>&1; then
       markers: $markers
     }' > "$LEDGER_JSON"
 
+  # SHADOW ONLY (Jev batch 2, pilot 10): rot-risk scores for has_trigger==false
+  # rows, logged to jev-rot-risk.jsonl. Fire and forget: decides nothing,
+  # blocks nothing, ledger schema untouched.
+  timeout 5 $HOME/.claude/skills/cfn-tech-debt/jev-rot-risk.sh --ledger "$LEDGER_JSON" || true
+
   echo
   echo "Machine ledger written to $LEDGER_JSON"
 fi
