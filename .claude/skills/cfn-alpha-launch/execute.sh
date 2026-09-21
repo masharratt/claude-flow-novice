@@ -408,6 +408,11 @@ Run analyze mode first:
   cfn-alpha-launch --mode analyze"
     fi
 
+    # SHADOW (jev batch 2, pilot 11): Jev buckets each numbered fix-list item
+    # {critical,high,medium} into its JSONL log. Logs only, decides nothing,
+    # never edits the fix-list; bounded at 5s, failures swallowed.
+    timeout 5 "$HOME/.claude/skills/cfn-alpha-launch/jev-gap-bucket.sh" --fixlist "$FIX_LIST" || true
+
     local converter="${SCRIPT_DIR}/lib/fixlist-to-manifest.sh"
     if [[ ! -x "$converter" ]]; then
         error_exit "Converter not found or not executable: $converter"
