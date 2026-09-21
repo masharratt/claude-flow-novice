@@ -122,7 +122,12 @@ rm -f "$FAKE_ROOT/.claude/settings.local.json"
 run_caller "$(request S001)"
 assert_equals "2" "$RC" "missing key exits 2"
 assert_equals "" "$OUT" "no stdout on missing key"
-assert_equals "1" "$(wc -l < "$STDERR_FILE")" "exactly one stderr line on missing key"
+STDERR_N=$(wc -l < "$STDERR_FILE")
+if [ "$STDERR_N" != "1" ]; then
+    printf 'stderr content (%s lines) for missing-key case:\n%s\n---\n' \
+        "$STDERR_N" "$(cat "$STDERR_FILE")" >&2
+fi
+assert_equals "1" "$STDERR_N" "exactly one stderr line on missing key"
 assert_equals "0" "$(wc -l < "$CURL_LOG")" "no curl call without a key"
 
 log_step "CASE settings fallback: key from settings.local.json when env unset"

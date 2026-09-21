@@ -62,6 +62,10 @@ else
     exit 0
 fi
 
+# GNU-tool shims for macOS (stat here); defines nothing on Linux.
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 mtime=$(stat -c %Y "$FIXLIST")
 
 # Parse numbered items with the nearest preceding section header. Both the

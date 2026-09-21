@@ -82,7 +82,10 @@ fi
 
 # Slice units: a failure-marker line (same FAIL / X / X markers the
 # coordinator greps) opens a unit of the marker line plus the next 3 lines.
-mapfile -t lines < "$TEST_OUTPUT"
+lines=()
+while IFS= read -r ln || [ -n "$ln" ]; do
+    lines+=("$ln")
+done < "$TEST_OUTPUT"
 n_lines=${#lines[@]}
 unit_texts=()
 i=0
@@ -175,11 +178,10 @@ for ((start = 0; start < n_units; start += CHUNK)); do
 done
 
 # Tally: an off-menu or missing answer falls back to unclear at confidence 0.
-declare -A bucket_count=()
-declare -A excerpt=()
-declare -A full_bucket=()
+# Bucket tallies use printf -v plus ${!var} indirection (bash 3.1+) instead of
+# associative arrays (bash 4 only) so macOS bash 3.2 stays supported.
 for b in "${BUCKETS[@]}"; do
-    bucket_count[$b]=0
+    printf -v "count_$b" '%s' 0
 done
 low_conf_count=0
 full_ids=()
@@ -197,17 +199,19 @@ for ((k = 0; k < n_units; k++)); do
         choice="unclear"
         conf="0"
     fi
-    bucket_count[$choice]=$(( ${bucket_count[$choice]} + 1 ))
+    cntvar="count_$choice"
+    printf -v "$cntvar" '%s' $(( ${!cntvar} + 1 ))
     is_low=$(awk -v c="$conf" -v t="$LOW_CONF" 'BEGIN { print (c + 0 < t) ? 1 : 0 }')
     if [ "$is_low" -eq 1 ]; then
         low_conf_count=$((low_conf_count + 1))
     fi
-    if [ -z "${excerpt[$choice]:-}" ]; then
-        excerpt[$choice]="${unit_texts[$k]}"
+    exvar="excerpt_$choice"
+    if [ -z "${!exvar:-}" ]; then
+        printf -v "$exvar" '%s' "${unit_texts[$k]}"
     fi
     if [ "$choice" = "unclear" ] || [ "$is_low" -eq 1 ]; then
         full_ids+=("u$((k + 1))")
-        full_bucket["u$((k + 1))"]="$choice"
+        printf -v "fb_u$((k + 1))" '%s' "$choice"
     fi
 done
 
@@ -220,19 +224,23 @@ done
     printf 'Shadow spot-check only. The coordinator grep of the raw output stays authoritative.\n\n'
     printf '## Bucket counts\n'
     for b in "${BUCKETS[@]}"; do
-        printf -- '- %s: %s\n' "$b" "${bucket_count[$b]}"
+        cntvar="count_$b"
+        printf -- '- %s: %s\n' "$b" "${!cntvar}"
     done
     printf '\n## First excerpt per bucket\n'
     for b in "${BUCKETS[@]}"; do
-        [ -n "${excerpt[$b]:-}" ] || continue
-        printf '\n### %s (%s)\n```\n%s\n```\n' "$b" "${bucket_count[$b]}" "${excerpt[$b]}"
+        exvar="excerpt_$b"
+        cntvar="count_$b"
+        [ -n "${!exvar:-}" ] || continue
+        printf '\n### %s (%s)\n```\n%s\n```\n' "$b" "${!cntvar}" "${!exvar}"
     done
     if [ "${#full_ids[@]}" -gt 0 ]; then
         printf '\n## Low confidence or unclear (full excerpts)\n'
         for fid in "${full_ids[@]}"; do
             idx="${fid#u}"
             idx=$((idx - 1))
-            printf '\n### %s (%s)\n```\n%s\n```\n' "$fid" "${full_bucket[$fid]}" "${unit_texts[$idx]}"
+            fbvar="fb_$fid"
+            printf '\n### %s (%s)\n```\n%s\n```\n' "$fid" "${!fbvar}" "${unit_texts[$idx]}"
         done
     fi
 } > "$REDUCED"
@@ -250,7 +258,8 @@ for b in "${BUCKETS[@]}"; do
     else
         buckets_json+=","
     fi
-    buckets_json+="\"$b\":${bucket_count[$b]}"
+    cntvar="count_$b"
+    buckets_json+="\"$b\":${!cntvar}"
 done
 buckets_json+="}"
 
