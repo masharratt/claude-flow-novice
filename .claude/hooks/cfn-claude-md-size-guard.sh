@@ -17,10 +17,15 @@ case "$(basename "$FILE")" in
 esac
 [ -f "$FILE" ] || exit 0
 
-# Exempt the user-global config (~/.claude/CLAUDE.md) — governed separately, not a project file.
+# Exempt the user-global config (~/.claude/CLAUDE.md, or whatever file that
+# symlink resolves to — the CFN repo edits it at .claude/global/CLAUDE.md) —
+# governed separately, not a project file. No nested/root ceiling applies.
 case "$FILE" in
   "$HOME/.claude/CLAUDE.md"|/root/.claude/CLAUDE.md) exit 0 ;;
 esac
+GLOBAL_MD="$(readlink -f "$HOME/.claude/CLAUDE.md" 2>/dev/null || true)"
+REAL_FILE="$(readlink -f "$FILE" 2>/dev/null || echo "$FILE")"
+[ -n "$GLOBAL_MD" ] && [ "$REAL_FILE" = "$GLOBAL_MD" ] && exit 0
 
 WORDS=$(wc -w < "$FILE" 2>/dev/null || echo 0)
 TOKENS=$(( WORDS * 13 / 10 ))
