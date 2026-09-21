@@ -458,7 +458,18 @@ impl AstIndexCommand {
                     .map(|e| format!("{} {}", e.name, e.signature))
                     .collect();
 
-                let embeddings = self.embeddings_manager.generate_embeddings(&entity_texts)?;
+                // Embed in small chunks (see generate_entity_embeddings in
+                // index.rs): one ONNX forward for a whole file's entities
+                // allocates attention tensors ~ batch * seqlen^2 and the ORT
+                // arena never returns that peak — a 189-entity file spiked
+                // RSS to 6GB. 16 per call caps the transient at ~0.5GB.
+                const EMBED_CHUNK_SIZE: usize = 16;
+                let mut embeddings: Vec<Vec<f32>> =
+                    Vec::with_capacity(entity_texts.len());
+                for chunk in entity_texts.chunks(EMBED_CHUNK_SIZE) {
+                    let embs = self.embeddings_manager.generate_embeddings(chunk)?;
+                    embeddings.extend(embs);
+                }
 
                 // Store embeddings in batch
                 let mut stmt = tx.prepare(
