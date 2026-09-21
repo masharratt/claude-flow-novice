@@ -123,7 +123,7 @@ SHA_BEFORE=$(sha256sum "$LEDGER" | cut -d' ' -f1)
 run_sh "$ROT" --ledger "$LEDGER"
 assert_equals "0" "$RC" "rot-risk exits 0"
 assert_equals "" "$OUT" "rot-risk stdout stays empty (scores never on stdout)"
-assert_equals "4" "$(wc -l < "$LOG_FILE")" "four score lines appended"
+assert_equals "4" "$(( $(wc -l < "$LOG_FILE") ))" "four score lines appended"
 assert_equals "rot rot rot rot" "$(jq -rs '[.[] | .type] | join(" ")' "$LOG_FILE")" "all lines are rot type"
 assert_equals "0 0 1 2" "$(jq -rs '[.[] | .score] | sort | join(" ")' "$LOG_FILE")" "scores land as 0-2 numbers"
 assert_equals "0" "$(jq -rs '[.[] | select(.file == "src/e.rs")] | length' "$LOG_FILE")" "has_trigger row never scored"
@@ -143,8 +143,8 @@ run_sh "$ROT" --ledger "$LEDGER"
 assert_equals "0" "$RC" "missing key still exits 0 (shadow never blocks)"
 assert_equals "" "$OUT" "stdout stays empty on missing key"
 assert_equals "4" "$(grep -c 'skip' "$STDERR_FILE")" "four skip lines, one per no-trigger row"
-assert_equals "0" "$(wc -l < "$CURL_LOG")" "no curl call without a key"
-[ ! -f "$LOG_FILE" ] || assert_equals "0" "$(wc -l < "$LOG_FILE")" "no lines appended without a key"
+assert_equals "0" "$(( $(wc -l < "$CURL_LOG") ))" "no curl call without a key"
+[ ! -f "$LOG_FILE" ] || assert_equals "0" "$(( $(wc -l < "$LOG_FILE") ))" "no lines appended without a key"
 
 log_step "CASE API failure: non-blocking exit 0 with an error line"
 reset_case
@@ -155,7 +155,7 @@ assert_equals "0" "$RC" "API failure still exits 0 (shadow never blocks)"
 assert_equals "" "$OUT" "stdout stays empty on API failure"
 assert_contains "$ERR" "error" "error line on stderr"
 assert_equals "1" "$(grep -c '^curl ' "$CURL_LOG")" "single attempted call on API failure"
-[ ! -f "$LOG_FILE" ] || assert_equals "0" "$(wc -l < "$LOG_FILE")" "no lines appended on API failure"
+[ ! -f "$LOG_FILE" ] || assert_equals "0" "$(( $(wc -l < "$LOG_FILE") ))" "no lines appended on API failure"
 
 log_step "CASE ledger with zero no-trigger rows: nothing to score"
 reset_case
@@ -163,8 +163,8 @@ jq '.markers = [.markers[4]] | .total = 1 | .no_trigger = 0' "$LEDGER" > "$TEST_
 export TYPESAFE_API_KEY=test-key-rot-123
 run_sh "$ROT" --ledger "$TEST_TMP/all-trigger.json"
 assert_equals "0" "$RC" "all-trigger ledger exits 0"
-assert_equals "0" "$(wc -l < "$CURL_LOG")" "no API call when nothing to score"
-[ ! -f "$LOG_FILE" ] || assert_equals "0" "$(wc -l < "$LOG_FILE")" "no lines appended for all-trigger ledger"
+assert_equals "0" "$(( $(wc -l < "$CURL_LOG") ))" "no API call when nothing to score"
+[ ! -f "$LOG_FILE" ] || assert_equals "0" "$(( $(wc -l < "$LOG_FILE") ))" "no lines appended for all-trigger ledger"
 
 log_step "CASE usage errors exit 64"
 reset_case

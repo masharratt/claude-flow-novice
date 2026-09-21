@@ -122,13 +122,13 @@ rm -f "$FAKE_ROOT/.claude/settings.local.json"
 run_caller "$(request S001)"
 assert_equals "2" "$RC" "missing key exits 2"
 assert_equals "" "$OUT" "no stdout on missing key"
-STDERR_N=$(wc -l < "$STDERR_FILE")
+STDERR_N=$(( $(wc -l < "$STDERR_FILE") ))
 if [ "$STDERR_N" != "1" ]; then
     printf 'stderr content (%s lines) for missing-key case:\n%s\n---\n' \
         "$STDERR_N" "$(cat "$STDERR_FILE")" >&2
 fi
 assert_equals "1" "$STDERR_N" "exactly one stderr line on missing key"
-assert_equals "0" "$(wc -l < "$CURL_LOG")" "no curl call without a key"
+assert_equals "0" "$(( $(wc -l < "$CURL_LOG") ))" "no curl call without a key"
 
 log_step "CASE settings fallback: key from settings.local.json when env unset"
 reset_case
@@ -146,7 +146,7 @@ export JEV_CURL_RC=500
 run_caller "$(request S001)"
 assert_equals "3" "$RC" "HTTP failure exits 3"
 assert_equals "" "$OUT" "no stdout on HTTP failure"
-assert_equals "1" "$(wc -l < "$STDERR_FILE")" "exactly one stderr line on HTTP failure"
+assert_equals "1" "$(( $(wc -l < "$STDERR_FILE") ))" "exactly one stderr line on HTTP failure"
 
 log_step "CASE malformed JSON response"
 reset_case
@@ -155,13 +155,13 @@ export JEV_CURL_BODY_FILE="$BAD_BODY"
 run_caller "$(request S001)"
 assert_equals "3" "$RC" "malformed response exits 3"
 assert_equals "" "$OUT" "no stdout on malformed response"
-assert_equals "1" "$(wc -l < "$STDERR_FILE")" "exactly one stderr line on malformed response"
+assert_equals "1" "$(( $(wc -l < "$STDERR_FILE") ))" "exactly one stderr line on malformed response"
 
 log_step "CASE invalid stdin: questions object missing"
 reset_case
 export TYPESAFE_API_KEY=test-key-env-123
 run_caller '{"state":{}}'
 assert_equals "3" "$RC" "stdin without questions exits 3"
-assert_equals "0" "$(wc -l < "$CURL_LOG")" "no curl call on invalid stdin"
+assert_equals "0" "$(( $(wc -l < "$CURL_LOG") ))" "no curl call on invalid stdin"
 
 print_test_summary

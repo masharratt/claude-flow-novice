@@ -121,7 +121,7 @@ run_gap "$STDOUT_FILE" "$STDERR_FILE" bash "$GAP" --fixlist "$FIXLIST"
 assert_equals "0" "$GAP_RC" "happy path exits 0"
 
 assert_file_exists "$LOG_FILE" "log written"
-line_count=$(wc -l < "$LOG_FILE")
+line_count=$(( $(wc -l < "$LOG_FILE") ))
 assert_equals "5" "$line_count" "one gap line per numbered item (5 items)"
 
 # fix-list.md byte-identical: the shadow never edits what it reads.
@@ -159,7 +159,7 @@ assert_equals "" "$(cat "$STDOUT_FILE")" "no stdout output (shadow only)"
 # ---- Case 2: rerun same mtime appends 0 ------------------------------------
 run_gap "$STDOUT_FILE" "$STDERR_FILE" bash "$GAP" --fixlist "$FIXLIST"
 assert_equals "0" "$GAP_RC" "rerun exits 0"
-line_count=$(wc -l < "$LOG_FILE")
+line_count=$(( $(wc -l < "$LOG_FILE") ))
 assert_equals "5" "$line_count" "rerun same mtime appends zero lines"
 assert_contains "$(cat "$STDERR_FILE")" "skip" "skip note on stderr"
 
@@ -171,7 +171,7 @@ jq -c 'del(.answers["3"])' "$BODY_FILE" > "$PARTIAL_BODY"
 export JEV_CURL_BODY_FILE="$PARTIAL_BODY"
 run_gap "$STDOUT_FILE" "$STDERR_FILE" bash "$GAP" --fixlist "$FIXLIST"
 assert_equals "0" "$GAP_RC" "missing answer still exits 0"
-line_count=$(wc -l < "$DATA_DIR/jev-gap-bucket.jsonl")
+line_count=$(( $(wc -l < "$DATA_DIR/jev-gap-bucket.jsonl") ))
 assert_equals "4" "$line_count" "4 lines logged when one answer missing"
 assert_contains "$(cat "$STDERR_FILE")" "no answer" "missing answer named on stderr"
 
@@ -183,7 +183,7 @@ run_gap "$STDOUT_FILE" "$STDERR_FILE" \
     bash "$GAP" --fixlist "$FIXLIST"
 assert_equals "0" "$GAP_RC" "missing key exits 0"
 if [ -f "$DATA_DIR/jev-gap-bucket.jsonl" ]; then
-    line_count=$(wc -l < "$DATA_DIR/jev-gap-bucket.jsonl")
+    line_count=$(( $(wc -l < "$DATA_DIR/jev-gap-bucket.jsonl") ))
 else
     line_count=0
 fi
@@ -198,7 +198,7 @@ run_gap "$STDOUT_FILE" "$STDERR_FILE" \
     bash "$GAP" --fixlist "$FIXLIST"
 assert_equals "0" "$GAP_RC" "API failure exits 0"
 if [ -f "$DATA_DIR/jev-gap-bucket.jsonl" ]; then
-    line_count=$(wc -l < "$DATA_DIR/jev-gap-bucket.jsonl")
+    line_count=$(( $(wc -l < "$DATA_DIR/jev-gap-bucket.jsonl") ))
 else
     line_count=0
 fi
@@ -214,7 +214,7 @@ run_gap "$STDOUT_FILE" "$STDERR_FILE" \
     bash "$GAP" --fixlist "$EMPTY_LIST"
 assert_equals "0" "$GAP_RC" "zero items exits 0"
 if [ -f "$DATA_DIR/jev-gap-bucket.jsonl" ]; then
-    line_count=$(wc -l < "$DATA_DIR/jev-gap-bucket.jsonl")
+    line_count=$(( $(wc -l < "$DATA_DIR/jev-gap-bucket.jsonl") ))
 else
     line_count=0
 fi

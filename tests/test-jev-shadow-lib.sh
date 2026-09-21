@@ -59,14 +59,14 @@ log_step "CASE jev_append_line: one JSON line per call under CFN_DATA_DIR"
 LOG1="$DATA_DIR/jev-append-test.jsonl"
 jev_append_line "$LOG1" '{"n":1}'
 jev_append_line "$LOG1" '{"n":2}'
-assert_equals "2" "$(wc -l < "$LOG1")" "two appends produce two lines"
+assert_equals "2" "$(( $(wc -l < "$LOG1") ))" "two appends produce two lines"
 assert_equals "2" "$(jq -s 'length' "$LOG1")" "every appended line is valid JSON"
 assert_equals "1 2" "$(jq -rs '[.[].n] | join(" ")' "$LOG1")" "lines keep order and content"
 
 log_step "CASE jev_append_line: missing parent dirs are created"
 LOG_DEEP="$DATA_DIR/nested/dir/jev-deep.jsonl"
 jev_append_line "$LOG_DEEP" '{"n":3}'
-assert_equals "1" "$(wc -l < "$LOG_DEEP")" "append into a new directory creates it"
+assert_equals "1" "$(( $(wc -l < "$LOG_DEEP") ))" "append into a new directory creates it"
 
 log_step "CASE jev_append_line: 20 parallel writers produce 20 intact lines"
 LOG2="$DATA_DIR/jev-parallel-test.jsonl"
@@ -74,7 +74,7 @@ for i in $(seq 1 20); do
     jev_append_line "$LOG2" "{\"w\":$i}" &
 done
 wait
-assert_equals "20" "$(wc -l < "$LOG2")" "20 parallel appends produce 20 lines"
+assert_equals "20" "$(( $(wc -l < "$LOG2") ))" "20 parallel appends produce 20 lines"
 assert_equals "20" "$(jq -s 'length' "$LOG2")" "no interleaved or lost lines under flock"
 assert_equals "210" "$(jq -s '[.[].w] | add' "$LOG2")" "all 20 payloads intact (sum 1..20)"
 

@@ -149,7 +149,7 @@ assert_equals "" "$OUT" "retry-context stdout stays empty"
 assert_file_exists "$REDUCED" "reduced file written to /tmp/test-context-<run-id>.md"
 
 assert_file_exists "$LOG_FILE" "stats log written"
-assert_equals "1" "$(wc -l < "$LOG_FILE")" "exactly one log line on first run"
+assert_equals "1" "$(( $(wc -l < "$LOG_FILE") ))" "exactly one log line on first run"
 assert_equals "stats" "$(jq -r '.type' "$LOG_FILE")" "the line is a stats line"
 assert_equals "$RUN_ID" "$(jq -r '.run_id' "$LOG_FILE")" "stats line carries the run id"
 assert_equals "5" "$(jq -r '.total_units' "$LOG_FILE")" "five units sliced from five failure blocks"
@@ -159,8 +159,8 @@ assert_equals "1" "$(jq -r '.buckets.timeout' "$LOG_FILE")" "timeout unit bucket
 assert_equals "1" "$(jq -r '.buckets.unclear' "$LOG_FILE")" "noise unit bucketed unclear"
 assert_equals "8" "$(jq -r '.buckets | length' "$LOG_FILE")" "stats buckets object carries all 8 menu entries"
 assert_equals "1" "$(jq -r '.low_conf' "$LOG_FILE")" "one low-confidence unit counted"
-orig_lines=$(wc -l < "$TEST_OUTPUT")
-red_lines=$(wc -l < "$REDUCED")
+orig_lines=$(( $(wc -l < "$TEST_OUTPUT") ))
+red_lines=$(( $(wc -l < "$REDUCED") ))
 assert_equals "$orig_lines" "$(jq -r '.orig_lines' "$LOG_FILE")" "stats orig_lines matches the real file"
 assert_equals "$red_lines" "$(jq -r '.reduced_lines' "$LOG_FILE")" "stats reduced_lines matches the real file"
 assert_success "reduced file under a third of the original ($red_lines vs $orig_lines lines)" \
@@ -177,7 +177,7 @@ assert_contains "$ERR" "jev-retry-context" "status chatter goes to stderr"
 log_step "CASE rerun idempotent: same run-id appends 0 and calls 0"
 run_sh "$RETRY" --run-id "$RUN_ID" --test-output "$TEST_OUTPUT"
 assert_equals "0" "$RC" "rerun exits 0"
-assert_equals "1" "$(wc -l < "$LOG_FILE")" "rerun appends no log line"
+assert_equals "1" "$(( $(wc -l < "$LOG_FILE") ))" "rerun appends no log line"
 assert_equals "1" "$(grep -c '^curl ' "$CURL_LOG")" "rerun makes no API call"
 assert_contains "$ERR" "already triaged" "rerun names the reason on stderr"
 

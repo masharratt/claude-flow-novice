@@ -92,7 +92,7 @@ run_sh "$SHRINK" --reason "$LONG_REASON" --baseline 120 --total 118 --run-id "ru
 assert_equals "0" "$RC" "shrink-reason exits 0"
 assert_equals "" "$OUT" "shrink-reason stdout stays empty (shadow never speaks on stdout)"
 assert_file_exists "$LOG_FILE" "verdict log written"
-assert_equals "1" "$(wc -l < "$LOG_FILE")" "exactly one log line"
+assert_equals "1" "$(( $(wc -l < "$LOG_FILE") ))" "exactly one log line"
 assert_equals "shrink" "$(jq -r '.type' "$LOG_FILE")" "the line is a shrink line"
 assert_equals "run-shrink-1" "$(jq -r '.run_id' "$LOG_FILE")" "line carries the run id"
 assert_equals "true" "$(jq -r '.jev_verdict' "$LOG_FILE")" "noul 0.85 maps to verdict true"
@@ -118,7 +118,7 @@ export JEV_CURL_BODY_FILE="$TEST_TMP/body-high.json"
 big_reason=$(printf 'x%.0s' $(seq 1 300))
 run_sh "$SHRINK" --reason "$big_reason" --baseline 10 --total 5 --run-id "run-shrink-3"
 assert_equals "0" "$RC" "long-reason case exits 0"
-reason_len=$(jq -r '.reason' "$LOG_FILE" | wc -c)
+reason_len=$(jq -r '.reason' "$LOG_FILE" | wc -c | tr -d '[:space:]')
 assert_success "logged reason capped at 200 chars (got $((reason_len - 1)))" [ "$reason_len" -le 201 ]
 
 log_step "CASE missing key: skip line, exit 0, no stdout"
