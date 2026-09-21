@@ -19,15 +19,21 @@ set -euo pipefail
 # jev_append_line FILE JSON
 # Semantics copied from the batch-1 append_line() in
 # .claude/skills/cfn-vote-implement/jev-triage.sh: fd 9 opened on the target
-# file, flock 9 while appending, silent flock failure tolerated, and the
-# whole locked subshell falling back to a plain append.
+# file, flock 9 while appending. flock is Linux-only: under set -e a missing
+# flock binary would abort the locked subshell before the printf, so the lock
+# is taken only when the binary exists and a plain append is the explicit
+# flock-less path (macOS).
 jev_append_line() {
     local file="$1" rec="$2"
     mkdir -p "$(dirname "$file")" 2>/dev/null || true
-    (
-        flock 9 2>/dev/null
+    if command -v flock >/dev/null 2>&1; then
+        (
+            flock 9 2>/dev/null || true
+            printf '%s\n' "$rec" >&9
+        ) 9>>"$file" 2>/dev/null || printf '%s\n' "$rec" >> "$file"
+    else
         printf '%s\n' "$rec" >> "$file"
-    ) 9>>"$file" 2>/dev/null || printf '%s\n' "$rec" >> "$file"
+    fi
 }
 
 # jev_status MSG: one line on stderr.

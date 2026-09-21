@@ -162,6 +162,10 @@ export JEV_CURL_BODY_FILE="$STUB_BODY"
 run_sh "$TRIAGE" --manifest "$MANIFEST"
 assert_equals "0" "$RC" "triage exits 0"
 assert_equals "" "$OUT" "triage stdout stays empty (choices never on stdout)"
+if [ ! -f "$LOG_FILE" ] || [ "$(( $(wc -l < "$LOG_FILE") ))" != "3" ]; then
+    printf 'triage stderr:\n%s\ncurl log:\n%s\n---\n' \
+        "$ERR" "$(cat "$CURL_LOG" 2>/dev/null)" >&2
+fi
 assert_equals "3" "$(( $(wc -l < "$LOG_FILE") ))" "three triage lines appended"
 assert_equals "3" "$(jq -rs '[.[] | select(.type=="triage")] | length' "$LOG_FILE")" "all lines are triage type"
 assert_equals "1" "$(grep -c '^curl ' "$CURL_LOG")" "one batched curl call for 3 suggestions"
