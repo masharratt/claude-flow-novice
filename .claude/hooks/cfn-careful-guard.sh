@@ -54,11 +54,16 @@ DENY_RULE=""
 # cfn: anchored matching misses destructive commands inside quoted
 # bash -c / exec / ssh argument strings; add an argv-parsing stage if that
 # incident class is ever observed.
-ANCHOR='(^|[;&|(`][[:space:]]*)'
+ANCHOR='[;&|(`][[:space:]]*'
+
+# Every command segment, including the first, is preceded by a separator in
+# MATCH_CMD: the synthetic leading "; " lets one portable ERE match segment
+# starts without a ^ inside an alternation, which BSD grep rejects.
+MATCH_CMD="; $CMD_LOWER"
 
 # --- File destruction ---
 # Check for rm -rf / rm -r but allow safe dirs
-if echo "$CMD_LOWER" | grep -qE "$ANCHOR"'rm[[:space:]]+(-[a-z]*r[a-z]*f|--recursive|-[a-z]*f[a-z]*r)'; then
+if echo "$MATCH_CMD" | grep -qE "$ANCHOR"'rm[[:space:]]+(-[a-z]*r[a-z]*f|--recursive|-[a-z]*f[a-z]*r)'; then
     # Whitelisted safe deletion targets
     if echo "$CMD_LOWER" | grep -qE '(node_modules|\.next|dist|__pycache__|\.cache|\.turbo|/tmp/)'; then
         exit 0
@@ -72,15 +77,15 @@ elif echo "$CMD_LOWER" | grep -qiE '(drop[[:space:]]+table|drop[[:space:]]+datab
     echo "Confirm with the user before executing database destruction." >&2
     DENY_RULE=db-destruction
 # --- Git force operations ---
-elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'git[[:space:]]+push[[:space:]]+.*(-f|--force)'; then
+elif echo "$MATCH_CMD" | grep -qE "$ANCHOR"'git[[:space:]]+push[[:space:]]+.*(-f|--force)'; then
     echo "BLOCKED: Force push detected." >&2
     echo "Force push can overwrite remote history. Confirm with the user." >&2
     DENY_RULE=force-push
-elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'git[[:space:]]+reset[[:space:]]+--hard'; then
+elif echo "$MATCH_CMD" | grep -qE "$ANCHOR"'git[[:space:]]+reset[[:space:]]+--hard'; then
     echo "BLOCKED: Hard reset detected." >&2
     echo "This discards uncommitted changes. Confirm with the user." >&2
     DENY_RULE=hard-reset
-elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'git[[:space:]]+clean[[:space:]]+.*-f'; then
+elif echo "$MATCH_CMD" | grep -qE "$ANCHOR"'git[[:space:]]+clean[[:space:]]+.*-f'; then
     echo "BLOCKED: git clean -f detected." >&2
     echo "This removes untracked files permanently. Confirm with the user." >&2
     DENY_RULE=git-clean
@@ -88,17 +93,17 @@ elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'git[[:space:]]+clean[[:space:]]+.*-f
 # scripts, NOT git checkout"), but never implemented. Discards uncommitted
 # work silently, and the pathspec forms are the destructive ones -- plain
 # `git checkout <branch>` is a normal branch switch and must stay allowed.
-elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'git[[:space:]]+checkout[[:space:]]+(--[[:space:]]+)?(\.|\*)([[:space:]]|$)'; then
+elif echo "$MATCH_CMD" | grep -qE "$ANCHOR"'git[[:space:]]+checkout[[:space:]]+(--[[:space:]]+)?(\.|\*)([[:space:]]|$)'; then
     echo "BLOCKED: git checkout of working-tree paths detected." >&2
     echo "This discards uncommitted changes. Use the edit-safety backup scripts to roll back." >&2
     DENY_RULE=checkout-paths
 # --- Container destruction ---
-elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'(kubectl[[:space:]]+delete|docker[[:space:]]+system[[:space:]]+prune|docker[[:space:]]+rm[[:space:]]+-f)'; then
+elif echo "$MATCH_CMD" | grep -qE "$ANCHOR"'(kubectl[[:space:]]+delete|docker[[:space:]]+system[[:space:]]+prune|docker[[:space:]]+rm[[:space:]]+-f)'; then
     echo "BLOCKED: Destructive container operation detected." >&2
     echo "Confirm with the user before executing." >&2
     DENY_RULE=container-destruction
 # --- Disk overwrite ---
-elif echo "$CMD_LOWER" | grep -qE "$ANCHOR"'dd[[:space:]]+if=/dev/(zero|random|urandom)'; then
+elif echo "$MATCH_CMD" | grep -qE "$ANCHOR"'dd[[:space:]]+if=/dev/(zero|random|urandom)'; then
     echo "BLOCKED: Disk overwrite detected." >&2
     DENY_RULE=disk-overwrite
 fi
