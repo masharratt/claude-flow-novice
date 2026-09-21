@@ -124,6 +124,17 @@ deny_case() {
     CASE_KEY="test-key-guard-123"
     CASE_BODY="$STUB_BODY"
     run_hook "$cmd"
+    if [ "$RC" != "2" ]; then
+        printf 'deny_case debug (%s): rc=%s stderr:\n%s\nsh -x trace tail:\n' \
+            "$rule" "$RC" "$ERR" >&2
+        printf '{"tool_name":"Bash","tool_input":{"command":%s}}' \
+            "$(jq -Rn --arg c "$cmd" '$c')" \
+            | env HOME="$FAKE_ROOT" CFN_DATA_DIR="$DATA_DIR" \
+                TYPESAFE_API_KEY="$CASE_KEY" \
+                JEV_CURL_RC="$CASE_CURL_RC" \
+                JEV_CURL_BODY_FILE="$CASE_BODY" \
+                sh -x "$HOOK" 2>&1 | tail -40 >&2
+    fi
     assert_equals "2" "$RC" "deny exits 2: $rule"
     assert_contains "$ERR" "BLOCKED" "deny message on stderr: $rule"
     assert_equals "" "$OUT" "stdout stays empty on deny: $rule"
