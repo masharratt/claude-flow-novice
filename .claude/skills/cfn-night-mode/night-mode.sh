@@ -178,7 +178,8 @@ render_report(){ # render_report <since-date> [<project-filter>]
             # report text and order unchanged.
             [ -x "$HOME/.claude/skills/cfn-night-mode/jev-night-risk.sh" ] && \
                 timeout 5 "$HOME/.claude/skills/cfn-night-mode/jev-night-risk.sh" \
-                    --title "$title" --decision-id "$did" --slug "$slug" || true
+                    --title "$title" --decision-id "$did" --slug "$slug" \
+                    < /dev/null || true
 
         done < <(sqlite3 -separator $'\037' "$DB_PATH" \
             "SELECT decision_id, replace(title,char(31),' '), replace(chosen,char(31),' '), status, blocking, project, timestamp, slug

@@ -72,7 +72,7 @@ $LONG1 (continued)
 node: internal/modules/cjs/loader:1050
   throw err;
   ^
-Error: Cannot find module '/home/w/bin/glm'
+Error: Cannot find module '$HOME/bin/glm'
     at Function._resolveFilename (node:internal/modules/cjs/loader:1050:15)
     at Function._load (node:internal/modules/cjs/loader:932:27)
     at Function.executeUserEntryPoint (node:internal/run/main_module:236:12)

@@ -254,6 +254,30 @@ jobs:
       - name: Jev shadow-wiring tests
         run: bash tests/test-jev-shadow-wiring.sh
 
+      - name: Jev shadow lib tests
+        run: bash tests/test-jev-shadow-lib.sh
+
+      - name: Jev retry-context tests
+        run: bash tests/test-jev-retry-context.sh
+
+      - name: Jev loop shadow tests
+        run: bash tests/test-jev-loop-shadow.sh
+
+      - name: Jev tmux outcome tests
+        run: bash tests/test-jev-tmux-outcome.sh
+
+      - name: Jev careful-guard tests
+        run: bash tests/test-jev-careful-guard.sh
+
+      - name: Jev rot-risk tests
+        run: bash tests/test-jev-rot-risk.sh
+
+      - name: Jev gap-bucket tests
+        run: bash tests/test-jev-gap-bucket.sh
+
+      - name: Jev night-risk tests
+        run: bash tests/test-jev-night-risk.sh
+
       - name: Global config linker tests
         run: bash tests/test-link-global-config.sh
 
