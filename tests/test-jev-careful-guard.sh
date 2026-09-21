@@ -76,6 +76,12 @@ mkdir -p "$FAKE_ROOT/.claude/cfn-scripts" \
          "$FAKE_ROOT/.claude/hooks"
 cp "$PROJECT_ROOT/.claude/cfn-scripts/jev-systemone.sh" "$FAKE_ROOT/.claude/cfn-scripts/"
 cp "$PROJECT_ROOT/.claude/cfn-scripts/jev-shadow-lib.sh" "$FAKE_ROOT/.claude/cfn-scripts/"
+# Portability shim too: the hook/script sources cfn-portable.sh relative to
+# itself, and macOS has no native timeout/stat; without the shim copy the
+# sandbox silently skips stdin reads and starves the rules.
+mkdir -p "$FAKE_ROOT/.claude/helpers"
+cp "$PROJECT_ROOT/.claude/helpers/cfn-portable.sh" "$FAKE_ROOT/.claude/helpers/"
+
 cp "$FUNNEL_SRC" "$FUNNEL"
 cp "$HOOK_SRC" "$HOOK"
 chmod +x "$FAKE_ROOT/.claude/cfn-scripts/"*.sh "$FUNNEL" "$HOOK"
