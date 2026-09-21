@@ -61,14 +61,7 @@ Agent descriptions are the dispatch table.
 **Two things that are not completion signals.** Never block on `Monitor` waiting for a subagent notification. Never treat a size-stable output file as "the agent finished" (later agent passes silently overwrite coordinator edits to that file). Wait for the completion notification, nothing else.
 
 ### Fork Subagents (`subagent_type: "fork"`) - TOKEN HAZARD
-
-A fork inherits the **entire main-chat conversation** as its prompt, on the parent model: cost per fork = full context re-sent (N forks in parallel = N x full context). A fresh agent starts near-empty and costs a fraction.
-
-**Default: do NOT fork.** Spawn a fresh agent with the 5-20 lines of context it actually needs; prefer `SendMessage` to a live agent that already has the context.
-
-Fork ONLY when all three hold: (1) the task depends on conversation-built reasoning that cannot be restated in a short brief (long debugging trail, accumulated design rationale, interlocking decisions); (2) a short brief would lose fidelity that changes the answer; (3) exactly ONE fork, late in the session, when context IS the payload (handoff, "continue this exact investigation", a verification pass that must see everything reasoned so far).
-
-Hard rules: never fork for search, file reading, or research (`Explore`/`general-purpose`); never for a mechanical edit, test run, lint, or commit; never early when context is cheap to restate; never from inside a fork; past ~50k tokens of conversation state the reason out loud before spawning. Cheapest first: restate in a fresh prompt → point at a file/plan artifact → `SendMessage` → fork last.
+**Default: do NOT fork.** A fork re-sends the entire main-chat context on the parent model (N parallel forks = N x full context); a fresh agent with 5-20 lines of context costs a fraction, and `SendMessage` reaches a live agent that already has it. Fork only when the task depends on conversation-built reasoning a short brief cannot restate without losing fidelity that changes the answer — exactly one fork, late in the session, when context IS the payload. Never for search/read/research, mechanical edits, test runs, or commits; never from inside a fork; past ~50k tokens of conversation, state the reason aloud. Cheapest first: restate in a fresh prompt → point at a file/plan artifact → `SendMessage` → fork last.
 
 ### Codex Delegation (gated by project flag)
 
@@ -87,11 +80,8 @@ Load `~/.claude/references/codex-delegation.md` before the first codex call in a
 - **Intermediate Technical Level Explanations** - user has some experience but is not an expert
 - **Next steps** - after a task finishes, always include suggested next steps or let the user know there are no more next steps in the epic
 
-### Shell Watchdog (MANDATORY)
-- **Every background task shell gets a 15-minute progress check until it exits or fails.** Background completion notifications get missed when the session is busy, and never fire at all when a shell hangs; the check loop is the safety net.
-- **Arm the check when you start the shell, not from memory.** A prompt rule cannot wake an idle session; a scheduled prompt can. Pair each background task command with `CronCreate` (recurring, ~15 min, off-minute) whose prompt re-reads that shell's output and process state. Two consecutive checks with zero new output on a live process = treat as hung: investigate or surface to the user. `CronDelete` the job when the shell exits.
-- **Hooks enforce this.** `cfn-shell-track.sh` (PostToolUse, Bash) records every background shell in a per-session ledger under `/tmp/cfn-shell-watch/`. The Stop hook blocks going idle while a task shell runs unwatched; clear the block by arming the check and touching `/tmp/cfn-shell-watch/<session>.<pid>.watched`, or by collecting/stopping the shell first. The UserPromptSubmit hook surfaces shells that finished unacknowledged.
-- **Carve-out:** long-lived services (dev servers, watch mode, `tail -f`) are auto-classified `service` by the tracker: reported once at the next prompt, then left alone. No check loop, no idle block.
+### Shell Watchdog (hooks enforce)
+- **Arm a 15-min check when you launch a background task shell:** `CronCreate` a recurring ~15-min prompt that re-reads the shell's output and process state; `CronDelete` when it exits. Hooks do the rest: the Stop guard blocks idle until the check is armed (ack with `touch /tmp/cfn-shell-watch/<session>.<pid>.watched`), and next-prompt status surfaces finished-but-unacknowledged shells. Services (dev servers, watch mode, `tail -f`) are auto-exempt: reported once, then left alone.
 
 ### Git Workflow
 - **Work from the main branch (main/master) by default.** Commit directly to it. Do NOT auto-create a feature branch. This overrides Claude Code's default "if on the default branch, branch first" behavior.
@@ -150,10 +140,7 @@ Replacement map (`anthropic:* -> xai:*`) and cost/reasoning-model rules: `~/.cla
 - **Em dashes:** Banned in user-facing copy only (website text, UI, public docs), plus code and code comments. Use periods, commas, colons, or parentheses there. (Agents default to em dashes; override what ships.) Allowed in internal docs: handoffs, subagent briefs, planning artifacts (PLAN_/SPEC_/VERIFY_/DECISIONS_/ARCH_, anything under `planning/`), reports, notes. Never spend turns correcting em dashes in internal docs. Carve-out: code that detects, strips or tests for em dashes has to spell the character literally in its regex or fixture. Those occurrences are the feature, not a violation, so do not "fix" them and do not let a scan flag them.
 
 ### Terse-Output Mode Carve-Out (caveman plugin)
-
-The caveman plugin's own boundaries exempt code, commits, and PRs. Extend that exemption to anything a second party must act on without you present: subagent prompts (the `prompt` field of Agent/Task), plan artifacts on disk (PLAN/SPEC/VERIFY/DECISIONS/ARCH, anything under `planning/`), AskUserQuestion text, commit messages, PR bodies, `readme/*.md`. Fragments there drop connective reasoning and cost more than the terseness saved.
-
-Terse mode stays on for chat replies; never drop technical substance. Forks inherit every injection; fresh agents get none. Never patch the plugin under `~/.claude/plugins/cache/`. Controls and disable methods: `~/.claude/references/caveman-controls.md`.
+Caveman already exempts code, commits, and PRs. Extend that to anything a second party must act on without you present — subagent prompts, plan artifacts under `planning/`, AskUserQuestion text, commit messages, PR bodies, `readme/*.md` — fragments there drop connective reasoning and cost more than the terseness saves. Never drop technical substance from chat replies. Forks inherit every injection; fresh agents get none. Never patch the plugin under `~/.claude/plugins/cache/`; controls: `~/.claude/references/caveman-controls.md`.
 
 ### Decision Protocol (MANDATORY, ALL contexts)
 - **Always use AskUserQuestion** to surface decisions to the user. Never assume or silently decide.
@@ -165,44 +152,16 @@ Terse mode stays on for chat replies; never drop technical substance. Forks inhe
 **Night mode exception.** While `night-mode.sh on`, the AskUserQuestion mandate is suspended: take the conservative reversible default, log every decision under slug `night-<date>`, commit as work finishes but never push, defer irreversible or destructive operations as blocking decisions. A PreToolUse hook enforces; `night-mode.sh off` prints the morning report for review. Full contract: `.claude/skills/cfn-night-mode/SKILL.md`.
 
 ### Plan Mode Protocol
-- **Completeness default:** complete implementation. Deferring tests or edge cases saves minutes, not days.
-- **Intent confirm (user-visible changes):** if a plan changes user-visible behavior and the ask is partly ambiguous, confirm intended behavior with ONE question before writing the full plan. `cfn-plan-review` re-checks this at review time.
-- **Escape hatch:** obvious fix with no real tradeoff — state what you'll do and move on.
-- **Scope challenge (Step 0):** verify minimum viable scope, existing solutions; 8+ files = smell test for a missed decomposition.
-- **Routing tree:** pick the track by planning depth, not file count (file count is a smell test, never a router):
-  1. **No shared state** (component-local, single-consumer pages) → plan mode.
-  2. **Shared state, in-repo only** → plan mode + `/cfn-plan-review`. Cross-repo consumers out of scope.
-  3. **Known external consumer** (e.g. `~/.claude/references/blog-api-sites.md`) → same as 2, plus additive-only change or version the surface.
-  4. **Wrong-quietly surface** (RLS, visibility, policy, semantic DB changes) → manifest track regardless of size: `/write-plan` from existing artifacts → Bar A → blessed VERIFY → `cfn-loop-task` (see *Manifest Track vs Session Track*).
-
-  The `/cfn-megaplan` family is for program-scale work only: multi-part mvp/beta programs (`/cfn-megaplan-fast`), enterprise/compliance/ops/migration-rehearsal (full `/cfn-megaplan`). Ordinary feature work never routes there.
+- **Completeness default:** full implementation; deferring tests or edge cases saves minutes, not days.
+- **Intent confirm:** user-visible change plus a partly ambiguous ask → ONE question before the full plan. Obvious fix with no real tradeoff → state it and move on.
+- **Consult the strongest model on plan-critical forks** (architecture choice, data migration, API contract, security-sensitive path): get a second opinion from Fable via an `advisor` subagent; in `codex=true` projects also from Astra via codex MCP.
 - **Investigate before planning:** dump actual schema/imports/config and trace dependencies before any plan that touches data or shared state.
-- **Assumption registry:** every plan lists assumptions as explicit, testable statements. Full rules: `code-quality.md`.
-- **Plan review:** shared-state work (routing branch 2+) runs `/cfn-plan-review` (dependency trace, blast radius, gap analysis) in the same session; merge results into the plan.
-- **Sonnet/TDD:** implementation via sonnet-level subagents, TDD required.
+- **Routing:** no shared state → plan mode. Shared state, in-repo → plan mode + `/cfn-plan-review`. Known external consumer → same, plus additive-only change or version the surface. Wrong-quietly surface (RLS, visibility, policy, semantic DB changes) → manifest track regardless of size: `/write-plan` from existing artifacts → Bar A → blessed VERIFY → `cfn-loop-task`. File count is a smell test, never a router; 8+ files = check for a missed decomposition.
+- Shared-state plans list testable assumptions (`code-quality.md`) and run `/cfn-plan-review` in-session; implementation via sonnet-level subagents, TDD required.
 
-### Planning Pipeline (canonical order)
-
-Code builds: `/cfn-megaplan` (program-scale entry, tiered DAG wrapping write-plan + plan-review, gated by Verifiable-done + Haiku-executable bars; `--tier=mvp|beta|enterprise`; internally runs write-plan and cfn-plan-review) → `/cfn-loop-task` (execution, subscription-backed; Verifiable-done manifest is the completion gate). Branches: `/cfn-megaplan-lite` (3-7 file features), `/cfn-megaplan-fast` (DEFAULT for mvp/beta multi-part programs; full megaplan stays for enterprise/compliance/ops/migration-rehearsal). Optional: `/cfn-goap-plan` (goal-state modeling + A* action sequence).
-
-Non-code branch (deliverable is a document, not a build): `/cfn-knowledge-plan` (strategy docs, proposals, research memos; Bar K grounding + weasel scan; NO drafting before KPLAN_<slug>.md is approved) → `/cfn-share` (publish as a private page with a stable URL; re-shares update the same link).
-
-Run sub-pipelines (`/cfn-spa-plan`, `/write-plan`, `/cfn-plan-review`, `-lite`, `-fast`, knowledge-plan, share) standalone only for narrow or iterative work. `/cfn-loop-cli` only when external-API delegation (non-Claude providers) is required.
-
-Routing wrong is the primary cause of intent drift, missed edge cases, and the dropdown-as-textbox class of UI bugs. Route per the tree in *Plan Mode Protocol*. Full sub-skill and phase detail: `~/.claude/references/planning-pipeline.md` (load when choosing among planning skills).
-
-### Manifest Track vs Session Track (when planning artifacts already exist)
-
-`cfn-loop-task` requires `PLAN_<slug>.md` but not `VERIFY_<slug>.md` — without VERIFY there is no mechanical Bar A all-green done gate, only gate-vote opinion (dry-review, security-review, a11y, dep-audit, 3-vote still run off manifest build flags, not VERIFY presence).
-
-Once SPEC/DATA/ARCH/UX already exist for a feature, the live question per surface is only: **can this be wrong quietly?**
-
-| Track | Criterion | Process |
-|---|---|---|
-| Manifest track | Wrong state is invisible until someone is harmed: RLS, `can_view_person`-class visibility, chat/booking state, block enforcement, anything writing policy | `/write-plan` from existing artifacts → Bar A → blessed VERIFY → `cfn-loop-task` |
-| Session track | Wrong state is visible the moment you open the page: content pages, display/read surfaces, info/FAQ, schedule display | Plan mode in its own session, TDD, `cfn-loop-task` with PLAN only, no VERIFY |
-
-Split **per surface, not per feature** — one feature can straddle both (a schedule feature's display half is session track, its visibility-policy half is manifest track). Evidence for the split: `~/.claude/references/planning-pipeline.md`.
+### Planning Pipeline
+Plain plan mode is the default for feature work; Fable-class models made the megaplan family redundant for ordinary builds. `/cfn-megaplan-fast` only for genuine multi-part mvp/beta programs; full `/cfn-megaplan` only for enterprise/compliance/ops/migration-rehearsal. Non-code deliverables: `/cfn-knowledge-plan` (no drafting before KPLAN approval) → `/cfn-share`. Sub-pipelines (`/write-plan`, `/cfn-plan-review`, `-lite`, `-fast`, `/cfn-goap-plan`, `/cfn-spa-plan`) standalone for narrow or iterative work; `/cfn-loop-cli` only for external-API delegation.
+Canonical order, the manifest-vs-session track table (split per surface: wrong-quietly → manifest track), and sub-skill detail: `~/.claude/references/planning-pipeline.md` (load when choosing among planning skills).
 
 ### TDD Protocol (REQUIRED)
 - **No implementation without a failing test.** No exceptions for "simple" changes. If you cannot write a failing test, fix the design.
