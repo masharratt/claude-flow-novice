@@ -164,7 +164,7 @@ render_report(){ # render_report <since-date> [<project-filter>]
     fyia=""
 
     if command -v sqlite3 >/dev/null 2>&1 && [ -f "$DB_PATH" ] && [ -n "$slugs" ]; then
-        while IFS=$'\037' read -r did title chosen status blocking project ts; do
+        while IFS=$'\037' read -r did title chosen status blocking project ts slug; do
             [ -n "$did" ] || continue
             [ "$status" = "superseded" ] && continue
             DEC_COUNT=$((DEC_COUNT+1))
@@ -174,9 +174,14 @@ render_report(){ # render_report <since-date> [<project-filter>]
             elif [ "$status" = "accepted" ]; then
                 fyia+="$did [$project at $ts]: $title -> $chosen"$'\n'
             fi
+            # SHADOW (jev batch 2): risk score logged per item; decides nothing,
+            # report text and order unchanged.
+            [ -x "$HOME/.claude/skills/cfn-night-mode/jev-night-risk.sh" ] && \
+                timeout 5 "$HOME/.claude/skills/cfn-night-mode/jev-night-risk.sh" \
+                    --title "$title" --decision-id "$did" --slug "$slug" || true
 
         done < <(sqlite3 -separator $'\037' "$DB_PATH" \
-            "SELECT decision_id, replace(title,char(31),' '), replace(chosen,char(31),' '), status, blocking, project, timestamp
+            "SELECT decision_id, replace(title,char(31),' '), replace(chosen,char(31),' '), status, blocking, project, timestamp, slug
              FROM decisions WHERE slug IN ($slugs) ${proj:+AND project='$proj'} ORDER BY timestamp;" 2>/dev/null)
     fi
 

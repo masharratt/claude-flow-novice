@@ -100,7 +100,7 @@ assert_contains "$LINE1" '"score":2' "line carries the score answer"
 assert_contains "$LINE1" '"confidence":0.8' "line carries the confidence"
 assert_contains "$LINE1" '"input_tokens":321' "line carries usage input_tokens"
 assert_equals "1" "$(n_curl_calls)" "happy path makes exactly one API call"
-assert_contains "$(cat "$CURL_LOG")" '"type": "score"' "question payload is a score question"
+assert_contains "$(cat "$CURL_LOG")" '"type":"score"' "question payload is a score question"
 assert_not_contains "$LINE1" "Defer risky migration" "report title text is not echoed into the log"
 
 # idempotent on decision_id: no second line, no second API call
@@ -116,8 +116,10 @@ assert_contains "$SKIP_OUT" "skip" "missing key reports a skip line"
 assert_equals "1" "$(n_log_lines)" "missing key appends no log line"
 assert_equals "1" "$(n_curl_calls)" "missing key makes no API call"
 
-# API failure: exit 0, error line, no log line
-JEV_CURL_RC=500 API_OUT=$(bash "$SCORER" --title "Another item" --decision-id "D3" --slug "night-2026-09-20" 2>&1)
+# API failure: exit 0, error line, no log line. The rc override must be a
+# one-shot prefix on the COMMAND, not on an assignment line: a line made only
+# of VAR=x VAR2=$(...) assignments persists JEV_CURL_RC for the whole test.
+API_OUT=$(JEV_CURL_RC=500 bash "$SCORER" --title "Another item" --decision-id "D3" --slug "night-2026-09-20" 2>&1)
 assert_contains "$API_OUT" "error" "API failure reports an error line"
 assert_equals "1" "$(n_log_lines)" "API failure appends no log line"
 
@@ -152,29 +154,28 @@ WIRE_DATA="$TEST_TMP/wire-data"
 mkdir -p "$WIRE_DATA"
 
 run_render() {
-    env CFN_DATA_DIR="$WIRE_DATA" bash "$NM" report --since 2026-09-19 2>/dev/null
+    env CFN_DATA_DIR="$WIRE_DATA" bash "$NM" report --since 2026-09-19 2>"$TEST_TMP/render-err.txt"
 }
 
 # restore the full-answer body for the render, scorer present and executable
 printf '%s\n' '{"answers":{"D1":{"type":"score","score":2,"confidence":0.8,"probabilities":{}},"D2":{"type":"score","score":0,"confidence":0.9,"probabilities":{}}},"usage":{"input_tokens":99}}' > "$BODY_FILE"
 
 WIRE_OUT=$(run_render); WIRE_RC=$?
-{ [ "$WIRE_RC" = "0" ] && echo "$WIRE_OUT" | grep -q "NEEDS ACTION" \
-    && echo "$WIRE_OUT" | grep -q "Defer risky migration" \
-    && echo "$WIRE_OUT" | grep -q "ORM pick"; } \
-    && ok "render with scorer present exits 0, sections intact" \
-    || no "render with scorer (rc=$WIRE_RC out=$WIRE_OUT)"
+WIRE_OK=1
+[ "$WIRE_RC" = "0" ] || WIRE_OK=0
+echo "$WIRE_OUT" | grep -q "NEEDS ACTION" || WIRE_OK=0
+echo "$WIRE_OUT" | grep -q "Defer risky migration" || WIRE_OK=0
+echo "$WIRE_OUT" | grep -q "ORM pick" || WIRE_OK=0
+assert_equals "1" "$WIRE_OK" "render with scorer present exits 0, sections intact"
+[ "$WIRE_OK" = "0" ] && printf 'render stderr:\n%s\n' "$(cat "$TEST_TMP/render-err.txt" 2>/dev/null)" >&2 || true
 
 WIRE_LOG="$WIRE_DATA/jev-night-risk.jsonl"
 WIRE_LINES=$( [ -f "$WIRE_LOG" ] && grep -c . "$WIRE_LOG" || true )
 assert_equals "2" "$WIRE_LINES" "render logs one risk line per rendered item"
-if [ -f "$WIRE_LOG" ]; then
-    L1=$(jq -r 'select(.decision_id == "D1") | "\(.type)|\(.slug)|\(.score)|\(.project)"' "$WIRE_LOG" | head -1)
-    assert_equals "risk|night-2026-09-19|2|$REPO_NAME" "$L1" "D1 line: type/slug/score/project"
-    assert_contains "$(cat "$WIRE_LOG")" '"decision_id":"D2"' "D2 also scored"
-else
-    no "wire log missing (expected $WIRE_LOG)"
-fi
+assert_file_exists "$WIRE_LOG" "wire log created by render"
+L1=$(jq -r 'select(.decision_id == "D1") | "\(.type)|\(.slug)|\(.score)|\(.project)"' "$WIRE_LOG" 2>/dev/null | head -1)
+assert_equals "risk|night-2026-09-19|2|$REPO_NAME" "$L1" "D1 line: type/slug/score/project"
+assert_contains "$(cat "$WIRE_LOG" 2>/dev/null)" '"decision_id":"D2"' "D2 also scored"
 
 # report text byte-identical to a no-scorer render (generated timestamp masked)
 RPT_A="$TEST_TMP/report-a.txt"
@@ -188,13 +189,15 @@ chmod +x "$HOME/.claude/skills/cfn-night-mode/jev-night-risk.sh"
 assert_equals "$(mask_generated "$RPT_A")" "$(mask_generated "$RPT_B")" \
     "report text byte-identical with and without the scorer (generated ts masked)"
 
-# wiring shape: exactly one insertion, the plan row-3 shape
+# wiring shape: one insertion, the plan row-3 shape (the $HOME path appears
+# twice by design: the -x guard and the timeout-wrapped call)
 WIRE_GREP=$(grep -c 'jev-night-risk\.sh' "$NM" || true)
-assert_equals "1" "$WIRE_GREP" "night-mode.sh references the scorer exactly once"
-assert_contains "$(grep 'jev-night-risk' "$NM")" "timeout 5" "insertion bounded by timeout 5"
-assert_contains "$(grep 'jev-night-risk' "$NM")" '--decision-id "$did"' "insertion passes the decision id"
-assert_contains "$(grep 'jev-night-risk' "$NM")" '--slug "$slug"' "insertion passes the slug"
-assert_contains "$(grep 'jev-night-risk' "$NM")" '--title "$title"' "insertion passes the title"
-assert_contains "$(grep 'jev-night-risk' "$NM")" '|| true' "insertion is fire-and-forget (|| true)"
+assert_equals "2" "$WIRE_GREP" "night-mode.sh: one insertion (guard + call), exactly once each"
+INSERTION=$(grep -A2 'jev-night-risk' "$NM")
+assert_contains "$INSERTION" "timeout 5" "insertion bounded by timeout 5"
+assert_contains "$INSERTION" '--decision-id "$did"' "insertion passes the decision id"
+assert_contains "$INSERTION" '--slug "$slug"' "insertion passes the slug"
+assert_contains "$INSERTION" '--title "$title"' "insertion passes the title"
+assert_contains "$INSERTION" '|| true' "insertion is fire-and-forget (|| true)"
 
 print_test_summary
