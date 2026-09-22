@@ -144,6 +144,20 @@ deny_case() {
     assert_equals "2" "$RC" "deny exits 2: $rule"
     assert_contains "$ERR" "BLOCKED" "deny message on stderr: $rule"
     assert_equals "" "$OUT" "stdout stays empty on deny: $rule"
+    # DEBUG (macOS CI log-missing): rerun the funnel directly under bash -x
+    # with a throwaway data dir so the trace is visible yet the real
+    # assertions below still see the missing file.
+    if [ ! -s "$LOG_FILE" ]; then
+        printf 'deny_case log-missing debug (%s): rc=%s hook stderr:\n%s\n' \
+            "$rule" "$RC" "$ERR" >&2
+        mkdir -p "$TEST_TMP/dbg"
+        env HOME="$FAKE_ROOT" CFN_DATA_DIR="$TEST_TMP/dbg" \
+            TYPESAFE_API_KEY="$CASE_KEY" JEV_CURL_RC="$CASE_CURL_RC" \
+            JEV_CURL_BODY_FILE="$CASE_BODY" \
+            bash -x "$FUNNEL" --rule "$rule" --cmd "$cmd" 2>&1 | tail -50 >&2
+        printf 'deny_case debug (%s): funnel dbg dir contents: %s\n' \
+            "$rule" "$(ls -la "$TEST_TMP/dbg" 2>&1)" >&2
+    fi
     assert_equals "1" "$(( $(wc -l < "$LOG_FILE") ))" "one log line: $rule"
     assert_equals "deny" "$(jq -r '.type' "$LOG_FILE")" "line type deny: $rule"
     assert_equals "$rule" "$(jq -r '.rule' "$LOG_FILE")" "rule name in log: $rule"
