@@ -52,6 +52,13 @@ if [ ! -f "$CALLER" ]; then
     exit 0
 fi
 
+# GNU-tool shims for macOS (timeout via perl alarm). The careful-guard hook
+# sources the same lib, but a shell function does not cross the process
+# boundary into this script: without this source the systemone call below
+# dies with "timeout: command not found" on macOS and every deny silently
+# becomes a no-log skip (caught by the macOS Portability CI job).
+. "$SCRIPT_DIR/../../../helpers/cfn-portable.sh" 2>/dev/null || true
+
 # GNU-tool shims for macOS (timeout here, used to bound the caller); defines
 # nothing on Linux. Without it a missing timeout binary aborts this script
 # under set -e before the skip line is ever written.
