@@ -52,6 +52,12 @@ if [ ! -f "$CALLER" ]; then
     exit 0
 fi
 
+# GNU-tool shims for macOS (timeout here, used to bound the caller); defines
+# nothing on Linux. Without it a missing timeout binary aborts this script
+# under set -e before the skip line is ever written.
+# shellcheck source=/dev/null
+. "$(cd "$SCRIPT_DIR/../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+
 DATA_DIR="${CFN_DATA_DIR:-$HOME/.claude/cfn-data}"
 LOG_FILE="$DATA_DIR/jev-careful-guard.jsonl"
 
