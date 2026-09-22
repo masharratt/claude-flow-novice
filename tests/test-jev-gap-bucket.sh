@@ -15,6 +15,10 @@
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
+# GNU-tool shims: the harness itself calls `stat -c %Y` below; without the
+# shim BSD stat (macOS CI) dies with "illegal option -- c" before any case
+# runs. Defines nothing on Linux.
+. "$PROJECT_ROOT/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 
 SKILL_DIR="$PROJECT_ROOT/.claude/skills/cfn-alpha-launch"
 SCRIPT_UNDER_TEST="$SKILL_DIR/jev-gap-bucket.sh"
