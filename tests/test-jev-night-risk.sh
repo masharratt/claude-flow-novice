@@ -31,7 +31,7 @@ SETTINGS_FILE="$TEST_TMP/settings.json"
 REPO_NAME=$(basename "$PROJECT_ROOT")
 
 cleanup() {
-    chmod +x "$HOME/.claude/skills/cfn-night-mode/jev-night-risk.sh" 2>/dev/null || true
+    chmod +x "$FAKE_ROOT/.claude/skills/cfn-night-mode/jev-night-risk.sh" 2>/dev/null || true
     rm -rf "$TEST_TMP"
 }
 trap cleanup EXIT
@@ -139,7 +139,7 @@ echo "=== wiring: night-mode.sh render loop ==="
 # fixture decisions DB: one blocking proposed row + one accepted row, distinct
 # slugs for two days so the slug column reaches the scorer call
 NIGHT_HOME="$NIGHT_DIR"; mkdir -p "$NIGHT_HOME"
-sqlite3 "$DB_PATH" < "$HOME/.claude/skills/decision-log/schema.sql"
+sqlite3 "$DB_PATH" < "$PROJECT_ROOT/.claude/skills/decision-log/schema.sql"
 sqlite3 "$DB_PATH" <<'SQL'
 INSERT INTO decisions (project, slug, decision_id, title, chosen, status, blocking, timestamp)
 VALUES ('nmtest', 'night-2026-09-19', 'D1', 'Defer risky migration', 'DEFERRED: risky migration tonight', 'proposed', 1, '2026-09-19T03:00:00Z');
@@ -154,7 +154,11 @@ WIRE_DATA="$TEST_TMP/wire-data"
 mkdir -p "$WIRE_DATA"
 
 run_render() {
-    env CFN_DATA_DIR="$WIRE_DATA" bash "$NM" report --since 2026-09-19 2>"$TEST_TMP/render-err.txt"
+    # HOME is the sandbox root: night-mode.sh resolves the scorer through
+    # $HOME/.claude/skills/... (reverse-symlink layout), which does not exist
+    # on a CI runner. Without this the render silently skips the scorer.
+    env HOME="$FAKE_ROOT" CFN_DATA_DIR="$WIRE_DATA" \
+        bash "$NM" report --since 2026-09-19 2>"$TEST_TMP/render-err.txt"
 }
 
 # restore the full-answer body for the render, scorer present and executable
@@ -183,9 +187,9 @@ RPT_B="$TEST_TMP/report-b.txt"
 mask_generated() { sed 's/generated: .*/generated: X/' "$1"; }
 printf '%s\n' '{"answers":{"D1":{"type":"score","score":2,"confidence":0.8,"probabilities":{}},"D2":{"type":"score","score":0,"confidence":0.9,"probabilities":{}}},"usage":{"input_tokens":99}}' > "$BODY_FILE"
 run_render > "$RPT_A"
-chmod -x "$HOME/.claude/skills/cfn-night-mode/jev-night-risk.sh"
+chmod -x "$FAKE_ROOT/.claude/skills/cfn-night-mode/jev-night-risk.sh"
 run_render > "$RPT_B"
-chmod +x "$HOME/.claude/skills/cfn-night-mode/jev-night-risk.sh"
+chmod +x "$FAKE_ROOT/.claude/skills/cfn-night-mode/jev-night-risk.sh"
 assert_equals "$(mask_generated "$RPT_A")" "$(mask_generated "$RPT_B")" \
     "report text byte-identical with and without the scorer (generated ts masked)"
 
