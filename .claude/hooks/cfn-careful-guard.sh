@@ -27,8 +27,11 @@ INPUT=$(timeout 1 cat 2>/dev/null || echo "")
 # to anchor at end-of-command.
 COMMAND=$(echo "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"//p' | head -1)
 
-# Cut at the first quote that is not backslash-escaped.
-COMMAND=$(printf '%s' "$COMMAND" | sed 's/\(\(\\.\|[^"\\]\)*\)".*/\1/')
+# Cut at the first quote that is not backslash-escaped. POSIX sed has no
+# alternation, so protect escaped quotes with a placeholder first, cut at the
+# first remaining (necessarily unescaped) quote, then restore. GNU BRE
+# alternation here cut escaped quotes wrongly on BSD sed.
+COMMAND=$(printf '%s' "$COMMAND" | sed -e 's/\\"/\\%/g' -e 's/".*//' -e 's/\\%/"/g')
 
 # Unescape the sequences that appear in real commands (quoted payloads), so
 # matching and the deny log see the actual text. Other JSON escapes are rare
