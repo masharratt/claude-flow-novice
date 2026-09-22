@@ -18,6 +18,11 @@ set -uo pipefail
 
 SKILL_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOKS_DIR="$(cd "$SKILL_ROOT/../.." && pwd)/hooks"
+# GNU-tool shims for macOS (timeout via perl alarm). The render loop wraps
+# the jev-night-risk scorer in `timeout 5`; macOS has no native timeout, and
+# without this source the scorer silently never runs there (empty wire log,
+# caught by the macOS Portability CI job). Same fix as jev-deny-check.sh.
+. "$(cd "$SKILL_ROOT/../.." && pwd -P)/helpers/cfn-portable.sh" 2>/dev/null || true
 NIGHT_DIR="${CFN_NIGHT_MODE_DIR:-$HOME/.claude}"
 SETTINGS_FILE="${CFN_NIGHT_SETTINGS:-$HOME/.claude/settings.local.json}"
 DB_PATH="${DB_PATH:-$HOME/.claude/decision-log/decisions.db}"
