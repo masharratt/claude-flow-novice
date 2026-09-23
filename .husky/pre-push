@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+# pre-push entry point (git core.hooksPath points at .husky).
+# Runs the local mirror of the CI Linux-side gates. Entry point is this hook;
+# the single orchestrator is .claude/hooks/cfn-pre-push-gates.sh.
+HOOK_DIR=$(dirname "$0")
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+RUNNER="$ROOT/.claude/hooks/cfn-pre-push-gates.sh"
+if [ -x "$RUNNER" ]; then
+    "$RUNNER" || exit $?
+fi
+# Runner absent (partial checkout, hooks copied without .claude): do not
+# block pushes on missing tooling. CI still enforces every gate.
+exit 0

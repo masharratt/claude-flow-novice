@@ -28,6 +28,9 @@ Guards fire at three points, each with its own block semantics. Before an edit, 
 
 ## Where to make a change
 
+- Push-side guards (added 2026-09-23): `.husky/pre-push` is a thin entry over the single orchestrator `.claude/hooks/cfn-pre-push-gates.sh`, mirroring the CI Linux-side gates (12 shell gates, typecheck, build, agent-selection bundle gate, and unit tests with the ci.yml invocation `NODE_ENV=test npm run test:unit -- --forceExit --maxWorkers=2`) so a broken push fails at the terminal in about 30s instead of after a CI round-trip. Every gate runs even after a failure and the summary names each failed gate.
+- Skip controls, cheapest honest skip first: `CFN_PRE_PUSH_FAST=1` drops only the unit-tests gate; `CFN_PRE_PUSH_SKIP=1` or `git push --no-verify` skips the hook entirely. CI still enforces every gate; macOS Portability, TruffleHog, and npm publish never had a local mirror.
+- To add or change a gate, edit the registry at the top of `cfn-pre-push-gates.sh` and the same-named step in `.github/workflows/ci.yml` together. The registry is verified by `tests/test-pre-push-hook.sh` via the `CFN_PRE_PUSH_GATES` fake-gate override, which never executes real gates.
 
 ## Limits of this explanation
 

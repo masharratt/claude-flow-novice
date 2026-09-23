@@ -83,6 +83,12 @@ jobs:
       - name: Sourced-library safety gate
         run: bash tests/security/test-sourced-library-safety.sh
 
+      # Fake-gate override only (CFN_PRE_PUSH_GATES): verifies the local
+      # pre-push runner's wiring without executing the real gates a second
+      # time in the same CI run.
+      - name: Pre-push hook runner tests
+        run: bash tests/test-pre-push-hook.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -334,6 +340,9 @@ jobs:
       # that particular collision is reachable.
       - name: Sourced-library safety gate
         run: bash tests/security/test-sourced-library-safety.sh
+
+      - name: Pre-push hook runner tests
+        run: bash tests/test-pre-push-hook.sh
 
       # Guards against the shim library quietly becoming a no-op on macOS --
       # a broken capability probe would leave every test above passing against
