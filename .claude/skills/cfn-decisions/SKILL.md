@@ -46,6 +46,43 @@ the per-run JSON but nothing writes it.
 Manual invocation is identical to coordinator invocation (EC-12). There is no
 caller-detection branch.
 
+## Standalone use (outside megaplan runs)
+
+The writer has no megaplan dependency: `--slug` is any plan-style slug, not a
+megaplan run id, and `--root` points the ledger at any directory (use the
+project's `planning/` when there is no per-plan dir). Any session can record a
+resolved trade-off decision at the moment it happens:
+
+```bash
+$HOME/.claude/skills/cfn-decisions/record.sh \
+  --slug <topic-slug> --id <decision-id> \
+  --title "<decision>" --chosen "<option>" --actor human \
+  --status accepted --root "$(pwd)/planning"
+```
+
+Two callers do this today: `cfn-plan-review` (Phase 1 records re-opened or
+newly resolved forks) and the decision-capture hook (below).
+
+## Decision capture hook (automatic staging)
+
+`$HOME/.claude/hooks/cfn-decision-capture.sh` is registered as a PostToolUse
+hook on AskUserQuestion (global settings). Every answered question lands as
+one JSONL line in `~/.claude/cfn-data/decision-capture.jsonl` (ts, project,
+session_id, question, answer, notes). The hook is failure-proof: it exits 0 on
+any error and never blocks the tool call.
+
+Staged captures are candidates, not ledger entries. Promote the ones that
+matter with:
+
+```bash
+$HOME/.claude/skills/cfn-decisions/promote-capture.sh --slug <topic-slug> [--dry-run] [--root <ledger-dir>]
+```
+
+Promotion runs each line through record.sh (`--actor human --status accepted`,
+auto id `cap-<ts>-<n>`, title = question text, rationale prefixed `[captured]`).
+rc 0/7/8 count as promoted (7/8 = JSON ledger written, SQLite sync deferred per
+D-7). Failed lines stay in staging for retry.
+
 ## Writer CLI (12 flags + FR-10 defaults)
 
 Required (FR-3: refuse on missing/empty/whitespace, exit 1):

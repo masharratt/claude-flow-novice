@@ -43,6 +43,8 @@ Surface any violations as numbered findings in Phase 6. Do not duplicate the rul
 
 Before extracting assumptions, query the decision log for prior plans involving the same entities: `~/.claude/skills/decision-log/query.sh '<entity-names>' 5 <project>` (conversation FTS) and `~/.claude/skills/decision-log/decisions.sh search '<entity-names>'` (structured register of RESOLVED forks). Prior failed assumptions and settled decisions from past plans should be checked first — do not re-open a fork already marked RESOLVED unless it is `superseded`.
 
+**Record newly resolved forks.** When this review resolves a trade-off fork with the user (or supersedes an older decision), write it to the register in the same turn: `~/.claude/skills/cfn-decisions/record.sh --slug <plan-slug> --id <decision-id> --title "<fork>" --chosen "<option>" --actor human --status accepted|superseded`. A fork resolved in review but never recorded will be re-litigated by the next plan that touches the entity.
+
 Read the plan and extract every implicit assumption into an explicit, testable statement.
 
 Common hidden assumptions:
