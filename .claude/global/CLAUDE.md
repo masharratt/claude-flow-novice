@@ -65,9 +65,9 @@ Agent descriptions are the dispatch table.
 
 ### Codex Delegation (gated by project flag)
 
-Use Codex (`mcp__codex__codex` / `mcp__codex__codex-reply` MCP tools) ONLY in projects whose CLAUDE.md contains a literal `codex=true` line. In all other projects, never call codex tools. Subscription-billed: keep `OPENAI_API_KEY` unset or calls silently bill the API.
+Use Codex via `codex exec` (follow-ups: `codex exec resume`; output capture: `--json` / `-o <file>`) ONLY in projects whose CLAUDE.md contains a literal `codex=true` line. In all other projects, never call codex. Subscription-billed: keep `OPENAI_API_KEY` unset or calls silently bill the API.
 
-Load `~/.claude/references/codex-delegation.md` before the first codex call in a flagged project: what to offload, required call shape, reply bounding, which model at which reasoning effort, and the two model-id traps that read as subscription refusals but are not.
+Load `~/.claude/references/codex-delegation.md` before the first codex call in a flagged project: what to offload, required call shape, output bounding, which model at which reasoning effort, and the two model-id traps that read as subscription refusals but are not.
 
 ### Operations
 - **Batch operations**: one message per related batch (spawns, edits, bash, todos)
@@ -154,7 +154,7 @@ Caveman already exempts code, commits, and PRs. Extend that to anything a second
 ### Plan Mode Protocol
 - **Completeness default:** full implementation; deferring tests or edge cases saves minutes, not days.
 - **Intent confirm:** user-visible change plus a partly ambiguous ask → ONE question before the full plan. Obvious fix with no real tradeoff → state it and move on.
-- **Consult the strongest model on plan-critical forks** (architecture choice, data migration, API contract, security-sensitive path): get a second opinion from Fable via an `advisor` subagent; in `codex=true` projects also from Astra via codex MCP.
+- **Consult the strongest model on plan-critical forks** (architecture choice, data migration, API contract, security-sensitive path): get a second opinion from Fable via an `advisor` subagent; in `codex=true` projects also from Astra via `codex exec`.
 - **Investigate before planning:** dump actual schema/imports/config and trace dependencies before any plan that touches data or shared state.
 - **Routing:** no shared state → plan mode. Shared state, in-repo → plan mode + `/cfn-plan-review`. Known external consumer → same, plus additive-only change or version the surface. Wrong-quietly surface (RLS, visibility, policy, semantic DB changes) → manifest track regardless of size: `/write-plan` from existing artifacts → Bar A → blessed VERIFY → `cfn-loop-task`. File count is a smell test, never a router; 8+ files = check for a missed decomposition.
 - Shared-state plans list testable assumptions (`code-quality.md`) and run `/cfn-plan-review` in-session; implementation via sonnet-level subagents, TDD required.

@@ -47,7 +47,8 @@ assert_out_has() { # assert_out_has NEEDLE DESC cmd...
 echo "== cfn-tmux-agents tests (socket: $SOCK) =="
 
 # 0. banner regexes match current TUIs (codex-cli 0.150.1 shows "Ask Codex",
-#    not "provider: openai"; live-smoked 2026-09-10)
+#    not "provider: openai"; live-smoked 2026-09-10; "Ask Codex" re-verified
+#    present in the 0.156.1 TUI binary 2026-09-24)
 CODEX_RE=$(bash -c '. "'"$SKILL_DIR"'/lib/engines.sh" >/dev/null 2>&1; _ta_engine_field codex 7')
 case "$CODEX_RE" in *"Ask Codex"*) ok "codex banner regex matches current TUI" ;; *) bad "codex banner regex stale: $CODEX_RE" ;; esac
 GLM_RE=$(bash -c '. "'"$SKILL_DIR"'/lib/engines.sh" >/dev/null 2>&1; _ta_engine_field glm 7')
