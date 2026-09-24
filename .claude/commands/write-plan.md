@@ -18,7 +18,7 @@ Generate structured implementation plan BEFORE executing CFN Loop. Outputs plan 
 
 **Pre-planning phase for CFN Loop:**
 0a. **Design pre-plan (REQUIRED for non-trivial work):** the design artifacts come from `/cfn-megaplan` (canonical) or the lighter `/cfn-spa-plan` (spec+pseudo+arch only). At minimum this command needs `SPEC_<slug>.md`, `PSEUDO_<slug>.md`, `ARCH_<slug>.md` — resolved from `planning/<slug>/` first, then legacy flat `planning/` (Step 0); under megaplan additional artifacts (DATA/UX/DESIGN/OPS/TEST/DECISIONS/RESEARCH) also exist and are consumed when present. This command auto-detects all of them. If the core SPA trio is missing for non-trivial work (multi-file, shared state, new feature), warn and recommend running `/cfn-megaplan` (or `/cfn-spa-plan`) first.
-0b. **GOAP goal modeling** (optional): run `/cfn-goap-plan` to define goal state, derive optimal action sequence via A*, surface assumptions.
+0b. **Goal-state opening (REQUIRED, inline — do this before drafting tasks):** before writing any step, answer three questions from `/cfn-goap-plan` Mode 1, inline in the plan preamble: (1) **Goal state** — the facts that will be true when this plan is done, as testable statements; (2) **Initial state** — the facts true right now (verified, not assumed); (3) **Load-bearing assumptions** — the facts the plan silently depends on but has not checked. Each assumption becomes a row for `/cfn-plan-review` Phase 1 verification. For full backward-chained action sequencing (A* over actions with preconditions/effects, or 3-strike replanning), run `/cfn-goap-plan` itself.
 1. Analyzes task complexity
 2. Selects appropriate agents
 3. Defines test cases and success criteria (sourced from SPEC acceptance criteria + edge cases when present)
