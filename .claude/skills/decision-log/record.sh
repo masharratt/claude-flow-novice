@@ -71,14 +71,23 @@ ON CONFLICT(project, slug, decision_id) DO UPDATE SET
    timestamp=excluded.timestamp;
 SQL
 
-# mark a prior decision superseded by this one
+# mark a prior decision superseded by this one.
+# A zero-match --supersede must fail loudly: a silent no-op leaves the old
+# decision standing as accepted while the caller believes it was replaced
+# (the source of 10 broken superseded chains in the 2026-09-24 audit).
 if [ -n "$SUPERSEDE" ]; then
-    sqlite3 "$DB_PATH" <<SQL
+    CHANGED="$(sqlite3 "$DB_PATH" <<SQL
 UPDATE decisions
    SET status='superseded', superseded_by='$(q "$DEC_ID")'
  WHERE project='$(q "$PROJECT")' AND slug='$(q "$SLUG")'
    AND decision_id='$(q "$SUPERSEDE")';
+SELECT changes();
 SQL
+)"
+    if [ "$CHANGED" != "1" ]; then
+        echo "[decision-log] ERROR: --supersede '$SUPERSEDE' matched $CHANGED rows in $PROJECT/$SLUG; nothing superseded" >&2
+        exit 9
+    fi
 fi
 
 echo "[decision-log] recorded $PROJECT/$SLUG/$DEC_ID ($STATUS)"

@@ -42,18 +42,23 @@ main() {
   dir="$(dirname "$STAGING")"
   mkdir -p "$dir" 2>/dev/null || return 0
 
-  # One line per question; answers keyed by question text.
+  # One line per question; answers keyed by question text. Unchosen option
+  # labels are stored as the alternatives candidate list so promotions can
+  # file real rejected options (the writer's content gate requires them for
+  # accepted rows).
   printf '%s' "$input" | jq -c --arg ts "$ts" --arg project "$project" --arg sid "$sid" '
     .tool_response.answers as $ans
     | .tool_response.annotations as $ann
     | .tool_input.questions[]?
+    | ($ans[.question] // "") as $chosen
     | {
         ts: $ts,
         project: $project,
         session_id: $sid,
         question: .question,
         header: (.header // ""),
-        answer: ($ans[.question] // ""),
+        answer: $chosen,
+        alternatives: ([(.options // [])[] | (.label // empty) | select(. != $chosen and . != "")] | join(", ")),
         notes: ($ann[.question].notes // "")
       }' 2>/dev/null >> "$STAGING" || return 0
 

@@ -29,10 +29,11 @@ Commit finished work as you go (`git commit`). NEVER push. Push is a morning act
 ## Decision logging
 
 ```bash
-# Normal autonomous decision (status accepted is the record.sh default):
+# Normal autonomous decision (pass --status accepted for settled calls;
+# the writer default is proposed, which lands the row in review queues):
 bash $HOME/.claude/skills/decision-log/record.sh --slug night-$(date +%F) \
   --id <D-n> --title "<the question, short>" \
-  --chosen "<option you picked>" --rationale "<why, one line>"
+  --chosen "<option you picked>" --rationale "<why, one line>" --status accepted
 
 # Safety-floor deferral (then continue on a different path):
 bash $HOME/.claude/skills/decision-log/record.sh --slug night-$(date +%F) \
@@ -42,6 +43,8 @@ bash $HOME/.claude/skills/decision-log/record.sh --slug night-$(date +%F) \
 ```
 
 The guard hook emits ready-to-run versions of these when it blocks a question. Decision ids use the form `D$(date +%H%M%S)-$$` so same-second concurrent denies cannot overwrite each other via upsert.
+
+**What is NOT a decision:** run summaries and status notes ("backlog run complete: 3 commits", "all workstreams landed", "morning batch answered") do not go in the ledger — they are outcomes, not forks. Put them in the events log (`.night-mode-events.log`) or the session report instead. Every ledger row must name a question that could have gone another way.
 
 ## Morning report
 

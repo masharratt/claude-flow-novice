@@ -60,6 +60,17 @@ while IFS= read -r line; do
   [ ${#title} -gt 120 ] && title="${title:0:117}..."
   rationale="$notes"
   [ -n "$rationale" ] && rationale="[captured] $rationale" || rationale="[captured via decision-capture hook]"
+  alts="$(printf '%s' "$line" | jq -r '.alternatives // empty' 2>/dev/null)"
+
+  # The writer's content gate requires alternatives (or a no-fork label) for
+  # accepted rows. Captures without recorded unchosen options file as
+  # proposed so they land in the review queue, never silently accepted.
+  if [ -n "$alts" ]; then
+    promote_status="accepted"
+  else
+    promote_status="proposed"
+    rationale="$rationale; no alternatives captured - review pending"
+  fi
 
   if [ "$DRY_RUN" = 1 ]; then
     echo "would promote: $dec_id | $title | chosen: $a"
@@ -74,7 +85,8 @@ while IFS= read -r line; do
       --chosen "$a" \
       --actor human \
       --rationale "$rationale" \
-      --status accepted \
+      ${alts:+--alternatives "$alts"} \
+      --status "$promote_status" \
       --timestamp "$ts" \
       "${ROOT_ARGS[@]:+${ROOT_ARGS[@]}}" >/dev/null 2>&1; then
     rc=0

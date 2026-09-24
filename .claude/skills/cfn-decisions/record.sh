@@ -30,6 +30,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib/help.sh"
 # shellcheck source=lib/arg-parse.sh
 . "$SCRIPT_DIR/lib/arg-parse.sh"
+# shellcheck source=lib/validate-content.sh
+. "$SCRIPT_DIR/lib/validate-content.sh"
 # shellcheck source=lib/jq-build.sh
 . "$SCRIPT_DIR/lib/jq-build.sh"
 # shellcheck source=lib/upsert.sh
@@ -60,6 +62,10 @@ main() {
 
   # OP-W1b: refuse on missing/empty required field. Exits 1.
   refuse_on_missing_or_invalid
+
+  # OP-W1c: content gate. An accepted decision with no recorded rejected
+  # option is a note, not a decision. Exits 1.
+  validate_decision_content || exit "$E_VALIDATION"
 
   # OP-W2: build ENTRY via jq. Exits 3 (defensive; near-unreachable).
   ENTRY="$(build_decision_object)"
