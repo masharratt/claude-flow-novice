@@ -130,4 +130,4 @@ Impact tiers: `high` (>50% regression), `medium` (>20%), `low` (above threshold,
 - `/cfn-vote-implement` - votes on and routes the findings.
 - `cfn-dep-audit` - supply-chain gate (same manifest schema).
 - `cfn-security-review` - security gate (same manifest schema).
-- `cfn-monitor` - runtime health gate (post-deploy probing).
+- `cfn-canary` - runtime health gate (post-deploy probing).
