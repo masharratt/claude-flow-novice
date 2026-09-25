@@ -1,40 +1,38 @@
 # planning/ — CFN Loop planning artifacts
 
-Execution reports and planning docs, organized to mirror the CFN Loop model: **Phase > Sprint > Loop**.
+Execution reports and planning docs. Swept 2026-09-25: everything completed
+or superseded moved to `archive/` (see below); root now holds only active work.
 
-## Directory hierarchy
+## Current layout
 
 ```
 planning/
-├── phases/                       # phase reports (PHASE_N_*.md)
-│   └── sprints/                  # SPRINT_N.M_*.{md,json}
-│       └── loops/
-│           ├── loop2-validation/     # LOOP2_*.json validator consensus
-│           └── loop4-product-owner/  # loop4-*.md / *_LOOP4_*.json GOAP decisions
-├── reports/{completion,validation,performance,security}/
-├── guides/                       # implementation/operational guides
-├── documentation/                # research, integration, reference
-├── cfn-loop/                     # flow diagrams, process docs
-└── archive/                      # outdated files, manual review before deletion
+├── fleet-jev-shadow/, fleet-jev-batch2/  # active cfn-fleet run dirs (briefs/,
+│   # goal.txt, roster.tsv tracked; .roster.lock, .watch.state, files/,
+│   # handoffs/ are untracked runtime, gitignored)
+├── cfn-wiki/                             # SCALE_report.md cited by the cfn-wiki skill
+├── *decisions_ledger*                    # live manifest-track artifacts (PLAN/SPEC/ARCH/
+│   # PSEUDO/TEST/VERIFY/OPS/MEGAPLAN/REVIEW/DECISIONS + bless/verify sidecars)
+├── SPEC-cfn-fleet.md, HANDOFF_cfn-fleet-engines.md, local.md
+└── archive/                              # the one canonical archive root
+    └── completed/                        # folded 2024-2025 era dir (was planning/completed/)
 ```
 
-## File placement (by artifact + producing loop)
+Gitignored legacy dumps still on disk, not in git: `global/`, `legion/`,
+`side-projects/`.
 
-| Artifact | Location | Naming |
-|----------|----------|--------|
-| Phase report (Loop 0/1) | `phases/` | `PHASE_{n}_{desc}.{md,json}` |
-| Sprint summary (Loop 1/3) | `phases/sprints/` | `SPRINT_{n}.{i}_{desc}.{md,json}` |
-| Loop 2 validation | `phases/sprints/loops/loop2-validation/` | `{PHASE\|SPRINT}_*_LOOP2_*.json` |
-| Loop 4 PO decision | `phases/sprints/loops/loop4-product-owner/` | `{PHASE\|SPRINT}_*_LOOP4_*.json` |
-| Cross-phase report | `reports/{category}/` | `{SCOPE}_{TYPE}_REPORT.json` |
-| Guide | `guides/` | `{TOPIC}_GUIDE.md` |
-| Research/docs | `documentation/` | `{TOPIC}_{TYPE}.{md,json}` |
-| CFN Loop process | `cfn-loop/` | `cfn-loop-{topic}.md` |
+## Archive policy
 
-Keep the hierarchy: never place loop artifacts at phase level, never mix phase/sprint/loop in one dir, preserve original hierarchy inside `archive/`.
-
-## Maintenance
-
-- **Archive** (move to `archive/`, keep filename): superseded, outdated, `.backup-*`, or unreferenced files. Never archive active phase/sprint/loop artifacts, current guides, or reports <3 months old.
-- **Delete immediately:** verified duplicates, empty/placeholder files, test artifacts not in `reports/`.
-- **Never delete without review:** Loop 2 validations, Loop 4 decisions, security audits, performance baselines.
+- **Archive** (move to `archive/`, keep filename and internal structure): superseded,
+  outdated, `.backup-*`, or unreferenced files, plus finished work once its
+  handoff/reports are distilled into tracked docs. Never archive active run dirs,
+  live manifest tracks (decisions_ledger family), or reports cited by live
+  skills/tests.
+- **Delete immediately:** verified duplicates, empty/placeholder files, test
+  artifacts not in a reports dir.
+- **Never delete without review:** Loop 2 validations, Loop 4 decisions, security
+  audits, performance baselines.
+- The pre-2026 phase > sprint > loop hierarchy (phases/, sprints/, reports/,
+  guides/, documentation/) lives on under `archive/`; historical placement rules
+  for those artifacts applied only to that era and are preserved in
+  `archive/README.md`.
