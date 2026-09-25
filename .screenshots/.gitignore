@@ -3,5 +3,10 @@ current/
 diffs/
 archive/
 
+# Loose screenshots dropped at the dir root (nitpicky, playwright, portals)
+*.png
+*.webp
+*.jpeg
+
 # Version control baselines only
 !baselines/

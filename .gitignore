@@ -370,3 +370,25 @@ src/planning/**/*.d.ts.map
 
 # cfn-wiki durable work state (local queue/evidence; never tracked)
 **/.wiki/work/
+
+# cfn-wiki local runtime root (portal, runtime, backups, annotations, cbm-live;
+# store/cache/enrich/work covered by the **/ rules above)
+.wiki/
+
+# cfn-fleet run-dir runtime state: roster locks + watch state are live
+# coordination; files/ + handoffs/ are the per-run data plane (run reports get
+# distilled into tracked *.md at the run dir root before teardown)
+planning/**/.roster.lock
+planning/**/.watch.state
+planning/**/files/
+planning/**/handoffs/
+
+# claude.ai skill-sync downloads (uuid-named runtime copies, not source)
+.claude/skills/synced/
+
+# status-line current-task runtime leaked into a nested cwd (hook ran with
+# cwd under skills/; root .claude/tasks/ rule is anchored and misses this)
+.claude/skills/.claude/
+
+# decision-capture jsonl backups (live *.jsonl already ignored above)
+.claude/cfn-data/*.jsonl.bak-*
