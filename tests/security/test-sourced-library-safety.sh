@@ -50,12 +50,12 @@ trap cleanup EXIT
 LIBS=(
   ".claude/cfn-extras/skills/utility/cfn-environment-sanitization/sanitize-environment.sh"
   ".claude/cfn-extras/skills/utility/cfn-process-instrumentation/instrument-process.sh"
-  ".claude/skills/cfn-epic-creator/security-utils.sh"
   ".claude/cfn-extras/skills/deprecated/cfn-docker-runtime/lib/waves/lib/docker-helpers.sh"
-  ".claude/skills/cfn-sprint-execution/lib/checkpoint/save-checkpoint.sh"
-  ".claude/skills/cfn-sprint-execution/lib/checkpoint/resume-wave.sh"
-  ".claude/skills/cfn-sprint-execution/lib/checkpoint/cleanup-orphans.sh"
 )
+# cfn-epic-creator/security-utils.sh and the cfn-sprint-execution checkpoint
+# trio were archived to cfn-extras (2026-09-30 batch) and dropped from LIBS.
+# Section 1b's pair checks skip gracefully while their subjects stay archived;
+# restore them there (and in LIBS) if the skills return.
 
 # Source $1 in a fresh bash with the names in $2 (a bash snippet) pre-declared,
 # then print a sentinel. Library stdout/stderr are diverted to a log so only the

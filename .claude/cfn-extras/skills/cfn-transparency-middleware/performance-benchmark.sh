@@ -7,7 +7,8 @@
 set -euo pipefail
 
 # Source configuration
-source $HOME/.claude/skills/cfn-transparency-middleware/middleware-config.sh
+# Skill is archived under cfn-extras; source its config as a sibling of this script.
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/middleware-config.sh"
 
 # Benchmarking results file
 BENCHMARK_RESULTS="/tmp/transparency_benchmark_$(date +%Y%m%d_%H%M%S).json"

@@ -125,8 +125,9 @@ write_results_json() {
 }
 
 # Try to source CFN utilities if available
-if [[ -f "$CFN_ROOT/.claude/skills/cfn-utilities/execute.sh" ]]; then
-    source "$CFN_ROOT/.claude/skills/cfn-utilities/execute.sh" 2>/dev/null || true
+# cfn-utilities archived to cfn-extras (2026-09-30 batch)
+if [[ -f "$CFN_ROOT/.claude/cfn-extras/skills/cfn-utilities/execute.sh" ]]; then
+    source "$CFN_ROOT/.claude/cfn-extras/skills/cfn-utilities/execute.sh" 2>/dev/null || true
 fi
 
 usage() {

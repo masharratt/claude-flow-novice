@@ -31,7 +31,7 @@ STAGING="$TMP/staging.jsonl"
 
 sample_input() { # $1 = question text, $2 = answer label
   cat <<EOF
-{"session_id":"sess-test","cwd":"/home/x/someproj","tool_name":"AskUserQuestion",
+{"session_id":"sess-test","cwd":"$HOME/someproj","tool_name":"AskUserQuestion",
  "tool_input":{"questions":[{"question":"$1","header":"Scope","options":[]}]},
  "tool_response":{"answers":{"$1":"$2"},"annotations":{}}}
 EOF

@@ -222,8 +222,13 @@ check_root_depth() {
 # tests/test-agent-selection-bundle.sh). BUG-4 below covers the identical
 # wrong-depth regression class, so retiring the BUG-3 probe loses no coverage.
 check_root_depth "BUG-4" \
-  ".claude/skills/cfn-dependency-management/lib/ingestion/ingest.sh" \
+  ".claude/skills/cfn-knowledge-base/lib/playbook/query-playbook.sh" \
   ".claude/skills"
+# Original BUG-4 subject, cfn-dependency-management/lib/ingestion/ingest.sh, was
+# archived to cfn-extras (2026-09-30 batch). First repoint (run-all-tests.sh)
+# was wrong: that script anchors CFN_ROOT/PROJECT_DATA_ROOT, not PROJECT_ROOT.
+# query-playbook.sh is a living script in the same depth class (5 down) that
+# assigns PROJECT_ROOT itself, so the probe exercises the real assignment.
 
 # --- BUG-5: skill-owned JSON located from the module, not from the cwd --------
 # The path expressions are lifted out of the real sources and evaluated with
@@ -324,7 +329,10 @@ fi
 # Proof: source it and actually RUN the preflight function, rather than grepping
 # for the fixed text, so a re-break in a different form still fails.
 # ---------------------------------------------------------------------------
-B6_FILE="$ROOT/.claude/skills/cfn-error-management/lib/logging/integrate-cli.sh"
+B6_FILE="$ROOT/.claude/cfn-extras/skills/cfn-error-management/lib/logging/integrate-cli.sh"
+# Subject archived to cfn-extras (2026-09-30 batch). Repointed, not retired: the
+# probe sources the real file and runs its preflight function, so the coverage
+# moves with the file.
 
 if [ ! -f "$B6_FILE" ]; then
   fail "BUG-6: integrate-cli.sh not found at $B6_FILE"

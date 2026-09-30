@@ -78,23 +78,12 @@ CFN_TREE_MANIFEST='
 .claude/skills/cfn-agent-lifecycle/lib/spawning/spawn-worker.sh|PROJECT_ROOT
 .claude/skills/cfn-codesearch/cfn-integration.sh|PROJECT_ROOT
 .claude/skills/cfn-decisions/tests/run-all.sh|REPO_ROOT
-.claude/skills/cfn-deployment-lifecycle/lib/deployment/execute.sh|PROJECT_ROOT
-.claude/skills/cfn-error-management/lib/logging/invoke-error-logging.sh|PROJECT_ROOT
 .claude/skills/cfn-knowledge-base/lib/playbook/query-playbook.sh|PROJECT_ROOT
 .claude/skills/cfn-knowledge-base/lib/playbook/update-playbook.sh|PROJECT_ROOT
 .claude/skills/cfn-knowledge-base/lib/workflow/propagate-skill-update.sh|PROJECT_ROOT
 .claude/skills/cfn-knowledge-base/lib/workflow/test-metadata-update.sh|PROJECT_ROOT
 .claude/skills/cfn-knowledge-base/lib/workflow/track-cost-savings.sh|PROJECT_ROOT
 .claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/test-iteration-context-injection.sh|PROJECT_ROOT
-.claude/skills/cfn-memory-persistence/lib/sqlite/ttl-cleanup.sh|PROJECT_ROOT
-.claude/skills/cfn-operations/lib/log/execute.sh|PROJECT_ROOT
-.claude/skills/cfn-operations/lib/log/test.sh|PROJECT_ROOT
-.claude/skills/cfn-skill-management/lib/loader/execute.sh|PROJECT_ROOT
-.claude/skills/cfn-skill-management/lib/propagation/propagate-skill-update.sh|PROJECT_ROOT
-.claude/skills/cfn-sprint-execution/lib/checkpoint/cleanup-orphans.sh|PROJECT_ROOT
-.claude/skills/cfn-sprint-execution/lib/checkpoint/resume-wave.sh|PROJECT_ROOT
-.claude/skills/cfn-sprint-execution/lib/checkpoint/save-checkpoint.sh|PROJECT_ROOT
-.claude/skills/cfn-task-planning/lib/audit/store-task-audit.sh|PROJECT_ROOT
 .claude/skills/cfn-test-framework/lib/runner/detect-regressions.sh|CFN_ROOT
 .claude/skills/cfn-test-framework/lib/runner/run-all-tests.sh|CFN_ROOT
 .claude/skills/cfn-test-framework/lib/runner/store-benchmarks.sh|CFN_ROOT
@@ -105,7 +94,6 @@ CFN_TREE_MANIFEST='
 # "<file>|<var>" - var anchors per-project data and MUST be
 # ${CLAUDE_PROJECT_DIR:-$PWD}, never a BASH_SOURCE chain at any depth.
 PROJECT_DATA_MANIFEST='
-.claude/skills/cfn-task-planning/lib/config/initialize-config.sh|PROJECT_DATA_ROOT
 .claude/skills/cfn-knowledge-base/lib/workflow/deploy-approved-skill.sh|CONTENT_BASE_DIR
 .claude/skills/cfn-knowledge-base/lib/workflow/propagate-skill-update.sh|CONTENT_BASE_DIR
 .claude/skills/cfn-test-framework/lib/runner/detect-regressions.sh|PROJECT_DATA_ROOT
@@ -233,22 +221,12 @@ C3_BAD=""
 C3_RAN=0
 
 if command -v jq >/dev/null 2>&1; then
-  SANDBOX=$(mktemp -d "${TMPDIR:-/tmp}/cfn-root-resolution.XXXXXX")
-  # cwd is deliberately / so that only CLAUDE_PROJECT_DIR can steer the write.
-  ( cd / && CLAUDE_PROJECT_DIR="$SANDBOX" \
-      "$REPO_ROOT/.claude/skills/cfn-task-planning/lib/config/initialize-config.sh" \
-      --task-description "root resolution regression probe" \
-      --task-id "rootres-probe" ) >/dev/null 2>&1
-  C3_RAN=$((C3_RAN + 1))
-  if [ ! -f "$SANDBOX/.cfn/task-configs/task-rootres-probe.json" ]; then
-    C3_BAD="$C3_BAD\n  initialize-config.sh: no config under \$CLAUDE_PROJECT_DIR/.cfn/task-configs"
-  fi
-  # The pre-fix form wrote into the CFN tree. Assert it did not.
-  if [ -e "$REPO_ROOT/.claude/skills/.cfn" ] || \
-     [ -f "$REPO_ROOT/.cfn/task-configs/task-rootres-probe.json" ]; then
-    C3_BAD="$C3_BAD\n  initialize-config.sh: wrote into the CFN tree instead of \$CLAUDE_PROJECT_DIR"
-  fi
-  rm -rf "$SANDBOX"
+  # The initialize-config.sh probe retired 2026-09-30: its subject was archived
+  # to cfn-extras with the cfn-task-planning batch (same precedent as BUG-3 in
+  # tests/test-project-root-resolution.sh). It verified that a task-config JSON
+  # landed under $CLAUDE_PROJECT_DIR/.cfn/task-configs; restore it if the skill
+  # returns. The init-benchmark-db probe below still proves the class at runtime.
+  :
 else
   echo "  SKIP initialize-config.sh probe: jq not installed"
 fi
