@@ -5,6 +5,11 @@
 #   - background task shells are recorded and block idle until a check is armed
 #   - service shells (dev servers, watchers) never block; reported once, then left alone
 #   - a finished shell that was never acknowledged is surfaced, not silently dropped
+#   - the Stop hook blocks ONCE per stop event: a continuation stop
+#     (stop_hook_active=true) releases, and the status hook backstops at the
+#     next prompt. A missed acknowledgment must never trap a 9-block loop
+#   - the block message names only remedies the hook can detect (marker file,
+#     process death), never file reads, which leave no trace it can see
 set -u
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOOKS="$HERE/.claude/hooks"
@@ -68,6 +73,7 @@ row_exists() {
 
 track() { printf '%s' "$1" | bash "$HOOKS/cfn-shell-track.sh"; }
 watchdog() { printf '{"session_id":"%s"}' "$SID" | bash "$HOOKS/cfn-shell-watchdog.sh"; }
+watchdog_continued() { printf '{"session_id":"%s","stop_hook_active":true}' "$SID" | bash "$HOOKS/cfn-shell-watchdog.sh"; }
 status() { printf '{"session_id":"%s"}' "$SID" | bash "$HOOKS/cfn-shell-status.sh"; }
 
 echo "== shell watchdog hooks =="
@@ -122,6 +128,17 @@ AFTER=$(wc -l < "$(ledger)" | tr -d ' ')
 OUT=$(watchdog)
 assert_contains "watchdog blocks" "$OUT" '"decision":"block"'
 assert_contains "block names pid" "$OUT" "$SLEEP_PID"
+# BUG (2026-09-30, fireside-family session): the block message advertised
+# "collect the shell's result (BashOutput / its output file)" as a remedy, but
+# the hook can only detect the marker file or process death. A model that read
+# the output file was re-blocked every turn-end for 9 straight attempts (the
+# harness cap) because the hook also never honored stop_hook_active. Both fixed:
+# the message names only detectable remedies, and a continuation stop releases.
+assert_not_contains "block message names only detectable remedies" "$OUT" "BashOutput"
+
+# --- 4b. continuation stop (stop_hook_active) releases: block once, not forever ---
+OUT=$(watchdog_continued)
+assert_not_contains "stop_hook_active releases block" "$OUT" '"decision":"block"'
 
 # --- 5. marker file clears the block ---
 mkdir -p "$CFN_SHELL_WATCH_DIR"

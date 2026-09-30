@@ -17,6 +17,15 @@ INPUT=$(cat)
 SESSION=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
 [ -n "$SESSION" ] && [ "$SESSION" != "null" ] || exit 0
 
+# Stop-hook loop valve (Claude Code contract): stop_hook_active=true means this
+# stop attempt is already a continuation after a previous block. Block once per
+# stop event, then release. Otherwise a model that misses the acknowledgment
+# is re-blocked every turn-end until the harness cap force-ends the session
+# (seen 2026-09-30: 9 straight blocks in fireside-family). The status hook
+# (UserPromptSubmit) still surfaces any shell left unresolved at the next prompt.
+ACTIVE=$(printf '%s' "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null)
+[ "$ACTIVE" = "true" ] && exit 0
+
 LEDGER=$(sw_ledger "$SESSION")
 [ -f "$LEDGER" ] || exit 0
 
@@ -43,7 +52,7 @@ done <<< "$ROWS"
 printf '%s' "$KEEP" > "$LEDGER"
 
 if [ -n "$OFFENDERS" ]; then
-  REASON="CFN shell watchdog: background task shell(s) still running without a progress check: $OFFENDERS Per the Shell Watchdog rule, either (1) arm a 15-minute progress check for each via CronCreate, then acknowledge with: mkdir -p $CFN_SHELL_WATCH_DIR && touch $CFN_SHELL_WATCH_DIR/$SESSION.<pid>.watched (one marker per pid above), or (2) collect the shell's result now (BashOutput / its output file) or stop it. Do not go idle with an unwatched task shell."
+  REASON="CFN shell watchdog: background task shell(s) still running without a progress check: $OFFENDERS Per the Shell Watchdog rule, either (1) arm a 15-minute progress check for each via CronCreate, then acknowledge with: mkdir -p $CFN_SHELL_WATCH_DIR && touch $CFN_SHELL_WATCH_DIR/$SESSION.<pid>.watched (one marker per pid above), or (2) stop the shell. Only the marker file or the process exiting clears this block; reading its output does not register. Do not go idle with an unwatched task shell."
   jq -cn --arg r "$REASON" '{decision: "block", reason: $r}'
 fi
 exit 0
