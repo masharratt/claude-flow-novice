@@ -18,7 +18,7 @@
 
 # GNU-tool shims for macOS (timeout/stat/date/sed/free/nproc/readlink).
 # Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
-. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../../../" && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 # This file is documented as `source`d, so a bare SCRIPT_DIR would overwrite
 # the caller's own variable. Prefix it to keep the caller's namespace intact.
 CFN_CLI_INTEGRATION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
