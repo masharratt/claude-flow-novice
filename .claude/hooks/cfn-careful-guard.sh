@@ -65,15 +65,36 @@ ANCHOR='[;&|(`][[:space:]]*'
 MATCH_CMD="; $CMD_LOWER"
 
 # --- File destruction ---
-# Check for rm -rf / rm -r but allow safe dirs
-if echo "$MATCH_CMD" | grep -qE "$ANCHOR"'rm[[:space:]]+(-[a-z]*r[a-z]*f|--recursive|-[a-z]*f[a-z]*r)'; then
-    # Whitelisted safe deletion targets
-    if echo "$CMD_LOWER" | grep -qE '(node_modules|\.next|dist|__pycache__|\.cache|\.turbo|/tmp/)'; then
-        exit 0
+# Every rm is judged by where it points (skills/cfn-careful/lib/rm-target-check.py):
+# temp, rebuildable and git-restorable targets pass; unrecoverable work asks
+# the user; home, system folders, repo roots and .git are blocked. The ask is
+# held until the other rules have run, so a deny elsewhere still wins.
+# Without python3 it falls back to the old flag-and-whitelist rule.
+RM_ASK=""
+RM_LIB="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/../skills/cfn-careful/lib" 2>/dev/null && pwd)/rm-target-check.py"
+if echo "$MATCH_CMD" | grep -qE "$ANCHOR"'rm[[:space:]]'; then
+    if command -v python3 >/dev/null 2>&1 && [ -f "$RM_LIB" ]; then
+        RM_OUT=$(printf '%s' "$INPUT" | timeout 4 python3 -I "$RM_LIB" 2>/dev/null) \
+            || RM_OUT=$(printf 'ask\n{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"Delete check: could not finish in time"}}')
+        RM_VERDICT=$(printf '%s\n' "$RM_OUT" | head -1)
+        RM_BODY=$(printf '%s\n' "$RM_OUT" | sed '1d')
+        case "$RM_VERDICT" in
+            deny)
+                echo "BLOCKED: Destructive file deletion: $RM_BODY." >&2
+                echo "Nothing should delete this. If it is truly intended, ask the user to run it themselves." >&2
+                DENY_RULE=file-deletion ;;
+            ask) RM_ASK="$RM_BODY" ;;
+        esac
+    elif echo "$MATCH_CMD" | grep -qE "$ANCHOR"'rm[[:space:]]+(-[a-z]*r[a-z]*f|--recursive|-[a-z]*f[a-z]*r)' \
+         && ! echo "$CMD_LOWER" | grep -qE '(node_modules|\.next|dist|__pycache__|\.cache|\.turbo|/tmp/)'; then
+        echo "BLOCKED: Destructive file deletion detected." >&2
+        echo "If intentional, remove specific files by name or confirm with the user." >&2
+        DENY_RULE=file-deletion
     fi
-    echo "BLOCKED: Destructive file deletion detected." >&2
-    echo "If intentional, remove specific files by name or confirm with the user." >&2
-    DENY_RULE=file-deletion
+fi
+
+if [ -n "$DENY_RULE" ]; then
+    :
 # --- Database destruction ---
 elif echo "$CMD_LOWER" | grep -qiE '(drop[[:space:]]+table|drop[[:space:]]+database|truncate[[:space:]]+)'; then
     echo "BLOCKED: Destructive database operation detected." >&2
@@ -118,6 +139,11 @@ fi
 if [ -n "$DENY_RULE" ]; then
     timeout 2 "$HOME/.claude/skills/cfn-careful/lib/jev-deny-check.sh" --rule "$DENY_RULE" --cmd "$COMMAND" >/dev/null 2>&1 || true
     exit 2
+fi
+
+# A delete that needs the user's say: Claude Code shows a permission prompt.
+if [ -n "$RM_ASK" ]; then
+    printf '%s\n' "$RM_ASK"
 fi
 
 exit 0

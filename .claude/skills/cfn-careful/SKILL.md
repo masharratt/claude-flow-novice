@@ -1,6 +1,6 @@
 ---
 name: cfn-careful
-description: "PreToolUse hook. Warns before destructive bash commands (rm -rf, DROP TABLE, git push --force, etc). Activates via /careful. Whitelists safe deletions (node_modules, .next, dist)."
+description: "PreToolUse hook. Warns before destructive bash commands (rm -rf, DROP TABLE, git push --force, etc). Judges every rm by its target: temp, rebuildable and git-restorable deletes pass, unsaved work asks, home/system/repo roots are blocked."
 version: 1.0.0
 tags: [safety, guardrails, hooks, destructive-commands]
 status: production
@@ -32,17 +32,32 @@ status: production
 - `docker system prune`
 - `docker rm -f`
 
-## Whitelisted Safe Deletions
-These directories are safely regenerated and do not contain user data:
-- node_modules, .next, dist, __pycache__, .cache, .turbo
-- *.pyc, *.o, .DS_Store
-- Build artifacts in /tmp/
+## Deletes Are Judged by Target (`lib/rm-target-check.py`)
+Every `rm` (any flags) is resolved to real paths, following `VAR=value` and
+`cd` earlier in the same command, then sorted:
+- **Allowed silently:** temp areas (`/tmp`, `/private/tmp`, `/var/folders`,
+  `$TMPDIR`), rebuildable folders (node_modules, .next, dist, build, .build,
+  .turbo, coverage, DerivedData, caches), files git can restore (tracked and
+  unchanged), paths that do not exist.
+- **Asks the user** (PreToolUse `permissionDecision: ask`): untracked or
+  modified files, ignored files such as `.env`, anything outside a repo and
+  outside temp, and any target it cannot resolve (unknown variable, `$(...)`).
+- **Blocked:** `/`, top-level and system folders, `$HOME` and its main
+  folders, a whole repo, `.git`, the working directory or any parent of it.
+
+An ask is held until the other rules run, so a deny elsewhere in the same
+command still wins. Without python3 the old flag-and-whitelist rule applies.
+Tests: `tests/test-careful-guard-rm.sh`. `CFN_CAREFUL_TEMP_ROOTS`
+(colon list) overrides the temp roots, for tests only.
 
 ## How It Works
 PreToolUse hook on Bash tool. Parses command from stdin JSON, checks against dangerous patterns. Returns exit 2 (block) with warning message if matched, exit 0 (allow) otherwise.
 
 ## Activation
-The hook is registered in settings.json and always active. No /careful command needed to activate.
+Active only when registered as a Bash PreToolUse hook in `~/.claude/settings.json`
+(`bash $HOME/.claude/hooks/cfn-careful-guard.sh`). The symlinked hooks folder does
+not register it; a machine without that entry runs unguarded.
+`tests/test-hook-security.sh` reports "NOT registered" when it is missing.
 
 ## The guard scans the whole command string, heredoc body included
 

@@ -5,6 +5,22 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-07: careful guard judges deletes by target
+
+`cfn-careful-guard.sh` no longer blocks every `rm -rf` that lacks a whitelisted
+word somewhere in the command. A new helper, `skills/cfn-careful/lib/rm-target-check.py`,
+resolves each `rm` target (following `VAR=value` and `cd` in the same command)
+and sorts it: temp areas, rebuildable folders and git-restorable files pass;
+untracked, modified or ignored files (such as `.env`) and unresolvable targets
+raise a permission prompt; `/`, system folders, `$HOME` and its main folders, a
+whole repo, `.git` and parents of the working directory are blocked. The old
+substring whitelist passed `rm -rf ~/x` whenever `/tmp/` appeared anywhere in the
+command, and blocked every scratch-folder cleanup that used a variable. Found
+while reviewing Fireside sessions, where 20 of 20 recent `rm -rf` calls were temp
+cleanups that prompted. The Mac's `~/.claude/settings.json` had no hooks section,
+so the guard was not running there at all. 28 cases in `tests/test-careful-guard-rm.sh`;
+`tests/test-jev-careful-guard.sh` still green.
+
 ## 2026-08-18: run ledger makes the loosened seams observable
 
 - New `cfn-loop-orchestration-v2/cli/run-ledger.sh` (`record`, `stats`). cfn-loop-task 5E.6 appends one row per run to `~/.claude/cfn-data/loop-task-runs.jsonl` and prints FLAG lines: `bar_b_tier=sonnet` + a spec-gap `blocked_on` ("underspecified", "which symbol", "plan drift") → "re-gate with `--bar-b=full`"; a `step_amendments` entry naming a PLAN `Produces` symbol → "run check-produce-consume". Neither seam had a signal before; both went to files nobody read.
