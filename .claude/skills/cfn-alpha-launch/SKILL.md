@@ -345,7 +345,7 @@ Running that command starts 3-agent voting on every finding:
 - No critical technical debt
 - Data model sound for use cases
 - External dependencies stable
-- Monitoring coverage adequate
+- Monitoring coverage adequate: unrecognised errors still reported with details, error-level logs reach the alert sink, alerts grouped and rate-limited (one per key per window, not one per hit), known noise labelled expected
 
 ### Supabase (Target: 90%+)
 - Database schema applied, migrations working

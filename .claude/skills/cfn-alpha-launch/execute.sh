@@ -253,7 +253,7 @@ Task(subagent_type="system-architect", prompt="Analyze architectural readiness f
 2. Technical debt - any critical debt items?
 3. Data model - sound for use cases?
 4. Integration points - external dependencies stable?
-5. Monitoring coverage - observability gaps?
+5. Monitoring coverage - observability gaps? Specifically: does any error filter drop errors it does not recognise (they must still be sent, labelled unrecognised, with message and route)? Does a test prove error-level logs reach the alert sink (Sentry etc.), not just the log stream? Are alerts grouped and rate-limited (one per key per window, not one per hit)? Is known noise (stale-tab 404s after deploy, expired sign-in links) labelled expected and kept out of alerts?
 
 SCORING FORMULA (Apply strictly):
 - Start at 100%

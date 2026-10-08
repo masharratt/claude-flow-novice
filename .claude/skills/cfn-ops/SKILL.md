@@ -124,6 +124,23 @@ log query: event="order.write.fail" AND tenant_id="X" AND ts > now-15m
 
 This query is part of the deliverable, not a suggestion.
 
+**Signal integrity rules (beta+).** Designing what to emit is half the job. These rules make sure the important signals arrive and the noise does not bury them. Each came from a real post-event review where the signal existed on paper and failed in production.
+
+1. **No empty crash reports.** An error filter may drop only errors listed in the expected-noise register (rule 5). Anything it does not recognise is still sent, tagged `class: unrecognised`, with its message, stack, route and `request_id`. Name one `verify: required` OBS row asserting a report carries `what` (message/type) and `where` (route or stack frame); the test fails if either is empty. A filter that silently drops unknown errors produces blank reports.
+2. **Error-level logs reach the alert sink.** Name the sink (Sentry, PagerDuty, etc.) and add one `verify: required` OBS row proving a server error at `level: error` lands there, not only in the log stream. Logging it is not alerting on it.
+3. **Every failure path names its cause fields.** For each failure in the decision-point list and in Phase 5, state the fields recorded about WHY it failed (`reason`, upstream status, dep name, error code). A failure path with no log line at all (a silent token refresh failure, an unexplained database reset) is incomplete; flag it `[OPEN]` rather than leave it unlogged.
+4. **Expected-noise register.** List known noise up front: what it is, why it is expected, how it is labelled. Matching events carry `expected: true` and are excluded from alert rules (they may still be counted).
+
+   ```
+   | Noise                              | Why expected                         | Match rule                         | Alerts? |
+   |------------------------------------|--------------------------------------|------------------------------------|---------|
+   | 404 on old chunk after deploy      | stale tabs request old asset hashes  | status=404 AND path ~ /_next/static| no      |
+   | expired magic-link click           | users click old emails               | event=auth.link.expired            | no      |
+   ```
+
+   The flip side: a failure that repeats and is NOT on the register must log where it came from (caller route, client type, hashed IP or user id) so an unexplained burst can be traced. A burst with no origin fields stays a mystery.
+5. **Alerts are rate-limited and grouped by default.** Every `criticality: alert` row names a group key and a window: one alert per key per window, carrying the count (`auth.deny x 412 in 5m`), never one alert per hit. A rule that cannot fire less often than its input is noise, and a channel that always shows "dozens" gets ignored.
+
 ### Phase 3: Rollout (beta flags / enterprise canary) — G12
 
 No feature reaches 100% of traffic on deploy. Design the staged path.
@@ -139,6 +156,8 @@ No feature reaches 100% of traffic on deploy. Design the staged path.
 | ramp  | 10%       | 1h    | order_dep_down_total == 0 AND success KPI stable   |
 | full  | 100%      | —     | ramp green, no rollback triggered                  |
 ```
+
+**Event-arrival check.** List the key product events (the ones Phase 4 KPIs are computed from) with the query that counts each one. `cfn-canary` confirms each has arrived at least once after deploy; zero arrivals is a failure, not a pass. A page that loads while tracking records nothing is not healthy.
 
 Security floor: confirm the new route serves the shared security-headers middleware BEFORE the canary opens (a flagged route that bypasses middleware is a regression).
 
@@ -233,6 +252,8 @@ beta light — symptom → first action table:
 | Payment dep down alert           | Confirm retry queue draining; no manual replay    |
 ```
 
+Every incident record captures `reported_at` (when someone first reported it) alongside `detected_at` and `resolved_at`. Without it, time-to-fix cannot be measured.
+
 enterprise — full on-call doc: each alert → owner, escalation path, the Phase 2 query to confirm, the Phase 6 rollback trigger, and a "do NOT do" list (e.g. do not replay payment retries manually). Reference the relevant `cfn-canary` run and dashboards.
 
 ## Output
@@ -266,10 +287,18 @@ Template (include only the phases active for the tier; mark skipped phases `N/A 
 <span boundaries>
 ### On-call query
 <literal query>
+### Signal integrity
+- Unrecognised errors sent with `class: unrecognised` + what/where: OBS-id of the test
+- Alert sink: <name>; error-reaches-sink test: OBS-id
+- Cause fields per failure path: <list; any silent path -> [OPEN]>
+- Expected-noise register:
+| Noise | Why expected | Match rule | Alerts? |
+- Alert grouping: group key + window per `criticality: alert` row
 
 ## 3. Rollout
 - Feature flag: name, default, kill-switch owner
 | Stage | % | Dwell | Promote when (binary) |
+- Key events for cfn-canary arrival check: | Event | Count query |
 - Security headers confirmed via shared middleware: yes/no
 - cfn-canary wired (enterprise): yes/no
 
@@ -289,6 +318,7 @@ Template (include only the phases active for the tier; mark skipped phases `N/A 
 
 ## 8. Runbook
 | Symptom | First action |
+- Incident record fields: reported_at, detected_at, resolved_at
 
 ## [OPEN]
 <decisions needing the user: unmeasurable success criterion, banned provider, missing budget cap, header bypass>
@@ -303,12 +333,16 @@ Template (include only the phases active for the tier; mark skipped phases `N/A 
 Return exactly:
 - Artifact path: `planning/<slug>/OPS_<slug>.md`
 - A 3-line summary (STRIDE edges covered with row count, flag name + rollout stages, rollback trigger + down-migration named).
-- Floors line: STRIDE floor met yes/no (every external edge has >=1 row, S/T/I evaluated), budget floor met yes/no (>=1 named-constant row; `--budget` row present if LLM in loop).
+- Floors line: STRIDE floor met yes/no (every external edge has >=1 row, S/T/I evaluated), budget floor met yes/no (>=1 named-constant row; `--budget` row present if LLM in loop), signal integrity met yes/no (unrecognised-error test, sink test, noise register, every alert grouped, every failure path has cause fields).
 - Any `[OPEN]` items needing a user decision (unmeasurable success criterion, banned provider, missing budget cap, header bypass).
 
 ## Anti-Patterns
 
 - **"We'll add monitoring later."** Later means after the incident, blind. Log lines at decision points are designed here or the on-call has nothing.
+- **An error filter that drops what it does not recognise.** The reports arrive blank or not at all. Unknown errors are sent, labelled `unrecognised`.
+- **Logging an error and assuming it alerts.** Until a test proves the error reaches the alert sink, nobody is paged.
+- **"Health check passed" while tracking records nothing.** Page-loads-fine is not events-arriving; the canary must count key events.
+- **One alert per hit.** A flood becomes a wall of identical messages and the channel gets muted. Group by key and window.
 - **"Rollback = just redeploy / revert the migration."** Untested undo is a wish. Phase 6 requires the actual steps and evidence they work.
 - **"No success metric."** If you can't state the prod query that proves it worked, you ship blind and never learn. Every KPI maps to a SPEC criterion.
 - **Security headers per-route instead of shared middleware.** HSTS/CSP/X-Frame-Options bypassed on the new route is a regression the rollout must catch BEFORE canary.
