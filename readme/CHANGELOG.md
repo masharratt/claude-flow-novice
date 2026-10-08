@@ -5,6 +5,17 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-08: token report from Claude Code session logs
+
+New skill `cfn-token-report` (`report.py`, stdlib Python) reads `~/.claude/projects`
+and reports token use by project, agent type (main chat vs each subagent type, from
+`agent-*.meta.json`), model and day. Each assistant message is counted once by
+`message.id`: Claude Code writes the same message on 2-5 lines with identical usage, so
+counting lines overstates use. Tokens only; subscription caps come from `/usage`. Taken
+from ruflo's cost tracker, without its budget alerts, which assume per-token billing.
+22 cases in `skills/cfn-token-report/tests/test-token-report.sh`; a 7-day report over
+500MB of logs runs in under a second.
+
 ## 2026-10-08: loop brake stops runs that are not making progress
 
 cfn-loop-task's only stop was MAX_ITERATIONS (5/10/15 by mode), so a run whose
