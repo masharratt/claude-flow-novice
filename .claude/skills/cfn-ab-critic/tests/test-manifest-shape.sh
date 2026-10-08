@@ -115,7 +115,8 @@ LA_B=$(jq -c '.comparisons[0].label_assignment' "$M3B")
 [ "$LA_A" = "$LA_B" ] && ok "label_assignment reproducible ($LA_A)" || bad "assignment drifted: $LA_A vs $LA_B"
 # And the assignment matches the sourceable helper.
 EXP=$(label_assignment "$AC3" 0)
-EXP_OBJ=$(case "$EXP" in A=ours,*) echo '{"A":"ours","B":"reference"}';;*) echo '{"A":"reference","B":"ours"}';;esac)
+# if/else, not case inside $(): bash 3.2 (macOS) reads the pattern's ')' as the end of $(.
+if [ "${EXP#A=ours,}" != "$EXP" ]; then EXP_OBJ='{"A":"ours","B":"reference"}'; else EXP_OBJ='{"A":"reference","B":"ours"}'; fi
 [ "$LA_A" = "$EXP_OBJ" ] && ok "assignment matches lib helper" || bad "lib/execute disagree"
 
 echo "## 4. suggestion suppression — winner==ours and conf>=threshold"

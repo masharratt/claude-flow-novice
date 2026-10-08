@@ -25,8 +25,20 @@ GNU-only assumptions, fixed here:
   every session start. New `tests/test-hook-selfcheck.sh` (5/5).
 - `tests/test-decision-capture.sh` compared padded BSD `wc -l` output; test-only fix (20/20).
 
-Still open: 3 night-mode report cases fail on macOS, and
-`skills/cfn-ab-critic/tests/test-manifest-shape.sh:118` does not parse under bash 3.2.
+Follow-up, 2026-10-08:
+
+- `cfn-night-mode/night-mode.sh` stepped report days with GNU `date -I -d "$d + 1 day"`;
+  on BSD date that failed, so a multi-day report covered only its first day. New
+  `next_day` helper (GNU `-d`, else BSD `-v+1d`).
+- The report window start came from the UTC date in the flag or pending marker, while
+  decision slugs use the local date, so an evening start west of UTC skipped a day.
+  New `local_date_of` converts first. Regression case pins `TZ=America/Los_Angeles`.
+- `tests/test-night-mode.sh` computed yesterday with GNU `date -d` and joined lines
+  with a BSD-rejected sed label loop (now `awk`). 34/34 in local TZ and UTC.
+- `skills/cfn-ab-critic/tests/test-manifest-shape.sh:118` used `case` inside `$()`,
+  which bash 3.2 cannot parse; now if/else. The test still fails on this Mac because
+  `cfn-ab-critic/execute.sh` needs bash 4 (`declare -A`), as do 22 other scripts.
+  `readme/macos-setup.md` requires `brew install bash`; this machine has not run it.
 
 ## 2026-10-07: careful guard judges deletes by target
 

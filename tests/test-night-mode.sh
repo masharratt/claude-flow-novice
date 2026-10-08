@@ -36,7 +36,9 @@ SKILL_DIR="$HOME/.claude/skills/decision-log"
 sqlite3 "$DB_PATH" < "$SKILL_DIR/schema.sql"
 
 TODAY=$(date +%F)
-YDAY=$(date -d "yesterday" +%F)
+# GNU date -d, else BSD date -v (macOS): the test must compute its own dates portably.
+YDAY=$(date -d "yesterday" +%F 2>/dev/null || date -v-1d +%F)
+D2AGO=$(date -d "2 days ago" +%F 2>/dev/null || date -v-2d +%F)
 ASK_PAYLOAD='{"session_id":"s1","hook_event_name":"PreToolUse","tool_name":"AskUserQuestion","tool_input":{"questions":[{"question":"Which auth provider?"}]}}'
 PLAN_PAYLOAD='{"session_id":"s1","hook_event_name":"PreToolUse","tool_name":"EnterPlanMode","tool_input":{}}'
 EXITPLAN_PAYLOAD='{"session_id":"s1","hook_event_name":"PreToolUse","tool_name":"ExitPlanMode","tool_input":{"plan":"do things"}}'
@@ -234,6 +236,22 @@ echo "$FYI_SLICE" | grep -q "Yesterday choice B" || R_OK=0
 [ "$R_OK" = "1" ] && ok "report sections: blocking card isolated, accepted listed FYI, both dates spanned" \
   || no "report sections (rc=$R_RC)\n$R_OUT"
 
+# Regression: the window start came from the flag's UTC date while decision
+# slugs use the LOCAL date, so an evening start west of UTC skipped a day.
+# Flag at YDAY 03:00Z is D2AGO 20:00 in Los Angeles: the window must open there.
+reset_state
+printf '%s\n' "${YDAY}T03:00:00Z" > "$FLAG"
+TZ_OUT=$(TZ=America/Los_Angeles bash "$NM" report 2>&1)
+case "$TZ_OUT" in
+  *"$D2AGO .. "*) ok "flag window opens on the local date of a UTC start" ;;
+  *) no "tz window (want $D2AGO, out=$TZ_OUT)" ;;
+esac
+rm -f "$FLAG"
+reset_state
+rec "night-$YDAY" DA "Yesterday choice A" "picked A option"
+rec "night-$YDAY" DB "Yesterday choice B" "picked B option"
+rec "night-$TODAY" DC "Defer risky migration" "DEFERRED: risky migration tonight" --blocking --status proposed
+
 BARE_OUT=$(bash "$NM" report 2>&1)
 { echo "$BARE_OUT" | grep -q "Defer risky migration"; } \
   && ok "bare report defaults to today window (blocking row visible)" \
@@ -263,7 +281,8 @@ bash "$GUARD" <<<"$ASK_PAYLOAD" 2>"$TMP/e2e.err"; E_RC=$?
 [ "$E_RC" = "2" ] && { [ -f "$EVENTS" ]; } \
   && ok "e2e: guard denied with events logged" || no "e2e deny stage (rc=$E_RC)"
 
-JOIN=$(sed ':a;/\\$/{N;s/\\\n//;ta}' "$TMP/e2e.err")
+# Join backslash-continued lines. awk, not a sed label loop: BSD sed rejects ':a;...'.
+JOIN=$(awk '/\\$/ { sub(/\\$/, ""); printf "%s", $0; next } { print }' "$TMP/e2e.err")
 CMD_LINE=$(printf '%s\n' "$JOIN" | grep -E '^\s*bash \$HOME/\.claude/skills/decision-log/record\.sh' | head -1 | sed 's/^[[:space:]]*//')
 [ -n "$CMD_LINE" ] \
   && ok "e2e: record.sh invocation extracted from deny text as single line" \

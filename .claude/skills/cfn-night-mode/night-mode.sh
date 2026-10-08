@@ -42,6 +42,22 @@ MISSING=""
 
 iso_now(){ date -u +%Y-%m-%dT%H:%M:%SZ; }
 
+# Decision slugs use the LOCAL date (night-$(date +%F)), but the flag and the
+# pending marker hold UTC timestamps. Convert before using one as a window start,
+# or an evening start west of UTC opens the window a day late.
+local_date_of(){ # local_date_of <YYYY-MM-DDTHH:MM:SSZ> -> local YYYY-MM-DD
+    local iso=$1 epoch
+    if epoch=$(command date -u -d "$iso" +%s 2>/dev/null); then :
+    elif epoch=$(command date -j -u -f '%Y-%m-%dT%H:%M:%SZ' "$iso" +%s 2>/dev/null); then :
+    else printf '%s' "${iso:0:10}"; return; fi
+    command date -d "@$epoch" +%F 2>/dev/null || command date -r "$epoch" +%F
+}
+
+next_day(){ # next_day <YYYY-MM-DD> -> the following date (GNU -d, else BSD -v)
+    command date -d "$1 + 1 day" +%F 2>/dev/null \
+        || command date -j -v+1d -f %Y-%m-%d "$1" +%F 2>/dev/null
+}
+
 DOC_QUIET=0
 chk(){ # chk <name> <condition-result(0=pass)>
     if [ "$2" = "0" ]; then
@@ -137,7 +153,7 @@ build_slug_list(){ # build_slug_list <since-YYYY-MM-DD> -> stdout: 'night-d1','n
     while : ; do
         out+="'night-$d',"
         [ "$d" = "$today" ] && break
-        d=$(date -I -d "$d + 1 day" 2>/dev/null) || break
+        d=$(next_day "$d") && [ -n "$d" ] || break
         guard=$((guard+1)); [ "$guard" -gt "$MAX_DAYS" ] && break
     done
     [ -n "$out" ] && printf '%s' "${out%,}"
@@ -271,7 +287,7 @@ cmd_off(){
         return 0
     fi
     START_ISO=$(cat "$FLAG")
-    SINCE="${START_ISO:0:10}"
+    SINCE=$(local_date_of "$START_ISO")
     rm -f "$FLAG"
     render_report "$SINCE" "$PROJECT_FILTER"
     printf '%s\n' "$REP_TXT"
@@ -357,9 +373,9 @@ case "$CMD" in
         if [ -n "$ARGS_SINCE" ]; then
             SINCE=$ARGS_SINCE
         elif [ -f "$PENDING" ]; then
-            SINCE="$(cut -c1-10 "$PENDING")"
+            SINCE=$(local_date_of "$(head -1 "$PENDING")")
         elif [ -f "$FLAG" ]; then
-            SINCE="$(cut -c1-10 "$FLAG")"
+            SINCE=$(local_date_of "$(head -1 "$FLAG")")
         else
             SINCE=$(date +%F)
         fi
