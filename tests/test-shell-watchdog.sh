@@ -173,6 +173,41 @@ OUT=$(status)
 assert_not_contains "service not re-reported" "$OUT" "SERVICE"
 row_exists "$SVC_PID" && fail "service row dropped" || ok "service row dropped"
 
+# --- 9. no /proc (macOS): resolve the pid with lsof, then ps ---
+# Regression: the resolver scanned /proc only, so on macOS every background
+# shell went unrecorded and the watchdog never blocked. Real processes here,
+# with the proc root pointed at a path that does not exist.
+NOPROC_PIDS=""
+CFN_SHELL_PROC_DIR="$WORK/noproc" export CFN_SHELL_PROC_DIR
+if command -v lsof >/dev/null 2>&1; then
+  TASKFILE9="$CFN_SHELL_TMP_BASE/claude-$(id -u)/$SLUG/$SID/tasks/bgtask9.output"
+  mkdir -p "$(dirname "$TASKFILE9")"
+  # Wrapper plus child both hold the file; the wrapper (group root) is the pid we want.
+  bash -c 'sleep 300; :' > "$TASKFILE9" 2>&1 &
+  PID9=$!
+  NOPROC_PIDS="$PID9"
+  sleep 0.3
+  track "{\"session_id\":\"$SID\",\"transcript_path\":\"$WORK/projects/$SLUG/$SID.jsonl\",\"tool_input\":{\"command\":\"make build-nine\",\"run_in_background\":true},\"tool_response\":{\"backgroundTaskId\":\"bgtask9\"}}"
+  row_exists "$PID9" && ok "no-proc: task row recorded via lsof (wrapper pid)" || fail "no-proc: lsof resolution missing row for $PID9"
+else
+  echo "  skip: lsof not installed"
+fi
+
+MARK="cfnwd-marker-$$"
+bash -c "sleep 300; : $MARK" > /dev/null 2>&1 &
+PID10=$!
+NOPROC_PIDS="$NOPROC_PIDS $PID10"
+sleep 0.3
+track "{\"session_id\":\"$SID\",\"transcript_path\":\"$WORK/projects/$SLUG/$SID.jsonl\",\"tool_input\":{\"command\":\"sleep 300; : $MARK\",\"run_in_background\":true},\"tool_response\":{\"backgroundTaskId\":\"bgtask10\"}}"
+row_exists "$PID10" && ok "no-proc: task row recorded via ps cmdline" || fail "no-proc: ps fallback missing row for $PID10"
+OUT=$(watchdog 2>&1)
+assert_contains "no-proc: watchdog blocks on unwatched task" "$OUT" "$PID10"
+for p in $NOPROC_PIDS; do kill "$p" 2>/dev/null; pkill -P "$p" 2>/dev/null; done
+
+# Default task-output base: Claude Code on macOS writes under /tmp/claude-<uid>.
+DEF=$(env -u CFN_SHELL_TMP_BASE HOME="$WORK/emptyhome" bash -c '. "$1"; printf "%s" "$CFN_SHELL_TMP_BASE"' _ "$HOOKS/cfn-shell-watch-common.sh")
+[ "$DEF" = "/tmp" ] && ok "default tmp base is /tmp without ~/.claude-tmp" || fail "default tmp base: got '$DEF'"
+
 echo
 echo "pass=$PASS fail=$FAIL"
 [ "$FAIL" = 0 ]

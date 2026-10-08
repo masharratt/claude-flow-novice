@@ -45,7 +45,7 @@ printf '%s' "$(sample_input "Use RLS on events table?" "Delete all 20")" \
   | CFN_DECISION_CAPTURE_FILE="$STAGING" bash "$HOOK"
 rc=$?
 [ "$rc" = 0 ] && ok "hook exits 0 on valid input" || bad "hook exit=$rc on valid input"
-[ "$(wc -l < "$STAGING" 2>/dev/null || echo 0)" = 1 ] && ok "one staging line written" || bad "staging line count != 1"
+[ "$(wc -l < "$STAGING" 2>/dev/null | tr -d " " || echo 0)" = 1 ] && ok "one staging line written" || bad "staging line count != 1"
 assert_contains "$STAGING" '"question":"Use RLS on events table?"' "question captured"
 assert_contains "$STAGING" '"answer":"Delete all 20"' "answer captured"
 assert_contains "$STAGING" '"project":"someproj"' "project derived from cwd"
@@ -55,7 +55,7 @@ assert_contains "$STAGING" '"session_id":"sess-test"' "session id captured"
 rm -f "$STAGING"
 printf '%s' '{"session_id":"s","cwd":"/p/q","tool_name":"AskUserQuestion","tool_input":{"questions":[{"question":"Q one?"},{"question":"Q two?"}]},"tool_response":{"answers":{"Q one?":"A1","Q two?":"A2"},"annotations":{}}}' \
   | CFN_DECISION_CAPTURE_FILE="$STAGING" bash "$HOOK"
-[ "$(wc -l < "$STAGING" 2>/dev/null || echo 0)" = 2 ] && ok "two questions -> two lines" || bad "expected 2 lines"
+[ "$(wc -l < "$STAGING" 2>/dev/null | tr -d " " || echo 0)" = 2 ] && ok "two questions -> two lines" || bad "expected 2 lines"
 
 # 3. Non-AskUserQuestion tool -> no write, exit 0.
 rm -f "$STAGING"
@@ -94,7 +94,7 @@ EOF
 staging_fixture
 out="$(bash "$PROMOTE" --slug testslug --dry-run --file "$STAGING" 2>&1)"
 case "$out" in *"would promote"*) ok "dry-run lists promotions" ;; *) bad "dry-run output missing listing: $out" ;; esac
-[ "$(wc -l < "$STAGING")" = 2 ] && ok "dry-run leaves staging intact" || bad "dry-run modified staging"
+[ "$(wc -l < "$STAGING" | tr -d " ")" = 2 ] && ok "dry-run leaves staging intact" || bad "dry-run modified staging"
 
 # 7. Real promotion: good line promoted, broken line kept.
 #    record.sh needs the target dir to pre-exist (--root points at the tree).
@@ -106,7 +106,7 @@ rc=$?
 [ "$rc" = 2 ] && ok "exit 2 when some lines fail" || bad "expected exit 2, got $rc"
 echo "$out" > "$TMP/promote.log"
 case "$(cat "$TMP/promote.log")" in *"promoted=1 failed=1"*) ok "one promoted, one kept" ;; *) bad "promote summary wrong: $out" ;; esac
-[ "$(wc -l < "$STAGING")" = 1 ] && ok "staging shrunk to failed line" || bad "staging line count after promote: $(wc -l < "$STAGING")"
+[ "$(wc -l < "$STAGING" | tr -d " ")" = 1 ] && ok "staging shrunk to failed line" || bad "staging line count after promote: $(wc -l < "$STAGING")"
 assert_contains "$STAGING" "Broken line" "failed line kept verbatim"
 
 # 8. Ledger JSON written for the promoted line.

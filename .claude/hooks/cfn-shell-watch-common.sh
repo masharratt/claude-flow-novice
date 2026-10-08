@@ -13,7 +13,15 @@
 CFN_SHELL_WATCH_DIR="${CFN_SHELL_WATCH_DIR:-/tmp/cfn-shell-watch}"
 # /proc scan root and task-output base are injectable for tests.
 CFN_SHELL_PROC_DIR="${CFN_SHELL_PROC_DIR:-/proc}"
-CFN_SHELL_TMP_BASE="${CFN_SHELL_TMP_BASE:-$HOME/.claude-tmp}"
+# Task output lives under <base>/claude-<uid>/: ~/.claude-tmp on the WSL2 setup,
+# the stock /tmp on macOS.
+if [ -z "${CFN_SHELL_TMP_BASE:-}" ]; then
+  if [ -d "$HOME/.claude-tmp" ]; then
+    CFN_SHELL_TMP_BASE="$HOME/.claude-tmp"
+  else
+    CFN_SHELL_TMP_BASE="/tmp"
+  fi
+fi
 
 sw_ledger() { # $1 = session id
   printf '%s/%s.tsv' "$CFN_SHELL_WATCH_DIR" "$1"
@@ -41,11 +49,11 @@ sw_sanitize() { # stdin -> stdout
 # task's output file open (older harness shapes that redirect directly), then
 # the newest process whose cmdline contains the task's command (current shape:
 # output is streamed through pipes, but the wrapper is `bash -c <command>`).
-# Needs /proc (Linux/WSL2); elsewhere the scans find nothing and the shell
-# goes unguarded, same as no watchdog.
+# Uses /proc where it exists (Linux/WSL2), else lsof and ps (macOS). With
+# none of them the scans find nothing and the shell goes unguarded, same as
+# no watchdog.
 sw_pid_for_task() { # $1 task id, $2 session id, $3 transcript path, $4 command
-  local taskid="$1" session="$2" tp="$3" cmd="$4" uid slug taskfile proc fdlink target
-  [ -d "$CFN_SHELL_PROC_DIR" ] || return 1
+  local taskid="$1" session="$2" tp="$3" cmd="$4" uid slug taskfile proc fdlink target pid
   uid="$(id -u)"
   slug=""
   case "$tp" in
@@ -53,7 +61,16 @@ sw_pid_for_task() { # $1 task id, $2 session id, $3 transcript path, $4 command
   esac
   if [ -n "$slug" ]; then
     taskfile="$CFN_SHELL_TMP_BASE/claude-$uid/$slug/$session/tasks/$taskid.output"
-    if [ -e "$taskfile" ]; then
+    if [ -e "$taskfile" ] && [ ! -d "$CFN_SHELL_PROC_DIR" ]; then
+      if command -v lsof >/dev/null 2>&1; then
+        # shellcheck disable=SC2046 # word-split the pid list on purpose
+        pid="$(sw_root_pid $(lsof -t -- "$taskfile" 2>/dev/null))"
+        if [ -n "$pid" ]; then
+          printf '%s' "$pid"
+          return 0
+        fi
+      fi
+    elif [ -e "$taskfile" ]; then
       for proc in "$CFN_SHELL_PROC_DIR"/[0-9]*; do
         [ -d "$proc" ] || continue
         for fdlink in "$proc"/fd/*; do
@@ -73,8 +90,11 @@ sw_pid_for_task() { # $1 task id, $2 session id, $3 transcript path, $4 command
 # start time is field 22 of stat; after stripping "pid (comm) " it is field 20.
 sw_newest_pid_by_cmd() { # $1 command snippet
   local want="$1" best="" beststart=0 cmd st proc
-  [ -d "$CFN_SHELL_PROC_DIR" ] || return 1
   [ -n "$want" ] || return 1
+  if [ ! -d "$CFN_SHELL_PROC_DIR" ]; then
+    sw_newest_pid_by_cmd_ps "$want"
+    return
+  fi
   for proc in "$CFN_SHELL_PROC_DIR"/[0-9]*; do
     [ -r "$proc/cmdline" ] || continue
     cmd="$(tr '\0' ' ' < "$proc/cmdline" 2>/dev/null)" || continue
@@ -91,6 +111,43 @@ sw_newest_pid_by_cmd() { # $1 command snippet
   done
   [ -n "$best" ] && printf '%s' "$best"
   return 1
+}
+
+# Of a set of pids, the first whose parent is not in the set: the wrapper the
+# harness spawned, not the children that inherited its output file.
+sw_root_pid() { # $@ = pids
+  local p pp
+  for p in "$@"; do
+    pp="$(ps -o ppid= -p "$p" 2>/dev/null | tr -d ' ')"
+    case " $* " in
+      *" $pp "*) ;;
+      *) printf '%s' "$p"; return 0 ;;
+    esac
+  done
+  return 1
+}
+
+# ps-based twin of sw_newest_pid_by_cmd for systems without /proc. Newest =
+# smallest elapsed time; etime is [[dd-]hh:]mm:ss. The command text goes
+# through ENVIRON, never awk -v, so backslashes in it are not reinterpreted.
+sw_newest_pid_by_cmd_ps() { # $1 command snippet
+  local pid
+  command -v ps >/dev/null 2>&1 || return 1
+  pid="$(ps -axo pid=,etime=,command= 2>/dev/null | SW_WANT="$1" awk '
+    {
+      pid = $1; et = $2
+      cmd = $0; sub(/^[ \t]*[0-9]+[ \t]+[^ \t]+[ \t]+/, "", cmd)
+      if (index(cmd, ENVIRON["SW_WANT"]) == 0) next
+      days = 0
+      if (index(et, "-")) { split(et, d, "-"); days = d[1]; et = d[2] }
+      n = split(et, t, ":"); secs = 0
+      for (i = 1; i <= n; i++) secs = secs * 60 + t[i]
+      secs += days * 86400
+      if (best == "" || secs < bestsecs) { best = pid; bestsecs = secs }
+    }
+    END { if (best != "") print best }')"
+  [ -n "$pid" ] || return 1
+  printf '%s' "$pid"
 }
 
 # Finite jobs are the default; only clear long-lived-process patterns are

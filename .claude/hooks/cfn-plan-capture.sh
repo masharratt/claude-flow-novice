@@ -54,7 +54,7 @@ TITLE=${TITLE#Plan:}
 
 SLUG=$(printf '%s' "$TITLE" \
   | tr '[:upper:]' '[:lower:]' \
-  | sed -e 's/[^a-z0-9]\+/_/g' -e 's/^_*//' -e 's/_*$//' \
+  | sed -E -e 's/[^a-z0-9]+/_/g' -e 's/^_*//' -e 's/_*$//' \
   | cut -c1-60)
 [ -n "$SLUG" ] || exit 0
 

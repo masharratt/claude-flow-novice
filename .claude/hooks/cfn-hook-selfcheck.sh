@@ -16,7 +16,7 @@ set -uo pipefail
 
 LOG="$HOME/.claude/hook-selfcheck.log"
 
-printf '%s\t%s\n' "$(date -Is)" "${CLAUDE_PROJECT_DIR:-unknown}" >> "$LOG" 2>/dev/null || true
+printf '%s\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S%z)" "${CLAUDE_PROJECT_DIR:-unknown}" >> "$LOG" 2>/dev/null || true
 
 # cfn: unbounded append log; trim to last 1000 lines past 2000 (upgrade: size-based rotation)
 if [ -f "$LOG" ] && [ "$(wc -l < "$LOG" 2>/dev/null || echo 0)" -gt 2000 ]; then

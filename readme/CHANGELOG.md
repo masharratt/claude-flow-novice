@@ -5,6 +5,29 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-07: macOS hook wiring and portability fixes
+
+An audit found 13 hooks the operating guide treats as enforced were registered
+nowhere on the Mac: shell watchdog (track/watchdog/status), spawn-depth guard,
+night-mode guard and inject, doc-lint, hook selfcheck, decision capture and
+ingest, plan capture, post-migration sync, CLAUDE.md size guard and skill-usage
+tracking. All 13 are now in `~/.claude/settings.json`. Wiring them surfaced four
+GNU-only assumptions, fixed here:
+
+- `cfn-shell-watch-common.sh` resolved background-task pids from `/proc` only, so on
+  macOS no shell was ever recorded and the watchdog never blocked. It now falls back
+  to `lsof -t` on the task output file (picking the wrapper, not its children), then
+  to a `ps` command-text match, and defaults the task-output base to `/tmp` when
+  `~/.claude-tmp` does not exist. 4 new cases in `tests/test-shell-watchdog.sh` (23/23).
+- `cfn-plan-capture.sh` slugged plan titles with GNU-only `sed 's/[^a-z0-9]\+/_/g'`;
+  BSD sed left spaces in `planning/PLAN_<slug>.md`. Now `sed -E`. 23/23 (was 15/23).
+- `cfn-hook-selfcheck.sh` used GNU `date -Is`: blank timestamp plus stderr noise at
+  every session start. New `tests/test-hook-selfcheck.sh` (5/5).
+- `tests/test-decision-capture.sh` compared padded BSD `wc -l` output; test-only fix (20/20).
+
+Still open: 3 night-mode report cases fail on macOS, and
+`skills/cfn-ab-critic/tests/test-manifest-shape.sh:118` does not parse under bash 3.2.
+
 ## 2026-10-07: careful guard judges deletes by target
 
 `cfn-careful-guard.sh` no longer blocks every `rm -rf` that lacks a whitelisted
