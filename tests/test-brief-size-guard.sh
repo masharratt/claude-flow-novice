@@ -28,7 +28,7 @@ done
 main_payload(){ # $1 = prompt bytes (approx via head -c)
   local filler
   filler=$(head -c "$1" /dev/zero | tr '\0' 'x')
-  printf '{"hook_event_name":"PreToolUse","tool_name":"Agent","tool_input":{"subagent_type":"general-purpose","prompt":"%s"}}' "$filler"
+  printf '{"hook_event_name":"PreToolUse","tool_name":"Agent","tool_input":{"subagent_type":"general-purpose","model":"sonnet","prompt":"%s"}}' "$filler"
 }
 
 run_guard(){ printf '%s' "$1" | "$GUARD" 2>"$TMP/stderr.txt"; }
@@ -68,7 +68,7 @@ run_guard "$SUB" >/dev/null; RC=$?
 grep -q "nested subagent spawn" "$TMP/stderr.txt" && ok "subagent stderr cites depth rule" || no "subagent stderr missing depth text"
 
 # 7. non-Agent/empty-prompt payload: silent pass
-run_guard '{"hook_event_name":"PreToolUse","tool_name":"Agent","tool_input":{"subagent_type":"general-purpose"}}' >/dev/null; RC=$?
+run_guard '{"hook_event_name":"PreToolUse","tool_name":"Agent","tool_input":{"subagent_type":"general-purpose","model":"sonnet"}}' >/dev/null; RC=$?
 [ "$RC" -eq 0 ] && [ ! -s "$TMP/stderr.txt" ] && ok "no-prompt payload passes silently" || no "no-prompt payload rc=$RC or stderr set"
 
 echo

@@ -5,6 +5,20 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-08: helpers must have a chosen model, and announce it
+
+The first token report showed general-purpose helpers spawned without a model
+inheriting the chat's Opus: 2,710 replies and 2.0M output tokens in a week (about a
+third of all output), mostly routine fixture and e2e work. Briefs were not the cause
+(median 1.8KB; 3 of 121 over the 4KB budget). `cfn-spawn-depth-guard.sh` gains rule 3:
+a main-chat spawn of a profile-less type (`general-purpose`, `claude`) without `model`
+is refused with sonnet/opus/haiku guidance, and every allowed main-chat spawn emits a
+`systemMessage` naming the helper and its model (explicit, from profile, built-in or
+inherited). `CFN_MODEL_CHOICE=warn|off` relaxes it; fork is exempt. The old-Haiku runs
+in the same report needed no change: the `haiku` alias resolved to Haiku 4.5 up to
+Claude Code 2.1.292 and to Haiku 5.5 from 2.1.293. 17 cases in
+`tests/test-spawn-model-choice.sh`; brief-size tests now pass a model.
+
 ## 2026-10-08: token report from Claude Code session logs
 
 New skill `cfn-token-report` (`report.py`, stdlib Python) reads `~/.claude/projects`

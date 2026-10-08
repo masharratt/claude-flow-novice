@@ -24,6 +24,17 @@
 #    CFN_BRIEF_GUARD=deny blocks like the depth rule. CFN_BRIEF_GUARD=off
 #    disables. Warns append to CFN_BRIEF_WARN_LOG
 #    (default ~/.claude/brief-size-warn.log).
+#
+# 3. MODEL CHOICE (block by default). A main-chat spawn of a type with no
+#    profile (general-purpose, claude) must name a model. Without one it
+#    inherits the chat's model: measured 2026-10-08, general-purpose helpers on
+#    an inherited Opus wrote 2.0M output tokens in a week, mostly routine work.
+#    The orchestrator decides per task; this rule only makes it decide.
+#    Every allowed main-chat spawn then prints a one-line systemMessage naming
+#    the helper and its model, so the choice is visible to the user.
+#    CFN_MODEL_CHOICE=deny (default) | warn | off.
+#    CFN_MODEL_CHOICE_TYPES overrides the list (default "general-purpose claude").
+#    fork is exempt: it always runs on the parent model.
 set -uo pipefail
 
 RAW=$(timeout 1 cat 2>/dev/null || true)
@@ -55,6 +66,42 @@ if [ -z "$AGENT_ID" ]; then
       fi
     fi
   fi
+
+  CHILD=$(printf '%s' "$RAW" | jq -r '.tool_input.subagent_type // "general-purpose"' 2>/dev/null || echo general-purpose)
+  MODEL=$(printf '%s' "$RAW" | jq -r '.tool_input.model // empty' 2>/dev/null || true)
+  DESC=$(printf '%s' "$RAW" | jq -r '.tool_input.description // "unnamed"' 2>/dev/null || echo unnamed)
+  [ "$CHILD" = "fork" ] && exit 0
+
+  CHOICE_MODE="${CFN_MODEL_CHOICE:-deny}"
+  if [ -z "$MODEL" ] && [ "$CHOICE_MODE" != "off" ] \
+     && [[ " ${CFN_MODEL_CHOICE_TYPES:-general-purpose claude} " == *" $CHILD "* ]]; then
+    {
+      echo "CHOOSE A MODEL: '${CHILD}' has no profile model, so this helper would"
+      echo "silently inherit the chat's model. Re-issue the spawn with model set:"
+      echo "  sonnet  routine implementation, test fixes, research, refactors"
+      echo "  opus    architecture, hard debugging, security, plan-critical calls"
+      echo "  haiku   mechanical edits, lookups, formatting"
+      echo "(rule 3 in cfn-spawn-depth-guard.sh; CFN_MODEL_CHOICE=${CHOICE_MODE})"
+    } >&2
+    [ "$CHOICE_MODE" = "deny" ] && exit 2
+  fi
+
+  # Announce the model. Explicit choice wins; else the profile's model:
+  # line (project agents first, then global); else built-in or inherited.
+  if [ -n "$MODEL" ]; then
+    SOURCE="${MODEL}, chosen by orchestrator"
+  else
+    PROFILE=$(grep -rlx -- "name: ${CHILD}" "${CLAUDE_PROJECT_DIR:-.}/.claude/agents" "$HOME/.claude/agents" 2>/dev/null | head -1 || true)
+    if [ -n "$PROFILE" ]; then
+      PMODEL=$(sed -n 's/^model:[[:space:]]*//p' "$PROFILE" | head -1)
+      if [ -n "$PMODEL" ]; then SOURCE="${PMODEL}, from profile"; else SOURCE="inherits the chat model"; fi
+    elif [[ " ${CFN_MODEL_CHOICE_TYPES:-general-purpose claude} " == *" $CHILD "* ]]; then
+      SOURCE="inherits the chat model"
+    else
+      SOURCE="built-in default"
+    fi
+  fi
+  jq -nc --arg m "Helper '${DESC}' (${CHILD}): ${SOURCE}" '{systemMessage: $m}'
   exit 0
 fi
 

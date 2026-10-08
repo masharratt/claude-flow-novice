@@ -54,6 +54,8 @@ Agent descriptions are the dispatch table.
 
 **BRIEF BUDGET** A spawn brief is an assignment (task one-liner, input paths, output path + cap), not a context carrier. Keep it ≤ ~2KB; context goes in a file and the brief passes the path. Big briefs make agents write big: over-cap artifacts and compression spawns. The spawn hook warns over 4096 bytes (`CFN_BRIEF_MAX_BYTES`; log `~/.claude/brief-size-warn.log`).
 
+**MODEL CHOICE** Every spawn of a profile-less type (`general-purpose`, `claude`) names a `model`: sonnet for routine implementation, test fixes and research; opus for architecture, hard debugging, security and plan-critical calls; haiku for mechanical work. Unset, it silently inherits the chat's Opus (2.0M output tokens in one week, measured 2026-10-08). The spawn hook blocks a missing model and announces every helper's model to the user (`CFN_MODEL_CHOICE=warn|off` to relax).
+
 **Solo work only for:** Single-file edits with no research, direct questions answerable from context
 
 **DEPTH LIMIT: only the main chat spawns agents.** A subagent reading this is a leaf: execute the brief directly, never call Agent/Task. If a brief is too big for one agent, say so in the report and let the main chat split it. Exception: orchestration skills (cfn-loop-task, cfn-megaplan and its phase skills) whose own instructions say to spawn. For read-only fan-out prefer `Explore` (its tool set excludes Agent, so nesting is impossible). Any other spawn brief ends with the line: "You are a leaf agent. Do not spawn subagents; do the work yourself."
