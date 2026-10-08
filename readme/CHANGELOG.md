@@ -5,6 +5,18 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-08: loop brake stops runs that are not making progress
+
+cfn-loop-task's only stop was MAX_ITERATIONS (5/10/15 by mode), so a run whose
+rounds failed identically spent every remaining round before escalating. New
+`cfn-loop-orchestration-v2/cli/loop-brake.sh record` fingerprints the failing-test
+lines after each failed gate (vitest/jest, pytest, go, cargo and tick-mark formats,
+ignoring colour and timings; pass/total counts as a fallback). Three identical rounds
+in a row (`CFN_LOOP_BRAKE_REPEATS`, default 2 repeats) exit 1, which cfn-loop-task now
+treats as a Stop For escalation. Re-recording a round replaces it, so a flaky re-run
+never double-counts. Idea taken from ruflo's continue gate, reduced to the one signal
+our loop already produces. 23 cases in `cli/tests/test-loop-brake.sh`.
+
 ## 2026-10-07: macOS hook wiring and portability fixes
 
 An audit found 13 hooks the operating guide treats as enforced were registered

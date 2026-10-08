@@ -96,6 +96,7 @@ This table is the SINGLE SOURCE OF TRUTH for escalation. No other escalation lis
 | Access denied / permission errors | |
 | Irreversible destructive action needed | |
 | VERIFY manifest hash mismatch (Step 0a / verify-run.sh exit 4) | |
+| No progress: loop brake engaged (same failures 3 rounds in a row, `loop-brake.sh` exit 1) | |
 
 **Rules:**
 - If uncertain about approach, pick the simpler option and iterate
@@ -472,11 +473,21 @@ $HOME/.claude/skills/cfn-workbench/render.sh --slug "$RUN_ID" --open --live 10 \
 | Exit | Meaning | Action |
 |------|---------|--------|
 | 0 | rate >= threshold and total > 0 | Gate PASSED. Record `pass`/`total` from the JSON. Set `PREV_TOTAL=<total>` for the next iteration's baseline. Mark todo #3 completed, go to Step 3.5 then Phase 4 |
-| 1 | rate < threshold | Gate FAILED. Run the Step 3.2 flaky re-run FIRST (a green-on-rerun failure is not real). If reds persist: ITERATION++. If ITERATION > MAX_ITERATIONS report failure and EXIT. Else reset todo #2 to pending and go back to Phase 2 with the retry context (see Iteration Context Injection) |
+| 1 | rate < threshold | Gate FAILED. Run the Step 3.2 flaky re-run FIRST (a green-on-rerun failure is not real). If reds persist: run the loop brake (below); brake exit 1 = ESCALATE (Stop For: no progress), do not iterate. Else ITERATE: ITERATION++. If ITERATION > MAX_ITERATIONS report failure and EXIT. Else reset todo #2 to pending and go back to Phase 2 with the retry context (see Iteration Context Injection) |
 | 2 | no tests detected (0/0) | Gate FAILED. Treat exactly like exit 1. 0/0 never passes |
 | 3 | suite shrank (`total < baseline`) | The test suite has fewer tests than the prior iteration. ESCALATE to the user (Stop For) UNLESS a Phase-2 implementer JSON declared a non-null `tests_removed_reason`, in which case accept the shrink, update `PREV_TOTAL`, record the reason in the report, and treat the run per its rate (exit-0/1 logic above). SHADOW: run `$HOME/.claude/skills/cfn-loop-orchestration-v2/lib/task-mode/jev-shrink-reason.sh --reason <s> --baseline <n> --total <n> --run-id <id>` before accepting (logs only, decides nothing) |
 
 The script prints `{"pass":N,"total":M,"rate":R,"passed":true|false}` (plus `baseline` and `shrunk` when `--baseline` is passed). Capture `pass` as PASS_COUNT and `total` as TOTAL_COUNT for the retry template, and carry TOTAL_COUNT forward as `PREV_TOTAL`.
+
+**Loop brake (every failed gate, after the flaky re-run).** Records which tests failed this round. Exit 1 means the same failures repeated `CFN_LOOP_BRAKE_REPEATS` times in a row (default 2: three identical rounds), so further rounds are not making progress. Escalate with its `failing` list and stop; do not spend the remaining MAX_ITERATIONS.
+
+```bash
+$HOME/.claude/skills/cfn-loop-orchestration-v2/cli/loop-brake.sh record \
+  --run-id "$RUN_ID" --iteration "$ITERATION" \
+  --test-output /tmp/test-output-${RUN_ID}.txt \
+  --pass "$PASS_COUNT" --total "$TOTAL_COUNT"
+BRAKE_EXIT=$?   # 0 = iterate, 1 = escalate (no progress), 2 = usage error: log it and iterate
+```
 
 **DO NOT proceed to Phase 4 if the gate failed. ITERATE.**
 
