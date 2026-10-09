@@ -782,6 +782,27 @@ _No curated description yet. Edit this wiki:enrich block to describe entity-temp
 _No curated description yet. Edit this wiki:enrich block to describe entity-tools._
 <!-- /wiki:enrich -->
 
+<!-- wiki:enrich id=orphan-entity-cfn-vps-job fp=orphan -->
+**Entity:** cfn-vps remote job
+
+**Source:** `.claude/skills/cfn-vps/vps.sh` (`job_state`): files under `~/.cache/cfn-vps/jobs/<name>/` on the server (`pid`, `exit`, `log`).
+
+**States:** `running` (pid alive, no exit file) · `done, exit N` (exit file written) · `lost` (no exit file, pid gone: server rebooted or process killed)
+
+| From | To | Trigger | Guard |
+| --- | --- | --- | --- |
+| (none) | running | `vps.sh job <project> <name> -- cmd` | project exists, name valid |
+| done / lost | running | same name started again | not running (else exit 5) |
+| running | done | command exits | exit code written to `exit` |
+| running | lost | server reboot or kill | no `exit` file |
+
+```
+(none) --job--> running --cmd exits--> done
+                   |                     |
+                   +--reboot/kill--> lost-+--job (same name)--> running
+```
+<!-- /wiki:enrich -->
+
 <!-- wiki:enrich id=entity-api-gateway fp=d7c568d77a3888a80e901a0b840b41cd88d2bae9b2b1ac6a4c8bb43b92d6e35d -->
 _No curated description yet. Edit this wiki:enrich block to describe entity-api-gateway._
 <!-- /wiki:enrich -->

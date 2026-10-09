@@ -328,6 +328,12 @@ These legacy notes are preserved for reconciliation; they are not current runtim
 **Description:** Opus/Sonnet migration: mechanical gates, pinned contracts, shared agent prelude, dead-ref quarantine (docs/PROMPT_AUDIT_OPUS_SONNET_MIGRATION.md). 2026-07-03 follow-up: agent-builder rewritten as template enforcer (4-section template, validation checklist, never-change-model rule); remaining 17 profiles restructured to conform; full roster now conforming. 2026-07-03 (phase 2): 5 judgment-heavy profiles pinned to opus (root-cause-analyst, goal-planner, system-architect, product-owner, simplifier) for enhanced reasoning on complex decisions
 <!-- /wiki:enrich -->
 
+<!-- wiki:enrich id=orphan-feature-18 fp=orphan -->
+**Row:** cfn-vps (remote server builds and jobs)
+
+**Description:** dev. Drives a remote server from a local session over an ssh alias (default `vps`): run in a project folder, `git pull --ff-only` that refuses dirty copies, and nohup background jobs with status/log/jobs. Ships no host details. 24 stubbed-ssh tests incl. a leak scan; live-smoked 2026-10-09.
+<!-- /wiki:enrich -->
+
 <!-- wiki:enrich id=orphan-feature-2 fp=orphan -->
 <!-- imported from readme/feature-status.md -->
 **Row:** Loop 2 (Validators)
