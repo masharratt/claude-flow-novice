@@ -328,8 +328,13 @@ main() {
   unset_raw=$(fleet_engine_get unset "$engine") || exit "$?"
   trust_keys=$(fleet_engine_get trust_keys "$engine") || exit "$?"
   banner_re=$(fleet_engine_get banner_regex "$engine") || exit "$?"
-  case "$bin" in
-    claude) trust_re="Do you trust the files in this folder" ;;
+  # The prompt text follows the engine, not the launcher: a zai-fence.sh
+  # wrapper bin runs the program named by the first word of args.
+  local bin_kind
+  bin_kind=$(basename "$bin")
+  [ "$bin_kind" = "zai-fence.sh" ] && bin_kind=$(basename "${args_str%% *}")
+  case "$bin_kind" in
+    claude) trust_re="Do you trust the files in this folder|Yes, I trust this folder" ;;
     codex)  trust_re="trust this folder|work in this folder" ;;
     *)      trust_re="" ;;
   esac

@@ -5,6 +5,28 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-10: z.ai workers are fenced to their own repo
+
+glm workers ran `claude --permission-mode bypassPermissions` with no sandbox, so a
+third-party model could read or change anything the user account could. The glm engine
+now launches through `.claude/cfn-scripts/zai-fence.sh`, which builds a per-launch
+Seatbelt profile and execs `sandbox-exec`. Allowed: the main repo root (covers worktrees,
+fleet run dirs and `.git`), Claude Code's state and caches, a per-worker temp dir.
+Refused: the rest of home and the temp roots, `~/.ssh`/`~/.aws`/`~/.gnupg`/Keychain/
+`~/.config/gh`, `.env*` and `settings.local.json` outside the fence, other projects'
+transcripts, tmux/docker/orbstack sockets, Keychain mach services, Apple Events, and
+writes to `.git/config`, `.git/hooks`, `.claude/settings*.json`, `.claude/hooks` inside
+the fence (`ZAI_FENCE_ALLOW_CONFIG=1` lifts that last group). `SSH_AUTH_SOCK`, `GH_TOKEN`,
+`GITHUB_TOKEN` are unset, so workers cannot push. Claude's own Bash sandbox is switched
+off inside (nested sandbox-exec fails); the outer fence replaces it. Any setup failure
+exits 70 instead of running unfenced. Bug found on the way: Seatbelt lets a
+`deny file-read-data` beat a later `allow file-read*`, so the first build could write its
+own files but not read them; allows now name `file-read-data`. fleet and cfn-tmux-agents
+now see through the wrapper for the folder-trust prompt and match Claude 2.1.296's new
+trust wording. The live-data hook (Airtable/Attio/Supabase/Slack) stays in gg-all-projects.
+Run dirs created before this change keep their own `engines.env` copy with the unfenced
+glm line; replace that line (or re-copy the template) before spawning glm there.
+
 ## 2026-10-08: helpers must have a chosen model, and announce it
 
 The first token report showed general-purpose helpers spawned without a model

@@ -111,7 +111,7 @@ a rule block.
 | Engine | What runs in the pane | Who pays | Banner proof (regex in registry) | Master shell needs |
 |---|---|---|---|---|
 | `claude-sub` | `claude --model sonnet --permission-mode bypassPermissions` | Claude subscription (Team/Max/Pro) | `Claude Team\|Claude Pro\|Claude Max` (e.g. "Sonnet 5 with high effort · Claude Team") | nothing (spawn unsets every relay var in the pane) |
-| `glm` | `claude --model glm-5.3-flash` pointed at z.ai | z.ai API billing | `glm-` (e.g. "glm-5.3-flash with high effort · API Usage Billing") | `export FLEET_ZAI_TOKEN=<z.ai token>` before spawn |
+| `glm` | `claude --model glm-5.3-flash` pointed at z.ai, launched through `~/.claude/cfn-scripts/zai-fence.sh` (macOS sandbox: repo root only, no keys/Keychain/push) | z.ai API billing | `glm-` (e.g. "glm-5.3-flash with high effort · API Usage Billing") | `export FLEET_ZAI_TOKEN=<z.ai token>` before spawn |
 | `codex` | `codex --sandbox workspace-write --ask-for-approval never` | ChatGPT subscription | `provider: openai\|OpenAI Codex\|Ask Codex` (codex-cli 0.153+ renders "Ask Codex"; e.g. "OpenAI Codex (v0.153.4)") | nothing (an `OPENAI_API_KEY` in the master env must be unset in the pane; spawn refuses otherwise). Codex delegation gate: spawn refuses (66) unless the target repo's CLAUDE.md carries a literal `codex=true` line |
 
 Registry: the SHARED `~/.claude/cfn-config/engines.env` (single source of

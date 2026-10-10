@@ -130,9 +130,11 @@ test_registry_seed_and_fields(){
     && [ -z "$set" ] && ok "claude-sub set field empty" || no "claude-sub set: '$set'"
 
   bin=$(fleet_engine_get bin glm 2>/dev/null) \
-    && [ "$bin" = "claude" ] && ok "glm bin" || no "glm bin: '$bin'"
+    && [ "$bin" = '$HOME/.claude/cfn-scripts/zai-fence.sh' ] \
+    && ok "glm bin is the zai-fence wrapper (z.ai workers sandboxed to their repo, 2026-10-10)" \
+    || no "glm bin: '$bin'"
   args=$(fleet_engine_get args glm 2>/dev/null) \
-    && [ "$args" = "--model glm-5.3-flash --permission-mode bypassPermissions" ] \
+    && [ "$args" = "claude --model glm-5.3-flash --permission-mode bypassPermissions" ] \
     && ok "glm args" || no "glm args: '$args'"
   set=$(fleet_engine_get set glm 2>/dev/null) \
     && [ "$set" = "ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic,ANTHROPIC_AUTH_TOKEN=\$FLEET_ZAI_TOKEN,CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1" ] \

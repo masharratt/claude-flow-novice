@@ -79,7 +79,7 @@ Exit codes: 0 ok, 64 usage, 3 tmux missing, 65 unknown engine/session,
 | Engine | Process | Billing/env posture |
 |---|---|---|
 | `claude-sub` (default; `claude` alias) | `claude --model sonnet --permission-mode bypassPermissions` | unsets all `ANTHROPIC_*` relay vars: subscription billing, never API |
-| `glm` | `claude --model glm-5.3-flash --permission-mode bypassPermissions` + z.ai base URL/token | needs a token var; unsets `ANTHROPIC_API_KEY` + data-system creds (Airtable/Attio/Postgres/Supabase) as least privilege |
+| `glm` | `zai-fence.sh claude --model glm-5.3-flash --permission-mode bypassPermissions` + z.ai base URL/token; the wrapper confines the worker to its repo root (macOS sandbox, fails closed with exit 70) | needs a token var; unsets `ANTHROPIC_API_KEY` + data-system creds (Airtable/Attio/Postgres/Supabase) as least privilege |
 | `codex` | `codex --sandbox workspace-write --ask-for-approval never` | unsets `OPENAI_API_KEY` (ChatGPT-plan billing); refuses a set key an engine would not unset; Codex delegation gate: refuses (exit 66) unless the target project's CLAUDE.md carries a literal `codex=true` line |
 
 Registry: the SHARED `~/.claude/cfn-config/engines.env`, the same single

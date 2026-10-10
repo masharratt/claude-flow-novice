@@ -334,6 +334,12 @@ These legacy notes are preserved for reconciliation; they are not current runtim
 **Description:** dev. Drives a remote server from a local session over an ssh alias (default `vps`): run in a project folder, `git pull --ff-only` that refuses dirty copies, and nohup background jobs with status/log/jobs. Ships no host details. 24 stubbed-ssh tests incl. a leak scan; live-smoked 2026-10-09.
 <!-- /wiki:enrich -->
 
+<!-- wiki:enrich id=orphan-feature-19 fp=orphan -->
+**Row:** Z.ai worker folder fence (zai-fence.sh)
+
+**Description:** dev. glm (z.ai) workers launch under a macOS sandbox-exec profile: read/write only their repo root plus Claude Code state; home, other projects, keys, Keychain, gh, tmux/docker sockets and in-repo hook/settings files are refused. Fails closed. 31 probe tests; offline TUI smoke, no live z.ai run yet.
+<!-- /wiki:enrich -->
+
 <!-- wiki:enrich id=orphan-feature-2 fp=orphan -->
 <!-- imported from readme/feature-status.md -->
 **Row:** Loop 2 (Validators)

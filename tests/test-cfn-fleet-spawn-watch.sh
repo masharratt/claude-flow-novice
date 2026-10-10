@@ -110,7 +110,7 @@ cat > "$TMP_DIR/stub-engines.sh" <<'STUB'
 # SPEC-signature stub (engines contract, planning/HANDOFF_cfn-fleet-engines.md
 # section "Design to implement 1"). Replaced by the real lib/engines.sh once
 # agent D lands it; the registry values are the handoff table verbatim.
-fleet_engine_list() { printf '%s\n' claude-sub glm codex; }
+fleet_engine_list() { printf '%s\n' claude-sub glm codex glm-fence; }
 
 _fleet_engine_field() { # FIELD ENGINE
     case "$2" in
@@ -129,6 +129,15 @@ _fleet_engine_field() { # FIELD ENGINE
             args)         printf '%s' '--model glm-5.3-flash --permission-mode bypassPermissions' ;;
             set)          printf '%s' 'ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic,ANTHROPIC_AUTH_TOKEN=$FLEET_ZAI_TOKEN,CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1' ;;
             unset)        printf '%s' 'ANTHROPIC_API_KEY,ANTHROPIC_DEFAULT_SONNET_MODEL,ANTHROPIC_DEFAULT_OPUS_MODEL,ANTHROPIC_DEFAULT_HAIKU_MODEL,ANTHROPIC_DEFAULT_FABLE_MODEL' ;;
+            trust_keys)   printf '%s' 'Down,Enter' ;;
+            banner_regex) printf '%s' 'glm-5.3-flash' ;;
+        esac ;;
+    glm-fence)
+        case "$1" in
+            bin)          printf '%s' '/fixture/home/.claude/cfn-scripts/zai-fence.sh' ;;
+            args)         printf '%s' 'claude --model glm-5.3-flash --permission-mode bypassPermissions' ;;
+            set)          : ;;
+            unset)        printf '%s' 'ANTHROPIC_API_KEY' ;;
             trust_keys)   printf '%s' 'Down,Enter' ;;
             banner_regex) printf '%s' 'glm-5.3-flash' ;;
         esac ;;
@@ -669,6 +678,46 @@ test_spawn_trust_prompt_claude() {
         "Enters: pane command + thin prompt (trust rides the Down Enter line)"
     assert_equals "1" "$(grep -ac 'and start' "$TMUX_LOG")" "thin prompt still sent after trust handling"
     assert_equals "started" "$(roster_field WS01 status)" "banner verified after the trust keys"
+}
+
+test_spawn_trust_prompt_stale_text_claude_2_1_296() {
+    # BUG stale trust text: Claude Code 2.1.296 prints "Is this a project you
+    # created or one you trust?" / "Yes, I trust this folder", not the old
+    # "Do you trust the files in this folder" the claude regex expects.
+    log_step "GIVEN claude 2.1.296 trust wording then the banner, WHEN spawn (plain claude bin)"
+    make_engine_project eng-trust-stale
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "  Is this a project you created or one you trust?  1. Yes, I trust this folder  2. No, exit"
+    capture_script 2 "Sonnet 5 with high effort | Claude Team"
+
+    run_fleet spawn WS01
+    assert_equals "0" "$FLEET_RC" "stale trust text bug: spawn exits 0"
+    assert_contains "$(tmux_calls 'send-keys -t ws01 Down Enter')" "Down Enter" \
+        "stale trust text bug: 2.1.296 prompt gets trust keys (plain claude bin)"
+}
+
+test_spawn_trust_prompt_wrapper_bin_zai_fence() {
+    # BUG wrapper bin: bin=zai-fence.sh with args "claude ..." made trust_re
+    # empty (exact-name case on bin), so the prompt was never answered.
+    log_step "GIVEN a zai-fence.sh wrapper engine and the 2.1.296 trust wording, WHEN spawn --engine glm-fence"
+    make_engine_project eng-trust-wrapper
+    # the real lib/engines.sh reads the run-dir registry (falling back to the
+    # shipped template), not the stub table: seed a run-dir copy, then add the
+    # wrapper engine to it.
+    [ -f "$RUN_DIR/engines.env" ] || cat "$SKILL_DIR/templates/engines.env" > "$RUN_DIR/engines.env"
+    printf '%s\n' \
+        'glm-fence | /fixture/home/.claude/cfn-scripts/zai-fence.sh | claude --model glm-5.3-flash --permission-mode bypassPermissions | | ANTHROPIC_API_KEY | Down,Enter | glm-5.3-flash' \
+        >> "$RUN_DIR/engines.env"
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "  Is this a project you created or one you trust?  1. Yes, I trust this folder  2. No, exit"
+    capture_script 2 "glm-5.3-flash with high effort | API Usage Billing"
+
+    run_fleet spawn WS01 --engine glm-fence
+    assert_equals "0" "$FLEET_RC" "wrapper bin bug: spawn exits 0"
+    assert_contains "$(tmux_calls 'send-keys -t ws01 Down Enter')" "Down Enter" \
+        "wrapper bin bug: zai-fence.sh wrapper sees through to claude trust regex"
 }
 
 test_spawn_trust_prompt_codex() {
@@ -1683,6 +1732,8 @@ run_all_tests() {
     test_spawn_banner_match_prompt_once_spares_silent
     test_spawn_trust_prompt_claude
     test_spawn_trust_prompt_codex
+    test_spawn_trust_prompt_stale_text_claude_2_1_296
+    test_spawn_trust_prompt_wrapper_bin_zai_fence
     test_spawn_codex_update_modal
     test_spawn_no_trust_text_sends_no_keys
     test_spawn_codex_flag_gate

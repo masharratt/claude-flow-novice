@@ -137,5 +137,33 @@ case "$OUT" in *codex=true*) ok "refusal names the gate" ;; *) bad "refusal lack
 PROJ_ROOT="$(cd "$SKILL_DIR/../../.." && pwd)"
 assert_rc 0 "codex engine with codex=true passes gate (dry-run)" "$EXE" spawn cx2 --socket "$SOCK" --engine codex --cwd "$PROJ_ROOT" --dry-run
 
+# 16. BUG stale trust text + wrapper bin: claude 2.1.296 prints "Is this a
+# project you created or one you trust?" (old regex missed it), and a wrapper
+# bin named zai-fence.sh hid the engine kind (trust_re empty). Fakes live in a
+# temp dir: engine kind = basename of bin, or of the first word of args.
+TD=$(mktemp -d)
+cat > "$TD/claude" <<'FAKE'
+#!/usr/bin/env bash
+printf '  Is this a project you created or one you trust?\n'
+printf '  1. Yes, I trust this folder\n  2. No, exit\n'
+IFS= read -r line
+printf 'AGENTS-TEST-BANNER trust-answered\n'
+exec cat
+FAKE
+cat > "$TD/zai-fence.sh" <<'FAKE'
+#!/usr/bin/env bash
+exec "$@"
+FAKE
+chmod +x "$TD/claude" "$TD/zai-fence.sh"
+OUT=$("$EXE" spawn t1 --socket "$SOCK" --bin "$TD/claude" \
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
+case "$OUT" in *trust-answered*) ok "stale trust text bug: 2.1.296 prompt answered (plain claude bin)" ;; *) bad "stale trust text bug: 2.1.296 prompt unanswered: $OUT" ;; esac
+"$EXE" kill t1 --socket "$SOCK" >/dev/null 2>&1 || true
+OUT=$("$EXE" spawn t2 --socket "$SOCK" --bin "$TD/zai-fence.sh" --args "$TD/claude" \
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
+case "$OUT" in *trust-answered*) ok "wrapper bin bug: zai-fence.sh wrapper sees through to claude trust regex" ;; *) bad "wrapper bin bug: trust prompt unanswered via zai-fence.sh: $OUT" ;; esac
+"$EXE" kill t2 --socket "$SOCK" >/dev/null 2>&1 || true
+rm -rf "$TD"
+
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]
