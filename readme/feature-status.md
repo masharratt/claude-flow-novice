@@ -304,14 +304,14 @@ These legacy notes are preserved for reconciliation; they are not current runtim
 <!-- imported from readme/feature-status.md -->
 **Row:** cfn-fleet (multi-session coordination)
 
-**Description:** Master session coordinates N worker sessions via file roster: claims, heartbeats, guarded commits, tmux spawn with banner gate and activity-gated heartbeat ticker (stale-min 5), mixed engines (claude-sub/glm/codex), watch events, live-poll dashboard. Codex needs codex=true.
+**Description:** Master session coordinates N worker sessions via file roster: claims, heartbeats, guarded commits, tmux spawn with banner gate and activity-gated heartbeat ticker (stale-min 5), mixed engines (claude-sub/glm/codex), keys via 0600 env file (never argv), watch events, live-poll dashboard. Codex needs codex=true.
 <!-- /wiki:enrich -->
 
 <!-- wiki:enrich id=orphan-feature-15 fp=orphan -->
 <!-- imported from readme/feature-status.md -->
 **Row:** cfn-tmux-agents (standalone tmux workers)
 
-**Description:** Fleet spawn/send/monitor mechanics without the roster: dedicated tmux socket, one session per agent, literal send-keys, trust/banner/401 gates, engines claude-sub/glm/codex with fleet billing guards incl. the codex delegation gate (refuses without codex=true in target CLAUDE.md). Engine registry read from the shared ~/.claude/cfn-config/engines.env (same file as cfn-fleet). status/capture/list/kill readback. 25 fake-engine tests; all three engines live-smoked 2026-09-10 (banner, prompt, reply, teardown), codex update-modal gate included.
+**Description:** Fleet spawn/send/monitor mechanics without the roster: dedicated tmux socket, one session per agent, literal send-keys, trust/banner/401 gates, engines claude-sub/glm/codex with fleet billing guards incl. the codex delegation gate (refuses without codex=true in target CLAUDE.md). Engine registry read from the shared ~/.claude/cfn-config/engines.env (same file as cfn-fleet). status/capture/list/kill readback. Engine keys reach the pane via a 0600 env file, never argv or dry-run output. 32 fake-engine tests; all three engines live-smoked 2026-09-10.
 <!-- /wiki:enrich -->
 
 <!-- wiki:enrich id=orphan-feature-16 fp=orphan -->

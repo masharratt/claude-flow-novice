@@ -30,7 +30,7 @@ source "$PROJECT_ROOT/tests/test-utils.sh"
 
 SKILL_DIR="$PROJECT_ROOT/.claude/skills/cfn-fleet"
 
-TMP_DIR=$(mktemp -d -t cfn-fleet-agentc.XXXXXX)
+TMP_DIR=$(cd "$(mktemp -d -t cfn-fleet-agentc.XXXXXX)" && pwd -P)  # macOS: /var is /private/var; spawn reports the physical path
 DOCKER_CONTAINERS=()
 cleanup() {
     local c
@@ -378,7 +378,7 @@ capture_script() { # file-number content — script the Nth capture-pane replay
 }
 
 tmux_calls() { # [pattern] — recorded stub-tmux invocation lines
-    grep -a "$1" "$TMUX_LOG" || true
+    grep -a "${1:-}" "$TMUX_LOG" || true
 }
 
 _wt_fixture() { # slug — project in worktree mode with a spawned worker that has one commit
@@ -523,7 +523,7 @@ test_spawn_dry_run_engine_plan() {
 
     run_fleet spawn WS01 --dry-run --engine glm
     assert_equals "0" "$FLEET_RC" "dry-run with --engine glm exits 0"
-    assert_contains "$FLEET_OUT" "PLAN engine WS01 engine=glm bin=claude " "engine plan names ws and bin"
+    assert_contains "$FLEET_OUT" "PLAN engine WS01 engine=glm bin=\$HOME/.claude/cfn-scripts/zai-fence.sh " "engine plan names ws and the fence wrapper bin"
     assert_contains "$FLEET_OUT" \
         "set=ANTHROPIC_BASE_URL,ANTHROPIC_AUTH_TOKEN,CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT unset=" \
         "glm set list is NAMES only"
@@ -573,8 +573,10 @@ test_spawn_roster_without_engine_column_uses_default() {
 }
 
 test_spawn_real_tmux_engine_env_and_pane_command() {
-    # Case 3: stub tmux receives -e K=V for every set-var (resolved values, via
-    # argv) and the pane command carries the unset list and exec.
+    # Case 3 + BUG key-in-argv: set-vars never ride `new-session -e` (the
+    # tmux server keeps that argv for its lifetime and every process on the
+    # Mac can read it with ps). They go in a 0600 file the pane sources and
+    # deletes before exec.
     log_step "GIVEN FLEET_ZAI_TOKEN in the master shell, WHEN spawn --engine glm"
     make_engine_project eng-glm
     echo "Glm brief" > "$RUN_DIR/briefs/WS01.md"
@@ -582,7 +584,9 @@ test_spawn_real_tmux_engine_env_and_pane_command() {
     capture_script 1 "glm-5.3-flash with high effort | API Usage Billing"
 
     export FLEET_ZAI_TOKEN=ztok_secret123
-    run_fleet spawn WS01 --engine glm
+    local envtmp="$TMP_DIR/envtmp-glm"
+    rm -rf "$envtmp"; mkdir -p "$envtmp"
+    TMPDIR="$envtmp" run_fleet spawn WS01 --engine glm
     unset FLEET_ZAI_TOKEN
 
     assert_equals "0" "$FLEET_RC" "glm spawn via stub tmux exits 0"
@@ -591,16 +595,24 @@ test_spawn_real_tmux_engine_env_and_pane_command() {
     local ns
     ns=$(tmux_calls "new-session")
     assert_contains "$ns" "-L fleet-eng-glm new-session -d -s ws01 -c $PROJ" "launch runs on the run's dedicated socket"
-    assert_contains "$ns" "-e ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic" "endpoint passed via -e"
-    assert_contains "$ns" "-e ANTHROPIC_AUTH_TOKEN=ztok_secret123" "token passed via -e, resolved from master env"
-    assert_contains "$ns" "-e CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1" "flag set-var passed via -e"
-    local sk
+    assert_contains "$(cat "$TMUX_LOG")" "new-session" "tmux log is populated (guards the next check against an empty read)"
+    assert_not_contains "$(cat "$TMUX_LOG")" "ztok_secret123" "key-in-argv bug: token on no tmux command line"
+    assert_not_contains "$ns" " -e " "key-in-argv bug: no env passed on new-session argv"
+    local sk envf
     sk=$(tmux_calls "send-keys -t ws01 -l")
+    envf=$(printf '%s' "$sk" | grep -o "\. '[^']*'" | head -1 | sed -e "s/^\. '//" -e "s/'$//")
+    assert_contains "$envf" "$envtmp/" "pane command sources an env file under TMPDIR"
+    assert_equals "600" "$(stat -c %a "$envf" 2>/dev/null || stat -f %Lp "$envf" 2>/dev/null)" "env file is owner-only (0600)"
+    assert_equals "700" "$(stat -c %a "$(dirname "$envf")" 2>/dev/null || stat -f %Lp "$(dirname "$envf")" 2>/dev/null)" "env dir is owner-only (0700)"
+    assert_contains "$(cat "$envf" 2>/dev/null)" "ANTHROPIC_AUTH_TOKEN=ztok_secret123" "token resolved from master env into the file"
+    assert_contains "$(cat "$envf" 2>/dev/null)" "ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic" "endpoint in the file"
+    assert_contains "$(cat "$envf" 2>/dev/null)" "CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1" "flag set-var in the file"
+    assert_contains "$sk" "rm -rf '$(dirname "$envf")'" "pane deletes the env file before exec"
     assert_contains "$sk" "export FLEET_RUN_DIR=$RUN_DIR" "pane command exports FLEET_RUN_DIR"
     assert_contains "$sk" \
         "unset ANTHROPIC_API_KEY ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL ANTHROPIC_DEFAULT_FABLE_MODEL" \
         "pane command unsets every relay var"
-    assert_contains "$sk" "exec claude --model glm-5.3-flash --permission-mode bypassPermissions" \
+    assert_contains "$sk" "exec \$HOME/.claude/cfn-scripts/zai-fence.sh claude --model glm-5.3-flash --permission-mode bypassPermissions" \
         "pane command execs the engine with its args"
     assert_contains "$sk" "read $RUN_DIR/briefs/WS01.md and start; coordinate only via roster files" \
         "thin prompt sent after the banner, never the brief body"
@@ -614,7 +626,7 @@ test_spawn_real_tmux_engine_env_and_pane_command() {
     assert_equals "started" "$(roster_field WS01 status)" "banner match sets started"
     assert_success "heartbeat stamped to now" test "$(roster_field WS01 heartbeat)" -gt 0
     assert_equals "glm" "$(roster_field WS01 engine)" "resolved engine written to the roster column"
-    assert_equals "0" "$(wc -l < "$ENGINE_LOG")" "engine stubs never executed locally"
+    assert_equals "0" "$(wc -l < "$ENGINE_LOG" | tr -d " ")" "engine stubs never executed locally"
     assert_equals "" "$(grep -rl ztok_secret123 "$RUN_DIR" 2>/dev/null || true)" "token never lands on disk in the run dir"
 }
 
@@ -917,7 +929,7 @@ test_spawn_missing_source_var_blocks_before_tmux() {
     assert_equals "66" "$FLEET_RC" "missing source var exits 66"
     assert_contains "$FLEET_OUT" "FLEET_ZAI_TOKEN" "refusal names the variable"
     assert_equals "pending" "$(roster_field WS01 status)" "roster stays pending"
-    assert_equals "0" "$(wc -l < "$TMUX_LOG")" "no tmux call was made"
+    assert_equals "0" "$(wc -l < "$TMUX_LOG" | tr -d " ")" "no tmux call was made"
     assert_dir_absent "$PROJ/.claude/worktrees/ws01" "no worktree created either"
 }
 
@@ -933,7 +945,9 @@ test_spawn_no_tmux_prints_var_references() {
     unset FLEET_ZAI_TOKEN
 
     assert_equals "0" "$FLEET_RC" "no-tmux spawn exits 0"
-    assert_contains "$FLEET_OUT" '-e "ANTHROPIC_AUTH_TOKEN=$FLEET_ZAI_TOKEN"' "token printed as the source-var reference"
+    assert_not_contains "$FLEET_OUT" '-e "ANTHROPIC_AUTH_TOKEN' "key-in-argv bug: pasted new-session never carries the token"
+    assert_contains "$FLEET_OUT" "read -rs ANTHROPIC_AUTH_TOKEN" "pane prompts silently for the token instead"
+    assert_contains "$FLEET_OUT" '$FLEET_ZAI_TOKEN' "printout names the source var to paste"
     assert_contains "$FLEET_OUT" '-e "ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic"' "literal values printed as-is"
     assert_contains "$FLEET_OUT" "unset ANTHROPIC_API_KEY" "pane-command line shows the unset list"
     assert_contains "$FLEET_OUT" "read $RUN_DIR/briefs/WS01.md and start" "thin prompt line printed for manual paste"
@@ -1637,19 +1651,19 @@ test_heartbeat_files_writes_and_bare_heartbeat_leaves_untouched() {
     run_fleet heartbeat WS01 --files "src/a.ts,src/b.ts"
     assert_equals "0" "$FLEET_RC" "heartbeat --files exits 0"
     assert_file_exists "$RUN_DIR/files/WS01.txt" "files/<ws>.txt written in the run dir"
-    assert_equals "2" "$(wc -l < "$RUN_DIR/files/WS01.txt")" "exactly two lines"
+    assert_equals "2" "$(wc -l < "$RUN_DIR/files/WS01.txt" | tr -d " ")" "exactly two lines"
     assert_equals "src/a.ts" "$(sed -n 1p "$RUN_DIR/files/WS01.txt")" "first path on line 1"
     assert_equals "src/b.ts" "$(sed -n 2p "$RUN_DIR/files/WS01.txt")" "second path on line 2"
 
     log_step "GIVEN the existing files/<ws>.txt, WHEN heartbeat without --files"
     local before_content before_mtime
     before_content=$(cat "$RUN_DIR/files/WS01.txt")
-    before_mtime=$(stat -c %Y "$RUN_DIR/files/WS01.txt")
+    before_mtime=$(stat -c %Y "$RUN_DIR/files/WS01.txt" 2>/dev/null || stat -f %m "$RUN_DIR/files/WS01.txt")
     sleep 1
     run_fleet heartbeat WS01 "still on it"
     assert_equals "0" "$FLEET_RC" "bare heartbeat exits 0"
     assert_equals "$before_content" "$(cat "$RUN_DIR/files/WS01.txt")" "content untouched without --files"
-    assert_equals "$before_mtime" "$(stat -c %Y "$RUN_DIR/files/WS01.txt")" "mtime untouched without --files"
+    assert_equals "$before_mtime" "$(stat -c %Y "$RUN_DIR/files/WS01.txt" 2>/dev/null || stat -f %m "$RUN_DIR/files/WS01.txt")" "mtime untouched without --files"
 }
 
 test_heartbeat_files_empty_value_truncates() {
@@ -1673,7 +1687,7 @@ test_heartbeat_files_caps_at_20_paths() {
 
     run_fleet heartbeat WS01 --files "$list"
     assert_equals "0" "$FLEET_RC" "heartbeat with 25 paths exits 0"
-    assert_equals "20" "$(wc -l < "$RUN_DIR/files/WS01.txt")" "capped at 20 lines"
+    assert_equals "20" "$(wc -l < "$RUN_DIR/files/WS01.txt" | tr -d " ")" "capped at 20 lines"
     assert_equals "src/f20.ts" "$(tail -n 1 "$RUN_DIR/files/WS01.txt")" "cap keeps the first 20 paths"
 }
 

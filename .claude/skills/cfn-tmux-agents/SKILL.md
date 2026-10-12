@@ -28,7 +28,7 @@ run-dir, worktrees, claims, or land flow. If you need commit isolation or
 workstream coordination in one repo, use cfn-fleet instead.
 
 What it keeps from fleet (all measured there):
-- per-session env isolation via `tmux new-session -e` (values never touch disk)
+- per-session env via a 0600 file the pane sources and deletes before `exec` (`.claude/cfn-scripts/spawn-env.sh`); never `new-session -e`, whose values stay in the tmux server's argv where `ps` shows them to every process. `--dry-run` never prints a secret value
 - folder-trust gate, banner gate, post-first-request 401 auth probe
 - billing guards: claude workers strip `ANTHROPIC_*` relay vars (subscription
   billing), codex refuses a set `OPENAI_API_KEY` not covered by its unset list

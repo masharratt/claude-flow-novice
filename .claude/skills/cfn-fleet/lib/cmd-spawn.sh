@@ -20,8 +20,9 @@
 #      ~/.codex/auth.json auth_mode != chatgpt), claude-sub armed ANTHROPIC_*
 #      keys in the target repo's .claude/settings*.json (warn, file:line),
 #      dirty tmux server global env (warn + set-environment -gu suggestion)
-#   4. tmux -L <socket> new-session -d -s <name> -c <cwd> -e K=V ... for every
-#      set-var; values reach tmux via argv, never disk
+#   4. tmux -L <socket> new-session -d -s <name> -c <cwd>, no -e: set-var
+#      values go in a 0600 env file the pane sources and deletes (spawn-env.sh),
+#      never argv (the tmux server keeps its argv, readable by every process)
 #   5. first pane command, one line: export FLEET_RUN_DIR=<run dir>;
 #      unset <unset list>; exec <bin> <args>  (exec so the pane dies with the
 #      engine and `tmux has-session` sees it). The activity-gated heartbeat
@@ -69,6 +70,11 @@ fi
 # shellcheck source=heartbeat-ticker.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/heartbeat-ticker.sh"
 
+# spawn-env.sh: engine env reaches the pane through a 0600 file, never argv
+# (shared with cfn-tmux-agents; the file explains the leak it closes).
+# shellcheck source=../../../cfn-scripts/spawn-env.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../cfn-scripts" && pwd)/spawn-env.sh"
+
 # _spawn_socket — dedicated tmux socket for this run; delegates to the shared
 # helper in lib/common.sh (same logic for watch, dashboard, and spawn).
 _fleet_spawn_socket(){
@@ -93,19 +99,6 @@ _fleet_set_names(){
     out+="${out:+,}${item%%=*}"
   done < <(printf '%s' "$1" | tr ',' '\n')
   printf '%s\n' "$out"
-}
-
-# _fleet_no_tmux_set_flags RAW_COMMA_LIST — the ` -e "K=V"` suffix for the
-# --no-tmux printout. Items are printed verbatim, so $SOURCE_VAR references
-# stay unexpanded and the printed command is safe to paste into a ledger.
-_fleet_no_tmux_set_flags(){
-  local item out=""
-  [ -n "$1" ] || return 0
-  while IFS= read -r item || [ -n "$item" ]; do
-    [ -n "$item" ] || continue
-    out+=" -e \"$item\""
-  done < <(printf '%s' "$1" | tr ',' '\n')
-  printf '%s' "$out"
 }
 
 # _fleet_pane_wait SOCK TARGET REGEX TIMEOUT_S — poll capture-pane until a
@@ -192,8 +185,9 @@ _fleet_tmux_server_warn(){
 }
 
 # _spawn_launch_one SOCK SNAME SESSION_CWD PANE_CMD TRUST_RE TRUST_KEYS
-# TRUST_TIMEOUT BANNER_RE BANNER_TIMEOUT — new-session (env from the global
-# _SPAWN_SET_ARGS array), pane command, trust poll, banner poll. Echoes the
+# TRUST_TIMEOUT BANNER_RE BANNER_TIMEOUT — new-session, pane command (its
+# @@SPAWN_ENV@@ marker becomes a per-session env-file prefix built from the
+# global _SPAWN_SET_LINES), trust poll, banner poll. Echoes the
 # matching banner line, rc 0. On failure prints the diagnostics to stderr and
 # returns 1 — the caller owns the fleet_die, because a die inside this
 # function could not abort the caller's command substitution under a
@@ -203,13 +197,21 @@ _spawn_launch_one(){
   local trust_keys="$6" trust_timeout="$7" banner_re="$8" banner_timeout="$9"
   local banner_line
 
-  if ! tmux -L "$sock" new-session -d -s "$sname" -c "$session_cwd" \
-      ${_SPAWN_SET_ARGS[@]+"${_SPAWN_SET_ARGS[@]}"}; then
+  # One env file per session: the pane deletes it on first source, so a
+  # spare cannot reuse the main session's.
+  if ! cfn_spawn_env_write "${_SPAWN_SET_LINES:-}"; then
+    echo "fleet: spawn: could not write the private env file for $sname" >&2
+    return 1
+  fi
+  pane_cmd="${pane_cmd/@@SPAWN_ENV@@/"$CFN_SPAWN_ENV_PREFIX"}"
+  if ! tmux -L "$sock" new-session -d -s "$sname" -c "$session_cwd"; then
     echo "fleet: spawn: tmux new-session failed for $sname (duplicate session? socket: $sock)" >&2
+    [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
     return 1
   fi
   if ! tmux -L "$sock" send-keys -t "$sname" -l "$pane_cmd"; then
     echo "fleet: spawn: could not reach pane $sname (session died?)" >&2
+    [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
     return 1
   fi
   tmux -L "$sock" send-keys -t "$sname" Enter
@@ -378,14 +380,9 @@ main() {
   # touches tmux or the worktree (engines.sh names the missing var). The
   # explicit `|| exit` is load-bearing: a fleet_die inside the substitution
   # cannot abort this shell when errexit is suppressed by the caller.
-  local -a _SPAWN_SET_ARGS=()
+  local _SPAWN_SET_LINES=""
   if [ "$no_tmux" -eq 0 ]; then
-    local resolved sv
-    resolved=$(fleet_engine_resolve_set "$engine") || exit "$?"
-    while IFS= read -r sv; do
-      [ -n "$sv" ] || continue
-      _SPAWN_SET_ARGS+=(-e "$sv")
-    done <<< "$resolved"
+    _SPAWN_SET_LINES=$(fleet_engine_resolve_set "$engine") || exit "$?"
   fi
 
   if [ "$worktree" -eq 1 ]; then
@@ -399,7 +396,7 @@ main() {
   fi
 
   # The pane command: one line, exec so the pane dies with the engine.
-  local pane_cmd="export FLEET_RUN_DIR=$run_dir"
+  local pane_cmd="@@SPAWN_ENV@@export FLEET_RUN_DIR=$run_dir"
   [ -n "$unset_raw" ] && pane_cmd+="; unset ${unset_raw//,/ }"
   pane_cmd+="; exec $bin${args_str:+ $args_str}"
 
@@ -410,9 +407,13 @@ main() {
   sock=$(_fleet_spawn_socket)
 
   if [ "$no_tmux" -eq 1 ]; then
-    # Print the exact lines to paste; values stay as $SOURCE_VAR references.
+    # Print the exact lines to paste. Literal values may ride -e; secret
+    # ($SOURCE_VAR) values never print and never go on argv: the pane reads
+    # them with a silent prompt.
     local line set_flags
-    set_flags=$(_fleet_no_tmux_set_flags "$set_raw")
+    set_flags=$(cfn_spawn_env_literal_flags "$set_raw")
+    pane_cmd="${pane_cmd/@@SPAWN_ENV@@/"$(cfn_spawn_env_secret_prompt "$set_raw")"}"
+    cfn_spawn_env_secret_notes "$set_raw"
     line="tmux -L $sock new-session -d -s $name -c $session_cwd$set_flags"
     echo "$line"
     echo "tmux -L $sock send-keys -t $name -l \"$pane_cmd\""

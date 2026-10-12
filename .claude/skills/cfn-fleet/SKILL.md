@@ -120,8 +120,11 @@ it), copied into the run dir by `fleet init` (`engines.env`) where per-run
 tuning happens. One line per engine, 7 ` | `-separated fields: name, bin, args,
 set (NAME=$SOURCE_VAR or NAME=literal), unset, trust_keys, banner_regex. It
 stores variable NAMES and non-secret flags only; `$SOURCE_VAR` references are
-resolved from the master shell at spawn time and credential values reach tmux
-via argv (`-e K=V`), never the run dir, so `planning/fleet-*` stays committable
+resolved from the master shell at spawn time and reach the pane through a 0600
+file in a private temp dir that the pane sources and deletes before `exec`
+(`.claude/cfn-scripts/spawn-env.sh`). Never argv: `new-session -e` values sit
+in the tmux server's argv for its lifetime, readable by any process via `ps`.
+Never the run dir either, so `planning/fleet-*` stays committable
 and `grep -r <token> planning/fleet-*` finds nothing. Missing or empty source
 var: spawn exits 66 naming the variable (e.g. `FLEET_ZAI_TOKEN`).
 
@@ -129,8 +132,10 @@ Spawn order per pane, all on the run's dedicated tmux socket
 (`FLEET_TMUX_SOCKET` in fleet.env, default `fleet-<slug>`; kill a whole run
 with `tmux -L fleet-<slug> kill-server`):
 
-1. `new-session -e K=V` for every set-var, then one pane command:
-   `export FLEET_RUN_DIR=<run dir>; unset <unset list>; exec <bin> <args>`.
+1. `new-session` (no `-e`), then one pane command:
+   `{ . <env file> && rm -rf <its dir>; } || exit 1; export FLEET_RUN_DIR=<run dir>; unset <unset list>; exec <bin> <args>`.
+   `--no-tmux` prints literal set-vars as `-e` and a silent `read -rs` prompt
+   for each `$SOURCE_VAR` one; the key itself is never printed.
    The `exec` makes the pane die with the engine, which is what `fleet watch`'s
    `DEAD <ws> (pane exited)` detects. When the heartbeat ticker is enabled, a
    backgrounded sidecar loop sourcing `lib/heartbeat-ticker.sh` is spliced in
@@ -359,7 +364,7 @@ the tmux launch. Repair a stray row with `sed -i $'/^WS0N\t/d' <old roster>`, th
 ### 2. The pane inherits whatever the tmux server carries, so spawn verifies the banner
 
 Current behaviour: `fleet spawn` starts the pane on the run's dedicated socket
-with the engine's set-vars passed via `-e K=V`, sends one pane command that
+with the engine's set-vars in a private env file (never argv), sends one pane command that
 unsets every relay var the engine names and then `exec`s the engine, waits for
 the engine's banner (see the Engines section), and only after a banner match
 does it send the thin one-line prompt pointing at the brief path. `--no-tmux`

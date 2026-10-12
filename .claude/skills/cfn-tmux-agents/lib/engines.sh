@@ -43,8 +43,8 @@ _ta_engine_list() {
 }
 
 # _ta_engine_resolve_set ENGINE — resolve the set field's NAME=$SOURCE_VAR
-# entries against the master shell env NOW (values never touch disk), one
-# K=V per line for tmux new-session -e. Dies 66 naming the missing var.
+# entries against the master shell env NOW, one
+# K=V per line for the pane env file (spawn-env.sh). Dies 66 naming the missing var.
 _ta_engine_resolve_set() {
   local engine="$1" raw sv name ref
   raw=$(_ta_engine_field "$engine" 4) || return 1

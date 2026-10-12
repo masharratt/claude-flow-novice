@@ -17,6 +17,7 @@ PASS=0 FAIL=0 TOTAL=0
 
 cleanup() {
   tmux -L "$SOCK" kill-server 2>/dev/null || true
+  tmux -L "$SOCK-k" kill-server 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -163,6 +164,34 @@ OUT=$("$EXE" spawn t2 --socket "$SOCK" --bin "$TD/zai-fence.sh" --args "$TD/clau
   --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
 case "$OUT" in *trust-answered*) ok "wrapper bin bug: zai-fence.sh wrapper sees through to claude trust regex" ;; *) bad "wrapper bin bug: trust prompt unanswered via zai-fence.sh: $OUT" ;; esac
 "$EXE" kill t2 --socket "$SOCK" >/dev/null 2>&1 || true
+rm -rf "$TD"
+
+# 17. BUG key-in-argv: set-vars rode `tmux new-session -e K=V`, so the z.ai
+# key sat in the tmux server's argv for its lifetime, readable by every
+# process via ps; --dry-run printed the resolved key. Now: 0600 env file the
+# pane sources and deletes; dry-run prints a silent read prompt instead.
+TD=$(mktemp -d)
+SENT="zai-sentinel-$$-$RANDOM"
+printf '%s\n' "$SENT" > "$TD/needle"
+cat > "$TD/envdump" <<'FAKE'
+#!/usr/bin/env bash
+case "${ANTHROPIC_AUTH_TOKEN:-}" in zai-sentinel-*) t=tok-ok ;; *) t=tok-missing ;; esac
+printf 'AGENTS-TEST-BANNER %s\n' "$t"
+exec cat
+FAKE
+chmod +x "$TD/envdump"
+mkdir -p "$TD/tmp"
+OUT=$(TMPDIR="$TD/tmp" FLEET_ZAI_TOKEN="$SENT" "$EXE" spawn k1 --socket "$SOCK-k" --engine glm --bin "$TD/envdump" \
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
+case "$OUT" in *tok-ok*) ok "key reaches the engine env" ;; *) bad "key missing in engine env: $OUT" ;; esac
+# capture first: `ps | grep -q` under pipefail SIGPIPEs ps and reads as "absent"
+PSOUT=$(ps -axww -o command=)
+case "$PSOUT" in *"$SENT"*) bad "key-in-argv bug: key visible in ps" ;; *k1*) ok "key-in-argv bug: key not in any process argv" ;; *) bad "ps saw no k1 session, check examined nothing" ;; esac
+if grep -rqF -f "$TD/needle" "$TD/tmp" 2>/dev/null; then bad "env file left on disk after launch"; else ok "env file deleted after launch"; fi
+tmux -L "$SOCK-k" kill-server 2>/dev/null || true
+OUT=$(FLEET_ZAI_TOKEN="$SENT" "$EXE" spawn k2 --socket "$SOCK" --engine glm --cwd /tmp --dry-run 2>&1) || true
+case "$OUT" in *"$SENT"*) bad "dry-run printed the key" ;; *) ok "dry-run never prints the key" ;; esac
+case "$OUT" in *"read -rs ANTHROPIC_AUTH_TOKEN"*) ok "dry-run pane prompts silently for the key" ;; *) bad "dry-run lacks silent key prompt: $OUT" ;; esac
 rm -rf "$TD"
 
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="

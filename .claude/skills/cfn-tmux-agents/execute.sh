@@ -13,6 +13,10 @@ SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SKILL_DIR/lib/common.sh"
 # shellcheck source=lib/engines.sh
 . "$SKILL_DIR/lib/engines.sh"
+# spawn-env.sh: engine env reaches the pane through a 0600 file, never argv
+# (shared with cfn-fleet; the file explains the leak it closes).
+# shellcheck source=../../cfn-scripts/spawn-env.sh
+. "$(cd "$SKILL_DIR/../../cfn-scripts" && pwd)/spawn-env.sh"
 
 TA_SOCK=""
 
@@ -147,12 +151,10 @@ cmd_spawn() {
   [ "$engine" = "claude-sub" ] && _ta_claude_repo_settings_warn "$cwd"
 
   _ta_zai_token_prefill
-  local -a set_args=() resolved sv
+  # Resolve now so a missing token still exits 66 before any side effect.
+  local resolved set_raw
   resolved=$(_ta_engine_resolve_set "$engine") || exit "$?"
-  while IFS= read -r sv; do
-    [ -n "$sv" ] || continue
-    set_args+=(-e "$sv")
-  done <<< "$resolved"
+  set_raw=$(_ta_engine_field "$engine" 4)
 
   # The pane command: one literal line, exec so the pane dies with the engine.
   local pane_cmd="unset ${unset_raw//,/ }; exec $bin${args_str:+ $args_str}"
@@ -161,9 +163,11 @@ cmd_spawn() {
   [ -n "$banner_timeout" ] || banner_timeout=$(_ta_env_seconds TMUX_AGENTS_BANNER_TIMEOUT 20)
 
   if [ "$dry_run" = 1 ]; then
-    local set_str="${set_args[*]}"
-    echo "tmux -L $TA_SOCK new-session -d -s $name -c $cwd${set_str:+ $set_str}"
-    echo "tmux -L $TA_SOCK send-keys -t $name -l \"$pane_cmd\""
+    # Literal values may ride -e; secret ($SOURCE_VAR) values never print:
+    # the pane reads them with a silent prompt.
+    cfn_spawn_env_secret_notes "$set_raw"
+    echo "tmux -L $TA_SOCK new-session -d -s $name -c $cwd$(cfn_spawn_env_literal_flags "$set_raw")"
+    echo "tmux -L $TA_SOCK send-keys -t $name -l \"$(cfn_spawn_env_secret_prompt "$set_raw")$pane_cmd\""
     echo "tmux -L $TA_SOCK send-keys -t $name Enter"
     [ -n "$trust_re" ] && echo "# if the trust prompt appears: tmux -L $TA_SOCK send-keys -t $name ${trust_keys//,/ }"
     echo "# after the banner shows (/$banner_re/):"
@@ -175,11 +179,13 @@ cmd_spawn() {
   command -v tmux >/dev/null 2>&1 || _ta_die 3 "spawn: tmux not available (use --dry-run for copy-paste commands)"
   _ta_tmux_server_warn "$TA_SOCK"
 
-  if ! tmux -L "$TA_SOCK" new-session -d -s "$name" -c "$cwd" \
-      ${set_args[@]+"${set_args[@]}"}; then
+  cfn_spawn_env_write "$resolved" || _ta_die 66 "spawn: could not write the private env file for $name"
+  if ! tmux -L "$TA_SOCK" new-session -d -s "$name" -c "$cwd"; then
+    [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
     _ta_die 66 "spawn: tmux new-session failed for $name (duplicate session name? socket: $TA_SOCK)"
   fi
-  if ! tmux -L "$TA_SOCK" send-keys -t "$name" -l "$pane_cmd"; then
+  if ! tmux -L "$TA_SOCK" send-keys -t "$name" -l "$CFN_SPAWN_ENV_PREFIX$pane_cmd"; then
+    [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
     _ta_die 66 "spawn: could not reach pane $name (session died at launch?)"
   fi
   tmux -L "$TA_SOCK" send-keys -t "$name" Enter

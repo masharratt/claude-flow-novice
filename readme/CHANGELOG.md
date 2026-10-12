@@ -5,6 +5,27 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-11: z.ai key no longer readable by every process
+
+Reported by the MDTWII fleet master session. `cfn-fleet` and `cfn-tmux-agents` passed engine
+set-vars as `tmux new-session -e K=V`. When that client starts the tmux server, the server
+keeps the client's argv for its whole life, so `ps -axww` showed the full z.ai key to every
+process and user on the Mac. `cfn-tmux-agents --dry-run` also printed the resolved key.
+
+- New shared helper `.claude/cfn-scripts/spawn-env.sh`: resolved set-vars go in a 0600 file
+  inside a fresh 0700 temp dir; the pane runs `{ . file && rm -rf dir; } || exit 1` before
+  `exec`. One file per session (spares get their own). Fails closed.
+- `--no-tmux` / `--dry-run` print literal set-vars as `-e` and a silent `read -rs` prompt for
+  each `$SOURCE_VAR` one; secret values are never printed.
+- Regression tests: fleet asserts no tmux argv carries the token and the env file is 0600;
+  tmux-agents starts a real tmux server with a sentinel key and asserts `ps` never shows it.
+- Residual: the key still lives in the worker's environment, which other processes running as
+  the same user can read. Rotating the key that leaked is a user action.
+- Test hygiene found on the way: two hollow checks (`ps | grep -q` under pipefail; a log
+  helper failing on an unset `$1`) reported green while the leak was live; the fleet
+  spawn-watch suite now runs on macOS (`/private/var` paths, BSD `wc`/`stat`), which exposed
+  two glm assertions left stale by the 2026-10-10 fence commit.
+
 ## 2026-10-10: z.ai workers are fenced to their own repo
 
 glm workers ran `claude --permission-mode bypassPermissions` with no sandbox, so a
