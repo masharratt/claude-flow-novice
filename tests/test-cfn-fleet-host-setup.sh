@@ -124,6 +124,18 @@ out=$(STUB_SSH_FAIL=1 run vps --check); rc=$?
 check "unreachable exits 71" "$rc" 71
 contains "says cannot reach" "$out" "cannot reach"
 
+echo "test_host_setup_from_linked_worktree_uses_main_repo_name"
+# Live-test bug (2026-10-13, MDTWII): run from a linked worktree, host-setup
+# named the project after the worktree folder (expected git/hosttest.git).
+git -C "$MAC" worktree add -q -b wtbranch "$TMP_DIR/wtname" >/dev/null 2>&1
+out=$(cd "$TMP_DIR/wtname" && "$FLEET" host-setup vps 2>&1); rc=$?
+check "linked worktree setup exits 0" "$rc" 0
+lacks "no worktree-named remote" "$out" "wtname.git"
+[ -d "$FAKE_HOME/git/proj.git" ] && ok "bare repo named after main repo" || no "bare repo named after main repo"
+[ ! -e "$FAKE_HOME/git/wtname.git" ] && ok "no worktree-named bare repo" || no "no worktree-named bare repo"
+check "fleet_project_name from worktree" \
+  "$(cd "$TMP_DIR/wtname" && bash -c 'source "$1"; fleet_project_name "$PWD"' _ "$PROJECT_ROOT/.claude/skills/cfn-fleet/lib/common.sh")" proj
+
 echo
 echo "passed=$PASS failed=$FAIL"
 [ "$FAIL" -eq 0 ]

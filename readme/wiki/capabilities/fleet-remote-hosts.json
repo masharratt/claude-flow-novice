@@ -1,0 +1,54 @@
+{
+  "id": "fleet-remote-hosts",
+  "fid": "fleet-remote-hosts",
+  "name": "Fleet workers on a remote host",
+  "status": "dev",
+  "status_reason": "Stub-ssh suites pass (host, host-setup, spawn-host, sync, land-remote, remote-worker). One live run on the VPS 2026-10-13: setup, spawn, worker commit+push and 4 reports worked; spawn hung after the banner and land was not exercised live.",
+  "description": "fleet spawn --host runs a worker on a server over ssh. The Mac roster stays authoritative: the worker writes reports to a server outbox, fleet sync/watch pulls them, land refuses diffs outside claims. host-setup makes a bare repo and separate fleet clone.",
+  "purpose": "Run fleet lanes on a server (own CPU, optionally its own Claude account) without giving the server any key into the Mac: all connections go Mac to server.",
+  "reviewed_at": "2026-10-13",
+  "dependencies": [
+    "fleet-roster"
+  ],
+  "sources": [
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
+      "line": 518,
+      "claim": "_spawn_remote: preflight, base push, remote worktree, kit ship and launch; cleans up on failure",
+      "sha256": "67292a61b8c5f58845e5d15b9b85fbbfda539a4fdd6800fb5154afe3aa6e9837"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/host.sh",
+      "line": 48,
+      "claim": "_fleet_pane_state reports alive, dead or unreachable; an ssh failure is never dead",
+      "sha256": "e9b5b59ba6779060fddee095a7824ffd1fbbd3681bc52a0d532aac5913094309"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-land.sh",
+      "line": 38,
+      "claim": "remote_land fetches the worker branch and refuses any diff outside the row's claims",
+      "sha256": "ec2f17e0f08368f0aec077e3fcba3fce2e9d5ee3468bfec8f0d809d54346788e"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-host-setup.sh",
+      "line": 129,
+      "claim": "host-setup creates ~/git/<name>.git and ~/fleet-repos/<name>, never touching existing server checkouts",
+      "sha256": "6727918afd1524989041e299a903e80bccc3f9d2fb0f427803b756a1cef53c93"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/common.sh",
+      "line": 207,
+      "claim": "fleet_project_name names the project after the main checkout, also from a linked worktree",
+      "sha256": "805ba4ca3378cc4bcc5489089f0f89aa03067ea19981f5d2ee9dab5936ace4c9"
+    }
+  ],
+  "evidence": [],
+  "domains": [
+    "session-coordination"
+  ],
+  "unknowns": [
+    "spawn --host did not exit after the banner in the first live run (killed by a 240s timeout); cause not traced",
+    "land for a host row has only run against stub ssh",
+    "Claude's Bash sandbox fails on the VPS (bwrap loopback RTM_NEWADDR), so workers there run commands unsandboxed"
+  ]
+}

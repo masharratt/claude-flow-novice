@@ -122,9 +122,11 @@ _fleet_set_names(){
 # _fleet_pane_wait SOCK TARGET REGEX TIMEOUT_S — poll capture-pane until a
 # line matches REGEX; echo the (right-trimmed) line, rc 1 on timeout.
 _fleet_pane_wait(){
-  local sock="$1" tgt="$2" re="$3" timeout="$4" i=0 line
-  local max=$((timeout * 5))
-  while [ "$i" -lt "$max" ]; do
+  # Deadline on the clock, not a round count: over ssh one capture is a
+  # round trip, and timeout*5 rounds ran for minutes (MDTWII, 2026-10-13).
+  local sock="$1" tgt="$2" re="$3" timeout="$4" line
+  local deadline=$((SECONDS + timeout))
+  while [ "$SECONDS" -lt "$deadline" ]; do
     line=$(_spawn_tmux -L "$sock" capture-pane -p -t "$tgt" 2>/dev/null \
       | sed -e 's/\r$//' -e 's/[[:space:]]*$//' -e '/^$/d' \
       | grep -v -E -- 'exec (claude|codex)|--model |send-keys|cfn-spawn-launch' \
@@ -135,7 +137,6 @@ _fleet_pane_wait(){
       return 0
     fi
     sleep 0.2
-    i=$((i + 1))
   done
   return 1
 }
@@ -519,7 +520,7 @@ _spawn_remote(){
   local ws="$1" name="$2" host="$3" engine="$4" bin="$5" args_str="$6" unset_raw="$7"
   local trust_re="$8" trust_keys="$9" banner_re="${10}" repo="${11}" run_dir="${12}" brief="${13}"
   local project run lc sock gitremote home clone bare wt ob rc=0 out line
-  project=$(basename "$repo")
+  project=$(fleet_project_name "$repo")
   run=$(basename "$run_dir")
   lc=$(printf '%s' "$ws" | tr '[:upper:]' '[:lower:]')
   [[ "$project" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$run" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] \
@@ -758,7 +759,7 @@ main() {
 
   if [ "$dry_run" -eq 1 ] && [ -n "$host" ]; then
     local pj rn gr
-    pj=$(basename "$repo"); rn=$(basename "$run_dir")
+    pj=$(fleet_project_name "$repo"); rn=$(basename "$run_dir")
     gr=$(fleet_env_get FLEET_HOST_REMOTE); gr="${gr:-$host}"
     echo "PLAN spawn $ws name=$name cwd=~/fleet-repos/$pj-wt/${ws,,} brief=$brief"
     echo "PLAN engine $ws engine=$engine bin=$bin set=$(_fleet_set_names "$set_raw") unset=$(_fleet_set_names "$unset_raw")"

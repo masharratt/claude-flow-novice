@@ -103,7 +103,7 @@ host_setup() { # host_setup ALIAS [--check]
   local top project want have
   top=$(git rev-parse --show-toplevel 2>/dev/null) \
     || fleet_die 65 "host-setup must run inside the project's git repo"
-  project=$(basename "$top")
+  project=$(fleet_project_name "$top")
   [[ "$project" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] \
     || fleet_die 65 "project name '$project' has characters unsafe for a server path"
   want="$alias:git/$project.git"

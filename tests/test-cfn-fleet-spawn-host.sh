@@ -478,6 +478,30 @@ test_spawn_host_warns_on_cfn_commit_drift() {
     assert_contains "$FLEET_OUT" "differs from this machine" "drift warned about"
 }
 
+test_pane_wait_honours_seconds_over_slow_ssh() {
+    log_step "GIVEN each pane read takes 1s (ssh round trip), THEN a 2s wait ends in seconds, not timeout*5 reads"
+    # Live-run bug (MDTWII smoke test, 2026-10-13): spawn --host printed
+    # "spawned" then hung for minutes. _fleet_pane_wait counted timeout*5
+    # loop rounds; over ssh each round is a slow capture, so the 12s auth
+    # check ran for 60+ ssh round trips.
+    local d start elapsed
+    d=$(mktemp -d "${TMPDIR:-/tmp}/panewait.XXXXXX")
+    printf '#!/bin/sh\nsleep 1\necho nothing here\n' > "$d/tmux"; chmod +x "$d/tmux"
+    start=$(date +%s)
+    ( PATH="$d:$PATH"
+      source "$SKILL_DIR/lib/common.sh"
+      source "$SKILL_DIR/lib/cmd-spawn.sh"
+      _fleet_pane_wait sock sess 'never-matches' 2 >/dev/null ) && :
+    elapsed=$(( $(date +%s) - start ))
+    rm -rf "$d"
+    if [ "$elapsed" -le 5 ]; then
+        log_success "slow-read wait ended in ${elapsed}s"; TEST_PASSED=$((TEST_PASSED + 1))
+    else
+        log_error "slow-read wait took ${elapsed}s for a 2s timeout"; TEST_FAILED=$((TEST_FAILED + 1))
+    fi
+    TEST_TOTAL=$((TEST_TOTAL + 1))
+}
+
 run_all_tests() {
     TEST_LOG="${TMPDIR:-/tmp}/cfn-fleet-spawn-host-$(date +%s).log"
     export TEST_LOG
@@ -497,6 +521,7 @@ run_all_tests() {
     test_spawn_host_refuses_live_session_name
     test_spawn_host_roster_host_column_routes_respawn
     test_spawn_host_warns_on_cfn_commit_drift
+    test_pane_wait_honours_seconds_over_slow_ssh
 
     print_test_summary
 }

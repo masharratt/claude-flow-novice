@@ -75,6 +75,9 @@ main() {
     local run_dir="" run_dir_rel=""
     run_dir=$(fleet_run_dir 2>/dev/null || true)
     if [ -n "$run_dir" ]; then
+        # git reports the physical toplevel; resolve symlinks (macOS /var ->
+        # /private/var) so the prefix match below holds.
+        run_dir=$(cd "$run_dir" && pwd -P)
         # shellcheck disable=SC2053
         [[ "$run_dir/" == "$toplevel/"* ]] && run_dir_rel="${run_dir#"$toplevel"/}"
     fi

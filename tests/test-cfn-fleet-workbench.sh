@@ -82,7 +82,7 @@ test_baseline_scan_writes_runplan_and_loop_started() {
 
     assert_equals "0" "$RC" "baseline scan exits 0"
     assert_not_contains "$WATCH_OUT" "CHANGE" "baseline scan emits no CHANGE lines"
-    assert_equals "1" "$(wc -l < "$EMIT_LOG")" "exactly one event (loop_started)"
+    assert_equals "1" "$(wc -l < "$EMIT_LOG" | tr -d " ")" "exactly one event (loop_started)"
     assert_contains "$(cat "$EMIT_LOG")" "fleet-wbr1|loop_started||fleet run" "loop_started with run-dir slug"
 
     local plan="$RUN_DIR/run-plan-fleet-wbr1.json"
@@ -111,7 +111,7 @@ test_status_transitions_emit_lane_events() {
     assert_contains "$(cat "$EMIT_LOG")" "fleet-wbr2|lane_landed|ws-auth|" "landed -> lane_landed"
 
     assert_equals "1" "$(grep -c "loop_started" "$EMIT_LOG")" "loop_started emitted once across scans"
-    assert_equals "3" "$(wc -l < "$EMIT_LOG")" "exactly loop_started + lane_spawned + lane_landed, nothing else"
+    assert_equals "3" "$(wc -l < "$EMIT_LOG" | tr -d " ")" "exactly loop_started + lane_spawned + lane_landed, nothing else"
 }
 
 test_all_done_emits_loop_finished_exits_zero() {
@@ -142,7 +142,7 @@ test_emit_events_is_opt_in() {
 
     run_watch --once
 
-    assert_equals "0" "$(wc -l < "$EMIT_LOG")" "no events without the flag"
+    assert_equals "0" "$(wc -l < "$EMIT_LOG" | tr -d " ")" "no events without the flag"
     [ ! -f "$RUN_DIR/run-plan-fleet-wbr4.json" ]
     assert_success "no run-plan without the flag"
 }
@@ -155,7 +155,7 @@ test_missing_emitter_never_fails_watch() {
     FLEET_WB_EMIT_EVENT="$TEST_TMP/does-not-exist.sh" run_watch --once --emit-events
 
     assert_equals "0" "$RC" "watch survives absent emitter (|| true contract)"
-    assert_equals "0" "$(wc -l < "$EMIT_LOG")" "nothing emitted"
+    assert_equals "0" "$(wc -l < "$EMIT_LOG" | tr -d " ")" "nothing emitted"
 }
 
 test_baseline_scan_writes_runplan_and_loop_started

@@ -48,7 +48,8 @@
     "mdap-engine",
     "wiki-pipeline",
     "wiki-portal",
-    "fleet-dashboard"
+    "fleet-dashboard",
+    "fleet-remote-hosts"
   ],
   "entities": [
     "acceptance-check-result-entity"

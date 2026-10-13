@@ -204,6 +204,22 @@ fleet_valid_host(){
 
 # fleet_worktree_path REPO WS: local worktree dir for a workstream. One
 # definition for spawn and land so the two never drift.
+fleet_project_name(){ # REPO — the project's name: the main checkout's folder,
+  # even when REPO is a linked worktree (a worktree's own folder name is not
+  # the project; host-setup and spawn --host name server paths after this)
+  local repo="$1" common
+  common=$(cd "$repo" 2>/dev/null && git rev-parse --git-common-dir 2>/dev/null) || common=""
+  if [ -n "$common" ]; then
+    case "$common" in /*) ;; *) common="$repo/$common" ;; esac
+    common=$(cd "$common" 2>/dev/null && pwd -P) || common=""
+  fi
+  if [ -n "$common" ] && [ "$(basename "$common")" = ".git" ]; then
+    basename "$(dirname "$common")"
+  else
+    basename "$repo"
+  fi
+}
+
 fleet_worktree_path(){
   local repo="$1" ws="$2"
   printf '%s/.claude/worktrees/%s\n' "$repo" "$(printf '%s' "$ws" | tr '[:upper:]' '[:lower:]')"
