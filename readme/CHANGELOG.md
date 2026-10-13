@@ -7,6 +7,9 @@ feature set. The current status of each feature lives in
 
 ## 2026-10-13: fleet host workers sandboxed, capped, no push
 
+- `fleet land` on a host row now closes the worker's server tmux session before removing
+  its worktree. Finished server sessions used to stay open until killed by hand (MDTWII
+  WS358, WS360).
 - `fleet spawn --host` now launches claude with a generated `--settings` JSON: Bash
   sandbox on (`failIfUnavailable`, no unsandboxed fallback, unix sockets blocked), writes
   limited to the worktree, the fleet clone and the outbox, and `permissions.deny` Edit

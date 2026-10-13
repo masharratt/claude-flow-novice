@@ -106,7 +106,7 @@ outboxes `~/fleet-runs/<project>/<run>/<WS>/`. `fleet host-setup` never touches
 | Spawn | `fleet spawn WSxx --host <alias>` | Refuses (66) below `FLEET_REMOTE_MIN_FREE_GB` or when the host cannot fence workers (see Sandbox); pushes `fleet-base/<WS>`, creates the worktree, ships brief and `remote-worker.sh` |
 | Pull reports | `fleet sync [WS]` | Applies heartbeat, notes, status, handoffs; claim requests land in `handoffs/CLAIM_REQ_<WS>.md` for the master. Never changes claims |
 | Look | `fleet peek WSxx [lines]` | Read a remote prompt before answering it |
-| Land | `fleet land WSxx` | Fetches `fleet/<WS>` from the server fleet clone over ssh (workers never push), refuses (65) files outside the claims, merges, records the lane tip in `lane_sha`, cleans the server |
+| Land | `fleet land WSxx` | Fetches `fleet/<WS>` from the server fleet clone over ssh (workers never push), refuses (65) files outside the claims, merges, records the lane tip in `lane_sha`, closes the server tmux session and cleans the server |
 
 ### Sandbox and limits (host workers)
 

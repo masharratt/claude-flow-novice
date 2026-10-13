@@ -151,7 +151,8 @@ remote_land() {
   roster_set "$ws" lane_sha "$lane_sha"
 }
 
-# remote_cleanup WS: after a successful land, drop the server worktree, the
+# remote_cleanup WS: after a successful land, close the server tmux session,
+# drop the server worktree, the
 # clone's fleet/<WS> + fleet-base/<WS> branches and the bare repo's
 # fleet-base/<WS>, then the Mac-side env/applied files. A bare fleet/<WS> only
 # exists for lanes spawned before workers stopped pushing; it is dropped
@@ -162,8 +163,14 @@ remote_cleanup() {
   rd=$(fleet_run_dir)
   envf="$rd/remote/$ws.env"
   local FLEET_HOST="" FLEET_PROJECT="" FLEET_REMOTE_WT="" FLEET_BRANCH="" FLEET_BASE_REF=""
+  local FLEET_SOCK="" FLEET_SESSION=""
   # shellcheck disable=SC1090
   . "$envf"
+  # The lane is merged, so its server session has nothing left to do. Close it
+  # before removing the worktree it runs in. Already gone is fine.
+  if [ -n "$FLEET_SOCK" ] && [ -n "$FLEET_SESSION" ]; then
+    _fleet_tmux "$FLEET_HOST" -L "$FLEET_SOCK" kill-session -t "$FLEET_SESSION" >/dev/null 2>&1 || true
+  fi
   # Server-side paths use $HOME, so the script must expand on the server.
   if ! _fleet_host_run "$FLEET_HOST" bash -c '
       clone="$HOME/fleet-repos/$1"; bare="$HOME/git/$1.git"; wt="$2"; br="$3"; base="$4"; rc=0

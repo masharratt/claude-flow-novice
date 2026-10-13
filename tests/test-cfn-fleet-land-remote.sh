@@ -116,6 +116,7 @@ check "Mac HEAD unchanged on refusal" "$(git -C "$REPO" rev-parse HEAD)" "$BEFOR
 check "roster status unchanged on refusal" "$(awk -F'\t' '$1=="WS01"{print $4}' "$RUN_DIR/roster.tsv")" "working"
 [ -f "$RUN_DIR/remote/WS01.env" ] && ok "env file kept on refusal" || no "env file removed on refusal"
 [ -d "$SRV_WT" ] && ok "remote worktree kept on refusal" || no "remote worktree removed on refusal"
+grep -q kill-session "$STUB_LOG" && no "server session killed on refusal" || ok "server session left running on refusal"
 clone_branch_exists fleet/WS01 && ok "lane branch kept in the fleet clone on refusal" || no "lane branch deleted on refusal"
 
 echo "== test_land_remote_fetch_merge_cleanup"
@@ -130,6 +131,10 @@ check "roster lane_sha is the worker's lane tip (full sha)" "$(rfield lane_sha)"
 contains "lane fetched from the fleet clone over ssh" "$(cat "$STUB_LOG")" "git-upload-pack '$CLONE'"
 case "$ERR" in *warning*) no "cleanup warned: $ERR" ;; *) ok "cleanup ran without a warning" ;; esac
 [ -d "$SRV_WT" ] && no "remote worktree still present" || ok "remote worktree removed"
+# MDTWII WS358/WS360: finished server sessions stayed open after land.
+# Checked in the ssh log: the remote login shell rebuilds PATH, so a PATH stub
+# for tmux is not reliable on the far side.
+case "$(cat "$STUB_LOG")" in *tmux*-L*s*kill-session*-t*w*) ok "land closes the server tmux session" ;; *) no "land closes the server tmux session (no kill-session in ssh log)" ;; esac
 branch_exists fleet/WS01 && no "bare fleet/WS01 exists (workers must not push)" || ok "bare never had fleet/WS01"
 clone_branch_exists fleet/WS01 && no "clone fleet/WS01 still present" || ok "clone fleet/WS01 deleted"
 branch_exists fleet-base/WS01 && no "bare fleet-base/WS01 still present" || ok "bare fleet-base/WS01 deleted"
