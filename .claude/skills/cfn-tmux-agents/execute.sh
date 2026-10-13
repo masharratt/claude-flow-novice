@@ -179,12 +179,12 @@ cmd_spawn() {
   command -v tmux >/dev/null 2>&1 || _ta_die 3 "spawn: tmux not available (use --dry-run for copy-paste commands)"
   _ta_tmux_server_warn "$TA_SOCK"
 
-  cfn_spawn_env_write "$resolved" || _ta_die 66 "spawn: could not write the private env file for $name"
+  cfn_spawn_launch_write "$resolved" "$pane_cmd" || _ta_die 66 "spawn: could not write the private launch script for $name"
   if ! tmux -L "$TA_SOCK" new-session -d -s "$name" -c "$cwd"; then
     [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
     _ta_die 66 "spawn: tmux new-session failed for $name (duplicate session name? socket: $TA_SOCK)"
   fi
-  if ! tmux -L "$TA_SOCK" send-keys -t "$name" -l "$CFN_SPAWN_ENV_PREFIX$pane_cmd"; then
+  if ! tmux -L "$TA_SOCK" send-keys -t "$name" -l "$CFN_SPAWN_LAUNCH_LINE"; then
     [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
     _ta_die 66 "spawn: could not reach pane $name (session died at launch?)"
   fi
@@ -209,6 +209,7 @@ cmd_spawn() {
         if [ -n "$trust_re" ] && _ta_pane_wait "$TA_SOCK" "$name" "$trust_re" 5 >/dev/null; then
           if [ -n "$trust_keys" ]; then
             # shellcheck disable=SC2086  # word-split key list is the point
+            sleep "${TMUX_AGENTS_TRUST_SETTLE:-1.5}"  # TUI draws the prompt before it reads keys
             tmux -L "$TA_SOCK" send-keys -t "$name" ${trust_keys//,/ }
           fi
         fi
@@ -216,6 +217,10 @@ cmd_spawn() {
       *)
         if [ -n "$trust_keys" ]; then
           # shellcheck disable=SC2086  # word-split key list is the point
+          # The TUI draws the prompt before it reads input; keys sent on first
+          # sight were lost live (2026-10-12) and the prompt sat until the
+          # banner timeout. TMUX_AGENTS_TRUST_SETTLE (seconds) tunes the wait.
+          sleep "${TMUX_AGENTS_TRUST_SETTLE:-1.5}"
           tmux -L "$TA_SOCK" send-keys -t "$name" ${trust_keys//,/ }
         fi
         ;;

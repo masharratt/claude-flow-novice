@@ -7,21 +7,31 @@
 # readable by every process on the Mac (`ps -axww`), so a z.ai key passed
 # that way leaked to every user and process (reported 2026-10-11).
 #
-# Live launch: cfn_spawn_env_write puts the resolved NAME=VALUE lines in a
-# 0600 file inside a fresh 0700 dir; the pane shell sources it and deletes
-# the dir before exec. Print-only modes (--no-tmux, --dry-run): literal values
-# may ride -e, but $SOURCE_VAR (secret) values never print; the pane prompts
-# for them silently instead.
+# Live launch: cfn_spawn_launch_write puts the resolved NAME=VALUE lines and
+# the pane command in a 0600 script inside a fresh 0700 dir; only a short
+# `. <script>` is typed into the pane, and the script deletes the dir first.
+# Print-only modes (--no-tmux, --dry-run): literal values may ride -e, but
+# $SOURCE_VAR (secret) values never print; the pane prompts for them
+# silently instead.
 
-# cfn_spawn_env_write LINES -> sets CFN_SPAWN_ENV_DIR and CFN_SPAWN_ENV_PREFIX
-# (the pane-shell prefix, empty when LINES is empty). rc 1 on any failure,
-# with nothing left on disk. Not a subshell, so the caller can remove
-# CFN_SPAWN_ENV_DIR if the pane never gets to source it.
-cfn_spawn_env_write() {
-  local lines="$1" dir line name val
-  CFN_SPAWN_ENV_DIR="" CFN_SPAWN_ENV_PREFIX=""
-  [ -n "$lines" ] || return 0
-  dir=$(umask 077 && mktemp -d "${TMPDIR:-/tmp}/cfn-spawn-env.XXXXXX") || return 1
+# cfn_spawn_launch_write ENV_LINES PANE_CMD -> sets CFN_SPAWN_ENV_DIR and
+# CFN_SPAWN_LAUNCH_LINE (`. '<dir>/launch'`, the only text typed into the
+# pane). The 0600 script exports ENV_LINES, deletes its own 0700 dir, then
+# runs PANE_CMD. rc 1 on any failure, with nothing left on disk. Not a
+# subshell, so the caller can remove CFN_SPAWN_ENV_DIR if the pane never
+# gets to source it.
+#
+# Why a script and not a typed prefix: a fresh pty on macOS silently drops
+# typed input past ~1024 bytes (MAX_CANON), and a fleet glm pane command is
+# ~1.5KB. The tail (`exec claude ...`) was lost and the wrapped echo matched
+# the banner regex (reported 2026-10-12). The typed line stays ~80 bytes and
+# carries no engine text, so its echo cannot match a banner. If the script
+# is gone, `.` fails, the pane stays at its prompt and spawn times out at the
+# banner: no engine ever starts without its env.
+cfn_spawn_launch_write() {
+  local lines="$1" pane_cmd="$2" dir line name val
+  CFN_SPAWN_ENV_DIR="" CFN_SPAWN_LAUNCH_LINE=""
+  dir=$(umask 077 && mktemp -d "${TMPDIR:-/tmp}/cfn-spawn-launch.XXXXXX") || return 1
   case "$dir" in *"'"*) rm -rf "$dir"; echo "spawn-env: temp path has a quote: $dir" >&2; return 1 ;; esac
   if ! (
     umask 077
@@ -31,15 +41,15 @@ cfn_spawn_env_write() {
       val="${line#*=}"
       [[ $name =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || { echo "spawn-env: bad var name '$name'" >&2; exit 1; }
       printf 'export %s=%q\n' "$name" "$val"
-    done <<< "$lines" > "$dir/env"
+    done <<< "$lines" > "$dir/launch"
+    # The shell already holds the script open, so deleting it here is safe.
+    printf "rm -rf '%s'\n%s\n" "$dir" "$pane_cmd" >> "$dir/launch"
   ); then
     rm -rf "$dir"
     return 1
   fi
   CFN_SPAWN_ENV_DIR="$dir"
-  # Fail closed: a pane that cannot load its env exits instead of starting
-  # the engine against the wrong account.
-  CFN_SPAWN_ENV_PREFIX="{ . '$dir/env' && rm -rf '$dir'; } || exit 1; "
+  CFN_SPAWN_LAUNCH_LINE=". '$dir/launch'"
 }
 
 # cfn_spawn_env_literal_flags RAW_COMMA_LIST -> ` -e "K=V"` for items whose

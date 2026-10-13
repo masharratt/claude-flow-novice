@@ -121,8 +121,8 @@ tuning happens. One line per engine, 7 ` | `-separated fields: name, bin, args,
 set (NAME=$SOURCE_VAR or NAME=literal), unset, trust_keys, banner_regex. It
 stores variable NAMES and non-secret flags only; `$SOURCE_VAR` references are
 resolved from the master shell at spawn time and reach the pane through a 0600
-file in a private temp dir that the pane sources and deletes before `exec`
-(`.claude/cfn-scripts/spawn-env.sh`). Never argv: `new-session -e` values sit
+launch script in a private temp dir; the pane sources it and the script
+deletes itself before `exec` (`.claude/cfn-scripts/spawn-env.sh`). Never argv: `new-session -e` values sit
 in the tmux server's argv for its lifetime, readable by any process via `ps`.
 Never the run dir either, so `planning/fleet-*` stays committable
 and `grep -r <token> planning/fleet-*` finds nothing. Missing or empty source
@@ -132,8 +132,12 @@ Spawn order per pane, all on the run's dedicated tmux socket
 (`FLEET_TMUX_SOCKET` in fleet.env, default `fleet-<slug>`; kill a whole run
 with `tmux -L fleet-<slug> kill-server`):
 
-1. `new-session` (no `-e`), then one pane command:
-   `{ . <env file> && rm -rf <its dir>; } || exit 1; export FLEET_RUN_DIR=<run dir>; unset <unset list>; exec <bin> <args>`.
+1. `new-session` (no `-e`), then one short typed line, `. '<dir>/launch'`.
+   The 0600 script exports the set-vars, deletes its dir, then runs
+   `export FLEET_RUN_DIR=<run dir>; unset <unset list>; exec <bin> <args>`.
+   Only the short line is typed because a fresh macOS pty silently drops
+   typed input past ~1024 bytes, and a glm pane command is ~1.5KB. A missing
+   script leaves the pane at its prompt (banner timeout, row stays pending).
    `--no-tmux` prints literal set-vars as `-e` and a silent `read -rs` prompt
    for each `$SOURCE_VAR` one; the key itself is never printed.
    The `exec` makes the pane die with the engine, which is what `fleet watch`'s
@@ -146,7 +150,8 @@ with `tmux -L fleet-<slug> kill-server`):
    `npm install -g`. Folder-trust prompts (both `claude` and `codex`, first
    launch in a directory; worktree mode hits it every run) get the engine's
    `trust_keys`, sent only if the prompt is actually seen within
-   `FLEET_TRUST_TIMEOUT` (default 15s).
+   `FLEET_TRUST_TIMEOUT` (default 15s), and only after `FLEET_TRUST_SETTLE`
+   (default 1.5s): the TUI draws the prompt before it reads keys.
 3. Banner gate: spawn polls up to `FLEET_BANNER_TIMEOUT` (default 20s) for the
    engine's `banner_regex`. Match: roster `started`, heartbeat stamped, then
    and only then the thin prompt. Timeout: the row stays `pending`, the last

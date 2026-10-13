@@ -18,6 +18,7 @@ PASS=0 FAIL=0 TOTAL=0
 cleanup() {
   tmux -L "$SOCK" kill-server 2>/dev/null || true
   tmux -L "$SOCK-k" kill-server 2>/dev/null || true
+  tmux -L "$SOCK-L" kill-server 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -192,6 +193,46 @@ tmux -L "$SOCK-k" kill-server 2>/dev/null || true
 OUT=$(FLEET_ZAI_TOKEN="$SENT" "$EXE" spawn k2 --socket "$SOCK" --engine glm --cwd /tmp --dry-run 2>&1) || true
 case "$OUT" in *"$SENT"*) bad "dry-run printed the key" ;; *) ok "dry-run never prints the key" ;; esac
 case "$OUT" in *"read -rs ANTHROPIC_AUTH_TOKEN"*) ok "dry-run pane prompts silently for the key" ;; *) bad "dry-run lacks silent key prompt: $OUT" ;; esac
+rm -rf "$TD"
+
+# 18. BUG truncated launch (f880ab87): a fresh macOS pty silently drops typed
+# input past ~1024 bytes, so a long pane command lost its tail (`exec claude
+# --model glm-5.3-flash --permi`) and never started. The typed line is now a
+# short `. '<dir>/launch'`; the long command lives in the 0600 script.
+TD=$(mktemp -d)
+cat > "$TD/lastarg" <<'FAKE'
+#!/usr/bin/env bash
+for a in "$@"; do last="$a"; done
+printf 'AGENTS-TEST-BANNER last=%s\n' "$last"
+exec cat
+FAKE
+chmod +x "$TD/lastarg"
+LONG=$(printf 'padding%.0s ' $(seq 1 140))
+OUT=$("$EXE" spawn L1 --socket "$SOCK-L" --bin "$TD/lastarg" --args "$LONG TAIL-REACHED" \
+  --banner-regex 'last=TAIL-REACHED' --cwd /tmp 2>&1) || true
+case "$OUT" in *spawned*) ok "truncated-launch bug: 1100+ byte launch still starts the engine" ;; *) bad "truncated-launch bug: long launch never started: ${OUT:0:300}" ;; esac
+tmux -L "$SOCK-L" kill-server 2>/dev/null || true
+rm -rf "$TD"
+
+# 19. BUG trust keys too early (live, 2026-10-12): the gate sent Down,Enter
+# the instant "Yes, I trust this folder" rendered; the real TUI was not yet
+# reading input, the keys were lost and the prompt sat until banner timeout.
+# This fake drops all input for 1s after drawing the prompt, as the TUI did.
+TD=$(mktemp -d)
+cat > "$TD/claude" <<'FAKE'
+#!/usr/bin/env bash
+printf '  Is this a project you created or one you trust?\n  1. Yes, I trust this folder\n  2. No, exit\n'
+end=$((SECONDS + 1))
+while [ "$SECONDS" -lt "$end" ]; do IFS= read -r -t 0.2 _ || true; done
+IFS= read -r _
+printf 'AGENTS-TEST-BANNER trust-late-answered\n'
+exec cat
+FAKE
+chmod +x "$TD/claude"
+OUT=$(TMUX_AGENTS_BANNER_TIMEOUT=6 "$EXE" spawn t3 --socket "$SOCK" --bin "$TD/claude" \
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
+case "$OUT" in *trust-late-answered*) ok "trust-too-early bug: keys wait for the TUI to settle" ;; *) bad "trust-too-early bug: keys lost before the TUI read input: ${OUT:0:200}" ;; esac
+"$EXE" kill t3 --socket "$SOCK" >/dev/null 2>&1 || true
 rm -rf "$TD"
 
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="

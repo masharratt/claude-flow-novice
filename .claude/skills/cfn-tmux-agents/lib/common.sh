@@ -35,7 +35,7 @@ _ta_pane_wait() {
   while [ "$i" -lt "$max" ]; do
     line=$(tmux -L "$sock" capture-pane -p -t "$tgt" 2>/dev/null \
       | sed -e 's/\r$//' -e 's/[[:space:]]*$//' -e '/^$/d' \
-      | grep -v -E -- 'exec |--model |send-keys|^unset ' \
+      | grep -v -E -- 'exec |--model |send-keys|^unset |cfn-spawn-launch' \
       | grep -E -- "$re" || true)
     line="${line%%$'\n'*}"
     if [ -n "$line" ]; then

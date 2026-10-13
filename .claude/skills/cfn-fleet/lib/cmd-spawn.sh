@@ -21,8 +21,10 @@
 #      keys in the target repo's .claude/settings*.json (warn, file:line),
 #      dirty tmux server global env (warn + set-environment -gu suggestion)
 #   4. tmux -L <socket> new-session -d -s <name> -c <cwd>, no -e: set-var
-#      values go in a 0600 env file the pane sources and deletes (spawn-env.sh),
-#      never argv (the tmux server keeps its argv, readable by every process)
+#      values and the pane command go in a 0600 launch script; only a short
+#      `. <script>` is typed (spawn-env.sh). Never argv (the tmux server keeps
+#      its argv, readable by every process); never a long typed line (a fresh
+#      macOS pty drops typed input past ~1024 bytes)
 #   5. first pane command, one line: export FLEET_RUN_DIR=<run dir>;
 #      unset <unset list>; exec <bin> <args>  (exec so the pane dies with the
 #      engine and `tmux has-session` sees it). The activity-gated heartbeat
@@ -109,7 +111,7 @@ _fleet_pane_wait(){
   while [ "$i" -lt "$max" ]; do
     line=$(tmux -L "$sock" capture-pane -p -t "$tgt" 2>/dev/null \
       | sed -e 's/\r$//' -e 's/[[:space:]]*$//' -e '/^$/d' \
-      | grep -v -E -- 'exec (claude|codex)|--model |send-keys' \
+      | grep -v -E -- 'exec (claude|codex)|--model |send-keys|cfn-spawn-launch' \
       | grep -E -- "$re" || true)
     line="${line%%$'\n'*}"
     if [ -n "$line" ]; then
@@ -185,9 +187,9 @@ _fleet_tmux_server_warn(){
 }
 
 # _spawn_launch_one SOCK SNAME SESSION_CWD PANE_CMD TRUST_RE TRUST_KEYS
-# TRUST_TIMEOUT BANNER_RE BANNER_TIMEOUT — new-session, pane command (its
-# @@SPAWN_ENV@@ marker becomes a per-session env-file prefix built from the
-# global _SPAWN_SET_LINES), trust poll, banner poll. Echoes the
+# TRUST_TIMEOUT BANNER_RE BANNER_TIMEOUT — new-session, a per-session launch
+# script (env from the global _SPAWN_SET_LINES + PANE_CMD) typed into the
+# pane as one short `. <script>` line, trust poll, banner poll. Echoes the
 # matching banner line, rc 0. On failure prints the diagnostics to stderr and
 # returns 1 — the caller owns the fleet_die, because a die inside this
 # function could not abort the caller's command substitution under a
@@ -197,19 +199,18 @@ _spawn_launch_one(){
   local trust_keys="$6" trust_timeout="$7" banner_re="$8" banner_timeout="$9"
   local banner_line
 
-  # One env file per session: the pane deletes it on first source, so a
+  # One launch script per session: it deletes itself on first source, so a
   # spare cannot reuse the main session's.
-  if ! cfn_spawn_env_write "${_SPAWN_SET_LINES:-}"; then
-    echo "fleet: spawn: could not write the private env file for $sname" >&2
+  if ! cfn_spawn_launch_write "${_SPAWN_SET_LINES:-}" "${pane_cmd/@@SPAWN_ENV@@/}"; then
+    echo "fleet: spawn: could not write the private launch script for $sname" >&2
     return 1
   fi
-  pane_cmd="${pane_cmd/@@SPAWN_ENV@@/"$CFN_SPAWN_ENV_PREFIX"}"
   if ! tmux -L "$sock" new-session -d -s "$sname" -c "$session_cwd"; then
     echo "fleet: spawn: tmux new-session failed for $sname (duplicate session? socket: $sock)" >&2
     [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
     return 1
   fi
-  if ! tmux -L "$sock" send-keys -t "$sname" -l "$pane_cmd"; then
+  if ! tmux -L "$sock" send-keys -t "$sname" -l "$CFN_SPAWN_LAUNCH_LINE"; then
     echo "fleet: spawn: could not reach pane $sname (session died?)" >&2
     [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
     return 1
@@ -238,6 +239,7 @@ _spawn_launch_one(){
         if [ -n "$trust_re" ] && _fleet_pane_wait "$sock" "$sname" "$trust_re" "$trust_timeout" >/dev/null; then
           if [ -n "$trust_keys" ]; then
             # shellcheck disable=SC2086  # word-split key list is the point
+            sleep "${FLEET_TRUST_SETTLE:-1.5}"  # TUI draws the prompt before it reads keys
             tmux -L "$sock" send-keys -t "$sname" ${trust_keys//,/ }
           fi
         fi
@@ -245,6 +247,10 @@ _spawn_launch_one(){
       *)
         if [ -n "$trust_keys" ]; then
           # shellcheck disable=SC2086  # word-split key list is the point
+          # The TUI draws the prompt before it reads input; keys sent on first
+          # sight were lost live (2026-10-12) and the prompt sat until the
+          # banner timeout. FLEET_TRUST_SETTLE (seconds) tunes the wait.
+          sleep "${FLEET_TRUST_SETTLE:-1.5}"
           tmux -L "$sock" send-keys -t "$sname" ${trust_keys//,/ }
         fi
         ;;

@@ -5,6 +5,25 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-12: glm spawns start again (launch line no longer truncated)
+
+Reported by the MDTWII fleet master: after f880ab87, `fleet spawn --engine glm` typed
+`... exec claude --model glm-5.3-flash --permi` and stopped. A fresh macOS pty silently drops
+typed input past ~1024 bytes (measured: 978 bytes ran, 1179 did not), and the env-file
+prefix pushed the glm pane command to ~1.5KB. The wrapped echo (" glm-5.3-flash --permi")
+then matched the banner regex, so a respawn reported success on a dead launch.
+
+- `spawn-env.sh` now writes env + the whole pane command to a 0600 launch script; the only
+  typed text is `. '<dir>/launch'` (~80-180 bytes, no engine text, so its echo cannot match
+  a banner). Gate/banner polls also skip lines naming `cfn-spawn-launch`.
+- Live verification found an older bug: trust keys were sent the instant the trust prompt
+  rendered, before the TUI read input, and were lost. Both launchers now wait
+  `FLEET_TRUST_SETTLE` / `TMUX_AGENTS_TRUST_SETTLE` seconds (default 1.5) first.
+- Tests: fleet asserts the typed line stays under 200 bytes and carries no banner text;
+  tmux-agents starts a real 1100+ byte launch and a fake TUI that drops early input. A real
+  fenced glm worker (dummy key) reached its banner unaided with `ps` clean.
+- Fleet spawn-watch stub runs now keep launch scripts in the suite's temp dir.
+
 ## 2026-10-11: z.ai key no longer readable by every process
 
 Reported by the MDTWII fleet master session. `cfn-fleet` and `cfn-tmux-agents` passed engine

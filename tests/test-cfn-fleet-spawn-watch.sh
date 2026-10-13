@@ -285,6 +285,8 @@ run_fleet() { # $1 = cmd file stem, rest = args (subcommand already stripped)
             export FLEET_RUN_DIR="$RUN_DIR"
             export PATH="$TMP_DIR/bin:$PATH"
             export FLEET_TMUX_LOG="$TMUX_LOG" FLEET_ENGINE_LOG="$ENGINE_LOG"
+            # stub tmux never sources launch scripts; keep them in the suite's temp dir
+            [[ ${TMPDIR:-} == "$TMP_DIR"* ]] || { mkdir -p "$TMP_DIR/tmp"; export TMPDIR="$TMP_DIR/tmp"; }
             if [[ -n ${FLEET_TEST_HOME:-} ]]; then
                 export HOME="$FLEET_TEST_HOME"
             fi
@@ -360,6 +362,7 @@ make_engine_project() { # $1 = slug — fast polls, scripted capture, clean
     make_project "$slug"
     printf 'codex=true\n' > "$PROJ/CLAUDE.md"
     printf 'FLEET_TRUST_TIMEOUT=1\nFLEET_BANNER_TIMEOUT=1\n' >> "$RUN_DIR/fleet.env"
+    export FLEET_TRUST_SETTLE=0  # stub tmux reads keys instantly
     : > "$TMUX_LOG"
     : > "$ENGINE_LOG"
     CAPTURE_DIR="$TMP_DIR/capture-$slug"
@@ -379,6 +382,18 @@ capture_script() { # file-number content — script the Nth capture-pane replay
 
 tmux_calls() { # [pattern] — recorded stub-tmux invocation lines
     grep -a "${1:-}" "$TMUX_LOG" || true
+}
+
+launch_file() { # [session] — path of the launch script the typed pane line sources
+    tmux_calls "send-keys -t ${1:-ws01} -l" | grep -o "\. '[^']*/launch'" | head -1 \
+        | sed -e "s/^\. '//" -e "s/'$//" || true
+}
+
+pane_text() { # [session] — typed send-keys lines plus the launch script body
+    local f
+    tmux_calls "send-keys -t ${1:-ws01} -l"
+    f=$(launch_file "${1:-ws01}")
+    [[ -n $f && -f $f ]] && cat "$f"
 }
 
 _wt_fixture() { # slug — project in worktree mode with a spawned worker that has one commit
@@ -598,16 +613,23 @@ test_spawn_real_tmux_engine_env_and_pane_command() {
     assert_contains "$(cat "$TMUX_LOG")" "new-session" "tmux log is populated (guards the next check against an empty read)"
     assert_not_contains "$(cat "$TMUX_LOG")" "ztok_secret123" "key-in-argv bug: token on no tmux command line"
     assert_not_contains "$ns" " -e " "key-in-argv bug: no env passed on new-session argv"
-    local sk envf
-    sk=$(tmux_calls "send-keys -t ws01 -l")
-    envf=$(printf '%s' "$sk" | grep -o "\. '[^']*'" | head -1 | sed -e "s/^\. '//" -e "s/'$//")
-    assert_contains "$envf" "$envtmp/" "pane command sources an env file under TMPDIR"
-    assert_equals "600" "$(stat -c %a "$envf" 2>/dev/null || stat -f %Lp "$envf" 2>/dev/null)" "env file is owner-only (0600)"
-    assert_equals "700" "$(stat -c %a "$(dirname "$envf")" 2>/dev/null || stat -f %Lp "$(dirname "$envf")" 2>/dev/null)" "env dir is owner-only (0700)"
-    assert_contains "$(cat "$envf" 2>/dev/null)" "ANTHROPIC_AUTH_TOKEN=ztok_secret123" "token resolved from master env into the file"
-    assert_contains "$(cat "$envf" 2>/dev/null)" "ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic" "endpoint in the file"
-    assert_contains "$(cat "$envf" 2>/dev/null)" "CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1" "flag set-var in the file"
-    assert_contains "$sk" "rm -rf '$(dirname "$envf")'" "pane deletes the env file before exec"
+    # BUG truncated launch (f880ab87): the typed line grew past ~1024 bytes,
+    # which a fresh pty silently drops on macOS, so `exec claude ...` was cut
+    # off and the wrapped echo (" glm-5.3-flash --permi") false-matched the
+    # banner. The typed line is now only `. '<dir>/launch'`.
+    local typed envf sk
+    typed=$(tmux_calls "send-keys -t ws01 -l" | head -1)
+    envf=$(launch_file ws01)
+    assert_success "truncated-launch bug: typed pane line stays short (<200 bytes; got ${#typed})" test "${#typed}" -lt 200
+    assert_not_contains "$typed" "glm-5.3-flash" "truncated-launch bug: typed line never contains the banner text"
+    assert_contains "$envf" "$envtmp/" "pane sources a launch script under TMPDIR"
+    assert_equals "600" "$(stat -c %a "$envf" 2>/dev/null || stat -f %Lp "$envf" 2>/dev/null)" "launch script is owner-only (0600)"
+    assert_equals "700" "$(stat -c %a "$(dirname "$envf")" 2>/dev/null || stat -f %Lp "$(dirname "$envf")" 2>/dev/null)" "launch dir is owner-only (0700)"
+    sk=$(pane_text ws01)
+    assert_contains "$sk" "ANTHROPIC_AUTH_TOKEN=ztok_secret123" "token resolved from master env into the file"
+    assert_contains "$sk" "ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic" "endpoint in the file"
+    assert_contains "$sk" "CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1" "flag set-var in the file"
+    assert_contains "$sk" "rm -rf '$(dirname "$envf")'" "launch script deletes its dir before exec"
     assert_contains "$sk" "export FLEET_RUN_DIR=$RUN_DIR" "pane command exports FLEET_RUN_DIR"
     assert_contains "$sk" \
         "unset ANTHROPIC_API_KEY ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL ANTHROPIC_DEFAULT_FABLE_MODEL" \
@@ -669,8 +691,10 @@ test_spawn_banner_match_prompt_once_spares_silent() {
     local spare_lines
     spare_lines=$(tmux_calls "ws01-spare1")
     assert_contains "$spare_lines" "new-session -d -s ws01-spare1" "spare session launched"
-    assert_contains "$spare_lines" "exec claude --model sonnet" "spare gets the same engine launch"
-    assert_contains "$spare_lines" "unset ANTHROPIC_AUTH_TOKEN" "spare gets the same env hygiene"
+    assert_contains "$(pane_text ws01-spare1)" "exec claude --model sonnet" "spare gets the same engine launch"
+    assert_success "spare gets its own launch script (each deletes itself on use)" \
+        test -n "$(launch_file ws01-spare1)" -a "$(launch_file ws01-spare1)" != "$(launch_file ws01)"
+    assert_contains "$(pane_text ws01-spare1)" "unset ANTHROPIC_AUTH_TOKEN" "spare gets the same env hygiene"
     assert_not_contains "$spare_lines" "and start" "spare gets no prompt"
 }
 
@@ -824,7 +848,7 @@ test_spawn_codex_billing_guard() {
     run_fleet spawn WS01 --engine codex
     unset OPENAI_API_KEY
     assert_equals "0" "$FLEET_RC" "key covered by the engine unset list: proceeds"
-    assert_contains "$(tmux_calls 'send-keys -t ws01 -l')" "unset OPENAI_API_KEY" "pane command unsets the key"
+    assert_contains "$(pane_text ws01)" "unset OPENAI_API_KEY" "pane command unsets the key"
 
     log_step "GIVEN a codex engine whose unset list dropped OPENAI_API_KEY, WHEN spawning"
     make_engine_project eng-billing-refuse
@@ -988,7 +1012,7 @@ test_spawn_ticker_knob_and_hostile_ws_guard() {
     unset FLEET_TICK_SECS
     assert_equals "0" "$FLEET_RC" "spawn with FLEET_TICK_SECS=7 exits 0"
     local sk
-    sk=$(tmux_calls "send-keys -t ws01 -l")
+    sk=$(pane_text ws01)
     assert_contains "$sk" \
         "_fleet_tick_loop fleet-eng-tick7 ws01 WS01 $SKILL_DIR/lib/../cli/fleet $RUN_DIR 7" \
         "FLEET_TICK_SECS=7 bakes 7 as the tick interval"
@@ -1003,7 +1027,8 @@ test_spawn_ticker_knob_and_hostile_ws_guard() {
     run_fleet spawn WS01
     unset FLEET_TICK_SECS
     assert_equals "0" "$FLEET_RC" "spawn with FLEET_TICK_SECS=off exits 0"
-    sk=$(tmux_calls "send-keys -t ws01 -l")
+    sk=$(pane_text ws01)
+    assert_contains "$sk" "exec " "pane text was read (guards the absence checks below)"
     assert_not_contains "$sk" "_fleet_tick_loop" "off removes the ticker loop call"
     assert_not_contains "$sk" "heartbeat-ticker.sh" "off removes the ticker lib source"
     assert_contains "$sk" "exec claude" "off keeps the plain engine pane command"
