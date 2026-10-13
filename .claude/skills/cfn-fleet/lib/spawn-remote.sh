@@ -67,7 +67,9 @@ else
   if git -C "$clone" show-ref --verify --quiet "refs/heads/$branch"; then
     git -C "$clone" worktree add -q "$wt" "$branch" || { echo "ERR worktree add failed"; exit 71; }
   else
-    git -C "$clone" worktree add -q -b "$branch" "$wt" "origin/$baseref" \
+    # --no-track: lanes never push, and an upstream would be written to the
+    # clone config every lane shares; a neighbour holding its lock failed spawns.
+    git -C "$clone" worktree add -q --no-track -b "$branch" "$wt" "origin/$baseref" \
       || { echo "ERR worktree add failed (is $baseref pushed?)"; exit 71; }
     echo BRANCH_NEW
   fi

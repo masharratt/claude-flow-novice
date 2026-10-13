@@ -790,6 +790,22 @@ test_spawn_host_prints_preflight_ok_line() {
     assert_contains "$FLEET_OUT" "preflight fakehost: sandbox ok, limits MemoryMax=12G CPUQuota=400%" "ok line printed"
 }
 
+test_spawn_host_survives_clone_config_lock() {
+    # MDTWII WS365: the first spawn failed with "unable to write upstream branch
+    # configuration" because another lane held the shared clone's config lock at
+    # that moment. Lanes never push, so the new branch must not need a config
+    # write at all.
+    log_step "Spawn works while another lane holds the clone's .git/config lock"
+    make_fixture cfglock
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    : > "$SRV/fleet-repos/proj/.git/config.lock"
+    run_spawn WS01 --host fakehost
+    rm -f "$SRV/fleet-repos/proj/.git/config.lock"
+    assert_equals "0" "$FLEET_RC" "spawn exits 0 despite the config lock"
+    assert_dir_exists "$SRV/fleet-repos/proj-wt/ws01" "remote worktree created"
+    assert_equals "" "$(git -C "$SRV/fleet-repos/proj" config --get branch.fleet/WS01.remote || true)" "no upstream written for the lane branch"
+}
+
 run_all_tests() {
     TEST_LOG="${TMPDIR:-/tmp}/cfn-fleet-spawn-host-$(date +%s).log"
     export TEST_LOG
@@ -820,6 +836,7 @@ run_all_tests() {
     test_spawn_host_unsandboxed_override
     test_spawn_host_excludes_sandbox_placeholders
     test_spawn_host_prints_preflight_ok_line
+    test_spawn_host_survives_clone_config_lock
 
     print_test_summary
 }

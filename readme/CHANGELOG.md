@@ -7,6 +7,9 @@ feature set. The current status of each feature lives in
 
 ## 2026-10-13: fleet host workers sandboxed, capped, no push
 
+- `fleet spawn --host` creates the lane branch with `--no-track`, so it no longer writes to
+  the fleet clone's shared `.git/config`. A neighbouring lane holding that file's lock made
+  a spawn fail with "unable to write upstream branch configuration" (MDTWII WS365).
 - `fleet land` on a host row now closes the worker's server tmux session before removing
   its worktree. Finished server sessions used to stay open until killed by hand (MDTWII
   WS358, WS360).
