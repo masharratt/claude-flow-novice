@@ -338,7 +338,7 @@ test_add_engine_flag(){
   [ "$RC" -eq 0 ] && ok "add --engine glm accepted" || no "add rc=$RC err=$ERR"
   [ "$(tsv_field "$R" WS01 11)" = "glm" ] && ok "engine stored in col 11" \
     || no "engine col: '$(tsv_field "$R" WS01 11)'"
-  [ "$(tsv_nf "$R" WS01)" = "11" ] && ok "row has 11 tab fields" \
+  [ "$(tsv_nf "$R" WS01)" = "12" ] && ok "row has 12 tab fields (engine col 11, host col 12)" \
     || no "WS01 NF=$(tsv_nf "$R" WS01)"
   [ "$(head -n1 "$R" | awk -F'\t' '{print $11}')" = "engine" ] \
     && ok "header col 11 is 'engine'" || no "header: '$(head -n1 "$R")'"
@@ -375,10 +375,10 @@ test_add_engine_flag(){
   printf '%s\n' "$line" | grep -q 'glm' && ok "WS01 row renders glm" || no "row: '$line'"
 
   run_fleet "$P" status --tsv
-  [ "$(printf '%s\n' "$OUT" | awk -F'\t' 'NR==1{print NF":"$NF}')" = "11:engine" ] \
+  [ "$(printf '%s\n' "$OUT" | awk -F'\t' 'NR==1{print NF":"$NF}')" = "12:host" ] \
     && ok "tsv header 11 fields, engine last" || no "tsv header: $(printf '%s\n' "$OUT" | head -n1)"
-  [ "$(printf '%s\n' "$OUT" | awk -F'\t' '$1=="WS05"{print NF}')" = "11" ] \
-    && ok "tsv rows carry 11 fields" || no "tsv WS05 NF"
+  [ "$(printf '%s\n' "$OUT" | awk -F'\t' '$1=="WS05"{print NF}')" = "12" ] \
+    && ok "tsv rows carry 12 fields" || no "tsv WS05 NF"
 }
 
 # ---------------------------------------------------------------------------
@@ -403,9 +403,9 @@ test_old_roster_back_compat(){
   log_step "WHEN first write lands (roster_set), THEN header migrates, rows pad, data survives"
   call_fn roster_set WS01 status started
   [ "$RC" -eq 0 ] && ok "roster_set on old roster exits 0" || no "roster_set rc=$RC err=$ERR"
-  [ "$(head -n1 "$R" | awk -F'\t' '{print NF":"$NF}')" = "11:engine" ] \
-    && ok "header migrated to 11 cols, engine last" || no "migrated header: '$(head -n1 "$R")'"
-  [ "$(tsv_nf "$R" WS01)" = "11" ] && ok "row padded to 11 fields" \
+  [ "$(head -n1 "$R" | awk -F'\t' '{print NF":"$NF}')" = "12:host" ] \
+    && ok "header migrated to 12 cols, host last" || no "migrated header: '$(head -n1 "$R")'"
+  [ "$(tsv_nf "$R" WS01)" = "12" ] && ok "row padded to 12 fields" \
     || no "WS01 NF=$(tsv_nf "$R" WS01)"
   [ "$(tsv_field "$R" WS01 4)" = "started" ] && ok "target cell written" \
     || no "status: '$(tsv_field "$R" WS01 4)'"
@@ -436,13 +436,13 @@ test_add_migrates_old_roster(){
 
   run_fleet "$P" add WS02 "new work" --engine codex
   [ "$RC" -eq 0 ] && ok "add on old-header roster accepted" || no "add rc=$RC err=$ERR"
-  [ "$(head -n1 "$R" | awk -F'\t' '{print NF":"$NF}')" = "11:engine" ] \
+  [ "$(head -n1 "$R" | awk -F'\t' '{print NF":"$NF}')" = "12:host" ] \
     && ok "add migrated the header" || no "header: '$(head -n1 "$R")'"
-  [ "$(tsv_nf "$R" WS02)" = "11" ] && ok "new row has 11 fields" \
+  [ "$(tsv_nf "$R" WS02)" = "12" ] && ok "new row has 12 fields" \
     || no "WS02 NF=$(tsv_nf "$R" WS02)"
   [ "$(tsv_field "$R" WS02 11)" = "codex" ] && ok "new row engine=codex" \
     || no "WS02 engine: '$(tsv_field "$R" WS02 11)'"
-  [ "$(tsv_nf "$R" WS01)" = "11" ] && ok "old row padded to 11" \
+  [ "$(tsv_nf "$R" WS01)" = "12" ] && ok "old row padded to 12" \
     || no "WS01 NF=$(tsv_nf "$R" WS01)"
   [ "$(tsv_field "$R" WS01 10)" = "old note" ] && ok "old row notes intact" \
     || no "WS01 notes: '$(tsv_field "$R" WS01 10)'"

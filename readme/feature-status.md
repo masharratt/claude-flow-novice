@@ -3,7 +3,7 @@
 
 # Feature Status
 
-**Last Updated:** 2026-09-23 wiki sync
+**Last Updated:** 2026-10-13 added fleet remote host workers (dev, not yet live-tested)
 
 ## Status Rollup
 
@@ -11,7 +11,7 @@
 |---|---|
 | prod | 0 |
 | beta | 0 |
-| dev | 34 |
+| dev | 35 |
 | stub | 2 |
 | deprecated | 0 |
 
@@ -49,6 +49,7 @@ Authored capabilities come first. Directory entries are an inventory, not indepe
 | Building the source-grounded wiki | dev | Discovery index (.wiki/discovery.sqlite) from git or walk enumeration with per-language adapters and CBM import; sha256-verified knowledge claims; SQLite job queue with byte-metered evidence budgets; deterministic sync regen with a drift gate. | - | Source changed; explanation needs review. Self-documentation of the wiki's own engine: source review at revision f248664d3997407020c8b57de4fbc92515788cfd; the only runtime exercised is the lease/evidence/submit path used while authoring this capability. Verified against sources 2026-09-14. |
 | Building and serving the wiki portal | dev | Assembles a self-contained HTML portal from the wiki store's five view modules (single-file or paged mode, one shared assembly core, per-page selfcheck) and serves it locally with an atomic, origin-gated annotation store. | wiki-pipeline | Source changed; explanation needs review. Source review of build-portal.sh, server.py, lib/serve.sh and portal/serve.sh at revision f248664d3997407020c8b57de4fbc92515788cfd; no build or serve was executed in this pass, so failure paths are read from the code, not observed. Verified against sources 2026-09-14. |
 | Fleet run dashboard | dev | Self-contained HTML dashboard rendered from roster.tsv: live polling cards and tiles, optional per-run glossary.tsv code key with inline term tooltips, plain-English status tooltips stating the landed vs done trap, and clamped expandable notes. | fleet-roster | Implemented and verified against a Playwright browser suite (tests/test-cfn-fleet-dashboard-ui.cjs) covering the glossary legend, inline term tooltips, status tooltips, notes clamp and live updates; run against synthetic rosters, not a real multi-session run. |
+| Fleet remote host workers | dev | `fleet host-setup`, `spawn --host`, `sync`, `peek` and host-aware `land` run claude workers on an ssh server; reports pulled by watch or sync; UNREACHABLE/PROMPT/NOREPORT/LOWDISK alerts. | fleet-roster, ssh, tmux | Stub-ssh test suites only; no live server run yet. claude engines only; no SendMessage or fleet CLI on the server; secrets and logins set up by hand. |
 | api-gateway | dev | Express JWT authentication service that issues, refreshes, revokes and validates access tokens with Redis backing, rate limiting and shell test suites for gateway callers. | - | Source changed; explanation needs review. Curated status |
 | artifacts | dev | Storage area for agent task outputs: project scope schema SQL with validation queries and example agent workspace deliverables. Mostly one-off outputs, not maintained product code. | - | Source changed; explanation needs review. Curated status |
 | benchmark | dev | Benchmark suite measuring CFN infrastructure options: Node versus Rust message bus throughput, agent messaging latency, load tests and spawn cost, driven by one runner script. | - | Source changed; explanation needs review. Curated status |

@@ -61,4 +61,8 @@ Do not edit anything outside these claims. Need more? Ask the master to
   stays current.
 - Migration number (if schema work): reserve with
   `fleet migrate-next WSxx <migrations_dir>` before creating any file.
+- Every `rm` path must be literal and fully spelled out (`rm /full/path/x.lock`).
+  No shell variables at all, guarded or not: Claude Code's guard and the delete
+  check both stop for approval, nobody is there to answer, and you stall then
+  get denied.
 - You are a leaf: do not spawn other Claude sessions.

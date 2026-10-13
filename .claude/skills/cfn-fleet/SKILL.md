@@ -74,11 +74,59 @@ done | dead`.
 | `land WSxx [--no-ff]` | Worktree: merge `fleet/<WSxx>` + remove worktree; main: mark landed; then sweep `handoffs/` for files addressed to the lane (`residual:` lines) |
 | `handoff WSxx` | Write `handoffs/HANDOFF_WSxx.md` for compaction restart into a spare |
 | `db WSxx` / `db-clean [--all]` | Scratch postgres containers (only when `FLEET_DB=docker`) |
+| `host-setup <alias> [--check]` | Prepare a server for `spawn --host` (see Remote hosts); idempotent |
+| `sync [WSxx]` | Pull remote workers' reports into the roster (host rows only) |
+| `peek WSxx [lines]` | Print a worker's pane (default 40 lines); host rows read it over ssh |
 | `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. STALE fires when a started/working row's heartbeat ages past `--stale-min` (default 5 minutes). Heartbeat-only roster diffs never emit `CHANGE` (the spawn ticker rewrites that column every tick). Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
 | `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained live-poll HTML tracking page from the roster (status tiles and meter, filter chips, sort, heartbeat age, engine, claims, now-editing lists, goal blurb, STALE/DEAD badges, transition timeline), served on 127.0.0.1 for VS Code Simple Browser (below) |
 
 Exit codes: `0` ok, `64` usage, `65` data error (bad WS id, overlap, duplicate),
 `66` guard refusal, `71` internal.
+
+## Remote hosts
+
+`fleet spawn WSxx --host <alias> --engine claude-*` runs the worker on a server
+over ssh. glm and codex engines are refused (exit 64). Local rows are unchanged.
+
+Server layout (under the server's `$HOME`): bare repo `~/git/<project>.git`, fleet
+clone `~/fleet-repos/<project>`, worktrees `~/fleet-repos/<project>-wt/<ws>`,
+outboxes `~/fleet-runs/<project>/<run>/<WS>/`. `fleet host-setup` never touches
+`~/Projects/<project>` on the server.
+
+| Step | Command | Notes |
+|---|---|---|
+| Set up | `fleet host-setup <alias> [--check]` | Creates the bare repo, pushes main, adds the Mac git remote `<alias>`, clones to `~/fleet-repos`. `--check` prints tmux/claude versions, logged-in account, free disk, cfn-fleet drift |
+| Spawn | `fleet spawn WSxx --host <alias>` | Refuses (66) below `FLEET_REMOTE_MIN_FREE_GB`; pushes `fleet-base/<WS>`, creates the worktree, ships brief and `remote-worker.sh` |
+| Pull reports | `fleet sync [WS]` | Applies heartbeat, notes, status, handoffs; claim requests land in `handoffs/CLAIM_REQ_<WS>.md` for the master. Never changes claims |
+| Look | `fleet peek WSxx [lines]` | Read a remote prompt before answering it |
+| Land | `fleet land WSxx` | Fetches `fleet/<WS>`, refuses (65) files outside the claims, merges, cleans the server |
+
+Reports are pulled only by `fleet watch` (each tick) or `fleet sync`. The dashboard
+never pulls them, so a dashboard-only master sees stale remote rows.
+
+Alert states (`fleet watch`, also badged on the dashboard):
+
+| State | Meaning |
+|---|---|
+| `UNREACHABLE <ws>` | ssh failed. Never reported as DEAD: the worker may be fine |
+| `PROMPT <ws>` | Pane waits on a permission prompt: `fleet peek` it |
+| `NOREPORT <ws>` | Started, no report after `FLEET_FIRST_REPORT_SECS` (300) |
+| `LOWDISK <host>` | Free disk under `FLEET_REMOTE_MIN_FREE_GB` |
+
+Knobs (`fleet.env` unless noted): `FLEET_HOST_REMOTE` (Mac git remote name, default
+the host alias), `FLEET_REMOTE_LINKS` (paths symlinked into the server worktree from
+`~/Projects/<project>`, e.g. `extracted,game`), `FLEET_REMOTE_MIN_FREE_GB` (15),
+`FLEET_AUTH_TIMEOUT` (seconds to wait for a login failure banner, 12),
+`FLEET_HOST_PROBE_SECS` (dashboard host probe interval, 30).
+
+By hand, once per server: ssh config alias (key login), `claude` login on the
+server, `.env` and secrets, and dependencies (node_modules, toolchains). Host-setup
+copies none of these.
+
+Limits: remote workers have no SendMessage and no fleet CLI. They report through
+`remote-worker.sh` (heartbeat, status, commit, handoff, claim request), and the
+master decides claims. All lanes share one account's rate limits. Worker briefs
+require literal `rm` paths (`rm /full/path/x.lock`), as `templates/BRIEF_REMOTE.md` states.
 
 ## Worker sessions
 

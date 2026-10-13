@@ -5,6 +5,15 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-13: fleet remote host workers
+
+- New `fleet host-setup <alias> [--check]`, `fleet spawn --host`, `fleet sync` and `fleet peek`;
+  `fleet land` handles host rows (fetch from the server, claims-diff gate, server cleanup).
+- `fleet watch` emits `UNREACHABLE` (never DEAD on ssh failure), `PROMPT`, `NOREPORT` and
+  `LOWDISK` for host rows. Reports are pulled only by watch or sync, not the dashboard.
+- Knobs: `FLEET_HOST_REMOTE`, `FLEET_REMOTE_LINKS`, `FLEET_REMOTE_MIN_FREE_GB`,
+  `FLEET_AUTH_TIMEOUT`, `FLEET_HOST_PROBE_SECS`. Status dev: tested with stub ssh only.
+
 ## 2026-10-13: fleet fixes from the MDTWII review
 
 - `fleet spawn` survives a reader that stops early (`| head -1`): SIGPIPE ignored and both

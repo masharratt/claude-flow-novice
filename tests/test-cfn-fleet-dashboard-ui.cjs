@@ -147,8 +147,23 @@ let run, server, browser;
     await fs.writeFile(path.join(run, 'roster.tsv'), header);
     await page.waitForFunction(() => document.querySelector('#sum-done').textContent === '0 / 0');
     assert.ok((await page.locator('.empty-state').textContent()).includes('No workstreams yet'), 'Empty roster has an onboarding message');
+    // Remote worker: host badge on the card and an unreachable state that is never DEAD.
+    const hostHeader = header.trimEnd() + '\thost\n';
+    const hostNow = Math.floor(Date.now() / 1000);
+    await fs.writeFile(path.join(run, 'roster.tsv'), hostHeader +
+      ['WS10', 'remote', 'Remote task', 'working', 'src/r', '', '', '', hostNow, 'on the server', 'claude-opus', 'vps'].join('\t') + '\n');
+    await fs.writeFile(path.join(run, 'host-states.tsv'), 'WS10\tvps\tunreachable\t\n');
+    await page.waitForSelector('[data-ws="WS10"] .chip.host');
+    assert.equal(await page.locator('[data-ws="WS10"] .chip.host').textContent(), 'vps', 'Host badge names the ssh alias');
+    await page.waitForSelector('[data-ws="WS10"] .badge.unreachable');
+    assert.equal(await page.locator('[data-ws="WS10"] .badge.dead').count(), 0, 'Unreachable card is never shown as DEAD');
+    assert.equal(await page.locator('#sum-attention').textContent(), '1', 'Unreachable host row needs attention');
+    await fs.writeFile(path.join(run, 'host-states.tsv'), 'WS10\tvps\tprompt\tnoreport\n');
+    await page.waitForSelector('[data-ws="WS10"] .badge.prompt');
+    await page.waitForSelector('[data-ws="WS10"] .badge.noreport');
+    assert.equal(await page.locator('[data-ws="WS10"] .badge.unreachable').count(), 0, 'Badge clears when the state changes');
     assert.deepEqual(errors, [], 'No page errors across states');
-    console.log('PASS: attention, landed/done semantics, heartbeat sorting, filters/search across polls, files, activity, outage retention and retry, fresh timestamps, live changes, themes, responsive layouts, empty roster, XSS escaping and no-JS fallback, glossary legend with alias merge and hostile-input guards, inline term tooltips, status tooltips, notes clamp and expand, live glossary updates.');
+    console.log('PASS: host badge and unreachable card, attention, landed/done semantics, heartbeat sorting, filters/search across polls, files, activity, outage retention and retry, fresh timestamps, live changes, themes, responsive layouts, empty roster, XSS escaping and no-JS fallback, glossary legend with alias merge and hostile-input guards, inline term tooltips, status tooltips, notes clamp and expand, live glossary updates.');
   } finally {
     await browser?.close();
     if (server && server.exitCode === null) await new Promise(resolve => {server.once('exit', resolve); server.kill();});

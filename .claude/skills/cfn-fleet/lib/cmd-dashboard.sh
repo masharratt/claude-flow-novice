@@ -31,6 +31,9 @@
 #
 # Exit codes: 0 ok | 64 usage | 65 data error | 66 guard refusal.
 
+# shellcheck source=cmd-sync.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cmd-sync.sh"
+
 # _fleet_json_escape STR: minimal JSON string escaping (backslash, quote).
 # Statuses come from the closed vocab and ws ids from the roster; both are
 # escaped anyway so a hostile roster cell cannot break the jsonl line shape.
@@ -198,8 +201,13 @@ main() {
   local sleeper=""
   trap '[ -z "$sleeper" ] || kill "$sleeper" 2>/dev/null; exit 0' INT TERM
   trap '_fleet_dash_loop_unregister "$run_dir"' EXIT
-  local fp nfp
+  local fp nfp last_probe probe_secs
   fp=$(_fleet_dash_fingerprint "$run_dir")
+  last_probe=$(date +%s)
+  # Remote-host badges come from ssh probes, which a roster fingerprint cannot
+  # see change: re-render on this cadence while any row names a host.
+  probe_secs="${FLEET_HOST_PROBE_SECS:-30}"
+  [[ "$probe_secs" =~ ^[0-9]+$ ]] || probe_secs=30
   while true; do
     # Background sleep + wait so TERM interrupts at once, not after a full
     # poll interval.
@@ -207,8 +215,13 @@ main() {
     wait "$sleeper" 2>/dev/null || true
     sleeper=""
     nfp=$(_fleet_dash_fingerprint "$run_dir") || continue
-    if [ "$nfp" != "$fp" ]; then
+    local reprobe=0
+    if [ $(( $(date +%s) - last_probe )) -ge "$probe_secs" ] && _fleet_roster_has_host "$roster"; then
+      reprobe=1
+    fi
+    if [ "$nfp" != "$fp" ] || [ "$reprobe" -eq 1 ]; then
       fp="$nfp"
+      last_probe=$(date +%s)
       # A render failure warns and keeps the last good page; it never kills
       # the loop (this dashboard is meant to outlive transient roster reads).
       _fleet_dash_pass "$roster" "$stale_min" "$poll" \
@@ -353,13 +366,21 @@ _fleet_dash_render() {
 
   local -A counts=()
   local cards="" queued_cards="" row i n_attention=0 n_total=0
-  local ws name task status claims sha notes hb engine
+  local ws name task status claims sha notes hb engine host
+  # Host rows (remote workers): states probed over ssh and written to
+  # host-states.tsv for the live page. Disk is probed once per host.
+  local host_states="" min_free
+  local -A host_low=() host_down=()
+  min_free="${FLEET_REMOTE_MIN_FREE_GB:-$(fleet_env_get FLEET_REMOTE_MIN_FREE_GB)}"
+  [[ "$min_free" =~ ^[0-9]+$ ]] || min_free=15
+  local now_probe
+  now_probe=$now
   while IFS= read -r row || [ -n "$row" ]; do
     [ -n "$row" ] || continue
     _fleet_tsv_split "$row"
     local -a cells=("${_FIELDS[@]}")
     ws="${cells[0]:-}"; name=""; task=""; status=""
-    claims=""; sha=""; notes=""; hb="0"; engine=""
+    claims=""; sha=""; notes=""; hb="0"; engine=""; host=""
     for i in "${!fields[@]}"; do
       case "${fields[$i]}" in
         ws_id)      ws="${cells[$i]:-}" ;;
@@ -371,17 +392,42 @@ _fleet_dash_render() {
         notes)      notes="${cells[$i]:-}" ;;
         heartbeat)  hb="${cells[$i]:-}" ;;
         engine)     engine="${cells[$i]:-}" ;;
+        host)       host="${cells[$i]:-}" ;;
       esac
     done
     counts["$status"]=$(( ${counts["$status"]:-0} + 1 ))
 
-    local stale=0 dead=0
+    local stale=0 dead=0 hstate="" hflags=""
+    if [ -n "$host" ]; then
+      case "$status" in
+        started|working)
+          hstate=$(_fleet_host_live_state "$ws" "$host")
+          if [ "$hstate" != unreachable ] && _fleet_remote_noreport "$ws" "$now_probe"; then
+            hflags="noreport"
+          fi
+          if [ "$hstate" = unreachable ]; then
+            host_down["$host"]=1
+          elif [ -z "${host_low[$host]+x}" ]; then
+            local hfree
+            if hfree=$(_fleet_host_free_gb "$host") && [ "$hfree" -lt "$min_free" ]; then
+              host_low["$host"]=1
+            else
+              host_low["$host"]=0
+            fi
+          fi
+          [ "${host_low[$host]:-0}" = 1 ] && hflags+="${hflags:+ }lowdisk" ;;
+      esac
+      host_states+="$ws"$'\t'"$host"$'\t'"${hstate:-none}"$'\t'"$hflags"$'\n'
+    fi
     case "$status" in
       started|working)
-        if [[ "$hb" =~ ^[0-9]+$ ]] && [ "$hb" -gt 0 ]; then
+        # A host row we could not reach has an unknown heartbeat age: not stale.
+        if [[ "$hb" =~ ^[0-9]+$ ]] && [ "$hb" -gt 0 ] && [ "$hstate" != unreachable ]; then
           [ $(( (now - hb) / 60 )) -gt "$stale_min" ] && stale=1
         fi
-        if [ "$tmux_ok" -eq 1 ] && [ -n "$name" ]; then
+        if [ -n "$host" ]; then
+          [ "$hstate" = dead ] && dead=1
+        elif [ "$tmux_ok" -eq 1 ] && [ -n "$name" ]; then
           _fleet_tmux_pane_alive "$sock" "$name" || dead=1
         fi ;;
       dead)
@@ -389,7 +435,8 @@ _fleet_dash_render() {
     esac
 
     n_total=$(( n_total + 1 ))
-    if [ "$status" = blocked ] || [ "$stale" -eq 1 ] || [ "$dead" -eq 1 ]; then
+    if [ "$status" = blocked ] || [ "$stale" -eq 1 ] || [ "$dead" -eq 1 ] \
+       || [ "$hstate" = unreachable ] || [ "$hstate" = prompt ] || [[ " $hflags " == *" noreport "* ]]; then
       n_attention=$(( n_attention + 1 ))
     fi
 
@@ -406,13 +453,22 @@ _fleet_dash_render() {
     local card
     card=$(_fleet_dash_card "$ws" "$name" "$task" "$status" "$claims" \
       "$sha" "$notes" "$hb" "$engine" "$stale_min" "$now" "$stale" "$dead" \
-      "$files_path")
+      "$files_path" "$host" "$hstate" "$hflags")
     if [ "$status" = pending ]; then
       queued_cards+="$card"$'\n'
     else
       cards+="$card"$'\n'
     fi
   done < <(awk 'NR > 1' "$roster")
+
+  # Live page reads this (ws, host, state, flags) so a poll can badge cards
+  # without its own ssh. Atomic tmp+mv; removed once no host rows remain.
+  if [ -n "$host_states" ]; then
+    printf '%s' "$host_states" > "$run_dir/host-states.tsv.tmp.$$" \
+      && mv "$run_dir/host-states.tsv.tmp.$$" "$run_dir/host-states.tsv"
+  else
+    rm -f "$run_dir/host-states.tsv"
+  fi
 
   # Meter groups the 7 statuses into 5 adjacency-safe segments (plan 1.3):
   # queued / active(started+working) / blocked / landed+done / dead.
@@ -555,7 +611,7 @@ _fleet_dash_meter() {
 _fleet_dash_card() {
   local ws="$1" name="$2" task="$3" status="$4" claims="$5" sha="$6" notes="$7" \
         hb="$8" engine="$9" stale_min="${10}" now="${11}" stale="${12}" dead="${13}" \
-        files_path="${14:-}"
+        files_path="${14:-}" host="${15:-}" hstate="${16:-}" hflags="${17:-}"
   # Pill classes are whitelist-mapped: an unknown status must never become a
   # styleable class (roster cells are user-typed).
   local st_class="st-unknown"
@@ -572,10 +628,15 @@ _fleet_dash_card() {
   out+="<span class=\"pill $st_class\" title=\"$(_fleet_html_escape "$(_fleet_dash_status_help "$status")")\"><span class=\"dot\"></span>$(_fleet_html_escape "$status")</span>"
   [ "$stale" -eq 1 ] && out+='<span class="badge stale">&#9888; STALE</span>'
   [ "$dead" -eq 1 ] && out+='<span class="badge dead">&#10005; DEAD</span>'
+  [ "$hstate" = unreachable ] && out+='<span class="badge unreachable" title="ssh could not reach the host; the worker may be fine">&#8230; UNREACHABLE</span>'
+  [ "$hstate" = prompt ] && out+='<span class="badge prompt" title="the pane is waiting on a permission prompt: fleet peek it">? PROMPT</span>'
+  [[ " $hflags " == *" noreport "* ]] && out+='<span class="badge noreport" title="no report received since spawn">&#8230; NO REPORT</span>'
+  [[ " $hflags " == *" lowdisk "* ]] && out+='<span class="badge lowdisk" title="the host is low on disk">! LOW DISK</span>'
   out+="</div>"$'\n'
   [ -n "$task" ] && out+="<p class=\"task\">$(_fleet_html_escape "$task")</p>"$'\n'
   out+='<div class="meta">'
   out+="<span class=\"chip engine\">$(_fleet_html_escape "$engine")</span>"
+  [ -z "$host" ] || out+="<span class=\"chip host\">$(_fleet_html_escape "$host")</span>"
   if [[ "$hb" =~ ^[0-9]+$ ]] && [ "$hb" -gt 0 ]; then
     local age=$(( now - hb ))
     [ "$age" -lt 0 ] && age=0
@@ -855,7 +916,7 @@ h2 { font-size: 17px; font-weight: 600; letter-spacing: -.3px; margin: 0; }
 .queued-n { color: var(--dim); font-weight: 500; }
 .queued-grid .card { padding: 14px 16px; opacity: 0.85; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; min-width: 0; }
-.card[data-status="blocked"], .card:has(.badge.stale) { border-top: 2px solid var(--st-blocked); }
+.card[data-status="blocked"], .card:has(.badge.stale), .card:has(.badge.unreachable), .card:has(.badge.prompt) { border-top: 2px solid var(--st-blocked); }
 .card[data-status="dead"], .card:has(.badge.dead) { border-top: 2px solid var(--st-dead); }
 .worker-identity { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; overflow-wrap: anywhere; }
 .ws-id { font: 12px ui-monospace, monospace; color: var(--accent); background: var(--accent-soft); padding: 4px 7px; border-radius: 5px; }
@@ -875,6 +936,7 @@ code.sha::before { content: 'Commit '; color: var(--dim); }
 .badge { padding: 3px 7px; border-radius: 4px; font-size: 9px; font-weight: 700; letter-spacing: .4px; }
 .badge.stale { background: var(--badge-stale-bg); color: var(--badge-stale-ink); }
 .badge.dead { background: var(--badge-dead-bg); color: var(--badge-dead-ink); }
+.badge.unreachable, .badge.prompt, .badge.noreport, .badge.lowdisk { background: var(--badge-stale-bg); color: var(--badge-stale-ink); }
 .editing { margin-top: 16px; }
 .editing-h { display: block; font: 9px ui-monospace, monospace; letter-spacing: 1.4px; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
 .files { margin: 0; padding: 0; list-style: none; }
@@ -1095,6 +1157,8 @@ _fleet_dash_script() {
   var query = "";
   var lastReceivedAt = null;
   var lastRosterText = null;
+  /* ws -> {host, state, flags} from host-states.tsv (remote workers only). */
+  var hostStates = {};
 
   var els = {};
   function initEls() {
@@ -1138,16 +1202,22 @@ _fleet_dash_script() {
         Math.floor((now - hb) / 60) > staleMin) {
       stale = 1;
     }
+    var hs = hostStates[row.ws_id || ""] || {};
     var h = '<article class="card" data-ws="' + esc(row.ws_id || "") +
       '" data-status="' + esc(st) + '">';
     h += '<div class="worker-identity"><span class="ws-id">' + esc(row.ws_id || "") + '</span><span class="ws-name">' + esc(row.name || "") + '</span></div>';
     h += '<div class="head"><span class="pill ' + sc +
       '" title="' + esc(statusTitle(st)) + '"><span class="dot"></span>' + esc(st) + '</span>';
     if (stale) h += '<span class="badge stale">&#9888; STALE</span>';
-    if (st === "dead") h += '<span class="badge dead">&#10005; DEAD</span>';
+    if (st === "dead" || hs.state === "dead") h += '<span class="badge dead">&#10005; DEAD</span>';
+    if (hs.state === "unreachable") h += '<span class="badge unreachable" title="ssh could not reach the host; the worker may be fine">&#8230; UNREACHABLE</span>';
+    if (hs.state === "prompt") h += '<span class="badge prompt" title="the pane is waiting on a permission prompt: fleet peek it">? PROMPT</span>';
+    if ((hs.flags || "").indexOf("noreport") >= 0) h += '<span class="badge noreport" title="no report received since spawn">&#8230; NO REPORT</span>';
+    if ((hs.flags || "").indexOf("lowdisk") >= 0) h += '<span class="badge lowdisk" title="the host is low on disk">! LOW DISK</span>';
     h += '</div>';
     if (row.task) h += '<p class="task">' + termify(esc(row.task)) + '</p>';
     h += '<div class="meta"><span class="chip engine">' + esc(eng) + '</span>';
+    if (row.host) h += '<span class="chip host">' + esc(row.host) + '</span>';
     if (hb > 0) {
       var age = now - hb;
       if (age < 0) age = 0;
@@ -1172,7 +1242,9 @@ _fleet_dash_script() {
     var st = String(row.status || "");
     var hb = intOr(row.heartbeat || "");
     var threshold = intOr(document.body.getAttribute("data-stale-min") || "0");
-    return st === "blocked" || st === "dead" ||
+    var hs = hostStates[row.ws_id || ""] || {};
+    return st === "blocked" || st === "dead" || hs.state === "unreachable" || hs.state === "prompt" ||
+      (hs.flags || "").indexOf("noreport") >= 0 ||
       ((st === "started" || st === "working") && hb > 0 && Math.floor((Date.now() / 1000 - hb) / 60) > threshold);
   }
 
@@ -1364,8 +1436,29 @@ _fleet_dash_script() {
       .catch(function () { /* keep the last good blurb */ });
   }
 
+  /* host-states.tsv: ws, host, state, flags. Absent file (no remote rows) or a
+     failed fetch keeps the last map; the roster poll never waits on it. */
+  function pollHostStates(cb) {
+    fetch("host-states.tsv?ts=" + cb)
+      .then(function (resp) {
+        if (!resp.ok) throw new Error("host-states http " + resp.status);
+        return resp.text();
+      })
+      .then(function (text) {
+        var map = {};
+        text.split("\n").forEach(function (line) {
+          var c = line.split("\t");
+          if (c[0]) map[c[0]] = {host: c[1] || "", state: c[2] || "", flags: c[3] || ""};
+        });
+        hostStates = map;
+        rerenderLocal();
+      })
+      .catch(function () { hostStates = {}; });
+  }
+
   function poll() {
     var cb = cachebust();
+    pollHostStates(cb);
     fetch("roster.tsv?ts=" + cb)
       .then(function (resp) {
         if (!resp.ok) throw new Error("roster http " + resp.status);

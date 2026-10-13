@@ -1,0 +1,41 @@
+{
+  "slug": "fleet-remote-host-workers",
+  "decisions": [
+    {
+      "id": "D1",
+      "actor": "human",
+      "title": "Where server workers get code and push branches",
+      "chosen": "Dedicated fleet clone per project (~/fleet-repos/<name>), only remote is the server bare repo",
+      "rationale": "Existing server copies pull from GitHub; relinking would break that, and a fleet-only clone cannot push to GitHub by accident",
+      "alternatives": "Re-link the user's existing server checkouts to the bare repo",
+      "iteration": 1,
+      "blocking": false,
+      "timestamp": "2026-10-13T18:12:22Z",
+      "status": "accepted"
+    },
+    {
+      "id": "D2",
+      "actor": "human",
+      "title": "How server workers report to the Mac roster",
+      "chosen": "Mac-authoritative roster; per-lane server outbox pulled over outbound ssh",
+      "rationale": "Tunnel needs Mac Remote Login and gives the server a key into the Mac; outbox needs no inbound access and survives the Mac sleeping",
+      "alternatives": "Reverse ssh tunnel so workers write the Mac roster live",
+      "iteration": 1,
+      "blocking": false,
+      "timestamp": "2026-10-13T18:12:22Z",
+      "status": "accepted"
+    },
+    {
+      "id": "D3",
+      "actor": "human",
+      "title": "Which remote-worker states to surface",
+      "chosen": "unreachable, waiting on a prompt, no report yet, low server disk",
+      "rationale": "User selected all four",
+      "alternatives": "unreachable only",
+      "iteration": 1,
+      "blocking": false,
+      "timestamp": "2026-10-13T18:12:22Z",
+      "status": "accepted"
+    }
+  ]
+}

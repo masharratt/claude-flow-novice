@@ -31,8 +31,15 @@ Subcommands:
   heartbeat WSxx [note...]                      liveness + latest note
   commit WSxx -m <msg>                          guarded commit (claims-only staging)
   migrate-next WSxx <dir>                       reserve next migration number
-  spawn WSxx [--spares N] [--engine e] [--no-tmux] [--dry-run]
-  land WSxx [--no-ff]                           merge/mark landed
+  spawn WSxx [--spares N] [--engine e] [--host H] [--no-tmux] [--dry-run]
+                                                --host H runs the worker on server H
+                                                (claude engines only; run host-setup first)
+  host-setup <alias> [--check]                  prepare server <alias> (bare repo, fleet clone,
+                                                runs dir); --check = versions, login, disk, drift
+  sync [WSxx]                                   pull remote worker reports into the roster
+  peek WSxx [lines]                             read a worker pane (remote rows over ssh)
+  land WSxx [--no-ff]                           merge/mark landed (host rows: fetch from the
+                                                server, refuse files outside the claims)
   handoff WSxx                                  write HANDOFF_WSxx.md
   db WSxx | db-clean [--all]                    scratch postgres containers
   watch [--stale-min N] [--poll S] [--once] [--emit-events]

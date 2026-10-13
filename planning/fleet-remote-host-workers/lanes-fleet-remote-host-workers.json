@@ -1,0 +1,271 @@
+{
+  "plan": "planning/PLAN_fleet-remote-host-workers.md",
+  "lane_cap": 8,
+  "lanes": [
+    {
+      "id": "1",
+      "phase": "Phase 1: Roster host column, claim locking, worktree path helper",
+      "steps": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4"
+      ],
+      "files": [
+        ".claude/skills/cfn-fleet/lib/cmd-add.sh",
+        ".claude/skills/cfn-fleet/lib/cmd-claim.sh",
+        ".claude/skills/cfn-fleet/lib/common.sh"
+      ],
+      "shared_files": [],
+      "produces": [
+        "lib/cmd-add.sh:claims_overlap_check",
+        "lib/cmd-claim.sh:locked_claim",
+        "lib/common.sh:fleet_valid_host",
+        "lib/common.sh:fleet_worktree_path",
+        "lib/common.sh:host_column"
+      ],
+      "consumes": []
+    },
+    {
+      "id": "2",
+      "phase": "Phase 2: Host transport library",
+      "steps": [
+        "2.1",
+        "2.2"
+      ],
+      "files": [
+        ".claude/skills/cfn-fleet/lib/host.sh",
+        ".claude/skills/cfn-fleet/lib/host.sh (new)"
+      ],
+      "shared_files": [],
+      "produces": [
+        "lib/host.sh:_fleet_host_free_gb",
+        "lib/host.sh:_fleet_host_run",
+        "lib/host.sh:_fleet_pane_state",
+        "lib/host.sh:_fleet_tmux"
+      ],
+      "consumes": [
+        "lib/host.sh:_fleet_host_run"
+      ]
+    },
+    {
+      "id": "3",
+      "phase": "Phase 3: Remote worker kit",
+      "steps": [
+        "3.1",
+        "3.2"
+      ],
+      "files": [
+        ".claude/skills/cfn-fleet/templates/BRIEF_REMOTE.md (new)",
+        ".claude/skills/cfn-fleet/templates/remote-worker.sh (new)"
+      ],
+      "shared_files": [],
+      "produces": [
+        "templates/BRIEF_REMOTE.md:brief",
+        "templates/remote-worker.sh:reports"
+      ],
+      "consumes": []
+    },
+    {
+      "id": "4",
+      "phase": "Phase 4: spawn --host",
+      "steps": [
+        "4.1",
+        "4.2",
+        "4.3"
+      ],
+      "files": [
+        ".claude/skills/cfn-fleet/lib/cmd-spawn.sh"
+      ],
+      "shared_files": [],
+      "produces": [
+        "lib/cmd-spawn.sh:host_flag",
+        "lib/cmd-spawn.sh:host_preflight",
+        "lib/cmd-spawn.sh:remote_launch"
+      ],
+      "consumes": [
+        "lib/common.sh:fleet_valid_host",
+        "lib/common.sh:fleet_worktree_path",
+        "lib/common.sh:host_column",
+        "lib/host.sh:_fleet_host_free_gb",
+        "lib/host.sh:_fleet_host_run",
+        "lib/host.sh:_fleet_tmux",
+        "templates/BRIEF_REMOTE.md:brief",
+        "templates/remote-worker.sh:reports"
+      ]
+    },
+    {
+      "id": "5",
+      "phase": "Phase 5: fleet sync, liveness states, peek",
+      "steps": [
+        "5.1",
+        "5.2",
+        "5.3",
+        "5.4"
+      ],
+      "files": [
+        ".claude/skills/cfn-fleet/lib/cmd-dashboard.sh",
+        ".claude/skills/cfn-fleet/lib/cmd-peek.sh (new)",
+        ".claude/skills/cfn-fleet/lib/cmd-sync.sh (new)",
+        ".claude/skills/cfn-fleet/lib/cmd-watch.sh"
+      ],
+      "shared_files": [],
+      "produces": [
+        "lib/cmd-dashboard.sh:host_badge",
+        "lib/cmd-peek.sh:fleet_peek",
+        "lib/cmd-sync.sh:fleet_sync",
+        "lib/cmd-watch.sh:host_liveness"
+      ],
+      "consumes": [
+        "lib/cmd-sync.sh:fleet_sync",
+        "lib/host.sh:_fleet_host_free_gb",
+        "lib/host.sh:_fleet_host_run",
+        "lib/host.sh:_fleet_pane_state",
+        "lib/host.sh:_fleet_tmux",
+        "templates/remote-worker.sh:reports"
+      ]
+    },
+    {
+      "id": "6",
+      "phase": "Phase 6: fleet land for host rows",
+      "steps": [
+        "6.1"
+      ],
+      "files": [
+        ".claude/skills/cfn-fleet/lib/cmd-land.sh"
+      ],
+      "shared_files": [],
+      "produces": [
+        "lib/cmd-land.sh:remote_land"
+      ],
+      "consumes": [
+        "lib/common.sh:fleet_worktree_path",
+        "lib/common.sh:host_column",
+        "lib/host.sh:_fleet_host_run"
+      ]
+    },
+    {
+      "id": "7",
+      "phase": "Phase 7: fleet host-setup (any project)",
+      "steps": [
+        "7.1"
+      ],
+      "files": [
+        ".claude/skills/cfn-fleet/lib/cmd-host-setup.sh (new)"
+      ],
+      "shared_files": [],
+      "produces": [
+        "lib/cmd-host-setup.sh:host_setup"
+      ],
+      "consumes": [
+        "lib/host.sh:_fleet_host_free_gb",
+        "lib/host.sh:_fleet_host_run"
+      ]
+    },
+    {
+      "id": "8",
+      "phase": "Phase 8: Docs and CLI usage",
+      "steps": [
+        "8.1",
+        "8.2"
+      ],
+      "files": [
+        ".claude/skills/cfn-fleet/SKILL.md",
+        ".claude/skills/cfn-fleet/cli/fleet",
+        "readme/CHANGELOG.md",
+        "readme/feature-status.md"
+      ],
+      "shared_files": [],
+      "produces": [
+        "cli/fleet:usage",
+        "docs:remote_hosts"
+      ],
+      "consumes": [
+        "cli/fleet:usage",
+        "lib/cmd-host-setup.sh:host_setup",
+        "lib/cmd-peek.sh:fleet_peek",
+        "lib/cmd-spawn.sh:host_flag",
+        "lib/cmd-sync.sh:fleet_sync"
+      ]
+    }
+  ],
+  "edges": [
+    [
+      "1",
+      "4"
+    ],
+    [
+      "1",
+      "6"
+    ],
+    [
+      "2",
+      "4"
+    ],
+    [
+      "2",
+      "5"
+    ],
+    [
+      "2",
+      "6"
+    ],
+    [
+      "2",
+      "7"
+    ],
+    [
+      "3",
+      "4"
+    ],
+    [
+      "3",
+      "5"
+    ],
+    [
+      "4",
+      "8"
+    ],
+    [
+      "5",
+      "8"
+    ],
+    [
+      "7",
+      "8"
+    ]
+  ],
+  "waves": [
+    [
+      "1",
+      "2",
+      "3"
+    ],
+    [
+      "4",
+      "5",
+      "6",
+      "7"
+    ],
+    [
+      "8"
+    ]
+  ],
+  "logs": [
+    "wave 1: lanes [1, 2, 3]",
+    "wave 2: lanes [4, 5, 6, 7]",
+    "wave 3: lanes [8]"
+  ],
+  "blockers": [],
+  "hubs": [],
+  "separability": {
+    "total_steps": 19,
+    "lanes": 8,
+    "waves": 3,
+    "longest_lane_steps": 4,
+    "critical_path_steps": 10,
+    "parallel_speedup": 1.9,
+    "co_written_files": [],
+    "advisory": null
+  }
+}

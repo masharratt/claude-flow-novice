@@ -4,9 +4,10 @@
 # empty. Claims are comma-split and stored space-joined. Engine is validated
 # against the registry (engines.sh); default is FLEET_DEFAULT_ENGINE from
 # fleet.env, else claude-sub, and it is written to the roster's engine column
-# (appended last). Duplicate or malformed WS id exits 65 (message names the
+# (then host, empty = local). Duplicate or malformed WS id exits 65 (message names the
 # existing row's task; "placeholder" when it starts QUEUED:), unknown engine 65.
-# --force replaces an existing row instead of refusing.
+# --force replaces an existing row instead of refusing. --claims that overlap
+# another row's claims exit 65 (checked under the roster lock).
 main(){
   local ws="" task="" name="" claims="" engine="" force=0
   while [ $# -gt 0 ]; do
@@ -77,12 +78,24 @@ main(){
     # migrate-on-first-write: an old-header roster gains the canonical header
     # (engine appended) and padded rows before the first append lands
     _roster_migrate_locked "$f" || exit 71
+    # overlap check under the same lock as the append; the row being replaced
+    # (--force) is excluded by _roster_claims_conflict's own-ws skip
+    if [ -n "$joined" ]; then
+      # shellcheck disable=SC2086  # joined is space-separated claim paths
+      if msg=$(_roster_claims_conflict "$ws" $joined); then
+        printf 'fleet: %s\n' "$msg" >&2
+        exit 65
+      fi
+    fi
     if [ "$force" -eq 1 ] && roster_exists "$ws"; then
       tmp="${f}.tmp.$$"
       awk -F'\t' -v ws="$ws" 'NR == 1 || $1 != ws' "$f" > "$tmp" && mv -f "$tmp" "$f" \
         || { rm -f "$tmp"; exit 71; }
     fi
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-      "$ws" "$name" "$task" "pending" "$joined" "" "" "" "0" "" "$engine" >> "$f" || exit 71
-  ) 9>"$lock" || fleet_die 71 "roster append failed for $ws"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$ws" "$name" "$task" "pending" "$joined" "" "" "" "0" "" "$engine" "" >> "$f" || exit 71
+  ) 9>"$lock"
+  rc=$?
+  [ "$rc" -eq 65 ] && exit 65
+  [ "$rc" -eq 0 ] || fleet_die 71 "roster append failed for $ws"
 }

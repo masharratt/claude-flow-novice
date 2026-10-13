@@ -25,44 +25,32 @@ main(){
   done
   [ "${#add[@]}" -gt 0 ] || { echo "no new claims for $ws"; return 0; }
 
-  # overlap check against every other row's claims. awk (not `IFS=$'\t' read`)
-  # so rows with empty claims keep their field positions.
-  local conflict="" ows oclaims oc opfx pp
-  while IFS=$'\t' read -r ows oclaims; do
-    [ "$ows" = "$ws" ] && continue
-    for oc in $oclaims; do
-      opfx=$(_claim_prefix "$oc")
-      for p in "${add[@]}"; do
-        pp=$(_claim_prefix "$p")
-        if _paths_overlap "$pp" "$opfx"; then
-          conflict="claim '$p' for $ws overlaps '$oc' owned by $ows"
-          break 3
-        fi
-      done
-    done
-  done < <(awk -F'\t' 'NR > 1 && $5 != "" { print $1 "\t" $5 }' "$(fleet_roster_file)")
-  [ -z "$conflict" ] || fleet_die 65 "$conflict"
-
-  joined="${own:+$own }${add[*]}"
-  roster_set "$ws" claims "$joined"
+  # Read, overlap check and write share one roster lock: two concurrent claims
+  # on the same path could otherwise both pass the check before either wrote.
+  locked_claim "$ws" "$own" "${add[@]}"
 }
 
-# Normalize a claim path/glob to its comparable scope prefix.
-_claim_prefix(){
-  local p="$1"
-  p="${p#./}"
-  p="${p%/}"
-  case "$p" in
-    *[\*\?\[]*) printf '%s\n' "$(dirname "$p")";;
-    *)          printf '%s\n' "$p";;
+# locked_claim WS OWN ADD...: exit 65 on overlap, else append ADD to the row.
+# OWN is re-read under the lock so a concurrent claim on the same row is kept.
+locked_claim(){
+  local ws="$1" own="$2" f lock conflict joined
+  shift 2
+  f=$(fleet_roster_file)
+  lock="$(dirname "$f")/.roster.lock"
+  conflict=$(
+    (
+      flock -x 9 || exit 71
+      if msg=$(_roster_claims_conflict "$ws" "$@"); then
+        printf '%s' "$msg"
+        exit 65
+      fi
+      own=$(roster_get "$ws" claims)
+      joined="${own:+$own }$*"
+      _roster_set_locked "$ws" claims "$joined" || exit 71
+    ) 9>"$lock"
+  ) && return 0
+  case $? in
+    65) fleet_die 65 "$conflict";;
+    *)  fleet_die 71 "roster rewrite failed for $ws.claims";;
   esac
-}
-
-# 0 when the two prefixes are equal or one is a directory-prefix of the other.
-_paths_overlap(){
-  local a="$1" b="$2"
-  [ "$a" = "$b" ] && return 0
-  case "/$b/" in "/$a/"*) return 0 ;; esac
-  case "/$a/" in "/$b/"*) return 0 ;; esac
-  return 1
 }

@@ -24,11 +24,26 @@
 #                         tooling, never a false DEAD.
 #   ALL-DONE              every row landed|done -> exits 0 (ends the loop)
 #
+# Host rows (workers on a remote machine, roster `host` column set): each tick
+# first runs `fleet sync` (pulls their reports, prints HANDOFF / CLAIM-REQ), then
+# probes the pane over ssh instead of the local socket. Extra events, each
+# emitted when it newly appears, not on every poll:
+#   UNREACHABLE <ws> <host>  ssh could not ask. Never DEAD: a flaky link is not
+#                            a dead worker, and STALE is not judged blind.
+#   PROMPT <ws>              pane shows a permission prompt (`fleet peek` it)
+#   NOREPORT <ws>            started, no report applied after
+#                            FLEET_FIRST_REPORT_SECS (default 300)
+#   LOWDISK <host>           free disk under FLEET_REMOTE_MIN_FREE_GB (15)
+#   DEAD <ws> (pane exited)  only when tmux on the host answered "dead"
+#
 # --emit-events (opt-in) bridges to cfn-workbench: roster status transitions
 # map onto its closed event set (loop_started / lane_spawned / lane_landed /
 # loop_finished) and <run-dir>/run-plan-<slug>.json is regenerated each scan
 # so workbench's roster section renders one card per workstream. STALE, DEAD
 # and non-status CHANGE lines have no workbench event type: stdout only.
+
+# shellcheck source=cmd-sync.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cmd-sync.sh"
 
 FLEET_WATCH_STATE=""
 FLEET_WATCH_EMIT=0
@@ -123,6 +138,30 @@ main() {
 # liveness (_fleet_tmux_pane_alive) live in lib/common.sh (single source of
 # truth, shared with cmd-dashboard.sh and cmd-spawn.sh).
 
+# _fleet_watch_host_state WS HOST STATUS NOW — prints the space-separated state
+# tokens for a host row: unreachable | dead | prompt, plus noreport. Only rows
+# that should be running are probed over ssh (started|working); a blocked or
+# finished row is only ever marked unreachable when sync already failed to ask.
+_fleet_watch_host_state() {
+  local ws="$1" host="$2" status="$3" now="$4" st out=""
+  case "$_FLEET_WATCH_UNREACH" in
+    *" $ws "*) echo unreachable; return 0 ;;
+  esac
+  case "$status" in
+    started|working) ;;
+    *) return 0 ;;
+  esac
+  st=$(_fleet_host_live_state "$ws" "$host")
+  case "$st" in
+    unreachable|dead|prompt) out="$st" ;;
+  esac
+  if [ "$st" != unreachable ] && _fleet_remote_noreport "$ws" "$now"; then
+    out+="${out:+ }noreport"
+  fi
+  printf '%s\n' "$out"
+  return 0
+}
+
 # _fleet_watch_scan ROSTER STALE_MIN — one scan. Order: STALE/DEAD per roster
 # row, then CHANGE lines, then ALL-DONE (exit 0). Always returns 0 otherwise.
 _fleet_watch_scan() {
@@ -155,6 +194,24 @@ _fleet_watch_scan() {
     tmux_ok=1
     sock=$(_fleet_tmux_socket)
   fi
+  # Host rows: pull their reports first so the diff below sees fresh notes and
+  # statuses. Only the lines a human acts on are re-emitted; the rest of sync's
+  # chatter ("up to date", "applied N") would flood the stream every poll.
+  # _FLEET_WATCH_UNREACH records which rows sync could not reach so the pane
+  # probe does not wait out a second ssh timeout.
+  local -A host_seen=() host_unreach=()
+  _FLEET_WATCH_UNREACH=" "
+  local -a sync_events=()
+  if _fleet_roster_has_host "$roster"; then
+    local sline
+    while IFS= read -r sline; do
+      case "$sline" in
+        "UNREACHABLE "*) _FLEET_WATCH_UNREACH+="$(printf '%s' "$sline" | awk '{print $2}') " ;;
+        HANDOFF\ *|CLAIM-REQ\ *|*" refused "*) sync_events+=("$sline") ;;
+      esac
+    done < <(fleet_sync 2>&1 || true)
+  fi
+
   while IFS= read -r row || [ -n "$row" ]; do
     [ -n "$row" ] || continue
     lines=$((lines + 1))
@@ -163,12 +220,13 @@ _fleet_watch_scan() {
     local ws="${cells[0]}"
     status=""
     hb="0"
-    local name_val=""
+    local name_val="" host_val=""
     for i in "${!fields[@]}"; do
       val="${cells[$i]:-}"
       key="$ws|${fields[$i]}"
       cur["$key"]="$val"
       case "${fields[$i]}" in
+        host)      host_val="$val" ;;
         status)    status="$val" ;;
         heartbeat) hb="$val" ;;
         name)      name_val="$val" ;;
@@ -190,20 +248,41 @@ _fleet_watch_scan() {
       fi
     done
 
+    local host_state=""
+    if [ -n "$host_val" ]; then
+      host_state=$(_fleet_watch_host_state "$ws" "$host_val" "$status" "$now")
+      cur["$ws|~live"]="$host_state"
+      case "$host_state" in *unreachable*) host_unreach["$host_val"]=1 ;; esac
+      case "$status" in started|working) host_seen["$host_val"]=1 ;; esac
+      # Events fire when a state newly appears, not on every poll.
+      local tok
+      for tok in $host_state; do
+        case " ${prev["$ws|~live"]:-} " in *" $tok "*) continue ;; esac
+        case "$tok" in
+          unreachable) row_events+=("UNREACHABLE $ws $host_val") ;;
+          dead)        row_events+=("DEAD $ws (pane exited)") ;;
+          prompt)      row_events+=("PROMPT $ws") ;;
+          noreport)    row_events+=("NOREPORT $ws") ;;
+        esac
+      done
+    fi
+
     case "$status" in
       dead)
         row_events+=("DEAD $ws") ;;
       started|working)
         # Pane liveness first: a gone session (engine exited) is DEAD even on
         # a fresh heartbeat. Rows without a name cell and tmux-less hosts are
-        # skipped, never reported dead.
-        if [ "$tmux_ok" -eq 1 ] && [ -n "$name_val" ]; then
+        # skipped, never reported dead. Host rows were probed over ssh above.
+        if [ -z "$host_val" ] && [ "$tmux_ok" -eq 1 ] && [ -n "$name_val" ]; then
           _fleet_tmux_pane_alive "$sock" "$name_val" \
             || row_events+=("DEAD $ws (pane exited)")
         fi
         age_min=0
         # shellcheck disable=SC2053
         [[ "$hb" =~ ^[0-9]+$ ]] && age_min=$(((now - hb) / 60))
+        # A host row we could not reach has an unknown heartbeat age: stay quiet.
+        case "$host_state" in *unreachable*) age_min=0 ;; esac
         if [ "$age_min" -gt "$stale_min" ]; then
           row_events+=("STALE $ws $age_min")
         fi ;;
@@ -213,8 +292,27 @@ _fleet_watch_scan() {
     fi
   done < <(awk 'NR > 1' "$roster")
 
+  # Disk is a host property: one probe per host that has live rows and could
+  # be reached, reported when it newly drops under the floor.
+  local h free min_free
+  min_free="${FLEET_REMOTE_MIN_FREE_GB:-$(fleet_env_get FLEET_REMOTE_MIN_FREE_GB)}"
+  [[ "$min_free" =~ ^[0-9]+$ ]] || min_free=15
+  for h in "${!host_seen[@]}"; do
+    [ -z "${host_unreach[$h]+x}" ] || continue
+    free=$(_fleet_host_free_gb "$h") || continue
+    if [ "$free" -lt "$min_free" ]; then
+      cur["~disk|$h"]="low"
+      [ "${prev["~disk|$h"]:-}" = "low" ] || row_events+=("LOWDISK $h (${free} GB free, floor ${min_free})")
+    else
+      cur["~disk|$h"]="ok"
+    fi
+  done
+
   local e
   for e in "${row_events[@]}"; do
+    echo "$e"
+  done
+  for e in "${sync_events[@]}"; do
     echo "$e"
   done
   for e in "${change_events[@]}"; do

@@ -32,9 +32,10 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/engines.sh"
 # indexes. Pre-engine rosters on disk carry the old 10-column header; readers
 # treat a missing canonical field as empty and the first writer migrates the
 # file (see _roster_migrate_locked).
+# `host` (col 12) names the ssh alias a remote worker runs on; empty = local.
 # Consumed by cmd-init.sh (and any cmd file that writes rows), not here.
 # shellcheck disable=SC2034
-FLEET_ROSTER_HEADER=$'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine'
+FLEET_ROSTER_HEADER=$'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\thost'
 
 fleet_die(){ # fleet_die CODE MSG — message to stderr, exit CODE
   local code="$1"
@@ -165,25 +166,93 @@ _roster_migrate_locked(){
 # .roster.lock, atomically (write tmp in the same dir, mv over). Tabs and
 # newlines in VAL are flattened to spaces to keep the TSV parseable.
 roster_set(){
-  local ws="$1" field="$2" val="$3" f lock idx tmp
+  local ws="$1" field="$2" val="$3" f lock
   f=$(fleet_roster_file)
   [ -f "$f" ] || fleet_die 64 "no roster at $f (fleet init first)"
   roster_exists "$ws" || fleet_die 65 "unknown workstream: $ws"
+  lock="$(dirname "$f")/.roster.lock"
+  (
+    flock -x 9 || exit 71
+    _roster_set_locked "$ws" "$field" "$val" || exit 71
+  ) 9>"$lock" || fleet_die 71 "roster rewrite failed for $ws.$field"
+}
+
+# _roster_set_locked WS FIELD VAL: the roster_set body for callers that already
+# hold the roster flock (cmd-claim's check-then-write). flock is not re-entrant
+# across fds, so calling roster_set while holding the lock would deadlock.
+_roster_set_locked(){
+  local ws="$1" field="$2" val="$3" f idx tmp
+  f=$(fleet_roster_file)
   idx=$(_roster_field_index "$field")
   [ -n "$idx" ] || fleet_die 65 "unknown roster field: $field"
   val="${val//$'\t'/ }"
   val="${val//$'\n'/ }"
-  lock="$(dirname "$f")/.roster.lock"
   tmp="${f}.tmp.$$"
-  (
-    flock -x 9 || exit 71
-    _roster_migrate_locked "$f" || exit 71
-    awk -F'\t' -v OFS='\t' -v ws="$ws" -v i="$idx" -v v="$val" '
-      NR == 1  { print; next }
-      $1 == ws { $i = v; print; next }
-               { print }' "$f" > "$tmp" || exit 71
-    mv -f "$tmp" "$f"
-  ) 9>"$lock" || fleet_die 71 "roster rewrite failed for $ws.$field"
+  _roster_migrate_locked "$f" || return 71
+  awk -F'\t' -v OFS='\t' -v ws="$ws" -v i="$idx" -v v="$val" '
+    NR == 1  { print; next }
+    $1 == ws { $i = v; print; next }
+             { print }' "$f" > "$tmp" || { rm -f "$tmp"; return 71; }
+  mv -f "$tmp" "$f"
+}
+
+# fleet_valid_host NAME: 0 when NAME is a safe ssh alias. It lands in ssh argv
+# and roster cells, so shell metacharacters and whitespace are refused.
+fleet_valid_host(){
+  [[ "${1:-}" =~ ^[A-Za-z0-9._-]+$ ]]
+}
+
+# fleet_worktree_path REPO WS: local worktree dir for a workstream. One
+# definition for spawn and land so the two never drift.
+fleet_worktree_path(){
+  local repo="$1" ws="$2"
+  printf '%s/.claude/worktrees/%s\n' "$repo" "$(printf '%s' "$ws" | tr '[:upper:]' '[:lower:]')"
+}
+
+# --- Claim overlap (cmd-claim.sh + cmd-add.sh) ------------------------------
+# Normalize a claim path/glob to its comparable scope prefix. Globs compare by
+# their containing directory ('docs/*.md' scopes to 'docs').
+_claim_prefix(){
+  local p="$1"
+  p="${p#./}"
+  p="${p%/}"
+  case "$p" in
+    *[\*\?\[]*) printf '%s\n' "$(dirname "$p")";;
+    *)          printf '%s\n' "$p";;
+  esac
+}
+
+# 0 when the two prefixes are equal or one is a directory-prefix of the other.
+_paths_overlap(){
+  local a="$1" b="$2"
+  [ "$a" = "$b" ] && return 0
+  case "/$b/" in "/$a/"*) return 0 ;; esac
+  case "/$a/" in "/$b/"*) return 0 ;; esac
+  return 1
+}
+
+# _roster_claims_conflict WS CLAIM...: prints a message and returns 0 when any
+# CLAIM overlaps another row's claims (rows other than WS). Returns 1 when none
+# do. Reads the roster, so callers hold the roster flock to make the answer
+# stay true until their write lands. awk (not `IFS=$'\t' read`) so rows with
+# empty claims keep their field positions.
+_roster_claims_conflict(){
+  local ws="$1" ows oclaims oc opfx p pp
+  shift
+  while IFS=$'\t' read -r ows oclaims; do
+    [ "$ows" = "$ws" ] && continue
+    for oc in $oclaims; do
+      opfx=$(_claim_prefix "$oc")
+      for p in "$@"; do
+        pp=$(_claim_prefix "$p")
+        if _paths_overlap "$pp" "$opfx"; then
+          printf "claim '%s' for %s overlaps '%s' owned by %s\n" "$p" "$ws" "$oc" "$ows"
+          return 0
+        fi
+      done
+    done
+  done < <(awk -F'\t' 'NR > 1 && $5 != "" { print $1 "\t" $5 }' "$(fleet_roster_file)")
+  return 1
 }
 
 roster_rows(){ # roster rows without the header line
