@@ -107,6 +107,100 @@ _fleet_env_seconds(){
   printf '%s\n' "$v"
 }
 
+# --- spawning state -------------------------------------------------------
+# A launch takes a while (banner wait, ssh round trips). Between "launch
+# begins" and "banner seen" the row reads `spawning`, so a backgrounded spawn
+# does not look dead and a second spawn of the same row is refused instead of
+# colliding on the tmux session (MDTWII WS350, 2026-10-13).
+#
+# Marker: <run_dir>/.spawning/<WS>, key=value lines (pid, started, prev_status,
+# prev_host). A file rather than a roster note: it is created atomically
+# (noclobber), so two racing spawns cannot both win; it keeps the prior status
+# and host for the restore; and no roster column or heartbeat reader ever sees
+# it. Liveness is `kill -0 <pid>`: a dead pid is a stale marker (cleared with
+# a WARN). Success clears it when the row becomes started; any failure exit
+# restores the previous status and host through the EXIT trap.
+_SPAWN_MARK_FILE="" _SPAWN_MARK_WS="" _SPAWN_MARK_OWNER=""
+_SPAWN_MARK_PREV_STATUS="" _SPAWN_MARK_PREV_HOST="" _SPAWN_MARK_HOST_SET=0
+_SPAWN_MARK_DONE=0
+
+# _spawn_marker_read FILE: sets _SPAWN_M_PID/_STARTED/_PREV_STATUS/_PREV_HOST.
+_spawn_marker_read(){
+  local k v
+  _SPAWN_M_PID="" _SPAWN_M_STARTED="" _SPAWN_M_PREV_STATUS="" _SPAWN_M_PREV_HOST=""
+  while IFS== read -r k v || [ -n "$k" ]; do
+    case "$k" in
+      pid) _SPAWN_M_PID="$v" ;;
+      started) _SPAWN_M_STARTED="$v" ;;
+      prev_status) _SPAWN_M_PREV_STATUS="$v" ;;
+      prev_host) _SPAWN_M_PREV_HOST="$v" ;;
+    esac
+  done < "$1"
+}
+
+# _spawn_restore: EXIT trap. Runs only in the owning shell and only when the
+# spawn did not reach started: restores status (and host if this spawn wrote
+# it), then drops the marker.
+_spawn_restore(){
+  [ "${BASHPID:-$$}" = "$_SPAWN_MARK_OWNER" ] || return 0
+  [ "$_SPAWN_MARK_DONE" -eq 0 ] || return 0
+  roster_set "$_SPAWN_MARK_WS" status "$_SPAWN_MARK_PREV_STATUS" 2>/dev/null || true
+  [ "$_SPAWN_MARK_HOST_SET" -eq 0 ] \
+    || roster_set "$_SPAWN_MARK_WS" host "$_SPAWN_MARK_PREV_HOST" 2>/dev/null || true
+  rm -f "$_SPAWN_MARK_FILE"
+}
+
+# _spawn_begin WS RUN_DIR HOST: refuse when a live spawn owns the row, clear a
+# stale marker, then write the marker and set status=spawning (plus host).
+_spawn_begin(){
+  local ws="$1" run_dir="$2" host="$3" f prev_status prev_host attempt now
+  f="$run_dir/.spawning/$ws"
+  mkdir -p "$run_dir/.spawning" || fleet_die 71 "spawn: cannot create $run_dir/.spawning"
+  prev_status=$(roster_get "$ws" status)
+  prev_host=$(roster_get "$ws" host 2>/dev/null || true)
+  [ "$prev_status" != spawning ] || prev_status=pending
+  now=$(date +%s)
+  for attempt in 1 2; do
+    if ( set -C; printf 'pid=%s\nstarted=%s\nprev_status=%s\nprev_host=%s\n' \
+           "${BASHPID:-$$}" "$now" "$prev_status" "$prev_host" > "$f" ) 2>/dev/null; then
+      break
+    fi
+    _spawn_marker_read "$f" 2>/dev/null || true
+    if [[ "$_SPAWN_M_PID" =~ ^[0-9]+$ ]] && kill -0 "$_SPAWN_M_PID" 2>/dev/null; then
+      local age=0
+      [[ "$_SPAWN_M_STARTED" =~ ^[0-9]+$ ]] && age=$((now - _SPAWN_M_STARTED))
+      fleet_die 66 "spawn: $ws is already spawning (pid $_SPAWN_M_PID, started ${age}s ago); wait or kill it"
+    fi
+    echo "WARN spawn: stale spawning marker for $ws (pid ${_SPAWN_M_PID:-unknown} is gone); clearing it" >&2
+    # The dead spawn never restored the row, so its recorded previous values
+    # are the truth, not the `spawning` it left behind.
+    if [ "$(roster_get "$ws" status)" = spawning ] && [ -n "$_SPAWN_M_PREV_STATUS" ]; then
+      prev_status="$_SPAWN_M_PREV_STATUS"
+      prev_host="$_SPAWN_M_PREV_HOST"
+    fi
+    rm -f "$f"
+    [ "$attempt" -eq 1 ] || fleet_die 66 "spawn: $ws is already spawning (marker could not be taken)"
+  done
+  [ -f "$f" ] || fleet_die 66 "spawn: $ws is already spawning (marker could not be taken)"
+  _SPAWN_MARK_FILE="$f" _SPAWN_MARK_WS="$ws" _SPAWN_MARK_OWNER="${BASHPID:-$$}"
+  _SPAWN_MARK_PREV_STATUS="$prev_status" _SPAWN_MARK_PREV_HOST="$prev_host"
+  _SPAWN_MARK_HOST_SET=0 _SPAWN_MARK_DONE=0
+  trap _spawn_restore EXIT
+  roster_set "$ws" status spawning
+  if [ -n "$host" ]; then
+    roster_set "$ws" host "$host"
+    _SPAWN_MARK_HOST_SET=1
+  fi
+}
+
+# _spawn_commit: the row reached started; the marker has served its purpose.
+_spawn_commit(){
+  [ -n "$_SPAWN_MARK_FILE" ] || return 0
+  _SPAWN_MARK_DONE=1
+  rm -f "$_SPAWN_MARK_FILE"
+  trap - EXIT
+}
+
 # _fleet_set_names RAW_COMMA_LIST — the NAME side of each NAME=$SRC or
 # NAME=literal item, comma-joined (for the PLAN engine line; no values).
 _fleet_set_names(){
@@ -499,6 +593,7 @@ _spawn_remote_ship_launch(){
   roster_set "$ws" status started
   roster_set "$ws" heartbeat "$(date +%s)"
   roster_set "$ws" host "$host"
+  _spawn_commit
   ( roster_get "$ws" engine >/dev/null 2>&1 ) && roster_set "$ws" engine "$engine"
   echo "spawned $ws engine=$engine host=$host banner=\"$banner_line\""
 
@@ -805,6 +900,10 @@ main() {
     _SPAWN_SET_LINES=$(fleet_engine_resolve_set "$engine") || exit "$?"
   fi
 
+  # Everything above is validation; from here the launch is real. Mark the
+  # row spawning (and record the host) before any server or tmux work.
+  [ "$no_tmux" -eq 1 ] || _spawn_begin "$ws" "$run_dir" "$host"
+
   if [ -n "$host" ]; then
     local _SPAWN_SET_LINES=""
     _SPAWN_SET_LINES=$(fleet_engine_resolve_set "$engine") || exit "$?"
@@ -916,6 +1015,7 @@ main() {
     "$pane_cmd" "$trust_re" "$trust_keys" "$trust_timeout" "$banner_re" "$banner_timeout") \
     || fleet_die 66 "spawn: $name left pending (launch failed or engine '$engine' never showed its banner; a worker on the wrong model must not reach started)"
   roster_set "$ws" status started
+  _spawn_commit
   roster_set "$ws" heartbeat "$(date +%s)"
   ( roster_get "$ws" engine >/dev/null 2>&1 ) && roster_set "$ws" engine "$engine"
   echo "spawned $ws engine=$engine banner=\"$banner_line\""

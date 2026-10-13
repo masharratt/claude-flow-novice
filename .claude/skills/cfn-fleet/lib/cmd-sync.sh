@@ -33,7 +33,9 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/host.sh"
 _FLEET_PROMPT_RE='Do you want to |\(y/n\)|\[Y/n\]|[0-9]\. Yes'
 
 # A worker may only move its row between these states. landed, dead and
-# pending belong to the master; done is final until the master resets it.
+# pending belong to the master; spawning belongs to `fleet spawn` and is absent
+# from _FLEET_SYNC_FROM on purpose, so a report cannot move a launching row;
+# done is final until the master resets it.
 _FLEET_SYNC_FROM='started working blocked'
 _FLEET_SYNC_TO='started working blocked done'
 

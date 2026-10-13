@@ -147,6 +147,38 @@ rm -f "$RUN_DIR/remote/WS01.env"
 run_land WS01
 check "host row without remote env exits 65" "$RC" "65"
 
+# set_task TASK: rewrite the WS01 task cell in the fixture roster.
+set_task() {
+  awk -F'\t' -v OFS='\t' -v t="$1" 'NR>1 && $1=="WS01" { $3=t } { print }' "$RUN_DIR/roster.tsv" >"$RUN_DIR/r.tmp" \
+    && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+}
+
+LONG_TASK="Rebuild the intake form validation so every field reports errors inline and the summary banner stays in sync"
+
+echo "== test_land_remote_no_ff_message_names_task_and_worker"
+build_fixture msg "a.md" no
+set_task "$LONG_TASK"
+run_land WS01 --no-ff
+check "no-ff host land exits 0" "$RC" "0"
+check "merge commit is a merge (two parents)" "$(git -C "$REPO" rev-list --parents -n1 HEAD | wc -w | tr -d ' ')" "3"
+SUBJ=$(git -C "$REPO" log -1 --format=%s)
+BODY=$(git -C "$REPO" log -1 --format=%b)
+contains "subject names the ws" "$SUBJ" "fleet: land WS01: Rebuild the intake form"
+[ "${#SUBJ}" -le 85 ] && ok "subject is short (${#SUBJ} chars)" || no "subject too long (${#SUBJ}): $SUBJ"
+case "$SUBJ" in *"banner stays in sync") no "subject carries the whole task: $SUBJ" ;; *) ok "subject truncates a long task" ;; esac
+contains "body carries the full task" "$BODY" "$LONG_TASK"
+contains "body names the worker" "$BODY" "ws01"
+
+echo "== test_land_refuses_spawning_row"
+build_fixture spawning "a.md" no
+awk -F'\t' -v OFS='\t' 'NR>1 && $1=="WS01" { $4="spawning" } { print }' "$RUN_DIR/roster.tsv" >"$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+BEFORE=$(git -C "$REPO" rev-parse HEAD)
+run_land WS01
+check "spawning row refuses land with 66" "$RC" "66"
+contains "message says still spawning" "$ERR" "spawning"
+check "Mac HEAD unchanged for a spawning row" "$(git -C "$REPO" rev-parse HEAD)" "$BEFORE"
+check "status still spawning" "$(awk -F'\t' '$1=="WS01"{print $4}' "$RUN_DIR/roster.tsv")" "spawning"
+
 echo "== test_land_local_uses_fleet_worktree_path"
 # Local row (empty host) in worktree mode: same behaviour as before.
 LBASE="$TMP_DIR/local"
@@ -171,6 +203,21 @@ check "local worktree land exits 0" "$RC" "0"
 [ -f "$REPO/l.md" ] && ok "local worktree branch merged" || no "l.md not merged (err: $ERR)"
 [ -d "$REPO/.claude/worktrees/ws01" ] && no "local worktree not removed" || ok "local worktree removed"
 check "local land never calls ssh" "$(wc -c <"$STUB_LOG" | tr -d ' ')" "0"
+
+echo "== test_land_local_no_ff_message_names_task_and_worker"
+git -C "$REPO" worktree add -q "$REPO/.claude/worktrees/ws01" fleet/WS01
+printf 'y\n' >"$REPO/.claude/worktrees/ws01/m.md"
+git -C "$REPO/.claude/worktrees/ws01" add -A && git -C "$REPO/.claude/worktrees/ws01" commit -qm m
+printf 'z\n' >"$REPO/other-main.md"
+git -C "$REPO" add -A && git -C "$REPO" commit -qm "main moves"
+awk -F'\t' -v OFS='\t' -v t="$LONG_TASK" 'NR>1 && $1=="WS01" { $3=t; $4="working"; $5="m.md" } { print }' "$RUN_DIR/roster.tsv" >"$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+run_land WS01 --no-ff
+check "local no-ff land exits 0" "$RC" "0"
+SUBJ=$(git -C "$REPO" log -1 --format=%s)
+BODY=$(git -C "$REPO" log -1 --format=%b)
+contains "local subject names ws and task" "$SUBJ" "fleet: land WS01: Rebuild the intake form"
+contains "local body carries the full task" "$BODY" "$LONG_TASK"
+contains "local body names the worker" "$BODY" "ws01"
 
 echo
 echo "passed=$PASS failed=$FAIL"

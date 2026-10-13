@@ -61,7 +61,8 @@ case "$cmd" in
     [ "$rc" = "0" ] && echo "${STUB_PANE_DEAD:-0}"
     exit "$rc" ;;
   capture-pane)
-    printf '%s\n' "${STUB_CAPTURE:-worker idle}" ;;
+    printf '%s\n' "${STUB_CAPTURE:-worker idle}"
+    exit "${STUB_CAPTURE_RC:-0}" ;;
 esac
 exit 0
 EOF
@@ -95,7 +96,7 @@ fresh_run() {
   write_env "$GEN" "$(date +%s)"
   export FLEET_RUN_DIR="$RUN_DIR"
   : >"$STUB_LOG"
-  unset STUB_SSH_RC STUB_LP_RC STUB_PANE_DEAD STUB_CAPTURE STUB_DF_KB
+  unset STUB_SSH_RC STUB_LP_RC STUB_PANE_DEAD STUB_CAPTURE STUB_DF_KB STUB_CAPTURE_RC
 }
 
 # write_env GEN SPAWNED_AT: the remote/<WS>.env contract spawn --host writes.
@@ -332,6 +333,36 @@ contains "unreachable peek says so" "$OUT" "unreachable"
 OUT=$(fleet peek WS01 abc 2>&1); RC=$?
 check "bad line count is usage (64)" "$RC" "64"
 unset STUB_CAPTURE
+
+echo "== test_peek_row_without_session_says_so"
+fresh_run
+# Pending host row mid-spawn: the host column is set, no remote env yet.
+rm -f "$RUN_DIR/remote/WS01.env"
+awk -F'\t' -v OFS='\t' 'NR>1 && $1=="WS01" { $4="spawning" } { print }' "$RUN_DIR/roster.tsv" >"$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+OUT=$(fleet peek WS01 2>&1); RC=$?
+check "peek of a spawning host row exits 65" "$RC" "65"
+contains "peek says WS01 has no session yet" "$OUT" "WS01 has no session yet (status=spawning)"
+lacks "peek does not leak the raw env error" "$OUT" "no remote env"
+awk -F'\t' -v OFS='\t' 'NR>1 && $1=="WS02" { $4="pending" } { print }' "$RUN_DIR/roster.tsv" >"$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+export STUB_CAPTURE_RC=1
+OUT=$(fleet peek WS02 2>&1); RC=$?
+unset STUB_CAPTURE_RC
+check "peek of a pending local row exits 65" "$RC" "65"
+contains "local pending row has no session yet" "$OUT" "WS02 has no session yet (status=pending)"
+lacks "no raw pane error for a pending row" "$OUT" "no pane for"
+export STUB_CAPTURE_RC=1
+awk -F'\t' -v OFS='\t' 'NR>1 && $1=="WS02" { $4="working" } { print }' "$RUN_DIR/roster.tsv" >"$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+OUT=$(fleet peek WS02 2>&1); RC=$?
+unset STUB_CAPTURE_RC
+contains "a working row with a missing pane keeps the pane error" "$OUT" "no pane for WS02"
+
+echo "== test_sync_never_moves_a_spawning_row"
+fresh_run
+awk -F'\t' -v OFS='\t' 'NR>1 && $1=="WS01" { $4="spawning" } { print }' "$RUN_DIR/roster.tsv" >"$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+report "$GEN" 1 status status working
+OUT=$(fleet sync WS01 2>&1)
+check "worker report leaves a spawning row alone" "$(cell WS01 status)" "spawning"
+contains "sync says it refused the status" "$OUT" "refused status 'working'"
 
 echo
 echo "sync suite: $PASS passed, $FAIL failed"

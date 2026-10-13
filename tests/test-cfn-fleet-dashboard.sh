@@ -210,8 +210,25 @@ test_html_escape_payload_neutralized() {
     assert_not_contains "$(cat "$html")" 'onmouseover="alert(1)' "raw path payload never reaches the page"
 }
 
+test_spawning_row_is_in_flight_not_attention() {
+    log_step "GIVEN a spawning row with no heartbeat and no session, WHEN render"
+    build_run dashspawning
+    add_ws WS01 ws01 "Launching" spawning "" "" "" "0"
+    run_dash --no-serve --once
+    local html="$RUN_DIR/dashboard.html" page card
+    page=$(static_html "$html")
+    card=$(printf '%s\n' "$page" | awk '/<article class="card" data-ws="WS01"/,/<\/article>/')
+    assert_contains "$card" 'class="pill st-spawning"' "spawning pill on the card"
+    assert_not_contains "$card" 'badge stale' "a spawning row is never STALE"
+    assert_not_contains "$card" 'badge dead' "a spawning row is never DEAD"
+    assert_contains "$page" 'id="sum-active">1<' "spawning counts as in flight"
+    assert_contains "$page" 'id="sum-attention">0<' "spawning does not raise attention"
+    assert_contains "$page" 'Launching: the worker session is starting' "status tooltip explains spawning"
+    assert_contains "$page" 'class="seg seg-active"' "meter active segment includes the spawning row"
+}
+
 test_status_pills_all_seven_statuses() {
-    log_step "GIVEN one row per closed-vocab status, WHEN render"
+    log_step "GIVEN one row per closed-vocab status (now eight with spawning), WHEN render"
     build_run dashpills
     add_ws WS01 ws01 "pending row" pending
     add_ws WS02 ws02 "started row" started
@@ -222,10 +239,11 @@ test_status_pills_all_seven_statuses() {
     add_ws WS06 ws06 "done row" done
     add_ws WS07 ws07 "dead row" dead
     add_ws WS08 ws08 "odd row" wobblin   # outside the closed vocab
+    add_ws WS09 ws09 "spawning row" spawning
     run_dash --no-serve --once
 
     local html="$RUN_DIR/dashboard.html" s
-    for s in pending started working blocked landed "done" dead; do
+    for s in pending spawning started working blocked landed "done" dead; do
         assert_equals "1" "$(grep -cF "class=\"pill st-$s\"" "$html" || true)" \
             "exactly one whitelist pill for $s"
         assert_equals "1" "$(static_html "$html" | grep -oF "data-st=\"$s\"" | wc -l || true)" \
@@ -614,8 +632,12 @@ test_inline_js_live_layer_contract() {
     assert_contains "$js" 'esc(' "every interpolated string goes through esc()"
     assert_contains "$js" 'encodeURIComponent(' "ws ids percent-encoded for the files path"
     assert_contains "$js" \
-        'var VOCAB = ["pending", "started", "working", "blocked", "landed", "done", "dead"];' \
-        "JS vocab array pins the 7 closed-vocab statuses in order"
+        'var VOCAB = ["pending", "spawning", "started", "working", "blocked", "landed", "done", "dead"];' \
+        "JS vocab array pins the 8 closed-vocab statuses in order"
+    assert_contains "$js" 'spawning: "Launching: the worker session is starting, banner not seen yet"' \
+        "JS status help carries the spawning text"
+    assert_contains "$js" '(counts.spawning || 0) + (counts.started || 0) + (counts.working || 0)' \
+        "live meter and In flight count include spawning rows"
     assert_contains "$js" 'setLive("err")' "failed fetch flips the live dot for retry"
     assert_contains "$(cat "$RUN_DIR/dashboard.html")" '.live-dot[data-state="err"]' \
         "amber error state styled for the live dot"
@@ -765,6 +787,7 @@ STUB
 
 test_render_structure_cards_title_count_pills
 test_html_escape_payload_neutralized
+test_spawning_row_is_in_flight_not_attention
 test_status_pills_all_seven_statuses
 test_stale_badge_derivation
 test_dead_badge_derivation

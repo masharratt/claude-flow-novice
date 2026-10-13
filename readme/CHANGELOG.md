@@ -5,6 +5,20 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-13: fleet spawning state, peek message, land commit message
+
+- New roster status `spawning`: set at the start of a real `fleet spawn` (local and `--host`),
+  with a marker `<run dir>/.spawning/WSxx` (pid, start time, previous status and host). Host
+  rows get their `host` column at that point so `peek` routes to the server. Success makes
+  the row `started`; failure restores the previous status and host. A second spawn of a live
+  spawning row exits 66 ("already spawning"); a dead-pid marker is cleared with a WARN.
+  Before, a backgrounded spawn looked dead and a retry hit "tmux session already exists"
+  (MDTWII WS350). Dashboard shows it (tile, pill, tooltip, counted in flight); sync, watch
+  and `heartbeat` leave it alone; `land` refuses it.
+- `fleet peek` on a row with no session says "WSxx has no session yet (status=...)".
+- `fleet land --no-ff` merge commits read `fleet: land WSxx: <task, 60 chars>` with the full
+  task and worker name in the body (local worktree and host rows; ff-only is unchanged).
+
 ## 2026-10-13: fleet remote host workers
 
 - New `fleet host-setup <alias> [--check]`, `fleet spawn --host`, `fleet sync` and `fleet peek`;

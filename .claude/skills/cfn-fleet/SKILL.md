@@ -55,8 +55,15 @@ planning/fleet-<slug>/
                      Code key panel + inline tooltips on codes in task/notes
 ```
 
-Status vocabulary (closed): `pending | started | working | blocked | landed |
-done | dead`.
+Status vocabulary (closed): `pending | spawning | started | working | blocked |
+landed | done | dead`. `spawning` is set by `fleet spawn` while a launch is in
+progress (banner wait, ssh round trips) and holds a marker file
+`<run dir>/.spawning/WSxx` (pid, start time, previous status and host). Success
+makes the row `started`; any failure restores the previous status and host. A
+second spawn of a live spawning row exits 66 ("already spawning"); a marker whose
+pid is gone is cleared with a WARN. Worker reports never move a spawning row,
+`land` refuses it, `peek` says "no session yet", and watch ignores it (no
+STALE/DEAD until `started`).
 
 ## Subcommands
 
@@ -71,7 +78,7 @@ done | dead`.
 | `commit WSxx -m <msg>` | Guarded commit: stages ONLY claimed paths, refuses (66) on unclaimed dirty files |
 | `migrate-next WSxx <dir>` | Reserve next migration number (max+1, flocked); no silent collisions |
 | `spawn WSxx [--spares N] [--engine e] [--no-tmux] [--dry-run]` | Launch the worker's engine in a tmux pane on the run's socket, verify its banner, then send the thin prompt. Prints the dashboard URL: `dashboard live: http://127.0.0.1:<port>/dashboard.html` when the dashboard server is up, otherwise `dashboard: <url> (start: fleet dashboard --open)`. Engine precedence: `--engine` > roster column > `FLEET_DEFAULT_ENGINE` > `claude-sub`. Splices the activity-gated heartbeat ticker into the pane (`FLEET_TICK_SECS`, default 30s, `off` disables) |
-| `land WSxx [--no-ff]` | Worktree: merge `fleet/<WSxx>` + remove worktree; main: mark landed; then sweep `handoffs/` for files addressed to the lane (`residual:` lines) |
+| `land WSxx [--no-ff]` | Worktree: merge `fleet/<WSxx>` + remove worktree (a `--no-ff` merge commit reads `fleet: land WSxx: <task, 60 chars>` with the full task and worker name in the body; refuses a spawning row); main: mark landed; then sweep `handoffs/` for files addressed to the lane (`residual:` lines) |
 | `handoff WSxx` | Write `handoffs/HANDOFF_WSxx.md` for compaction restart into a spare |
 | `db WSxx` / `db-clean [--all]` | Scratch postgres containers (only when `FLEET_DB=docker`) |
 | `host-setup <alias> [--check]` | Prepare a server for `spawn --host` (see Remote hosts); idempotent |
@@ -227,7 +234,7 @@ with `tmux -L fleet-<slug> kill-server`):
    `FLEET_TRUST_TIMEOUT` (default 15s), and only after `FLEET_TRUST_SETTLE`
    (default 1.5s): the TUI draws the prompt before it reads keys.
 3. Banner gate: spawn polls up to `FLEET_BANNER_TIMEOUT` (default 20s) for the
-   engine's `banner_regex`. Match: roster `started`, heartbeat stamped, then
+   engine's `banner_regex`. Roster is `spawning` from before the first tmux call until this gate. Match: roster `started`, heartbeat stamped, then
    and only then the thin prompt. Timeout: the row stays `pending`, the last
    pane lines print, exit 66. A worker on the wrong model never reaches
    `started`; confirm the banner line in spawn's output before trusting a run.
@@ -331,8 +338,8 @@ notes, heartbeat age (ticks client-side), landed sha, and STALE (heartbeat
 older than `--stale-min`, default 5 minutes, while started/working) and DEAD
 (status dead, or pane exited per the tmux session probe) badges. The overview separates
 needs-attention (blocked, stale, or dead),
-in-flight (started + working), landed, and finished (done only) counts.
-Click a summary to filter the roster. A seven-status legend and grouped
+in-flight (spawning + started + working), landed, and finished (done only) counts.
+Click a summary to filter the roster. An eight-status legend and grouped
 status-distribution bar show the whole run. Workstreams sort by attention first;
 status order and oldest-heartbeat-first are also available. Search matches worker
 IDs, names, tasks, engines, claims, notes, and commit IDs. Filters and search

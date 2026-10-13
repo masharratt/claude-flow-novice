@@ -220,6 +220,11 @@ while [ $# -gt 0 ]; do
 done
 case "$cmd" in
     capture-pane)
+        # Mid-spawn snapshot of the roster and the spawning marker.
+        if [[ -n ${FLEET_SNAP_DIR:-} && -n ${FLEET_RUN_DIR:-} && ! -e ${FLEET_SNAP_DIR:-}/roster.snap ]]; then
+            cp "$FLEET_RUN_DIR/roster.tsv" "$FLEET_SNAP_DIR/roster.snap" 2>/dev/null
+            cp "$FLEET_RUN_DIR/.spawning/WS01" "$FLEET_SNAP_DIR/marker.snap" 2>/dev/null
+        fi
         d="${FLEET_CAPTURE_DIR:-}"
         if [[ -n $d && -d $d ]]; then
             cf="$d/.count"
@@ -497,6 +502,7 @@ test_spawn_no_tmux_main_marks_started() {
     local hb
     hb=$(roster_field WS01 heartbeat)
     assert_success "heartbeat stamped to now" test "$hb" -gt 0
+    assert_success "no-tmux spawn never writes a spawning marker" test ! -e "$RUN_DIR/.spawning"
 }
 
 test_spawn_spares_named_without_brief() {
@@ -682,6 +688,56 @@ test_spawn_banner_timeout_stays_pending() {
     assert_equals "" "$(roster_field WS01 engine)" "engine column left empty"
     assert_equals "0" "$(grep -ac 'and start' "$TMUX_LOG")" "no thin prompt before a verified banner"
     assert_equals "1" "$(grep -ac 'send-keys -t ws01 Enter' "$TMUX_LOG")" "only the pane-command Enter was sent"
+    assert_success "spawning marker cleared after a failed spawn" test ! -e "$RUN_DIR/.spawning/WS01"
+}
+
+test_spawn_local_row_is_spawning_during_launch() {
+    # MDTWII WS350 (2026-10-13): a backgrounded spawn looked dead while it
+    # waited for the banner; a second spawn then hit "session already exists".
+    log_step "GIVEN a local spawn waiting on the banner, THEN the row reads spawning with a live marker"
+    make_engine_project eng-spawning
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    local snap="$TMP_DIR/snap-spawning"
+    rm -rf "$snap"; mkdir -p "$snap"
+    FLEET_SNAP_DIR="$snap" run_fleet spawn WS01
+    assert_equals "0" "$FLEET_RC" "spawn exits 0"
+    assert_file_exists "$snap/roster.snap" "roster read mid-spawn"
+    assert_equals "spawning" "$(awk -F'\t' 'NR>1 && $1=="WS01" { print $4 }' "$snap/roster.snap")" "status is spawning while the banner is awaited"
+    assert_contains "$(cat "$snap/marker.snap")" "pid=" "marker records the spawning pid"
+    assert_contains "$(cat "$snap/marker.snap")" "prev_status=pending" "marker records the previous status"
+    assert_equals "started" "$(roster_field WS01 status)" "started after the banner"
+    assert_success "marker cleared after success" test ! -e "$RUN_DIR/.spawning/WS01"
+}
+
+test_spawn_local_refuses_second_spawn_and_clears_stale_marker() {
+    log_step "GIVEN a live marker, THEN spawn exits 66 without touching tmux; a dead-pid marker is cleared with a WARN"
+    make_engine_project eng-second
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    sleep 30 &
+    local live=$!
+    mkdir -p "$RUN_DIR/.spawning"
+    printf 'pid=%s\nstarted=%s\nprev_status=pending\nprev_host=\n' "$live" "$(( $(date +%s) - 7 ))" > "$RUN_DIR/.spawning/WS01"
+    fixture_set WS01 status spawning
+    run_fleet spawn WS01
+    kill "$live" 2>/dev/null || true
+    wait "$live" 2>/dev/null || true
+    assert_equals "66" "$FLEET_RC" "second spawn exits 66"
+    assert_contains "$FLEET_OUT" "WS01 is already spawning (pid $live, started " "message names pid and age"
+    assert_contains "$FLEET_OUT" "wait or kill it" "message says what to do"
+    assert_equals "0" "$(grep -ac 'new-session' "$TMUX_LOG")" "tmux never touched"
+    assert_equals "spawning" "$(roster_field WS01 status)" "first spawn's row left alone"
+
+    ( exit 0 ) & local dead=$!
+    wait "$dead" 2>/dev/null || true
+    printf 'pid=%s\nstarted=%s\nprev_status=pending\nprev_host=\n' "$dead" "$(( $(date +%s) - 600 ))" > "$RUN_DIR/.spawning/WS01"
+    run_fleet spawn WS01
+    assert_equals "0" "$FLEET_RC" "stale marker does not block"
+    assert_contains "$FLEET_OUT" "WARN spawn: stale spawning marker for WS01 (pid $dead is gone)" "stale marker WARN"
+    assert_equals "started" "$(roster_field WS01 status)" "spawn proceeded to started"
 }
 
 test_spawn_banner_match_prompt_once_spares_silent() {
@@ -1625,6 +1681,19 @@ test_watch_landed_done_dead_rows_never_pane_dead() {
     assert_not_contains "$FLEET_OUT" "(pane exited)" "status-dead rows are not pane-probed"
 }
 
+test_watch_ignores_spawning_rows() {
+    log_step "GIVEN a spawning row with a stale heartbeat and no session, WHEN watch --once"
+    make_project watch-spawning
+    add_ws WS01 ws01 "Launching" spawning "src/a.md" "" "" "" "1"
+    export FLEET_TMUX_HASSESSION_RC=1
+    export FLEET_TMUX_HASSESSION_STDERR="can't find session: ws01"
+    run_fleet watch --once --stale-min 1
+    unset FLEET_TMUX_HASSESSION_RC FLEET_TMUX_HASSESSION_STDERR
+    assert_not_contains "$FLEET_OUT" "DEAD" "a spawning row is never DEAD (no session yet is expected)"
+    assert_not_contains "$FLEET_OUT" "STALE" "a spawning row is never STALE (no heartbeat yet is expected)"
+    assert_not_contains "$FLEET_OUT" "ALL-DONE" "a spawning row keeps the loop alive"
+}
+
 test_watch_pane_dead_workbench_bridge_unaffected() {
     # --emit-events still regenerates the run-plan and anchors loop_started on
     # the same scan; the pane-DEAD line stays stdout-only (no workbench type).
@@ -1799,6 +1868,9 @@ run_all_tests() {
     test_spawn_roster_without_engine_column_uses_default
     test_spawn_real_tmux_engine_env_and_pane_command
     test_spawn_banner_timeout_stays_pending
+    test_spawn_local_row_is_spawning_during_launch
+    test_spawn_local_refuses_second_spawn_and_clears_stale_marker
+    test_watch_ignores_spawning_rows
     test_spawn_banner_match_prompt_once_spares_silent
     test_spawn_trust_prompt_claude
     test_spawn_trust_prompt_codex

@@ -82,7 +82,14 @@ while [ $# -gt 0 ]; do
     esac
 done
 case "$cmd" in
-    has-session) [ -n "${STUB_TMUX_HAS_SESSION:-}" ] && exit 0 || exit 1 ;;
+    has-session)
+        # Snapshot the roster and the spawning marker mid-spawn (this call
+        # happens after the spawn marked the row, before any push).
+        if [ -n "${STUB_SNAP_DIR:-}" ]; then
+            cp "$STUB_SNAP_DIR/../roster.tsv" "$STUB_SNAP_DIR/roster.snap" 2>/dev/null
+            cp "$STUB_SNAP_DIR/../.spawning/WS01" "$STUB_SNAP_DIR/marker.snap" 2>/dev/null
+        fi
+        [ -n "${STUB_TMUX_HAS_SESSION:-}" ] && exit 0 || exit 1 ;;
     capture-pane)
         d="${FLEET_CAPTURE_DIR:-}"
         if [[ -n $d && -d $d ]]; then
@@ -222,6 +229,7 @@ test_spawn_host_dry_run_plan() {
     assert_contains "$FLEET_OUT" "fleet-runs/proj/fleet-main/WS01" "PLAN names the server outbox"
     assert_equals "0" "$(ssh_calls)" "dry run never calls ssh"
     assert_equals "pending" "$(roster_field WS01 status)" "dry run mutates nothing"
+    assert_success "dry run writes no spawning marker" test ! -e "$RUN_DIR/.spawning"
 }
 
 test_spawn_host_preflight_refuses_missing_clone_github_remote_and_low_disk() {
@@ -373,6 +381,7 @@ test_spawn_host_ssh_sequence() {
     assert_equals "started" "$(roster_field WS01 status)" "row started after banner"
     assert_equals "fakehost" "$(roster_field WS01 host)" "roster host column written"
     assert_equals "claude-sub" "$(roster_field WS01 engine)" "roster engine written"
+    assert_success "spawning marker cleared after success" test ! -e "$RUN_DIR/.spawning/WS01"
 }
 
 test_spawn_host_new_generation_each_spawn() {
@@ -407,6 +416,7 @@ test_spawn_host_banner_timeout_cleans_remote_worktree() {
     assert_contains "$(cat "$TMUX_LOG")" "[fakehost] tmux -L fleet-main kill-session -t ws01" "remote session killed"
     assert_success "no remote/WS01.env on failure" test ! -e "$RUN_DIR/remote/WS01.env"
     assert_equals "0" "$(grep -ac 'and start' "$TMUX_LOG" || true)" "no prompt before a banner"
+    assert_success "spawning marker cleared after failure" test ! -e "$RUN_DIR/.spawning/WS01"
 }
 
 test_spawn_host_scp_failure_cleans_remote_worktree() {
@@ -478,6 +488,98 @@ test_spawn_host_warns_on_cfn_commit_drift() {
     assert_contains "$FLEET_OUT" "differs from this machine" "drift warned about"
 }
 
+# snap_field FILE FIELD: a roster column from a roster snapshot taken mid-spawn.
+snap_field() {
+    awk -F'\t' -v field="$2" '
+        NR == 1 { for (i = 1; i <= NF; i++) if ($i == field) idx = i; next }
+        $1 == "WS01" { if (idx) print $idx; exit }' "$1"
+}
+
+test_spawn_host_row_is_spawning_while_launch_runs() {
+    log_step "GIVEN a host spawn in progress, THEN the row reads spawning with host set and a live marker; started after"
+    make_fixture spawning
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    # The stub reads <snapdir>/../roster.tsv, so point it at the run dir layout.
+    export STUB_SNAP_DIR="$RUN_DIR/snap"
+    mkdir -p "$STUB_SNAP_DIR"
+    run_spawn WS01 --host fakehost
+    unset STUB_SNAP_DIR
+    assert_equals "0" "$FLEET_RC" "spawn exits 0"
+    local snap="$RUN_DIR/snap/roster.snap"
+    assert_file_exists "$snap" "roster snapshot taken during the spawn"
+    assert_equals "spawning" "$(snap_field "$snap" status)" "status is spawning mid-spawn"
+    assert_equals "fakehost" "$(snap_field "$snap" host)" "host column set mid-spawn so peek routes to the server"
+    local marker="$RUN_DIR/snap/marker.snap"
+    assert_file_exists "$marker" "spawning marker existed mid-spawn"
+    assert_contains "$(cat "$marker")" "pid=" "marker records the pid"
+    assert_contains "$(cat "$marker")" "started=" "marker records the start time"
+    assert_contains "$(cat "$marker")" "prev_status=pending" "marker records the previous status"
+    assert_equals "started" "$(roster_field WS01 status)" "started after the banner"
+}
+
+test_spawn_host_failure_restores_status_and_host() {
+    log_step "GIVEN the spawn fails after marking, THEN status and host return to their previous values"
+    make_fixture restore
+    export STUB_SSH_RC=255
+    run_spawn WS01 --host fakehost
+    unset STUB_SSH_RC
+    assert_equals "66" "$FLEET_RC" "unreachable exits 66"
+    assert_equals "pending" "$(roster_field WS01 status)" "status restored to pending"
+    assert_equals "" "$(roster_field WS01 host)" "host restored to empty"
+    assert_success "marker cleared" test ! -e "$RUN_DIR/.spawning/WS01"
+
+    make_fixture restore-blocked
+    awk -F'\t' -v OFS='\t' 'NR>1 && $1=="WS01" { $4="blocked" } { print }' "$RUN_DIR/roster.tsv" > "$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+    export STUB_SSH_RC=255
+    run_spawn WS01 --host fakehost
+    unset STUB_SSH_RC
+    assert_equals "blocked" "$(roster_field WS01 status)" "a respawn of a blocked row restores blocked, not pending"
+}
+
+test_spawn_refuses_second_spawn_while_first_alive() {
+    log_step "GIVEN a live spawning marker, THEN a second spawn exits 66 naming the pid and touches nothing"
+    make_fixture second
+    sleep 30 &
+    local live=$!
+    mkdir -p "$RUN_DIR/.spawning"
+    printf 'pid=%s\nstarted=%s\nprev_status=pending\nprev_host=\n' "$live" "$(( $(date +%s) - 42 ))" > "$RUN_DIR/.spawning/WS01"
+    awk -F'\t' -v OFS='\t' 'NR>1 && $1=="WS01" { $4="spawning" } { print }' "$RUN_DIR/roster.tsv" > "$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+    run_spawn WS01 --host fakehost
+    kill "$live" 2>/dev/null || true
+    wait "$live" 2>/dev/null || true
+    assert_equals "66" "$FLEET_RC" "second spawn exits 66"
+    assert_contains "$FLEET_OUT" "WS01 is already spawning (pid $live, started " "message names the pid and age"
+    assert_contains "$FLEET_OUT" "wait or kill it" "message says what to do"
+    assert_equals "0" "$(ssh_calls)" "no ssh call"
+    assert_equals "spawning" "$(roster_field WS01 status)" "row left spawning for the first spawn"
+    assert_success "first spawn's marker kept" test -e "$RUN_DIR/.spawning/WS01"
+}
+
+test_spawn_clears_stale_marker_with_warning() {
+    log_step "GIVEN a marker whose pid is gone, THEN WARN, clear it and spawn"
+    make_fixture stale
+    ( exit 0 ) & local dead=$!
+    wait "$dead" 2>/dev/null || true
+    mkdir -p "$RUN_DIR/.spawning"
+    printf 'pid=%s\nstarted=%s\nprev_status=pending\nprev_host=\n' "$dead" "$(( $(date +%s) - 900 ))" > "$RUN_DIR/.spawning/WS01"
+    awk -F'\t' -v OFS='\t' 'NR>1 && $1=="WS01" { $4="spawning" } { print }' "$RUN_DIR/roster.tsv" > "$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "stale marker does not block the spawn"
+    assert_contains "$FLEET_OUT" "WARN spawn: stale spawning marker for WS01 (pid $dead is gone)" "WARN names the dead pid"
+    assert_equals "started" "$(roster_field WS01 status)" "spawn proceeded to started"
+    assert_success "marker cleared" test ! -e "$RUN_DIR/.spawning/WS01"
+
+    make_fixture stale-fail
+    mkdir -p "$RUN_DIR/.spawning"
+    printf 'pid=%s\nstarted=%s\nprev_status=pending\nprev_host=\n' "$dead" "$(( $(date +%s) - 900 ))" > "$RUN_DIR/.spawning/WS01"
+    awk -F'\t' -v OFS='\t' 'NR>1 && $1=="WS01" { $4="spawning" } { print }' "$RUN_DIR/roster.tsv" > "$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+    export STUB_SSH_RC=255
+    run_spawn WS01 --host fakehost
+    unset STUB_SSH_RC
+    assert_equals "pending" "$(roster_field WS01 status)" "a failed spawn after a stale marker restores the marker's previous status, not spawning"
+}
+
 test_pane_wait_honours_seconds_over_slow_ssh() {
     log_step "GIVEN each pane read takes 1s (ssh round trip), THEN a 2s wait ends in seconds, not timeout*5 reads"
     # Live-run bug (MDTWII smoke test, 2026-10-13): spawn --host printed
@@ -521,6 +623,10 @@ run_all_tests() {
     test_spawn_host_refuses_live_session_name
     test_spawn_host_roster_host_column_routes_respawn
     test_spawn_host_warns_on_cfn_commit_drift
+    test_spawn_host_row_is_spawning_while_launch_runs
+    test_spawn_host_failure_restores_status_and_host
+    test_spawn_refuses_second_spawn_while_first_alive
+    test_spawn_clears_stale_marker_with_warning
     test_pane_wait_honours_seconds_over_slow_ssh
 
     print_test_summary

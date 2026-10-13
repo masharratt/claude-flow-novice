@@ -29,6 +29,23 @@ fi
 # every exit path of remote_land so no stale ref outlives a refused land.
 _land_scratch_ref() { printf 'refs/fleet-remote/%s/%s\n' "$1" "$2"; }
 
+# _land_msg_args WS: sets _LAND_MSG_SUBJECT and _LAND_MSG_BODY for a --no-ff
+# merge commit. Subject: "fleet: land WSxx: <first task line, ~60 chars>".
+# Body: the full roster task and the worker name, so `git log` says what the
+# lane was for without opening the roster.
+_LAND_SUBJECT_TASK_MAX=60
+_land_msg_args() {
+    local ws="$1" task name first
+    task=$(roster_get "$ws" task)
+    name=$(roster_get "$ws" name)
+    first="${task%%$'\n'*}"
+    if [ "${#first}" -gt "$_LAND_SUBJECT_TASK_MAX" ]; then
+        first="${first:0:$_LAND_SUBJECT_TASK_MAX}..."
+    fi
+    _LAND_MSG_SUBJECT="fleet: land $ws${first:+: $first}"
+    _LAND_MSG_BODY="Task: ${task:-(none recorded)}"$'\n\n'"Worker: ${name:-$ws}"
+}
+
 # remote_land REPO WS NO_FF: merge a host row's fleet/<WS> into REPO's current
 # branch. Order matters: the remote worktree is checked clean BEFORE the fetch
 # (uncommitted work there would be lost with the worktree), and the claims gate
@@ -87,7 +104,8 @@ remote_land() {
 
   local mrc=0
   if [ "$no_ff" -eq 1 ]; then
-    git -C "$repo" merge --no-ff "$head_ref" -m "fleet: land $ws" >/dev/null || mrc=$?
+    _land_msg_args "$ws"
+    git -C "$repo" merge --no-ff "$head_ref" -m "$_LAND_MSG_SUBJECT" -m "$_LAND_MSG_BODY" >/dev/null || mrc=$?
   else
     git -C "$repo" merge --ff-only "$head_ref" >/dev/null || mrc=$?
   fi
@@ -133,6 +151,10 @@ main() {
   done
   [ -n "$ws" ] || fleet_die 64 "usage: fleet land WSxx [--no-ff]"
   roster_exists "$ws" || fleet_die 65 "land: $ws not in roster"
+  # A spawning row has no commits to land yet and may still fail back to
+  # pending; landing it would orphan the launch in progress.
+  [ "$(roster_get "$ws" status)" != "spawning" ] \
+    || fleet_die 66 "land: $ws is still spawning; wait for the spawn to finish (fleet status), then land"
 
   local repo
   repo=$(git rev-parse --show-toplevel 2>/dev/null) \
@@ -161,7 +183,8 @@ main() {
     [ -z "$(git -C "$wt" status --porcelain)" ] \
       || fleet_die 66 "land: worktree $wt has uncommitted changes; commit or clean first"
     if [ "$no_ff" -eq 1 ]; then
-      git -C "$repo" merge --no-ff "$branch" -m "fleet: land $ws" >/dev/null
+      _land_msg_args "$ws"
+      git -C "$repo" merge --no-ff "$branch" -m "$_LAND_MSG_SUBJECT" -m "$_LAND_MSG_BODY" >/dev/null
     else
       git -C "$repo" merge --ff-only "$branch" >/dev/null
     fi

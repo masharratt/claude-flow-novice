@@ -51,6 +51,7 @@ _fleet_json_escape() {
 _fleet_dash_status_help() {
   case "$1" in
     pending) printf 'Queued, not started yet' ;;
+    spawning) printf 'Launching: the worker session is starting, banner not seen yet' ;;
     started) printf 'Worker spawned, first heartbeat received' ;;
     working) printf 'Actively working, heartbeats fresh' ;;
     blocked) printf 'Waiting on something it does not control' ;;
@@ -470,10 +471,12 @@ _fleet_dash_render() {
     rm -f "$run_dir/host-states.tsv"
   fi
 
-  # Meter groups the 7 statuses into 5 adjacency-safe segments (plan 1.3):
-  # queued / active(started+working) / blocked / landed+done / dead.
+  # Meter groups the 8 statuses into 5 adjacency-safe segments (plan 1.3):
+  # queued / active(spawning+started+working) / blocked / landed+done / dead.
+  # spawning is a launch in progress: in flight, never stale or dead (it has
+  # no session or heartbeat to judge yet).
   local n_queued=${counts[pending]:-0}
-  local n_active=$(( ${counts[started]:-0} + ${counts[working]:-0} ))
+  local n_active=$(( ${counts[spawning]:-0} + ${counts[started]:-0} + ${counts[working]:-0} ))
   local n_blocked=${counts[blocked]:-0}
   local n_landed=$(( ${counts[landed]:-0} + ${counts[done]:-0} ))
   local n_dead=${counts[dead]:-0}
@@ -505,7 +508,7 @@ _fleet_dash_render() {
     printf '<span class="pill meta-pill" id="updated-pill">Snapshot %s</span></div></div>\n' "$(_fleet_html_escape "$updated")"
     printf '<div class="summary" aria-label="Fleet health">'
     printf '<button class="summary-card attention" data-view="attention" aria-pressed="false"><span class="summary-label">Needs attention <span aria-hidden="true">↗</span></span><strong id="sum-attention">%s</strong><span class="summary-hint">Blocked, stale or stopped</span></button>' "$n_attention"
-    printf '<button class="summary-card active" data-view="active" aria-pressed="false"><span class="summary-label">In flight <span aria-hidden="true">↗</span></span><strong id="sum-active">%s</strong><span class="summary-hint">Started + working</span></button>' "$n_active"
+    printf '<button class="summary-card active" data-view="active" aria-pressed="false"><span class="summary-label">In flight <span aria-hidden="true">↗</span></span><strong id="sum-active">%s</strong><span class="summary-hint">Spawning, started and working</span></button>' "$n_active"
     printf '<button class="summary-card landed" data-view="landed" aria-pressed="false"><span class="summary-label">Landed <span aria-hidden="true">↗</span></span><strong id="sum-landed">%s</strong><span class="summary-hint">Commit exists, work may continue</span></button>' "${counts[landed]:-0}"
     printf '<button class="summary-card complete" data-view="done" aria-pressed="false"><span class="summary-label">Finished <span aria-hidden="true">↗</span></span><strong id="sum-done">%s<span class="summary-total"> / %s</span></strong><span class="summary-hint">Workstreams marked done</span></button></div>' "${counts[done]:-0}" "$n_total"
     printf '<div class="distribution"><div class="distribution-title"><span class="eyebrow">Status distribution</span><span id="fleet-total">%s workstreams</span></div>' "$n_total"
@@ -552,7 +555,7 @@ _fleet_dash_filters() {
   printf '<div class="filters" id="filters" role="group" aria-label="Filter by status">\n'
   printf '<button type="button" class="filterchip on" data-filter="all" aria-pressed="true">All</button>\n'
   # shellcheck disable=SC1010  # 'done' is a roster status value, not the keyword
-  for s in pending started working blocked landed done dead; do
+  for s in pending spawning started working blocked landed done dead; do
     printf '<button type="button" class="filterchip" data-filter="%s" aria-pressed="false" title="%s"><span class="dot st-%s"></span>%s</button>\n' \
       "$s" "$(_fleet_html_escape "$(_fleet_dash_status_help "$s")")" "$s" "$s"
   done
@@ -564,14 +567,14 @@ _fleet_dash_filters() {
   printf '</div></div>\n'
 }
 
-# _fleet_dash_tiles COUNTS: 7 stat tiles (dot + label + count) in
+# _fleet_dash_tiles COUNTS: 8 stat tiles (dot + label + count) in
 # closed-vocab order; zero counts are dimmed via the .zero class. COUNTS is
 # the name of an assoc array keyed by raw status.
 _fleet_dash_tiles() {
   local -n cnt="$1"
   local s n out="" zero
   # shellcheck disable=SC1010  # 'done' is a roster status value, not the keyword
-  for s in pending started working blocked landed done dead; do
+  for s in pending spawning started working blocked landed done dead; do
     n="${cnt[$s]:-0}"
     [[ "$n" =~ ^[0-9]+$ ]] || n=0
     zero=""
@@ -616,7 +619,7 @@ _fleet_dash_card() {
   # styleable class (roster cells are user-typed).
   local st_class="st-unknown"
   case "$status" in
-    pending|started|working|blocked|landed|done|dead) st_class="st-$status" ;;
+    pending|spawning|started|working|blocked|landed|done|dead) st_class="st-$status" ;;
   esac
   # Engine: roster cell > FLEET_DEFAULT_ENGINE env > fleet.env > claude-sub.
   [ -n "$engine" ] || engine="${FLEET_DEFAULT_ENGINE:-$(fleet_engine_default)}"
@@ -716,7 +719,7 @@ _fleet_dash_events_html() {
     [[ "$line" =~ \"to\":\"([^\"]*)\" ]]   && to="${BASH_REMATCH[1]}"
     to_class="st-unknown"
     case "$to" in
-      pending|started|working|blocked|landed|done|dead) to_class="st-$to" ;;
+      pending|spawning|started|working|blocked|landed|done|dead) to_class="st-$to" ;;
     esac
     printf '<li class="tl-item"><span class="dot %s"></span><time>%s</time> <span class="tl-ws">%s</span><span class="tl-change">%s -&gt; %s</span></li>\n' \
       "$to_class" \
@@ -760,6 +763,7 @@ _fleet_dash_style() {
   --accent: #7d9ef7; --accent-soft: #24304d;
   --ok: #4ec06a; --warn: #d9a52a; --radius: 10px;
   --st-pending: #9aa3af;  --st-pending-soft: #262a31;
+  --st-spawning: #b79af0; --st-spawning-soft: #2c2447;
   --st-started: #7d9ef7;  --st-started-soft: #24304d;
   --st-working: #56c8d8;  --st-working-soft: #17323a;
   --st-blocked: #d9a52a;  --st-blocked-soft: #3a3016;
@@ -783,6 +787,7 @@ _fleet_dash_style() {
     --accent: #2456d6; --accent-soft: #e3eafc;
     --ok: #1a7f37; --warn: #9a6700;
     --st-pending: #57606a;  --st-pending-soft: #eef0f3;
+    --st-spawning: #6f42c1; --st-spawning-soft: #ece4f8;
     --st-started: #2456d6;  --st-started-soft: #e3eafc;
     --st-working: #0b7285;  --st-working-soft: #d6f0f5;
     --st-blocked: #9a6700;  --st-blocked-soft: #fff0c2;
@@ -807,6 +812,7 @@ _fleet_dash_style() {
   --accent: #2456d6; --accent-soft: #e3eafc;
   --ok: #1a7f37; --warn: #9a6700;
   --st-pending: #57606a;  --st-pending-soft: #eef0f3;
+  --st-spawning: #6f42c1; --st-spawning-soft: #ece4f8;
   --st-started: #2456d6;  --st-started-soft: #e3eafc;
   --st-working: #0b7285;  --st-working-soft: #d6f0f5;
   --st-blocked: #9a6700;  --st-blocked-soft: #fff0c2;
@@ -830,6 +836,7 @@ _fleet_dash_style() {
   --accent: #7d9ef7; --accent-soft: #24304d;
   --ok: #4ec06a; --warn: #d9a52a;
   --st-pending: #9aa3af;  --st-pending-soft: #262a31;
+  --st-spawning: #b79af0; --st-spawning-soft: #2c2447;
   --st-started: #7d9ef7;  --st-started-soft: #24304d;
   --st-working: #56c8d8;  --st-working-soft: #17323a;
   --st-blocked: #d9a52a;  --st-blocked-soft: #3a3016;
@@ -980,6 +987,7 @@ footer { display: flex; justify-content: space-between; gap: 15px; border-top: 1
 @media (max-width: 760px) { header.top { position: static; } .shell { padding: 22px 16px; } .head-card { padding: 14px 16px; } .brand { gap: 10px; } .brand-label, .brand-divider { display: none; } .head-actions { gap: 10px; } .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .summary-card strong { font-size: 29px; } .summary-hint { font-size: 10px; } .summary-card { padding: 14px; } .workspace { grid-template-columns: 1fr; } .activity { position: static; max-height: none; } .run-heading { flex-direction: column; gap: 14px; } .run-meta { align-items: flex-start; flex-direction: row; flex-wrap: wrap; } h1 { font-size: 25px; } .tiles { gap: 8px 16px; } .card { padding: 18px; } .sort-row { flex-wrap: wrap; } footer { flex-wrap: wrap; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 .pill.st-pending   { background: var(--st-pending-soft);   border-color: transparent; color: var(--st-pending);   font-weight: 600; }
+.pill.st-spawning  { background: var(--st-spawning-soft);  border-color: transparent; color: var(--st-spawning);  font-weight: 600; }
 .pill.st-started   { background: var(--st-started-soft);   border-color: transparent; color: var(--st-started);   font-weight: 600; }
 .pill.st-working   { background: var(--st-working-soft);   border-color: transparent; color: var(--st-working);   font-weight: 600; }
 .pill.st-blocked   { background: var(--st-blocked-soft);   border-color: transparent; color: var(--st-blocked);   font-weight: 600; }
@@ -990,6 +998,7 @@ footer { display: flex; justify-content: space-between; gap: 15px; border-top: 1
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .pill .dot { background: currentColor; }
 .dot.st-pending { background: var(--st-pending); }
+.dot.st-spawning { background: var(--st-spawning); }
 .dot.st-started { background: var(--st-started); }
 .dot.st-working { background: var(--st-working); }
 .dot.st-blocked { background: var(--st-blocked); }
@@ -1016,7 +1025,7 @@ _fleet_dash_script() {
 (function () {
   "use strict";
   /* Closed status vocab, pinned to the bash whitelist in _fleet_dash_card. */
-  var VOCAB = ["pending", "started", "working", "blocked", "landed", "done", "dead"];
+  var VOCAB = ["pending", "spawning", "started", "working", "blocked", "landed", "done", "dead"];
 
   /* Shared escape helper. EVERY interpolated string goes through this. */
   function esc(s) {
@@ -1041,6 +1050,7 @@ _fleet_dash_script() {
      renderer; keep the two in sync. */
   var STATUS_HELP = {
     pending: "Queued, not started yet",
+    spawning: "Launching: the worker session is starting, banner not seen yet",
     started: "Worker spawned, first heartbeat received",
     working: "Actively working, heartbeats fresh",
     blocked: "Waiting on something it does not control",
@@ -1282,7 +1292,7 @@ _fleet_dash_script() {
   function meterHtml(counts) {
     var segs = [
       ["queued", counts.pending || 0],
-      ["active", (counts.started || 0) + (counts.working || 0)],
+      ["active", (counts.spawning || 0) + (counts.started || 0) + (counts.working || 0)],
       ["blocked", counts.blocked || 0],
       ["landed", (counts.landed || 0) + (counts.done || 0)],
       ["dead", counts.dead || 0]
@@ -1310,7 +1320,7 @@ _fleet_dash_script() {
     var visible = sortRows(rows).filter(function (r) {
       var match = filter === "all" || String(r.status || "") === filter ||
         (filter === "attention" && needsAttention(r)) ||
-        (filter === "active" && (r.status === "started" || r.status === "working"));
+        (filter === "active" && (r.status === "spawning" || r.status === "started" || r.status === "working"));
       return match && (!query || [r.ws_id, r.name, r.task, r.engine, r.claims, r.notes, r.landed_sha].join(" ").toLowerCase().includes(query));
     });
     /* Pending rows are the planned queue: own section, roster order, never
@@ -1340,7 +1350,7 @@ _fleet_dash_script() {
     if (els.queued) els.queued.hidden = queuedRows.length === 0;
     if (els.queuedCount) els.queuedCount.textContent = queuedRows.length;
     document.getElementById("sum-attention").textContent = rows.filter(needsAttention).length;
-    document.getElementById("sum-active").textContent = (counts.started || 0) + (counts.working || 0);
+    document.getElementById("sum-active").textContent = (counts.spawning || 0) + (counts.started || 0) + (counts.working || 0);
     document.getElementById("sum-landed").textContent = counts.landed || 0;
     document.getElementById("sum-done").innerHTML = (counts.done || 0) + '<span class="summary-total"> / ' + rows.length + '</span>';
     document.getElementById("fleet-total").textContent = rows.length + " workstreams";

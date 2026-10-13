@@ -49,8 +49,9 @@ Never pick a migration number by eye. Reserve with `fleet migrate-next WSxx
 
 ## Status vocabulary
 
-`pending | started | working | blocked | landed | done | dead` — one token, no
-invented states. The master is the only session that sets `landed`/`done`/`dead`.
+`pending | spawning | started | working | blocked | landed | done | dead` — one
+token, no invented states. `spawning` is set and cleared by `fleet spawn` only
+(a launch in progress). The master is the only session that sets `landed`/`done`/`dead`.
 
 ## Engines
 

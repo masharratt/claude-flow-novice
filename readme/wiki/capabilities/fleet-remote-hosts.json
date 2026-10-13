@@ -2,8 +2,8 @@
   "id": "fleet-remote-hosts",
   "fid": "fleet-remote-hosts",
   "name": "Fleet workers on a remote host",
-  "status": "dev",
-  "status_reason": "Stub-ssh suites pass (host, host-setup, spawn-host, sync, land-remote, remote-worker). One live run on the VPS 2026-10-13: setup, spawn, worker commit+push and 4 reports worked; spawn hung after the banner and land was not exercised live.",
+  "status": "beta",
+  "status_reason": "First real lane (MDTWII WS350, docs) ran end to end 2026-10-13: spawn, worker report, sync to done, land --no-ff merged inside claims. Stub-ssh suites pass. Server Bash sandbox not yet working, so docs-only lanes until it is.",
   "description": "fleet spawn --host runs a worker on a server over ssh. The Mac roster stays authoritative: the worker writes reports to a server outbox, fleet sync/watch pulls them, land refuses diffs outside claims. host-setup makes a bare repo and separate fleet clone.",
   "purpose": "Run fleet lanes on a server (own CPU, optionally its own Claude account) without giving the server any key into the Mac: all connections go Mac to server.",
   "reviewed_at": "2026-10-13",
@@ -15,7 +15,7 @@
       "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
       "line": 518,
       "claim": "_spawn_remote: preflight, base push, remote worktree, kit ship and launch; cleans up on failure",
-      "sha256": "67292a61b8c5f58845e5d15b9b85fbbfda539a4fdd6800fb5154afe3aa6e9837"
+      "sha256": "14380b266bbfc2d993461bcf8f23a2ea9fdc2dfb4f0babb01d06312a5fdd08ba"
     },
     {
       "path": ".claude/skills/cfn-fleet/lib/host.sh",
@@ -27,7 +27,7 @@
       "path": ".claude/skills/cfn-fleet/lib/cmd-land.sh",
       "line": 38,
       "claim": "remote_land fetches the worker branch and refuses any diff outside the row's claims",
-      "sha256": "ec2f17e0f08368f0aec077e3fcba3fce2e9d5ee3468bfec8f0d809d54346788e"
+      "sha256": "aa9d8f9e967dc33b73a447016a583ee7d61f7ad90d1a6df2b17daf88051d61ca"
     },
     {
       "path": ".claude/skills/cfn-fleet/lib/cmd-host-setup.sh",
@@ -47,8 +47,7 @@
     "session-coordination"
   ],
   "unknowns": [
-    "spawn --host did not exit after the banner in the first live run (killed by a 240s timeout); cause not traced",
-    "land for a host row has only run against stub ssh",
-    "Claude's Bash sandbox fails on the VPS (bwrap loopback RTM_NEWADDR), so workers there run commands unsandboxed"
+    "Claude's Bash sandbox fails on the VPS (Ubuntu 24.04 restricts unprivileged user namespaces), so workers there run commands unsandboxed; fix planned in planning/PLAN_fleet-host-sandbox.md",
+    "Workers run as the server user, which is in the docker group"
   ]
 }

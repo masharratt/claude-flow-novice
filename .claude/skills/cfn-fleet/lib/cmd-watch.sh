@@ -24,6 +24,10 @@
 #                         tooling, never a false DEAD.
 #   ALL-DONE              every row landed|done -> exits 0 (ends the loop)
 #
+# `spawning` rows (a launch in progress) are deliberately ignored by every probe
+# and event above: they have no session or heartbeat to judge yet. They only
+# keep ALL-DONE from firing.
+#
 # Host rows (workers on a remote machine, roster `host` column set): each tick
 # first runs `fleet sync` (pulls their reports, prints HANDOFF / CLAIM-REQ), then
 # probes the pane over ssh instead of the local socket. Extra events, each
