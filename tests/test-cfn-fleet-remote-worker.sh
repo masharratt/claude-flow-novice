@@ -54,6 +54,7 @@ FLEET_WS=WS1
 FLEET_GEN=$GEN
 FLEET_OUTBOX=$OUTBOX
 FLEET_BRANCH=fleet/WS1
+FLEET_WORKTREE=$WT
 EOF
 printf 'src/a.txt\n' > "$OUTBOX/claims.txt"
 
@@ -159,6 +160,22 @@ echo four > "$WT/src/a.txt"
 W commit -m "claimed only" >/dev/null 2>&1
 files=$(git -C "$WT" show --name-only --format= HEAD)
 [[ "$files" == "src/a.txt" ]] && ok "pre-staged unclaimed file not committed" || no "pre-staged unclaimed file not committed (got: $files)"
+
+echo "test_commit_repeated_m_makes_paragraphs"
+echo five > "$WT/src/a.txt"
+W commit -m "subject line" -m "body para" -m "Co-Authored-By: Tester <t@example.com>" >/dev/null 2>&1
+rc=$?
+[[ $rc -eq 0 ]] && ok "commit with repeated -m exits 0" || no "commit with repeated -m exits 0 (rc=$rc)"
+[[ "$(git -C "$WT" log -1 --format=%s)" == "subject line" ]] && ok "first -m is the subject" || no "first -m is the subject"
+[[ "$(git -C "$WT" log -1 --format=%B | sed -n 3p)" == "body para" ]] && ok "second -m is a separate paragraph" || no "second -m is a separate paragraph"
+git -C "$WT" log -1 --format=%B | grep -q '^Co-Authored-By: Tester' && ok "trailer paragraph kept" || no "trailer paragraph kept"
+
+echo "test_commit_from_outside_worktree_uses_outbox_env_worktree"
+echo six > "$WT/src/a.txt"
+(cd "$OUTBOX" && bash "$OUTBOX/remote-worker.sh" commit -m "from the outbox" >/dev/null 2>&1)
+rc=$?
+[[ $rc -eq 0 ]] && ok "commit from the outbox exits 0 (not 66)" || no "commit from the outbox exits 0 (rc=$rc)"
+[[ "$(git -C "$WT" log -1 --format=%s)" == "from the outbox" ]] && ok "commit landed in the recorded worktree" || no "commit landed in the recorded worktree"
 
 echo "test_unknown_subcommand_fails"
 W bogus >/dev/null 2>&1

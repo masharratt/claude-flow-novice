@@ -22,6 +22,12 @@ feature set. The current status of each feature lives in
   fleet clone over ssh and records its tip in a new roster column `lane_sha`.
 - The `--host` spawn path moved out of `lib/cmd-spawn.sh` into `lib/spawn-remote.sh`.
   Status dev: tested with stub ssh only; the live server check is pending.
+- Follow-ups from the live test: spawn appends the Claude Code sandbox's protected
+  dotfile names (`/.bashrc`, `/.zshrc`, `/.vscode/`, `/.claude/commands/` and the rest) to
+  the server clone's `info/exclude`, idempotently, so bind-mount placeholders stay out of
+  `git status`; a passing preflight prints `preflight <host>: sandbox ok, limits ...`;
+  `remote-worker.sh commit` takes repeated `-m` (paragraphs, so trailers work) and cds to
+  the worktree recorded in `outbox.env` when run from elsewhere.
 
 ## 2026-10-13: fleet spawning state, peek message, land commit message
 

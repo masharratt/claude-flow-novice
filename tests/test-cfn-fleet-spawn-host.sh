@@ -756,6 +756,34 @@ test_spawn_host_unsandboxed_override() {
     assert_equals "true" "$(json_q "$(settings_json "$SRV/fleet-runs/proj/fleet-main/WS01/.launch-ws01")" 'd["sandbox"]["enabled"]')" "sandbox still on when only systemd is missing"
 }
 
+test_spawn_host_excludes_sandbox_placeholders() {
+    log_step "Sandbox placeholder files: clone exclude gets anchored protected names, idempotently"
+    make_fixture excl
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "spawn exits 0"
+    local ex="$SRV/fleet-repos/proj/.git/info/exclude" n
+    for n in /.bashrc /.zshrc /.gitconfig /.mcp.json /.ripgreprc /.vscode/ /.idea/ /.claude/commands/ /.claude/agents/; do
+        assert_success "exclude has $n" grep -qxF -- "$n" "$ex"
+    done
+    local wt="$SRV/fleet-repos/proj-wt/ws01"
+    touch "$wt/.bashrc"; mkdir -p "$wt/.vscode"
+    assert_equals "" "$(git -C "$wt" status --porcelain)" "placeholder .bashrc and .vscode do not dirty the worktree"
+    # a respawn (new generation, same clone) must not duplicate lines
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "1" "$(grep -cxF -- '/.bashrc' "$ex")" "no duplicate /.bashrc after respawn"
+    assert_equals "1" "$(grep -cxF -- '/.vscode/' "$ex")" "no duplicate /.vscode/ after respawn"
+}
+
+test_spawn_host_prints_preflight_ok_line() {
+    log_step "Preflight visibility: one ok line with the limits"
+    make_fixture pfline
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_contains "$FLEET_OUT" "preflight fakehost: sandbox ok, limits MemoryMax=12G CPUQuota=400%" "ok line printed"
+}
+
 run_all_tests() {
     TEST_LOG="${TMPDIR:-/tmp}/cfn-fleet-spawn-host-$(date +%s).log"
     export TEST_LOG
@@ -784,6 +812,8 @@ run_all_tests() {
     test_spawn_host_limits_knobs
     test_spawn_host_preflight_refuses_without_sandbox_or_scope
     test_spawn_host_unsandboxed_override
+    test_spawn_host_excludes_sandbox_placeholders
+    test_spawn_host_prints_preflight_ok_line
 
     print_test_summary
 }

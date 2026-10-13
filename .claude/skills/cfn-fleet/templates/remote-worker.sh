@@ -8,7 +8,7 @@
 #   remote-worker.sh status <state>
 #   remote-worker.sh handoff <file>
 #   remote-worker.sh request-claim <path>
-#   remote-worker.sh commit -m <message>
+#   remote-worker.sh commit -m <message> [-m <paragraph>...]
 #
 # commit is local only: it never pushes. The worker's Bash sandbox cannot
 # reach the bare repo, and `fleet land` fetches fleet/<WS> from the server
@@ -107,14 +107,20 @@ read_claims() {
 }
 
 cmd_commit() {
-  local msg=""
+  local msgs=() msg=""
   while (( $# > 0 )); do
     case "$1" in
-      -m) msg="${2:-}"; shift 2 ;;
+      -m) [[ $# -ge 2 ]] || die "commit: -m needs a message" 64
+          msgs+=("$2"); shift 2 ;;
       *) die "commit: unknown argument $1" 64 ;;
     esac
   done
+  (( ${#msgs[@]} > 0 )) && msg="${msgs[0]}"
   [[ -n "$msg" ]] || die "commit: -m <message> required" 64
+  # Run from anywhere (the outbox, say): the worktree is recorded in outbox.env.
+  if [[ -n "${FLEET_WORKTREE:-}" && -d "$FLEET_WORKTREE" ]]; then
+    cd "$FLEET_WORKTREE" || die "commit: cannot cd to $FLEET_WORKTREE" 66
+  fi
   git rev-parse --git-dir >/dev/null 2>&1 || die "commit: run from inside the worktree" 66
   # land fetches refs/heads/$FLEET_BRANCH only, so a commit on any other
   # branch (or a detached HEAD) would never land: refuse it up front.
@@ -133,7 +139,9 @@ cmd_commit() {
   (( ${#changed[@]} > 0 )) || die "commit: nothing claimed has changed (claims: ${CLAIMS[*]})" 65
 
   git add -A -- "${changed[@]}" || die "commit: git add failed"
-  git commit -q -m "$msg" -- "${changed[@]}" || die "commit: git commit failed"
+  local margs=() m
+  for m in "${msgs[@]}"; do margs+=(-m "$m"); done
+  git commit -q "${margs[@]}" -- "${changed[@]}" || die "commit: git commit failed"
   local sha
   sha=$(git rev-parse HEAD)
   write_report commit sha "$sha" note "$msg"
@@ -160,5 +168,5 @@ case "$sub" in
   commit)
     cmd_commit "$@" ;;
   *)
-    die "usage: remote-worker.sh heartbeat [note] | status <s> | handoff <file> | request-claim <path> | commit -m <msg>" 64 ;;
+    die "usage: remote-worker.sh heartbeat [note] | status <s> | handoff <file> | request-claim <path> | commit -m <msg> [-m <msg>...]" 64 ;;
 esac

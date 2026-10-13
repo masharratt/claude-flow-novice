@@ -74,6 +74,13 @@ else
   echo WT_NEW
 fi
 exclude="$clone/.git/info/exclude"
+# Linux Claude Code sandbox bind-mounts empty placeholders over its protected
+# dotfiles in the worktree; keep them out of git status. Anchored, no dupes.
+# Names from Claude Code 2.1.296 (sandbox runtime ZHn and ee lists).
+mkdir -p "$(dirname "$exclude")"
+for p in /.gitconfig /.gitmodules /.bashrc /.bash_profile /.zshrc /.zprofile /.profile /.ripgreprc /.mcp.json /.vscode/ /.idea/ /.claude/commands/ /.claude/agents/; do
+  grep -qxF -- "$p" "$exclude" 2>/dev/null || echo "$p" >> "$exclude"
+done
 IFS=, read -ra L <<< "$links"
 for p in "${L[@]}"; do
   p="${p// /}"
@@ -162,6 +169,7 @@ _spawn_remote_ship_launch(){
     printf 'FLEET_GEN=%q\n' "$gen"
     printf 'FLEET_OUTBOX=%q\n' "$ob"
     printf 'FLEET_BRANCH=%q\n' "fleet/$ws"
+    printf 'FLEET_WORKTREE=%q\n' "$wt"
   } > "$kit/outbox.env" || return 1
 
   # Launch script: same private env script the local path types, but it lives
@@ -314,6 +322,8 @@ _spawn_remote(){
   done <<< "$out"
   local sandbox_on scope=""
   sandbox_on=$(_spawn_remote_gate "$ws" "$host" "$bwrap_ok" "$socat_ok" "$scope_ok") || exit $?
+  [ "$bwrap_ok" -eq 1 ] && [ "$socat_ok" -eq 1 ] && [ "$scope_ok" -eq 1 ] \
+    && echo "preflight $host: sandbox ok, limits MemoryMax=$_SPAWN_REMOTE_MEM CPUQuota=$_SPAWN_REMOTE_CPU"
   [ "$scope_ok" -eq 0 ] \
     || scope="systemd-run --user --scope --quiet -p MemoryMax=$_SPAWN_REMOTE_MEM -p CPUQuota=$_SPAWN_REMOTE_CPU -- "
 

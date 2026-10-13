@@ -51,7 +51,9 @@ Run from the outbox: `~/fleet-runs/<project>/<run>/WSxx/remote-worker.sh <cmd>`
 - `handoff <file>` when finished: write `HANDOFF_WSxx.md` summarizing state, then
   hand it off, then `status done`.
 - `request-claim <path>` for any path outside your claims.
-- `commit -m <message>` is the only way to commit. It stages claimed paths only,
+- `commit -m <message> [-m <paragraph>...]` is the only way to commit. Repeat `-m`
+  like git: each is a paragraph, so a final `-m "Co-Authored-By: ..."` makes a trailer.
+  Run it from anywhere (the outbox is fine); it works in your worktree. It stages claimed paths only,
   refuses when nothing claimed changed, and commits on `fleet/WSxx` locally. It
   never pushes: the master fetches `fleet/WSxx` from the server when it lands
   your work, so commit everything you want landed before `status done`.
