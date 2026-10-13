@@ -70,18 +70,41 @@ MATCH_CMD="; $CMD_LOWER"
 # the user; home, system folders, repo roots and .git are blocked. The ask is
 # held until the other rules have run, so a deny elsewhere still wins.
 # Without python3 it falls back to the old flag-and-whitelist rule.
+# Fleet workers never get the ask (nobody answers it; the worker stalls): the
+# check returns worker-deny with guidance instead, and so does the time-out
+# fallback below. Worker = FLEET_RUN_DIR set, or a session under
+# $HOME/fleet-repos/<project>-wt/<ws> (remote --host spawns).
 RM_ASK=""
+RM_ASK_UNFINISHED='ask
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"Delete check: could not finish in time"}}'
+if [ -n "${FLEET_RUN_DIR:-}" ]; then
+    RM_WORKER=1
+else
+    case "${CLAUDE_PROJECT_DIR:-}/ $PWD/" in
+        *"$HOME"/fleet-repos/*-wt/?*) RM_WORKER=1 ;;
+        *) RM_WORKER="" ;;
+    esac
+fi
+[ -z "$RM_WORKER" ] || RM_ASK_UNFINISHED='worker-deny
+Delete check: could not finish in time. You are an unattended fleet worker, so this is blocked instead of waiting on a permission prompt nobody will answer. To proceed: rewrite the rm with a literal, fully spelled-out path to exactly what you mean to delete. If that is blocked too, do not delete it: stop and report to the master.'
 RM_LIB="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/../skills/cfn-careful/lib" 2>/dev/null && pwd)/rm-target-check.py"
-if echo "$MATCH_CMD" | grep -qE "$ANCHOR"'rm[[:space:]]'; then
+# The rm gate also treats the JSON newline escape (a literal backslash-n in
+# COMMAND) as a separator: an rm at the start of a later line used to skip the
+# check entirely. Over-matching only costs a python run that answers "none".
+RM_GATE_CMD=$(printf '%s' "$MATCH_CMD" | sed 's/\\n/; /g')
+if echo "$RM_GATE_CMD" | grep -qE "$ANCHOR"'rm[[:space:]]'; then
     if command -v python3 >/dev/null 2>&1 && [ -f "$RM_LIB" ]; then
         RM_OUT=$(printf '%s' "$INPUT" | timeout 4 python3 -I "$RM_LIB" 2>/dev/null) \
-            || RM_OUT=$(printf 'ask\n{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"Delete check: could not finish in time"}}')
+            || RM_OUT="$RM_ASK_UNFINISHED"
         RM_VERDICT=$(printf '%s\n' "$RM_OUT" | head -1)
         RM_BODY=$(printf '%s\n' "$RM_OUT" | sed '1d')
         case "$RM_VERDICT" in
             deny)
                 echo "BLOCKED: Destructive file deletion: $RM_BODY." >&2
                 echo "Nothing should delete this. If it is truly intended, ask the user to run it themselves." >&2
+                DENY_RULE=file-deletion ;;
+            worker-deny)
+                echo "BLOCKED: $RM_BODY" >&2
                 DENY_RULE=file-deletion ;;
             ask) RM_ASK="$RM_BODY" ;;
         esac

@@ -8,12 +8,31 @@ Prints a verdict on the first line, then a body:
   ask  + hook JSON     some target holds work git cannot bring back, or the
                        target cannot be worked out (Claude Code asks the user)
   deny + message       a target is a place nothing should ever delete
+  worker-deny + message  a fleet worker hit an ask: denied with guidance
 
 allow: temp areas, rebuildable folders, files git can restore (tracked and
 unchanged), paths that do not exist.
 deny: /, top-level and system folders, $HOME and its key folders, a repo
 root, .git, the working directory or any parent of it.
 ask: everything else that would lose data, and anything unresolvable.
+
+Fleet worker exception: when FLEET_RUN_DIR is set and the session cwd is
+inside a linked git worktree under <repo>/.claude/worktrees/, untracked and
+not-ignored files inside THAT worktree are allowed (the worker's own scratch:
+probes, screenshots, debug tests). Tracked, ignored and out-of-worktree
+targets keep the normal verdict. Bypass-mode workers otherwise froze on the
+ask prompt (2026-10-10, ~12 stalls in one night).
+
+Fleet workers never get ask: an unattended bypassPermissions worker stalled
+~80s on each one. For a worker every ask becomes worker-deny, whose message
+tells it to rewrite the rm with a literal path or stop and report to the
+master. It never becomes allow. A worker is FLEET_RUN_DIR set (local spawns
+export it) or a session cwd / CLAUDE_PROJECT_DIR inside
+$HOME/fleet-repos/<project>-wt/<ws> (remote --host spawns, whose pane has no
+fleet env). That second signal only ever tightens a verdict.
+
+Fresh temp variables: rm of $x is allowed when the same command proves x
+holds a path mktemp just created (fresh_temp_var.py has the exact rule).
 
 Tests: tests/test-careful-guard-rm.sh
 cfn: shlex tokenizer, no real shell parse; quoted '$X' is treated as a
@@ -26,6 +45,9 @@ import re
 import shlex
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fresh_temp_var import fresh_temp_vars  # noqa: E402
 
 REBUILDABLE = {
     "node_modules", ".next", "dist", "build", ".build", ".turbo", "coverage",
@@ -90,7 +112,9 @@ def segments(cmd):
     lex.whitespace_split = True
     seg = []
     for tok in lex:
-        if tok in SEPARATORS:
+        # shlex glues adjacent punctuation (`);`, `)&&`): any all-punctuation
+        # token separates. Regression: `x=$(pwd); rm -rf ~` hid the rm.
+        if tok in SEPARATORS or (tok and not tok.strip(";&|()")):
             if seg:
                 yield seg
             seg = []
@@ -137,6 +161,54 @@ def git(args, where):
                           text=True, timeout=3)
 
 
+def fleet_worktree(cwd):
+    """Top of the fleet worker's own worktree, or None when not a worker.
+
+    A worker has FLEET_RUN_DIR in its env (spawn exports it in the pane) and a
+    session cwd inside a LINKED worktree (git dir differs from the common git
+    dir) whose path contains /.claude/worktrees/. The main checkout never
+    qualifies.
+    """
+    if not os.environ.get("FLEET_RUN_DIR"):
+        return None
+    try:
+        out = git(["rev-parse", "--show-toplevel", "--absolute-git-dir",
+                   "--git-common-dir"], cwd)
+    except Exception:
+        return None
+    lines = out.stdout.splitlines()
+    if out.returncode != 0 or len(lines) != 3:
+        return None
+    top, gitdir, common = real(lines[0]), real(lines[1]), lines[2]
+    common = real(common if os.path.isabs(common) else os.path.join(cwd, common))
+    if gitdir == common or "/.claude/worktrees/" not in top + "/":
+        return None
+    return top
+
+
+WORKER_WT = None
+
+WORKER_GUIDANCE = (
+    "You are an unattended fleet worker, so this is blocked instead of waiting "
+    "on a permission prompt nobody will answer. To proceed: rewrite the rm with "
+    "a literal, fully spelled-out path to exactly what you mean to delete (no "
+    "variables, globs or command output); a variable set from $(mktemp ...) "
+    "earlier in the same command also works. If that is blocked too, the target "
+    "holds work git cannot bring back: do not delete it, stop and report to the "
+    "master.")
+
+
+def fleet_worker(cwd):
+    """True when this session is a fleet worker (local or remote host)."""
+    if os.environ.get("FLEET_RUN_DIR"):
+        return True
+    remote = re.escape(HOME) + r"/fleet-repos/[^/]+-wt/[^/]+(/|$)"
+    for p in (cwd, os.environ.get("CLAUDE_PROJECT_DIR")):
+        if p and re.match(remote, real(p)):
+            return True
+    return False
+
+
 def has_rebuildable_part(path):
     return any(part in REBUILDABLE for part in path.split("/"))
 
@@ -178,7 +250,7 @@ def classify(path, cwd):
               "--untracked-files=all", "--", path], top.stdout.strip())
     if st.returncode != 0:
         return "ask", "git could not say whether %s is saved" % shown
-    lost = []
+    lost, untracked_only = [], True
     for entry in st.stdout.split("\0"):
         if len(entry) < 4:
             continue
@@ -186,6 +258,10 @@ def classify(path, cwd):
         if code == "!!" and has_rebuildable_part(name):
             continue
         lost.append(name)
+        if code != "??":
+            untracked_only = False
+    if lost and untracked_only and WORKER_WT and real(top.stdout.strip()) == WORKER_WT:
+        return "allow", ""
     if lost:
         names = ", ".join(lost[:3]) + (" and %d more" % (len(lost) - 3) if len(lost) > 3 else "")
         return "ask", "git cannot bring back %s" % names
@@ -194,6 +270,7 @@ def classify(path, cwd):
 
 def judge(cmd, cwd):
     env, verdict, reasons, saw_rm = {}, "allow", [], False
+    fresh = fresh_temp_vars(cmd)
     for seg in segments(cmd):
         words = list(seg)
         if words and words[0] == "export":
@@ -227,6 +304,10 @@ def judge(cmd, cwd):
             else:
                 targets.append(w)
         for t in targets:
+            # No trailing /: `$d/` follows a symlink swapped in for the temp dir.
+            m = re.fullmatch(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))", t)
+            if m and (m.group(1) or m.group(2)) in fresh and "--no-preserve-root" not in words:
+                continue  # holds a path mktemp just created in this command
             try:
                 p = expand(t, env, cwd)
             except Unresolvable as e:
@@ -238,7 +319,11 @@ def judge(cmd, cwd):
             if any(ch in p for ch in "*?["):
                 paths = glob.glob(os.path.join(cwd, p)) if not p.startswith("/") else glob.glob(p)
             for one in paths:
-                v, why = classify(absolute(one, cwd), cwd)
+                one = absolute(one, cwd)
+                # rm -rf link/ empties the link's target, so judge the target.
+                if t.endswith("/") and os.path.islink(one.rstrip("/")):
+                    one = os.path.realpath(one)
+                v, why = classify(one, cwd)
                 verdict = max(verdict, v, key=RANK.get)
                 if why:
                     reasons.append((v, why))
@@ -249,13 +334,23 @@ def judge(cmd, cwd):
 
 
 def main():
+    payload = {}
     try:
         payload = json.load(sys.stdin)
         cmd = payload.get("tool_input", {}).get("command", "") or ""
         cwd = real(payload.get("cwd") or os.getcwd())
+        global WORKER_WT
+        WORKER_WT = fleet_worktree(cwd)
         verdict, reason = judge(cmd, cwd)
     except Exception as e:  # never let a parse failure wave a delete through
         verdict, reason = "ask", "the delete check could not read this command (%s)" % e.__class__.__name__
+    if verdict == "ask":
+        try:
+            worker = fleet_worker(real(payload.get("cwd") or os.getcwd()))
+        except Exception:
+            worker = bool(os.environ.get("FLEET_RUN_DIR"))
+        if worker:
+            verdict, reason = "worker-deny", "Delete check: %s. %s" % (reason, WORKER_GUIDANCE)
     print(verdict)
     if verdict == "ask":
         print(json.dumps({"hookSpecificOutput": {
@@ -263,7 +358,7 @@ def main():
             "permissionDecision": "ask",
             "permissionDecisionReason": "Delete check: " + reason,
         }}))
-    elif verdict == "deny":
+    else:
         print(reason)
 
 
