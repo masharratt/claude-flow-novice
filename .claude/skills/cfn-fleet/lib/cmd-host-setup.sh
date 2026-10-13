@@ -2,8 +2,9 @@
 # fleet host-setup <alias> [--check]
 # One-time (idempotent) preparation of a worker host for `fleet spawn --host`.
 # Server layout (all under the server's $HOME, never a hardcoded user):
-#   ~/git/<project>.git        bare repo the Mac pushes to / lands from
-#   ~/fleet-repos/<project>    fleet clone of that bare repo
+#   ~/git/<project>.git        bare repo the Mac pushes main and fleet-base/<WS> to
+#   ~/fleet-repos/<project>    fleet clone of that bare repo; workers commit in
+#                              its worktrees and land fetches fleet/<WS> from it
 #   ~/fleet-runs/              outboxes for remote workers
 # Never touches ~/Projects/<project> on the server, never copies .env,
 # never touches claude/gh logins. Exit codes: 0 ok, 64 usage, 65 data error

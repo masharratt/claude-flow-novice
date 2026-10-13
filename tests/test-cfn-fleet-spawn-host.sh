@@ -19,7 +19,7 @@ PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
 SKILL_DIR="$PROJECT_ROOT/.claude/skills/cfn-fleet"
-TMP_DIR=$(cd "$(mktemp -d -t cfn-fleet-spawn-host.XXXXXX)" && pwd -P)
+TMP_DIR=$(cd "$(mktemp -d "${TMPDIR:-/tmp}/cfn-fleet-spawn-host.XXXXXX")" && pwd -P)
 trap 'cleanup_temp_dir "$TMP_DIR"' EXIT
 
 STUB_LOG="$TMP_DIR/stub-calls.log"
@@ -106,6 +106,22 @@ case "$cmd" in
 esac
 exit 0
 STUB
+# Sandbox and limit probes on the "server": bwrap, socat and systemd-run
+# succeed unless STUB_BWRAP_RC / STUB_SOCAT_RC / STUB_SYSTEMD_RC say otherwise.
+cat > "$TMP_DIR/bin/bwrap" <<'STUB'
+#!/usr/bin/env bash
+printf 'bwrap %s\n' "$*" >> "$STUB_LOG"
+exit "${STUB_BWRAP_RC:-0}"
+STUB
+cat > "$TMP_DIR/bin/socat" <<'STUB'
+#!/usr/bin/env bash
+exit "${STUB_SOCAT_RC:-0}"
+STUB
+cat > "$TMP_DIR/bin/systemd-run" <<'STUB'
+#!/usr/bin/env bash
+printf 'systemd-run %s\n' "$*" >> "$STUB_LOG"
+exit "${STUB_SYSTEMD_RC:-0}"
+STUB
 cat > "$TMP_DIR/bin/claude" <<'STUB'
 #!/usr/bin/env bash
 echo "ENGINE-STUB claude $*" >> "${STUB_LOG:-/dev/null}"
@@ -179,7 +195,8 @@ make_fixture() {
     mkdir -p "$CAPTURE_DIR"
     export FLEET_CAPTURE_DIR="$CAPTURE_DIR"
     export FLEET_TRUST_SETTLE=0
-    unset STUB_SSH_RC STUB_SCP_RC
+    unset STUB_SSH_RC STUB_SCP_RC STUB_BWRAP_RC STUB_SOCAT_RC STUB_SYSTEMD_RC
+    unset FLEET_REMOTE_UNSANDBOXED FLEET_REMOTE_MEM FLEET_REMOTE_CPU
 }
 
 capture_script() { printf '%s\n' "$2" > "$CAPTURE_DIR/$1.txt"; }
@@ -333,7 +350,7 @@ test_spawn_host_ssh_sequence() {
     assert_equals "WS01" "$( ( source "$ob/outbox.env"; printf '%s' "$FLEET_WS" ) )" "outbox.env FLEET_WS"
     assert_equals "fleet/WS01" "$( ( source "$ob/outbox.env"; printf '%s' "$FLEET_BRANCH" ) )" "outbox.env FLEET_BRANCH"
     assert_equals "$ob" "$( ( source "$ob/outbox.env"; printf '%s' "$FLEET_OUTBOX" ) )" "outbox.env FLEET_OUTBOX absolute"
-    assert_equals "origin" "$( ( source "$ob/outbox.env"; printf '%s' "$FLEET_PUSH_REMOTE" ) )" "outbox.env FLEET_PUSH_REMOTE"
+    assert_not_contains "$(cat "$ob/outbox.env")" "FLEET_PUSH_REMOTE" "outbox.env names no push remote (workers commit locally only)"
 
     # remote/<WS>.env contract (lanes 5-7 read it)
     local envf="$RUN_DIR/remote/WS01.env"
@@ -348,6 +365,7 @@ test_spawn_host_ssh_sequence() {
     assert_equals "$ob" "$(env_val FLEET_OUTBOX)" "env FLEET_OUTBOX absolute"
     assert_equals "fleet/WS01" "$(env_val FLEET_BRANCH)" "env FLEET_BRANCH"
     assert_equals "fleet-base/WS01" "$(env_val FLEET_BASE_REF)" "env FLEET_BASE_REF"
+    assert_equals "$SRV/fleet-repos/proj" "$(env_val FLEET_REMOTE_CLONE)" "env FLEET_REMOTE_CLONE: land fetches the lane from the fleet clone"
     assert_equals "fleet-main" "$(env_val FLEET_SOCK)" "env FLEET_SOCK"
     assert_equals "ws01" "$(env_val FLEET_SESSION)" "env FLEET_SESSION"
     local at
@@ -372,7 +390,8 @@ test_spawn_host_ssh_sequence() {
     local lb
     lb=$(cat "$launch")
     assert_contains "$lb" "rm -f '$launch'" "launch script deletes itself on the server"
-    assert_contains "$lb" "exec claude --model sonnet" "launch script execs the engine"
+    assert_contains "$lb" "exec systemd-run --user --scope --quiet -p MemoryMax=12G -p CPUQuota=400% -- claude --model sonnet" "launch script execs the engine inside a capped scope"
+    assert_contains "$lb" "--settings '{" "launch script passes the generated settings"
     assert_contains "$lb" "unset ANTHROPIC_AUTH_TOKEN" "engine unset list applied"
     assert_not_contains "$lb" "_fleet_tick_loop" "no Mac heartbeat ticker on a host pane"
     assert_not_contains "$lb" "$RUN_DIR" "no Mac run dir in the server pane command"
@@ -604,6 +623,139 @@ test_pane_wait_honours_seconds_over_slow_ssh() {
     TEST_TOTAL=$((TEST_TOTAL + 1))
 }
 
+
+# settings_json LAUNCH_FILE -> the --settings JSON the launch script passes.
+settings_json() {
+    python3 -c 'import re,sys; m=re.search(r"--settings \x27([^\x27]*)\x27", open(sys.argv[1]).read()); print(m.group(1) if m else "")' "$1"
+}
+
+# json_q JSON EXPR -> python expression over d (the parsed JSON), printed.
+json_q() {
+    python3 -c 'import json,sys; d=json.loads(sys.argv[1]); v=eval(sys.argv[2]); print(json.dumps(v) if isinstance(v,(dict,list,bool)) or v is None else v)' "$1" "$2"
+}
+
+# set_diff JSON EXPR WANT_LINES -> "missing=[...] unexpected=[...]" for a list
+# in the JSON against the wanted set (one item per line). Empty lists both
+# ways means equal.
+set_diff() {
+    python3 -c '
+import json,sys
+d=json.loads(sys.argv[1]); have=set(eval(sys.argv[2])); want=set(l for l in sys.argv[3].splitlines() if l)
+print("missing=%s unexpected=%s" % (sorted(want-have), sorted(have-want)))' "$1" "$2" "$3"
+}
+
+test_spawn_host_launch_passes_sandbox_settings() {
+    log_step "PLAN_fleet-host-sandbox step 1: sandbox on, no escape, writes fenced, deny list as Edit rules"
+    make_fixture sandbox
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "sandboxed host spawn exits 0"
+    local ob="$SRV/fleet-runs/proj/fleet-main/WS01" wt="$SRV/fleet-repos/proj-wt/ws01" clone="$SRV/fleet-repos/proj"
+    local js
+    js=$(settings_json "$ob/.launch-ws01")
+    assert_success "launch carries valid settings JSON" python3 -c 'import json,sys; json.loads(sys.argv[1])' "$js"
+    assert_equals "true" "$(json_q "$js" 'd["sandbox"]["enabled"]')" "sandbox.enabled"
+    assert_equals "false" "$(json_q "$js" 'd["sandbox"]["allowUnsandboxedCommands"]')" "no unsandboxed escape"
+    assert_equals "true" "$(json_q "$js" 'd["sandbox"]["failIfUnavailable"]')" "a broken sandbox stops claude instead of running unconfined"
+    assert_equals "false" "$(json_q "$js" 'd["sandbox"]["network"]["allowAllUnixSockets"]')" "unix sockets stay blocked (docker.sock)"
+    assert_equals "missing=[] unexpected=[]" \
+        "$(set_diff "$js" 'd["sandbox"]["filesystem"]["allowWrite"]' "$wt"$'\n'"$clone"$'\n'"$ob")" \
+        "allowWrite is exactly worktree, fleet clone, outbox"
+    local deny_want
+    deny_want=$(printf '%s\n' \
+        "$ob/brief.md" "$ob/claims.txt" "$ob/outbox.env" "$ob/remote-worker.sh" \
+        "$clone/.git/config" "$clone/.git/hooks" "$wt/.git")
+    assert_equals "missing=[]" \
+        "$(set_diff "$js" 'd["sandbox"]["filesystem"]["denyWrite"]' "$deny_want" | sed 's/ unexpected=.*//')" \
+        "denyWrite covers the outbox kit, the clone's git config and hooks, and the worktree's .git pointer"
+    local rules_want
+    rules_want=$(printf 'Edit(/%s)\n' \
+        "$SRV/Projects/**" "$SRV/git/**" \
+        "/tmp/gate-*" "/tmp/gate-*/**" "/tmp/cand-*" "/tmp/cand-*/**" "/tmp/mdtwii-*" "/tmp/mdtwii-*/**" \
+        "$SRV/.cache/mdtwii-target-*" "$SRV/.cache/mdtwii-target-*/**" "$SRV/.cache/cfn-vps/**" \
+        "$SRV/.claude/**" "$SRV/.ssh/**" "$SRV/.config/gh/**" "$SRV/opt/**" \
+        "$ob/brief.md" "$ob/claims.txt" "$ob/outbox.env" "$ob/remote-worker.sh" \
+        "$clone/.git/config" "$clone/.git/hooks/**" "$wt/.git")
+    assert_equals "missing=[] unexpected=[]" \
+        "$(set_diff "$js" 'd["permissions"]["deny"]' "$rules_want")" \
+        "permissions.deny is exactly the server deny list as Edit rules"
+    assert_equals "[]" "$(json_q "$js" '[r for r in d["permissions"]["deny"] if r.startswith("Read(")]')" "reads stay allowed"
+    assert_success "settings JSON has no single quote (it is single-quoted in the launch)" \
+        test -z "$(printf '%s' "$js" | tr -cd "'")"
+    assert_contains "$(cat "$STUB_LOG")" "bwrap --ro-bind / / true" "preflight ran the bwrap smoke test on the host"
+}
+
+test_spawn_host_limits_knobs() {
+    log_step "PLAN_fleet-host-sandbox step 2: FLEET_REMOTE_MEM / FLEET_REMOTE_CPU set the scope caps; bad values refused"
+    make_fixture limits
+    printf 'FLEET_REMOTE_MEM=8G\nFLEET_REMOTE_CPU=200%%\n' >> "$RUN_DIR/fleet.env"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "spawn with limit knobs exits 0"
+    assert_contains "$(cat "$SRV/fleet-runs/proj/fleet-main/WS01/.launch-ws01")" \
+        "systemd-run --user --scope --quiet -p MemoryMax=8G -p CPUQuota=200% -- claude" "knob values reach the scope"
+
+    make_fixture limits-bad
+    printf 'FLEET_REMOTE_MEM=8G; rm -rf x\n' >> "$RUN_DIR/fleet.env"
+    run_spawn WS01 --host fakehost
+    assert_equals "64" "$FLEET_RC" "unsafe FLEET_REMOTE_MEM refused with 64"
+    assert_contains "$FLEET_OUT" "FLEET_REMOTE_MEM" "refusal names the knob"
+    assert_equals "0" "$(ssh_calls)" "no ssh call for a bad knob"
+    assert_equals "pending" "$(roster_field WS01 status)" "row stays pending"
+}
+
+test_spawn_host_preflight_refuses_without_sandbox_or_scope() {
+    log_step "PLAN_fleet-host-sandbox step 4: no bwrap, no socat or no systemd --user => 66 with the fix, nothing made"
+    local which rc_var want
+    for which in bwrap socat systemd; do
+        make_fixture "nosbx-$which"
+        case "$which" in
+            bwrap)   export STUB_BWRAP_RC=1;   want="apparmor" ;;
+            socat)   export STUB_SOCAT_RC=1;   want="apt install" ;;
+            systemd) export STUB_SYSTEMD_RC=1; want="enable-linger" ;;
+        esac
+        capture_script 1 "Sonnet 5 with high effort | Claude Team"
+        run_spawn WS01 --host fakehost
+        unset STUB_BWRAP_RC STUB_SOCAT_RC STUB_SYSTEMD_RC
+        assert_equals "66" "$FLEET_RC" "missing $which exits 66"
+        assert_contains "$FLEET_OUT" "$want" "missing $which refusal gives the fix ($want)"
+        assert_contains "$FLEET_OUT" "FLEET_REMOTE_UNSANDBOXED=1" "refusal names the override"
+        assert_failure "nothing pushed when $which is missing" \
+            git --git-dir="$SRV/git/proj.git" rev-parse --verify --quiet refs/heads/fleet-base/WS01
+        assert_success "no worktree when $which is missing" test ! -e "$SRV/fleet-repos/proj-wt/ws01"
+        assert_equals "pending" "$(roster_field WS01 status)" "row stays pending without $which"
+    done
+}
+
+test_spawn_host_unsandboxed_override() {
+    log_step "GIVEN FLEET_REMOTE_UNSANDBOXED=1 and no sandbox, THEN WARN, sandbox off, deny list kept"
+    make_fixture unsbx
+    export STUB_BWRAP_RC=1 FLEET_REMOTE_UNSANDBOXED=1
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    unset STUB_BWRAP_RC FLEET_REMOTE_UNSANDBOXED
+    assert_equals "0" "$FLEET_RC" "override spawns anyway"
+    assert_contains "$FLEET_OUT" "WARN spawn: running WS01 on fakehost WITHOUT the Bash sandbox" "override warns loudly"
+    local js
+    js=$(settings_json "$SRV/fleet-runs/proj/fleet-main/WS01/.launch-ws01")
+    assert_equals "false" "$(json_q "$js" 'd["sandbox"]["enabled"]')" "sandbox off under the override"
+    assert_contains "$(json_q "$js" 'd["permissions"]["deny"]')" "Edit(/$SRV/git/**)" "deny list kept under the override"
+    assert_contains "$(cat "$SRV/fleet-runs/proj/fleet-main/WS01/.launch-ws01")" "exec systemd-run" "scope caps kept when systemd works"
+
+    make_fixture unsbx-nosystemd
+    export STUB_SYSTEMD_RC=1 FLEET_REMOTE_UNSANDBOXED=1
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    unset STUB_SYSTEMD_RC FLEET_REMOTE_UNSANDBOXED
+    assert_equals "0" "$FLEET_RC" "override spawns without systemd --user"
+    assert_contains "$FLEET_OUT" "without CPU/memory caps" "missing caps warned about"
+    local lb
+    lb=$(cat "$SRV/fleet-runs/proj/fleet-main/WS01/.launch-ws01")
+    assert_not_contains "$lb" "systemd-run" "no scope wrapper when systemd --user is unusable"
+    assert_contains "$lb" "exec claude --model sonnet" "engine execs directly"
+    assert_equals "true" "$(json_q "$(settings_json "$SRV/fleet-runs/proj/fleet-main/WS01/.launch-ws01")" 'd["sandbox"]["enabled"]')" "sandbox still on when only systemd is missing"
+}
+
 run_all_tests() {
     TEST_LOG="${TMPDIR:-/tmp}/cfn-fleet-spawn-host-$(date +%s).log"
     export TEST_LOG
@@ -628,6 +780,10 @@ run_all_tests() {
     test_spawn_refuses_second_spawn_while_first_alive
     test_spawn_clears_stale_marker_with_warning
     test_pane_wait_honours_seconds_over_slow_ssh
+    test_spawn_host_launch_passes_sandbox_settings
+    test_spawn_host_limits_knobs
+    test_spawn_host_preflight_refuses_without_sandbox_or_scope
+    test_spawn_host_unsandboxed_override
 
     print_test_summary
 }

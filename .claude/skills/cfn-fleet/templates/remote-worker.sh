@@ -10,6 +10,10 @@
 #   remote-worker.sh request-claim <path>
 #   remote-worker.sh commit -m <message>
 #
+# commit is local only: it never pushes. The worker's Bash sandbox cannot
+# reach the bare repo, and `fleet land` fetches fleet/<WS> from the server
+# fleet clone over ssh instead (PLAN_fleet-host-sandbox step 3).
+#
 # Reports land as reports/<gen>-<seq>.json (one JSON object per file). The
 # master drops any report whose gen is not the current generation and any seq
 # it already applied, so seq must only ever go up within a generation.
@@ -29,7 +33,6 @@ source "$HERE/outbox.env"
 : "${FLEET_GEN:?outbox.env must set FLEET_GEN}"
 : "${FLEET_BRANCH:?outbox.env must set FLEET_BRANCH}"
 OUTBOX="${FLEET_OUTBOX:-$HERE}"
-PUSH_REMOTE="${FLEET_PUSH_REMOTE:-origin}"
 REPORTS="$OUTBOX/reports"
 
 json_escape() {
@@ -113,6 +116,12 @@ cmd_commit() {
   done
   [[ -n "$msg" ]] || die "commit: -m <message> required" 64
   git rev-parse --git-dir >/dev/null 2>&1 || die "commit: run from inside the worktree" 66
+  # land fetches refs/heads/$FLEET_BRANCH only, so a commit on any other
+  # branch (or a detached HEAD) would never land: refuse it up front.
+  local cur
+  cur=$(git symbolic-ref -q --short HEAD 2>/dev/null)
+  [[ "$cur" == "$FLEET_BRANCH" ]] \
+    || die "commit: HEAD is on '${cur:-a detached HEAD}', not $FLEET_BRANCH; only $FLEET_BRANCH lands. Run: git checkout $FLEET_BRANCH" 66
   read_claims
 
   # Only claimed paths that actually changed are staged and committed. Anything
@@ -127,9 +136,6 @@ cmd_commit() {
   git commit -q -m "$msg" -- "${changed[@]}" || die "commit: git commit failed"
   local sha
   sha=$(git rev-parse HEAD)
-  # Explicit refspec: the pushed ref is FLEET_BRANCH whatever the local branch is called.
-  git push -q "$PUSH_REMOTE" "HEAD:refs/heads/$FLEET_BRANCH" \
-    || die "commit: committed $sha but push to $PUSH_REMOTE failed; fix and re-run: git push $PUSH_REMOTE HEAD:refs/heads/$FLEET_BRANCH" 70
   write_report commit sha "$sha" note "$msg"
   echo "$sha"
 }

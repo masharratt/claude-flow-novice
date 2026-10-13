@@ -18,8 +18,10 @@ if ! command -v fleet_die >/dev/null 2>&1; then
     source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 fi
 
-# Host rows: the worker ran on a server, so its work reaches the Mac only
-# through the bare repo. host.sh carries the ssh transport.
+# Host rows: the worker ran on a server and commits only in its worktree (its
+# sandbox cannot write the bare repo), so land fetches the lane branch from
+# the server fleet clone over ssh and the base from the bare repo. host.sh
+# carries the ssh transport.
 if ! command -v _fleet_host_run >/dev/null 2>&1; then
     # shellcheck disable=SC1091
     source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/host.sh"
@@ -50,6 +52,9 @@ _land_msg_args() {
 # branch. Order matters: the remote worktree is checked clean BEFORE the fetch
 # (uncommitted work there would be lost with the worktree), and the claims gate
 # runs BEFORE the merge. Reads remote/<WS>.env (written by `fleet spawn --host`).
+# The lane comes from <host>:<FLEET_REMOTE_CLONE> (env files from before that
+# key fall back to ~/fleet-repos/<project>), the base from the Mac git remote.
+# On success the lane tip's full sha goes to the roster's lane_sha.
 # Exit codes: 65 no env file / missing worktree / unclaimed files, 66 remote
 # worktree dirty, 69 host unreachable, 70 fetch or merge failed.
 remote_land() {
@@ -59,11 +64,15 @@ remote_land() {
   envf="$rd/remote/$ws.env"
   [ -f "$envf" ] || fleet_die 65 "land: $ws is a host row but $envf is missing (nothing to fetch)"
   local FLEET_HOST="" FLEET_GIT_REMOTE="" FLEET_PROJECT="" FLEET_REMOTE_WT="" FLEET_BRANCH="" FLEET_BASE_REF=""
+  local FLEET_REMOTE_CLONE=""
   # shellcheck disable=SC1090
   . "$envf"
   [ -n "$FLEET_HOST" ] && [ -n "$FLEET_REMOTE_WT" ] && [ -n "$FLEET_BRANCH" ] && [ -n "$FLEET_BASE_REF" ] \
-    || fleet_die 65 "land: $envf is incomplete (need FLEET_HOST, FLEET_REMOTE_WT, FLEET_BRANCH, FLEET_BASE_REF)"
+    && { [ -n "$FLEET_REMOTE_CLONE" ] || [ -n "$FLEET_PROJECT" ]; } \
+    || fleet_die 65 "land: $envf is incomplete (need FLEET_HOST, FLEET_REMOTE_WT, FLEET_BRANCH, FLEET_BASE_REF, and FLEET_REMOTE_CLONE or FLEET_PROJECT)"
   local remote="${FLEET_GIT_REMOTE:-$FLEET_HOST}"
+  # scp-style ssh URL: a relative path resolves from the server login home.
+  local lane_url="$FLEET_HOST:${FLEET_REMOTE_CLONE:-fleet-repos/$FLEET_PROJECT}"
 
   local dirty rc=0
   dirty=$(_fleet_host_run "$FLEET_HOST" git -C "$FLEET_REMOTE_WT" status --porcelain 2>/dev/null) || rc=$?
@@ -80,14 +89,20 @@ remote_land() {
   # "-d" is quoted on purpose: the portability scan reads an unquoted
   # `update-ref ... -d` as GNU `date -d`, and git has no long form for it.
   _land_drop_refs() { git -C "$repo" update-ref "-d" "$head_ref" 2>/dev/null; git -C "$repo" update-ref "-d" "$base_ref" 2>/dev/null; return 0; }
-  if ! git -C "$repo" fetch -q "$remote" \
-      "+refs/heads/$FLEET_BRANCH:$head_ref" "+refs/heads/$FLEET_BASE_REF:$base_ref" 2>"${TMPDIR:-/tmp}/fleet-land-fetch.$$"; then
-    local why
-    why=$(cat "${TMPDIR:-/tmp}/fleet-land-fetch.$$" 2>/dev/null); rm -f "${TMPDIR:-/tmp}/fleet-land-fetch.$$"
+  local errf="${TMPDIR:-/tmp}/fleet-land-fetch.$$" why
+  if ! git -C "$repo" fetch -q "$lane_url" "+refs/heads/$FLEET_BRANCH:$head_ref" 2>"$errf"; then
+    why=$(cat "$errf" 2>/dev/null); rm -f "$errf"
     _land_drop_refs
-    fleet_die 70 "land: git fetch $remote $FLEET_BRANCH $FLEET_BASE_REF failed: $why"
+    fleet_die 70 "land: git fetch $lane_url $FLEET_BRANCH (the lane, from the server fleet clone) failed: $why"
   fi
-  rm -f "${TMPDIR:-/tmp}/fleet-land-fetch.$$"
+  if ! git -C "$repo" fetch -q "$remote" "+refs/heads/$FLEET_BASE_REF:$base_ref" 2>"$errf"; then
+    why=$(cat "$errf" 2>/dev/null); rm -f "$errf"
+    _land_drop_refs
+    fleet_die 70 "land: git fetch $remote $FLEET_BASE_REF (the base) failed: $why"
+  fi
+  rm -f "$errf"
+  local lane_sha
+  lane_sha=$(git -C "$repo" rev-parse "$head_ref")
 
   # Claims gate: the worker's whole diff against its base must sit inside the
   # row's claims, or another lane's files ride this landing.
@@ -111,11 +126,15 @@ remote_land() {
   fi
   _land_drop_refs
   [ "$mrc" -eq 0 ] || fleet_die 70 "land: merge of $FLEET_BRANCH into the current branch failed (rc $mrc); remote state left as is"
+  roster_set "$ws" lane_sha "$lane_sha"
 }
 
-# remote_cleanup WS: after a successful land, drop the server worktree and the
-# fleet/<WS> + fleet-base/<WS> branches, then the Mac-side env/applied files.
-# Best effort: the merge already happened, so a cleanup failure only warns.
+# remote_cleanup WS: after a successful land, drop the server worktree, the
+# clone's fleet/<WS> + fleet-base/<WS> branches and the bare repo's
+# fleet-base/<WS>, then the Mac-side env/applied files. A bare fleet/<WS> only
+# exists for lanes spawned before workers stopped pushing; it is dropped
+# quietly when present. Best effort: the merge already happened, so a cleanup
+# failure only warns.
 remote_cleanup() {
   local ws="$1" rd envf
   rd=$(fleet_run_dir)
@@ -130,7 +149,8 @@ remote_cleanup() {
       git -C "$clone" worktree prune
       git -C "$clone" branch -D "$br" >/dev/null 2>&1
       git -C "$clone" branch -D "$base" >/dev/null 2>&1
-      git -C "$bare" branch -D "$br" "$base" >/dev/null || rc=1
+      git -C "$bare" branch -D "$base" >/dev/null || rc=1
+      git -C "$bare" branch -D "$br" >/dev/null 2>&1
       exit $rc' _ "$FLEET_PROJECT" "$FLEET_REMOTE_WT" "$FLEET_BRANCH" "$FLEET_BASE_REF" >/dev/null 2>&1; then
     echo "warning: land: server cleanup for $ws incomplete on $FLEET_HOST (merge is done); remove $FLEET_REMOTE_WT and the $FLEET_BRANCH/$FLEET_BASE_REF branches by hand" >&2
   fi

@@ -4,6 +4,9 @@
 # A local bare repo stands in for the server's bare repo (git fetch works on a
 # path); a stub ssh runs the remote command locally with HOME pointed at a temp
 # "server home". The real ssh and the real server are never touched.
+# PLAN_fleet-host-sandbox step 3: workers no longer push, so land fetches the
+# lane branch from the server fleet clone over ssh (git runs the stub ssh with
+# git-upload-pack) and the base from the bare repo through the Mac git remote.
 set -uo pipefail
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
@@ -32,6 +35,7 @@ while [ $# -gt 0 ]; do
   case "$1" in -o) shift 2 ;; *) break ;; esac
 done
 shift # host alias
+cd "$STUB_HOME" || exit 98 # real ssh starts in the login home
 HOME="$STUB_HOME" exec bash -c "$1"
 EOF
 chmod +x "$TMP_DIR/bin/ssh"
@@ -63,7 +67,8 @@ build_fixture() {
   printf 'new\n' >"$SRV_WT/a.md"
   [ "$extra" = yes ] && printf 'oops\n' >"$SRV_WT/other.txt"
   git -C "$SRV_WT" add -A && git -C "$SRV_WT" commit -qm "worker change"
-  git -C "$SRV_WT" push -q origin fleet/WS01
+  WORKER_SHA=$(git -C "$SRV_WT" rev-parse HEAD)
+  CLONE="$base/srv/fleet-repos/proj"
   RUN_DIR="$REPO/planning/fleet-main"
   mkdir -p "$RUN_DIR/remote"
   printf 'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\thost\n' >"$RUN_DIR/roster.tsv"
@@ -73,6 +78,7 @@ build_fixture() {
     printf 'FLEET_HOST=vps\nFLEET_GIT_REMOTE=vps\nFLEET_PROJECT=proj\nFLEET_RUN=fleet-main\n'
     printf 'FLEET_GEN=g1\nFLEET_REMOTE_WT=%q\nFLEET_OUTBOX=%q\n' "$SRV_WT" "$base/srv/fleet-runs/proj/fleet-main/WS01"
     printf 'FLEET_BRANCH=fleet/WS01\nFLEET_BASE_REF=fleet-base/WS01\nFLEET_SOCK=s\nFLEET_SESSION=w\nFLEET_SPAWNED_AT=1\n'
+    printf 'FLEET_REMOTE_CLONE=%q\n' "$base/srv/fleet-repos/proj"
   } >"$RUN_DIR/remote/WS01.env"
   chmod 600 "$RUN_DIR/remote/WS01.env"
   printf 'g1 3\n' >"$RUN_DIR/remote/WS01.applied"
@@ -95,6 +101,9 @@ run_land() {
 }
 
 branch_exists() { git -C "$BARE" rev-parse --verify -q "refs/heads/$1" >/dev/null; }
+clone_branch_exists() { git -C "$CLONE" rev-parse --verify -q "refs/heads/$1" >/dev/null; }
+# rfield FIELD -> WS01's cell by header name (the header may migrate).
+rfield() { awk -F'\t' -v f="$1" 'NR==1{for(i=1;i<=NF;i++) if($i==f) c=i; next} $1=="WS01"{if(c) print $c; exit}' "$RUN_DIR/roster.tsv"; }
 
 echo "== test_land_remote_refuses_unclaimed_diff"
 build_fixture unclaimed "a.md" yes
@@ -107,7 +116,7 @@ check "Mac HEAD unchanged on refusal" "$(git -C "$REPO" rev-parse HEAD)" "$BEFOR
 check "roster status unchanged on refusal" "$(awk -F'\t' '$1=="WS01"{print $4}' "$RUN_DIR/roster.tsv")" "working"
 [ -f "$RUN_DIR/remote/WS01.env" ] && ok "env file kept on refusal" || no "env file removed on refusal"
 [ -d "$SRV_WT" ] && ok "remote worktree kept on refusal" || no "remote worktree removed on refusal"
-branch_exists fleet/WS01 && ok "bare branch kept on refusal" || no "bare branch deleted on refusal"
+clone_branch_exists fleet/WS01 && ok "lane branch kept in the fleet clone on refusal" || no "lane branch deleted on refusal"
 
 echo "== test_land_remote_fetch_merge_cleanup"
 build_fixture happy "a.md" no
@@ -117,12 +126,38 @@ contains "prints landed line" "$OUT" "landed WS01"
 [ "$(git -C "$REPO" show HEAD:a.md 2>/dev/null)" = "new" ] && ok "worker commit merged into Mac main" || no "a.md not on Mac main (err: $ERR)"
 check "roster status landed" "$(awk -F'\t' '$1=="WS01"{print $4}' "$RUN_DIR/roster.tsv")" "landed"
 check "roster landed_sha is Mac HEAD" "$(awk -F'\t' '$1=="WS01"{print $6}' "$RUN_DIR/roster.tsv")" "$(git -C "$REPO" rev-parse --short HEAD)"
+check "roster lane_sha is the worker's lane tip (full sha)" "$(rfield lane_sha)" "$WORKER_SHA"
+contains "lane fetched from the fleet clone over ssh" "$(cat "$STUB_LOG")" "git-upload-pack '$CLONE'"
+case "$ERR" in *warning*) no "cleanup warned: $ERR" ;; *) ok "cleanup ran without a warning" ;; esac
 [ -d "$SRV_WT" ] && no "remote worktree still present" || ok "remote worktree removed"
-branch_exists fleet/WS01 && no "bare fleet/WS01 still present" || ok "bare fleet/WS01 deleted"
+branch_exists fleet/WS01 && no "bare fleet/WS01 exists (workers must not push)" || ok "bare never had fleet/WS01"
+clone_branch_exists fleet/WS01 && no "clone fleet/WS01 still present" || ok "clone fleet/WS01 deleted"
 branch_exists fleet-base/WS01 && no "bare fleet-base/WS01 still present" || ok "bare fleet-base/WS01 deleted"
 [ -e "$RUN_DIR/remote/WS01.env" ] && no "env file still present" || ok "env file removed"
 [ -e "$RUN_DIR/remote/WS01.applied" ] && no "applied file still present" || ok "applied file removed"
 check "no scratch refs left on Mac" "$(git -C "$REPO" for-each-ref refs/fleet-remote | wc -l | tr -d ' ')" "0"
+
+echo "== test_land_remote_old_env_derives_clone_path"
+# remote/<WS>.env written before FLEET_REMOTE_CLONE existed: land falls back to
+# ~/fleet-repos/<project> on the host (relative to the ssh login home).
+build_fixture oldenv "a.md" no
+grep -v '^FLEET_REMOTE_CLONE=' "$RUN_DIR/remote/WS01.env" >"$RUN_DIR/remote/env.tmp" && mv "$RUN_DIR/remote/env.tmp" "$RUN_DIR/remote/WS01.env"
+run_land WS01
+check "old env file still lands" "$RC" "0"
+[ "$(git -C "$REPO" show HEAD:a.md 2>/dev/null)" = "new" ] && ok "lane merged via the derived clone path" || no "a.md not merged via derived path (err: $ERR)"
+contains "derived path is home-relative" "$(cat "$STUB_LOG")" "git-upload-pack 'fleet-repos/proj'"
+
+echo "== test_land_remote_missing_lane_branch_fails_70"
+build_fixture nolane "a.md" no
+git -C "$CLONE" worktree remove --force "$SRV_WT"
+git -C "$CLONE" branch -q -D fleet/WS01
+mkdir -p "$SRV_WT" && git -C "$SRV_WT" init -q
+BEFORE=$(git -C "$REPO" rev-parse HEAD)
+run_land WS01
+check "missing lane branch exits 70" "$RC" "70"
+check "Mac HEAD unchanged when the lane is missing" "$(git -C "$REPO" rev-parse HEAD)" "$BEFORE"
+check "no lane_sha recorded on failure" "$(rfield lane_sha)" ""
+check "no scratch refs left after a failed fetch" "$(git -C "$REPO" for-each-ref refs/fleet-remote | wc -l | tr -d ' ')" "0"
 
 echo "== test_land_remote_refuses_dirty_remote_worktree"
 build_fixture dirty "a.md" no

@@ -5,6 +5,24 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-13: fleet host workers sandboxed, capped, no push
+
+- `fleet spawn --host` now launches claude with a generated `--settings` JSON: Bash
+  sandbox on (`failIfUnavailable`, no unsandboxed fallback, unix sockets blocked), writes
+  limited to the worktree, the fleet clone and the outbox, and `permissions.deny` Edit
+  rules for the server deny list (`~/Projects`, `~/git`, gate and suite temp paths, build
+  slots, cfn-vps state, `~/.claude`, `~/.ssh`, `~/.config/gh`, `~/opt`, the outbox kit, the
+  clone's git config and hooks, the worktree's `.git` file). Reads stay allowed.
+- Workers run in a `systemd-run --user --scope` with `FLEET_REMOTE_MEM` (12G) and
+  `FLEET_REMOTE_CPU` (400%) caps.
+- Spawn preflight probes bwrap, socat and `systemd-run --user` on the host and refuses (66)
+  with the fix commands; `FLEET_REMOTE_UNSANDBOXED=1` overrides with a WARN.
+- Workers no longer push to `~/git/<project>.git`: `remote-worker.sh commit` commits
+  locally (and refuses off `fleet/<WS>`); `fleet land` fetches the lane from the server
+  fleet clone over ssh and records its tip in a new roster column `lane_sha`.
+- The `--host` spawn path moved out of `lib/cmd-spawn.sh` into `lib/spawn-remote.sh`.
+  Status dev: tested with stub ssh only; the live server check is pending.
+
 ## 2026-10-13: fleet spawning state, peek message, land commit message
 
 - New roster status `spawning`: set at the start of a real `fleet spawn` (local and `--host`),

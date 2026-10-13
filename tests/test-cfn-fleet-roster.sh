@@ -70,8 +70,8 @@ test_init_scaffold_and_duplicate_refusal(){
     || no "roster has $(wc -l < "$RD/roster.tsv") lines, want 1"
   local hdr
   hdr=$(head -n1 "$RD/roster.tsv")
-  [ "$(printf '%s\n' "$hdr" | awk -F'\t' '{print NF}')" -eq 12 ] \
-    && ok "header has 12 tab fields" || no "header fields: '$hdr'"
+  [ "$(printf '%s\n' "$hdr" | awk -F'\t' '{print NF}')" -eq 13 ] \
+    && ok "header has 13 tab fields" || no "header fields: '$hdr'"
   [ "$(printf '%s\n' "$hdr" | awk -F'\t' '{print $1":"$4":"$9":"$10":"$11":"$12}')" = "ws_id:status:heartbeat:notes:engine:host" ] \
     && ok "header column names" || no "header names: '$hdr'"
   [ -f "$RD/engines.env" ] && ok "init installs engines.env registry copy" \
@@ -315,14 +315,14 @@ test_status_table_and_tsv(){
     no "age after heartbeat: '$age'"
   fi
 
-  log_step "WHEN status --tsv, THEN raw 12-field TSV rows"
+  log_step "WHEN status --tsv, THEN raw 13-field TSV rows"
   run_fleet "$P" status --tsv
   [ "$RC" -eq 0 ] && ok "status --tsv exits 0" || no "tsv rc=$RC"
-  [ "$(printf '%s\n' "$OUT" | awk -F'\t' 'NR>1{print NF}' | sort -u)" = "12" ] \
-    && ok "tsv rows have 12 tab fields" || no "tsv field counts: $(printf '%s\n' "$OUT" | awk -F'\t' 'NR>1{print NF}' | sort -u | tr '\n' ' ')"
+  [ "$(printf '%s\n' "$OUT" | awk -F'\t' 'NR>1{print NF}' | sort -u)" = "13" ] \
+    && ok "tsv rows have 13 tab fields" || no "tsv field counts: $(printf '%s\n' "$OUT" | awk -F'\t' 'NR>1{print NF}' | sort -u | tr '\n' ' ')"
   [ "$(printf '%s\n' "$OUT" | awk -F'\t' '$1=="WS02"{print $3}')" = "$long" ] \
     && ok "tsv shows untruncated task" || no "tsv task mangled"
-  printf '%s\n' "$OUT" | awk -F'\t' 'NR==1{exit ($1=="ws_id" && NF==12)?0:1}' \
+  printf '%s\n' "$OUT" | awk -F'\t' 'NR==1{exit ($1=="ws_id" && NF==13)?0:1}' \
     && ok "tsv includes header" || no "tsv header missing"
 
   log_step "GIVEN empty roster, WHEN status, THEN header only + exit 0"
@@ -416,11 +416,11 @@ test_roster_host_column_appended_and_old_rows_padded(){
   [ "$RC" -eq 0 ] && ok "write on old roster succeeds" || no "old-roster write rc=$RC err=$ERR"
   [ "$(head -n1 "$R" | awk -F'\t' '{print $12}')" = "host" ] && ok "header gains host as column 12" \
     || no "header: $(head -n1 "$R")"
-  [ "$(awk -F'\t' 'NR==2{print NF}' "$R")" = "12" ] && ok "old row padded to 12 fields" \
+  [ "$(awk -F'\t' 'NR==2{print NF}' "$R")" = "13" ] && ok "old row padded to 13 fields" \
     || no "row NF: $(awk -F'\t' 'NR==2{print NF}' "$R")"
   [ -z "$(tsv_field "$R" WS01 12)" ] && ok "padded host cell is empty (local)" || no "host cell not empty"
   run_fleet "$P" add WS02 "fresh"
-  [ "$(awk -F'\t' '$1=="WS02"{print NF}' "$R")" = "12" ] && ok "new row written with 12 fields" \
+  [ "$(awk -F'\t' '$1=="WS02"{print NF}' "$R")" = "13" ] && ok "new row written with 13 fields" \
     || no "new row NF"
 
   local lib="$PROJECT_ROOT/.claude/skills/cfn-fleet/lib/common.sh" h bad=""

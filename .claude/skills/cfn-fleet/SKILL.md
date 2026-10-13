@@ -103,10 +103,36 @@ outboxes `~/fleet-runs/<project>/<run>/<WS>/`. `fleet host-setup` never touches
 | Step | Command | Notes |
 |---|---|---|
 | Set up | `fleet host-setup <alias> [--check]` | Creates the bare repo, pushes main, adds the Mac git remote `<alias>`, clones to `~/fleet-repos`. `--check` prints tmux/claude versions, logged-in account, free disk, cfn-fleet drift |
-| Spawn | `fleet spawn WSxx --host <alias>` | Refuses (66) below `FLEET_REMOTE_MIN_FREE_GB`; pushes `fleet-base/<WS>`, creates the worktree, ships brief and `remote-worker.sh` |
+| Spawn | `fleet spawn WSxx --host <alias>` | Refuses (66) below `FLEET_REMOTE_MIN_FREE_GB` or when the host cannot fence workers (see Sandbox); pushes `fleet-base/<WS>`, creates the worktree, ships brief and `remote-worker.sh` |
 | Pull reports | `fleet sync [WS]` | Applies heartbeat, notes, status, handoffs; claim requests land in `handoffs/CLAIM_REQ_<WS>.md` for the master. Never changes claims |
 | Look | `fleet peek WSxx [lines]` | Read a remote prompt before answering it |
-| Land | `fleet land WSxx` | Fetches `fleet/<WS>`, refuses (65) files outside the claims, merges, cleans the server |
+| Land | `fleet land WSxx` | Fetches `fleet/<WS>` from the server fleet clone over ssh (workers never push), refuses (65) files outside the claims, merges, records the lane tip in `lane_sha`, cleans the server |
+
+### Sandbox and limits (host workers)
+
+Every host worker starts as `systemd-run --user --scope -p MemoryMax=... -p CPUQuota=... -- claude ... --settings '<json>'`
+(code: `lib/spawn-remote.sh`; plan: `planning/PLAN_fleet-host-sandbox.md`).
+
+- Bash sandbox on, no unsandboxed fallback, and claude exits if the sandbox cannot start.
+  Bash writes only to the worktree, the fleet clone (commits in a linked worktree write
+  its `.git`) and the outbox, plus Claude's own temp dir. Unix sockets are blocked, so
+  docker is out of reach.
+- `permissions.deny` holds `Edit(...)` rules for the server deny list: `~/Projects`,
+  `~/git`, `/tmp/gate-*`, `/tmp/cand-*`, `/tmp/mdtwii-*`, `~/.cache/mdtwii-target-*`,
+  `~/.cache/cfn-vps`, `~/.claude`, `~/.ssh`, `~/.config/gh`, `~/opt`, plus the outbox kit
+  files, the clone's `.git/config` and hooks, and the worktree's `.git` file. An `Edit`
+  rule covers Edit, Write, MultiEdit and NotebookEdit. Reads stay allowed.
+- Workers commit locally only: `remote-worker.sh commit` never pushes, and refuses off
+  `fleet/<WS>`.
+- Caps per worker: `FLEET_REMOTE_MEM` (MemoryMax, default `12G`) and `FLEET_REMOTE_CPU`
+  (CPUQuota, default `400%` = 4 cores). Sized for a 12-core / 47 GB server: two workers
+  leave 4 cores and about 23 GB for two gate runs.
+- Spawn preflight checks `bwrap --ro-bind / / true`, `socat` and
+  `systemd-run --user --scope`, and refuses (66) with the fix commands when one fails.
+  `FLEET_REMOTE_UNSANDBOXED=1` (env or `fleet.env`) runs anyway with a WARN: the missing
+  fence is skipped, the deny rules stay.
+- Limits: the Bash sandbox fences shell commands; Edit and Write are fenced only by the
+  deny list. Weaker than a separate server account (a user decision).
 
 Reports are pulled only by `fleet watch` (each tick) or `fleet sync`. The dashboard
 never pulls them, so a dashboard-only master sees stale remote rows.
@@ -124,7 +150,8 @@ Knobs (`fleet.env` unless noted): `FLEET_HOST_REMOTE` (Mac git remote name, defa
 the host alias), `FLEET_REMOTE_LINKS` (paths symlinked into the server worktree from
 `~/Projects/<project>`, e.g. `extracted,game`), `FLEET_REMOTE_MIN_FREE_GB` (15),
 `FLEET_AUTH_TIMEOUT` (seconds to wait for a login failure banner, 12),
-`FLEET_HOST_PROBE_SECS` (dashboard host probe interval, 30).
+`FLEET_HOST_PROBE_SECS` (dashboard host probe interval, 30), `FLEET_REMOTE_MEM` (12G),
+`FLEET_REMOTE_CPU` (400%), `FLEET_REMOTE_UNSANDBOXED` (0; env or `fleet.env`).
 
 By hand, once per server: ssh config alias (key login), `claude` login on the
 server, `.env` and secrets, and dependencies (node_modules, toolchains). Host-setup

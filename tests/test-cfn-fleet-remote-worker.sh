@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # tests/test-cfn-fleet-remote-worker.sh
 # cfn-fleet remote worker kit (planning/PLAN_fleet-remote-host-workers.md phase 3):
-#   templates/remote-worker.sh  report writer + claims-only commit/push
+#   templates/remote-worker.sh  report writer + claims-only local commit
 #   templates/BRIEF_REMOTE.md   brief for a worker on a remote host
-# No network, no ssh: the push remote is a temp bare repo. The script runs on a
+# No network, no ssh. The worktree keeps a temp bare repo as origin only to
+# prove commit never pushes (PLAN_fleet-host-sandbox step 3: fleet land fetches
+# the lane from the server's fleet clone instead). The script runs on a
 # Linux server but these tests run on macOS, so everything here stays portable.
 set -uo pipefail
 
@@ -52,7 +54,6 @@ FLEET_WS=WS1
 FLEET_GEN=$GEN
 FLEET_OUTBOX=$OUTBOX
 FLEET_BRANCH=fleet/WS1
-FLEET_PUSH_REMOTE=origin
 EOF
 printf 'src/a.txt\n' > "$OUTBOX/claims.txt"
 
@@ -102,7 +103,7 @@ last=$(ls "$R" | sed 's/^.*-\([0-9]*\)\.json$/\1/' | sort -n | tail -1)
 [[ "$(jget "$R/$GEN-$last.json" kind)" == "claim_request" && "$(jget "$R/$GEN-$last.json" path)" == "src/c.txt" ]] && ok "claim request report carries path" || no "claim request report carries path"
 grep -q 'src/c.txt' "$OUTBOX/claims.txt" && no "request-claim must not edit claims.txt" || ok "request-claim does not edit claims.txt"
 
-echo "test_remote_worker_commit_stages_only_claimed_and_pushes"
+echo "test_remote_worker_commit_stages_only_claimed_and_never_pushes"
 echo two > "$WT/src/a.txt"      # claimed
 echo two > "$WT/src/b.txt"      # NOT claimed
 before=$(ls "$R" | wc -l | tr -d ' ')
@@ -114,9 +115,23 @@ files=$(git -C "$WT" show --name-only --format= HEAD)
 [[ "$(git -C "$WT" log -1 --format=%s)" == "claimed change" ]] && ok "commit message used" || no "commit message used"
 git -C "$WT" status --porcelain | grep -q ' M src/b.txt' && ok "unclaimed edit left dirty" || no "unclaimed edit left dirty"
 head=$(git -C "$WT" rev-parse HEAD)
-[[ "$(git -C "$BARE" rev-parse refs/heads/fleet/WS1 2>/dev/null)" == "$head" ]] && ok "pushed to origin fleet/WS1" || no "pushed to origin fleet/WS1"
+[[ "$(git -C "$WT" rev-parse refs/heads/fleet/WS1)" == "$head" ]] && ok "commit is on the local lane branch fleet/WS1" || no "commit is on the local lane branch fleet/WS1"
+git -C "$BARE" rev-parse --verify -q refs/heads/fleet/WS1 >/dev/null 2>&1 && no "commit must not push to origin" || ok "commit does not push to origin"
 last=$(ls "$R" | sed 's/^.*-\([0-9]*\)\.json$/\1/' | sort -n | tail -1)
 [[ "$(jget "$R/$GEN-$last.json" kind)" == "commit" && "$(jget "$R/$GEN-$last.json" sha)" == "$head" ]] && ok "commit report carries sha" || no "commit report carries sha"
+
+echo "test_commit_refuses_off_the_lane_branch"
+# fleet land fetches refs/heads/fleet/WS1 from the clone; a commit made on any
+# other branch would never land, so commit refuses instead of losing it.
+git -C "$WT" checkout -q -b scratch-side
+echo side > "$WT/src/a.txt"
+W commit -m "wrong branch" >/dev/null 2>&1
+rc=$?
+[[ $rc -eq 66 ]] && ok "commit off fleet/WS1 exits 66" || no "commit off fleet/WS1 exits 66 (rc=$rc)"
+[[ "$(git -C "$WT" log -1 --format=%s)" != "wrong branch" ]] && ok "no commit made off the lane branch" || no "no commit made off the lane branch"
+git -C "$WT" checkout -q src/a.txt
+git -C "$WT" checkout -q fleet/WS1
+git -C "$WT" branch -q -D scratch-side
 
 echo "test_commit_refuses_when_nothing_claimed_changed"
 before=$(ls "$R" | wc -l | tr -d ' ')
@@ -156,7 +171,8 @@ for pat in \
   'no .*fleet.* (CLI|command)' \
   'SendMessage' \
   'request-claim' \
-  'origin' \
+  '(never|do not|no) push' \
+  'sandbox' \
   'Playwright' \
   'screenshot' \
   'reserved' \
@@ -178,6 +194,8 @@ for b in "$BRIEF" "$TPL/BRIEF_WS.md"; do
 done
 grep -q $'—' "$BRIEF" 2>/dev/null && no "brief has no em dash" || ok "brief has no em dash"
 grep -q $'—' "$WORKER_SRC" 2>/dev/null && no "worker script has no em dash" || ok "worker script has no em dash"
+grep -Ev '^[[:space:]]*#' "$WORKER_SRC" | grep -q 'git push' && no "worker script has no git push" || ok "worker script has no git push"
+grep -q 'PUSH_REMOTE' "$WORKER_SRC" && no "worker script has no push remote knob" || ok "worker script has no push remote knob"
 if command -v jq >/dev/null 2>&1; then
   grep -Eq '(^|[^a-z])jq ' "$WORKER_SRC" 2>/dev/null && no "worker does not use jq" || ok "worker does not use jq"
 else

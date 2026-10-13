@@ -13,6 +13,22 @@ stop.
 - Paths in this brief are server paths. Do not use Mac paths.
 - Never touch `~/Projects/` or any checkout other than your worktree.
 
+## Sandbox (on by default)
+
+- Your Bash commands run in Claude Code's sandbox. They can write only to your
+  worktree, the fleet clone's git data (`~/fleet-repos/<project>`, needed for
+  commits) and your outbox. Everything else is read-only, `/tmp` included
+  (use the sandbox's own temp dir).
+- There is no escape hatch: commands cannot run unsandboxed, and unix sockets
+  (docker, tmux, any local service) are blocked.
+- `~/Projects`, `~/git`, `~/.claude`, `~/.ssh` and the build and gate paths are
+  also denied to Edit and Write. Reading them is fine.
+- You run inside a capped scope: limited CPU and memory. Keep builds and tests
+  scoped to your claims.
+- If a command fails with "Operation not permitted", "Read-only file system" or
+  a sandbox message, do not work around it. Report `status blocked` with the
+  command and the error, then stop.
+
 ## Task
 
 <one-paragraph statement of the workstream's task>
@@ -36,11 +52,14 @@ Run from the outbox: `~/fleet-runs/<project>/<run>/WSxx/remote-worker.sh <cmd>`
   hand it off, then `status done`.
 - `request-claim <path>` for any path outside your claims.
 - `commit -m <message>` is the only way to commit. It stages claimed paths only,
-  refuses when nothing claimed changed, and pushes to `origin` branch `fleet/WSxx`.
+  refuses when nothing claimed changed, and commits on `fleet/WSxx` locally. It
+  never pushes: the master fetches `fleet/WSxx` from the server when it lands
+  your work, so commit everything you want landed before `status done`.
 
 ## Rules
 
-- Never run raw `git commit` or `git push`. Push only to `origin`, only through `commit`.
+- Never run raw `git commit`, and never push: there is nothing to push to.
+  Commit only through `commit`, and stay on branch `fleet/WSxx`.
 - Do not add remotes, change remotes, or fetch from anywhere but `origin`.
 - No screenshots, no Playwright, no browser or GUI work: the server has no
   display. Hand any visual check back to the master.
@@ -66,4 +85,4 @@ Run from the outbox: `~/fleet-runs/<project>/<run>/WSxx/remote-worker.sh <cmd>`
 - [ ] <verifiable condition 1>
 - [ ] <verifiable condition 2>
 - [ ] Scoped tests pass; full output saved to a file
-- [ ] Final `commit` pushed, `handoff` sent, `status done` reported
+- [ ] Final `commit` made, `handoff` sent, `status done` reported

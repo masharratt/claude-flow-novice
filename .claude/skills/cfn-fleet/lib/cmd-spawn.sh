@@ -10,8 +10,8 @@
 #
 #   fleet spawn WSxx [--spares N] [--engine e] [--host H] [--no-tmux] [--dry-run]
 #
-# --host H runs the worker on server H (claude engines only): see the Host
-# spawns block below; local spawns never reach it.
+# --host H runs the worker on server H (claude engines only): see
+# lib/spawn-remote.sh; local spawns never reach it.
 #
 # Order of operations (tmux path):
 #   1. resolve engine: --engine flag > roster column > FLEET_DEFAULT_ENGINE
@@ -85,6 +85,10 @@ if ! command -v _fleet_host_run >/dev/null 2>&1; then
   # shellcheck source=host.sh
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/host.sh"
 fi
+
+# spawn-remote.sh: the --host path, its sandbox settings and limits.
+# shellcheck source=spawn-remote.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/spawn-remote.sh"
 
 # _spawn_tmux ARGS... — tmux on the spawn's host. _SPAWN_HOST is set by main
 # (dynamic scope) only for --host spawns; empty runs plain local `tmux ARGS`,
@@ -383,353 +387,7 @@ _spawn_launch_one(){
   printf '%s\n' "$banner_line"
 }
 
-# --- Host (remote worker) spawns ---------------------------------------------
-# cfn: this block is a second responsibility in a file past the size ceiling;
-# split it into lib/spawn-remote.sh when the next remote feature lands.
-#
-# Server layout (all under the server's $HOME, set up by `fleet host-setup`):
-#   ~/git/<project>.git           bare repo; the Mac pushes fleet-base/<WS> here
-#   ~/fleet-repos/<project>       fleet clone of the bare repo (origin = bare)
-#   ~/fleet-repos/<project>-wt/<ws>   worker worktree on branch fleet/<WS>
-#   ~/fleet-runs/<project>/<run>/<WS>/  outbox: brief, claims, outbox.env,
-#                                 remote-worker.sh, reports/
-# Server scripts run as `bash -c SCRIPT _ ARGS...`: host.sh %q-quotes each word,
-# so ~ and $HOME only expand inside the script, never in an argument.
-
-# Preflight, args: clone bare wt base_ref. Prints facts; the Mac decides.
-_SPAWN_REMOTE_PREFLIGHT='
-clone="$1"; bare="$2"; wt="$3"; baseref="$4"
-if [ ! -d "$clone/.git" ]; then
-  echo NOCLONE
-else
-  for r in $(git -C "$clone" remote); do
-    echo "REMOTE $r $(git -C "$clone" remote get-url "$r" 2>/dev/null)"
-  done
-fi
-[ -d "$wt" ] && echo WT_EXISTS
-git --git-dir="$bare" rev-parse --verify -q "refs/heads/$baseref" >/dev/null 2>&1 && echo BASE_EXISTS
-for d in "$HOME/claude-flow-novice-src" "$HOME/Projects/claude-flow-novice-src" "$HOME/fleet-repos/claude-flow-novice-src"; do
-  if [ -d "$d/.git" ]; then echo "CFN_COMMIT $(git -C "$d" rev-parse HEAD 2>/dev/null)"; break; fi
-done
-exit 0
-'
-
-# Prepare, args: clone wt branch base_ref links_csv project outbox. Fetches the
-# pushed base, adds the worktree, links the user-checkout paths (git-ignored via
-# the clone exclude so they never dirty the worktree), makes the 0700 outbox.
-# Prints WT_NEW / BRANCH_NEW / OUTBOX_NEW so a failed spawn can undo exactly
-# what it made, plus LINKED / MISSING_LINK / BAD_LINK per link.
-_SPAWN_REMOTE_PREPARE='
-clone="$1"; wt="$2"; branch="$3"; baseref="$4"; links="$5"; project="$6"; ob="$7"
-git -C "$clone" worktree prune >/dev/null 2>&1
-git -C "$clone" fetch -q origin || { echo "ERR fetch from the bare repo failed"; exit 70; }
-if [ -d "$wt" ]; then
-  echo WT_REUSED
-else
-  mkdir -p "$(dirname "$wt")" || exit 71
-  if git -C "$clone" show-ref --verify --quiet "refs/heads/$branch"; then
-    git -C "$clone" worktree add -q "$wt" "$branch" || { echo "ERR worktree add failed"; exit 71; }
-  else
-    git -C "$clone" worktree add -q -b "$branch" "$wt" "origin/$baseref" \
-      || { echo "ERR worktree add failed (is $baseref pushed?)"; exit 71; }
-    echo BRANCH_NEW
-  fi
-  echo WT_NEW
-fi
-exclude="$clone/.git/info/exclude"
-IFS=, read -ra L <<< "$links"
-for p in "${L[@]}"; do
-  p="${p// /}"
-  [ -n "$p" ] || continue
-  case "$p" in /*|*..*|*[!A-Za-z0-9._/-]*) echo "BAD_LINK $p"; continue ;; esac
-  src="$HOME/Projects/$project/$p"
-  if [ ! -e "$src" ]; then echo "MISSING_LINK $p"; continue; fi
-  if [ -e "$wt/$p" ] || [ -L "$wt/$p" ]; then continue; fi
-  mkdir -p "$(dirname "$wt/$p")" && ln -s "$src" "$wt/$p" || continue
-  grep -qxF "/$p" "$exclude" 2>/dev/null || echo "/$p" >> "$exclude"
-  echo "LINKED $p"
-done
-[ -e "$ob" ] || echo OUTBOX_NEW
-( umask 077; mkdir -p "$ob" ) && chmod 700 "$ob" || { echo "ERR outbox not created"; exit 71; }
-exit 0
-'
-
-# Undo, args: clone wt branch wt_new branch_new outbox outbox_new. Removes only
-# what this spawn created, so a respawn never loses the worker'"'"'s work.
-_SPAWN_REMOTE_UNDO='
-clone="$1"; wt="$2"; branch="$3"; wt_new="$4"; branch_new="$5"; ob="$6"; ob_new="$7"
-if [ "$wt_new" = 1 ]; then
-  git -C "$clone" worktree remove --force "$wt" >/dev/null 2>&1 || rm -rf "$wt"
-  git -C "$clone" worktree prune >/dev/null 2>&1
-fi
-[ "$branch_new" = 1 ] && git -C "$clone" branch -D "$branch" >/dev/null 2>&1
-if [ "$ob_new" = 1 ]; then
-  case "$ob" in "$HOME"/fleet-runs/?*) rm -rf "$ob" ;; esac
-fi
-exit 0
-'
-
-# _spawn_remote_brief TEMPLATE PROJECT RUN WS CLAIMS MIGRATION MASTER_BRIEF
-# -> the shipped brief on stdout: the BRIEF_REMOTE.md template with its
-# placeholders filled, then the master's brief (task, allowed commands, done
-# criteria) appended.
-_spawn_remote_brief(){
-  local tpl="$1" project="$2" run="$3" ws="$4" claims="$5" mig="$6" master="$7" t lc
-  # bash 5.2 treats & in a replacement as the match; claims may contain one.
-  shopt -u patsub_replacement 2>/dev/null || true
-  lc=$(printf '%s' "$ws" | tr '[:upper:]' '[:lower:]')
-  t=$(cat "$tpl")
-  t=${t//'<project>'/$project}
-  t=${t//'<run>'/$run}
-  t=${t//'<ws>'/$lc}
-  t=${t//'WSxx'/$ws}
-  t=${t//'<reserved migration number or none>'/${mig:-none}}
-  t=${t//'<path1> <path2> ...'/$claims}
-  t=${t//"<one-paragraph statement of the workstream's task>"/"The task is in the master brief at the end of this file."}
-  t=${t//'<the commands this workstream may run, e.g. test runner, linter>'/"Scoped tests and type checks for your claims, as the master brief lists."}
-  t=${t//'<verifiable condition 1>'/"Every done criterion in the master brief below is met"}
-  t=${t//'<verifiable condition 2>'/"Nothing outside your claims was changed"}
-  printf '%s\n\n---\n\n# Master brief\n\n' "$t"
-  cat "$master"
-}
-
-# _spawn_remote_claims ROSTER_CLAIMS -> one claim per line (commas or spaces).
-_spawn_remote_claims(){
-  printf '%s' "$1" | tr ', \t' '\n\n\n\n' | sed '/^$/d'
-}
-
-# _spawn_remote_ship_launch ... — everything after the remote worktree exists:
-# build and ship the kit, launch on the host, then record the spawn. Returns 1
-# (message on stderr) on any failure; the caller undoes the remote setup.
-# Sets session_up=1 (caller's local) once a tmux session may exist.
-_spawn_remote_ship_launch(){
-  local ws="$1" name="$2" host="$3" engine="$4" bin="$5" args_str="$6" unset_raw="$7"
-  local trust_re="$8" trust_keys="$9" banner_re="${10}" run_dir="${11}" brief="${12}" kit="${13}"
-  local project="${14}" run="${15}" wt="${16}" ob="${17}" sock="${18}" gitremote="${19}"
-  local tpl_dir gen claims_sp mig remote_launch pane_cmd line
-
-  tpl_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../templates" && pwd)"
-  gen=$(od -An -tx1 -N8 /dev/urandom | tr -d ' \n')
-  [ -n "$gen" ] || { echo "spawn: could not make a generation id" >&2; return 1; }
-  claims_sp=$(_spawn_remote_claims "$(roster_get "$ws" claims)" | tr '\n' ' ')
-  claims_sp="${claims_sp% }"
-  mig=$(roster_get "$ws" migration_num 2>/dev/null || true)
-
-  _spawn_remote_claims "$(roster_get "$ws" claims)" > "$kit/claims.txt" || return 1
-  _spawn_remote_brief "$tpl_dir/BRIEF_REMOTE.md" "$project" "$run" "$ws" "$claims_sp" "$mig" "$brief" > "$kit/brief.md" || return 1
-  {
-    printf 'FLEET_WS=%q\n' "$ws"
-    printf 'FLEET_GEN=%q\n' "$gen"
-    printf 'FLEET_OUTBOX=%q\n' "$ob"
-    printf 'FLEET_BRANCH=%q\n' "fleet/$ws"
-    printf 'FLEET_PUSH_REMOTE=origin\n'
-  } > "$kit/outbox.env" || return 1
-
-  # Launch script: same private env script the local path types, but it lives
-  # in the 0700 outbox on the server and deletes itself there.
-  remote_launch="$ob/.launch-$name"
-  pane_cmd=""
-  [ -z "$unset_raw" ] || pane_cmd="unset ${unset_raw//,/ }; "
-  pane_cmd+="exec $bin${args_str:+ $args_str}"
-  cfn_spawn_launch_write "${_SPAWN_SET_LINES:-}" "$pane_cmd" \
-    || { echo "spawn: could not write the private launch script for $name" >&2; return 1; }
-  (
-    umask 077
-    swapped=0
-    while IFS= read -r line || [ -n "$line" ]; do
-      if [ "$line" = "rm -rf '$CFN_SPAWN_ENV_DIR'" ]; then
-        printf "rm -f '%s'\n" "$remote_launch"
-        swapped=1
-      else
-        printf '%s\n' "$line"
-      fi
-    done < "$CFN_SPAWN_ENV_DIR/launch" > "$kit/.launch-$name"
-    [ "$swapped" -eq 1 ]
-  ) || { echo "spawn: launch script rewrite for the host failed" >&2; return 1; }
-
-  local scp_opts=(-q -o BatchMode=yes -o ConnectTimeout=10)
-  scp "${scp_opts[@]}" -- "$kit/brief.md" "$kit/claims.txt" "$kit/outbox.env" \
-      "$tpl_dir/remote-worker.sh" "$host:$ob/" \
-    || { echo "spawn: scp of the outbox kit to $host failed" >&2; return 1; }
-  scp "${scp_opts[@]}" -- "$kit/.launch-$name" "$host:$remote_launch" \
-    || { echo "spawn: scp of the launch script to $host failed" >&2; return 1; }
-  _fleet_host_run "$host" bash -c 'chmod 700 "$1" && chmod 600 "$2" "$3" "$4" "$5"' _ \
-      "$ob/remote-worker.sh" "$ob/brief.md" "$ob/claims.txt" "$ob/outbox.env" "$remote_launch" \
-    || { echo "spawn: could not set modes on the outbox kit at $host" >&2; return 1; }
-
-  local trust_timeout banner_timeout auth_timeout banner_line prompt_line
-  trust_timeout=$(_fleet_env_seconds FLEET_TRUST_TIMEOUT 15)
-  banner_timeout=$(_fleet_env_seconds FLEET_BANNER_TIMEOUT 20)
-  auth_timeout=$(_fleet_env_seconds FLEET_AUTH_TIMEOUT 12)
-  # Dynamic scope for _spawn_launch_one / _spawn_tmux.
-  local _SPAWN_HOST="$host" _SPAWN_REMOTE_LAUNCH_LINE=". '$remote_launch'"
-  session_up=1
-  banner_line=$(_spawn_launch_one "$sock" "$name" "$wt" "$pane_cmd" "$trust_re" "$trust_keys" \
-    "$trust_timeout" "$banner_re" "$banner_timeout") || return 1
-
-  # remote/<WS>.env: the contract fleet sync and land read. Written only after
-  # the banner, so a failed spawn leaves no env file behind.
-  local envf="$run_dir/remote/$ws.env" tmpf
-  tmpf="$envf.tmp.$$"
-  (
-    umask 077
-    mkdir -p "$run_dir/remote" || exit 1
-    {
-      printf 'FLEET_HOST=%q\n' "$host"
-      printf 'FLEET_GIT_REMOTE=%q\n' "$gitremote"
-      printf 'FLEET_PROJECT=%q\n' "$project"
-      printf 'FLEET_RUN=%q\n' "$run"
-      printf 'FLEET_GEN=%q\n' "$gen"
-      printf 'FLEET_REMOTE_WT=%q\n' "$wt"
-      printf 'FLEET_OUTBOX=%q\n' "$ob"
-      printf 'FLEET_BRANCH=%q\n' "fleet/$ws"
-      printf 'FLEET_BASE_REF=%q\n' "fleet-base/$ws"
-      printf 'FLEET_SOCK=%q\n' "$sock"
-      printf 'FLEET_SESSION=%q\n' "$name"
-      printf 'FLEET_SPAWNED_AT=%q\n' "$(date +%s)"
-    } > "$tmpf" && chmod 600 "$tmpf" && mv -f "$tmpf" "$envf"
-  ) || { rm -f "$tmpf"; echo "spawn: could not write $envf" >&2; return 1; }
-
-  roster_set "$ws" status started
-  roster_set "$ws" heartbeat "$(date +%s)"
-  roster_set "$ws" host "$host"
-  _spawn_commit
-  ( roster_get "$ws" engine >/dev/null 2>&1 ) && roster_set "$ws" engine "$engine"
-  echo "spawned $ws engine=$engine host=$host banner=\"$banner_line\""
-
-  # Thin prompt only after the banner; the brief on the server owns the rules.
-  prompt_line="read $ob/brief.md and start; report to the master only through $ob/remote-worker.sh, as the brief says"
-  _spawn_tmux -L "$sock" send-keys -t "$name" -l "$prompt_line"
-  _spawn_tmux -L "$sock" send-keys -t "$name" Enter
-  if _fleet_pane_wait "$sock" "$name" '401 Authentication Failed|Authentication Failed|invalid_api_key|authentication_error' "$auth_timeout" >/dev/null; then
-    echo "spawn: WARNING $name: engine reports an authentication failure after the first request on $host (log in to claude there and respawn)." >&2
-  fi
-  return 0
-}
-
-# _spawn_remote WS NAME HOST ENGINE BIN ARGS UNSET TRUST_RE TRUST_KEYS BANNER_RE
-# REPO RUN_DIR BRIEF — the whole --host path: preflight, push base, remote
-# worktree, ship, launch. Exits via fleet_die; never leaves a half-made remote
-# worktree behind (a respawn's existing worktree is left alone).
-_spawn_remote(){
-  local ws="$1" name="$2" host="$3" engine="$4" bin="$5" args_str="$6" unset_raw="$7"
-  local trust_re="$8" trust_keys="$9" banner_re="${10}" repo="${11}" run_dir="${12}" brief="${13}"
-  local project run lc sock gitremote home clone bare wt ob rc=0 out line
-  project=$(fleet_project_name "$repo")
-  run=$(basename "$run_dir")
-  lc=$(printf '%s' "$ws" | tr '[:upper:]' '[:lower:]')
-  [[ "$project" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$run" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] \
-    || fleet_die 64 "spawn: project '$project', run '$run' and session name '$name' must be safe for server paths (letters, digits, dot, dash, underscore)"
-  sock=$(_fleet_spawn_socket)
-  gitremote=$(fleet_env_get FLEET_HOST_REMOTE)
-  gitremote="${gitremote:-$host}"
-  [[ "$gitremote" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] \
-    || fleet_die 64 "spawn: FLEET_HOST_REMOTE '$gitremote' is not a safe git remote name"
-
-  # 1. Server home, once: later steps use absolute paths, never ~ expansion.
-  home=$(_fleet_host_run "$host" bash -c 'printf %s "$HOME"') || rc=$?
-  if [ "$rc" -ne 0 ] || [ -z "$home" ]; then
-    fleet_die 66 "spawn: host $host is unreachable over ssh (rc $rc); $ws left pending"
-  fi
-  case "$home" in /*) : ;; *) fleet_die 66 "spawn: host $host reported an odd home directory '$home'; $ws left pending" ;; esac
-  clone="$home/fleet-repos/$project"
-  bare="$home/git/$project.git"
-  wt="$home/fleet-repos/$project-wt/$lc"
-  ob="$home/fleet-runs/$project/$run/$ws"
-
-  # 2. Preflight (read-only on the server).
-  rc=0
-  out=$(_fleet_host_run "$host" bash -c "$_SPAWN_REMOTE_PREFLIGHT" _ "$clone" "$bare" "$wt" "fleet-base/$ws") || rc=$?
-  [ "$rc" -eq 0 ] || fleet_die 66 "spawn: host $host is unreachable over ssh (rc $rc); $ws left pending"
-  local wt_exists=0 base_exists=0 srv_commit=""
-  while IFS= read -r line; do
-    case "$line" in
-      NOCLONE)
-        fleet_die 66 "spawn: no fleet clone at ~/fleet-repos/$project on $host; run: fleet host-setup $host" ;;
-      "REMOTE "*)
-        local rname rurl
-        rname=$(printf '%s' "$line" | awk '{print $2}')
-        rurl=$(printf '%s' "$line" | awk '{print $3}')
-        [ "$rname" = origin ] \
-          || fleet_die 66 "spawn: the fleet clone on $host has a remote named '$rname' ($rurl); it may only have the bare repo as origin. Run: fleet host-setup $host (after removing that remote)"
-        case "$rurl" in
-          *://*|*@*) fleet_die 66 "spawn: the fleet clone on $host has origin '$rurl', which is not the bare repo ~/git/$project.git; run: fleet host-setup $host" ;;
-        esac
-        [ "$rurl" = "$bare" ] || [ "${rurl%/git/$project.git}" != "$rurl" ] \
-          || fleet_die 66 "spawn: the fleet clone on $host has origin '$rurl', not the bare repo ~/git/$project.git; run: fleet host-setup $host" ;;
-      WT_EXISTS) wt_exists=1 ;;
-      BASE_EXISTS) base_exists=1 ;;
-      "CFN_COMMIT "*) srv_commit="${line#CFN_COMMIT }" ;;
-    esac
-  done <<< "$out"
-
-  local min_gb free_gb
-  min_gb=$(fleet_env_get FLEET_REMOTE_MIN_FREE_GB)
-  [[ "$min_gb" =~ ^[0-9]+$ ]] || min_gb=15
-  if free_gb=$(_fleet_host_free_gb "$host"); then
-    [ "$free_gb" -ge "$min_gb" ] \
-      || fleet_die 66 "spawn: host $host has ${free_gb} GiB free disk, below FLEET_REMOTE_MIN_FREE_GB=$min_gb; free space or lower the knob"
-  else
-    echo "WARN spawn: could not read free disk on $host; continuing" >&2
-  fi
-  if [ -n "$srv_commit" ]; then
-    local mac_commit
-    mac_commit=$(git -C "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)" rev-parse HEAD 2>/dev/null || true)
-    if [ -n "$mac_commit" ] && [ "$srv_commit" != "$mac_commit" ]; then
-      echo "WARN spawn: claude-flow-novice-src on $host (${srv_commit:0:8}) differs from this machine (${mac_commit:0:8})" >&2
-    fi
-  fi
-  # A live session of that name must never be adopted or killed by this spawn.
-  rc=0
-  _fleet_tmux "$host" -L "$sock" has-session -t "$name" >/dev/null 2>&1 || rc=$?
-  [ "$rc" -ne 0 ] || fleet_die 66 "spawn: tmux session '$name' already exists on $host (socket $sock); stop it first"
-  [ "$rc" -ne "$_FLEET_SSH_FAIL_RC" ] || fleet_die 66 "spawn: host $host is unreachable over ssh; $ws left pending"
-
-  # 3. Push the base the worker branches from (fleet land fetches it back).
-  git -C "$repo" remote get-url "$gitremote" >/dev/null 2>&1 \
-    || fleet_die 66 "spawn: this repo has no git remote '$gitremote' for $host; run: fleet host-setup $host"
-  if [ "$wt_exists" -eq 0 ] || [ "$base_exists" -eq 0 ]; then
-    GIT_TERMINAL_PROMPT=0 git -C "$repo" push -q "$gitremote" "+HEAD:refs/heads/fleet-base/$ws" \
-      || fleet_die 66 "spawn: git push $gitremote HEAD:fleet-base/$ws failed; $ws left pending"
-  fi
-
-  # 4. Remote worktree, links, outbox.
-  local links wt_new=0 branch_new=0 ob_new=0 session_up=0
-  links=$(fleet_env_get FLEET_REMOTE_LINKS)
-  rc=0
-  out=$(_fleet_host_run "$host" bash -c "$_SPAWN_REMOTE_PREPARE" _ \
-    "$clone" "$wt" "fleet/$ws" "fleet-base/$ws" "$links" "$project" "$ob") || rc=$?
-  while IFS= read -r line; do
-    case "$line" in
-      WT_NEW) wt_new=1 ;;
-      BRANCH_NEW) branch_new=1 ;;
-      OUTBOX_NEW) ob_new=1 ;;
-      "MISSING_LINK "*) echo "WARN spawn: link source ${line#MISSING_LINK } is not in ~/Projects/$project on $host; not linked" >&2 ;;
-      "BAD_LINK "*) echo "WARN spawn: FLEET_REMOTE_LINKS entry '${line#BAD_LINK }' is not a plain relative path; skipped" >&2 ;;
-      "ERR "*) echo "spawn: ${line#ERR }" >&2 ;;
-    esac
-  done <<< "$out"
-
-  local kit=""
-  if [ "$rc" -eq 0 ]; then
-    kit=$(umask 077 && mktemp -d "${TMPDIR:-/tmp}/fleet-spawn-kit.XXXXXX") || rc=1
-  fi
-  if [ "$rc" -eq 0 ]; then
-    _spawn_remote_ship_launch "$ws" "$name" "$host" "$engine" "$bin" "$args_str" "$unset_raw" \
-      "$trust_re" "$trust_keys" "$banner_re" "$run_dir" "$brief" "$kit" \
-      "$project" "$run" "$wt" "$ob" "$sock" "$gitremote" || rc=$?
-  fi
-  [ -z "$kit" ] || rm -rf "$kit"
-  [ -z "${CFN_SPAWN_ENV_DIR:-}" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
-  [ "$rc" -eq 0 ] && return 0
-
-  # Failure after partial setup: row stays pending, remote leftovers go.
-  [ "$session_up" -eq 0 ] || _fleet_tmux "$host" -L "$sock" kill-session -t "$name" >/dev/null 2>&1 || true
-  _fleet_host_run "$host" bash -c "$_SPAWN_REMOTE_UNDO" _ \
-      "$clone" "$wt" "fleet/$ws" "$wt_new" "$branch_new" "$ob" "$ob_new" >/dev/null 2>&1 \
-    || echo "WARN spawn: could not clean up $wt on $host; remove it by hand" >&2
-  fleet_die 66 "spawn: $name left pending (remote setup or launch on $host failed, or engine '$engine' never showed its banner); the half-made remote worktree was removed"
-}
+# --- Host (remote worker) spawns: lib/spawn-remote.sh (sourced above) ------
 
 # _fleet_spawn_relay: copy stdin to stdout; once stdout is gone, keep
 # draining into /dev/null so the writer never sees a failed write.
@@ -856,9 +514,11 @@ main() {
     local pj rn gr
     pj=$(fleet_project_name "$repo"); rn=$(basename "$run_dir")
     gr=$(fleet_env_get FLEET_HOST_REMOTE); gr="${gr:-$host}"
+    _spawn_remote_limits
     echo "PLAN spawn $ws name=$name cwd=~/fleet-repos/$pj-wt/${ws,,} brief=$brief"
     echo "PLAN engine $ws engine=$engine bin=$bin set=$(_fleet_set_names "$set_raw") unset=$(_fleet_set_names "$unset_raw")"
     echo "PLAN host $ws host=$host git_remote=$gr remote_wt=~/fleet-repos/$pj-wt/${ws,,} outbox=~/fleet-runs/$pj/$rn/$ws branch=$branch base=fleet-base/$ws"
+    echo "PLAN fence $ws sandbox=bwrap (refuses without it unless FLEET_REMOTE_UNSANDBOXED=1) scope=MemoryMax=$_SPAWN_REMOTE_MEM,CPUQuota=$_SPAWN_REMOTE_CPU"
     return 0
   fi
 

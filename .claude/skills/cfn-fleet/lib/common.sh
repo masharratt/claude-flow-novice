@@ -35,7 +35,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/engines.sh"
 # `host` (col 12) names the ssh alias a remote worker runs on; empty = local.
 # Consumed by cmd-init.sh (and any cmd file that writes rows), not here.
 # shellcheck disable=SC2034
-FLEET_ROSTER_HEADER=$'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\thost'
+FLEET_ROSTER_HEADER=$'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\thost\tlane_sha'
 
 fleet_die(){ # fleet_die CODE MSG — message to stderr, exit CODE
   local code="$1"

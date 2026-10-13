@@ -3,8 +3,8 @@
   "fid": "fleet-remote-hosts",
   "name": "Fleet workers on a remote host",
   "status": "beta",
-  "status_reason": "First real lane (MDTWII WS350, docs) ran end to end 2026-10-13: spawn, worker report, sync to done, land --no-ff merged inside claims. Stub-ssh suites pass. Server Bash sandbox not yet working, so docs-only lanes until it is.",
-  "description": "fleet spawn --host runs a worker on a server over ssh. The Mac roster stays authoritative: the worker writes reports to a server outbox, fleet sync/watch pulls them, land refuses diffs outside claims. host-setup makes a bare repo and separate fleet clone.",
+  "status_reason": "First real lane (MDTWII WS350, docs) ran end to end 2026-10-13. Host sandbox, caps and no-push landing added 2026-10-13 and pass the stub-ssh suites; not yet run on the live server.",
+  "description": "fleet spawn --host runs a worker on a server over ssh, inside Claude's Bash sandbox and a systemd CPU/memory scope, with Edit deny rules on the server deny list. The Mac roster stays authoritative: the worker commits locally and reports to a server outbox, fleet sync/watch pulls reports, land fetches the lane from the fleet clone and refuses diffs outside claims.",
   "purpose": "Run fleet lanes on a server (own CPU, optionally its own Claude account) without giving the server any key into the Mac: all connections go Mac to server.",
   "reviewed_at": "2026-10-13",
   "dependencies": [
@@ -12,10 +12,16 @@
   ],
   "sources": [
     {
-      "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
-      "line": 518,
-      "claim": "_spawn_remote: preflight, base push, remote worktree, kit ship and launch; cleans up on failure",
-      "sha256": "14380b266bbfc2d993461bcf8f23a2ea9fdc2dfb4f0babb01d06312a5fdd08ba"
+      "path": ".claude/skills/cfn-fleet/lib/spawn-remote.sh",
+      "line": 259,
+      "claim": "_spawn_remote: preflight (incl. bwrap, socat, systemd-run --user probes; 66 unless FLEET_REMOTE_UNSANDBOXED=1), base push, remote worktree, kit ship and launch in a capped scope; cleans up on failure",
+      "sha256": "711955b87bbcdf2114905b0e73f2d1e32bcb7a14ef591640a8ef0dd0f39050b3"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/spawn-remote.sh",
+      "line": 485,
+      "claim": "_spawn_remote_settings builds the --settings JSON: sandbox on with no unsandboxed fallback, writes limited to worktree, fleet clone and outbox, unix sockets blocked, Edit deny rules for the server deny list",
+      "sha256": "711955b87bbcdf2114905b0e73f2d1e32bcb7a14ef591640a8ef0dd0f39050b3"
     },
     {
       "path": ".claude/skills/cfn-fleet/lib/host.sh",
@@ -25,21 +31,27 @@
     },
     {
       "path": ".claude/skills/cfn-fleet/lib/cmd-land.sh",
-      "line": 38,
-      "claim": "remote_land fetches the worker branch and refuses any diff outside the row's claims",
-      "sha256": "aa9d8f9e967dc33b73a447016a583ee7d61f7ad90d1a6df2b17daf88051d61ca"
+      "line": 60,
+      "claim": "remote_land fetches the lane from the server fleet clone over ssh, refuses any diff outside the row's claims, and records the lane tip in lane_sha",
+      "sha256": "2a9597eac909e3949a64a7896b578703a87dd2c3246db7cac2decc429eef9362"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/templates/remote-worker.sh",
+      "line": 109,
+      "claim": "remote-worker.sh commit stages claimed paths only, commits locally on fleet/<WS> and never pushes",
+      "sha256": "34b4ae080af3a5fe9f810b8112ff3341513945a7e8e388f3c8f293a98c4501f6"
     },
     {
       "path": ".claude/skills/cfn-fleet/lib/cmd-host-setup.sh",
-      "line": 129,
+      "line": 130,
       "claim": "host-setup creates ~/git/<name>.git and ~/fleet-repos/<name>, never touching existing server checkouts",
-      "sha256": "6727918afd1524989041e299a903e80bccc3f9d2fb0f427803b756a1cef53c93"
+      "sha256": "50344452240f9d5fc3e925499f606aa3383c2212a075d39a776ccdc4d6e70284"
     },
     {
       "path": ".claude/skills/cfn-fleet/lib/common.sh",
       "line": 207,
       "claim": "fleet_project_name names the project after the main checkout, also from a linked worktree",
-      "sha256": "805ba4ca3378cc4bcc5489089f0f89aa03067ea19981f5d2ee9dab5936ace4c9"
+      "sha256": "efbf23444d897fdf21051c7ccefd4d5c4844c0df57f9f26506bfeee989a41a76"
     }
   ],
   "evidence": [],
@@ -47,7 +59,8 @@
     "session-coordination"
   ],
   "unknowns": [
-    "Claude's Bash sandbox fails on the VPS (Ubuntu 24.04 restricts unprivileged user namespaces), so workers there run commands unsandboxed; fix planned in planning/PLAN_fleet-host-sandbox.md",
-    "Workers run as the server user, which is in the docker group"
+    "Live server not yet exercised with the sandbox: whether bypassPermissions plus sandbox stalls on network or permission prompts, whether glob denyWrite entries (from the /tmp Edit rules) are honoured by the Linux sandbox, and whether docker.sock is unreachable in practice",
+    "Workers run as the server user, which is in the docker group; only the sandbox's unix-socket block keeps docker out of reach",
+    "Edit and Write are fenced only by the deny list, not by the Bash sandbox"
   ]
 }

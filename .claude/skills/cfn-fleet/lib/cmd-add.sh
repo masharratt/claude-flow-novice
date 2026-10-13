@@ -92,8 +92,8 @@ main(){
       awk -F'\t' -v ws="$ws" 'NR == 1 || $1 != ws' "$f" > "$tmp" && mv -f "$tmp" "$f" \
         || { rm -f "$tmp"; exit 71; }
     fi
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-      "$ws" "$name" "$task" "pending" "$joined" "" "" "" "0" "" "$engine" "" >> "$f" || exit 71
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$ws" "$name" "$task" "pending" "$joined" "" "" "" "0" "" "$engine" "" "" >> "$f" || exit 71
   ) 9>"$lock"
   rc=$?
   [ "$rc" -eq 65 ] && exit 65
