@@ -333,7 +333,7 @@ _fleet_dash_render() {
   local -a fields=("${_FIELDS[@]}")
 
   local -A counts=()
-  local cards="" row i n_attention=0 n_total=0
+  local cards="" queued_cards="" row i n_attention=0 n_total=0
   local ws name task status claims sha notes hb engine
   while IFS= read -r row || [ -n "$row" ]; do
     [ -n "$row" ] || continue
@@ -382,10 +382,17 @@ _fleet_dash_render() {
       files_path="$run_dir/files/$ws.txt"
     fi
 
-    cards+=$(_fleet_dash_card "$ws" "$name" "$task" "$status" "$claims" \
+    # Pending rows are the planned queue: they go to their own section, in
+    # roster order, so a long backlog never reads as stalled live lanes.
+    local card
+    card=$(_fleet_dash_card "$ws" "$name" "$task" "$status" "$claims" \
       "$sha" "$notes" "$hb" "$engine" "$stale_min" "$now" "$stale" "$dead" \
       "$files_path")
-    cards+=$'\n'
+    if [ "$status" = pending ]; then
+      queued_cards+="$card"$'\n'
+    else
+      cards+="$card"$'\n'
+    fi
   done < <(awk 'NR > 1' "$roster")
 
   # Meter groups the 7 statuses into 5 adjacency-safe segments (plan 1.3):
@@ -440,7 +447,13 @@ _fleet_dash_render() {
       printf '<div class="card empty-state"><p>No workstreams yet</p>'
       printf '<p>Add one with: fleet add WSxx "task"</p></div>\n'
     fi
-    printf '</div></main>\n'
+    printf '</div>\n'
+    local q_hidden=""
+    [ -n "$queued_cards" ] || q_hidden=" hidden"
+    printf '<section class="queued" id="queued"%s><div class="section-heading"><h2>Queued <span class="queued-n" id="queued-count">%s</span></h2><span class="eyebrow">NOT STARTED · ROSTER ORDER</span></div>\n' \
+      "$q_hidden" "${counts[pending]:-0}"
+    printf '<div class="grid queued-grid" id="queued-cards">\n%s</div></section>\n' "$queued_cards"
+    printf '</main>\n'
     printf '<aside class="activity"><div class="section-heading"><h2>Activity</h2><span class="eyebrow">LATEST 30</span></div><p class="activity-sub">Status transitions · newest first · UTC</p><div class="timeline" id="tl">\n'
     _fleet_dash_events_html "$events"
     printf '</div>'
@@ -819,6 +832,9 @@ h2 { font-size: 17px; font-weight: 600; letter-spacing: -.3px; margin: 0; }
 #clear-filters { margin-right: auto; padding-left: 0; border-color: transparent; }
 .sortsel { padding: 6px 9px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; font-size: 11px; max-width: 100%; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.queued { margin-top: 28px; padding-top: 20px; border-top: 1px dashed var(--line); }
+.queued-n { color: var(--dim); font-weight: 500; }
+.queued-grid .card { padding: 14px 16px; opacity: 0.85; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; min-width: 0; }
 .card[data-status="blocked"], .card:has(.badge.stale) { border-top: 2px solid var(--st-blocked); }
 .card[data-status="dead"], .card:has(.badge.dead) { border-top: 2px solid var(--st-dead); }
@@ -1064,6 +1080,9 @@ _fleet_dash_script() {
   var els = {};
   function initEls() {
     els.cards = document.getElementById("cards");
+    els.queued = document.getElementById("queued");
+    els.queuedCards = document.getElementById("queued-cards");
+    els.queuedCount = document.getElementById("queued-count");
     els.tiles = document.getElementById("tiles");
     els.meter = document.getElementById("meter");
     els.tl = document.getElementById("tl");
@@ -1203,9 +1222,18 @@ _fleet_dash_script() {
         (filter === "active" && (r.status === "started" || r.status === "working"));
       return match && (!query || [r.ws_id, r.name, r.task, r.engine, r.claims, r.notes, r.landed_sha].join(" ").toLowerCase().includes(query));
     });
+    /* Pending rows are the planned queue: own section, roster order, never
+       sorted in with live lanes and never polled for files/<ws>.txt. */
+    var live = visible.filter(function (r) { return r.status !== "pending"; });
+    var queuedRows = rows.filter(function (r) {
+      return r.status === "pending" && visible.indexOf(r) !== -1;
+    });
+    var queuedCards = queuedRows.map(function (r) { return cardHtml(r, now, staleMin); }).join("\n");
     var cards;
-    if (visible.length) {
-      cards = visible.map(function (r) { return cardHtml(r, now, staleMin); }).join("\n");
+    if (live.length) {
+      cards = live.map(function (r) { return cardHtml(r, now, staleMin); }).join("\n");
+    } else if (queuedRows.length) {
+      cards = '<div class="card empty-state"><p>No live lanes in this view</p></div>';
     } else if (rows.length) {
       cards = '<div class="card empty-state"><p>No rows match this filter</p></div>';
     } else {
@@ -1217,6 +1245,9 @@ _fleet_dash_script() {
     if (els.tiles) els.tiles.innerHTML = tiles;
     if (els.meter) els.meter.innerHTML = meter;
     if (els.cards) els.cards.innerHTML = cards;
+    if (els.queuedCards) els.queuedCards.innerHTML = queuedCards;
+    if (els.queued) els.queued.hidden = queuedRows.length === 0;
+    if (els.queuedCount) els.queuedCount.textContent = queuedRows.length;
     document.getElementById("sum-attention").textContent = rows.filter(needsAttention).length;
     document.getElementById("sum-active").textContent = (counts.started || 0) + (counts.working || 0);
     document.getElementById("sum-landed").textContent = counts.landed || 0;
@@ -1405,19 +1436,20 @@ _fleet_dash_script() {
       n.setAttribute("aria-expanded", String(!open));
       n.classList.toggle("expanded", !open);
     }
-    if (els.cards) {
-      els.cards.addEventListener("click", function (e) {
+    [els.cards, els.queuedCards].forEach(function (grid) {
+      if (!grid) return;
+      grid.addEventListener("click", function (e) {
         var n = e.target.closest(".notes");
         if (n) toggleNote(n);
       });
-      els.cards.addEventListener("keydown", function (e) {
+      grid.addEventListener("keydown", function (e) {
         if (e.key !== "Enter" && e.key !== " ") return;
         var n = e.target.closest(".notes");
         if (!n) return;
         e.preventDefault();
         toggleNote(n);
       });
-    }
+    });
     if (els.sort) {
       els.sort.addEventListener("change", function () {
         sortMode = els.sort.value;
@@ -1514,11 +1546,42 @@ _fleet_dash_serve_start() {
   fi
   command -v python3 >/dev/null 2>&1 \
     || fleet_die 66 "dashboard: python3 not found; serving needs it (use --no-serve for a static page only)"
-  if ! python3 -c "import socket; s = socket.socket(); s.bind(('127.0.0.1', $port)); s.close()" 2>/dev/null; then
-    fleet_die 66 "dashboard: port $port is busy; free it, pass --port N, set FLEET_DASHBOARD_PORT, or stop the old server with: fleet dashboard --stop"
-  fi
+  # A server stopped a moment ago can still hold the port briefly, so wait up
+  # to ~3s for it to free before refusing.
+  local tries=0
+  until python3 -c "import socket; s = socket.socket(); s.bind(('127.0.0.1', $port)); s.close()" 2>/dev/null; do
+    tries=$((tries + 1))
+    [ "$tries" -lt 30 ] \
+      || fleet_die 66 "dashboard: port $port is busy; free it, pass --port N, set FLEET_DASHBOARD_PORT, or stop the old server with: fleet dashboard --stop"
+    sleep 0.1
+  done
   rm -f "$rd/.dashboard.pid"
-  python3 -m http.server "$port" --bind 127.0.0.1 --directory "$rd" >> "$rd/.dashboard.log" 2>&1 &
+  # Trim a log left by an older (chatty) server; nothing holds it open yet.
+  local log="$rd/.dashboard.log" keep=10000
+  if [ -f "$log" ] && [ "$(wc -l < "$log")" -gt "$keep" ]; then
+    tail -n "$keep" "$log" > "$log.tmp.$$" && mv "$log.tmp.$$" "$log"
+  fi
+  # Quiet handler: every page poll GETs roster.tsv plus files/<ws>.txt per
+  # lane, and stock http.server logs one line per request (50 MB in 14 h on a
+  # 70-row roster). Only 5xx responses and startup errors reach the log.
+  # The script text must keep `http.server`: _fleet_dash_serve_is_serving
+  # matches the pid's command line on it.
+  python3 -c '
+import functools, http.server, sys
+class Quiet(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, fmt, *args):
+        pass
+    def log_request(self, code="-", size="-"):
+        try:
+            failed = int(code) >= 500
+        except (TypeError, ValueError):
+            failed = False
+        if failed:
+            http.server.SimpleHTTPRequestHandler.log_message(
+                self, "\"%s\" %s %s", self.requestline, str(code), str(size))
+handler = functools.partial(Quiet, directory=sys.argv[2])
+http.server.ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), handler).serve_forever()
+' "$port" "$rd" >> "$log" 2>&1 &
   local pid=$!
   printf '%s\n' "$pid" > "$rd/.dashboard.pid"
   # Wait briefly for the server process to be live; a failed bind dies

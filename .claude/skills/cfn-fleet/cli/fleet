@@ -21,13 +21,15 @@ Run-dir selection (first match wins):
 
 Subcommands:
   init <slug> [--worktree] [--db none|docker]   scaffold planning/fleet-<slug>
-  add WSxx "task" [--name s] [--claims p1,p2]   register a workstream
+  add WSxx "task" [--name s] [--claims p1,p2] [--engine e]
+                                                register a workstream (status pending:
+                                                shown under Queued until spawned)
   status [--tsv]                                roster table
   claim WSxx <path...>                          register file ownership
   heartbeat WSxx [note...]                      liveness + latest note
   commit WSxx -m <msg>                          guarded commit (claims-only staging)
   migrate-next WSxx <dir>                       reserve next migration number
-  spawn WSxx [--spares N] [--no-tmux] [--dry-run]
+  spawn WSxx [--spares N] [--engine e] [--no-tmux] [--dry-run]
   land WSxx [--no-ff]                           merge/mark landed
   handoff WSxx                                  write HANDOFF_WSxx.md
   db WSxx | db-clean [--all]                    scratch postgres containers

@@ -381,6 +381,9 @@ test_serve_lifecycle_http200_double_start_port_busy_stop() {
     build_run dashsvc
     local svc_dir="$RUN_DIR"
     add_ws WS01 ws01 "Served work" started "" "" "" "$(date +%s)"
+    # An oversized log left by an older server is trimmed to the newest
+    # 10000 lines when the server starts.
+    seq 1 12000 | sed 's/^/old-line-/' > "$RUN_DIR/.dashboard.log"
     local port
     port=$(pick_port)
     local url="http://127.0.0.1:$port/dashboard.html"
@@ -394,6 +397,23 @@ test_serve_lifecycle_http200_double_start_port_busy_stop() {
     done
     assert_success "served page answers HTTP 200" http_ok "$url"
     assert_success "pidfile written inside the run dir" test -f "$RUN_DIR/.dashboard.pid"
+
+    # Regression (MDTWII fleet-main, 2026-10-12): every page poll GETs
+    # roster.tsv plus files/WSxx.txt per lane, and stock http.server logged
+    # one line per request, so .dashboard.log grew 50 MB in 14 h. Successful
+    # requests and expected 404s must not be logged.
+    log_step "WHEN the page and a missing files/ path are fetched repeatedly"
+    for i in 1 2 3; do
+        http_ok "$url" || true
+        http_ok "http://127.0.0.1:$port/files/WS99.txt" || true
+    done
+    assert_equals "0" "$(grep -c 'GET ' "$RUN_DIR/.dashboard.log" || true)" \
+        "200 and 404 requests leave no access-log lines"
+
+    assert_equals "10000" "$(grep -c '^old-line-' "$RUN_DIR/.dashboard.log" || true)" \
+        "start trims an old log to its newest 10000 lines"
+    assert_equals "1" "$(grep -cx 'old-line-12000' "$RUN_DIR/.dashboard.log" || true)" \
+        "trim keeps the newest line"
 
     log_step "WHEN dashboard starts again on the same port, WHEN a second run"
     run_dash --once --port "$port"
@@ -420,6 +440,32 @@ test_serve_lifecycle_http200_double_start_port_busy_stop() {
     kill "$DASH_BG" >/dev/null 2>&1 || true
     wait "$DASH_BG" 2>/dev/null || true
     DASH_BG=""
+}
+
+# Regression (MDTWII fleet-main, 2026-10-12): right after --stop the old
+# server can still hold the port for a moment, and the first restart failed
+# with "port is busy". Start now waits a few seconds for the port to free.
+test_serve_start_waits_for_port_release() {
+    if ! command -v python3 >/dev/null 2>&1; then
+        log_info "SKIP dashboard port-release wait: python3 unavailable"
+        return 0
+    fi
+    log_step "GIVEN a port held for 1s by another process, WHEN dashboard starts"
+    build_run dashwait
+    add_ws WS01 ws01 "Restart work" started "" "" "" "$(date +%s)"
+    local port holder
+    port=$(pick_port)
+    python3 -c 'import socket, sys, time
+s = socket.socket(); s.bind(("127.0.0.1", int(sys.argv[1]))); s.listen(1)
+time.sleep(1)' "$port" &
+    holder=$!
+    sleep 0.3
+    run_dash --once --port "$port"
+    wait "$holder" 2>/dev/null || true
+    assert_equals "0" "$DASH_RC" "start succeeds once the port frees"
+    assert_success "http 200 after the delayed start" \
+        http_ok "http://127.0.0.1:$port/dashboard.html"
+    run_dash --stop
 }
 
 test_port_precedence() {
@@ -584,6 +630,46 @@ test_goal_blurb_rendered_and_escaped() {
         "goal element present but hidden when no goal is set"
 }
 
+# Planned-but-unstarted rows (status pending) render in their own Queued
+# section after the live grid, in roster order, so a long backlog never reads
+# as stalled lanes (MDTWII fleet-main request, 2026-10-12).
+test_queued_section_separate_from_live_lanes() {
+    log_step "GIVEN live lanes interleaved with queued rows, WHEN render"
+    build_run dashqueue
+    add_ws WS12 ws12 "QUEUED: later track" pending
+    add_ws WS01 ws01 "Live work" working "" "" "" "$(date +%s)"
+    add_ws WS10 ws10 "QUEUED: next track" pending
+    add_ws WS02 ws02 "Blocked work" blocked
+    run_dash --no-serve --once
+
+    assert_equals "0" "$DASH_RC" "render exits 0"
+    local static live queued
+    static=$(static_html "$RUN_DIR/dashboard.html")
+    live=$(printf '%s\n' "$static" | sed -n '/id="cards"/,/id="queued"/p')
+    queued=$(printf '%s\n' "$static" | sed -n '/id="queued"/,/<\/section>/p')
+    assert_contains "$static" 'id="queued-cards"' "queued grid present"
+    assert_equals "2" "$(printf '%s\n' "$live" | grep -cF 'class="card" data-ws' || true)" \
+        "live grid holds only the two started lanes"
+    assert_not_contains "$live" 'data-status="pending"' "no pending card in the live grid"
+    assert_equals "2" "$(printf '%s\n' "$queued" | grep -cF 'data-status="pending"' || true)" \
+        "both pending rows render in the queued grid"
+    assert_equals "WS12 WS10" \
+        "$(printf '%s\n' "$queued" | grep -oE 'data-ws="WS[0-9]+"' | sed 's/data-ws="//; s/"//' | tr '\n' ' ' | sed 's/ $//')" \
+        "queued rows keep roster order"
+    assert_contains "$queued" 'Queued <span' "section heading names the queue"
+
+    local js
+    js=$(sed -n '/^<script>$/,/^<\/script>$/p' "$RUN_DIR/dashboard.html")
+    assert_contains "$js" 'getElementById("queued-cards")' "live layer re-renders the queued grid"
+
+    log_step "GIVEN no pending rows, WHEN render"
+    build_run dashnoqueue
+    add_ws WS01 ws01 "Live work" working "" "" "" "$(date +%s)"
+    run_dash --no-serve --once
+    assert_contains "$(static_html "$RUN_DIR/dashboard.html")" '<section class="queued" id="queued" hidden>' \
+        "queued section hidden when nothing is queued"
+}
+
 test_open_flow() {
     log_step "GIVEN a code stub on PATH, WHEN _fleet_dash_open"
     cat > "$TEST_TMP/bin/code" <<'STUB'
@@ -620,6 +706,7 @@ test_dead_badge_derivation
 test_transitions_own_state_jsonl_and_watch_state_untouched
 test_self_contained_refresh_and_static_fallback
 test_serve_lifecycle_http200_double_start_port_busy_stop
+test_serve_start_waits_for_port_release
 test_port_precedence
 test_empty_roster_empty_state
 test_usage_and_data_errors
@@ -628,6 +715,7 @@ test_inline_js_live_layer_contract
 test_events_tail_written_and_capped_at_30
 test_now_editing_section_from_files_fixture
 test_goal_blurb_rendered_and_escaped
+test_queued_section_separate_from_live_lanes
 test_open_flow
 
 print_test_summary

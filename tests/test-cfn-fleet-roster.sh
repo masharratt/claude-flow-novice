@@ -293,6 +293,11 @@ test_router_unknown_subcommand(){
   run_fleet "$P" frobnicate
   [ "$RC" -eq 64 ] && ok "unknown subcommand exits 64" || no "frobnicate rc=$RC"
   printf '%s' "$ERR" | grep -qi "usage" && ok "usage goes to stderr" || no "stderr: '$ERR'"
+  # spawn and add accept --engine; the top-level usage must say so
+  printf '%s' "$ERR" | grep -qE '^ *spawn WSxx .*--engine e' && ok "usage lists spawn --engine" \
+    || no "spawn usage line lacks --engine"
+  printf '%s' "$ERR" | grep -qE '^ *add WSxx .*--engine e' && ok "usage lists add --engine" \
+    || no "add usage line lacks --engine"
 
   run_fleet "$P"
   [ "$RC" -eq 64 ] && ok "missing subcommand exits 64" || no "no-subcommand rc=$RC"
