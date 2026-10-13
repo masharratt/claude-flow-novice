@@ -763,17 +763,23 @@ test_spawn_host_excludes_sandbox_placeholders() {
     run_spawn WS01 --host fakehost
     assert_equals "0" "$FLEET_RC" "spawn exits 0"
     local ex="$SRV/fleet-repos/proj/.git/info/exclude" n
-    for n in /.bashrc /.zshrc /.gitconfig /.mcp.json /.ripgreprc /.vscode/ /.idea/ /.claude/commands/ /.claude/agents/; do
+    for n in /.bashrc /.zshrc /.gitconfig /.mcp.json /.ripgreprc /.vscode /.idea /.claude/agents /.claude/commands /.claude/hooks /.claude/launch.json /.claude/loop.md /.claude/output-styles /.claude/routines /.claude/scheduled_tasks.json /.claude/settings.json /.claude/settings.local.json /.claude/workflows; do
         assert_success "exclude has $n" grep -qxF -- "$n" "$ex"
     done
+    assert_failure "no broad /.claude/* exclude" grep -qxF -- '/.claude/*' "$ex"
+    assert_failure "no trailing-slash /.vscode/ left" grep -qxF -- '/.vscode/' "$ex"
     local wt="$SRV/fleet-repos/proj-wt/ws01"
-    touch "$wt/.bashrc"; mkdir -p "$wt/.vscode"
-    assert_equals "" "$(git -C "$wt" status --porcelain)" "placeholder .bashrc and .vscode do not dirty the worktree"
+    touch "$wt/.bashrc" "$wt/.vscode" "$wt/.idea"; mkdir -p "$wt/.claude"
+    touch "$wt/.claude/settings.json" "$wt/.claude/hooks" "$wt/.claude/commands" "$wt/.claude/launch.json" "$wt/.claude/workflows"
+    assert_equals "" "$(git -C "$wt" status --porcelain)" "placeholder EMPTY FILES do not dirty the worktree"
+    # old trailing-slash variants from the previous release are removed on respawn
+    printf '/.vscode/\n/.idea/\n/.claude/commands/\n/.claude/agents/\n' >> "$ex"
     # a respawn (new generation, same clone) must not duplicate lines
     capture_script 1 "Sonnet 5 with high effort | Claude Team"
     run_spawn WS01 --host fakehost
     assert_equals "1" "$(grep -cxF -- '/.bashrc' "$ex")" "no duplicate /.bashrc after respawn"
-    assert_equals "1" "$(grep -cxF -- '/.vscode/' "$ex")" "no duplicate /.vscode/ after respawn"
+    assert_equals "1" "$(grep -cxF -- '/.vscode' "$ex")" "no duplicate /.vscode after respawn"
+    assert_equals "0" "$(grep -cE '^/.*/$' "$ex")" "old trailing-slash variants removed on respawn"
 }
 
 test_spawn_host_prints_preflight_ok_line() {

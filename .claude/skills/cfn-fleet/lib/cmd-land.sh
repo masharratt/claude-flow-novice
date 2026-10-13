@@ -75,13 +75,35 @@ remote_land() {
   local lane_url="$FLEET_HOST:${FLEET_REMOTE_CLONE:-fleet-repos/$FLEET_PROJECT}"
 
   local dirty rc=0
-  dirty=$(_fleet_host_run "$FLEET_HOST" git -C "$FLEET_REMOTE_WT" status --porcelain 2>/dev/null) || rc=$?
+  dirty=$(_fleet_host_run "$FLEET_HOST" git -C "$FLEET_REMOTE_WT" status --porcelain --untracked-files=all 2>/dev/null) || rc=$?
   if [ "$rc" -eq "$_FLEET_SSH_FAIL_RC" ] || [ "$rc" -eq "$_FLEET_TIMEOUT_RC" ]; then
     fleet_die 69 "land: cannot reach host $FLEET_HOST (rc $rc); nothing was merged"
   fi
   [ "$rc" -eq 0 ] || fleet_die 65 "land: remote worktree $FLEET_REMOTE_WT on $FLEET_HOST is not usable (rc $rc)"
-  [ -z "$dirty" ] \
-    || fleet_die 66 "land: remote worktree $FLEET_REMOTE_WT on $FLEET_HOST has uncommitted changes; commit or clean first"
+  # Tracked edits or staged changes refuse. Untracked files inside the row's
+  # claims are forgotten work and refuse; untracked files elsewhere (sandbox
+  # placeholders and the like) only warn.
+  local tracked_dirty="" untr_in="" untr_out="" dl dpath dclaims
+  dclaims=$(roster_get "$ws" claims)
+  while IFS= read -r dl; do
+    [ -n "$dl" ] || continue
+    if [ "${dl:0:2}" = "??" ]; then
+      dpath="${dl:3}"
+      if _fleet_path_claimed "$dpath" "$dclaims"; then
+        untr_in="$untr_in${untr_in:+ }$dpath"
+      else
+        untr_out="$untr_out${untr_out:+ }$dpath"
+      fi
+    else
+      tracked_dirty="$tracked_dirty${tracked_dirty:+ }${dl:3}"
+    fi
+  done <<< "$dirty"
+  [ -z "$tracked_dirty" ] \
+    || fleet_die 66 "land: remote worktree $FLEET_REMOTE_WT on $FLEET_HOST has uncommitted changes; commit or clean first: $tracked_dirty"
+  [ -z "$untr_in" ] \
+    || fleet_die 66 "land: remote worktree $FLEET_REMOTE_WT on $FLEET_HOST has untracked files inside the claims of $ws (work the worker forgot to commit); commit or remove them: $untr_in"
+  [ -z "$untr_out" ] \
+    || echo "WARN land: $ws has untracked files outside its claims on $FLEET_HOST (left behind, worktree will be force-removed): $untr_out" >&2
 
   local head_ref base_ref
   head_ref=$(_land_scratch_ref "$ws" head)
@@ -145,7 +167,8 @@ remote_cleanup() {
   # Server-side paths use $HOME, so the script must expand on the server.
   if ! _fleet_host_run "$FLEET_HOST" bash -c '
       clone="$HOME/fleet-repos/$1"; bare="$HOME/git/$1.git"; wt="$2"; br="$3"; base="$4"; rc=0
-      git -C "$clone" worktree remove --force "$wt" || rc=1
+      # --force only on the recorded disposable worktree under ~/fleet-repos.
+      case "$wt" in "$HOME"/fleet-repos/?*) git -C "$clone" worktree remove --force "$wt" || rc=1 ;; *) rc=1 ;; esac
       git -C "$clone" worktree prune
       git -C "$clone" branch -D "$br" >/dev/null 2>&1
       git -C "$clone" branch -D "$base" >/dev/null 2>&1

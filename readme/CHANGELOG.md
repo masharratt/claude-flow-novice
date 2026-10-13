@@ -28,6 +28,7 @@ feature set. The current status of each feature lives in
   `git status`; a passing preflight prints `preflight <host>: sandbox ok, limits ...`;
   `remote-worker.sh commit` takes repeated `-m` (paragraphs, so trailers work) and cds to
   the worktree recorded in `outbox.env` when run from elsewhere.
+- Host land: untracked files in the server worktree no longer block it. Tracked edits and untracked files inside the claims still refuse (66); other untracked files warn, and cleanup force-removes the disposable worktree. Sandbox placeholder excludes are now anchored without a trailing slash and cover all observed protected names; old slash variants are removed on spawn.
 
 ## 2026-10-13: fleet spawning state, peek message, land commit message
 

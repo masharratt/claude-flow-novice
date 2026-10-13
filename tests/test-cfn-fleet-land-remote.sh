@@ -159,6 +159,27 @@ check "Mac HEAD unchanged when the lane is missing" "$(git -C "$REPO" rev-parse 
 check "no lane_sha recorded on failure" "$(rfield lane_sha)" ""
 check "no scratch refs left after a failed fetch" "$(git -C "$REPO" for-each-ref refs/fleet-remote | wc -l | tr -d ' ')" "0"
 
+echo "== test_land_remote_untracked_outside_claims_warns_and_lands"
+build_fixture untrout "a.md" no
+touch "$SRV_WT/.vscode" "$SRV_WT/.claude-placeholder"
+run_land WS01
+check "untracked files outside claims do not block land" "$RC" "0"
+contains "WARN lists the untracked file" "$ERR" ".vscode"
+contains "WARN is labelled" "$ERR" "WARN"
+[ "$(git -C "$REPO" show HEAD:a.md 2>/dev/null)" = "new" ] && ok "worker commit merged despite untracked leftovers" || no "a.md not merged (err: $ERR)"
+case "$ERR" in *"cleanup for WS01 incomplete"*) no "cleanup warned: $ERR" ;; *) ok "cleanup succeeded with leftover untracked files" ;; esac
+[ -d "$SRV_WT" ] && no "remote worktree still present after forced cleanup" || ok "remote worktree removed with untracked leftovers"
+
+echo "== test_land_remote_untracked_inside_claims_refuses"
+build_fixture untrin "a.md b.md" no
+printf 'forgot\n' >"$SRV_WT/b.md"
+BEFORE=$(git -C "$REPO" rev-parse HEAD)
+run_land WS01
+check "untracked claimed file exits 66" "$RC" "66"
+contains "message names the forgotten file" "$ERR" "b.md"
+check "Mac HEAD unchanged on untracked-in-claims refusal" "$(git -C "$REPO" rev-parse HEAD)" "$BEFORE"
+[ -d "$SRV_WT" ] && ok "remote worktree kept on refusal" || no "remote worktree removed on refusal"
+
 echo "== test_land_remote_refuses_dirty_remote_worktree"
 build_fixture dirty "a.md" no
 printf 'wip\n' >"$SRV_WT/a.md"

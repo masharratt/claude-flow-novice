@@ -78,8 +78,18 @@ exclude="$clone/.git/info/exclude"
 # dotfiles in the worktree; keep them out of git status. Anchored, no dupes.
 # Names from Claude Code 2.1.296 (sandbox runtime ZHn and ee lists).
 mkdir -p "$(dirname "$exclude")"
-for p in /.gitconfig /.gitmodules /.bashrc /.bash_profile /.zshrc /.zprofile /.profile /.ripgreprc /.mcp.json /.vscode/ /.idea/ /.claude/commands/ /.claude/agents/; do
+# Placeholders are empty FILES, so every pattern is anchored with no trailing
+# slash (matches a file or a dir). Not a broad /.claude/*: `git add` on claimed
+# paths would then need -f for a new file there.
+for p in /.gitconfig /.gitmodules /.bashrc /.bash_profile /.zshrc /.zprofile /.profile /.ripgreprc /.mcp.json /.vscode /.idea /.claude/agents /.claude/commands /.claude/hooks /.claude/launch.json /.claude/loop.md /.claude/output-styles /.claude/routines /.claude/scheduled_tasks.json /.claude/settings.json /.claude/settings.local.json /.claude/workflows; do
   grep -qxF -- "$p" "$exclude" 2>/dev/null || echo "$p" >> "$exclude"
+done
+# Drop the trailing-slash variants an earlier release wrote (idempotent).
+for p in /.vscode/ /.idea/ /.claude/commands/ /.claude/agents/; do
+  if grep -qxF -- "$p" "$exclude" 2>/dev/null; then
+    grep -vxF -- "$p" "$exclude" > "$exclude.new" || true
+    cat "$exclude.new" > "$exclude"; rm -f "$exclude.new"
+  fi
 done
 IFS=, read -ra L <<< "$links"
 for p in "${L[@]}"; do
