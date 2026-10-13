@@ -106,8 +106,17 @@ test_registry_seed_and_fields(){
 
   call_fn fleet_engine_list
   [ "$RC" -eq 0 ] && ok "fleet_engine_list exits 0" || no "list rc=$RC err=$ERR"
-  [ "$OUT" = "$(printf 'claude-sub\nglm\ncodex')" ] \
-    && ok "registry seeds exactly claude-sub/glm/codex" || no "list: '$OUT'"
+  [ "$OUT" = "$(printf 'claude-sub\nglm\ncodex\nclaude-haiku')" ] \
+    && ok "registry seeds exactly claude-sub/glm/codex/claude-haiku" || no "list: '$OUT'"
+  # claude-haiku (MDTWII request, 2026-10-13): mechanical lanes on Haiku, same
+  # subscription scrub and banner as claude-sub, only the model differs.
+  local f
+  for f in bin set unset trust_keys banner_regex; do
+    [ "$(fleet_engine_get $f claude-haiku 2>/dev/null)" = "$(fleet_engine_get $f claude-sub 2>/dev/null)" ] \
+      && ok "claude-haiku $f matches claude-sub" || no "claude-haiku $f differs from claude-sub"
+  done
+  [ "$(fleet_engine_get args claude-haiku 2>/dev/null)" = "--model haiku --permission-mode bypassPermissions" ] \
+    && ok "claude-haiku args select haiku" || no "claude-haiku args: '$(fleet_engine_get args claude-haiku 2>/dev/null)'"
 
   local bin args set unset trust banner
   # handoff "Design to implement" 1, verbatim names/flags; $VAR refs stored
@@ -489,7 +498,7 @@ test_engines_install(){
   [ "$RC" -eq 65 ] && ok "re-install refuses to overwrite (65)" || no "rc=$RC"
 
   call_fn fleet_engine_list
-  [ "$OUT" = "$(printf 'claude-sub\nglm\ncodex')" ] \
+  [ "$OUT" = "$(printf 'claude-sub\nglm\ncodex\nclaude-haiku')" ] \
     && ok "list identical via run-dir copy" || no "list via copy: '$OUT'"
 }
 

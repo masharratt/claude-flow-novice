@@ -5,6 +5,27 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-13: fleet fixes from the MDTWII review
+
+- `fleet spawn` survives a reader that stops early (`| head -1`): SIGPIPE ignored and both
+  streams go through relays that swallow write failures. Before, spawn died before sending
+  the brief prompt and workers sat idle (MDTWII WS237, WS238, WS273-277).
+- Launch scripts clear the launching Claude session's env (`CLAUDECODE`, `CLAUDE_CODE_*`,
+  `CLAUDE_PID`, `CLAUDE_TMPDIR`, `CLAUDE_EFFORT`) before exporting engine set-vars. Workers
+  had run as the master's child: transcripts off, master's messaging token and session id.
+  Watch item: confirm worker transcripts save and worker SendMessage still reaches masters.
+- cfn-tmux-agents dropped the last item of an engine's set list (no trailing newline), so
+  glm workers never got `CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT`.
+- `fleet add` on an existing id names the existing task (and says "placeholder" for
+  `QUEUED:` rows); `--force` replaces it. New `fleet next-id`.
+- `fleet dashboard --stop` also stops the render loop (pidfile with the loop's recorded
+  command line, so a recycled pid is never signalled).
+- Shared `claude-haiku` engine.
+- Launch prompt: "coordinate as the brief says (roster files unless it asks for messages)",
+  replacing "coordinate only via roster files", which overrode briefs requiring messages.
+- Tests: roster and dashboard suites now run on macOS (`/private/var`, BSD `wc`), and a
+  stale footer assertion was updated; that unblocked tests that never ran here before.
+
 ## 2026-10-13: fleet autosave, z.ai token from the keychain, macOS portability
 
 Work from an earlier session that exited before committing; tested and committed on the

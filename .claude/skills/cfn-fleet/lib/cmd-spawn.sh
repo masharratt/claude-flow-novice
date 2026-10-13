@@ -42,7 +42,7 @@
 #      pending, the last 10 pane lines are printed, exit 66. A worker on the
 #      wrong model never reaches started.
 #   8. only after the banner: the thin prompt "read <brief path> and start;
-#      coordinate only via roster files" — never the brief body.
+#      coordinate as the brief says ..." — never the brief body.
 #   9. spares: same engine/env, launched to the banner, NO prompt sent.
 #
 # Modes:
@@ -268,7 +268,23 @@ _spawn_launch_one(){
   printf '%s\n' "$banner_line"
 }
 
+# _fleet_spawn_relay: copy stdin to stdout; once stdout is gone, keep
+# draining into /dev/null so the writer never sees a failed write.
+_fleet_spawn_relay(){
+  local line
+  while IFS= read -r line || [ -n "$line" ]; do
+    printf '%s\n' "$line" 2>/dev/null || exec >/dev/null
+  done
+}
+
 main() {
+  # A reader that stops early (`fleet spawn WSxx 2>&1 | head -1`) used to kill
+  # spawn with SIGPIPE on its next write, before the brief prompt was sent, so
+  # the worker sat idle (MDTWII, 2026-10-12). Ignore SIGPIPE and route both
+  # streams through relays that swallow write failures: output may be lost,
+  # the launch is not.
+  trap '' PIPE
+  exec > >(_fleet_spawn_relay) 2> >(_fleet_spawn_relay >&2)
   local ws="" spares=0 no_tmux=0 dry_run=0 engine=""
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -406,7 +422,9 @@ main() {
   [ -n "$unset_raw" ] && pane_cmd+="; unset ${unset_raw//,/ }"
   pane_cmd+="; exec $bin${args_str:+ $args_str}"
 
-  local prompt_line="read $brief and start; coordinate only via roster files"
+  # The brief owns the coordination rules: "roster files only" here once
+  # overrode briefs that require a SendMessage on handoff (MDTWII, 2026-10-13).
+  local prompt_line="read $brief and start; coordinate as the brief says (roster files unless it asks for messages)"
   local trust_timeout banner_timeout sock k sname banner_line
   trust_timeout=$(_fleet_env_seconds FLEET_TRUST_TIMEOUT 15)
   banner_timeout=$(_fleet_env_seconds FLEET_BANNER_TIMEOUT 20)

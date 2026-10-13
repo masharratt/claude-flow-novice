@@ -16,8 +16,9 @@
 
 # cfn_spawn_launch_write ENV_LINES PANE_CMD -> sets CFN_SPAWN_ENV_DIR and
 # CFN_SPAWN_LAUNCH_LINE (`. '<dir>/launch'`, the only text typed into the
-# pane). The 0600 script exports ENV_LINES, deletes its own 0700 dir, then
-# runs PANE_CMD. rc 1 on any failure, with nothing left on disk. Not a
+# pane). The 0600 script clears the launching Claude session's env
+# (CLAUDECODE, CLAUDE_CODE_*, CLAUDE_PID/TMPDIR/EFFORT), exports ENV_LINES,
+# deletes its own 0700 dir, then runs PANE_CMD. rc 1 on any failure, with nothing left on disk. Not a
 # subshell, so the caller can remove CFN_SPAWN_ENV_DIR if the pane never
 # gets to source it.
 #
@@ -35,13 +36,19 @@ cfn_spawn_launch_write() {
   case "$dir" in *"'"*) rm -rf "$dir"; echo "spawn-env: temp path has a quote: $dir" >&2; return 1 ;; esac
   if ! (
     umask 077
+    # Clear the launching Claude session's own env first: the tmux server
+    # copies it into every pane, so workers ran as that session's child
+    # (transcripts off, its messaging socket and token, its session id).
+    # Engine set-vars below are exported after this, so they survive.
+    printf '%s\n' 'for _cfn_v in $(env | sed -n "s/^\(CLAUDE_CODE_[A-Za-z0-9_]*\)=.*/\1/p"); do unset "$_cfn_v"; done' \
+      'unset _cfn_v CLAUDECODE CLAUDE_PID CLAUDE_TMPDIR CLAUDE_EFFORT' > "$dir/launch"
     while IFS= read -r line || [ -n "$line" ]; do
       [ -n "$line" ] || continue
       name="${line%%=*}"
       val="${line#*=}"
       [[ $name =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || { echo "spawn-env: bad var name '$name'" >&2; exit 1; }
       printf 'export %s=%q\n' "$name" "$val"
-    done <<< "$lines" > "$dir/launch"
+    done <<< "$lines" >> "$dir/launch"
     # The shell already holds the script open, so deleting it here is safe.
     printf "rm -rf '%s'\n%s\n" "$dir" "$pane_cmd" >> "$dir/launch"
   ); then

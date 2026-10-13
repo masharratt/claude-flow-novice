@@ -19,6 +19,7 @@ cleanup() {
   tmux -L "$SOCK" kill-server 2>/dev/null || true
   tmux -L "$SOCK-k" kill-server 2>/dev/null || true
   tmux -L "$SOCK-L" kill-server 2>/dev/null || true
+  tmux -L "$SOCK-e" kill-server 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -233,6 +234,28 @@ OUT=$(TMUX_AGENTS_BANNER_TIMEOUT=6 "$EXE" spawn t3 --socket "$SOCK" --bin "$TD/c
   --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
 case "$OUT" in *trust-late-answered*) ok "trust-too-early bug: keys wait for the TUI to settle" ;; *) bad "trust-too-early bug: keys lost before the TUI read input: ${OUT:0:200}" ;; esac
 "$EXE" kill t3 --socket "$SOCK" >/dev/null 2>&1 || true
+rm -rf "$TD"
+
+# 20. BUG inherited session env (2026-10-13): the tmux server copies the
+# launching Claude session's env (CLAUDECODE, CLAUDE_CODE_CHILD_SESSION,
+# CLAUDE_CODE_MESSAGING_SOCKET/TOKEN, CLAUDE_CODE_SESSION_ID, CLAUDE_PID...),
+# so every worker ran as that session's child: transcripts off, and it held
+# the launcher's messaging token. The launch script now clears them; engine
+# set-vars that start with CLAUDE_CODE_ are exported after the clear.
+TD=$(mktemp -d)
+cat > "$TD/envcheck" <<'FAKE'
+#!/usr/bin/env bash
+n=$(env | grep -E '^(CLAUDECODE|CLAUDE_CODE_|CLAUDE_PID=|CLAUDE_TMPDIR=|CLAUDE_EFFORT=)' | grep -vc '^CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=')
+printf 'AGENTS-TEST-BANNER engine_flag=%s inherited=%s\n' "${CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT:-unset}" "$n"
+exec cat
+FAKE
+chmod +x "$TD/envcheck"
+OUT=$(CLAUDECODE=1 CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_MESSAGING_TOKEN=tok CLAUDE_PID=1 CLAUDE_EFFORT=high \
+  FLEET_ZAI_TOKEN="zai-sentinel-env-abcdefghijklmnop" "$EXE" spawn e1 --socket "$SOCK-e" --engine glm \
+  --bin "$TD/envcheck" --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
+case "$OUT" in *"inherited=0"*) ok "inherited-env bug: launcher session vars cleared in the worker" ;; *) bad "inherited-env bug: worker still sees launcher vars: ${OUT:0:300}" ;; esac
+case "$OUT" in *"engine_flag=1"*) ok "engine CLAUDE_CODE_ set-var survives the clear" ;; *) bad "engine set-var lost by the clear: ${OUT:0:300}" ;; esac
+tmux -L "$SOCK-e" kill-server 2>/dev/null || true
 rm -rf "$TD"
 
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="

@@ -24,7 +24,9 @@ source "$SKILL_LIB/common.sh"
 # shellcheck disable=SC1091
 source "$SKILL_LIB/cmd-dashboard.sh"
 
-TEST_TMP=$(mktemp -d -t cfn-fleet-dash.XXXXXX)
+TEST_TMP=$(cd "$(mktemp -d -t cfn-fleet-dash.XXXXXX)" && pwd -P)  # macOS: /var is /private/var
+# BSD wc pads counts with leading spaces ("       1"); strip them so counts compare on macOS too.
+wc() { command wc "$@" | sed 's/^ *//'; }
 RUN_DIR=""
 DASH_OUT=""
 DASH_RC=0
@@ -365,7 +367,7 @@ test_self_contained_refresh_and_static_fallback() {
     assert_contains "$body" 'data-theme="light"' "explicit light theme block present"
     assert_contains "$body" 'fleet-dash-theme' "theme toggle persists via the localStorage key"
     assert_contains "$body" \
-        'landed means the workstream has a commit, not that it is finished' \
+        '<b>landed</b> means the workstream has a commit, not that it is finished' \
         "footer carries the landed caveat"
     assert_contains "$body" 'No transitions recorded yet' "empty timeline state before any transition"
     assert_equals "0" "$(grep -c $'—' "$html" || true)" "no em dashes in page copy"
@@ -466,6 +468,69 @@ time.sleep(1)' "$port" &
     assert_success "http 200 after the delayed start" \
         http_ok "http://127.0.0.1:$port/dashboard.html"
     run_dash --stop
+}
+
+# Regression (MDTWII fleet-main, 2026-10-13): --stop killed the http.server
+# but left the background render loop running, still rewriting dashboard.html.
+# The loop now records its own pid (plus its command line) and --stop stops it
+# only when that record still matches, so a recycled pid is never killed.
+test_stop_also_stops_render_loop_and_never_kills_recycled_pid() {
+    log_step "GIVEN a render loop running with --no-serve"
+    build_run dashloop
+    add_ws WS01 ws01 "Loop work" started "" "" "" "$(date +%s)"
+    ( main --no-serve --poll 60 ) >/dev/null 2>&1 &
+    DASH_BG=$!
+    local i=0
+    until [ -s "$RUN_DIR/.dashboard-loop.pid" ]; do
+        i=$((i + 1))
+        if [ "$i" -gt 50 ]; then break; fi
+        sleep 0.1
+    done
+    assert_success "loop wrote its own pidfile" test -s "$RUN_DIR/.dashboard-loop.pid"
+    local lpid
+    lpid=$(head -n1 "$RUN_DIR/.dashboard-loop.pid")
+    assert_success "loop process is alive before --stop" kill -0 "$lpid"
+
+    log_step "WHEN --stop runs"
+    run_dash --stop
+    assert_equals "0" "$DASH_RC" "--stop exits 0 with only a loop running"
+    assert_contains "$DASH_OUT" "render loop stopped" "--stop reports the loop teardown"
+    sleep 0.3
+    assert_failure "render loop process is gone after --stop" kill -0 "$lpid"
+    assert_success "loop pidfile removed" test ! -f "$RUN_DIR/.dashboard-loop.pid"
+    wait "$DASH_BG" 2>/dev/null || true
+    DASH_BG=""
+
+    log_step "WHEN --stop runs again with nothing running"
+    run_dash --stop
+    assert_equals "0" "$DASH_RC" "second --stop exits 0"
+    assert_contains "$DASH_OUT" "nothing running" "second --stop says nothing is running"
+
+    log_step "GIVEN a stale loop pidfile whose pid now belongs to an unrelated process"
+    sleep 30 &
+    local other=$!
+    printf '%s\n%s\n' "$other" "some old dashboard command line" > "$RUN_DIR/.dashboard-loop.pid"
+    run_dash --stop
+    assert_equals "0" "$DASH_RC" "--stop with a recycled pid exits 0"
+    assert_success "unrelated process was NOT killed" kill -0 "$other"
+    assert_success "stale loop pidfile cleared" test ! -f "$RUN_DIR/.dashboard-loop.pid"
+    kill "$other" >/dev/null 2>&1 || true
+    wait "$other" 2>/dev/null || true
+
+    log_step "WHEN the dashboard is started again after --stop"
+    ( main --no-serve --poll 60 ) >/dev/null 2>&1 &
+    DASH_BG=$!
+    i=0
+    until [ -s "$RUN_DIR/.dashboard-loop.pid" ]; do
+        i=$((i + 1))
+        if [ "$i" -gt 50 ]; then break; fi
+        sleep 0.1
+    done
+    assert_success "restart writes a fresh loop pidfile" test -s "$RUN_DIR/.dashboard-loop.pid"
+    run_dash --stop
+    assert_contains "$DASH_OUT" "render loop stopped" "restarted loop stops too"
+    wait "$DASH_BG" 2>/dev/null || true
+    DASH_BG=""
 }
 
 test_port_precedence() {
@@ -707,6 +772,7 @@ test_transitions_own_state_jsonl_and_watch_state_untouched
 test_self_contained_refresh_and_static_fallback
 test_serve_lifecycle_http200_double_start_port_busy_stop
 test_serve_start_waits_for_port_release
+test_stop_also_stops_render_loop_and_never_kills_recycled_pid
 test_port_precedence
 test_empty_roster_empty_state
 test_usage_and_data_errors

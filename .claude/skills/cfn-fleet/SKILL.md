@@ -63,7 +63,8 @@ done | dead`.
 | Command | Purpose |
 |---|---|
 | `init <slug> [goal words...] [--worktree] [--db none\|docker]` | Scaffold run dir; extra non-flag words join as the run goal (written to goal.txt, shown as the dashboard header blurb); refuses duplicates (exit 65); installs the engine registry |
-| `add WSxx "task" [--name s] [--claims p1,p2] [--engine e]` | Register a workstream (status=pending, heartbeat=0); `--engine` defaults to `claude-sub` |
+| `add WSxx "task" [--name s] [--claims p1,p2] [--engine e] [--force]` | Register a workstream (status=pending, heartbeat=0); `--engine` defaults to `claude-sub`. An id already in the roster, any status, exits 65 and names the existing row's task ("queued placeholder" when it starts `QUEUED:`), so a queued item is never overwritten by accident; `--force` replaces the row |
+| `next-id` | Print the first WS id numerically above every roster row (placeholders included), zero-padded to the widest existing id; `WS01` on an empty roster. Use it instead of guessing "the next free id" |
 | `status [--tsv]` | Aligned table: ws_id, status, task(40), #claims, heartbeat age |
 | `claim WSxx <path...>` | Register file ownership; refuses overlapping claims (65), prefix dirs and glob scopes count as overlap |
 | `heartbeat WSxx [--files p1,p2,...] [note...]` | Liveness ts; latest note replaces the previous; `--files` publishes the comma-separated paths as the worker's now-editing list (`files/<ws>.txt`, one per line, shown on the dashboard card) |
@@ -83,7 +84,7 @@ Exit codes: `0` ok, `64` usage, `65` data error (bad WS id, overlap, duplicate),
 
 A worker's brief is `briefs/WSxx.md` (copy `briefs/BRIEF_WS.md` and fill in:
 task, claims, allowed commands, done criteria). The spawn prompt is one thin
-line: "read briefs/WSxx.md and start; coordinate only via roster files". Workers
+line: "read briefs/WSxx.md and start; coordinate as the brief says (roster files unless it asks for messages)". Workers
 commit through `fleet commit`, heartbeat as they work, and never touch another
 row's claims. Verification is scoped: workers run suites and `tsc` on CLAIMED
 paths only, and the full suite is the master's landing gate, run after all
@@ -114,6 +115,7 @@ a rule block.
 | `claude-sub` | `claude --model sonnet --permission-mode bypassPermissions` | Claude subscription (Team/Max/Pro) | `Claude Team\|Claude Pro\|Claude Max` (e.g. "Sonnet 5 with high effort · Claude Team") | nothing (spawn unsets every relay var in the pane) |
 | `glm` | `claude --model glm-5.3-flash` pointed at z.ai, launched through `~/.claude/cfn-scripts/zai-fence.sh` (macOS sandbox: repo root only, no keys/Keychain/push) | z.ai API billing | `glm-` (e.g. "glm-5.3-flash with high effort · API Usage Billing") | `FLEET_ZAI_TOKEN` in the env, else the keychain or token file (see z.ai token home below) |
 | `codex` | `codex --sandbox workspace-write --ask-for-approval never` | ChatGPT subscription | `provider: openai\|OpenAI Codex\|Ask Codex` (codex-cli 0.153+ renders "Ask Codex"; e.g. "OpenAI Codex (v0.153.4)") | nothing (an `OPENAI_API_KEY` in the master env must be unset in the pane; spawn refuses otherwise). Codex delegation gate: spawn refuses (66) unless the target repo's CLAUDE.md carries a literal `codex=true` line |
+| `claude-haiku` | `claude --model haiku --permission-mode bypassPermissions` | Claude subscription (Team/Max/Pro) | same as `claude-sub` | Mechanical lanes; identical scrub and banner to `claude-sub`, only the model differs. |
 
 Registry: the SHARED `~/.claude/cfn-config/engines.env` (single source of
 truth, also read by cfn-tmux-agents; `templates/engines.env` is a symlink to
@@ -141,6 +143,12 @@ security add-generic-password -a "$USER" -s cfn-fleet-zai -w
 
 (nothing after `-w`: `security` prompts for the token, so it stays out of shell
 history; add `-U` to replace an existing entry).
+
+Every launch script first clears the launching Claude session's own env
+(`CLAUDECODE`, `CLAUDE_CODE_*`, `CLAUDE_PID`, `CLAUDE_TMPDIR`, `CLAUDE_EFFORT`), which
+the tmux server copies into every pane. Without it each worker ran as the master's
+child: transcript saving off, and the master's messaging socket, token and session id.
+Engine set-vars are exported after the clear, so a `CLAUDE_CODE_*` set-var survives.
 
 Optional engine `claude-opus` (`claude --model opus`, subscription): shipped
 commented out in the shared registry; uncomment it in the run-dir

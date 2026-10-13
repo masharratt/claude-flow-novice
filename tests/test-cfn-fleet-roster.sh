@@ -15,7 +15,7 @@ source "$PROJECT_ROOT/tests/test-utils.sh"
 # the ok/no counters instead of aborting the suite at the first failure.
 set +e
 
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/fleet-roster-test-XXXXXX")
+TMP=$(cd "$(mktemp -d "${TMPDIR:-/tmp}/fleet-roster-test-XXXXXX")" && pwd -P)  # macOS: /var is /private/var; fleet prints the physical path
 P="$TMP/proj"   # fake target project the fleet commands run against
 FLEET="$PROJECT_ROOT/.claude/skills/cfn-fleet/cli/fleet"
 
@@ -130,6 +130,55 @@ test_add_validation_and_uniqueness(){
   log_step "WHEN add duplicate WS id, THEN exit 65"
   run_fleet "$P" add WS01 "duplicate"
   [ "$RC" -eq 65 ] && ok "duplicate ws refused with 65" || no "duplicate add rc=$RC"
+}
+
+# ---------------------------------------------------------------------------
+test_add_refuses_placeholder_overwrite_and_next_id(){
+  log_step "GIVEN a QUEUED placeholder row, WHEN add on its id, THEN 65 naming the task (MDTWII overwrite bug)"
+  fixture
+  run_fleet "$P" init nid
+  run_fleet "$P" next-id
+  [ "$RC" -eq 0 ] && [ "$OUT" = "WS01" ] && ok "next-id on empty roster is WS01" || no "next-id empty rc=$RC out='$OUT'"
+
+  run_fleet "$P" add WS260 "QUEUED: Campaign: WS76 guilds"
+  run_fleet "$P" add WS05 "real work"
+  local R
+  R=$(ls -d "$P"/planning/fleet-nid)/roster.tsv
+
+  run_fleet "$P" add WS260 "new task"
+  [ "$RC" -eq 65 ] && ok "add over placeholder refused with 65" || no "placeholder add rc=$RC"
+  printf '%s' "$ERR" | grep -q "QUEUED: Campaign: WS76 guilds" && ok "message names existing task" || no "msg: $ERR"
+  printf '%s' "$ERR" | grep -qi "placeholder" && ok "message says placeholder" || no "no placeholder word: $ERR"
+  [ "$(tsv_field "$R" WS260 3)" = "QUEUED: Campaign: WS76 guilds" ] && ok "placeholder row untouched" || no "row changed: $(tsv_field "$R" WS260 3)"
+
+  run_fleet "$P" add WS05 "second"
+  [ "$RC" -eq 65 ] && printf '%s' "$ERR" | grep -q "real work" && ! printf '%s' "$ERR" | grep -qi placeholder \
+    && ok "non-placeholder dup names task, no placeholder word" || no "dup msg rc=$RC err=$ERR"
+
+  run_fleet "$P" add WS260 "forced task" --force
+  [ "$RC" -eq 0 ] && [ "$(tsv_field "$R" WS260 3)" = "forced task" ] && ok "--force overwrites the row" || no "force rc=$RC task=$(tsv_field "$R" WS260 3)"
+  [ "$(grep -c '^WS260	' "$R")" -eq 1 ] && ok "--force leaves exactly one WS260 row" || no "WS260 row count"
+
+  log_step "WHEN next-id on roster with WS05 and WS260, THEN WS261 (above every row)"
+  run_fleet "$P" next-id
+  [ "$RC" -eq 0 ] && [ "$OUT" = "WS261" ] && ok "next-id is WS261" || no "next-id rc=$RC out='$OUT'"
+
+  fixture
+  run_fleet "$P" init nid2
+  run_fleet "$P" add WS09 "nine"
+  run_fleet "$P" next-id
+  [ "$OUT" = "WS10" ] && ok "next-id zero-pads to existing width (WS10)" || no "next-id pad: '$OUT'"
+  run_fleet "$P" add WS001 "three wide"
+  run_fleet "$P" next-id
+  [ "$OUT" = "WS010" ] && ok "next-id keeps widest existing width (WS010)" || no "next-id wide: '$OUT'"
+
+  log_step "WHEN add a fresh id then spawn --dry-run, THEN no overwrite/placeholder warning"
+  fixture
+  run_fleet "$P" init nid3
+  run_fleet "$P" add WS05 "task"
+  [ "$RC" -eq 0 ] && ok "fresh add exits 0" || no "fresh add rc=$RC"
+  run_fleet "$P" spawn WS05 --dry-run
+  ! printf '%s' "$ERR" | grep -qiE "placeholder|already exists" && ok "spawn after fresh add has no placeholder warning" || no "spawn warned: $ERR"
 }
 
 # ---------------------------------------------------------------------------
@@ -358,6 +407,7 @@ test_run_dir_resolution(){
 # ---------------------------------------------------------------------------
 test_init_scaffold_and_duplicate_refusal
 test_add_validation_and_uniqueness
+test_add_refuses_placeholder_overwrite_and_next_id
 test_claim_overlap_rules
 test_heartbeat_updates_ts_and_note
 test_status_table_and_tsv

@@ -276,10 +276,8 @@ TMUX_LOG="$TMP_DIR/tmux-calls.log"
 ENGINE_LOG="$TMP_DIR/engine-stub.log"
 CAPTURE_DIR=""
 
-run_fleet() { # $1 = cmd file stem, rest = args (subcommand already stripped)
+_fleet_invoke() { # $1 = cmd file stem, rest = args: the command, run in the caller's subshell
     local sub="$1"; shift
-    local out rc=0
-    out=$(
         {
             cd "$PROJ"
             export FLEET_RUN_DIR="$RUN_DIR"
@@ -301,9 +299,17 @@ run_fleet() { # $1 = cmd file stem, rest = args (subcommand already stripped)
             source "$SKILL_DIR/lib/cmd-$sub.sh"
             main "$@"
         } 2>&1
-    ) || rc=$?
+}
+
+run_fleet() { # $1 = cmd file stem, rest = args (subcommand already stripped)
+    local out rc=0
+    out=$(_fleet_invoke "$@") || rc=$?
     FLEET_OUT=$out
     FLEET_RC=$rc
+}
+
+run_fleet_head1() { # like run_fleet, but the reader stops after one line (`| head -1`)
+    FLEET_OUT=$( ( _fleet_invoke "$@" ) | head -1 ) || true
 }
 
 # ----------------------------------------------------------------------------
@@ -630,13 +636,20 @@ test_spawn_real_tmux_engine_env_and_pane_command() {
     assert_contains "$sk" "ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic" "endpoint in the file"
     assert_contains "$sk" "CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1" "flag set-var in the file"
     assert_contains "$sk" "rm -rf '$(dirname "$envf")'" "launch script deletes its dir before exec"
+    # BUG inherited session env: clear the launcher's CLAUDECODE/CLAUDE_CODE_* first,
+    # then export the engine's own set-vars so those survive.
+    assert_success "inherited-env bug: launch script clears launcher vars before engine exports" \
+        test "$(grep -n 'unset _cfn_v CLAUDECODE' "$envf" | cut -d: -f1)" -lt "$(grep -n 'CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT' "$envf" | cut -d: -f1)"
     assert_contains "$sk" "export FLEET_RUN_DIR=$RUN_DIR" "pane command exports FLEET_RUN_DIR"
     assert_contains "$sk" \
         "unset ANTHROPIC_API_KEY ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL ANTHROPIC_DEFAULT_FABLE_MODEL" \
         "pane command unsets every relay var"
     assert_contains "$sk" "exec \$HOME/.claude/cfn-scripts/zai-fence.sh claude --model glm-5.3-flash --permission-mode bypassPermissions" \
         "pane command execs the engine with its args"
-    assert_contains "$sk" "read $RUN_DIR/briefs/WS01.md and start; coordinate only via roster files" \
+    # BUG launch-prompt contradiction (MDTWII WS327/329/331, 2026-10-13): "coordinate
+    # only via roster files" overrode briefs that require a SendMessage on handoff.
+    assert_not_contains "$sk" "coordinate only via roster files" "launch prompt no longer forbids messages"
+    assert_contains "$sk" "read $RUN_DIR/briefs/WS01.md and start; coordinate as the brief says (roster files unless it asks for messages)" \
         "thin prompt sent after the banner, never the brief body"
     assert_contains "$sk" "source $SKILL_DIR/lib/heartbeat-ticker.sh" \
         "pane command sources the heartbeat-ticker lib"
@@ -754,6 +767,24 @@ test_spawn_trust_prompt_wrapper_bin_zai_fence() {
     assert_equals "0" "$FLEET_RC" "wrapper bin bug: spawn exits 0"
     assert_contains "$(tmux_calls 'send-keys -t ws01 Down Enter')" "Down Enter" \
         "wrapper bin bug: zai-fence.sh wrapper sees through to claude trust regex"
+}
+
+test_spawn_survives_reader_closing_early() {
+    # BUG SIGPIPE (MDTWII 2026-10-12): `fleet spawn WSxx 2>&1 | head -1` read
+    # "Preparing worktree", head exited, and spawn's next write killed it with
+    # SIGPIPE before the brief prompt step. Workers sat idle at an empty prompt.
+    log_step "GIVEN an early warning line and a reader that stops after one line, WHEN spawn"
+    make_engine_project eng-sigpipe
+    # Any line before the banner reproduces it; a bad autosave knob prints one.
+    printf 'FLEET_AUTOSAVE_SECS=garbage\n' >> "$RUN_DIR/fleet.env"
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+
+    run_fleet_head1 spawn WS01
+    assert_contains "$FLEET_OUT" "WARN spawn: FLEET_AUTOSAVE_SECS" "reader got the early warning line and stopped"
+    assert_equals "1" "$(grep -ac 'and start' "$TMUX_LOG")" "SIGPIPE bug: brief prompt still sent after the reader closed"
+    assert_equals "started" "$(roster_field WS01 status)" "SIGPIPE bug: row reaches started"
 }
 
 test_spawn_trust_prompt_codex() {
@@ -1773,6 +1804,7 @@ run_all_tests() {
     test_spawn_trust_prompt_codex
     test_spawn_trust_prompt_stale_text_claude_2_1_296
     test_spawn_trust_prompt_wrapper_bin_zai_fence
+    test_spawn_survives_reader_closing_early
     test_spawn_codex_update_modal
     test_spawn_no_trust_text_sends_no_keys
     test_spawn_codex_flag_gate

@@ -21,9 +21,11 @@ Run-dir selection (first match wins):
 
 Subcommands:
   init <slug> [--worktree] [--db none|docker]   scaffold planning/fleet-<slug>
-  add WSxx "task" [--name s] [--claims p1,p2] [--engine e]
+  add WSxx "task" [--name s] [--claims p1,p2] [--engine e] [--force]
                                                 register a workstream (status pending:
-                                                shown under Queued until spawned)
+                                                shown under Queued until spawned);
+                                                refuses an existing id (65) unless --force
+  next-id                                       print the first WS id above every roster row
   status [--tsv]                                roster table
   claim WSxx <path...>                          register file ownership
   heartbeat WSxx [note...]                      liveness + latest note

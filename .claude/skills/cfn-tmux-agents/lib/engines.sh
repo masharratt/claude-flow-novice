@@ -49,7 +49,9 @@ _ta_engine_resolve_set() {
   local engine="$1" raw sv name ref
   raw=$(_ta_engine_field "$engine" 4) || return 1
   [ -n "$raw" ] || return 0
-  while IFS= read -r sv; do
+  # `|| [ -n "$sv" ]`: the list has no trailing newline, and a bare read
+  # dropped its last item (glm lost CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT).
+  while IFS= read -r sv || [ -n "$sv" ]; do
     [ -n "$sv" ] || continue
     name="${sv%%=*}"
     ref="${sv#*=}"

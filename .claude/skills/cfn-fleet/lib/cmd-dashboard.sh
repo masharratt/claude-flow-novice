@@ -147,7 +147,16 @@ main() {
   if [ "$do_stop" -eq 1 ]; then
     local stop_dir
     stop_dir=$(fleet_run_dir)
-    _fleet_dash_serve_stop "$stop_dir"
+    local stop_out
+    stop_out=$(_fleet_dash_serve_stop "$stop_dir")
+    _fleet_dash_loop_stop "$stop_dir"
+    # Both helpers are idempotent; "nothing running" is the combined verdict
+    # when neither a server nor a render loop was found.
+    if [ "$stop_out" = "dashboard: not serving" ] && [ "$_FLEET_DASH_LOOP_STOPPED" -eq 0 ]; then
+      echo "dashboard: nothing running"
+    else
+      printf '%s\n' "$stop_out"
+    fi
     return 0
   fi
 
@@ -182,11 +191,21 @@ main() {
   fi
 
   [ "$once" -eq 1 ] && return 0
-  trap 'exit 0' INT TERM
+  # Record this loop's pid so --stop can find it. The pidfile is removed on
+  # any exit that runs traps; a kill -9 leaves a stale one, which --stop
+  # tolerates (see _fleet_dash_loop_stop).
+  _fleet_dash_loop_register "$run_dir"
+  local sleeper=""
+  trap '[ -z "$sleeper" ] || kill "$sleeper" 2>/dev/null; exit 0' INT TERM
+  trap '_fleet_dash_loop_unregister "$run_dir"' EXIT
   local fp nfp
   fp=$(_fleet_dash_fingerprint "$run_dir")
   while true; do
-    sleep "$poll"
+    # Background sleep + wait so TERM interrupts at once, not after a full
+    # poll interval.
+    sleep "$poll" & sleeper=$!
+    wait "$sleeper" 2>/dev/null || true
+    sleeper=""
     nfp=$(_fleet_dash_fingerprint "$run_dir") || continue
     if [ "$nfp" != "$fp" ]; then
       fp="$nfp"
@@ -1596,6 +1615,60 @@ http.server.ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), handler).serve_
   done
   rm -f "$rd/.dashboard.pid"
   fleet_die 66 "dashboard: http.server on port $port failed to start (see $rd/.dashboard.log)"
+}
+
+# _fleet_dash_loop_register RUN_DIR: write <run-dir>/.dashboard-loop.pid with
+# line 1 = this loop's pid, line 2 = its command line at that moment. BASHPID,
+# not $$, so a loop running in a subshell records itself, not its parent.
+_fleet_dash_loop_register() {
+  local rd="$1" pid="${BASHPID:-$$}"
+  printf '%s\n%s\n' "$pid" "$(_fleet_pid_cmdline "$pid")" > "$rd/.dashboard-loop.pid"
+}
+
+# _fleet_dash_loop_unregister RUN_DIR: drop the loop pidfile, but only when it
+# still names this process (a newer loop in the same run dir keeps its own).
+_fleet_dash_loop_unregister() {
+  local f="$1/.dashboard-loop.pid"
+  [ -f "$f" ] || return 0
+  if [ "$(head -n1 "$f" 2>/dev/null)" = "${BASHPID:-$$}" ]; then
+    rm -f "$f"
+  fi
+  return 0
+}
+
+# _fleet_dash_loop_stop RUN_DIR: stop the render loop recorded in
+# .dashboard-loop.pid. Safety rule (same intent as the server's cmdline
+# check): the pid is signalled only when it is alive AND its current command
+# line equals the one the loop recorded about itself, so a pid recycled by an
+# unrelated process is never killed. Always clears the pidfile. Sets
+# _FLEET_DASH_LOOP_STOPPED=1 when a loop was actually stopped.
+_FLEET_DASH_LOOP_STOPPED=0
+_fleet_dash_loop_stop() {
+  local f="$1/.dashboard-loop.pid" pid rec now i
+  _FLEET_DASH_LOOP_STOPPED=0
+  [ -f "$f" ] || return 0
+  pid=$(sed -n 1p "$f" 2>/dev/null)
+  rec=$(sed -n 2p "$f" 2>/dev/null)
+  rm -f "$f"
+  [[ "$pid" =~ ^[0-9]+$ ]] || return 0
+  if [ "$pid" -eq "$$" ] || [ "$pid" -eq "${BASHPID:-$$}" ]; then
+    return 0
+  fi
+  _fleet_pid_alive "$pid" || return 0
+  now=$(_fleet_pid_cmdline "$pid")
+  if [ -z "$rec" ] || [ "$now" != "$rec" ]; then
+    return 0
+  fi
+  kill -TERM "$pid" 2>/dev/null || true
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    _fleet_pid_alive "$pid" || break
+    sleep 0.2
+  done
+  if _fleet_pid_alive "$pid"; then
+    kill -KILL "$pid" 2>/dev/null || true
+  fi
+  _FLEET_DASH_LOOP_STOPPED=1
+  echo "dashboard: render loop stopped (pid $pid)"
 }
 
 # _fleet_dash_serve_stop RUN_DIR: TERM, poll up to 2s, then KILL; always
