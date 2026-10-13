@@ -467,10 +467,21 @@ main() {
     # capture-pane, so such panes degrade to wall-clock beating; accepted
     # (wedge detection is lost for those panes only). Spares reuse this same
     # string, so their copies watch the main pane and stamp the same ws row.
-    local tick_lib tick_cli
+    local tick_lib tick_cli autosave
     tick_lib=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
     tick_cli="$tick_lib/../cli/fleet"
-    pane_cmd="source $tick_lib/heartbeat-ticker.sh >/dev/null 2>&1 && FLEET_RUN_DIR=$run_dir FLEET_TICK_FLEET_CLI=$tick_cli _fleet_tick_loop $sock $name $ws $tick_cli $run_dir $tick >/dev/null 2>&1 & $pane_cmd"
+    # Autosave interval rides the ticker (heartbeat-ticker.sh documents the
+    # snapshot layout and restore): FLEET_AUTOSAVE_SECS env > fleet.env >
+    # 1200; `off`/0 disables. Baked unquoted, so only digits or `off` pass.
+    autosave="${FLEET_AUTOSAVE_SECS:-$(fleet_env_get FLEET_AUTOSAVE_SECS)}"
+    autosave="${autosave:-1200}"
+    case "$autosave" in
+      off|0) autosave=off ;;
+      *[!0-9]*)
+        echo "WARN spawn: FLEET_AUTOSAVE_SECS='$autosave' is not a number or 'off'; autosave disabled" >&2
+        autosave=off ;;
+    esac
+    pane_cmd="source $tick_lib/heartbeat-ticker.sh >/dev/null 2>&1 && FLEET_AUTOSAVE_SECS=$autosave FLEET_RUN_DIR=$run_dir FLEET_TICK_FLEET_CLI=$tick_cli _fleet_tick_loop $sock $name $ws $tick_cli $run_dir $tick >/dev/null 2>&1 & $pane_cmd"
   fi
 
   # Warn-only check of the dedicated server's global env.

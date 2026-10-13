@@ -336,14 +336,50 @@ _fleet_dash_port() {
 }
 
 # _fleet_dash_serve_is_serving RUN_DIR: 0 when the pidfile names a live
-# python3 http.server. The /proc/<pid>/cmdline check is load-bearing: a
-# recycled pid whose cmdline is not http.server is "not serving", so --stop
-# never kills an innocent process.
+# python3 http.server. The command-line check is load-bearing: a recycled pid
+# whose command line is not http.server is "not serving", so --stop never
+# kills an innocent process.
 _fleet_dash_serve_is_serving() {
   local rd="$1" pid
   [ -f "$rd/.dashboard.pid" ] || return 1
   pid=$(cat "$rd/.dashboard.pid" 2>/dev/null) || return 1
   [[ "$pid" =~ ^[0-9]+$ ]] || return 1
-  [ -r "/proc/$pid/cmdline" ] || return 1
-  tr '\0' ' ' < "/proc/$pid/cmdline" | grep -q 'http.server'
+  _fleet_pid_cmdline "$pid" | grep -q 'http.server'
 }
+
+# --- Portable userland helpers (GNU/Linux and BSD/macOS) ---------------------
+# The skill once assumed a GNU userland; on macOS `fleet dashboard` reported a
+# running server as failed (/proc), timeline times printed "?" (date -d) and
+# the poll fingerprint never changed (stat -c). Each helper tries the GNU form
+# first with stderr silenced, then the BSD form. Pinned by
+# tests/test-cfn-fleet-portability.sh.
+
+# _fleet_pid_cmdline PID: the process's command line, empty when it is gone.
+# /proc where it exists (Linux), else ps (macOS; also present on Linux).
+_fleet_pid_cmdline() {
+  if [ -r "/proc/$1/cmdline" ]; then  # GNU first
+    tr '\0' ' ' < "/proc/$1/cmdline"  # GNU first
+  else
+    ps -p "$1" -o command= 2>/dev/null
+  fi
+}
+
+# _fleet_pid_alive PID: 0 while the process exists.
+_fleet_pid_alive() { kill -0 "$1" 2>/dev/null; }
+
+# _fleet_stat_mtime_size FILE: "<mtime epoch> <size bytes>".
+_fleet_stat_mtime_size() { stat -c '%Y %s' "$1" 2>/dev/null || stat -f '%m %z' "$1"; }  # GNU first
+
+# _fleet_file_mode FILE: octal permission bits, e.g. 600.
+_fleet_file_mode() { stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1"; }  # GNU first
+
+# _fleet_epoch_hms EPOCH: HH:MM:SS in UTC, "?" when neither date form works.
+_fleet_epoch_hms() { date -u -d "@$1" '+%H:%M:%S' 2>/dev/null || date -u -r "$1" '+%H:%M:%S' 2>/dev/null || printf '?'; }  # GNU first
+
+# _fleet_sha1: stdin -> "<hex>  -" (sha1sum where present, else shasum).
+_fleet_sha1() {
+  if command -v sha1sum >/dev/null 2>&1; then sha1sum; else shasum -a 1; fi
+}
+
+# _fleet_reverse_lines: stdin lines in reverse order (tac is GNU only).
+_fleet_reverse_lines() { awk '{ l[NR] = $0 } END { for (i = NR; i > 0; i--) print l[i] }'; }

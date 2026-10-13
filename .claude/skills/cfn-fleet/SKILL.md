@@ -37,7 +37,8 @@ per level). No run dir: exit 64, "fleet init first".
 planning/fleet-<slug>/
   fleet.env          FLEET_WORKTREE=off|on, FLEET_DB=none|docker (init sets);
                      optional knobs: FLEET_DEFAULT_ENGINE, FLEET_TMUX_SOCKET,
-                     FLEET_TRUST_TIMEOUT, FLEET_BANNER_TIMEOUT, FLEET_TICK_SECS
+                     FLEET_TRUST_TIMEOUT, FLEET_BANNER_TIMEOUT, FLEET_TICK_SECS,
+                     FLEET_AUTOSAVE_SECS
   roster.tsv         one row per workstream, flock-guarded, tab-separated:
                      ws_id name task status claims landed_sha
                      migration_num scratch_db heartbeat notes engine
@@ -111,7 +112,7 @@ a rule block.
 | Engine | What runs in the pane | Who pays | Banner proof (regex in registry) | Master shell needs |
 |---|---|---|---|---|
 | `claude-sub` | `claude --model sonnet --permission-mode bypassPermissions` | Claude subscription (Team/Max/Pro) | `Claude Team\|Claude Pro\|Claude Max` (e.g. "Sonnet 5 with high effort · Claude Team") | nothing (spawn unsets every relay var in the pane) |
-| `glm` | `claude --model glm-5.3-flash` pointed at z.ai, launched through `~/.claude/cfn-scripts/zai-fence.sh` (macOS sandbox: repo root only, no keys/Keychain/push) | z.ai API billing | `glm-` (e.g. "glm-5.3-flash with high effort · API Usage Billing") | `export FLEET_ZAI_TOKEN=<z.ai token>` before spawn |
+| `glm` | `claude --model glm-5.3-flash` pointed at z.ai, launched through `~/.claude/cfn-scripts/zai-fence.sh` (macOS sandbox: repo root only, no keys/Keychain/push) | z.ai API billing | `glm-` (e.g. "glm-5.3-flash with high effort · API Usage Billing") | `FLEET_ZAI_TOKEN` in the env, else the keychain or token file (see z.ai token home below) |
 | `codex` | `codex --sandbox workspace-write --ask-for-approval never` | ChatGPT subscription | `provider: openai\|OpenAI Codex\|Ask Codex` (codex-cli 0.153+ renders "Ask Codex"; e.g. "OpenAI Codex (v0.153.4)") | nothing (an `OPENAI_API_KEY` in the master env must be unset in the pane; spawn refuses otherwise). Codex delegation gate: spawn refuses (66) unless the target repo's CLAUDE.md carries a literal `codex=true` line |
 
 Registry: the SHARED `~/.claude/cfn-config/engines.env` (single source of
@@ -127,6 +128,23 @@ in the tmux server's argv for its lifetime, readable by any process via `ps`.
 Never the run dir either, so `planning/fleet-*` stays committable
 and `grep -r <token> planning/fleet-*` finds nothing. Missing or empty source
 var: spawn exits 66 naming the variable (e.g. `FLEET_ZAI_TOKEN`).
+
+z.ai token home. When `FLEET_ZAI_TOKEN` is unset or empty, spawn looks in two
+places, in order: the macOS keychain (generic password, service
+`cfn-fleet-zai`), then `~/.config/cfn-fleet/zai.token` (first line; the file
+must be mode 600 or spawn refuses). A value under 20 characters is refused.
+The value is never printed. Store it once with:
+
+```bash
+security add-generic-password -a "$USER" -s cfn-fleet-zai -w
+```
+
+(nothing after `-w`: `security` prompts for the token, so it stays out of shell
+history; add `-U` to replace an existing entry).
+
+Optional engine `claude-opus` (`claude --model opus`, subscription): shipped
+commented out in the shared registry; uncomment it in the run-dir
+`engines.env` to use it.
 
 Spawn order per pane, all on the run's dedicated tmux socket
 (`FLEET_TMUX_SOCKET` in fleet.env, default `fleet-<slug>`; kill a whole run
@@ -168,6 +186,27 @@ A wedged worker whose output freezes stops beating, so `fleet watch`'s STALE
 rejected because it makes wedged agents look healthy. The sidecar survives
 the `exec` as a reparented child and dies with the pane, and it stamps only
 the heartbeat field: agent heartbeats still own notes, status and `--files`.
+
+Autosave: the same sidecar snapshots a worker's dirty worktree every
+`FLEET_AUTOSAVE_SECS` seconds (default 1200; env > fleet.env; `off` or `0`
+disables; needs the ticker on and `FLEET_WORKTREE=on`, since the shared main
+checkout is never snapshotted per worker). Snapshots go to
+`${TMPDIR}/fleet-autosave/<run-name>/<WS>/<UTC timestamp>/` (the pane's
+TMPDIR, normally `/var/folders/.../T/`), newest 6 kept, an unchanged tree
+writes nothing new. Each holds `head.txt` (commit, branch), `tracked.patch`
+(`git diff HEAD --binary`), `untracked.tar.gz` and `untracked.txt` (untracked,
+not-ignored files; files over 50 MB listed in `skipped.txt` instead). It only
+reads git (`GIT_OPTIONAL_LOCKS=0`, no index or branch writes), so it is safe
+mid-commit or mid-rebase. Restore:
+
+```bash
+cd <worktree>    # or: git worktree add --detach <dir> "$(head -1 <snap>/head.txt)"
+git apply <snap>/tracked.patch        # --3way if HEAD has moved since the snapshot
+tar -xzf <snap>/untracked.tar.gz
+```
+
+Every restored edit comes back unstaged. Panes spawned before this feature
+keep their old ticker until respawned.
 
 Codex specifics: it reads `AGENTS.md`, not `CLAUDE.md`, so keep briefs
 self-contained or point at the repo's CLAUDE.md explicitly. It has no inbound
@@ -363,7 +402,8 @@ export FLEET_RUN_DIR=$PWD/planning/fleet-<slug>
 ```
 
 Put that line in the master shell before any fleet command, in every worker brief, and in
-the tmux launch. Repair a stray row with `sed -i $'/^WS0N\t/d' <old roster>`, then confirm
+the tmux launch. Repair a stray row with `sed -i.bak $'/^WS0N\t/d' <old roster> && rm <old roster>.bak`
+(the `.bak` suffix keeps it working on both GNU and macOS sed), then confirm
 `git diff` on that file is empty.
 
 ### 2. The pane inherits whatever the tmux server carries, so spawn verifies the banner

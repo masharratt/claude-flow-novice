@@ -212,6 +212,7 @@ test_resolve_set(){
     || no "codex resolve rc=$RC out='$OUT'"
 
   log_step "GIVEN FLEET_ZAI_TOKEN unset/empty, WHEN resolving glm, THEN 66 naming the var (case 4)"
+  zai_stub_on   # no keychain entry, empty HOME: the lookup finds nothing
   unset FLEET_ZAI_TOKEN
   local rbefore
   rbefore=$(cat "$FLEET_RUN_DIR/roster.tsv")
@@ -228,6 +229,92 @@ test_resolve_set(){
   printf '%s' "$ERR" | grep -q 'FLEET_ZAI_TOKEN' \
     && ok "empty-var stderr names FLEET_ZAI_TOKEN" || no "stderr: '$ERR'"
   unset FLEET_ZAI_TOKEN
+  zai_stub_off
+}
+
+# ---------------------------------------------------------------------------
+# z.ai token home: FLEET_ZAI_TOKEN unset -> macOS keychain service
+# cfn-fleet-zai -> ~/.config/cfn-fleet/zai.token (mode 600 only). Values under
+# 20 chars are refused; the value never reaches stdout of an error or stderr.
+# A stub `security` on PATH stands in for the keychain; HOME is a temp dir.
+ZAI_SAVED_PATH=""; ZAI_SAVED_HOME=""
+zai_stub_on(){
+  ZAI_SAVED_PATH="$PATH"; ZAI_SAVED_HOME="$HOME"
+  mkdir -p "$TMP/zbin" "$TMP/zhome"
+  cat > "$TMP/zbin/security" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$ZAI_STUB_LOG"
+if [ -n "${ZAI_STUB_VALUE:-}" ]; then printf '%s\n' "$ZAI_STUB_VALUE"; exit 0; fi
+echo "security: SecKeychainSearchCopyNext: The specified item could not be found in the keychain." >&2
+exit 44
+STUB
+  chmod +x "$TMP/zbin/security"
+  export ZAI_STUB_LOG="$TMP/zbin/calls.log"; : > "$ZAI_STUB_LOG"
+  unset ZAI_STUB_VALUE
+  rm -rf "$TMP/zhome"; mkdir -p "$TMP/zhome"
+  PATH="$TMP/zbin:$PATH"; HOME="$TMP/zhome"
+}
+zai_stub_off(){ PATH="$ZAI_SAVED_PATH"; HOME="$ZAI_SAVED_HOME"; unset ZAI_STUB_VALUE; }
+
+test_zai_token_lookup(){
+  log_step "GIVEN FLEET_ZAI_TOKEN unset, WHEN the token sits in the keychain or the token file"
+  fixture
+  use_demo "$P" || return 0
+  zai_stub_on
+  unset FLEET_ZAI_TOKEN
+  local good="zai-keychain-token-0123456789abcdef" filetok="zai-file-token-0123456789abcdef"
+  local tokline='ANTHROPIC_AUTH_TOKEN='
+
+  export ZAI_STUB_VALUE="$good"
+  call_fn fleet_engine_resolve_set glm
+  [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -qxF "$tokline$good" \
+    && ok "keychain token resolves the glm set list" || no "keychain resolve rc=$RC err=$ERR"
+  grep -q -- '-s cfn-fleet-zai' "$ZAI_STUB_LOG" && grep -q -- '-w' "$ZAI_STUB_LOG" \
+    && ok "keychain asked for service cfn-fleet-zai with -w" || no "security args: $(cat "$ZAI_STUB_LOG")"
+  unset ZAI_STUB_VALUE
+
+  mkdir -p "$HOME/.config/cfn-fleet"
+  printf '%s\n' "$filetok" > "$HOME/.config/cfn-fleet/zai.token"
+  chmod 600 "$HOME/.config/cfn-fleet/zai.token"
+  call_fn fleet_engine_resolve_set glm
+  [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -qxF "$tokline$filetok" \
+    && ok "mode-600 token file resolves when the keychain has nothing" || no "file resolve rc=$RC err=$ERR"
+
+  chmod 644 "$HOME/.config/cfn-fleet/zai.token"
+  call_fn fleet_engine_resolve_set glm
+  [ "$RC" -eq 66 ] && ok "mode-644 token file refused (66)" || no "644 file rc=$RC out=$OUT"
+  printf '%s' "$ERR" | grep -q '600' && ok "refusal names mode 600" || no "644 stderr: '$ERR'"
+  printf '%s%s' "$OUT" "$ERR" | grep -qF "$filetok" && no "644 refusal printed the token" \
+    || ok "644 refusal never prints the token"
+
+  printf 'short-tok\n' > "$HOME/.config/cfn-fleet/zai.token"; chmod 600 "$HOME/.config/cfn-fleet/zai.token"
+  call_fn fleet_engine_resolve_set glm
+  [ "$RC" -eq 66 ] && printf '%s' "$ERR" | grep -q '20' \
+    && ok "token file under 20 chars refused naming the minimum" || no "short file rc=$RC err=$ERR"
+  printf '%s%s' "$OUT" "$ERR" | grep -qF "short-tok" && no "short-file refusal printed the value" \
+    || ok "short-file refusal never prints the value"
+  rm -f "$HOME/.config/cfn-fleet/zai.token"
+
+  export ZAI_STUB_VALUE="tiny-key"
+  call_fn fleet_engine_resolve_set glm
+  [ "$RC" -eq 66 ] && ! printf '%s%s' "$OUT" "$ERR" | grep -qF "tiny-key" \
+    && ok "keychain value under 20 chars refused without printing it" || no "short keychain rc=$RC err=$ERR"
+  unset ZAI_STUB_VALUE
+
+  call_fn fleet_engine_resolve_set glm
+  [ "$RC" -eq 66 ] && printf '%s' "$ERR" | grep -q 'FLEET_ZAI_TOKEN' \
+    && printf '%s' "$ERR" | grep -q 'cfn-fleet-zai' \
+    && ok "nothing anywhere: 66 names FLEET_ZAI_TOKEN and the keychain service" || no "none rc=$RC err=$ERR"
+
+  : > "$ZAI_STUB_LOG"
+  export ZAI_STUB_VALUE="$good"
+  FLEET_ZAI_TOKEN="zai-env-token-0123456789"
+  call_fn fleet_engine_resolve_set glm
+  [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -qxF "${tokline}zai-env-token-0123456789" \
+    && [ ! -s "$ZAI_STUB_LOG" ] && ok "env FLEET_ZAI_TOKEN wins; keychain not consulted" \
+    || no "env precedence rc=$RC log=$(cat "$ZAI_STUB_LOG")"
+  unset FLEET_ZAI_TOKEN
+  zai_stub_off
 }
 
 # ---------------------------------------------------------------------------
@@ -450,6 +537,7 @@ test_token_never_lands_on_disk(){
 test_registry_seed_and_fields
 test_registry_malformed_line_refused
 test_resolve_set
+test_zai_token_lookup
 test_add_engine_flag
 test_old_roster_back_compat
 test_add_migrates_old_roster

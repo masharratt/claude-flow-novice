@@ -8,13 +8,15 @@ from the target project root unless resolving a different run dir on purpose.
 2. **Register** each workstream:
    `fleet add WS01 "task text" --name <session-name> --claims path/1,path/2 [--engine glm]`
    Non-overlapping claims only; `fleet claim WSxx <path...>` adds more later.
-3. **Master-shell export, before any glm spawn**:
-   `export FLEET_ZAI_TOKEN=<z.ai token>`. Source today: gg-all-projects
-   `.claude/settings.local.json` `env._ANTHROPIC_AUTH_TOKEN` (deliberately
-   disarmed with the `_` prefix). Export it into this shell only; spawn passes
-   it to panes via tmux argv and never writes it to the run dir. glm spawn
-   refuses (exit 66) while it is unset. `claude-sub` and `codex` need no
-   export.
+3. **z.ai token, before any glm spawn**: either
+   `export FLEET_ZAI_TOKEN=<z.ai token>` in this shell, or store it once in
+   the macOS keychain with
+   `security add-generic-password -a "$USER" -s cfn-fleet-zai -w` (prompts
+   for the value), or put it in `~/.config/cfn-fleet/zai.token` with
+   `chmod 600`. Spawn checks env, then keychain, then file; it passes the
+   token to panes via tmux argv and never writes it to the run dir. glm spawn
+   refuses (exit 66) when none has a token of 20+ characters. `claude-sub`
+   and `codex` need nothing.
 4. **Write briefs**: fill `briefs/WSxx.md` from `briefs/BRIEF_WS.md` (task,
    engine, claims, allowed commands, done criteria; codex workers need the
    self-protocol note).

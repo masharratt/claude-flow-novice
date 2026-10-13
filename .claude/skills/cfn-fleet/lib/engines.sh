@@ -174,12 +174,56 @@ fleet_engine_resolve_set(){ # K=V lines, $SOURCE_VAR resolved; 66 names the var
       [[ "$src" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] \
         || fleet_die 65 "malformed set entry for engine $engine (source var must be a shell identifier): $entry"
       val="${!src:-}"
+      if [ -z "$val" ] && [ "$src" = FLEET_ZAI_TOKEN ]; then
+        # rc 1 = no source has a token (fall through to the 66 below);
+        # any other rc is the lookup's own refusal and must abort here.
+        local zrc=0
+        val=$(_fleet_zai_token_lookup) || zrc=$?
+        [ "$zrc" -eq 0 ] || [ "$zrc" -eq 1 ] || exit "$zrc"
+      fi
       if [ -z "$val" ]; then
+        if [ "$src" = FLEET_ZAI_TOKEN ]; then
+          fleet_die 66 "engine '$engine' needs the z.ai token: export FLEET_ZAI_TOKEN, or store it once in the macOS keychain (security add-generic-password -a \"\$USER\" -s $_FLEET_ZAI_KEYCHAIN_SERVICE -w) or in ~/.config/cfn-fleet/zai.token (chmod 600); it is never written to the run dir"
+        fi
         fleet_die 66 "engine '$engine' needs \$$src in the master shell env (export $src=<value> before spawn; it is never written to disk)"
       fi
     fi
     printf '%s=%s\n' "$name" "$val"
   done
+}
+
+# z.ai token home, used only when FLEET_ZAI_TOKEN is unset or empty:
+#   1. macOS keychain generic password, service cfn-fleet-zai
+#      store once:  security add-generic-password -a "$USER" -s cfn-fleet-zai -w
+#      (no value after -w: security prompts for it, so it never lands in
+#      shell history)
+#   2. ~/.config/cfn-fleet/zai.token, first line, file mode exactly 600
+# The value is never printed: errors name the source, never the content.
+# Values under 20 chars are refused (a truncated paste or a placeholder would
+# otherwise reach "started" and sit in a 401 retry loop).
+_FLEET_ZAI_KEYCHAIN_SERVICE=cfn-fleet-zai
+_FLEET_ZAI_MIN_LEN=20
+
+# _fleet_zai_token_lookup: print the token (no newline); rc 1 when no source
+# has one; fleet_die 66 when a source holds an unusable value.
+_fleet_zai_token_lookup(){
+  local v="" from="" f="$HOME/.config/cfn-fleet/zai.token" mode
+  if command -v security >/dev/null 2>&1; then
+    v=$(security find-generic-password -s "$_FLEET_ZAI_KEYCHAIN_SERVICE" -w 2>/dev/null) || v=""
+    [ -n "$v" ] && from="keychain service $_FLEET_ZAI_KEYCHAIN_SERVICE"
+  fi
+  if [ -z "$v" ] && [ -f "$f" ]; then
+    mode=$(_fleet_file_mode "$f")
+    [ "$mode" = 600 ] \
+      || fleet_die 66 "z.ai token file $f has mode $mode; it must be 600 (chmod 600 $f)"
+    IFS= read -r v < "$f" || :
+    v="${v%$'\r'}"
+    from="$f"
+  fi
+  [ -n "$v" ] || return 1
+  [ "${#v}" -ge "$_FLEET_ZAI_MIN_LEN" ] \
+    || fleet_die 66 "z.ai token from $from is ${#v} chars; expected at least $_FLEET_ZAI_MIN_LEN (re-store the full token)"
+  printf '%s' "$v"
 }
 
 fleet_engine_default(){ # FLEET_DEFAULT_ENGINE from fleet.env else claude-sub

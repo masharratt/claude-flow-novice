@@ -614,7 +614,7 @@ _fleet_dash_hb_text() {
 
 # _fleet_dash_ts_text EPOCH: HH:MM:SS UTC label for a timeline entry.
 _fleet_dash_ts_text() {
-  date -u -d "@$1" '+%H:%M:%S' 2>/dev/null || printf '?'
+  _fleet_epoch_hms "$1"
 }
 
 # _fleet_dash_events_html EVENTS_FILE: newest-30 timeline (newest first) or
@@ -627,7 +627,7 @@ _fleet_dash_events_html() {
   fi
   printf '<ul class="timeline">\n'
   local line ts ws from to to_class
-  tail -n 30 "$events" | tac | while IFS= read -r line; do
+  tail -n 30 "$events" | _fleet_reverse_lines | while IFS= read -r line; do
     [ -n "$line" ] || continue
     ts=0; ws=""; from=""; to=""
     [[ "$line" =~ \"ts\":([0-9]+) ]]   && ts="${BASH_REMATCH[1]}"
@@ -1526,12 +1526,12 @@ _fleet_dash_fingerprint() {
   {
     for f in roster.tsv dashboard-events.jsonl fleet.env glossary.tsv; do
       if [ -f "$rd/$f" ]; then
-        stat -c '%Y %s' "$rd/$f"
+        _fleet_stat_mtime_size "$rd/$f"
       else
         printf 'missing %s\n' "$f"
       fi
     done
-  } | sort | sha1sum
+  } | sort | _fleet_sha1
 }
 
 # _fleet_dash_serve_start RUN_DIR PORT: idempotent start of
@@ -1611,10 +1611,10 @@ _fleet_dash_serve_stop() {
   kill -TERM "$pid" 2>/dev/null || true
   local i
   for i in 1 2 3 4 5 6 7 8 9 10; do
-    [ -d "/proc/$pid" ] || break
+    _fleet_pid_alive "$pid" || break
     sleep 0.2
   done
-  if [ -d "/proc/$pid" ]; then
+  if _fleet_pid_alive "$pid"; then
     kill -KILL "$pid" 2>/dev/null || true
   fi
   rm -f "$rd/.dashboard.pid"

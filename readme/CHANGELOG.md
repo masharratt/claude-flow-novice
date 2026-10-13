@@ -5,6 +5,24 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-13: fleet autosave, z.ai token from the keychain, macOS portability
+
+Work from an earlier session that exited before committing; tested and committed on the
+user's go. MDTWII had already been running it through the `~/.claude/skills` symlink.
+
+- Autosave: the heartbeat sidecar snapshots a worker's dirty worktree every
+  `FLEET_AUTOSAVE_SECS` (default 1200; worktree mode only) to `$TMPDIR/fleet-autosave/`,
+  newest 6 kept, read-only git (`tests/test-cfn-fleet-autosave.sh`).
+- z.ai token home: when `FLEET_ZAI_TOKEN` is unset, spawn reads the macOS keychain service
+  `cfn-fleet-zai`, then `~/.config/cfn-fleet/zai.token` (mode 600 required); values under 20
+  chars refused; the value is never printed.
+- macOS portability helpers in `common.sh` (`/proc`, `date -d`, `stat -c`, `sha1sum`, `tac`
+  replaced by GNU-first, BSD-fallback helpers; `tests/test-cfn-fleet-portability.sh`).
+- Commented-out optional `claude-opus` engine in the shared registry.
+- Known pre-existing macOS test failures, unchanged by this commit: roster (`/var` vs
+  `/private/var`), commit ("commit succeeds despite run-dir dirt"), dashboard (BSD `wc`
+  padding).
+
 ## 2026-10-12: glm spawns start again (launch line no longer truncated)
 
 Reported by the MDTWII fleet master: after f880ab87, `fleet spawn --engine glm` typed
