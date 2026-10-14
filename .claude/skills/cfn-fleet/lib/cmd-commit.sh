@@ -115,7 +115,16 @@ main() {
         fleet_die 65 "nothing to commit for $ws: no dirty files match its claims"
     fi
 
-    git add -- "${to_stage[@]}"
+    # A path already removed with `git rm` is in neither the worktree nor the
+    # index; `git add` (with or without -A) fails on it with "pathspec did not
+    # match", aborting the commit. Its deletion is already staged, so skip it.
+    local -a add_paths=()
+    for d in "${to_stage[@]}"; do
+        if [ -e "$d" ] || [ -L "$d" ] || git ls-files --error-unmatch -- "$d" >/dev/null 2>&1; then
+            add_paths+=("$d")
+        fi
+    done
+    [ "${#add_paths[@]}" -eq 0 ] || git add -- "${add_paths[@]}"
 
     if [ "$no_commit" -eq 1 ]; then
         printf 'fleet commit --no-commit: staged for %s: %s\n' "$ws" "${to_stage[*]}"

@@ -177,6 +177,23 @@ rc=$?
 [[ $rc -eq 0 ]] && ok "commit from the outbox exits 0 (not 66)" || no "commit from the outbox exits 0 (rc=$rc)"
 [[ "$(git -C "$WT" log -1 --format=%s)" == "from the outbox" ]] && ok "commit landed in the recorded worktree" || no "commit landed in the recorded worktree"
 
+echo "test_commit_staged_deletion_of_claimed_path"
+# Regression (2026-10-14, MDTWII WS380): a claimed file already removed with
+# `git rm` made `git add -A -- <path>` fail "pathspec did not match", so the
+# whole commit died. Its deletion is already staged and must just ride along.
+printf 'src/a.txt\nsrc/gone.txt\n' > "$OUTBOX/claims.txt"
+echo g > "$WT/src/gone.txt"
+git -C "$WT" add src/gone.txt && git -C "$WT" commit -q -m "seed gone"
+git -C "$WT" rm -q src/gone.txt
+echo seven > "$WT/src/a.txt"
+W commit -m "rename" >/dev/null 2>&1
+rc=$?
+[[ $rc -eq 0 ]] && ok "commit with a staged deletion exits 0" || no "commit with a staged deletion exits 0 (rc=$rc)"
+st=$(git -C "$WT" show --name-status --format= HEAD)
+grep -q $'^D\tsrc/gone.txt' <<<"$st" && ok "staged deletion committed" || no "staged deletion committed (got: $st)"
+grep -q $'^M\tsrc/a.txt' <<<"$st" && ok "claimed edit committed with it" || no "claimed edit committed with it (got: $st)"
+printf 'src/a.txt\n' > "$OUTBOX/claims.txt"
+
 echo "test_unknown_subcommand_fails"
 W bogus >/dev/null 2>&1
 [[ $? -ne 0 ]] && ok "unknown subcommand fails" || no "unknown subcommand fails"

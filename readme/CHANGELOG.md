@@ -5,6 +5,13 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-14: fleet commit handles staged deletions
+
+- `fleet commit` and the server worker's `remote-worker.sh commit` no longer abort when a
+  claimed path was already removed with `git rm`. `git add` (with or without `-A`) fails on
+  such a path with "pathspec did not match"; it is now skipped, since its deletion is
+  already staged and rides the commit (found via MDTWII WS380).
+
 ## 2026-10-13: fleet host workers sandboxed, capped, no push
 
 - `fleet land` without `--no-ff` on a moved main now exits 70 with "re-run: fleet land WSxx

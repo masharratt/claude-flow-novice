@@ -414,6 +414,35 @@ test_commit_run_dir_dirt_ignored_by_guard() {
 }
 test_commit_run_dir_dirt_ignored_by_guard
 
+test_commit_staged_deletion_of_claimed_path() {
+    # Regression (2026-10-14, MDTWII WS380): a claimed path already removed
+    # with `git rm` is dirty, so it reached `git add -- <path>`, which fails
+    # with "pathspec did not match any files" and aborted the whole commit.
+    log_step "GIVEN a claimed file removed with git rm, one removed with rm, one added"
+    build_fixture_repo "old.txt gone.txt new.txt"
+    printf 'old\n' > old.txt
+    printf 'gone\n' > gone.txt
+    git add old.txt gone.txt
+    git commit -qm "seed claimed files"
+    git rm -q old.txt          # staged deletion (the WS380 rename case)
+    rm gone.txt                # unstaged deletion
+    printf 'new\n' > new.txt
+
+    expect_code 0 main WS01 -m "rename"
+
+    # The CLI runs under set -e, where a failed git add aborts the commit;
+    # this harness does not, so assert the add itself never failed.
+    assert_not_contains "$(cat "$FIX_ERR")" "pathspec" "git add did not fail on the staged deletion"
+    assert_equals "fleet WS01: rename" "$(git log -1 --pretty=%s)" "commit succeeds with staged deletion"
+    local changes
+    changes=$(git show --name-status --pretty=format: HEAD)
+    assert_contains "$changes" "D	old.txt" "staged deletion committed"
+    assert_contains "$changes" "D	gone.txt" "unstaged deletion committed"
+    assert_contains "$changes" "A	new.txt" "new file committed"
+    assert_equals "" "$(git status --porcelain -uall)" "nothing left dirty"
+}
+test_commit_staged_deletion_of_claimed_path
+
 # shellcheck disable=SC1091
 source "$SKILL_LIB/cmd-migrate-next.sh"
 

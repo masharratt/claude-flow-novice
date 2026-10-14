@@ -138,7 +138,18 @@ cmd_commit() {
   done
   (( ${#changed[@]} > 0 )) || die "commit: nothing claimed has changed (claims: ${CLAIMS[*]})" 65
 
-  git add -A -- "${changed[@]}" || die "commit: git add failed"
+  # A path already removed with `git rm` is in neither the worktree nor the
+  # index, and `git add` fails on it ("pathspec did not match"). Its deletion
+  # is already staged and `git commit -- <paths>` still takes it, so skip it.
+  local to_add=()
+  for p in "${changed[@]}"; do
+    if [[ -e "$p" || -L "$p" ]] || git ls-files --error-unmatch -- "$p" >/dev/null 2>&1; then
+      to_add+=("$p")
+    fi
+  done
+  if (( ${#to_add[@]} > 0 )); then
+    git add -A -- "${to_add[@]}" || die "commit: git add failed"
+  fi
   local margs=() m
   for m in "${msgs[@]}"; do margs+=(-m "$m"); done
   git commit -q "${margs[@]}" -- "${changed[@]}" || die "commit: git commit failed"
