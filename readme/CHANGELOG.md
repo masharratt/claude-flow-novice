@@ -5,6 +5,15 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-14: read-only tmux calls skip the permission prompt
+
+- New PreToolUse hook `cfn-tmux-readonly-allow.sh` (Bash matcher) auto-approves tmux calls
+  that only look: `capture-pane`, `ls`/`list-*`, `has-session`, with optional `-L`/`-S` and
+  pipes into `tail`/`head`/`grep`/`wc`. Anything carrying `;`/`\;` chaining, `#()` formats,
+  substitutions, redirects, globs or quotes in the tmux part stays silent and prompts as
+  before. ~1,000 of the 50 most recent sessions' tmux calls were reads. Tests:
+  `tests/test-tmux-readonly-allow.sh` (never executes a command; mutation-checked).
+
 ## 2026-10-14: fleet commit handles staged deletions
 
 - `fleet commit` and the server worker's `remote-worker.sh commit` no longer abort when a
