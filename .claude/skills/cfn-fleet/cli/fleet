@@ -38,7 +38,13 @@ Subcommands:
                                                 runs dir); --check = versions, login, disk, drift
   sync [WSxx]                                   pull remote worker reports into the roster
   peek WSxx [lines]                             read a worker pane (remote rows over ssh)
-  land WSxx [--no-ff]                           merge/mark landed (host rows: fetch from the
+  nudge WSxx "message" | nudge WSxx --key K [K ...]
+                                                type text + Enter into a worker pane, or press
+                                                named keys (Enter Escape C-u Up Down Tab BTab
+                                                1-9 y n); host rows act over ssh
+  stop WSxx                                     close the worker's tmux session only (worktree,
+                                                branch, claims, files untouched)
+  land WSxx [--no-ff]                          merge/mark landed (host rows: fetch from the
                                                 server, refuse files outside the claims)
   handoff WSxx                                  write HANDOFF_WSxx.md
   db WSxx | db-clean [--all]                    scratch postgres containers

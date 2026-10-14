@@ -84,6 +84,8 @@ STALE/DEAD until `started`).
 | `host-setup <alias> [--check]` | Prepare a server for `spawn --host` (see Remote hosts); idempotent |
 | `sync [WSxx]` | Pull remote workers' reports into the roster (host rows only) |
 | `peek WSxx [lines]` | Print a worker's pane (default 40 lines); host rows read it over ssh |
+| `nudge WSxx "msg"` / `nudge WSxx --key K...` | Type the message literally plus Enter into the worker's pane, or press named keys (`Enter Escape C-u Up Down Tab BTab 1-9 y n`; use these to answer a permission prompt). One ws per call; pending/spawning rows refused (65). Host rows go over ssh. Use this, never raw `tmux send-keys` |
+| `stop WSxx` | Close the worker's tmux session only; worktree, branch, claims, files and roster row stay. Already gone = exit 0. Use this, never raw `tmux kill-session`. `watch` then reports `DEAD <ws> (pane exited)` until you land or reset the row |
 | `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. STALE fires when a started/working row's heartbeat ages past `--stale-min` (default 5 minutes). Heartbeat-only roster diffs never emit `CHANGE` (the spawn ticker rewrites that column every tick). Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
 | `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained live-poll HTML tracking page from the roster (status tiles and meter, filter chips, sort, heartbeat age, engine, claims, now-editing lists, goal blurb, STALE/DEAD badges, transition timeline), served on 127.0.0.1 for VS Code Simple Browser (below) |
 
@@ -593,8 +595,9 @@ unclaimed dirt and committed with `--force-with-note`, so the commits stayed pat
 
 - **`tmux send-keys "<text>" Enter` in one call leaves the text sitting unsent in the
   Claude Code prompt** when the worker is mid-turn; the roster then shows the worker idle with
-  the message visible in its input box. Send the text, `sleep 1`, then send `Enter` as a
-  separate `send-keys`, and confirm with `capture-pane` that a spinner line follows the prompt.
+  the message visible in its input box. `fleet nudge WSxx "<text>"` already sends the text,
+  pauses 1s (`FLEET_NUDGE_DELAY`), then sends `Enter` separately; confirm with `fleet peek`
+  that a spinner line follows the prompt.
 - **After rebasing the integration base, a lane that forked from the OLD base must be rebased
   with `--onto <base> <old fork point>`.** A plain `git rebase <base>` replays the whole old
   history (every earlier lane and the base's own commits) and hits the same hot-file conflicts

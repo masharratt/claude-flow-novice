@@ -5,6 +5,19 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-14: fleet nudge and fleet stop replace raw tmux
+
+- `fleet nudge WSxx "msg"` types text literally (`send-keys -l`) then Enter; `fleet nudge WSxx
+  --key K...` presses allowlisted keys only (`Enter Escape C-u Up Down Tab BTab 1-9 y n`).
+  `fleet stop WSxx` closes only the worker's tmux session (idempotent; worktree, branch,
+  claims and roster row untouched). Both match the session exactly (`=name`, so `ws01` never
+  hits `ws010`), refuse rows with no session yet (65: pending, or a host row not yet
+  launched; a local spawning row already has its session and is reachable), report an unreachable host (66), and act
+  over ssh for host rows. The master used raw `tmux send-keys`/`kill-session` ~670 times in
+  50 sessions, each a permission prompt. `peek`, `nudge` and `stop` share one
+  `_fleet_pane_target` resolver in `lib/cmd-peek.sh`. Tests: `tests/test-cfn-fleet-nudge-stop.sh`
+  (private tmux socket and throwaway run dir).
+
 ## 2026-10-14: read-only tmux calls skip the permission prompt
 
 - New PreToolUse hook `cfn-tmux-readonly-allow.sh` (Bash matcher) auto-approves tmux calls

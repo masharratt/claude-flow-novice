@@ -23,32 +23,44 @@ _fleet_peek_no_session() {
 # shellcheck source=cmd-sync.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cmd-sync.sh"
 
-fleet_peek() {
-  local ws="$1" lines="$2" host sock session rc=0 status
+# _fleet_pane_target WS VERB: resolve WS to the tmux target shared by peek,
+# nudge and stop. Sets _PT_HOST (empty = local), _PT_SOCK, _PT_SESSION and
+# _PT_STATUS. Dies 65 for an unknown ws or a row with no session yet.
+_fleet_pane_target() {
+  local ws="$1" verb="$2"
   roster_exists "$ws" || fleet_die 65 "unknown workstream: $ws"
-  host=$(roster_get "$ws" host)
-  status=$(roster_get "$ws" status)
-  if [ -n "$host" ]; then
+  _PT_HOST=$(roster_get "$ws" host)
+  _PT_STATUS=$(roster_get "$ws" status)
+  if [ -n "$_PT_HOST" ]; then
     if ! _fleet_remote_env_load "$ws"; then
       # pending or spawning: the launch has not written remote/<WS>.env yet.
-      _fleet_peek_no_session "$ws" "$status"
-      fleet_die 65 "peek: no remote env for $ws (was it spawned with --host?)"
+      _fleet_peek_no_session "$ws" "$_PT_STATUS"
+      fleet_die 65 "$verb: no remote env for $ws (was it spawned with --host?)"
     fi
-    sock="$_RE_FLEET_SOCK"
-    session="$_RE_FLEET_SESSION"
+    _PT_SOCK="$_RE_FLEET_SOCK"
+    _PT_SESSION="$_RE_FLEET_SESSION"
   else
-    sock=$(_fleet_tmux_socket)
-    session=$(roster_get "$ws" name)
-    [ -n "$session" ] || session=$(printf '%s' "$ws" | tr '[:upper:]' '[:lower:]')
+    # A local `spawning` row already has its session (spawn creates it, then
+    # clears the trust and startup prompts), so only `pending` is refused here.
+    [ "$_PT_STATUS" != pending ] || _fleet_peek_no_session "$ws" "$_PT_STATUS"
+    _PT_SOCK=$(_fleet_tmux_socket)
+    _PT_SESSION=$(roster_get "$ws" name)
+    [ -n "$_PT_SESSION" ] || _PT_SESSION=$(printf '%s' "$ws" | tr '[:upper:]' '[:lower:]')
   fi
-  _fleet_pane_capture "$host" "$sock" "$session" "$lines" || rc=$?
+  return 0
+}
+
+fleet_peek() {
+  local ws="$1" lines="$2" rc=0
+  _fleet_pane_target "$ws" peek
+  _fleet_pane_capture "$_PT_HOST" "$_PT_SOCK" "$_PT_SESSION" "$lines" || rc=$?
   case "$rc" in
     0) ;;
     "$_FLEET_SSH_FAIL_RC"|"$_FLEET_TIMEOUT_RC")
-      fleet_die 66 "peek: host $host is unreachable" ;;
+      fleet_die 66 "peek: host $_PT_HOST is unreachable" ;;
     *)
-      _fleet_peek_no_session "$ws" "$status"
-      fleet_die 65 "peek: no pane for $ws (session '$session' not found)" ;;
+      _fleet_peek_no_session "$ws" "$_PT_STATUS"
+      fleet_die 65 "peek: no pane for $ws (session '$_PT_SESSION' not found)" ;;
   esac
   return 0
 }
