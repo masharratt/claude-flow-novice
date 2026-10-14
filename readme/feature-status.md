@@ -342,7 +342,7 @@ These legacy notes are preserved for reconciliation; they are not current runtim
 <!-- wiki:enrich id=orphan-feature-19 fp=orphan -->
 **Row:** Z.ai worker folder fence (zai-fence.sh)
 
-**Description:** dev. glm (z.ai) workers launch under a macOS sandbox-exec profile: read/write only their repo root plus Claude Code state; home, other projects, keys, Keychain, gh, tmux/docker sockets and in-repo hook/settings files are refused. Fails closed. 31 probe tests; offline TUI smoke, no live z.ai run yet.
+**Description:** dev. glm (z.ai) workers launch under a macOS sandbox-exec profile: read/write only their repo root plus Claude Code state; home, other projects, keys, Keychain, gh, tmux/docker sockets and in-repo hook/settings files are refused. Fails closed. fleet CLI on PATH. 32 probe tests; offline TUI smoke, no live z.ai run yet.
 <!-- /wiki:enrich -->
 
 <!-- wiki:enrich id=orphan-feature-2 fp=orphan -->

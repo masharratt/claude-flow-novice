@@ -26,7 +26,8 @@
 #      ~/.config/gh; connects to tmux / docker / orbstack sockets; Keychain mach
 #      services; Apple Events; LaunchServices.
 # Env: SSH_AUTH_SOCK, GH_TOKEN, GITHUB_TOKEN, TMUX, TMUX_PANE unset;
-#      DISABLE_AUTOUPDATER=1; TMPDIR + CLAUDE_CODE_TMPDIR = per-worker temp dir.
+#      DISABLE_AUTOUPDATER=1; TMPDIR + CLAUDE_CODE_TMPDIR = per-worker temp dir;
+#      ~/.claude/skills/cfn-fleet/cli prepended to PATH when present.
 # When the command's basename is `claude`, appends
 #   --settings '{"sandbox":{"enabled":false}}'  (nested sandbox-exec is refused).
 #
@@ -197,6 +198,9 @@ printf '%s\n' "$PROFILE" > "$PFILE" || die "cannot write profile $PFILE"
 
 unset SSH_AUTH_SOCK GH_TOKEN GITHUB_TOKEN TMUX TMUX_PANE
 export DISABLE_AUTOUPDATER=1 TMPDIR="$WTMP/" CLAUDE_CODE_TMPDIR="$WTMP"
+# fleet workers heartbeat/claim/commit by bare name; the cli dir is already readable via step 2
+FLEET_CLI="$HOME/.claude/skills/cfn-fleet/cli"
+[ -x "$FLEET_CLI/fleet" ] && export PATH="$FLEET_CLI:$PATH"
 
 shift
 set -- "$CMD_PATH" "$@"

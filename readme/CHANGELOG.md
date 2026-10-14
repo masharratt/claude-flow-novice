@@ -5,6 +5,14 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-10-14: fenced glm workers find `fleet` on PATH
+
+- `zai-fence.sh` now prepends `~/.claude/skills/cfn-fleet/cli` to the worker's PATH when the
+  CLI is present. The fence already allowed reading that dir (symlink targets of `~/.claude`),
+  so a full-path call worked, but a bare `fleet` was not found: a GLM worker in MDTWII (WS404)
+  fell back to plain `git commit`, losing the claims guard and heartbeats. No new access.
+  Test: `fleet_on_path` in `tests/test-zai-fence.sh` (32 probes).
+
 ## 2026-10-14: fleet nudge and fleet stop replace raw tmux
 
 - `fleet nudge WSxx "msg"` types text literally (`send-keys -l`) then Enter; `fleet nudge WSxx

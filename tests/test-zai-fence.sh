@@ -272,6 +272,21 @@ test_claude_gets_settings_flag(){
   else no "non_claude_no_settings_flag: rc=$RC unexpected=[${unexpected[*]}] out=$(head -c 300 <<<"$OUT")"; fi
 }
 
+# Fence workers must reach the fleet CLI by bare name (heartbeat, claim, commit).
+# Seen 2026-10-14: a GLM worker in MDTWII found `fleet` on no PATH and fell back to
+# plain git, losing the claims guard and heartbeats.
+test_fleet_on_path(){
+  local want="$HOME/.claude/skills/cfn-fleet/cli"
+  OUT=$(cd "$FENCE" && env PATH=/usr/bin:/bin "$WRAP" /bin/bash -c \
+    'echo PROBE_RAN; command -v fleet; fleet --help 2>&1 | grep -q "^Usage: fleet" && echo FLEET_RAN' 2>&1); RC=$?
+  local missing=()
+  grep -q PROBE_RAN <<<"$OUT" || missing+=("probe-ran")
+  grep -qxF "$want/fleet" <<<"$OUT" || missing+=("fleet-resolves-to=$want/fleet")
+  grep -q FLEET_RAN <<<"$OUT" || missing+=("fleet-help-ran")
+  if [ "$RC" -eq 0 ] && [ "${#missing[@]}" -eq 0 ]; then ok "fleet_on_path"
+  else no "fleet_on_path: rc=$RC missing=[${missing[*]}] out=$(head -c 300 <<<"$OUT")"; fi
+}
+
 # ---------------------------------------------------------------------------
 test_wrapper_present
 test_other_project_blocked
@@ -286,6 +301,7 @@ test_tls_to_zai_allowed
 test_fail_closed_no_sandbox_exec
 test_fail_closed_cwd_home
 test_claude_gets_settings_flag
+test_fleet_on_path
 
 echo
 echo "unexpected_allowed=[${UNEXPECTED_ALLOWED[*]}]"
