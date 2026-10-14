@@ -240,6 +240,24 @@ contains "message says still spawning" "$ERR" "spawning"
 check "Mac HEAD unchanged for a spawning row" "$(git -C "$REPO" rev-parse HEAD)" "$BEFORE"
 check "status still spawning" "$(awk -F'\t' '$1=="WS01"{print $4}' "$RUN_DIR/roster.tsv")" "spawning"
 
+echo "== test_land_remote_moved_main_names_no_ff"
+# MDTWII WS363: main moved on after the lane branched, a plain land failed with
+# git's bare "Not possible to fast-forward", and the next step was unclear.
+build_fixture moved "a.md" no
+printf 'm\n' >"$REPO/main-only.md"
+git -C "$REPO" add -A && git -C "$REPO" commit -qm "main moves on"
+BEFORE=$(git -C "$REPO" rev-parse HEAD)
+run_land WS01
+check "plain land on a moved main exits 70" "$RC" "70"
+contains "refusal tells you to re-run with --no-ff" "$ERR" "fleet land WS01 --no-ff"
+check "Mac HEAD unchanged on the refused fast-forward" "$(git -C "$REPO" rev-parse HEAD)" "$BEFORE"
+[ -d "$SRV_WT" ] && ok "remote worktree kept for the re-run" || no "remote worktree removed on refusal"
+grep -q kill-session "$STUB_LOG" && no "server session killed on refusal" || ok "server session left running"
+run_land WS01 --no-ff
+check "re-run with --no-ff exits 0" "$RC" "0"
+[ "$(git -C "$REPO" show HEAD:a.md 2>/dev/null)" = "new" ] && ok "lane merged on the re-run" || no "a.md not merged (err: $ERR)"
+[ -d "$SRV_WT" ] && no "remote worktree still present after the re-run" || ok "remote worktree removed after the re-run"
+
 echo "== test_land_local_uses_fleet_worktree_path"
 # Local row (empty host) in worktree mode: same behaviour as before.
 LBASE="$TMP_DIR/local"
@@ -272,6 +290,10 @@ git -C "$REPO/.claude/worktrees/ws01" add -A && git -C "$REPO/.claude/worktrees/
 printf 'z\n' >"$REPO/other-main.md"
 git -C "$REPO" add -A && git -C "$REPO" commit -qm "main moves"
 awk -F'\t' -v OFS='\t' -v t="$LONG_TASK" 'NR>1 && $1=="WS01" { $3=t; $4="working"; $5="m.md" } { print }' "$RUN_DIR/roster.tsv" >"$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+run_land WS01
+check "local plain land on a moved main exits 70" "$RC" "70"
+contains "local refusal tells you to re-run with --no-ff" "$ERR" "fleet land WS01 --no-ff"
+[ -d "$REPO/.claude/worktrees/ws01" ] && ok "local worktree kept for the re-run" || no "local worktree removed on refusal"
 run_land WS01 --no-ff
 check "local no-ff land exits 0" "$RC" "0"
 SUBJ=$(git -C "$REPO" log -1 --format=%s)

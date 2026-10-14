@@ -144,9 +144,12 @@ remote_land() {
     _land_msg_args "$ws"
     git -C "$repo" merge --no-ff "$head_ref" -m "$_LAND_MSG_SUBJECT" -m "$_LAND_MSG_BODY" >/dev/null || mrc=$?
   else
-    git -C "$repo" merge --ff-only "$head_ref" >/dev/null || mrc=$?
+    git -C "$repo" merge --ff-only "$head_ref" >/dev/null 2>&1 || mrc=$?
   fi
   _land_drop_refs
+  if [ "$mrc" -ne 0 ] && [ "$no_ff" -eq 0 ]; then
+    fleet_die 70 "land: $FLEET_BRANCH cannot fast-forward (main moved on since $ws branched); re-run: fleet land $ws --no-ff. Remote state left as is"
+  fi
   [ "$mrc" -eq 0 ] || fleet_die 70 "land: merge of $FLEET_BRANCH into the current branch failed (rc $mrc); remote state left as is"
   roster_set "$ws" lane_sha "$lane_sha"
 }
@@ -232,11 +235,16 @@ main() {
     [ -d "$wt" ] || fleet_die 65 "land: no worktree at $wt (nothing to merge)"
     [ -z "$(git -C "$wt" status --porcelain)" ] \
       || fleet_die 66 "land: worktree $wt has uncommitted changes; commit or clean first"
+    # A failed merge must stop here: removing the worktree and marking the row
+    # landed would report unmerged work as done.
+    local lrc=0
     if [ "$no_ff" -eq 1 ]; then
       _land_msg_args "$ws"
-      git -C "$repo" merge --no-ff "$branch" -m "$_LAND_MSG_SUBJECT" -m "$_LAND_MSG_BODY" >/dev/null
+      git -C "$repo" merge --no-ff "$branch" -m "$_LAND_MSG_SUBJECT" -m "$_LAND_MSG_BODY" >/dev/null || lrc=$?
+      [ "$lrc" -eq 0 ] || fleet_die 70 "land: merge of $branch failed (rc $lrc); worktree $wt kept"
     else
-      git -C "$repo" merge --ff-only "$branch" >/dev/null
+      git -C "$repo" merge --ff-only "$branch" >/dev/null 2>&1 || lrc=$?
+      [ "$lrc" -eq 0 ] || fleet_die 70 "land: $branch cannot fast-forward (main moved on since $ws branched); re-run: fleet land $ws --no-ff. Worktree $wt kept"
     fi
     git -C "$repo" worktree remove "$wt" >/dev/null
   else

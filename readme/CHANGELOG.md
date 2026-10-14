@@ -7,6 +7,9 @@ feature set. The current status of each feature lives in
 
 ## 2026-10-13: fleet host workers sandboxed, capped, no push
 
+- `fleet land` without `--no-ff` on a moved main now exits 70 with "re-run: fleet land WSxx
+  --no-ff" and keeps the worktree. Worktree mode used to ignore the failed fast-forward,
+  remove the worktree and mark the unmerged lane landed (found via MDTWII WS363).
 - `fleet spawn --host` creates the lane branch with `--no-track`, so it no longer writes to
   the fleet clone's shared `.git/config`. A neighbouring lane holding that file's lock made
   a spawn fail with "unable to write upstream branch configuration" (MDTWII WS365).
