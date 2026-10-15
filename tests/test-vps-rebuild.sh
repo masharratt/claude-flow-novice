@@ -10,14 +10,8 @@ set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 SCRIPT="$PROJECT_ROOT/.claude/cfn-scripts/vps-rebuild.sh"
 
-# safe-rm.sh is landing in a parallel change; until it is committed, fall back
-# to a delete that only ever matches this test's own mktemp pattern.
-if [ -f "$PROJECT_ROOT/.claude/cfn-scripts/lib/safe-rm.sh" ]; then
-  # shellcheck source=../.claude/cfn-scripts/lib/safe-rm.sh
-  source "$PROJECT_ROOT/.claude/cfn-scripts/lib/safe-rm.sh"
-else
-  cfn_safe_rm_tmp() { case "$1" in */vps-rebuild.??????) rm -rf -- "$1" ;; *) echo "refusing to delete $1" >&2; return 1 ;; esac; }
-fi
+# shellcheck source=../.claude/cfn-scripts/lib/safe-rm.sh
+source "$PROJECT_ROOT/.claude/cfn-scripts/lib/safe-rm.sh"
 
 TEST_TMP=$(mktemp -d "${TMPDIR:-/tmp}/vps-rebuild.XXXXXX") || exit 1
 TEST_TMP=$(cd -P "$TEST_TMP" && pwd -P) || exit 1
