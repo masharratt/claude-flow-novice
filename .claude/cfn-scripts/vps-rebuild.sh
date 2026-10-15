@@ -170,6 +170,7 @@ while read -r p; do
   [ -n "$p" ] && [ "$p" != code-server ] || continue
   if apt-cache show "$p" >/dev/null 2>&1; then want+=("$p"); else missing+=("$p"); fi
 done < /tmp/rebuild-stage/system/apt-manual.txt
+want+=(redis-tools)  # redis-cli for the agent mailbox (cfn-mailbox), even if the bundle predates it
 sudo apt-get install -yq "${want[@]}"
 [ ${#missing[@]} -eq 0 ] || echo "WARN not in any repo, skipped: ${missing[*]}"
 if [ "$(dpkg-query -W -f='${Version}' code-server 2>/dev/null)" != "$CS" ]; then

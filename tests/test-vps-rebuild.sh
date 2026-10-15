@@ -113,6 +113,9 @@ echo "bwrap sandbox allowed (2026-10-15: fleet spawn --host refused without it)"
 check_has "packages adds the bwrap AppArmor profile" "$(cat "$SCRIPT")" "/etc/apparmor.d/bwrap"
 check_has "check verifies bwrap" "$(cat "$SCRIPT")" "bwrap sandbox works"
 
+echo "agent mailbox client (2026-10-15: mailbox.sh needs redis-cli on the server)"
+check_has "packages installs redis-tools" "$(cat "$SCRIPT")" "want+=(redis-tools)"
+
 echo "public-repo hygiene"
 body=$(cat "$SCRIPT")
 check_lacks "no IPv4 address literal" "$(echo "$body" | grep -E '([0-9]{1,3}\.){3}[0-9]{1,3}' | grep -vE '127\.0\.0\.1|0\.0\.0\.0' || true)" "."

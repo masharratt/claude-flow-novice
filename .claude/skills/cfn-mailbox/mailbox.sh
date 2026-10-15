@@ -302,6 +302,9 @@ emit_msgs() {
   local json="$1" key="$2" sender="$3" tier lines
   EMIT_COUNT=0; EMIT_LAST=""; EMIT_IDS=""
   case "$json" in ''|null) return 0 ;; esac
+  # redis-cli 8 --json (RESP3) returns {"key":[...]}; older/RESP2 returns [["key",[...]]].
+  json="$(printf '%s' "$json" | jq -c 'if type == "object" then [to_entries[] | [.key, .value]] else . end')" \
+    || die 18 "unreadable reply while reading $key"
   tier=outside; [ "$sender" = "$MAILBOX_OWNER" ] && tier=teammate
   lines="$(printf '%s' "$json" | jq -c --arg key "$key" --arg tier "$tier" --arg sender "$sender" '
     (.[0][1] // [])[]

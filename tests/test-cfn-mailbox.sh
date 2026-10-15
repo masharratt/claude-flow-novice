@@ -441,6 +441,19 @@ test_read_session() {
   assert_eq "yes" "$(has_cmd 'EX 2592000' && echo yes)" "marker has an expiry"
 }
 
+test_read_object_reply() {
+  # Regression 2026-10-15: redis-cli 8 --json against Upstash returns XREAD/XREADGROUP as an
+  # object keyed by stream ({"key":[[id,[f,v,...]]]}), not [[key,[...]]]; read exited 18.
+  new_case "read: object-shaped stream reply (real redis-cli 8 + Upstash)"
+  local obj
+  obj='{"mbx:michael:s:abc:from:michael":[["1700000000003-0",["from","michael/s/zzz","to","michael/s/abc","kind","ask","body","object shape","sent_at","1","thread","t3","hops","0"]]]}'
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' "$obj"
+  mb read --as michael/s/abc
+  assert_rc 0 "ok"
+  assert_eq "object shape" "$(printf '%s' "$OUT" | jq -r -s '.[0].body')" "body parsed from object reply"
+  assert_eq "yes" "$(has_cmd 'SET seen:michael:abc:' && has_cmd '1700000000003-0' && echo yes)" "marker advanced from object reply"
+}
+
 test_read_uses_marker() {
   new_case "read session: resumes from stored marker"
   rule 'GET seen:michael:abc:*' '1700000000000-5'
@@ -686,6 +699,7 @@ run_offline() {
   test_read_project_ack_after_print
   test_read_busygroup_tolerated
   test_read_session
+  test_read_object_reply
   test_read_uses_marker
   test_read_rooms
   test_read_person_default
