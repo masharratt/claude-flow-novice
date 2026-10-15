@@ -32,7 +32,7 @@ export COPYFILE_DISABLE=1  # stop macOS tar adding ._ files
 PHASES="plan bootstrap harden packages home tools repos services check list-home list-projects"
 
 # Rebuildable or worthless paths inside the bundle, never restored.
-JUNK_RE='/\.claude/worktrees/|chrome-signed/(optimization_guide_model_store|WasmTtsEngine|Default/Extensions|Safe Browsing|component_crx_cache|Default/Service Worker|OnDeviceHeadSuggestModel|screen_ai|Crowd Deny|ZxcvbnData|hyphen-data)|/drones$'
+JUNK_RE='/\.claude/worktrees/|/\.local-stack/|chrome-signed/(optimization_guide_model_store|WasmTtsEngine|Default/Extensions|Safe Browsing|component_crx_cache|Default/Service Worker|OnDeviceHeadSuggestModel|screen_ai|Crowd Deny|ZxcvbnData|hyphen-data)|/drones$'
 
 usage() { sed -n '/^# Usage:/,/^# Exit codes/p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 64; }
 die() { echo "vps-rebuild: $1" >&2; exit "${2:-1}"; }

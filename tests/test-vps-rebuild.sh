@@ -107,6 +107,14 @@ echo "docker ports are firewalled (2026-10-15: supabase on 0.0.0.0 bypassed ufw)
 check_has "harden adds the DOCKER-USER drop block" "$(cat "$SCRIPT")" "BEGIN cfn docker-user"
 check_has "check verifies the DOCKER-USER drop" "$(cat "$SCRIPT")" "docker ports blocked publicly"
 
+echo "local dev-stack runtime state is not restored"
+# Regression 2026-10-15: a restored .local-stack migration ledger told a fresh
+# database every migration was applied, so stack:up skipped them all.
+mkdir -p "$B/projects/demo/.local-stack"
+echo applied > "$B/projects/demo/.local-stack/applied-migrations.txt"
+run vps "$B" list-projects
+check_lacks "drops .local-stack state" "$OUT" ".local-stack"
+
 echo "public-repo hygiene"
 body=$(cat "$SCRIPT")
 check_lacks "no IPv4 address literal" "$(echo "$body" | grep -E '([0-9]{1,3}\.){3}[0-9]{1,3}' | grep -vE '127\.0\.0\.1|0\.0\.0\.0' || true)" "."
