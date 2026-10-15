@@ -29,6 +29,12 @@ jobs:
       - name: Shell portability gate
         run: bash tests/test-shell-portability.sh
 
+      - name: Unsafe temp-delete lint
+        run: bash tests/test-unsafe-rm-patterns.sh
+
+      - name: Temp-delete guard unit test (cfn_safe_rm_tmp)
+        run: bash tests/test-safe-rm-tmp.sh
+
       - name: Shell syntax gate
         run: bash tests/test-shell-syntax.sh
 
@@ -251,6 +257,12 @@ jobs:
 
       - name: Shell portability gate
         run: bash tests/test-shell-portability.sh
+
+      - name: Unsafe temp-delete lint
+        run: bash tests/test-unsafe-rm-patterns.sh
+
+      - name: Temp-delete guard unit test (cfn_safe_rm_tmp)
+        run: bash tests/test-safe-rm-tmp.sh
 
       - name: Shell syntax gate
         run: bash tests/test-shell-syntax.sh

@@ -15,7 +15,8 @@ source "$PROJECT_ROOT/tests/test-utils.sh"
 # the ok/no counters instead of aborting the suite at the first failure.
 set +e
 
-TMP=$(cd "$(mktemp -d "${TMPDIR:-/tmp}/fleet-roster-test-XXXXXX")" && pwd -P)  # macOS: /var is /private/var; fleet prints the physical path
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/fleet-roster-test-XXXXXX") || exit 1
+TMP=$(cd -P "$TMP" && pwd -P) || exit 1  # macOS: /var is /private/var; fleet prints the physical path
 P="$TMP/proj"   # fake target project the fleet commands run against
 FLEET="$PROJECT_ROOT/.claude/skills/cfn-fleet/cli/fleet"
 
@@ -23,7 +24,7 @@ PASS=0
 FAIL=0
 ok(){ echo "PASS: $1"; PASS=$((PASS+1)); }
 no(){ echo "FAIL: $1"; FAIL=$((FAIL+1)); }
-cleanup(){ rm -rf "$TMP"; }
+cleanup(){ cfn_safe_rm_tmp "$TMP"; }
 trap cleanup EXIT
 
 FIXNUM=0

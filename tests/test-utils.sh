@@ -532,19 +532,24 @@ generate_test_id() {
 # Usage: tmpdir=$(create_temp_dir)
 create_temp_dir() {
     local tmpdir
-    tmpdir=$(mktemp -d -t cfn-test.XXXXXX)
+    tmpdir=$(mktemp -d -t cfn-test.XXXXXX) || return 1
     echo "$tmpdir"
 }
 
-# Cleanup temporary directory
+# cfn_safe_rm_tmp: the one guarded way to delete a temp dir (refuses /, $HOME,
+# the cwd, a git toplevel, anything outside the temp roots). Incident 2026-10-15.
+# shellcheck source=/dev/null
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.claude/cfn-scripts/lib/safe-rm.sh"
+
+# Cleanup temporary directory (delegates to cfn_safe_rm_tmp; non-zero on refusal)
 # Usage: cleanup_temp_dir "$tmpdir"
 cleanup_temp_dir() {
-    local tmpdir="$1"
+    local tmpdir="${1:-}"
 
     if [ -d "$tmpdir" ]; then
         log_info "Removing temp directory: $tmpdir"
-        rm -rf "$tmpdir"
     fi
+    cfn_safe_rm_tmp "$tmpdir"
 }
 
 # ============================================================================
@@ -788,6 +793,7 @@ export -f redis_wait_for_key verify_redis_health
 export -f wait_for_container cleanup_container get_container_logs is_container_running
 export -f container_exec ensure_network cleanup_network
 export -f setup_test teardown_test print_test_summary generate_test_id create_temp_dir cleanup_temp_dir
+export -f cfn_safe_rm_tmp _cfn_saferm_resolve _cfn_saferm_covers _cfn_saferm_reason
 export -f wait_for_condition retry print_test_usage
 
 # If sourced with --help, print usage

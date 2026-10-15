@@ -9,6 +9,11 @@ These standards apply to every shell-based test (Docker, CLI, Task mode, etc.) a
 - Use `cleanup()` + `trap cleanup EXIT` whenever containers, worktrees, temp dirs, or env files are created. Clean up even when tests fail.
 - Route noisy commands through helpers like `log_step`, `log_info`, `annotate`, or `assert_success` to keep CI logs searchable.
 
+## Temp Dirs (incident 2026-10-15: a test deleted the repo)
+- Always `T=$(mktemp -d ...) || exit 1`, then `T=$(cd -P "$T" && pwd -P) || exit 1`. Never `cd "$(mktemp ...)"`: a failed mktemp makes it `cd ""`.
+- Delete temp dirs only via `cfn_safe_rm_tmp "$T"` (`tests/test-utils.sh` or `.claude/cfn-scripts/lib/safe-rm.sh`).
+- CI lint: `tests/test-unsafe-rm-patterns.sh` (baselines in `tests/fixtures/`).
+
 ## Comments & Context
 - Add a short docstring block below the shebang summarizing the scenario, related bugs/JIRA tickets, and which execution phase owns the test.
 - Inside each test function, cluster comments using **GIVEN / WHEN / THEN** markers only where logic would otherwise be non-obvious. Avoid narrating trivial commands.

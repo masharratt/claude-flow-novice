@@ -18,8 +18,9 @@ WORKER_SRC="$TPL/remote-worker.sh"
 BRIEF="$TPL/BRIEF_REMOTE.md"
 
 # pwd -P: macOS reports mktemp dirs under /private/var.
-TMP=$(cd "$(mktemp -d "${TMPDIR:-/tmp}/fleet-remote-worker-XXXXXX")" && pwd -P)
-trap 'rm -rf "$TMP"' EXIT
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/fleet-remote-worker-XXXXXX") || exit 1
+TMP=$(cd -P "$TMP" && pwd -P) || exit 1
+trap 'cfn_safe_rm_tmp "$TMP"' EXIT
 
 PASS=0
 FAIL=0

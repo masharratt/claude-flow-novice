@@ -19,7 +19,8 @@ PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
 SKILL_DIR="$PROJECT_ROOT/.claude/skills/cfn-fleet"
-TMP_DIR=$(cd "$(mktemp -d "${TMPDIR:-/tmp}/cfn-fleet-spawn-host.XXXXXX")" && pwd -P)
+TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/cfn-fleet-spawn-host.XXXXXX") || exit 1
+TMP_DIR=$(cd -P "$TMP_DIR" && pwd -P) || exit 1
 trap 'cleanup_temp_dir "$TMP_DIR"' EXIT
 
 STUB_LOG="$TMP_DIR/stub-calls.log"

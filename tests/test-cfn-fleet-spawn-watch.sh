@@ -30,7 +30,8 @@ source "$PROJECT_ROOT/tests/test-utils.sh"
 
 SKILL_DIR="$PROJECT_ROOT/.claude/skills/cfn-fleet"
 
-TMP_DIR=$(cd "$(mktemp -d -t cfn-fleet-agentc.XXXXXX)" && pwd -P)  # macOS: /var is /private/var; spawn reports the physical path
+TMP_DIR=$(mktemp -d -t cfn-fleet-agentc.XXXXXX) || exit 1
+TMP_DIR=$(cd -P "$TMP_DIR" && pwd -P) || exit 1  # macOS: /var is /private/var; spawn reports the physical path
 DOCKER_CONTAINERS=()
 cleanup() {
     local c
