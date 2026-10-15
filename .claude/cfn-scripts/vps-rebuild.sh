@@ -203,7 +203,8 @@ nvm install "$NODE" >/dev/null && nvm alias default "$NODE" >/dev/null
 npm i -g "pnpm@$PNPM" "@openai/codex@$CODEX" >/dev/null
 [ -x ~/.cargo/bin/rustup ] || curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile default
 ~/.cargo/bin/rustup component add clippy rustfmt >/dev/null
-[ -x ~/.local/bin/uv ] || curl -fsSL https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh >/dev/null
+# Let the uv installer write ~/.local/bin/env: the restored .profile sources it.
+[ -x ~/.local/bin/uv ] && [ -f ~/.local/bin/env ] || curl -fsSL https://astral.sh/uv/install.sh | sh >/dev/null
 [ -x ~/.fly/bin/flyctl ] || curl -fsSL https://fly.io/install.sh | FLYCTL_INSTALL="$HOME/.fly" sh >/dev/null
 [ -x ~/.local/bin/claude ] || curl -fsSL https://claude.ai/install.sh | bash >/dev/null
 if [ -n "$SB" ] && [ "$(~/.local/bin/supabase --version 2>/dev/null)" != "$SB" ]; then
