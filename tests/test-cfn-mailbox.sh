@@ -25,6 +25,8 @@ CASES=0
 CASE_NAME=""
 # shellcheck source=/dev/null
 . "$REPO/.claude/cfn-scripts/lib/safe-rm.sh"
+# shellcheck source=/dev/null
+. "$REPO/tests/lib/fake-redis-cli.sh"
 SCRATCH="$(mktemp -d "${TMPDIR:-/tmp}/cfn-mailbox-test.XXXXXX")" || exit 1
 SCRATCH="$(cd -P "$SCRATCH" && pwd -P)" || exit 1
 trap 'cfn_safe_rm_tmp "$SCRATCH"' EXIT
@@ -59,52 +61,7 @@ new_case() { # name
   : > "$T/calls"
   : > "$T/rules"
   : > "$T/authenv"
-  cat > "$T/bin/redis-cli" <<'STUB'
-#!/usr/bin/env bash
-# Fake redis-cli. Records, then answers from $FAKE_RULES (glob<TAB>reply, first match wins).
-set -u
-{ printf 'ARGV'; for a in "$@"; do printf '\t%s' "$a"; done; printf '\n'; } >> "$FAKE_LOG"
-printf '%s\n' "${REDISCLI_AUTH:-}" >> "$FAKE_LOG.authenv"
-json=0
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --tls|--no-auth-warning) shift ;;
-    --json) json=1; shift ;;
-    -h|-p|--user) shift 2 ;;
-    *) break ;;
-  esac
-done
-stdin="$(cat)"
-joined="$*"
-[ -n "$stdin" ] && printf 'STDIN\t%s\n' "$stdin" >> "$FAKE_LOG" && joined="STDIN $stdin"
-printf 'CMD\t%s\n' "$joined" >> "$FAKE_LOG"
-reply=""; matched=0
-while IFS=$'\t' read -r pat rep; do
-  [ -z "$pat" ] && continue
-  # shellcheck disable=SC2254
-  case "$joined" in $pat) reply="$rep"; matched=1; break ;; esac
-done < "$FAKE_RULES"
-if [ "$matched" = 0 ]; then
-  cmd="$(printf '%s' "${1:-}" | tr '[:lower:]' '[:upper:]')"
-  case "$cmd" in
-    INCR) reply=1 ;;
-    XADD) reply="1700000000000-0" ;;
-    PING) reply=PONG ;;
-    EXPIRE|DEL|XACK|HSET) reply=1 ;;
-    XREAD|XREADGROUP) reply=null ;;
-    XREVRANGE|HGETALL) reply="[]" ;;
-    GET|HGET) reply="" ;;
-    *) reply=OK ;;
-  esac
-  [ "$cmd" = ACL ] || [ "${1:-}" = "" ] && reply=OK
-  case "$joined" in "ACL GENTOKEN"*) reply="${FAKE_TOKEN:-tok}" ;; esac
-fi
-case "$reply" in
-  '!EXIT:'*) rest="${reply#!EXIT:}"; code="${rest%%:*}"; printf '%s\n' "${rest#*:}" >&2; exit "$code" ;;
-esac
-printf '%b\n' "$reply"
-STUB
-  chmod +x "$T/bin/redis-cli"
+  install_fake_redis_cli "$T/bin"
   cat > "$T/env" <<EOF
 MAILBOX_HOST=mbx.example.test
 MAILBOX_PORT=6379
@@ -537,6 +494,59 @@ test_join_leave() {
   assert_rc 10 "invalid room"
 }
 
+test_read_max_and_peek() {
+  new_case "read --max: caps COUNT across the whole call"
+  mb read --as michael/s/abc --max 5
+  assert_rc 0 "ok"
+  assert_eq "yes" "$(has_cmd 'XREAD COUNT 5 STREAMS mbx:michael:s:abc:from:michael' && echo yes)" "COUNT 5 on first key"
+  mb read --as michael/s/abc --max 0; assert_rc 2 "--max 0 refused"
+  mb read --as michael/s/abc --max x; assert_rc 2 "--max must be a number"
+
+  new_case "read --max: later keys get what is left, none when exhausted"
+  rule 'XREAD COUNT 3 STREAMS mbx:michael:s:abc:from:michael *' '[["mbx:michael:s:abc:from:michael",[["1700000000001-0",["from","michael/s/x","kind","fyi","body","a"]],["1700000000002-0",["from","michael/s/x","kind","fyi","body","b"]],["1700000000003-0",["from","michael/s/x","kind","fyi","body","c"]]]]]'
+  mb read --as michael/s/abc --max 3
+  assert_rc 0 "ok"
+  assert_eq "no" "$(has_cmd 'STREAMS mbx:michael:s:abc:from:steve' && echo yes || echo no)" "no further reads once the budget is spent"
+
+  new_case "read --peek: group messages are not acknowledged"
+  rule 'XREADGROUP GROUP readers * STREAMS mbx:michael:p:proj:from:michael 0' "$MSG_PROJ"
+  mb read --as michael/p/proj --peek
+  assert_rc 0 "ok"
+  assert_contains "$OUT" "hello proj" "message still printed"
+  assert_eq "no" "$(has_cmd 'XACK' && echo yes || echo no)" "no XACK on peek"
+
+  new_case "read --peek: seen-marker is not advanced"
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' '[["mbx:michael:s:abc:from:michael",[["1700000000001-0",["from","michael/s/x","kind","fyi","body","a"]]]]]'
+  mb read --as michael/s/abc --peek
+  assert_contains "$OUT" '"body":"a"' "message printed"
+  assert_eq "no" "$(has_cmd 'SET seen:' && echo yes || echo no)" "no marker SET on peek"
+}
+
+test_heartbeat() {
+  new_case "heartbeat: needs a session name"
+  mb heartbeat --project proj; assert_rc 19 "no MAILBOX_SESSION"
+
+  new_case "heartbeat: writes host, project, tmux target, summary, last_seen; keeps rooms"
+  rule 'HGET dir:michael michael/s/abc' '{"rooms":["lounge"],"last_seen":1,"project":"old"}'
+  RC=0
+  OUT="$(PATH="$T/bin:$PATH" MAILBOX_CONFIG="$T/env" MAILBOX_SESSION="abc" bash "$MB" heartbeat --project proj --host box --tmux 's:1.0' --summary 'doing x' 2>"$T/stderr" </dev/null)" || RC=$?
+  ERR="$(cat "$T/stderr")"
+  assert_rc 0 "heartbeat ok"
+  local hset
+  hset="$(cmds | grep -F 'HSET dir:michael michael/s/abc' | head -1)"
+  assert_contains "$hset" '"host":"box"' "host"
+  assert_contains "$hset" '"project":"proj"' "project replaced"
+  assert_contains "$hset" '"tmux_target":"s:1.0"' "tmux target"
+  assert_contains "$hset" '"summary":"doing x"' "summary"
+  assert_contains "$hset" '"rooms":["lounge"]' "rooms kept"
+  assert_contains "$hset" '"last_seen":' "last_seen"
+
+  new_case "heartbeat: bad project name refused"
+  RC=0
+  OUT="$(PATH="$T/bin:$PATH" MAILBOX_CONFIG="$T/env" MAILBOX_SESSION="abc" bash "$MB" heartbeat --project 'Bad_Name' 2>"$T/stderr" </dev/null)" || RC=$?
+  assert_rc 10 "invalid project name"
+}
+
 test_doctor() {
   new_case "doctor: host, owner, no password"
   mb doctor
@@ -706,6 +716,8 @@ run_offline() {
   test_read_other_owner
   test_who_log
   test_join_leave
+  test_read_max_and_peek
+  test_heartbeat
   test_doctor
   test_adduser
 }

@@ -26,7 +26,7 @@ Config lives in `~/.config/cfn-mailbox/env`; if it is missing every command exit
 
 ## Kinds
 - `ask`: reply expected. `fyi`: information, no reply unless you have something new (default).
-- `reply`: answers an ask; pass `--reply-to <id>` and `--hops <hops of the message you answer>`.
+- `reply`: answers an ask. Always pass all three, copied from the message you answer: `--reply-to <id> --thread <thread> --hops <hops>`. Without `--thread` the reply starts a new thread; the sender adds 1 to `--hops`, and a thread stops at 20.
 - `reminder`: send-later mail. Do not send "got it" or "thanks" replies.
 
 ## Trust tiers (the rule)

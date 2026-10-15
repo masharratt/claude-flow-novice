@@ -4,7 +4,7 @@
 #
 # Usage:
 #   mailbox.sh send <to> [--kind ask|fyi|reply|reminder] [--thread ID] [--reply-to ID] [--hops N] "<text>"
-#   mailbox.sh read [--as <session-address>]
+#   mailbox.sh read [--as <session-address>] [--max N] [--peek]
 #   mailbox.sh who
 #   mailbox.sh log [N]
 #   mailbox.sh join <room> | leave <room>
@@ -50,6 +50,7 @@ INBOX_MAXLEN=500
 LOG_MAXLEN=10000
 EXPIRE_SECS=2592000     # 30 days
 READ_COUNT=20
+SUMMARY_MAX=200         # longest session summary kept in the directory
 WHO_WINDOW=1800         # directory entries older than 30 minutes are hidden
 GROUP=readers
 NAME_RE='^[a-z0-9-]{1,64}$'
@@ -295,6 +296,16 @@ cmd_send() {
 # --------------------------------------------------------------------- read
 
 EMIT_COUNT=0 EMIT_LAST="" EMIT_IDS=""
+READ_LEFT=""   # `read --max N`: messages still allowed across the whole call (empty = no total cap)
+PEEK=""        # `read --peek`: show mail without acknowledging it or moving any marker
+
+# take_count: how many messages one query may ask for (READ_COUNT, or what is left of --max).
+take_count() {
+  local n="$READ_COUNT"
+  if [ -n "$READ_LEFT" ] && [ "$READ_LEFT" -lt "$n" ]; then n="$READ_LEFT"; fi
+  printf '%s' "$n"
+}
+consume_left() { if [ -n "$READ_LEFT" ]; then READ_LEFT=$((READ_LEFT - $1)); fi; return 0; }
 
 # emit_msgs JSON KEY SENDER_OWNER: prints one compact JSON line per message. Tier comes from
 # the key the reader built, never from the message.
@@ -318,19 +329,25 @@ emit_msgs() {
 }
 
 read_group() { # key sender reader
-  local key="$1" sender="$2" reader="$3" remaining="$READ_COUNT" i
+  local key="$1" sender="$2" reader="$3" remaining
+  remaining="$(take_count)"
+  [ "$remaining" -gt 0 ] || return 0
   RC_TOLERATE=BUSYGROUP rcmd XGROUP CREATE "$key" "$GROUP" 0 MKSTREAM
   rcmdj XREADGROUP GROUP "$GROUP" "$reader" COUNT "$remaining" STREAMS "$key" 0
   emit_msgs "$RC_OUT" "$key" "$sender"
   ack_ids "$key"
+  consume_left "$EMIT_COUNT"
   remaining=$((remaining - EMIT_COUNT))
   [ "$remaining" -gt 0 ] || return 0
   rcmdj XREADGROUP GROUP "$GROUP" "$reader" COUNT "$remaining" STREAMS "$key" '>'
   emit_msgs "$RC_OUT" "$key" "$sender"
   ack_ids "$key"
+  consume_left "$EMIT_COUNT"
 }
 
 ack_ids() { # key; uses EMIT_IDS (acknowledge only after the messages were printed)
+  # Peeked group mail stays in the pending list, so the next real read returns it again.
+  [ -z "$PEEK" ] || return 0
   [ "$EMIT_COUNT" -gt 0 ] || return 0
   local -a ids=() i
   while IFS= read -r i; do [ -n "$i" ] && ids+=("$i"); done <<<"$EMIT_IDS"
@@ -353,9 +370,13 @@ read_seen() { # key sender reader kind
     fi
     last="0-0"
   fi
-  rcmdj XREAD COUNT "$READ_COUNT" STREAMS "$key" "$last"
+  local cap
+  cap="$(take_count)"
+  [ "$cap" -gt 0 ] || return 0
+  rcmdj XREAD COUNT "$cap" STREAMS "$key" "$last"
   emit_msgs "$RC_OUT" "$key" "$sender"
-  if [ "$EMIT_COUNT" -gt 0 ]; then rcmd SET "$marker" "$EMIT_LAST" EX "$EXPIRE_SECS"; fi
+  if [ "$EMIT_COUNT" -gt 0 ] && [ -z "$PEEK" ]; then rcmd SET "$marker" "$EMIT_LAST" EX "$EXPIRE_SECS"; fi
+  consume_left "$EMIT_COUNT"
 }
 
 cmd_read() {
@@ -363,6 +384,10 @@ cmd_read() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --as) [ $# -ge 2 ] || die 2 "--as needs an address"; as="$2"; shift 2 ;;
+      --max) [ $# -ge 2 ] || die 2 "--max needs a number"
+             [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] || die 2 "--max must be a number of 1 or more"
+             READ_LEFT="$2"; shift 2 ;;
+      --peek) PEEK=1; shift ;;
       *) die 2 "unknown argument $1 for read" ;;
     esac
   done
@@ -386,6 +411,7 @@ cmd_read() {
   for t in "${targets[@]}"; do
     tk="${t%%:*}"; tn="${t#*:}"
     while IFS= read -r so; do
+      [ -z "$READ_LEFT" ] || [ "$READ_LEFT" -gt 0 ] || break 2   # --max budget spent
       key="$(inbox_key "$MAILBOX_OWNER" "$tk" "$tn" "$so")"
       if [ "$tk" = p ]; then read_group "$key" "$so" "$reader"; else read_seen "$key" "$so" "$reader" "$tk"; fi
     done < <(sender_owners)
@@ -463,6 +489,39 @@ cmd_leave() {
   echo "left $MAILBOX_OWNER/r/$ROOM"
 }
 
+# --------------------------------------------------------------------- heartbeat
+
+# heartbeat [--project P] [--host H] [--tmux T] [--summary S]: refresh this session's directory
+# entry (what `who` shows). Keeps the rooms already joined. Used by the hooks.
+cmd_heartbeat() {
+  local project="" host="" tmux="" summary=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) [ $# -ge 2 ] || die 2 "--project needs a value"; project="$2"; shift 2 ;;
+      --host) [ $# -ge 2 ] || die 2 "--host needs a value"; host="$2"; shift 2 ;;
+      --tmux) [ $# -ge 2 ] || die 2 "--tmux needs a value"; tmux="$2"; shift 2 ;;
+      --summary) [ $# -ge 2 ] || die 2 "--summary needs a value"; summary="$2"; shift 2 ;;
+      *) die 2 "unknown argument $1 for heartbeat" ;;
+    esac
+  done
+  [ -n "$SESSION" ] || die 19 "set MAILBOX_SESSION to your session name first"
+  [ -z "$project" ] || valid_name "$project" || die 10 "invalid project name '$project' (use [a-z0-9-] only)"
+  [ -n "$host" ] || host="$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo unknown)"
+  summary="${summary:0:$SUMMARY_MAX}"
+  local addr cur new
+  addr="$MAILBOX_OWNER/s/$SESSION"
+  rcmd HGET "dir:$MAILBOX_OWNER" "$addr"
+  cur="$RC_OUT"
+  new="$(jq -n -c --arg cur "$cur" --arg host "$host" --arg project "$project" --arg tmux "$tmux" \
+    --arg summary "$summary" --argjson now "$(now_s)" '
+    (($cur | fromjson?) // {}) as $c
+    | $c + {host: $host, last_seen: $now, summary: $summary}
+    + (if $project != "" then {project: $project} else {} end)
+    + (if $tmux != "" then {tmux_target: $tmux} else {} end)
+    | .rooms = ($c.rooms // [])')" || die 18 "could not build the directory entry"
+  rcmd HSET "dir:$MAILBOX_OWNER" "$addr" "$new"
+}
+
 # --------------------------------------------------------------------- doctor
 
 cmd_doctor() {
@@ -536,7 +595,7 @@ main() {
   [ $# -gt 0 ] && shift
   case "$sub" in
     adduser) cmd_adduser "$@" ;;
-    send|read|who|log|join|leave|doctor)
+    send|read|who|log|join|leave|heartbeat|doctor)
       load_config
       "cmd_$sub" "$@" ;;
     ''|-h|--help|help)
