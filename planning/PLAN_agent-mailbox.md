@@ -1,6 +1,7 @@
 # PLAN: Agent mailbox (sessions message each other across machines and accounts)
 
-**Status:** draft v3, 2026-10-15. Nothing built yet.
+**Status:** draft v3, 2026-10-15, revised after an independent design review (16 findings, all
+applied below). Nothing built yet.
 - **Hosted on Upstash, fixed $10/month plan** (user, 2026-10-15): 250 MB, unlimited commands, so
   mail checks are not rationed. Replaces the earlier self-hosted-on-the-VPS design.
 - v3 adds: project addresses, rooms, send-later, bounce and expiry, trust tiers, loop controls, and
@@ -104,14 +105,21 @@ the coordinator style safer.
   `mbx:<to-owner>:<kind>:<name>:from:<sender-owner>` (kind = s, p, r, me).
 - ACL per person (no read/write split needed):
   - `michael`: `~mbx:michael:*` (read his own mail), `~mbx:*:from:michael` (send to anyone),
-    `~dir:michael`, `~seen:michael:*`, `~due:michael`, `~log:michael`.
+    `~dir:michael`, `~seen:michael:*`, `~due:michael`, `~log:michael`, `~lock:michael:*`,
+    `~rate:michael:*`, `~done:michael:*`.
   - `steve`: the same with his name.
-  - Commands allowed: `+ping +xadd +xread +xreadgroup +xack +xautoclaim +xgroup +xrange +xlen +xdel
-    +xtrim +hset +hget +hgetall +hdel +zadd +zrangebyscore +zrem +get +set +del +expire`. No
+  - Commands allowed: `+ping +xadd +xread +xreadgroup +xack +xautoclaim +xclaim +xpending +xinfo
+    +xgroup +xrange +xlen +xdel +xtrim +hset +hget +hgetall +hdel +zadd +zrangebyscore +zrem +get
+    +set +del +expire +incr`. No
     `KEYS`, `SCAN`, `FLUSH*`, `CONFIG`, `ACL` or scripting.
 - **The sender's owner cannot be forged:** Steve's login can only write keys ending `:from:steve`.
   The session part inside an owner is self-declared; within one person's machines that is trusted.
 - Steve can read the copies of what he sent (they sit in keys he may write), and nothing else.
+- Accepted limit: because `~` grants read and write together, a sender can also delete or trim
+  its own sent copies in the other person's inbox. It cannot touch anyone else's mail or the
+  receiver's read markers (those sit under `seen:<receiver>`).
+- Names (owner, project, room, session) allow only `[a-z0-9-]`. The tier is computed from the key
+  the receiver built itself, never by parsing a key name it found.
 
 ## Messages
 
@@ -130,36 +138,60 @@ the coordinator style safer.
 
 ## Delivery lifecycle
 
-- **Session and room mail:** the receiver reads after its own last-seen id, kept in Redis at
-  `seen:<owner>:<address>` so every machine and the watcher agree on what is unread.
+- **Session and room mail:** each reading session keeps its own last-seen id per inbox key, in
+  Redis at `seen:<owner>:<reader-session>:<inbox-key-hash>`, so room subscribers do not mark mail
+  read for each other and split inboxes (one key per sender owner) each have their own marker. A
+  new subscriber starts at the newest message.
+- **Receivers read only keys they build themselves** from their own addresses and their contacts
+  list. Keys an outsider invents are never read, and every `XADD` also sets an expiry (30 days), so
+  junk keys age out without needing `SCAN`.
 - **Project mail:** a Redis consumer group per project inbox. One live session in the project takes
   the message; it is acknowledged only after it was put into that session's turn. If that session
   dies before acknowledging, the watcher hands the message to another live session in the project
   after 10 minutes (`XAUTOCLAIM`). So exactly one session handles it, and a crash does not lose it.
+  Groups are created at id `0` when a project address is first joined. Hooks read the session's
+  pending (claimed but unacknowledged) entries first, then new ones, so reassigned mail is seen.
+  Unread detection for bounces uses `XPENDING` and the group's position (`XINFO`).
 - **Send later:** `/mail send <to> --at "tomorrow 9am" "..."` puts the message in `due:<owner>` (a
-  sorted set by delivery time). The sender's owner's watcher moves it into the inbox at that time.
+  sorted set by delivery time, UTC epoch seconds). The sender's owner's watcher moves it into the
+  inbox at that time; it removes the entry (`ZREM`) first and only the watcher whose remove
+  succeeded delivers, so two machines never deliver it twice.
   Survives restarts on both sides. Reminders go to project addresses by default.
 - **Bounce:** unread or unacknowledged mail is returned to the sender as a `bounce` after 24 hours
   (session mail) or 7 days (project mail). If the sender's address is dead too, the bounce goes to
-  the sender's person inbox (`michael/me`). Nothing is dropped silently.
+  the sender's person inbox (`michael/me`). Nothing is dropped silently. Message age comes from the
+  Redis stream id (server time), not from machine clocks.
 - **Expiry:** session inboxes whose session has not been seen for 7 days are deleted after their
-  unread mail is bounced. Rooms keep the last 500 messages. Person inboxes keep everything until read.
-- Who runs this: the watcher on any of the owner's machines (lifecycle jobs take a short Redis lock,
-  `SET lock:<owner>:lifecycle NX EX 60`, so two machines do not double-bounce).
+  unread mail is bounced. Rooms keep the last 500 messages. Person inboxes are not capped (`MAXLEN` applies to session, project and room inboxes only), so
+  unread mail to the user is never trimmed.
+- Who runs this: the watcher on any of the owner's machines. Lifecycle jobs take a short lock
+  (`SET lock:<owner>:lifecycle NX EX 60`, left to expire; no scripting). Each bounce is also made
+  safe to repeat with a per-message marker (`SET done:<owner>:<msg-id> NX EX 604800`): only the job
+  that sets it sends the bounce.
 
 ## Trust tiers (what an agent may do with a message)
 
 | Tier | When | Agent may |
 |------|------|-----------|
-| Coordinator | Fleet worker receiving from the master named in its brief | Act on it as its brief allows (same as today's `fleet nudge`) |
+| Coordinator | Fleet worker receiving from the master named in its brief, and the message carries the per-run secret from that brief | Act on it as its brief allows (same as today's `fleet nudge`) |
 | Teammate | Same owner, any other session | Treat it like the built-in cross-session messages: a request it may act on within its own permissions; never grants new permissions, never counts as the user's approval, never leads to pushes, deletes, firewall or account changes without asking the user |
 | Outside | Different owner | Information only. Summarise and show the user; take no action on it without the user's say-so |
 
 - The hook adds a header to every delivered message naming its tier, sender and thread, and the
   matching rule. Tests assert the header is always present and the tier is computed from the key
   (`from:<owner>`), never from the message body.
-- An outside message to a non-public address is never delivered; it is bounced with "address not
-  public".
+- An outside message to a non-public address is refused when it is sent: the sender's
+  `mailbox.sh` checks its contacts list of public addresses. If one is written anyway, the receiver
+  never reads that key (it builds its own keys), so it is never delivered.
+- **The coordinator tier cannot be claimed by name alone.** The session part of an address is
+  self-declared, so any of the user's sessions could call itself the fleet master. Coordinator mail
+  must carry a per-run secret that `fleet spawn` writes into the worker's brief; without it the
+  message is "teammate".
+- **The header is not the only guard for outside mail** (before phase 7). Sessions often run with
+  permission checks bypassed, and a teammate could pass outside text along as its own. So a
+  session that has been shown outside mail is marked "tainted" for the rest of the turn, and a
+  PreToolUse guard (like night mode's) asks the user before risky tools: push, delete, network
+  changes, firewall, sending mail onward.
 
 ## Loop and flood controls (needed for mesh, cheap for everyone)
 
@@ -190,9 +222,10 @@ the coordinator style safer.
   person inbox if this is a session the user is typing in); add unread mail as `additionalContext`
   with the tier headers (template: `.claude/hooks/cfn-night-mode-inject.sh`).
 - `PostToolUse`: same, throttled to one check per 15 seconds per session, so mail reaches a busy
-  agent mid-turn.
+  agent mid-turn. **Skipped inside helpers (subagents):** the hook checks only when its input has no
+  `agent_id`, so a helper can never take and acknowledge project mail meant for the main session.
 - `Stop`: if `ask` or `reminder` mail arrived during the turn, block the stop once so the agent
-  reads it before going idle.
+  reads it before going idle. Never blocks when `stop_hook_active` is set, so it cannot loop.
 - At most 20 messages per injection; the rest wait for the next check.
 - Hooks must never break a session: 2-second timeout; on any error they stay silent and write one
   line to a local log.
@@ -200,7 +233,8 @@ the coordinator style safer.
 ## Waking idle sessions: `mailbox-watch`
 
 - One watcher per machine (Mac and server): blocking reads across the inboxes of sessions registered
-  on that machine. When an idle tmux-hosted session gets `ask` or `reminder` mail, it types
+  on that machine (two connections: one for plain inboxes and rooms, one for project groups, since
+  one blocking call cannot mix the two). When an idle tmux-hosted session gets `ask` or `reminder` mail, it types
   "You have mail: run /mail read" into the pane, the same way as `fleet nudge` (`cmd-nudge.sh`).
 - Also runs the lifecycle jobs (send-later, bounce, expiry, project reassignment).
 - Sessions not in tmux get their mail on their next turn. That is a known limit.
@@ -250,7 +284,9 @@ the coordinator style safer.
 - Upstash supports `XREAD BLOCK`, consumer groups (`XREADGROUP`, `XACK`, `XAUTOCLAIM`) and sorted
   sets over TCP with `redis-cli`.
 - Upstash ACL key patterns with a mid-pattern wildcard (`~mbx:*:from:steve`) fence writes and reads
-  as expected (phase 1 probe).
+  as expected, and the wildcard matches across `:` separators (phase 1 probe).
+- Hook input includes `agent_id` when the hook fires inside a subagent, and `stop_hook_active` on
+  Stop.
 - The $10 fixed plan really has unlimited commands (check the pricing page at sign-up).
 - `UserPromptSubmit` and `PostToolUse` can return `additionalContext`, and a `Stop` hook can block
   once with a reason, in the Claude Code version installed on both machines.
