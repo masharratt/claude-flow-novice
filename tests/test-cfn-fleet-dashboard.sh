@@ -785,6 +785,152 @@ STUB
     assert_contains "$(cat "$TEST_TMP/open-err.log")" "WARN" "absent code warns on stderr only"
 }
 
+# build_host_run <name>: run dir whose roster carries the host column, for the
+# attach-command and open-terminal cases. Rows: WS01 local working, WS02 remote
+# working on vps, WS03 pending, WS04 a hostile name that must never become a
+# command.
+build_host_run() {
+    RUN_DIR="$TEST_TMP/planning/fleet-$1"
+    mkdir -p "$RUN_DIR"
+    : > "$RUN_DIR/.roster.lock"
+    printf 'FLEET_WORKTREE=off\nFLEET_DB=none\n' > "$RUN_DIR/fleet.env"
+    {
+        printf 'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\thost\n'
+        printf 'WS01\tws-loc\tlocal work\tworking\t\t\t\t\t%s\t\t\t\n' "$(date +%s)"
+        printf 'WS02\tws-rem\tremote work\tworking\t\t\t\t\t%s\t\t\tvps\n' "$(date +%s)"
+        printf 'WS03\tws-q\tqueued work\tpending\t\t\t\t\t0\t\t\t\n'
+        printf 'WS04\tx;touch pwned\thostile name\tworking\t\t\t\t\t%s\t\t\t\n' "$(date +%s)"
+    } > "$RUN_DIR/roster.tsv"
+    export FLEET_RUN_DIR="$RUN_DIR"
+    # The vps row makes the render probe the host over ssh. Stub ssh as
+    # unreachable (rc 255) so no real server is ever contacted.
+    printf '#!/usr/bin/env bash\n# test stub: ssh always unreachable\nexit 255\n' > "$TEST_TMP/bin/ssh"
+    chmod +x "$TEST_TMP/bin/ssh"
+}
+
+test_attach_command_on_bash_cards() {
+    log_step "GIVEN local, remote, pending and hostile-name rows, WHEN render --no-serve"
+    build_host_run dashattach
+    run_dash --no-serve --once
+
+    assert_equals "0" "$DASH_RC" "render exits 0"
+    local html
+    html=$(static_html "$RUN_DIR/dashboard.html")
+    assert_contains "$html" 'data-socket="fleet-dashattach"' "body carries the run socket"
+    assert_contains "$html" '<code class="attach-cmd">tmux -L fleet-dashattach attach -t ws-loc</code>' \
+        "local card shows the tmux attach command"
+    assert_contains "$html" '<code class="attach-cmd">ssh -t vps tmux -L fleet-dashattach attach -t ws-rem</code>' \
+        "remote card shows the ssh attach command"
+    assert_equals "2" "$(printf '%s\n' "$html" | grep -oF 'class="attach-cmd"' | wc -l)" \
+        "pending and hostile-name rows get no attach command"
+    assert_not_contains "$html" 'touch pwned</code>' "a hostile name never becomes a copyable command"
+    assert_equals "2" "$(printf '%s\n' "$html" | grep -oF 'class="chipbtn copy-btn"' | wc -l)" \
+        "each attach command has a Copy button"
+    assert_equals "2" "$(printf '%s\n' "$html" | grep -oF 'class="chipbtn open-btn" hidden' | wc -l)" \
+        "Open button ships hidden; only the live page reveals it after /api/health"
+    assert_not_contains "$DASH_OUT" "WARN" "clean render raises no selfcheck warnings"
+    rm -f "$TEST_TMP/bin/ssh"
+}
+
+# api_call PORT METHOD PATH [ORIGIN] [CTYPE] [BODY] [SEC_FETCH_SITE]: prints
+# "<status> <json body>" for one loopback request (open-terminal cases).
+api_call() {
+    python3 - "$@" <<'PY'
+import sys, urllib.request, urllib.error
+port, method, path = sys.argv[1], sys.argv[2], sys.argv[3]
+origin = sys.argv[4] if len(sys.argv) > 4 else ""
+ctype = sys.argv[5] if len(sys.argv) > 5 else ""
+body = sys.argv[6].encode() if len(sys.argv) > 6 else None
+sfs = sys.argv[7] if len(sys.argv) > 7 else ""
+req = urllib.request.Request("http://127.0.0.1:%s%s" % (port, path), data=body, method=method)
+if origin:
+    req.add_header("Origin", origin)
+if ctype:
+    req.add_header("Content-Type", ctype)
+if sfs:
+    req.add_header("Sec-Fetch-Site", sfs)
+try:
+    with urllib.request.urlopen(req, timeout=5) as r:
+        print(r.status, r.read().decode())
+except urllib.error.HTTPError as e:
+    print(e.code, e.read().decode())
+PY
+}
+
+test_open_terminal_endpoint_gate_and_launcher_argv() {
+    if ! command -v python3 >/dev/null 2>&1; then
+        log_info "SKIP open-terminal endpoint: python3 unavailable"
+        return 0
+    fi
+    log_step "GIVEN the dashboard serving with a stub launcher"
+    build_host_run dashopen
+    local port origin open_log="$TEST_TMP/open-argv.log"
+    port=$(pick_port)
+    origin="http://127.0.0.1:$port"
+    cat > "$TEST_TMP/bin/open-stub" <<'STUB'
+#!/usr/bin/env bash
+# test stub for the terminal launcher: one line per call, argv space-joined
+printf '%s\n' "$*" >> "${FLEET_OPEN_LOG:?}"
+STUB
+    chmod +x "$TEST_TMP/bin/open-stub"
+    : > "$open_log"
+    FLEET_DASHBOARD_OPEN_CMD="$TEST_TMP/bin/open-stub" FLEET_OPEN_LOG="$open_log" run_dash --once --port "$port"
+    assert_equals "0" "$DASH_RC" "serving start exits 0"
+
+    local out
+    out=$(api_call "$port" GET /api/health)
+    assert_equals '200 {"ok": true, "open": true}' "$out" "health says open is available with the stub"
+
+    log_step "WHEN the request fails the origin gate"
+    out=$(api_call "$port" POST /api/open-terminal "http://evil.example" application/json '{"ws":"WS01"}')
+    assert_contains "$out" "403 " "foreign Origin is refused with 403"
+    out=$(api_call "$port" POST /api/open-terminal "" application/json '{"ws":"WS01"}')
+    assert_contains "$out" "403 " "missing Origin is refused with 403"
+    out=$(api_call "$port" POST /api/open-terminal "$origin" application/json '{"ws":"WS01"}' cross-site)
+    assert_contains "$out" "403 " "Sec-Fetch-Site cross-site is refused with 403"
+    out=$(api_call "$port" POST /api/open-terminal "$origin" text/plain '{"ws":"WS01"}')
+    assert_contains "$out" "415 " "non-JSON content type is refused"
+    assert_equals "0" "$(wc -l < "$open_log")" "no gated request ever ran the launcher"
+
+    log_step "WHEN the ws is unknown, pending, or carries a hostile name"
+    out=$(api_call "$port" POST /api/open-terminal "$origin" application/json '{"ws":"WS99"}')
+    assert_contains "$out" '404 {"ok": false' "unknown ws is 404 with a JSON error"
+    out=$(api_call "$port" POST /api/open-terminal "$origin" application/json '{"ws":"WS03"}')
+    assert_contains "$out" '409 {"ok": false' "pending row is 409 with a JSON error"
+    out=$(api_call "$port" POST /api/open-terminal "$origin" application/json '{"ws":"WS04"}')
+    assert_contains "$out" "409 " "hostile session name is refused"
+    out=$(api_call "$port" POST /api/open-terminal "$origin" application/json '{"ws":"../roster"}')
+    assert_contains "$out" "400 " "malformed ws id is a 400"
+    assert_equals "0" "$(wc -l < "$open_log")" "refused rows never ran the launcher"
+
+    log_step "WHEN a local and a remote row are opened"
+    out=$(api_call "$port" POST /api/open-terminal "$origin" application/json \
+        '{"ws":"WS01","session":"evil","host":"evil","command":"rm -rf ~"}')
+    assert_contains "$out" '200 {"ok": true' "local row opens"
+    out=$(api_call "$port" POST /api/open-terminal "http://localhost:$port" application/json '{"ws":"WS02"}')
+    assert_contains "$out" '200 {"ok": true' "remote row opens; localhost origin accepted"
+    assert_equals "tmux -L fleet-dashopen attach -t ws-loc" "$(sed -n 1p "$open_log")" \
+        "local launcher argv comes from the roster, request extras ignored"
+    assert_equals "ssh -t vps tmux -L fleet-dashopen attach -t ws-rem" "$(sed -n 2p "$open_log")" \
+        "remote launcher argv wraps the attach in ssh -t"
+
+    log_step "WHEN the server is stopped"
+    run_dash --stop
+    assert_contains "$DASH_OUT" "stopped" "--stop still finds the moved server"
+
+    log_step "GIVEN a launcher seam that is not executable, WHEN served"
+    port=$(pick_port)
+    FLEET_DASHBOARD_OPEN_CMD="$TEST_TMP/no-such-launcher" run_dash --once --port "$port"
+    out=$(api_call "$port" GET /api/health)
+    assert_equals '200 {"ok": true, "open": false}' "$out" "health says open is unavailable"
+    out=$(api_call "$port" POST /api/open-terminal "http://127.0.0.1:$port" application/json '{"ws":"WS01"}')
+    assert_contains "$out" "501 " "no launcher is a 501"
+    assert_contains "$out" '"command": "tmux -L fleet-dashopen attach -t ws-loc"' \
+        "501 carries the attach command"
+    run_dash --stop
+    rm -f "$TEST_TMP/bin/ssh"
+}
+
 test_render_structure_cards_title_count_pills
 test_html_escape_payload_neutralized
 test_spawning_row_is_in_flight_not_attention
@@ -806,5 +952,7 @@ test_now_editing_section_from_files_fixture
 test_goal_blurb_rendered_and_escaped
 test_queued_section_separate_from_live_lanes
 test_open_flow
+test_attach_command_on_bash_cards
+test_open_terminal_endpoint_gate_and_launcher_argv
 
 print_test_summary

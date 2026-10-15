@@ -4,8 +4,11 @@
 # Renders <run-dir>/dashboard.html straight from roster.tsv (parsed by header
 # name via _fleet_tsv_split, never positional), keeps its own transition
 # history in .dashboard.state + dashboard-events.jsonl, serves the run dir on
-# 127.0.0.1 via python3 http.server, and opens it in the VS Code Simple
-# Browser. Deliberately never exits on ALL-DONE (the opposite of `fleet
+# 127.0.0.1 via lib/dashboard-server.py (static files plus the gated
+# /api/health and /api/open-terminal routes), and opens it in the VS Code
+# Simple Browser. Each live card shows its tmux attach command with a Copy
+# button; the Open in terminal button appears only when the page is served
+# and /api/health says a launcher exists. Deliberately never exits on ALL-DONE (the opposite of `fleet
 # watch`, on purpose: the dashboard is a page you leave open, not a loop that
 # ends the session).
 #
@@ -361,6 +364,10 @@ _fleet_dash_render() {
     tmux_ok=1
     sock=$(_fleet_tmux_socket)
   fi
+  # Attach commands need the socket even on a tmux-less machine (a remote
+  # worker, or a command copied to another terminal).
+  local attach_sock
+  attach_sock=$(_fleet_tmux_socket)
 
   _fleet_tsv_split "$(head -n1 "$roster")"
   local -a fields=("${_FIELDS[@]}")
@@ -454,7 +461,7 @@ _fleet_dash_render() {
     local card
     card=$(_fleet_dash_card "$ws" "$name" "$task" "$status" "$claims" \
       "$sha" "$notes" "$hb" "$engine" "$stale_min" "$now" "$stale" "$dead" \
-      "$files_path" "$host" "$hstate" "$hflags")
+      "$files_path" "$host" "$hstate" "$hflags" "$attach_sock")
     if [ "$status" = pending ]; then
       queued_cards+="$card"$'\n'
     else
@@ -491,8 +498,8 @@ _fleet_dash_render() {
     printf '<noscript><meta http-equiv="refresh" content="15"></noscript>\n'
     _fleet_dash_boot_theme
     _fleet_dash_style
-    printf '</head>\n<body data-poll="%s" data-stale-min="%s" data-engine-default="%s">\n' \
-      "$poll" "$stale_min" "$(_fleet_html_escape "$eng_default")"
+    printf '</head>\n<body data-poll="%s" data-stale-min="%s" data-engine-default="%s" data-socket="%s">\n' \
+      "$poll" "$stale_min" "$(_fleet_html_escape "$eng_default")" "$(_fleet_html_escape "$attach_sock")"
     printf '<header class="top"><div class="head-card"><div class="head-row">'
     printf '<div class="brand"><span class="fleet-mark" aria-hidden="true">▰</span><strong>fleet</strong><span class="brand-divider">/</span><span class="brand-label">OPERATIONS</span></div>'
     printf '<div class="head-actions"><span class="connection" role="status"><span class="live-dot" id="live-dot" data-state="ok" title="live: fetching roster"></span><span id="live-label">Connecting</span></span>'
@@ -604,8 +611,30 @@ _fleet_dash_meter() {
   printf '<div class="meter" id="meter">%s</div>\n' "$out"
 }
 
+# _fleet_dash_attach_cmd SOCK NAME HOST STATUS: the command that attaches to a
+# worker's tmux session, or nothing for a pending row (no session yet) or any
+# value outside the strict patterns. Roster cells are user-typed and the
+# command is meant to be pasted into a shell, so a cell that fails a pattern
+# never becomes a command. Patterns are pinned twins of SESSION_RE /
+# SOCKET_RE / HOST_RE in lib/dashboard-server.py and the ATTACH_* regexes in
+# the page JS; keep all three in sync.
+_fleet_dash_attach_cmd() {
+  local sock="$1" name="$2" host="$3" status="$4"
+  [ "$status" != pending ] || return 0
+  [[ "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]] || return 0
+  [[ "$sock" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$ ]] || return 0
+  if [ -n "$host" ]; then
+    [[ "$host" =~ ^[A-Za-z0-9][A-Za-z0-9._@-]{0,252}$ ]] || return 0
+    printf 'ssh -t %s tmux -L %s attach -t %s\n' "$host" "$sock" "$name"
+  else
+    printf 'tmux -L %s attach -t %s\n' "$sock" "$name"
+  fi
+}
+
 # _fleet_dash_card WS NAME TASK STATUS CLAIMS SHA NOTES HB ENGINE STALE_MIN \
-#                  NOW STALE DEAD FILES_PATH: echo one worker card.
+#                  NOW STALE DEAD FILES_PATH HOST HSTATE HFLAGS SOCK: echo one
+#                  worker card. SOCK feeds the attach command (see
+#                  _fleet_dash_attach_cmd).
 # STALE/DEAD are 0|1 flags derived by the render pass (stale: heartbeat age
 # > stale-min on a started|working row; dead: status dead, or the pane probe
 # failed). FILES_PATH is the worker's guarded files/<ws>.txt (empty when
@@ -614,7 +643,8 @@ _fleet_dash_meter() {
 _fleet_dash_card() {
   local ws="$1" name="$2" task="$3" status="$4" claims="$5" sha="$6" notes="$7" \
         hb="$8" engine="$9" stale_min="${10}" now="${11}" stale="${12}" dead="${13}" \
-        files_path="${14:-}" host="${15:-}" hstate="${16:-}" hflags="${17:-}"
+        files_path="${14:-}" host="${15:-}" hstate="${16:-}" hflags="${17:-}" \
+        sock="${18:-}"
   # Pill classes are whitelist-mapped: an unknown status must never become a
   # styleable class (roster cells are user-typed).
   local st_class="st-unknown"
@@ -676,6 +706,14 @@ _fleet_dash_card() {
     out+='</ul>'$'\n'
   fi
   [ -n "$notes" ] && out+="<div class=\"notes\" tabindex=\"0\" aria-expanded=\"false\"><span class=\"notes-h\">LATEST NOTE</span><p class=\"notes-body\">$(_fleet_html_escape "$notes")</p></div>"$'\n'
+  local attach
+  attach=$(_fleet_dash_attach_cmd "$sock" "$name" "$host" "$status")
+  if [ -n "$attach" ]; then
+    out+="<div class=\"attach\"><code class=\"attach-cmd\">$(_fleet_html_escape "$attach")</code>"
+    out+='<button type="button" class="chipbtn copy-btn">Copy</button>'
+    out+='<button type="button" class="chipbtn open-btn" hidden>Open in terminal</button>'
+    out+='<span class="attach-msg" role="status"></span></div>'$'\n'
+  fi
   out+='</article>'
   printf '%s\n' "$out"
 }
@@ -958,6 +996,11 @@ code.sha::before { content: 'Commit '; color: var(--dim); }
 .notes-body { margin: 0; overflow-wrap: anywhere; }
 .notes:not(.expanded) .notes-body { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
 .card[data-status="blocked"] .notes { border-color: var(--st-blocked); }
+.attach { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 14px; }
+.attach-cmd { flex: 1 1 100%; min-width: 0; font: 10px/1.6 ui-monospace, monospace; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 5px 8px; overflow-wrap: anywhere; user-select: all; }
+.attach .chipbtn { padding: 4px 9px; font-size: 10px; }
+.attach .chipbtn[hidden] { display: none; }
+.attach-msg { font-size: 10px; color: var(--dim); }
 .term { border-bottom: 1px dotted var(--accent); cursor: help; }
 .glossary { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 22px; }
 .glossary .section-heading { margin-bottom: 4px; }
@@ -1201,6 +1244,110 @@ _fleet_dash_script() {
     return /^[0-9]+$/.test(v) ? parseInt(v, 10) : 0;
   }
 
+  /* Attach command. Pinned twins of _fleet_dash_attach_cmd (bash) and
+     SESSION_RE / SOCKET_RE / HOST_RE in lib/dashboard-server.py; keep all
+     three in sync. A cell failing a pattern never becomes a command: the
+     text is meant to be pasted into a shell. */
+  var ATTACH_SESSION = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+  var ATTACH_SOCKET = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$/;
+  var ATTACH_HOST = /^[A-Za-z0-9][A-Za-z0-9._@-]{0,252}$/;
+  var OPEN_FAIL = "Could not open a terminal, use the command shown";
+  /* True once GET api/health (served pages only) reports a launcher. */
+  var openAvailable = false;
+  /* ws -> short status line under the attach command; survives re-renders. */
+  var attachMsg = {};
+
+  function attachCmd(row) {
+    var sock = document.body.getAttribute("data-socket") || "";
+    var name = String(row.name || ""), host = String(row.host || "");
+    if (String(row.status || "") === "pending") return "";
+    if (!ATTACH_SESSION.test(name) || !ATTACH_SOCKET.test(sock)) return "";
+    if (host && !ATTACH_HOST.test(host)) return "";
+    var cmd = "tmux -L " + sock + " attach -t " + name;
+    return host ? "ssh -t " + host + " " + cmd : cmd;
+  }
+
+  function attachHtml(row) {
+    var cmd = attachCmd(row);
+    if (!cmd) return "";
+    return '<div class="attach"><code class="attach-cmd">' + esc(cmd) + '</code>' +
+      '<button type="button" class="chipbtn copy-btn">Copy</button>' +
+      '<button type="button" class="chipbtn open-btn"' + (openAvailable ? '' : ' hidden') + '>Open in terminal</button>' +
+      '<span class="attach-msg" role="status">' + esc(attachMsg[row.ws_id || ""] || "") + '</span></div>';
+  }
+
+  function paintAttachMsg(ws, text) {
+    document.querySelectorAll('.card[data-ws]').forEach(function (card) {
+      if (card.getAttribute("data-ws") !== ws) return;
+      var m = card.querySelector(".attach-msg");
+      if (m) m.textContent = text;  /* textContent, never HTML parsing */
+    });
+  }
+
+  /* Show a status line for ws; it clears itself after 6s unless replaced. */
+  function sayAttach(ws, text) {
+    attachMsg[ws] = text;
+    paintAttachMsg(ws, text);
+    setTimeout(function () {
+      if (attachMsg[ws] !== text) return;
+      delete attachMsg[ws];
+      paintAttachMsg(ws, "");
+    }, 6000);
+  }
+
+  function copyAttach(card) {
+    var code = card.querySelector(".attach-cmd");
+    var ws = card.getAttribute("data-ws") || "";
+    if (!code) return;
+    var text = code.textContent;
+    function selectIt() {
+      var range = document.createRange();
+      range.selectNodeContents(code);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      sayAttach(ws, "Selected: press Ctrl+C or Cmd+C to copy");
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { sayAttach(ws, "Copied"); }, selectIt);
+    } else {
+      selectIt();
+    }
+  }
+
+  function openAttach(card, btn) {
+    var ws = card.getAttribute("data-ws") || "";
+    btn.disabled = true;
+    sayAttach(ws, "Opening...");
+    fetch("api/open-terminal", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ws: ws})
+    })
+      .then(function (resp) {
+        return resp.json().then(function (d) { return resp.ok && d && d.ok === true; });
+      })
+      .then(function (ok) { sayAttach(ws, ok ? "Opened in a terminal window" : OPEN_FAIL); })
+      .catch(function () { sayAttach(ws, OPEN_FAIL); })
+      .then(function () { btn.disabled = false; });
+  }
+
+  /* Open needs the dashboard server: never on file:// (the --no-serve page)
+     and only when api/health says a launcher exists. */
+  function checkOpen() {
+    if (location.protocol !== "http:" && location.protocol !== "https:") return;
+    fetch("api/health?ts=" + cachebust())
+      .then(function (resp) {
+        if (!resp.ok) throw new Error("health http " + resp.status);
+        return resp.json();
+      })
+      .then(function (d) {
+        openAvailable = !!(d && d.ok === true && d.open === true);
+        document.querySelectorAll(".open-btn").forEach(function (b) { b.hidden = !openAvailable; });
+      })
+      .catch(function () { openAvailable = false; });
+  }
+
   function cardHtml(row, now, staleMin) {
     var st = String(row.status || "");
     var sc = stClass(st);
@@ -1245,6 +1392,7 @@ _fleet_dash_script() {
       h += '</ul>';
     }
     if (row.notes) h += '<div class="notes" tabindex="0" aria-expanded="false"><span class="notes-h">LATEST NOTE</span><p class="notes-body">' + termify(esc(row.notes)) + '</p></div>';
+    h += attachHtml(row);
     return h + '</article>';
   }
 
@@ -1561,6 +1709,11 @@ _fleet_dash_script() {
     [els.cards, els.queuedCards].forEach(function (grid) {
       if (!grid) return;
       grid.addEventListener("click", function (e) {
+        var card = e.target.closest(".card[data-ws]");
+        var copy = e.target.closest(".copy-btn");
+        if (copy && card) { copyAttach(card); return; }
+        var openBtn = e.target.closest(".open-btn");
+        if (openBtn && card) { openAttach(card, openBtn); return; }
         var n = e.target.closest(".notes");
         if (n) toggleNote(n);
       });
@@ -1608,6 +1761,7 @@ _fleet_dash_script() {
   function start() {
     initEls();
     wireControls();
+    checkOpen();
     tick();
     setInterval(tick, 1000);
     var pollS = intOr(document.body.getAttribute("data-poll") || "5");
@@ -1657,7 +1811,7 @@ _fleet_dash_fingerprint() {
 }
 
 # _fleet_dash_serve_start RUN_DIR PORT: idempotent start of
-# python3 -m http.server on 127.0.0.1. A double start is a printed no-op
+# lib/dashboard-server.py on 127.0.0.1. A double start is a printed no-op
 # (exit 0); a busy port refuses with 66 naming the remedies; a missing
 # python3 refuses with 66 naming python3 and --no-serve.
 _fleet_dash_serve_start() {
@@ -1683,27 +1837,14 @@ _fleet_dash_serve_start() {
   if [ -f "$log" ] && [ "$(wc -l < "$log")" -gt "$keep" ]; then
     tail -n "$keep" "$log" > "$log.tmp.$$" && mv "$log.tmp.$$" "$log"
   fi
-  # Quiet handler: every page poll GETs roster.tsv plus files/<ws>.txt per
-  # lane, and stock http.server logs one line per request (50 MB in 14 h on a
-  # 70-row roster). Only 5xx responses and startup errors reach the log.
-  # The script text must keep `http.server`: _fleet_dash_serve_is_serving
-  # matches the pid's command line on it.
-  python3 -c '
-import functools, http.server, sys
-class Quiet(http.server.SimpleHTTPRequestHandler):
-    def log_message(self, fmt, *args):
-        pass
-    def log_request(self, code="-", size="-"):
-        try:
-            failed = int(code) >= 500
-        except (TypeError, ValueError):
-            failed = False
-        if failed:
-            http.server.SimpleHTTPRequestHandler.log_message(
-                self, "\"%s\" %s %s", self.requestline, str(code), str(size))
-handler = functools.partial(Quiet, directory=sys.argv[2])
-http.server.ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), handler).serve_forever()
-' "$port" "$rd" >> "$log" 2>&1 &
+  # lib/dashboard-server.py: the run dir served with quiet (5xx-only) logging
+  # plus the open-terminal API. The tmux socket is handed over here, never
+  # taken from a request. _fleet_dash_serve_is_serving matches the pid's
+  # command line on the script name, so keep it.
+  local server_py sock
+  server_py="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/dashboard-server.py"
+  sock=$(_fleet_tmux_socket)
+  python3 "$server_py" "$port" "$rd" "$sock" >> "$log" 2>&1 &
   local pid=$!
   printf '%s\n' "$pid" > "$rd/.dashboard.pid"
   # Wait briefly for the server process to be live; a failed bind dies

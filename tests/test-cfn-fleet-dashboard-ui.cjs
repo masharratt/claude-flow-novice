@@ -4,12 +4,16 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const {spawn, execFileSync} = require('node:child_process');
+const net = require('node:net');
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = process.env.FLEET_TEST_ROOT || path.resolve(__dirname, '..');
 const lib = path.join(root, '.claude/skills/cfn-fleet/lib');
 const renderer = process.env.FLEET_DASHBOARD_RENDERER || path.join(lib, 'cmd-dashboard.sh');
 const header = 'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\n';
-let run, server, browser;
+let run, server, server2, browser, stubDir;
+// Twin of _fleet_tmux_socket: fleet-<run basename>, non [A-Za-z0-9_.-] folded to dashes.
+const socketFor = dir => ('fleet-' + path.basename(dir).replace(/^fleet-/, '')).replace(/[^A-Za-z0-9_.-]/g, '-');
+const freePort = () => new Promise((resolve, reject) => {const s = net.createServer(); s.once('error', reject); s.listen(0, '127.0.0.1', () => {const p = s.address().port; s.close(() => resolve(p));});});
 (async () => {
   run = await fs.mkdtemp(path.join(os.tmpdir(), 'fleet-ui-test-'));
   try {
@@ -59,6 +63,16 @@ let run, server, browser;
     assert.equal(await page.locator('#sum-landed').textContent(), '1', 'Landed excludes done');
     assert.equal(await page.locator('#sum-done').textContent(), '1 / 8', 'Only done counts as finished');
     assert.equal(await page.evaluate(() => window.injected), undefined, 'Hostile task stays literal');
+    // Attach command on JS-rendered cards: live rows only, pending gets none; plain http.server has no /api/health, so no Open button.
+    const sock = socketFor(run);
+    assert.equal(await page.locator('body').getAttribute('data-socket'), sock, 'Page carries the run socket');
+    assert.equal(await page.locator('[data-ws="WS01"] .attach-cmd').textContent(), `tmux -L ${sock} attach -t auth`, 'JS card shows the local attach command');
+    assert.equal(await page.locator('[data-ws="WS07"] .attach-cmd').count(), 0, 'Pending card has no attach command');
+    assert.equal(await page.locator('[data-ws="WS01"] .open-btn').isVisible(), false, 'Open button hidden without /api/health');
+    await page.evaluate(() => {window.__copied = null; Object.defineProperty(navigator, 'clipboard', {configurable: true, value: {writeText: t => {window.__copied = t; return Promise.resolve();}}});});
+    await page.locator('[data-ws="WS01"] .copy-btn').click();
+    await page.waitForFunction(() => window.__copied !== null);
+    assert.equal(await page.evaluate(() => window.__copied), `tmux -L ${sock} attach -t auth`, 'Copy puts the exact attach command on the clipboard');
     // Glossary legend: valid rows only (header, invalid-code and digit-less rows skipped), aliases merged.
     await page.waitForSelector('#glossary .gl-row');
     await page.waitForSelector('[data-ws="WS03"] .task .term');
@@ -162,11 +176,48 @@ let run, server, browser;
     await page.waitForSelector('[data-ws="WS10"] .badge.prompt');
     await page.waitForSelector('[data-ws="WS10"] .badge.noreport');
     assert.equal(await page.locator('[data-ws="WS10"] .badge.unreachable').count(), 0, 'Badge clears when the state changes');
+    assert.equal(await page.locator('[data-ws="WS10"] .attach-cmd').textContent(), `ssh -t vps tmux -L ${sock} attach -t remote`, 'JS remote card shows the ssh attach command');
+    // Open in terminal: the real dashboard server with a stub launcher that records argv.
+    await fs.writeFile(path.join(run, 'roster.tsv'), hostHeader +
+      ['WS01', 'auth', 'Local task', 'working', '', '', '', '', hostNow, '', 'glm', ''].join('\t') + '\n' +
+      ['WS10', 'remote', 'Remote task', 'working', '', '', '', '', hostNow, '', 'glm', 'vps'].join('\t') + '\n');
+    await fs.rm(path.join(run, 'host-states.tsv'), {force: true});
+    stubDir = await fs.mkdtemp(path.join(os.tmpdir(), 'fleet-ui-open-'));
+    const stub = path.join(stubDir, 'open-stub'), openLog = path.join(stubDir, 'argv.log');
+    await fs.writeFile(stub, '#!/bin/sh\n# test stub launcher: record argv\nprintf "%s\\n" "$*" >> "$FLEET_OPEN_LOG"\n', {mode: 0o755});
+    const port2 = await freePort();
+    server2 = spawn('python3', [path.join(lib, 'dashboard-server.py'), String(port2), run, sock], {env: {...process.env, FLEET_DASHBOARD_OPEN_CMD: stub, FLEET_OPEN_LOG: openLog}, stdio: 'ignore'});
+    for (let i = 0; i < 50; i++) {
+      try { const r = await fetch(`http://127.0.0.1:${port2}/api/health`); if (r.ok) break; } catch (e) { /* not up yet */ }
+      await new Promise(r => setTimeout(r, 100));
+    }
+    const live = await browser.newPage({viewport: {width: 1440, height: 1050}});
+    live.on('pageerror', e => errors.push(e.message));
+    await live.goto(`http://127.0.0.1:${port2}/dashboard.html`);
+    await live.waitForSelector('[data-ws="WS10"] .open-btn', {state: 'visible'});
+    await live.locator('[data-ws="WS01"] .open-btn').click();
+    await live.waitForFunction(() => /Opened/.test(document.querySelector('[data-ws="WS01"] .attach-msg').textContent));
+    await live.locator('[data-ws="WS10"] .open-btn').click();
+    await live.waitForFunction(() => /Opened/.test(document.querySelector('[data-ws="WS10"] .attach-msg').textContent));
+    assert.deepEqual((await fs.readFile(openLog, 'utf8')).trim().split('\n'), [`tmux -L ${sock} attach -t auth`, `ssh -t vps tmux -L ${sock} attach -t remote`], 'Open runs the launcher with the roster-derived attach argv');
+    await live.route('**/api/open-terminal', route => route.fulfill({status: 500, contentType: 'application/json', body: '{"ok":false,"error":"boom"}'}));
+    await live.locator('[data-ws="WS01"] .open-btn').click();
+    await live.waitForFunction(() => document.querySelector('[data-ws="WS01"] .attach-msg').textContent === 'Could not open a terminal, use the command shown');
+    await live.close();
+    // file:// page (the --no-serve case): Copy only, never an Open button.
+    const filePage = await browser.newPage({viewport: {width: 1440, height: 1050}});
+    await filePage.goto('file://' + path.join(run, 'dashboard.html'));
+    assert.equal(await filePage.locator('[data-ws="WS01"] .attach-cmd').textContent(), `tmux -L ${sock} attach -t auth`, 'Bash-rendered card shows the attach command');
+    assert.equal(await filePage.locator('[data-ws="WS01"] .copy-btn').isVisible(), true, 'Copy button shown on the file page');
+    assert.equal(await filePage.locator('.open-btn:visible').count(), 0, 'No Open button on a file:// page');
+    await filePage.close();
     assert.deepEqual(errors, [], 'No page errors across states');
-    console.log('PASS: host badge and unreachable card, attention, landed/done semantics, heartbeat sorting, filters/search across polls, files, activity, outage retention and retry, fresh timestamps, live changes, themes, responsive layouts, empty roster, XSS escaping and no-JS fallback, glossary legend with alias merge and hostile-input guards, inline term tooltips, status tooltips, notes clamp and expand, live glossary updates.');
+    console.log('PASS: host badge and unreachable card, attention, landed/done semantics, heartbeat sorting, filters/search across polls, files, activity, outage retention and retry, fresh timestamps, live changes, themes, responsive layouts, empty roster, XSS escaping and no-JS fallback, glossary legend with alias merge and hostile-input guards, inline term tooltips, status tooltips, notes clamp and expand, live glossary updates, attach command and Copy on JS and bash cards, Open in terminal via the stub launcher, open failure message, Open hidden on file:// and without health.');
   } finally {
     await browser?.close();
     if (server && server.exitCode === null) await new Promise(resolve => {server.once('exit', resolve); server.kill();});
+    if (server2 && server2.exitCode === null) await new Promise(resolve => {server2.once('exit', resolve); server2.kill();});
+    if (stubDir) await fs.rm(stubDir, {recursive: true, force: true});
     if (run) await fs.rm(run, {recursive: true, force: true});
   }
 })().catch(error => {console.error(error); process.exitCode = 1;});

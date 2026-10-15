@@ -267,7 +267,9 @@ _roster_claims_conflict(){
         fi
       done
     done
-  done < <(awk -F'\t' 'NR > 1 && $5 != "" { print $1 "\t" $5 }' "$(fleet_roster_file)")
+  # A done row has finished and released its paths; its claims cell stays as
+  # history (dashboard chips) but no longer blocks. landed rows may continue.
+  done < <(awk -F'\t' 'NR > 1 && $5 != "" && $4 != "done" { print $1 "\t" $5 }' "$(fleet_roster_file)")
   return 1
 }
 
@@ -429,7 +431,9 @@ _fleet_dash_serve_is_serving() {
   [ -f "$rd/.dashboard.pid" ] || return 1
   pid=$(cat "$rd/.dashboard.pid" 2>/dev/null) || return 1
   [[ "$pid" =~ ^[0-9]+$ ]] || return 1
-  _fleet_pid_cmdline "$pid" | grep -q 'http.server'
+  # dashboard-server.py is the server; http.server still matches one started
+  # by an older fleet (inline script) so --stop can tear it down after an upgrade.
+  _fleet_pid_cmdline "$pid" | grep -qE 'dashboard-server\.py|http\.server'
 }
 
 # --- Portable userland helpers (GNU/Linux and BSD/macOS) ---------------------

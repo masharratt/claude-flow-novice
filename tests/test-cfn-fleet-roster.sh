@@ -482,7 +482,26 @@ test_add_refuses_claims_held_by_another_row(){
   [ "$RC" -eq 0 ] && ok "--force replacing own row ignores own old claims" || no "force self rc=$RC err=$ERR"
 }
 
+# Regression (MDTWII fleet, 2026-10-14): four merged lanes still held their
+# claims after going done and blocked two new lanes from being added.
+test_done_rows_release_claims(){
+  log_step "GIVEN WS01 claims src and is done, WHEN add/claim under src, THEN accepted; landed still blocks"
+  fixture
+  run_fleet "$P" init demo
+  local R="$P/planning/fleet-demo/roster.tsv"
+  run_fleet "$P" add WS01 "t1" --claims src
+  run_fleet "$P" add WS04 "t4" --claims lib
+  awk -F'\t' -v OFS='\t' '$1=="WS01"{$4="done"} $1=="WS04"{$4="landed"} {print}' "$R" > "$R.tmp" && mv "$R.tmp" "$R"
+  run_fleet "$P" add WS02 "t2" --claims src/a.ts
+  [ "$RC" -eq 0 ] && ok "add over a done row's claim accepted" || no "add over done rc=$RC err=$ERR"
+  run_fleet "$P" claim WS02 src/b.ts
+  [ "$RC" -eq 0 ] && ok "claim over a done row's claim accepted" || no "claim over done rc=$RC err=$ERR"
+  run_fleet "$P" add WS03 "t3" --claims lib/x.ts
+  [ "$RC" -eq 65 ] && ok "landed row still holds its claims (65)" || no "add over landed rc=$RC"
+}
+
 test_init_scaffold_and_duplicate_refusal
+test_done_rows_release_claims
 test_add_validation_and_uniqueness
 test_add_refuses_placeholder_overwrite_and_next_id
 test_claim_overlap_rules

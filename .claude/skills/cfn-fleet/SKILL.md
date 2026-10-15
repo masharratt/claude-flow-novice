@@ -73,7 +73,7 @@ STALE/DEAD until `started`).
 | `add WSxx "task" [--name s] [--claims p1,p2] [--engine e] [--force]` | Register a workstream (status=pending, heartbeat=0); `--engine` defaults to `claude-sub`. An id already in the roster, any status, exits 65 and names the existing row's task ("queued placeholder" when it starts `QUEUED:`), so a queued item is never overwritten by accident; `--force` replaces the row |
 | `next-id` | Print the first WS id numerically above every roster row (placeholders included), zero-padded to the widest existing id; `WS01` on an empty roster. Use it instead of guessing "the next free id" |
 | `status [--tsv]` | Aligned table: ws_id, status, task(40), #claims, heartbeat age |
-| `claim WSxx <path...>` | Register file ownership; refuses overlapping claims (65), prefix dirs and glob scopes count as overlap |
+| `claim WSxx <path...>` | Register file ownership; refuses overlapping claims (65), prefix dirs and glob scopes count as overlap; claims of `done` rows no longer block |
 | `heartbeat WSxx [--files p1,p2,...] [note...]` | Liveness ts; latest note replaces the previous; `--files` publishes the comma-separated paths as the worker's now-editing list (`files/<ws>.txt`, one per line, shown on the dashboard card) |
 | `commit WSxx -m <msg>` | Guarded commit: stages ONLY claimed paths, refuses (66) on unclaimed dirty files |
 | `migrate-next WSxx <dir>` | Reserve next migration number (max+1, flocked); no silent collisions |
@@ -87,7 +87,7 @@ STALE/DEAD until `started`).
 | `nudge WSxx "msg"` / `nudge WSxx --key K...` | Type the message literally plus Enter into the worker's pane, or press named keys (`Enter Escape C-u Up Down Tab BTab 1-9 y n`; use these to answer a permission prompt). One ws per call; pending/spawning rows refused (65). Host rows go over ssh. Use this, never raw `tmux send-keys` |
 | `stop WSxx` | Close the worker's tmux session only; worktree, branch, claims, files and roster row stay. Already gone = exit 0. Use this, never raw `tmux kill-session`. `watch` then reports `DEAD <ws> (pane exited)` until you land or reset the row |
 | `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. STALE fires when a started/working row's heartbeat ages past `--stale-min` (default 5 minutes). Heartbeat-only roster diffs never emit `CHANGE` (the spawn ticker rewrites that column every tick). Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
-| `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained live-poll HTML tracking page from the roster (status tiles and meter, filter chips, sort, heartbeat age, engine, claims, now-editing lists, goal blurb, STALE/DEAD badges, transition timeline), served on 127.0.0.1 for VS Code Simple Browser (below) |
+| `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained live-poll HTML tracking page from the roster (status tiles and meter, filter chips, sort, heartbeat age, engine, claims, now-editing lists, goal blurb, STALE/DEAD badges, transition timeline, per-card attach command with Copy and Open in terminal), served on 127.0.0.1 for VS Code Simple Browser (below) |
 
 Exit codes: `0` ok, `64` usage, `65` data error (bad WS id, overlap, duplicate),
 `66` guard refusal, `71` internal.
@@ -379,7 +379,9 @@ that timestamp. The overview includes the run goal blurb from `<run-dir>/goal.tx
 (written by `fleet init <slug> <goal words>`). Each card also lists the
 paths that worker published with `fleet heartbeat WSxx --files a,b` (stored
 one per line in `<run-dir>/files/<ws>.txt`) under "now editing", and shows
-nothing there until the worker publishes.
+nothing there until the worker publishes. Live cards also carry the worker's
+tmux attach command with Copy and, on a served page, Open in terminal (see
+the list below).
 
 Project codes (M1, ART-01, ...) get translations when the run drops a
 `<run-dir>/glossary.tsv`: one `code TAB meaning` row per code, optional
@@ -412,13 +414,30 @@ $HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --stop    # tear the server d
   is already serving, otherwise the same URL with
   `(start: fleet dashboard --open)`.
 - Port: `--port` > `FLEET_DASHBOARD_PORT` env > `FLEET_DASHBOARD_PORT` in
-  fleet.env > 4880. Server is `python3 -m http.server --bind 127.0.0.1`
-  rooted at the run dir (pidfile `.dashboard.pid`, idempotent double-start,
-  port busy exits 66); `--no-serve` renders once without binding (tests).
+  fleet.env > 4880. Server is `lib/dashboard-server.py` bound to 127.0.0.1
+  and rooted at the run dir (static files, quiet 5xx-only log, pidfile
+  `.dashboard.pid`, idempotent double-start, port busy exits 66);
+  `--no-serve` renders once without binding (tests).
 - `--open` runs `code --open-url vscode://simpleBrowser.show?url=...`; when
   the `code` CLI is absent it warns and prints the URL plus the fallback
-  (Ctrl+Shift+P, "Simple Browser: Show"). Nothing outside VS Code is ever
-  launched.
+  (Ctrl+Shift+P, "Simple Browser: Show").
+- Attach and Open in terminal: every card with a session (not `pending`)
+  shows its attach command, `tmux -L <sock> attach -t <name>`, or
+  `ssh -t <host> tmux -L <sock> attach -t <name>` for a remote row, with a
+  Copy button. A name, host or socket outside the strict patterns gets no
+  command at all. When the page is served and `GET /api/health` reports
+  `"open": true`, an Open in terminal button posts `{"ws": "<id>"}` to
+  `POST /api/open-terminal`; the server reads the roster itself for name,
+  host and socket (never the request) and launches with an argv list:
+  macOS Terminal via `osascript`, WSL2 via `wt.exe new-tab wsl.exe -d
+  <distro>`, otherwise 501 with the command to paste. Gate: Origin must be
+  `http://127.0.0.1:<port>` or `http://localhost:<port>`, no
+  `Sec-Fetch-Site: cross-site`, `Content-Type: application/json` (403 / 415);
+  unknown ws 404, pending row 409. On failure the card says "Could not open
+  a terminal, use the command shown". A `--no-serve` or `file://` page shows
+  Copy only. Test seam: `FLEET_DASHBOARD_OPEN_CMD=<program>` runs that
+  program with the attach argv instead of a real launcher (set but not
+  executable means open is unavailable).
 - The dashboard deliberately never exits on ALL-DONE (unlike `fleet watch`):
   `landed` means has-a-commit, not finished (trap 3).
 
@@ -632,6 +651,27 @@ unclaimed dirt and committed with `--force-with-note`, so the commits stayed pat
   the session before the booking that "minted" it, with no `created_from_booking_id`. Lane-scoped test
   runs never touched those files, so the master's landing gate found it. Grade the landing gate over
   every consumer the plan's blast radius names, not over the lanes' claimed files.
+
+### 8. Cleanup, deletions and fix rounds (MDTWII fleet, 2026-10-14)
+
+- **Keep launches and cleanup in separate shell commands.** A respawn (`fleet stop WSnn`, then
+  `fleet spawn WSnn --engine X`) and a round sent to the pane run without prompts. Chain cleanup
+  onto them (`rm -f "${P:?}/game"`, `git worktree remove --force "${P:?}"`, `rm -rf <var path>`) and
+  the WHOLE command waits for user approval, because deletes with variable-built targets are held.
+  Run cleanup as its own command with literal absolute paths, or through a repo prune script.
+- **Unattended workers cannot delete files.** The cfn-careful delete guard refuses `rm` in worker
+  sessions (a GLM worker tried twice). Briefs for deletion work say: try plain `rm`; if the guard
+  refuses, do not work around it, and list the exact remove commands in the handoff. The master runs
+  them at merge, and only when a user ruling covers the deletion. Plain `rm`, not `git rm`, is still
+  the rule for claimed files the master deletes (`git rm` breaks `fleet add`).
+- **Fix-round respawn moves a failed lane up a tier.** `fleet stop WSnn`, then
+  `fleet spawn WSnn --engine <tier>` reuses the worktree and branch. User ruling: fix rounds go to
+  Sonnet (`claude-sub`) by default when the review lists concrete blockers, and to Opus only on a
+  second failure or judgment-heavy blockers. The fix-round message names only the checks covering the
+  lane's files; "run the full project check" cost about 20 minutes of unrelated sweeps and benches.
+- **Finished lanes used to hold their claims.** Four merged lanes still held files and blocked two new
+  lanes. Fixed: a row with status `done` no longer blocks `fleet add --claims` or `fleet claim`; its
+  claims cell stays as history. `landed` rows still block, since a landed lane may continue.
 
 ### Two smaller ones
 
