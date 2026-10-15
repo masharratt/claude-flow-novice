@@ -5,7 +5,7 @@
 
 **Status:** beta
 
-First real lane (MDTWII WS350, docs) ran end to end 2026-10-13: spawn, worker report, sync to done, land --no-ff merged inside claims. Stub-ssh suites pass. Server Bash sandbox not yet working, so docs-only lanes until it is.
+First real lane (MDTWII WS350, docs) ran end to end 2026-10-13. Host sandbox, caps and no-push landing added 2026-10-13 and pass the stub-ssh suites; not yet run on the live server.
 
 **Review needed:** Source contents changed since this explanation was reviewed.
 
@@ -13,9 +13,10 @@ First real lane (MDTWII WS350, docs) ran end to end 2026-10-13: spawn, worker re
 
 - `.claude/skills/cfn-fleet/lib/cmd-host-setup.sh`
 - `.claude/skills/cfn-fleet/lib/cmd-land.sh`
-- `.claude/skills/cfn-fleet/lib/cmd-spawn.sh`
 - `.claude/skills/cfn-fleet/lib/common.sh`
 - `.claude/skills/cfn-fleet/lib/host.sh`
+- `.claude/skills/cfn-fleet/lib/spawn-remote.sh`
+- `.claude/skills/cfn-fleet/templates/remote-worker.sh`
 
 <!-- wiki:enrich id=fleet-remote-hosts fp=84a15d27ecabe38b010706e4e8e1add8981b73434737eadb046c82579075494e -->
 ## Purpose
@@ -37,10 +38,12 @@ Run fleet lanes on a server (own CPU, optionally its own Claude account) without
 
 Reviewed: 2026-10-13
 
-- `.claude/skills/cfn-fleet/lib/cmd-spawn.sh:518`: _spawn_remote: preflight, base push, remote worktree, kit ship and launch; cleans up on failure (source changed; review needed)
+- `.claude/skills/cfn-fleet/lib/spawn-remote.sh:259`: _spawn_remote: preflight (incl. bwrap, socat, systemd-run --user probes; 66 unless FLEET_REMOTE_UNSANDBOXED=1), base push, remote worktree, kit ship and launch in a capped scope; cleans up on failure (source changed; review needed)
+- `.claude/skills/cfn-fleet/lib/spawn-remote.sh:485`: _spawn_remote_settings builds the --settings JSON: sandbox on with no unsandboxed fallback, writes limited to worktree, fleet clone and outbox, unix sockets blocked, Edit deny rules for the server deny list (source changed; review needed)
 - `.claude/skills/cfn-fleet/lib/host.sh:48`: _fleet_pane_state reports alive, dead or unreachable; an ssh failure is never dead
-- `.claude/skills/cfn-fleet/lib/cmd-land.sh:38`: remote_land fetches the worker branch and refuses any diff outside the row's claims (source changed; review needed)
-- `.claude/skills/cfn-fleet/lib/cmd-host-setup.sh:129`: host-setup creates ~/git/<name>.git and ~/fleet-repos/<name>, never touching existing server checkouts
-- `.claude/skills/cfn-fleet/lib/common.sh:207`: fleet_project_name names the project after the main checkout, also from a linked worktree
+- `.claude/skills/cfn-fleet/lib/cmd-land.sh:60`: remote_land fetches the lane from the server fleet clone over ssh, refuses any diff outside the row's claims, and records the lane tip in lane_sha (source changed; review needed)
+- `.claude/skills/cfn-fleet/templates/remote-worker.sh:109`: remote-worker.sh commit stages claimed paths only, commits locally on fleet/<WS> and never pushes (source changed; review needed)
+- `.claude/skills/cfn-fleet/lib/cmd-host-setup.sh:130`: host-setup creates ~/git/<name>.git and ~/fleet-repos/<name>, never touching existing server checkouts
+- `.claude/skills/cfn-fleet/lib/common.sh:207`: fleet_project_name names the project after the main checkout, also from a linked worktree (source changed; review needed)
 <!-- /wiki:enrich -->
 

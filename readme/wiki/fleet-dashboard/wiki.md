@@ -5,7 +5,7 @@
 
 **Status:** dev
 
-Implemented and verified against a Playwright browser suite (tests/test-cfn-fleet-dashboard-ui.cjs) covering the glossary legend, inline term tooltips, status tooltips, notes clamp and live updates; run against synthetic rosters, not a real multi-session run.
+Implemented and verified against a Playwright browser suite (tests/test-cfn-fleet-dashboard-ui.cjs) covering the glossary legend, term and status tooltips, notes clamp, live updates, attach command Copy and Open in terminal via a stub launcher; run against synthetic rosters, not a real multi-session run.
 
 **Review needed:** Source contents changed since this explanation was reviewed.
 
