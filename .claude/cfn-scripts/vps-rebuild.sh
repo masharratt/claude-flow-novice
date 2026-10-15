@@ -177,6 +177,12 @@ if [ "$(dpkg-query -W -f='${Version}' code-server 2>/dev/null)" != "$CS" ]; then
   sudo apt-get install -yq /tmp/code-server.deb
 fi
 sudo usermod -aG docker "$U"
+# Ubuntu 24.04 AppArmor blocks unprivileged user namespaces, which bwrap needs for
+# fleet's sandboxed server workers (found 2026-10-15: fleet spawn --host refused).
+if [ ! -f /etc/apparmor.d/bwrap ]; then
+  printf 'abi <abi/4.0>,\ninclude <tunables/global>\nprofile bwrap /usr/bin/bwrap flags=(unconfined) {\n  userns,\n}\n' | sudo tee /etc/apparmor.d/bwrap >/dev/null
+  sudo apparmor_parser -r /etc/apparmor.d/bwrap
+fi
 sudo systemctl enable --now docker tailscaled
 echo "packages ok: ${#want[@]} installed, code-server $CS"
 EOF
@@ -284,6 +290,7 @@ ok "docker ports blocked publicly" "sudo iptables -S DOCKER-USER | grep -- '-j D
 ok "fail2ban running"             "systemctl is-active fail2ban"
 ok "auto security updates"        "systemctl is-enabled unattended-upgrades"
 ok "docker running"               "systemctl is-active docker"
+ok "bwrap sandbox works"           "bwrap --ro-bind / / true"
 ok "in docker group"              "id -nG | grep -qw docker"
 ok "tailscale up"                 "tailscale status"
 ok "code-server running"          "systemctl is-active code-server@$U"

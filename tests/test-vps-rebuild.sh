@@ -109,6 +109,10 @@ echo applied > "$B/projects/demo/.local-stack/applied-migrations.txt"
 run vps "$B" list-projects
 check_lacks "drops .local-stack state" "$OUT" ".local-stack"
 
+echo "bwrap sandbox allowed (2026-10-15: fleet spawn --host refused without it)"
+check_has "packages adds the bwrap AppArmor profile" "$(cat "$SCRIPT")" "/etc/apparmor.d/bwrap"
+check_has "check verifies bwrap" "$(cat "$SCRIPT")" "bwrap sandbox works"
+
 echo "public-repo hygiene"
 body=$(cat "$SCRIPT")
 check_lacks "no IPv4 address literal" "$(echo "$body" | grep -E '([0-9]{1,3}\.){3}[0-9]{1,3}' | grep -vE '127\.0\.0\.1|0\.0\.0\.0' || true)" "."
