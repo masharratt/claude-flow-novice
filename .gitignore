@@ -392,3 +392,7 @@ planning/**/handoffs/
 
 # decision-capture jsonl backups (live *.jsonl already ignored above)
 .claude/cfn-data/*.jsonl.bak-*
+
+# Local skill-manager trash and per-session Claude state inside skills
+.claude/skills/.trash/
+.claude/skills/*/.claude/
