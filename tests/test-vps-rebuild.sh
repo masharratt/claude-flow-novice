@@ -11,7 +11,7 @@ PROJECT_ROOT=$(git rev-parse --show-toplevel)
 SCRIPT="$PROJECT_ROOT/.claude/cfn-scripts/vps-rebuild.sh"
 
 # shellcheck source=../.claude/cfn-scripts/lib/safe-rm.sh
-source "$PROJECT_ROOT/.claude/cfn-scripts/lib/safe-rm.sh"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.claude/cfn-scripts/lib/safe-rm.sh"
 
 TEST_TMP=$(mktemp -d "${TMPDIR:-/tmp}/vps-rebuild.XXXXXX") || exit 1
 TEST_TMP=$(cd -P "$TEST_TMP" && pwd -P) || exit 1

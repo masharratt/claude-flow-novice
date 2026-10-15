@@ -23,7 +23,7 @@ lacks() { case "$2" in *"$3"*) no "$1 (unexpected '$3' in: $2)" ;; *) ok "$1" ;;
 
 unset TMUX TMUX_PANE
 SOCK="fleettest-$$"
-source "$PROJECT_ROOT/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
 TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/fleet-nudge.XXXXXX") || exit 1
 TMP_DIR=$(cd -P "$TMP_DIR" && pwd -P) || exit 1
 # Private socket directory too, so the default /tmp/tmux-<uid> dir is not used.

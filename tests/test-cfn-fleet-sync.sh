@@ -31,7 +31,7 @@ lacks() { # lacks NAME HAYSTACK NEEDLE
   case "$2" in *"$3"*) no "$1 (unexpected '$3' in: $2)" ;; *) ok "$1" ;; esac
 }
 
-source "$PROJECT_ROOT/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
 TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/fleet-sync.XXXXXX") || exit 1
 TMP_DIR=$(cd -P "$TMP_DIR" && pwd -P) || exit 1
 trap 'cfn_safe_rm_tmp "$TMP_DIR"' EXIT
