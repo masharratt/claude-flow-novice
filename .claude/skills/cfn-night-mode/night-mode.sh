@@ -256,6 +256,12 @@ render_report(){ # render_report <since-date> [<project-filter>]
 }
 
 cmd_on(){
+    # Night and work mode are exclusive: turning night on turns work mode off (its queue prints).
+    if [ -f "${CFN_WORK_MODE_DIR:-$HOME/.claude}/.work-mode-active" ]; then
+        echo "work mode is on: turning it off first."
+        bash "$SKILL_ROOT/../cfn-work-mode/work-mode.sh" off
+        echo ""
+    fi
     mkdir -p "$NIGHT_DIR"
     if [ -f "$FLAG" ]; then
         echo "night mode already ON (keeping original start ts)."
