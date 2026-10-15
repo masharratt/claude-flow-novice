@@ -90,6 +90,19 @@ check_has "keeps project .env" "$OUT" "demo/.env"
 check_lacks "drops project worktrees" "$OUT" "worktrees"
 check_lacks "drops compiled drones binary" "$OUT" "sim/drones"
 
+echo "a project with nothing to restore is not an error"
+# Regression 2026-10-15: on the live rebuild, daily-drones had only junk in the
+# bundle, grep matched nothing, and pipefail killed the repos phase silently.
+B2="$TEST_TMP/bundle2"; mkdir -p "$B2/home" "$B2/system" "$B2/projects/empty/.claude/worktrees/w"
+echo junk > "$B2/projects/empty/.claude/worktrees/w/f"
+cp "$B/rebuild.conf" "$B2/rebuild.conf"
+run vps "$B2" list-projects
+check_eq "list-projects with only junk exits 0" "$RC" "0"
+check_eq "list-projects with only junk prints nothing" "$OUT" ""
+run vps "$B2" list-home
+check_eq "list-home on an empty home exits 0" "$RC" "0"
+check_has "repos phase filters through the shared helper" "$(grep -c 'project_files ' "$SCRIPT")" "1"
+
 echo "public-repo hygiene"
 body=$(cat "$SCRIPT")
 check_lacks "no IPv4 address literal" "$(echo "$body" | grep -E '([0-9]{1,3}\.){3}[0-9]{1,3}' | grep -vE '127\.0\.0\.1|0\.0\.0\.0' || true)" "."

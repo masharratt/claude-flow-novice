@@ -59,8 +59,11 @@ REPOS=${REPOS:-}
 LOCAL_COPIES=${LOCAL_COPIES:-}
 DISPATCH_FUNNEL_PORT=${DISPATCH_FUNNEL_PORT:-}
 
-list_home() { (cd "$B/home" && find . \( -type f -o -type l \) | grep -vE "$JUNK_RE" | sort); }
-list_projects() { [ -d "$B/projects" ] || return 0; (cd "$B/projects" && find . -type f | grep -vE "$JUNK_RE" | sort); }
+# grep -v exits 1 when every line is junk; that is "nothing to restore", not an error.
+drop_junk() { grep -vE "$JUNK_RE" || true; }
+list_home() { (cd "$B/home" && find . \( -type f -o -type l \) | drop_junk | sort); }
+list_projects() { [ -d "$B/projects" ] || return 0; (cd "$B/projects" && find . -type f | drop_junk | sort); }
+project_files() { (cd "$1" && find . -type f | drop_junk); }
 
 # Run a bash script (stdin) on the server as the user, or as root with AS=root.
 # KEY=value pairs given as arguments are defined before the script runs.
@@ -216,8 +219,11 @@ git -C "$HOME/$DEST" checkout -q "$BR"
 echo "repo ok: $DEST ($BR)"
 EOF
     name=$(basename "$dest")
-    if [ -d "$B/projects/$name" ]; then
-      (cd "$B/projects/$name" && find . -type f | grep -vE "$JUNK_RE") | push "$B/projects/$name" "\$HOME/$dest"
+    files=""
+    [ -d "$B/projects/$name" ] && files=$(project_files "$B/projects/$name")
+    if [ -n "$files" ]; then
+      printf '%s\n' "$files" | push "$B/projects/$name" "\$HOME/$dest"
+      echo "restored $(printf '%s\n' "$files" | wc -l | tr -d ' ') file(s) into $dest"
     fi
   done
   for d in $LOCAL_COPIES; do
@@ -228,14 +234,15 @@ EOF
   [ -d "$B/git" ] && echo ./git | push "$B" '$HOME/restore-git'
   # link-global-config replaces ~/.claude/CLAUDE.md with a symlink; the server keeps
   # its own wrapper, so put the restored one back afterwards.
-  list_home | grep -x './.claude/CLAUDE.md' | push "$B/home" '$HOME/restore-claude-md'
+  if [ -f "$B/home/.claude/CLAUDE.md" ]; then echo ./.claude/CLAUDE.md | push "$B/home" '$HOME/restore-claude-md'; fi
   remote <<'EOF'
 cd ~/Projects/claude-flow-novice-src
 .claude/cfn-scripts/link-global-config.sh --force >/dev/null
 if [ -f ~/restore-claude-md/.claude/CLAUDE.md ]; then
   rm -f ~/.claude/CLAUDE.md && cp ~/restore-claude-md/.claude/CLAUDE.md ~/.claude/CLAUDE.md
 fi
-.claude/cfn-scripts/link-global-config.sh --check | tail -2
+# Expected: only CLAUDE.md reports UNLINKED, because the server keeps its own wrapper.
+.claude/cfn-scripts/link-global-config.sh --check | grep -E 'UNLINKED|runtime dirs:' || true
 echo "repos ok. Unpushed work and uncommitted patches to review by hand: ~/restore-git/git/"
 EOF
 }
@@ -295,8 +302,8 @@ phase_check() {
 set +e
 ok() { if eval "$2" >/dev/null 2>&1; then echo "  ok      $1"; else echo "  MISSING $1"; fi; }
 ok "sudo without password"        "sudo -n true"
-ok "root login disabled"          "sudo sshd -T | grep -qx 'permitrootlogin no'"
-ok "password login disabled"      "sudo sshd -T | grep -qx 'passwordauthentication no'"
+ok "root login disabled"          "sudo sshd -T | grep -x 'permitrootlogin no'"
+ok "password login disabled"      "sudo sshd -T | grep -x 'passwordauthentication no'"
 ok "firewall on"                  "sudo ufw status | grep -q 'Status: active'"
 ok "fail2ban running"             "systemctl is-active fail2ban"
 ok "auto security updates"        "systemctl is-enabled unattended-upgrades"
@@ -310,7 +317,7 @@ ok "crontab restored"             "crontab -l | grep -q backup-memgraph"
 ok "claude installed"             "test -x ~/.local/bin/claude"
 ok "node via nvm"                 "test -s ~/.nvm/nvm.sh"
 ok "gh logged in"                 "gh auth status"
-ok "CFN links"                    "~/Projects/claude-flow-novice-src/.claude/cfn-scripts/link-global-config.sh --check"
+ok "CFN runtime links"            "{ ~/Projects/claude-flow-novice-src/.claude/cfn-scripts/link-global-config.sh --check || true; } | grep -x 'runtime dirs: OK (14 of 14 linked)'"
 for d in ~/Projects/*/; do echo "  repo    $(basename "$d") $(git -C "$d" branch --show-current 2>/dev/null)"; done
 echo "Not automated: fireside services (docker compose up + memgraph restore, see backup-memgraph.sh), MDTWII (mdtwii-95)."
 EOF
