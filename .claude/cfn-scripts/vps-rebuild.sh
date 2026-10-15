@@ -20,7 +20,7 @@
 #   home           restore dotfiles, scripts, logins, crontab; code-server; linger
 #   tools          nvm/node/pnpm/codex, rustup, uv, flyctl, claude, supabase, playwright
 #   repos          needs `gh auth login` first: clone, restore project files, CFN links
-#   services       needs `tailscale up` first: serve/funnel routes, n8n, dispatch runner
+#   services       needs `tailscale up` first: Tailscale serve/funnel routes
 #   check          report what is and is not in place
 #   list-home      print the home files that would be restored (no ssh)
 #   list-projects  print the project files that would be restored (no ssh)
@@ -53,7 +53,6 @@ B=$(cd -P "$B" && pwd -P)
 SUPABASE_VERSION=${SUPABASE_VERSION:-}
 PNPM_VERSION=${PNPM_VERSION:-latest}
 CODEX_VERSION=${CODEX_VERSION:-latest}
-N8N_VERSION=${N8N_VERSION:-}
 TAILNET_NAME=${TAILNET_NAME:-}
 REPOS=${REPOS:-}
 LOCAL_COPIES=${LOCAL_COPIES:-}
@@ -91,7 +90,7 @@ Rebuild plan for user '$SERVER_USER' via ssh alias '$ALIAS', bundle $B
  4. home       (user)  $(list_home | wc -l | tr -d ' ') files; junk (worktrees, chrome caches, binaries) skipped.
  5. tools      (user)  node $NODE_VERSION, pnpm, codex, rustup, uv, flyctl, claude, supabase ${SUPABASE_VERSION:-skip}, playwright.
  6. repos      (user)  YOU FIRST: gh auth login (both accounts). Then clone $(echo "$REPOS" | wc -w | tr -d ' ') repos, restore $(list_projects | wc -l | tr -d ' ') project files.
- 7. services   (user)  YOU FIRST: sudo tailscale up. Then serve/funnel routes, n8n ${N8N_VERSION:-skip}, dispatch runner.
+ 7. services   (user)  YOU FIRST: sudo tailscale up. Then Tailscale serve/funnel routes. n8n + dispatch runner: gg-all-projects.
  8. check
 EOF
 }
@@ -261,50 +260,15 @@ phase_services() {
   remote <<'EOF' || die "tailscale is not up on the server: run 'sudo tailscale up' there, and remove the old node in the Tailscale admin first so the name is free" 65
 tailscale status >/dev/null 2>&1
 EOF
-  remote "TS=$TAILNET_NAME" "N8N=$N8N_VERSION" "DPORT=$DISPATCH_FUNNEL_PORT" <<'EOF'
+  remote "DPORT=$DISPATCH_FUNNEL_PORT" <<'EOF'
 sudo tailscale serve --bg --https=443 http://127.0.0.1:8080 >/dev/null
 sudo tailscale serve --bg --https=6080 http://127.0.0.1:6080 >/dev/null
 [ -n "$DPORT" ] && sudo tailscale funnel --bg --https=8443 "http://127.0.0.1:$DPORT" >/dev/null
-if [ -n "$N8N" ]; then
-  d=~/services/n8n; mkdir -p "$d"
-  # The encryption key protects every saved n8n credential: create once, never rotate.
-  [ -f "$d/.env" ] || printf 'N8N_ENCRYPTION_KEY=%s\n' "$(openssl rand -hex 32)" > "$d/.env"
-  chmod 600 "$d/.env"
-  cat > "$d/docker-compose.yml" <<YML
-services:
-  n8n:
-    image: docker.n8n.io/n8nio/n8n:$N8N
-    restart: unless-stopped
-    ports: ["127.0.0.1:5678:5678"]
-    env_file: .env
-    environment:
-      N8N_HOST: $TS
-      N8N_PROTOCOL: https
-      N8N_EDITOR_BASE_URL: https://$TS:5678/
-      WEBHOOK_URL: https://$TS:10000/
-      GENERIC_TIMEZONE: America/Los_Angeles
-    volumes: ["n8n_data:/home/node/.n8n"]
-volumes:
-  n8n_data:
-YML
-  (cd "$d" && sg docker -c "docker compose up -d" >/dev/null)
-  # Editor: tailnet only. Webhooks: the only public path.
-  sudo tailscale serve --bg --https=5678 http://127.0.0.1:5678 >/dev/null
-  sudo tailscale funnel --bg --https=10000 --set-path=/webhook http://127.0.0.1:5678/webhook >/dev/null
-fi
-if [ -f ~/.config/systemd/user/gg-dispatch-runner.service ] && [ -d ~/Projects/gg-all-projects ]; then
-  set +u; . ~/.nvm/nvm.sh; set -u
-  (cd ~/Projects/gg-all-projects && pnpm install --frozen-lockfile >/dev/null)
-  systemctl --user daemon-reload
-  systemctl --user enable --now gg-dispatch-runner
-fi
 sudo tailscale serve status
 EOF
-  if [ -n "$N8N_VERSION" ]; then
-    mkdir -p "$B/services"
-    ssh -o BatchMode=yes "$ALIAS" 'cat ~/services/n8n/.env' > "$B/services/n8n.env" && chmod 600 "$B/services/n8n.env"
-    echo "n8n encryption key saved to $B/services/n8n.env"
-  fi
+  # n8n (gg-all-projects infra/n8n) and gg-dispatch-runner (needs its local
+  # stack: pnpm stack:up) are restored by gg-all-projects, not here.
+  echo "services ok. Next, from gg-all-projects: n8n (infra/n8n), then pnpm stack:up and gg-dispatch-runner."
 }
 
 phase_check() {
