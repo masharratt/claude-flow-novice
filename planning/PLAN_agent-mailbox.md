@@ -42,6 +42,15 @@ reach peers on the same machine, and server workers report back only when the Ma
 - `ACL SETUSER` with key patterns (`~pattern`) and command lists is supported. Separate read and
   write key patterns (`%R~`/`%W~`) are **not confirmed**, so the design below does not need them.
 - Region: the US West region closest to the VPS.
+- **Live probe, 2026-10-15 (database `daring-redfish-152663`, Redis 8.4.0): passed.** Streams,
+  `EXPIRE`, consumer groups (`XGROUP`/`XREADGROUP`/`XPENDING`/`XAUTOCLAIM`/`XINFO`) and
+  `XREAD BLOCK` (woke on new entry) all work over TLS with `redis-cli`. ACL: `~mbx:*:from:steve`
+  let a test user write `mbx:michael:me:from:steve` and `mbx:michael:p:proj:from:steve`, and gave
+  NOPERM on forging `...:from:michael`, reading `...:from:michael`, the suffix trick
+  `...:from:steve:x`, and `FLUSHALL`. `%R~`/`%W~` is a syntax error (not supported; not needed).
+- **Upstash ACL passwords must come from `ACL GENTOKEN <user>`**; `ACL SETUSER <user> on >pass`
+  rejects any other password. User creation = GENTOKEN, then SETUSER with that token.
+- The connection URL Upstash shows is `redis://...`; TLS is required, so use `rediss://` or `--tls`.
 
 ## Coordinator (queen) versus message-anyone (mesh)
 
