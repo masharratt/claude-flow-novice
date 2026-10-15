@@ -103,6 +103,10 @@ run vps "$B2" list-home
 check_eq "list-home on an empty home exits 0" "$RC" "0"
 check_has "repos phase filters through the shared helper" "$(grep -c 'project_files ' "$SCRIPT")" "1"
 
+echo "docker ports are firewalled (2026-10-15: supabase on 0.0.0.0 bypassed ufw)"
+check_has "harden adds the DOCKER-USER drop block" "$(cat "$SCRIPT")" "BEGIN cfn docker-user"
+check_has "check verifies the DOCKER-USER drop" "$(cat "$SCRIPT")" "docker ports blocked publicly"
+
 echo "public-repo hygiene"
 body=$(cat "$SCRIPT")
 check_lacks "no IPv4 address literal" "$(echo "$body" | grep -E '([0-9]{1,3}\.){3}[0-9]{1,3}' | grep -vE '127\.0\.0\.1|0\.0\.0\.0' || true)" "."

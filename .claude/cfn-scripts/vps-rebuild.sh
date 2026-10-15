@@ -134,7 +134,17 @@ sudo install -m 644 "$S/00-hardening.conf" /etc/ssh/sshd_config.d/00-hardening.c
 sudo sshd -t
 sudo systemctl reload ssh
 sudo ufw allow OpenSSH >/dev/null
+# Docker-published ports skip ufw's INPUT rules (found 2026-10-15: a supabase
+# stack on 0.0.0.0 was reachable from the internet). Drop public-interface
+# traffic to containers except 80/443; loopback and tailscale0 are untouched.
+pub=$(ip route show default | awk '{for(i=1;i<NF;i++) if($i=="dev"){print $(i+1); exit}}')
+for f in /etc/ufw/after.rules /etc/ufw/after6.rules; do
+  sudo grep -q 'BEGIN cfn docker-user' "$f" && continue
+  new=$(sudo cat "$f"; printf '\n# BEGIN cfn docker-user\n*filter\n:DOCKER-USER - [0:0]\n-A DOCKER-USER -i %s -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN\n-A DOCKER-USER -i %s -p tcp -m conntrack --ctorigdstport 80 -j RETURN\n-A DOCKER-USER -i %s -p tcp -m conntrack --ctorigdstport 443 -j RETURN\n-A DOCKER-USER -i %s -j DROP\n-A DOCKER-USER -j RETURN\nCOMMIT\n# END cfn docker-user' "$pub" "$pub" "$pub" "$pub")
+  [ -n "$new" ] && printf '%s\n' "$new" | sudo tee "$f" >/dev/null
+done
 sudo ufw --force enable >/dev/null
+sudo ufw reload >/dev/null
 sudo ufw status | head -5
 EOF
   ssh -o BatchMode=yes -o ConnectTimeout=15 "$ALIAS" true \
@@ -305,6 +315,7 @@ ok "sudo without password"        "sudo -n true"
 ok "root login disabled"          "sudo sshd -T | grep -x 'permitrootlogin no'"
 ok "password login disabled"      "sudo sshd -T | grep -x 'passwordauthentication no'"
 ok "firewall on"                  "sudo ufw status | grep -q 'Status: active'"
+ok "docker ports blocked publicly" "sudo iptables -S DOCKER-USER | grep -- '-j DROP'"
 ok "fail2ban running"             "systemctl is-active fail2ban"
 ok "auto security updates"        "systemctl is-enabled unattended-upgrades"
 ok "docker running"               "systemctl is-active docker"
