@@ -87,7 +87,8 @@ STALE/DEAD until `started`).
 | `nudge WSxx "msg"` / `nudge WSxx --key K...` | Type the message literally plus Enter into the worker's pane, or press named keys (`Enter Escape C-u Up Down Tab BTab 1-9 y n`; use these to answer a permission prompt). One ws per call; pending/spawning rows refused (65). Host rows go over ssh. Use this, never raw `tmux send-keys` |
 | `stop WSxx` | Close the worker's tmux session only; worktree, branch, claims, files and roster row stay. Already gone = exit 0. Use this, never raw `tmux kill-session`. `watch` then reports `DEAD <ws> (pane exited)` until you land or reset the row |
 | `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. STALE fires when a started/working row's heartbeat ages past `--stale-min` (default 5 minutes). Heartbeat-only roster diffs never emit `CHANGE` (the spawn ticker rewrites that column every tick). Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
-| `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained live-poll HTML tracking page from the roster (status tiles and meter, filter chips, sort, heartbeat age, engine, claims, now-editing lists, goal blurb, STALE/DEAD badges, transition timeline, per-card attach command with Copy and Open in terminal), served on 127.0.0.1 for VS Code Simple Browser (below) |
+| `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained live-poll HTML tracking page from the roster (status tiles and meter, filter chips, sort, heartbeat age, engine, claims, now-editing lists, goal blurb, STALE/DEAD badges, transition timeline, per-card attach command with Copy and Open in terminal, per-card Live view of the worker's pane), served on 127.0.0.1 for VS Code Simple Browser (below) |
+| `archive <run> [--undo]` | Hide a stale run from discovery and the dashboard by writing `<run>/.archived` (undo removes it); never deletes |
 
 Exit codes: `0` ok, `64` usage, `65` data error (bad WS id, overlap, duplicate),
 `66` guard refusal, `71` internal.
@@ -424,11 +425,16 @@ $HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --stop    # tear the server d
 - Attach and Open in terminal: every card with a session (not `pending`)
   shows its attach command, `tmux -L <sock> attach -t <name>`, or
   `ssh -t <host> tmux -L <sock> attach -t <name>` for a remote row, with a
-  Copy button. A name, host or socket outside the strict patterns gets no
+  Copy button. A remote row's socket and session come from
+  `remote/<WS>.env` (written by `spawn --host`), never the local run socket
+  or the roster name; the renderer hands them to the page in columns 5 and 6
+  of `host-states.tsv`, and a remote row with no env file gets no command.
+  A name, host or socket outside the strict patterns gets no
   command at all. When the page is served and `GET /api/health` reports
   `"open": true`, an Open in terminal button posts `{"ws": "<id>"}` to
-  `POST /api/open-terminal`; the server reads the roster itself for name,
-  host and socket (never the request) and launches with an argv list:
+  `POST /api/open-terminal`; the server reads the roster (and
+  `remote/<WS>.env` for a remote row) itself for name, host and socket
+  (never the request) and launches with an argv list:
   macOS Terminal via `osascript`, WSL2 via `wt.exe new-tab wsl.exe -d
   <distro>`, otherwise 501 with the command to paste. Gate: Origin must be
   `http://127.0.0.1:<port>` or `http://localhost:<port>`, no
@@ -438,6 +444,37 @@ $HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --stop    # tear the server d
   Copy only. Test seam: `FLEET_DASHBOARD_OPEN_CMD=<program>` runs that
   program with the attach argv instead of a real launcher (set but not
   executable means open is unavailable).
+- Live view: when the page is served and `GET /api/health` reports
+  `"pane": true`, each attachable card has a Live view toggle (collapsed by
+  default, `aria-expanded`). Expanded, it shows the last 40 lines of the
+  worker's pane in a scrolling monospace box, pinned to the bottom unless you
+  scroll up, with "updated Ns ago" and a plain error line on failure. Only
+  expanded cards poll (local rows every 3s, remote rows every 6s), never
+  while the tab is hidden; the expanded set survives the card redraw. The
+  page calls `GET /api/pane?ws=<id>&lines=<N>` (N clamped 5..200, default
+  40), which runs `fleet peek <id> <N>` as an argv list with `FLEET_RUN_DIR`
+  set and an 8s timeout, strips ANSI and control characters (keeps newline
+  and tab) and answers `{"ok", "text", "ts"}`. Errors: unknown ws 404,
+  pending row or peek exit 65 (no session) 409, exit 66 (host unreachable)
+  503, timeout 504. Gate: Origin, when sent, must be this origin; no
+  `Sec-Fetch-Site: cross-site` (403). Load guard: one peek in flight per ws,
+  results cached 2s (5s for remote rows) so several tabs never fan out ssh
+  calls. Hidden on `--no-serve` / `file://` pages. Test seam:
+  `FLEET_DASHBOARD_PEEK_CMD=<program>` replaces the fleet CLI.
+- Sessions panel: when the page is served and health reports `"sessions": true`,
+  a panel above the cards lists every live Claude Code session on this machine,
+  read from `~/.claude/sessions/*.json` (whitelisted fields only; `*.key` files
+  are never opened; dead pids skipped). Columns: name, role (lane when cwd or
+  tmux name matches a roster row, else master), lane/brief, state (roster
+  review/gate win, else busy/idle/waiting/shell), last activity, attach command.
+  Sessions from other projects sit in a collapsed "Other projects" group; no
+  update for 24h shows "stale" and sorts last. `GET /api/sessions`, same gate
+  as the other endpoints, cached 3s; refreshes every 5s while the tab is
+  visible. Test seam: `FLEET_DASHBOARD_SESSIONS_DIR`.
+- Archived runs: `fleet archive <run> [--undo]` only writes or removes
+  `<run>/.archived`. Run discovery skips archived runs, so a stale fleet stops
+  being the dashboard's default; an explicit `FLEET_RUN_DIR` still reaches it.
+  Nothing is deleted.
 - The dashboard deliberately never exits on ALL-DONE (unlike `fleet watch`):
   `landed` means has-a-commit, not finished (trap 3).
 

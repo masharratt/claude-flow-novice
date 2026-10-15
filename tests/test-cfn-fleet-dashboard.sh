@@ -24,7 +24,18 @@ source "$SKILL_LIB/common.sh"
 # shellcheck disable=SC1091
 source "$SKILL_LIB/cmd-dashboard.sh"
 
-TEST_TMP=$(cd "$(mktemp -d -t cfn-fleet-dash.XXXXXX)" && pwd -P)  # macOS: /var is /private/var
+# Temp dir guard: a failed mktemp must never leave TEST_TMP empty or at the cwd,
+# because cleanup runs rm -rf on it (that once deleted the repo).
+_tmp_dir_ok() {
+    case "${1:-}" in
+        */cfn-fleet-dash.*) ;;
+        *) return 1 ;;
+    esac
+    [ "$1" != "$PROJECT_ROOT" ] && [ "$1" != "${HOME:-}" ] && [ "$1" != "/" ]
+}
+TEST_TMP_RAW=$(mktemp -d -t cfn-fleet-dash.XXXXXX) || exit 1
+TEST_TMP=$(cd "$TEST_TMP_RAW" && pwd -P) || exit 1  # macOS: /var is /private/var
+_tmp_dir_ok "$TEST_TMP" || { echo "REFUSING TO RUN: bad temp dir '$TEST_TMP'" >&2; exit 1; }
 # BSD wc pads counts with leading spaces ("       1"); strip them so counts compare on macOS too.
 wc() { command wc "$@" | sed 's/^ *//'; }
 RUN_DIR=""
@@ -42,7 +53,12 @@ cleanup() {
     if [ -n "$DASH_BG" ]; then
         kill "$DASH_BG" >/dev/null 2>&1 || true
     fi
-    rm -rf "$TEST_TMP"
+    if _tmp_dir_ok "$TEST_TMP"; then
+        rm -rf "$TEST_TMP"
+    fi
+    if [ -n "${ARCH_TMP:-}" ] && _tmp_dir_ok "$ARCH_TMP"; then
+        rm -rf "$ARCH_TMP"
+    fi
 }
 trap cleanup EXIT
 
@@ -801,6 +817,11 @@ build_host_run() {
         printf 'WS03\tws-q\tqueued work\tpending\t\t\t\t\t0\t\t\t\n'
         printf 'WS04\tx;touch pwned\thostile name\tworking\t\t\t\t\t%s\t\t\t\n' "$(date +%s)"
     } > "$RUN_DIR/roster.tsv"
+    # The remote row's session lives on the server: spawn --host records its
+    # socket and session in remote/<WS>.env. They differ from the local pair
+    # on purpose, so a card or launcher using the local pair fails the asserts.
+    mkdir -p "$RUN_DIR/remote"
+    printf 'FLEET_HOST=vps\nFLEET_SOCK=fleet-rsock\nFLEET_SESSION=rsess-ws02\n' > "$RUN_DIR/remote/WS02.env"
     export FLEET_RUN_DIR="$RUN_DIR"
     # The vps row makes the render probe the host over ssh. Stub ssh as
     # unreachable (rc 255) so no real server is ever contacted.
@@ -819,8 +840,8 @@ test_attach_command_on_bash_cards() {
     assert_contains "$html" 'data-socket="fleet-dashattach"' "body carries the run socket"
     assert_contains "$html" '<code class="attach-cmd">tmux -L fleet-dashattach attach -t ws-loc</code>' \
         "local card shows the tmux attach command"
-    assert_contains "$html" '<code class="attach-cmd">ssh -t vps tmux -L fleet-dashattach attach -t ws-rem</code>' \
-        "remote card shows the ssh attach command"
+    assert_contains "$html" '<code class="attach-cmd">ssh -t vps tmux -L fleet-rsock attach -t rsess-ws02</code>' \
+        "remote card shows the ssh attach command from remote/<WS>.env"
     assert_equals "2" "$(printf '%s\n' "$html" | grep -oF 'class="attach-cmd"' | wc -l)" \
         "pending and hostile-name rows get no attach command"
     assert_not_contains "$html" 'touch pwned</code>' "a hostile name never becomes a copyable command"
@@ -879,7 +900,7 @@ STUB
 
     local out
     out=$(api_call "$port" GET /api/health)
-    assert_equals '200 {"ok": true, "open": true}' "$out" "health says open is available with the stub"
+    assert_equals '200 {"ok": true, "open": true, "pane": true, "sessions": true}' "$out" "health says open is available with the stub"
 
     log_step "WHEN the request fails the origin gate"
     out=$(api_call "$port" POST /api/open-terminal "http://evil.example" application/json '{"ws":"WS01"}')
@@ -911,7 +932,7 @@ STUB
     assert_contains "$out" '200 {"ok": true' "remote row opens; localhost origin accepted"
     assert_equals "tmux -L fleet-dashopen attach -t ws-loc" "$(sed -n 1p "$open_log")" \
         "local launcher argv comes from the roster, request extras ignored"
-    assert_equals "ssh -t vps tmux -L fleet-dashopen attach -t ws-rem" "$(sed -n 2p "$open_log")" \
+    assert_equals "ssh -t vps tmux -L fleet-rsock attach -t rsess-ws02" "$(sed -n 2p "$open_log")" \
         "remote launcher argv wraps the attach in ssh -t"
 
     log_step "WHEN the server is stopped"
@@ -922,13 +943,490 @@ STUB
     port=$(pick_port)
     FLEET_DASHBOARD_OPEN_CMD="$TEST_TMP/no-such-launcher" run_dash --once --port "$port"
     out=$(api_call "$port" GET /api/health)
-    assert_equals '200 {"ok": true, "open": false}' "$out" "health says open is unavailable"
+    assert_equals '200 {"ok": true, "open": false, "pane": true, "sessions": true}' "$out" "health says open is unavailable"
     out=$(api_call "$port" POST /api/open-terminal "http://127.0.0.1:$port" application/json '{"ws":"WS01"}')
     assert_contains "$out" "501 " "no launcher is a 501"
     assert_contains "$out" '"command": "tmux -L fleet-dashopen attach -t ws-loc"' \
         "501 carries the attach command"
     run_dash --stop
     rm -f "$TEST_TMP/bin/ssh"
+}
+
+# api_get PORT PATH [Header:Value ...]: prints "<status> <body>" for one GET
+# with exactly the given headers (gate cases: Host, Origin, Sec-Fetch-Site).
+api_get() {
+    python3 - "$@" <<'PY'
+import sys, http.client
+port, path = int(sys.argv[1]), sys.argv[2]
+hdrs = {}
+for h in sys.argv[3:]:
+    k, _, v = h.partition(":")
+    hdrs[k.strip()] = v.strip()
+c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+c.request("GET", path, headers=hdrs)
+r = c.getresponse()
+print(r.status, r.read().decode())
+PY
+}
+
+# json_q PORT PATH EXPR: GET the JSON at PATH and print eval(EXPR) with d = the
+# body and S = {pid: session} when the body lists sessions.
+json_q() {
+    python3 - "$@" <<'PY'
+import sys, json, urllib.request
+port, path, expr = sys.argv[1], sys.argv[2], sys.argv[3]
+d = json.load(urllib.request.urlopen("http://127.0.0.1:%s%s" % (port, path), timeout=5))
+S = {s["pid"]: s for s in d.get("sessions", [])}
+print(eval(expr))
+PY
+}
+
+# guarded_rm_file PATH: remove one fixture file, only inside TEST_TMP.
+guarded_rm_file() {
+    _tmp_dir_ok "$TEST_TMP" || return 1
+    case "${1:-}" in
+        "$TEST_TMP"/*) rm -f "$1" ;;
+        *) return 1 ;;
+    esac
+}
+
+test_live_view_and_sessions_static_markup_and_host_columns() {
+    log_step "GIVEN local, remote, pending and hostile rows plus remote/WS02.env, WHEN render --no-serve"
+    build_host_run dashmarkup
+    run_dash --no-serve --once
+    assert_equals "0" "$DASH_RC" "render exits 0"
+    local html
+    html=$(static_html "$RUN_DIR/dashboard.html")
+    assert_contains "$html" \
+        'class="chipbtn pane-btn" aria-expanded="false" aria-controls="pane-WS01" hidden>Live view</button>' \
+        "local card ships a collapsed, hidden Live view toggle"
+    assert_contains "$html" 'aria-controls="pane-WS02" hidden>Live view</button>' \
+        "remote card with a recorded session ships the toggle too"
+    assert_equals "2" "$(printf '%s\n' "$html" | grep -oF 'class="chipbtn pane-btn"' | wc -l)" \
+        "pending and hostile-name rows get no Live view toggle"
+    assert_equals "0" "$(printf '%s\n' "$html" | grep -cF 'class="pane" id=' || true)" \
+        "no pane box in the static page: collapsed by default"
+    assert_contains "$html" \
+        '<section class="sessions" id="sessions" aria-label="Claude sessions on this machine" hidden>' \
+        "Sessions panel ships hidden until /api/health reports sessions"
+    assert_contains "$html" '<div id="sessions-body"></div>' "Sessions panel ships as an empty mount"
+    assert_equals "fleet-rsock rsess-ws02" \
+        "$(awk -F'\t' '$1 == "WS02" { print $5 " " $6 }' "$RUN_DIR/host-states.tsv")" \
+        "host-states.tsv carries the remote sock and session from remote/<WS>.env"
+
+    log_step "GIVEN a remote row with no remote/<WS>.env, WHEN render"
+    build_host_run dashnoenv
+    guarded_rm_file "$RUN_DIR/remote/WS02.env"
+    run_dash --no-serve --once
+    html=$(static_html "$RUN_DIR/dashboard.html")
+    assert_equals "1" "$(printf '%s\n' "$html" | grep -oF 'class="attach-cmd"' | wc -l)" \
+        "remote row without an env file gets no attach command (only the local row does)"
+    assert_not_contains "$html" 'ssh -t vps' "no ssh command is invented from the local pair"
+    assert_equals "1" "$(printf '%s\n' "$html" | grep -oF 'class="chipbtn pane-btn"' | wc -l)" \
+        "and no Live view toggle either"
+    assert_equals "" "$(awk -F'\t' '$1 == "WS02" { print $5 $6 }' "$RUN_DIR/host-states.tsv")" \
+        "host-states.tsv sock and session columns are empty without the env file"
+
+    log_step "GIVEN a remote env whose values break the attach patterns, WHEN render"
+    build_host_run dashbadenv
+    printf 'FLEET_HOST=vps\nFLEET_SOCK=%q\nFLEET_SESSION=%q\n' 'bad sock;x' 'a b' > "$RUN_DIR/remote/WS02.env"
+    run_dash --no-serve --once
+    html=$(static_html "$RUN_DIR/dashboard.html")
+    assert_not_contains "$html" 'bad sock' "an unsafe recorded socket never reaches a command"
+    assert_equals "" "$(awk -F'\t' '$1 == "WS02" { print $5 $6 }' "$RUN_DIR/host-states.tsv")" \
+        "unsafe values are dropped from host-states.tsv"
+    guarded_rm_file "$TEST_TMP/bin/ssh"
+}
+
+test_inline_js_live_view_and_sessions_contract() {
+    log_step "GIVEN a rendered page, WHEN the inline layer ships the Live view and Sessions code"
+    build_run dashjs2
+    add_ws WS01 ws01 "Live work" started "" "" "" "$(date +%s)"
+    run_dash --no-serve --once
+    local js
+    js=$(sed -n '/^<script>$/,/^<\/script>$/p' "$RUN_DIR/dashboard.html")
+    assert_contains "$js" 'fetch("api/pane?ws="' "Live view reads api/pane"
+    assert_contains "$js" 'pre.textContent = st.text;' "pane text goes in via textContent only"
+    assert_contains "$js" 'var PANE_LINES = 40, PANE_LOCAL_MS = 3000, PANE_HOST_MS = 6000;' \
+        "40 lines, 3s local and 6s host polling"
+    assert_contains "$js" 'document.visibilityState !== "visible"' "polling pauses on a hidden tab"
+    assert_contains "$js" 'paneAvailable = !!(d && d.ok === true && d.pane === true);' \
+        "Live view needs health.pane"
+    assert_contains "$js" 'd.sessions === true) startSessions();' "Sessions panel needs health.sessions"
+    assert_contains "$js" 'fetch("api/sessions?ts="' "Sessions panel reads api/sessions"
+    assert_contains "$js" 'var SESSIONS_MS = 5000;' "sessions refresh every 5s"
+    assert_not_contains "$js" 'api/sessions.key' "page never names a key file"
+}
+
+# Stub for `fleet peek`: logs argv and the run dir, then behaves per ws id.
+write_peek_stub() {
+    cat > "$TEST_TMP/bin/peek-stub" <<'STUB'
+#!/usr/bin/env bash
+# test stub for fleet peek: argv is "peek WSxx N", FLEET_RUN_DIR is set
+printf 'peek %s %s run=%s\n' "$2" "$3" "$FLEET_RUN_DIR" >> "${FLEET_PEEK_LOG:?}"
+case "$2" in
+    WS05) echo "fleet: no session for ws05" >&2; exit 65 ;;
+    WS06) echo "fleet: peek: host vps is unreachable" >&2; exit 66 ;;
+    WS08) echo "fleet: boom" >&2; exit 3 ;;
+    WS07) sleep 1 ;;
+esac
+printf '\033[31mred\033[0m \033]0;title\007plain\001\177! <b>x</b>\tend\nsecond %s\n' "$2"
+STUB
+    chmod +x "$TEST_TMP/bin/peek-stub"
+}
+
+test_api_pane_strip_clamp_cache_errors_gate() {
+    if ! command -v python3 >/dev/null 2>&1; then
+        log_info "SKIP api/pane: python3 unavailable"
+        return 0
+    fi
+    log_step "GIVEN the dashboard serving with a stub peek command"
+    build_host_run dashpane
+    local r
+    for r in WS05:five WS06:six WS07:seven WS08:eight; do
+        printf '%s\tws-%s\tt\tworking\t\t\t\t\t%s\t\t\t\n' "${r%%:*}" "${r##*:}" "$(date +%s)" >> "$RUN_DIR/roster.tsv"
+    done
+    write_peek_stub
+    local plog="$TEST_TMP/peek.log" port origin out
+    : > "$plog"
+    port=$(pick_port)
+    origin="http://127.0.0.1:$port"
+    FLEET_DASHBOARD_PEEK_CMD="$TEST_TMP/bin/peek-stub" FLEET_PEEK_LOG="$plog" run_dash --once --port "$port"
+    assert_equals "0" "$DASH_RC" "serving start exits 0"
+    out=$(api_call "$port" GET /api/health)
+    assert_contains "$out" '"pane": true' "health reports pane available"
+    assert_contains "$out" '"sessions": true' "health reports sessions available"
+
+    log_step "WHEN a pane with ANSI, OSC and control bytes is read"
+    out=$(api_call "$port" GET "/api/pane?ws=WS01")
+    assert_contains "$out" '200 {"ok": true, "text": ' "local pane read is 200"
+    assert_equals "True" "$(json_q "$port" '/api/pane?ws=WS01' "d['text'] == 'red plain! <b>x</b>\tend\nsecond WS01\n'")" \
+        "ANSI/OSC/control bytes stripped, newline and tab kept, markup left literal"
+    assert_equals "True" "$(json_q "$port" '/api/pane?ws=WS01' "isinstance(d['ts'], int) and d['ts'] > 0")" "ts is an epoch"
+    assert_equals "peek WS01 40 run=$RUN_DIR" "$(sed -n 1p "$plog")" \
+        "peek runs as argv [peek ws 40] with FLEET_RUN_DIR set; default is 40 lines"
+
+    log_step "WHEN the same pane is read three times inside the cache window"
+    api_call "$port" GET "/api/pane?ws=WS01" >/dev/null
+    api_call "$port" GET "/api/pane?ws=WS01" >/dev/null
+    assert_equals "1" "$(grep -c '^peek WS01 40 ' "$plog" || true)" "local pane is cached: one peek, not four"
+
+    log_step "WHEN lines is out of range or malformed"
+    api_call "$port" GET "/api/pane?ws=WS01&lines=1" >/dev/null
+    assert_equals "1" "$(grep -c '^peek WS01 5 ' "$plog" || true)" "lines=1 clamps up to 5"
+    api_call "$port" GET "/api/pane?ws=WS01&lines=9999" >/dev/null
+    assert_equals "1" "$(grep -c '^peek WS01 200 ' "$plog" || true)" "lines=9999 clamps down to 200"
+    assert_contains "$(api_call "$port" GET '/api/pane?ws=WS01&lines=abc')" "400 " "lines=abc is a 400"
+    assert_contains "$(api_call "$port" GET '/api/pane?ws=WS01&lines=-5')" "400 " "negative lines is a 400"
+    assert_contains "$(api_call "$port" GET '/api/pane?ws=WS01&lines=1;touch+x')" "400 " "shell text in lines is a 400"
+    assert_equals "3" "$(wc -l < "$plog")" "rejected lines never ran peek (only the 40, 5 and 200 reads logged)"
+
+    log_step "WHEN the cache window passes"
+    api_call "$port" GET "/api/pane?ws=WS01&lines=40" >/dev/null
+    assert_equals "2" "$(grep -c '^peek WS01 40 ' "$plog" || true)" "different lines value reads again"
+    api_call "$port" GET "/api/pane?ws=WS01&lines=40" >/dev/null
+    assert_equals "2" "$(grep -c '^peek WS01 40 ' "$plog" || true)" "inside the 2s window: cached"
+    sleep 2.4
+    api_call "$port" GET "/api/pane?ws=WS01&lines=40" >/dev/null
+    assert_equals "3" "$(grep -c '^peek WS01 40 ' "$plog" || true)" "local pane re-read after the 2s cache expires"
+
+    log_step "GIVEN a host row, THEN its cache lasts longer than a local row's"
+    api_call "$port" GET "/api/pane?ws=WS02" >/dev/null
+    sleep 2.4
+    api_call "$port" GET "/api/pane?ws=WS02" >/dev/null
+    assert_equals "1" "$(grep -c '^peek WS02 40 ' "$plog" || true)" "host pane still cached after 2.4s (5s window)"
+
+    log_step "WHEN three tabs read one slow pane at once"
+    local p1 p2 p3
+    api_call "$port" GET "/api/pane?ws=WS07" > "$TEST_TMP/slow1.out" &
+    p1=$!
+    api_call "$port" GET "/api/pane?ws=WS07" > "$TEST_TMP/slow2.out" &
+    p2=$!
+    api_call "$port" GET "/api/pane?ws=WS07" > "$TEST_TMP/slow3.out" &
+    p3=$!
+    wait "$p1" "$p2" "$p3"
+    assert_equals "1" "$(grep -c '^peek WS07 40 ' "$plog" || true)" "one read per worker at a time: three requests, one peek"
+    assert_equals "3" "$(cat "$TEST_TMP"/slow?.out | grep -c '^200 {"ok": true' || true)" "all three requests get the shared result"
+
+    log_step "WHEN peek fails or the row cannot be read"
+    out=$(api_call "$port" GET "/api/pane?ws=WS05")
+    assert_equals '409 {"ok": false, "error": "no session for ws05"}' "$out" "peek exit 65 is 409 with the message, fleet: prefix removed"
+    api_call "$port" GET "/api/pane?ws=WS05" >/dev/null
+    assert_equals "1" "$(grep -c '^peek WS05 ' "$plog" || true)" "errors are cached too"
+    out=$(api_call "$port" GET "/api/pane?ws=WS06")
+    assert_contains "$out" '503 {"ok": false, "error": "peek: host vps is unreachable"}' "peek exit 66 is 503 unreachable"
+    out=$(api_call "$port" GET "/api/pane?ws=WS08")
+    assert_contains "$out" '500 {"ok": false, "error": "boom"}' "any other peek failure is 500"
+    assert_contains "$(api_call "$port" GET '/api/pane?ws=WS03')" '409 {"ok": false' "pending row is 409, no peek run"
+    assert_equals "0" "$(grep -c '^peek WS03 ' "$plog" || true)" "pending row never ran peek"
+    assert_contains "$(api_call "$port" GET '/api/pane?ws=WS99')" '404 {"ok": false' "unknown ws is 404"
+    assert_contains "$(api_call "$port" GET '/api/pane?ws=%2e%2e%2froster')" "400 " "path-shaped ws is a 400"
+    assert_contains "$(api_call "$port" GET '/api/pane')" "400 " "missing ws is a 400"
+
+    log_step "WHEN the request fails the read-only gate"
+    assert_contains "$(api_get "$port" '/api/pane?ws=WS01' "Host: 127.0.0.1:$port" "Origin: http://evil.example")" "403 " "foreign Origin refused"
+    assert_contains "$(api_get "$port" '/api/pane?ws=WS01' "Host: evil.example")" "403 " "foreign Host refused (DNS rebinding)"
+    assert_contains "$(api_get "$port" '/api/pane?ws=WS01' "Host: 127.0.0.1:$port" "Sec-Fetch-Site: cross-site")" "403 " "cross-site refused"
+    assert_contains "$(api_get "$port" '/api/pane?ws=WS01' "Host: 127.0.0.1:$port" "Origin: $origin" "Sec-Fetch-Site: same-origin")" "200 " "same-origin GET allowed"
+    assert_contains "$(api_get "$port" '/api/pane?ws=WS01' "Host: localhost:$port" "Origin: http://localhost:$port")" "200 " "localhost origin allowed"
+    assert_contains "$(api_get "$port" '/api/pane?ws=WS01' "Host: 127.0.0.1:$port")" "200 " "a same-origin GET may omit Origin"
+
+    run_dash --stop
+    assert_contains "$DASH_OUT" "stopped" "--stop stops the pane server"
+
+    log_step "GIVEN a peek seam that is not executable"
+    port=$(pick_port)
+    FLEET_DASHBOARD_PEEK_CMD="$TEST_TMP/no-such-peek" FLEET_PEEK_LOG="$plog" run_dash --once --port "$port"
+    assert_contains "$(api_call "$port" GET /api/health)" '"pane": false' "health says pane unavailable"
+    assert_contains "$(api_call "$port" GET '/api/pane?ws=WS01')" "501 " "no peek command is a 501"
+    run_dash --stop
+
+    log_step "GIVEN the real fleet CLI, a host row with no remote/WS02.env"
+    guarded_rm_file "$RUN_DIR/remote/WS02.env"
+    port=$(pick_port)
+    run_dash --once --port "$port"
+    assert_contains "$(api_call "$port" GET /api/health)" '"pane": true' "real CLI makes pane available"
+    out=$(api_call "$port" GET '/api/pane?ws=WS02')
+    assert_contains "$out" "409 " "host row without an env file is 409 (no session), not a guess"
+    assert_contains "$out" "no remote env" "the 409 says why"
+    run_dash --stop
+    guarded_rm_file "$TEST_TMP/bin/ssh"
+}
+
+# mk_sess PID CWD NAME STATUS UPDATED_MS TMUX: write <SESS_OUT or SDIR>/PID.json
+# with secret-bearing extra fields that must never reach the page.
+mk_sess() {
+    python3 - "$@" <<'PY'
+import json, os, sys
+pid, cwd, name, status, upd, tmux = sys.argv[1:7]
+d = {"pid": int(os.environ.get("JSON_PID", pid)), "cwd": cwd, "name": name, "status": status,
+     "updatedAt": int(upd), "startedAt": int(upd),
+     "sessionId": "SECRET-SESSION-ID", "messagingSocketPath": "/tmp/SECRET-SOCKET"}
+if tmux:
+    d["tmux"] = tmux
+out = os.environ.get("SESS_OUT") or os.environ["SDIR"]
+with open(os.path.join(out, pid + ".json"), "w") as fh:
+    json.dump(d, fh)
+PY
+}
+
+test_api_sessions_classification_whitelist_gate() {
+    if ! command -v python3 >/dev/null 2>&1; then
+        log_info "SKIP api/sessions: python3 unavailable"
+        return 0
+    fi
+    log_step "GIVEN a project with a served run, an archived run and a pile of session files"
+    local SB="$TEST_TMP/sessproj" OTHER="$TEST_TMP/otherproj" now_ms
+    export SDIR="$TEST_TMP/sessions-fixture"
+    now_ms=$(( $(date +%s) * 1000 ))
+    mkdir -p "$SB/planning/fleet-sess" "$SB/planning/fleet-old" "$OTHER/.git" "$SDIR" "$TEST_TMP/sess-outside"
+    RUN_DIR="$SB/planning/fleet-sess"
+    printf 'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\n' > "$RUN_DIR/roster.tsv"
+    printf 'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\nWS01\toldlane\told work\tworking\t\t\t\t\t0\t\t\n' > "$SB/planning/fleet-old/roster.tsv"
+    : > "$RUN_DIR/.roster.lock"
+    printf 'FLEET_WORKTREE=off\nFLEET_DB=none\n' > "$RUN_DIR/fleet.env"
+    export FLEET_RUN_DIR="$RUN_DIR"
+    local now
+    now=$(date +%s)
+    add_ws WS01 lane1 "Auth work" working "" "" "" "$now"
+    add_ws WS02 lane2 "API work" working "" "" "in code review" "$now"
+    add_ws WS03 lane3 "Gate work" working "" "" "running the gate check" "$now"
+    add_ws WS04 lane4 "Done work" done "" "" "review passed" "$now"
+    local cli="$SKILL_LIB/../cli/fleet"
+    "$cli" archive "$SB/planning/fleet-old" >/dev/null
+
+    mk_sess 3001 "$SB" main-chat busy "$now_ms" ""
+    mk_sess 3002 "$SB/.claude/worktrees/ws01" w1 idle "$now_ms" ""
+    mk_sess 3003 "$SB" w2 busy "$now_ms" "lane2:0.0"
+    mk_sess 3004 "$SB/.claude/worktrees/ws03" w3 busy "$now_ms" ""
+    mk_sess 3005 "$SB/.claude/worktrees/ws04" w4 busy "$now_ms" ""
+    mk_sess 3006 "$SB" dead-one busy "$now_ms" ""
+    mk_sess 3007 "$OTHER" elsewhere idle "$now_ms" ""
+    mk_sess 3008 "$SB" old-chat idle "$(( now_ms - 2 * 86400 * 1000 ))" ""
+    SESS_OUT="$TEST_TMP/sess-outside" mk_sess 3009 "$SB" linked busy "$now_ms" ""
+    ln -s "$TEST_TMP/sess-outside/3009.json" "$SDIR/3009.json"
+    mk_sess 3010 "$SB" scratcher shell "$now_ms" "scratch:0"
+    mk_sess 3011 "$SB" ghosty zzz "$now_ms" "ghost:0"
+    mk_sess 3012 "$SB" $'\033[31mevil\033[0m' busy "$now_ms" "x y;touch pwned:0"
+    mk_sess 3013 "relative/path" relpath busy "$now_ms" ""
+    JSON_PID=999 mk_sess 3014 "$SB" mismatch busy "$now_ms" ""
+    mk_sess 3015 "$SB" oldlane-chat busy "$now_ms" "oldlane:0"
+    printf 'not json{' > "$SDIR/3016.json"
+    mkfifo "$SDIR/3017.json"
+    printf 'SECRET-KEY-CONTENT' > "$SDIR/3001.abc123.key"
+    printf 'SECRET-KEY-CONTENT' > "$SDIR/3002.key"
+
+    mkdir -p "$TEST_TMP/bin-sess"
+    cat > "$TEST_TMP/bin-sess/tmux" <<'STUB'
+#!/usr/bin/env bash
+# test stub: only the tmux session named "scratch" exists
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -L|-S|-f|-c) shift 2 ;;
+        -*) shift ;;
+        *) break ;;
+    esac
+done
+if [ "${1:-}" = has-session ]; then
+    [ "${3:-}" = "=scratch" ] && exit 0
+    exit 1
+fi
+exit 0
+STUB
+    chmod +x "$TEST_TMP/bin-sess/tmux"
+
+    local port origin out
+    port=$(pick_port)
+    origin="http://127.0.0.1:$port"
+    FLEET_DASHBOARD_SESSIONS_DIR="$SDIR" \
+        FLEET_DASHBOARD_PID_ALIVE="3001,3002,3003,3004,3005,3007,3008,3009,3010,3011,3012,3013,3014,3015,3016,3017" \
+        PATH="$TEST_TMP/bin-sess:$PATH" run_dash --once --port "$port"
+    assert_equals "0" "$DASH_RC" "serving start exits 0"
+    assert_contains "$(api_call "$port" GET /api/health)" '"sessions": true' "health reports sessions"
+
+    log_step "WHEN /api/sessions is read"
+    out=$(api_call "$port" GET /api/sessions)
+    assert_contains "$out" '200 {"ok": true, "project": "sessproj"' "200 with the project name"
+    assert_not_contains "$out" "SECRET" "sessionId, socket path and key file contents never leave the server"
+    assert_not_contains "$out" "sessionId" "no sessionId field"
+    assert_not_contains "$out" "messagingSocketPath" "no messagingSocketPath field"
+    assert_equals "[3001, 3002, 3003, 3004, 3005, 3007, 3008, 3010, 3011, 3012, 3015]" \
+        "$(json_q "$port" /api/sessions 'sorted(S)')" \
+        "live regular files only: dead pid, symlink, FIFO, bad json, relative cwd, pid mismatch and .key files are skipped"
+    assert_equals "True" "$(json_q "$port" /api/sessions "all(sorted(s) == sorted(['pid','name','project','other','role','ws','brief','run','state','updated','stale','tmux','attach']) for s in d['sessions'])")" \
+        "every session carries exactly the whitelisted fields"
+    assert_equals "('master', 'working', False, False, '')" \
+        "$(json_q "$port" /api/sessions "(S[3001]['role'], S[3001]['state'], S[3001]['other'], S[3001]['stale'], S[3001]['attach'])")" \
+        "plain session in this project is a master, busy reads working"
+    assert_equals "('lane', 'WS01', 'fleet-sess', 'idle', 'Auth work', 'tmux -L fleet-sess attach -t lane1')" \
+        "$(json_q "$port" /api/sessions "(S[3002]['role'], S[3002]['ws'], S[3002]['run'], S[3002]['state'], S[3002]['brief'], S[3002]['attach'])")" \
+        "lane found by worktree cwd, brief from roster task, attach from run socket and roster name"
+    assert_equals "('lane', 'WS02', 'in review', 'tmux -L fleet-sess attach -t lane2')" \
+        "$(json_q "$port" /api/sessions "(S[3003]['role'], S[3003]['ws'], S[3003]['state'], S[3003]['attach'])")" \
+        "lane found by tmux name; a review note reads in review"
+    assert_equals "('WS03', 'in gate')" "$(json_q "$port" /api/sessions "(S[3004]['ws'], S[3004]['state'])")" \
+        "a gate note reads in gate"
+    assert_equals "('WS04', 'done')" "$(json_q "$port" /api/sessions "(S[3005]['ws'], S[3005]['state'])")" \
+        "roster done wins over a review word in the note"
+    assert_equals "('elsewhere', 'otherproj', True, 'master', '')" \
+        "$(json_q "$port" /api/sessions "(S[3007]['name'], S[3007]['project'], S[3007]['other'], S[3007]['role'], S[3007]['attach'])")" \
+        "session in another project is flagged other and grouped by project"
+    assert_equals "True" "$(json_q "$port" /api/sessions "S[3008]['stale'] and not S[3008]['other']")" \
+        "no update for over 24h is stale"
+    assert_equals "('master', 'running a shell command', 'scratch', 'tmux -L fleet-sess attach -t scratch')" \
+        "$(json_q "$port" /api/sessions "(S[3010]['role'], S[3010]['state'], S[3010]['tmux'], S[3010]['attach'])")" \
+        "non-lane tmux session gets an attach command only because has-session found it"
+    assert_equals "('unknown', 'ghost', '')" \
+        "$(json_q "$port" /api/sessions "(S[3011]['state'], S[3011]['tmux'], S[3011]['attach'])")" \
+        "unknown status reads unknown; tmux name with no live session gets no command"
+    assert_equals "('evil', '')" "$(json_q "$port" /api/sessions "(S[3012]['name'], S[3012]['tmux'])")" \
+        "control codes stripped from the name; a tmux name that fails the pattern is dropped"
+    assert_equals "('master', '')" "$(json_q "$port" /api/sessions "(S[3015]['role'], S[3015]['run'])")" \
+        "a session matching only an archived run's row is not a lane"
+    assert_equals "True" "$(json_q "$port" /api/sessions "[s['other'] for s in d['sessions']] == sorted(s['other'] for s in d['sessions'])")" \
+        "this project sorts before other projects"
+    assert_equals "True" "$(json_q "$port" /api/sessions "[s['stale'] for s in d['sessions'] if not s['other']] == sorted(s['stale'] for s in d['sessions'] if not s['other'])")" \
+        "stale sessions sort last within a project"
+    assert_equals "True" "$(json_q "$port" /api/sessions "[s['role'] != 'master' for s in d['sessions'] if not s['other'] and not s['stale']] == sorted(s['role'] != 'master' for s in d['sessions'] if not s['other'] and not s['stale'])")" \
+        "masters sort before lanes"
+
+    log_step "WHEN a session file changes and an archived run comes back"
+    mk_sess 3001 "$SB" renamed-chat busy "$now_ms" ""
+    "$cli" archive "$SB/planning/fleet-old" --undo >/dev/null
+    assert_equals "main-chat" "$(json_q "$port" /api/sessions "S[3001]['name']")" "result cached for a few seconds"
+    sleep 3.4
+    assert_equals "renamed-chat" "$(json_q "$port" /api/sessions "S[3001]['name']")" "cache expires and the new name shows"
+    assert_equals "('lane', 'fleet-old', 'tmux -L fleet-old attach -t oldlane')" \
+        "$(json_q "$port" /api/sessions "(S[3015]['role'], S[3015]['run'], S[3015]['attach'])")" \
+        "after --undo the run's rows classify sessions again, on that run's own socket"
+
+    log_step "WHEN the request fails the read-only gate"
+    assert_contains "$(api_get "$port" /api/sessions "Host: 127.0.0.1:$port" "Origin: http://evil.example")" "403 " "foreign Origin refused"
+    assert_contains "$(api_get "$port" /api/sessions "Host: evil.example")" "403 " "foreign Host refused"
+    assert_contains "$(api_get "$port" /api/sessions "Host: 127.0.0.1:$port" "Sec-Fetch-Site: cross-site")" "403 " "cross-site refused"
+    assert_contains "$(api_get "$port" /api/sessions "Host: 127.0.0.1:$port" "Origin: $origin")" "200 " "same-origin allowed"
+    assert_contains "$(api_get "$port" /api/sessions "Host: 127.0.0.1:$port")" "200 " "no Origin allowed for a same-origin GET"
+    assert_contains "$(api_call "$port" POST /api/sessions "$origin" application/json '{}')" "404 " "POST to sessions is not a route"
+
+    run_dash --stop
+    unset SDIR
+}
+
+test_fleet_archive_marker_discovery_and_undo() {
+    # Own temp root: run discovery walks up parent dirs, and $TEST_TMP/planning holds
+    # other cases' fleet runs, so an all-archived project inside $TEST_TMP would
+    # discover those instead of exiting 64.
+    local arch_root
+    arch_root=$(mktemp -d -t cfn-fleet-dash.XXXXXX) || exit 1
+    arch_root=$(cd "$arch_root" && pwd -P) || exit 1
+    _tmp_dir_ok "$arch_root" || { echo "REFUSING TO RUN: bad temp dir '$arch_root'" >&2; exit 1; }
+    ARCH_TMP="$arch_root"
+    local P="$arch_root/archproj" cli="$SKILL_LIB/../cli/fleet" out rc got hdr
+    hdr='ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\n'
+    mkdir -p "$P/planning/fleet-alpha" "$P/planning/fleet-beta" "$TEST_TMP/archempty"
+    printf "$hdr" > "$P/planning/fleet-alpha/roster.tsv"
+    printf "$hdr" > "$P/planning/fleet-beta/roster.tsv"
+    local sum_before
+    sum_before=$(cksum < "$P/planning/fleet-alpha/roster.tsv")
+
+    log_step "GIVEN two runs, WHEN fleet archive alpha"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive alpha 2>&1) || rc=$?
+    assert_equals "0" "$rc" "archive exits 0"
+    assert_contains "$out" "fleet-alpha archived" "says what it did"
+    assert_success "marker created" test -f "$P/planning/fleet-alpha/.archived"
+    assert_contains "$(cat "$P/planning/fleet-alpha/.archived")" "archived " "marker carries a timestamp line"
+    assert_equals ".archived
+roster.tsv" "$(ls -A "$P/planning/fleet-alpha")" "marker is the only thing added"
+    assert_equals "$sum_before" "$(cksum < "$P/planning/fleet-alpha/roster.tsv")" "roster untouched"
+    assert_success "other run untouched" test ! -e "$P/planning/fleet-beta/.archived"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive alpha 2>&1) || rc=$?
+    assert_equals "0" "$rc" "second archive exits 0"
+    assert_contains "$out" "already archived" "idempotent"
+
+    log_step "WHEN fleet picks the current run: archived runs are skipped even when newest"
+    touch -t 202101010000 "$P/planning/fleet-beta"
+    touch "$P/planning/fleet-alpha"
+    got=$(cd "$P" && unset FLEET_RUN_DIR && fleet_run_dir)
+    assert_equals "$P/planning/fleet-beta" "$got" "older active run beats a newer archived one"
+    got=$(cd "$P" && FLEET_RUN_DIR="$P/planning/fleet-alpha" fleet_run_dir)
+    assert_equals "$P/planning/fleet-alpha" "$got" "an explicit FLEET_RUN_DIR still reaches an archived run"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive "$P/planning/fleet-beta" 2>&1) || rc=$?
+    assert_equals "0" "$rc" "archive by path exits 0"
+    rc=0; got=$(cd "$P" && unset FLEET_RUN_DIR && fleet_run_dir 2>&1) || rc=$?
+    assert_equals "64" "$rc" "with every run archived discovery exits 64"
+    assert_contains "$got" "no fleet run dir" "and says so"
+
+    log_step "WHEN --undo"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive --undo 2>&1) || rc=$?
+    assert_equals "64" "$rc" "--undo with no run named and no FLEET_RUN_DIR exits 64"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive alpha --undo 2>&1) || rc=$?
+    assert_equals "0" "$rc" "undo by slug exits 0"
+    assert_contains "$out" "active again" "undo says so"
+    assert_success "marker removed" test ! -e "$P/planning/fleet-alpha/.archived"
+    assert_success "roster still there after undo" test -f "$P/planning/fleet-alpha/roster.tsv"
+    got=$(cd "$P" && unset FLEET_RUN_DIR && fleet_run_dir)
+    assert_equals "$P/planning/fleet-alpha" "$got" "undone run is discoverable again"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive alpha --undo 2>&1) || rc=$?
+    assert_contains "$out" "was not archived" "undo of an active run is a no-op"
+    rc=0; out=$(cd "$P" && FLEET_RUN_DIR="$P/planning/fleet-beta" "$cli" archive --undo 2>&1) || rc=$?
+    assert_equals "0" "$rc" "--undo with FLEET_RUN_DIR set exits 0"
+    assert_success "beta marker removed" test ! -e "$P/planning/fleet-beta/.archived"
+
+    log_step "WHEN the target is wrong"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive --bogus 2>&1) || rc=$?
+    assert_equals "64" "$rc" "unknown option exits 64"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive alpha beta 2>&1) || rc=$?
+    assert_equals "64" "$rc" "two runs at once exits 64"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive 'a b' 2>&1) || rc=$?
+    assert_equals "64" "$rc" "slug with unexpected characters exits 64"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive nope 2>&1) || rc=$?
+    assert_equals "65" "$rc" "unknown slug exits 65"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive "$TEST_TMP/archempty" 2>&1) || rc=$?
+    assert_equals "65" "$rc" "a dir with no roster.tsv exits 65"
+    assert_success "and gets no marker" test ! -e "$TEST_TMP/archempty/.archived"
+    rc=0; out=$(cd "$P" && env -u FLEET_RUN_DIR "$cli" archive "$P/nothere" 2>&1) || rc=$?
+    assert_equals "65" "$rc" "missing path exits 65"
+    assert_success "no run dir was deleted by any case" test -f "$P/planning/fleet-beta/roster.tsv"
 }
 
 test_render_structure_cards_title_count_pills
@@ -954,5 +1452,10 @@ test_queued_section_separate_from_live_lanes
 test_open_flow
 test_attach_command_on_bash_cards
 test_open_terminal_endpoint_gate_and_launcher_argv
+test_live_view_and_sessions_static_markup_and_host_columns
+test_inline_js_live_view_and_sessions_contract
+test_api_pane_strip_clamp_cache_errors_gate
+test_api_sessions_classification_whitelist_gate
+test_fleet_archive_marker_discovery_and_undo
 
 print_test_summary

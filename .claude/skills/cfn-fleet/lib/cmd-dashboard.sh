@@ -8,7 +8,15 @@
 # /api/health and /api/open-terminal routes), and opens it in the VS Code
 # Simple Browser. Each live card shows its tmux attach command with a Copy
 # button; the Open in terminal button appears only when the page is served
-# and /api/health says a launcher exists. Deliberately never exits on ALL-DONE (the opposite of `fleet
+# and /api/health says a launcher exists. The Live view toggle (served pages
+# only, /api/health "pane") shows the last 40 lines of the worker's pane via
+# GET /api/pane, polling only while expanded and the tab is visible. The
+# Sessions panel above the cards (served pages only, /api/health "sessions")
+# lists every live Claude Code session on this machine from GET
+# /api/sessions (masters and lanes, lane brief, state, last activity, tmux
+# attach command with Copy), refreshing every 5s while the tab is visible;
+# other projects sit in a collapsed group and sessions idle over 24h are
+# labelled stale and sorted last. Deliberately never exits on ALL-DONE (the opposite of `fleet
 # watch`, on purpose: the dashboard is a page you leave open, not a loop that
 # ends the session).
 #
@@ -406,7 +414,22 @@ _fleet_dash_render() {
     counts["$status"]=$(( ${counts["$status"]:-0} + 1 ))
 
     local stale=0 dead=0 hstate="" hflags=""
+    # Attach target: local rows use the run socket and roster name. Host rows
+    # use the socket and session recorded in remote/<WS>.env at spawn (never
+    # the local pair); no env file means no attach command. Both values pass
+    # the attach patterns here because they also land in host-states.tsv.
+    local card_sock="$attach_sock" card_session="$name" rsock="" rsess=""
     if [ -n "$host" ]; then
+      if _fleet_remote_env_load "$ws"; then
+        if [[ "$_RE_FLEET_SOCK" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$ ]]; then
+          rsock="$_RE_FLEET_SOCK"
+        fi
+        if [[ "$_RE_FLEET_SESSION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]]; then
+          rsess="$_RE_FLEET_SESSION"
+        fi
+      fi
+      card_sock="$rsock"
+      card_session="$rsess"
       case "$status" in
         started|working)
           hstate=$(_fleet_host_live_state "$ws" "$host")
@@ -425,7 +448,7 @@ _fleet_dash_render() {
           fi
           [ "${host_low[$host]:-0}" = 1 ] && hflags+="${hflags:+ }lowdisk" ;;
       esac
-      host_states+="$ws"$'\t'"$host"$'\t'"${hstate:-none}"$'\t'"$hflags"$'\n'
+      host_states+="$ws"$'\t'"$host"$'\t'"${hstate:-none}"$'\t'"$hflags"$'\t'"$rsock"$'\t'"$rsess"$'\n'
     fi
     case "$status" in
       started|working)
@@ -461,7 +484,7 @@ _fleet_dash_render() {
     local card
     card=$(_fleet_dash_card "$ws" "$name" "$task" "$status" "$claims" \
       "$sha" "$notes" "$hb" "$engine" "$stale_min" "$now" "$stale" "$dead" \
-      "$files_path" "$host" "$hstate" "$hflags" "$attach_sock")
+      "$files_path" "$host" "$hstate" "$hflags" "$card_sock" "$card_session")
     if [ "$status" = pending ]; then
       queued_cards+="$card"$'\n'
     else
@@ -469,8 +492,9 @@ _fleet_dash_render() {
     fi
   done < <(awk 'NR > 1' "$roster")
 
-  # Live page reads this (ws, host, state, flags) so a poll can badge cards
-  # without its own ssh. Atomic tmp+mv; removed once no host rows remain.
+  # Live page reads this (ws, host, state, flags, sock, session) so a poll can
+  # badge cards without its own ssh; sock and session are the remote attach
+  # target from remote/<WS>.env (empty when that file is missing). Atomic tmp+mv; removed once no host rows remain.
   if [ -n "$host_states" ]; then
     printf '%s' "$host_states" > "$run_dir/host-states.tsv.tmp.$$" \
       && mv "$run_dir/host-states.tsv.tmp.$$" "$run_dir/host-states.tsv"
@@ -523,7 +547,11 @@ _fleet_dash_render() {
     _fleet_dash_tiles counts
     printf '</div></section>\n'
     printf '<div id="connection-warning" role="status" hidden>Updates paused. Showing the last received roster; retrying automatically.</div>'
-    printf '<div class="workspace"><main class="board"><div class="section-heading"><h2>Workstreams</h2><span id="visible-count">%s total</span></div>' "$n_total"
+    # Sessions panel: empty mount, hidden until a served page's /api/health
+    # reports "sessions" (never on file://); the live JS fills it.
+    printf '<div class="workspace"><main class="board">'
+    printf '<section class="sessions" id="sessions" aria-label="Claude sessions on this machine" hidden><div class="section-heading"><h2>Sessions <span class="queued-n" id="sessions-count">0</span></h2><span class="eyebrow">ALL CLAUDE CODE SESSIONS · THIS MACHINE</span></div><div id="sessions-body"></div></section>\n'
+    printf '<div class="section-heading"><h2>Workstreams</h2><span id="visible-count">%s total</span></div>' "$n_total"
     _fleet_dash_filters
     printf '<div class="grid" id="cards">\n'
     if [ -n "$cards" ]; then
@@ -632,9 +660,13 @@ _fleet_dash_attach_cmd() {
 }
 
 # _fleet_dash_card WS NAME TASK STATUS CLAIMS SHA NOTES HB ENGINE STALE_MIN \
-#                  NOW STALE DEAD FILES_PATH HOST HSTATE HFLAGS SOCK: echo one
-#                  worker card. SOCK feeds the attach command (see
-#                  _fleet_dash_attach_cmd).
+#                  NOW STALE DEAD FILES_PATH HOST HSTATE HFLAGS SOCK SESSION:
+#                  echo one worker card. SOCK and SESSION feed the attach
+#                  command (see _fleet_dash_attach_cmd); SESSION defaults to
+#                  NAME when not passed. For a host row the caller passes the
+#                  remote/<WS>.env pair (empty when unknown: no command). The
+#                  Live view toggle sits next to Open and ships hidden; the
+#                  served page reveals it when /api/health reports "pane".
 # STALE/DEAD are 0|1 flags derived by the render pass (stale: heartbeat age
 # > stale-min on a started|working row; dead: status dead, or the pane probe
 # failed). FILES_PATH is the worker's guarded files/<ws>.txt (empty when
@@ -644,7 +676,7 @@ _fleet_dash_card() {
   local ws="$1" name="$2" task="$3" status="$4" claims="$5" sha="$6" notes="$7" \
         hb="$8" engine="$9" stale_min="${10}" now="${11}" stale="${12}" dead="${13}" \
         files_path="${14:-}" host="${15:-}" hstate="${16:-}" hflags="${17:-}" \
-        sock="${18:-}"
+        sock="${18:-}" attach_session="${19-$2}"
   # Pill classes are whitelist-mapped: an unknown status must never become a
   # styleable class (roster cells are user-typed).
   local st_class="st-unknown"
@@ -707,11 +739,12 @@ _fleet_dash_card() {
   fi
   [ -n "$notes" ] && out+="<div class=\"notes\" tabindex=\"0\" aria-expanded=\"false\"><span class=\"notes-h\">LATEST NOTE</span><p class=\"notes-body\">$(_fleet_html_escape "$notes")</p></div>"$'\n'
   local attach
-  attach=$(_fleet_dash_attach_cmd "$sock" "$name" "$host" "$status")
+  attach=$(_fleet_dash_attach_cmd "$sock" "$attach_session" "$host" "$status")
   if [ -n "$attach" ]; then
     out+="<div class=\"attach\"><code class=\"attach-cmd\">$(_fleet_html_escape "$attach")</code>"
     out+='<button type="button" class="chipbtn copy-btn">Copy</button>'
     out+='<button type="button" class="chipbtn open-btn" hidden>Open in terminal</button>'
+    out+="<button type=\"button\" class=\"chipbtn pane-btn\" aria-expanded=\"false\" aria-controls=\"pane-$(_fleet_html_escape "$ws")\" hidden>Live view</button>"
     out+='<span class="attach-msg" role="status"></span></div>'$'\n'
   fi
   out+='</article>'
@@ -1001,7 +1034,40 @@ code.sha::before { content: 'Commit '; color: var(--dim); }
 .attach .chipbtn { padding: 4px 9px; font-size: 10px; }
 .attach .chipbtn[hidden] { display: none; }
 .attach-msg { font-size: 10px; color: var(--dim); }
+.attach .pane-btn[aria-expanded="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.pane { margin-top: 10px; min-width: 0; }
+.pane-text { margin: 0; max-height: 320px; overflow: auto; white-space: pre; tab-size: 8; font: 10px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; }
+.pane-meta { margin: 6px 0 0; font-size: 10px; color: var(--dim); }
+.pane-meta.err { color: var(--warn); }
 .term { border-bottom: 1px dotted var(--accent); cursor: help; }
+.sessions { margin-bottom: 28px; }
+.sessions[hidden] { display: none; }
+.sess-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.sess-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.sess-table th { text-align: left; font: 500 10px ui-monospace, monospace; color: var(--dim); text-transform: uppercase; letter-spacing: 0.04em; padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.sess-table td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--text); }
+.sess-table tbody tr:last-child td { border-bottom: 0; }
+.sess-table tr.is-stale td { color: var(--dim); }
+.sess-name, .sess-ws { font: 11px ui-monospace, monospace; overflow-wrap: anywhere; }
+.sess-brief { display: block; color: var(--dim); max-width: 340px; overflow-wrap: anywhere; }
+.sess-state { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 10px; white-space: nowrap; background: var(--st-unknown-soft); color: var(--st-unknown); }
+.ss-working { background: var(--st-working-soft); color: var(--st-working); }
+.ss-idle { background: var(--st-pending-soft); color: var(--st-pending); }
+.ss-shell { background: var(--st-started-soft); color: var(--st-started); }
+.ss-review, .ss-gate { background: var(--st-spawning-soft); color: var(--st-spawning); }
+.ss-blocked { background: var(--st-blocked-soft); color: var(--st-blocked); }
+.ss-done { background: var(--st-done-soft); color: var(--st-done); }
+.ss-dead { background: var(--st-dead-soft); color: var(--st-dead); }
+.sess-age { white-space: nowrap; }
+.sess-stale { margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-size: 9px; text-transform: uppercase; background: var(--badge-stale-bg); color: var(--badge-stale-ink); }
+.sess-cmd { display: block; min-width: 180px; font: 10px/1.5 ui-monospace, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; overflow-wrap: anywhere; user-select: all; margin-bottom: 4px; }
+.sess-table .chipbtn { padding: 3px 8px; font-size: 10px; }
+.sess-tmux { font: 10px ui-monospace, monospace; color: var(--dim); }
+.sess-msg { font-size: 10px; color: var(--dim); margin-left: 6px; }
+.sess-other { margin-top: 12px; }
+.sess-other summary { cursor: pointer; font-size: 12px; color: var(--dim); padding: 6px 0; }
+.sess-other[open] summary { margin-bottom: 8px; }
+.sess-empty { color: var(--dim); font-size: 12px; margin: 0; padding: 14px 12px; border: 1px dashed var(--line); border-radius: var(--radius); }
 .glossary { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 22px; }
 .glossary .section-heading { margin-bottom: 4px; }
 .gl-list { display: grid; gap: 10px; margin-top: 14px; }
@@ -1257,10 +1323,18 @@ _fleet_dash_script() {
   /* ws -> short status line under the attach command; survives re-renders. */
   var attachMsg = {};
 
+  /* Host rows attach to the socket and session recorded in remote/<WS>.env
+     (handed over in host-states.tsv), never the local run socket and roster
+     name; with no recorded pair there is no command. */
   function attachCmd(row) {
     var sock = document.body.getAttribute("data-socket") || "";
     var name = String(row.name || ""), host = String(row.host || "");
     if (String(row.status || "") === "pending") return "";
+    if (host) {
+      var hs = hostStates[row.ws_id || ""] || {};
+      sock = String(hs.sock || "");
+      name = String(hs.session || "");
+    }
     if (!ATTACH_SESSION.test(name) || !ATTACH_SOCKET.test(sock)) return "";
     if (host && !ATTACH_HOST.test(host)) return "";
     var cmd = "tmux -L " + sock + " attach -t " + name;
@@ -1270,10 +1344,139 @@ _fleet_dash_script() {
   function attachHtml(row) {
     var cmd = attachCmd(row);
     if (!cmd) return "";
+    var ws = String(row.ws_id || "");
     return '<div class="attach"><code class="attach-cmd">' + esc(cmd) + '</code>' +
       '<button type="button" class="chipbtn copy-btn">Copy</button>' +
       '<button type="button" class="chipbtn open-btn"' + (openAvailable ? '' : ' hidden') + '>Open in terminal</button>' +
-      '<span class="attach-msg" role="status">' + esc(attachMsg[row.ws_id || ""] || "") + '</span></div>';
+      '<button type="button" class="chipbtn pane-btn" aria-expanded="' + (paneOpen[ws] ? 'true' : 'false') +
+      '" aria-controls="pane-' + esc(ws) + '"' + (paneAvailable ? '' : ' hidden') + '>Live view</button>' +
+      '<span class="attach-msg" role="status">' + esc(attachMsg[ws] || "") + '</span></div>' +
+      paneHtml(ws);
+  }
+
+  /* Live view: the worker's pane via GET api/pane (served pages only, when
+     api/health reports "pane"). Collapsed by default. paneOpen holds the
+     expanded ws ids and their last result, so the state survives every card
+     re-render. Only expanded cards poll (local rows every 3s, host rows every
+     6s), never while the tab is hidden. Text goes in via textContent only. */
+  var paneAvailable = false;
+  var paneOpen = {};   /* ws -> {text, ts, err, inflight, lastAt, pinned, scrollTop} */
+  var rowHosts = {};   /* ws -> host, refreshed on every roster render */
+  var PANE_LINES = 40, PANE_LOCAL_MS = 3000, PANE_HOST_MS = 6000;
+
+  function paneHtml(ws) {
+    if (!paneOpen[ws]) return "";
+    return '<div class="pane" id="pane-' + esc(ws) + '">' +
+      '<pre class="pane-text" tabindex="0" aria-label="Live terminal view"></pre>' +
+      '<p class="pane-meta" role="status"></p></div>';
+  }
+
+  function cardFor(ws) {
+    var found = null;
+    document.querySelectorAll('.card[data-ws]').forEach(function (card) {
+      if (!found && card.getAttribute("data-ws") === ws) found = card;
+    });
+    return found;
+  }
+
+  function paneMetaText(st) {
+    var now = Math.floor(Date.now() / 1000);
+    var ago = st.ts ? "updated " + Math.max(0, now - st.ts) + "s ago" : "";
+    if (st.err) return "Could not read the pane: " + st.err + (ago ? " (last view " + ago + ")" : "");
+    return ago || "Loading...";
+  }
+
+  /* withText: also refill the <pre> and restore its scroll (new data or a
+     fresh card); the 1s ticker only refreshes the age line. */
+  function paintPane(ws, withText) {
+    var st = paneOpen[ws], card = cardFor(ws);
+    if (!st || !card) return;
+    var pre = card.querySelector(".pane-text"), meta = card.querySelector(".pane-meta");
+    if (pre && withText) {
+      pre.textContent = st.text;  /* textContent, never HTML parsing */
+      pre.scrollTop = st.pinned ? pre.scrollHeight : st.scrollTop;
+    }
+    if (meta) {
+      meta.textContent = paneMetaText(st);
+      meta.classList.toggle("err", !!st.err);
+    }
+  }
+
+  function paintPanes(withText) {
+    Object.keys(paneOpen).forEach(function (ws) { paintPane(ws, withText); });
+  }
+
+  function fetchPane(ws) {
+    var st = paneOpen[ws];
+    if (!st || st.inflight) return;
+    st.inflight = true;
+    st.lastAt = Date.now();
+    fetch("api/pane?ws=" + encodeURIComponent(ws) + "&lines=" + PANE_LINES + "&ts=" + cachebust())
+      .then(function (resp) {
+        return resp.json().then(function (d) { return {ok: resp.ok, d: d}; });
+      })
+      .then(function (r) {
+        if (paneOpen[ws] !== st) return;  /* collapsed meanwhile */
+        var d = r.d || {};
+        if (r.ok && d.ok === true && typeof d.text === "string") {
+          st.text = d.text;
+          st.ts = (typeof d.ts === "number") ? d.ts : Math.floor(Date.now() / 1000);
+          st.err = "";
+        } else {
+          st.err = (typeof d.error === "string" && d.error) ? d.error : "the request failed";
+        }
+        paintPane(ws, true);
+      })
+      .catch(function () {
+        if (paneOpen[ws] !== st) return;
+        st.err = "the dashboard server did not answer";
+        paintPane(ws, true);
+      })
+      .then(function () { st.inflight = false; });
+  }
+
+  function pollPanes() {
+    if (!paneAvailable) return;
+    if (document.visibilityState && document.visibilityState !== "visible") return;
+    var now = Date.now();
+    Object.keys(paneOpen).forEach(function (ws) {
+      var st = paneOpen[ws];
+      var every = rowHosts[ws] ? PANE_HOST_MS : PANE_LOCAL_MS;
+      /* A card filtered out of view is not polled until it is back. */
+      if (!st.inflight && now - st.lastAt >= every && cardFor(ws)) fetchPane(ws);
+    });
+  }
+
+  function togglePane(card) {
+    var ws = card.getAttribute("data-ws") || "";
+    if (!ws) return;
+    if (paneOpen[ws]) {
+      delete paneOpen[ws];
+    } else {
+      paneOpen[ws] = {text: "", ts: 0, err: "", inflight: false, lastAt: 0, pinned: true, scrollTop: 0};
+    }
+    var btn = card.querySelector(".pane-btn");
+    if (btn) btn.setAttribute("aria-expanded", paneOpen[ws] ? "true" : "false");
+    var old = card.querySelector(".pane");
+    if (old) old.remove();
+    if (paneOpen[ws]) {
+      var attach = card.querySelector(".attach");
+      if (attach) attach.insertAdjacentHTML("afterend", paneHtml(ws));
+      paintPane(ws, true);
+      fetchPane(ws);
+    }
+  }
+
+  /* Pinned to the bottom unless the user scrolled up. scroll does not
+     bubble, so the grids listen in the capture phase. */
+  function trackPaneScroll(e) {
+    var pre = e.target;
+    if (!pre || !pre.classList || !pre.classList.contains("pane-text")) return;
+    var card = pre.closest(".card[data-ws]");
+    var st = card && paneOpen[card.getAttribute("data-ws") || ""];
+    if (!st) return;
+    st.pinned = pre.scrollHeight - pre.scrollTop - pre.clientHeight <= 4;
+    st.scrollTop = pre.scrollTop;
   }
 
   function paintAttachMsg(ws, text) {
@@ -1295,10 +1498,9 @@ _fleet_dash_script() {
     }, 6000);
   }
 
-  function copyAttach(card) {
-    var code = card.querySelector(".attach-cmd");
-    var ws = card.getAttribute("data-ws") || "";
-    if (!code) return;
+  /* Copy a code element's text; say(msg) reports the outcome. Falls back to
+     selecting the text when the clipboard API is missing or refused. */
+  function copyCode(code, say) {
     var text = code.textContent;
     function selectIt() {
       var range = document.createRange();
@@ -1306,13 +1508,20 @@ _fleet_dash_script() {
       var sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-      sayAttach(ws, "Selected: press Ctrl+C or Cmd+C to copy");
+      say("Selected: press Ctrl+C or Cmd+C to copy");
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () { sayAttach(ws, "Copied"); }, selectIt);
+      navigator.clipboard.writeText(text).then(function () { say("Copied"); }, selectIt);
     } else {
       selectIt();
     }
+  }
+
+  function copyAttach(card) {
+    var code = card.querySelector(".attach-cmd");
+    var ws = card.getAttribute("data-ws") || "";
+    if (!code) return;
+    copyCode(code, function (msg) { sayAttach(ws, msg); });
   }
 
   function openAttach(card, btn) {
@@ -1332,8 +1541,133 @@ _fleet_dash_script() {
       .then(function () { btn.disabled = false; });
   }
 
-  /* Open needs the dashboard server: never on file:// (the --no-serve page)
-     and only when api/health says a launcher exists. */
+  /* Sessions panel: every live Claude Code session on this machine via GET
+     api/sessions (served pages only, when api/health reports "sessions").
+     Refreshes every 5s, never while the tab is hidden. This project's
+     sessions fill the main table; other projects sit in a collapsed group
+     whose open state survives refreshes. Every string goes through esc();
+     the attach command arrives pattern-checked from the server and is
+     copy-only (no Open button). */
+  var sessionsAvailable = false;
+  var sessionsOtherOpen = false;
+  var sessionsInflight = false;
+  var sessionsMsg = {};  /* pid -> Copy status line */
+  var SESSIONS_MS = 5000;
+  var SESSION_STATE_CLASS = {
+    "working": "ss-working", "idle": "ss-idle", "running a shell command": "ss-shell",
+    "in review": "ss-review", "in gate": "ss-gate", "blocked": "ss-blocked",
+    "done": "ss-done", "dead": "ss-dead"
+  };
+
+  function sessionAge(updated, now) {
+    return updated > 0 ? fmtAge(Math.max(0, now - updated)) + " ago" : "unknown";
+  }
+
+  function sessionRowHtml(s, now) {
+    var pid = String(intOr(String(s.pid)));
+    var updated = intOr(String(s.updated));
+    var lane = "-";
+    if (s.role === "lane") {
+      lane = '<span class="sess-ws">' + esc(s.ws || "") + '</span>' +
+        (s.brief ? '<span class="sess-brief">' + esc(s.brief) + '</span>' : '');
+    }
+    var tmux = "-";
+    if (s.attach) {
+      tmux = '<code class="sess-cmd">' + esc(s.attach) + '</code>' +
+        '<button type="button" class="chipbtn sess-copy">Copy</button>' +
+        '<span class="sess-msg" role="status">' + esc(sessionsMsg[pid] || "") + '</span>';
+    } else if (s.tmux) {
+      tmux = '<span class="sess-tmux">' + esc(s.tmux) + '</span>';
+    }
+    var state = String(s.state || "unknown");
+    return '<tr data-pid="' + esc(pid) + '"' + (s.stale ? ' class="is-stale"' : '') + '>' +
+      '<td><span class="sess-name">' + esc(s.name || "(unnamed)") + '</span></td>' +
+      '<td>' + esc(s.project || "") + '</td>' +
+      '<td>' + esc(s.role || "") + '</td>' +
+      '<td>' + lane + '</td>' +
+      '<td><span class="sess-state ' + (SESSION_STATE_CLASS[state] || "ss-unknown") + '">' + esc(state) + '</span></td>' +
+      '<td><span class="sess-age" data-updated="' + updated + '">' + esc(sessionAge(updated, now)) + '</span>' +
+      (s.stale ? '<span class="sess-stale">stale</span>' : '') + '</td>' +
+      '<td>' + tmux + '</td></tr>';
+  }
+
+  function sessionsTable(rows, now, id) {
+    return '<div class="sess-wrap"><table class="sess-table" id="' + id + '"><thead><tr>' +
+      '<th scope="col">Name</th><th scope="col">Project</th><th scope="col">Role</th>' +
+      '<th scope="col">Lane / brief</th><th scope="col">State</th>' +
+      '<th scope="col">Last activity</th><th scope="col">tmux</th></tr></thead><tbody>' +
+      rows.map(function (s) { return sessionRowHtml(s, now); }).join("") +
+      '</tbody></table></div>';
+  }
+
+  function renderSessions(d) {
+    var body = document.getElementById("sessions-body");
+    if (!body) return;
+    var list = (d && Array.isArray(d.sessions)) ? d.sessions : [];
+    var now = Math.floor(Date.now() / 1000);
+    var mine = list.filter(function (s) { return !s.other; });
+    var other = list.filter(function (s) { return !!s.other; });
+    var html = mine.length ? sessionsTable(mine, now, "sessions-main")
+      : '<p class="sess-empty">No live Claude Code sessions in this project.</p>';
+    if (other.length) {
+      html += '<details class="sess-other" id="sessions-other"' + (sessionsOtherOpen ? ' open' : '') + '>' +
+        '<summary>Other projects (' + other.length + ')</summary>' +
+        sessionsTable(other, now, "sessions-other-table") + '</details>';
+    }
+    body.innerHTML = html;
+    var group = document.getElementById("sessions-other");
+    if (group) group.addEventListener("toggle", function () { sessionsOtherOpen = group.open; });
+    var count = document.getElementById("sessions-count");
+    if (count) count.textContent = String(list.length);
+  }
+
+  function fetchSessions() {
+    if (!sessionsAvailable || sessionsInflight) return;
+    if (document.visibilityState && document.visibilityState !== "visible") return;
+    sessionsInflight = true;
+    fetch("api/sessions?ts=" + cachebust())
+      .then(function (resp) {
+        if (!resp.ok) throw new Error("sessions http " + resp.status);
+        return resp.json();
+      })
+      .then(function (d) { renderSessions(d); })
+      .catch(function () { /* keep the last list */ })
+      .then(function () { sessionsInflight = false; });
+  }
+
+  function startSessions() {
+    if (sessionsAvailable) return;
+    sessionsAvailable = true;
+    var panel = document.getElementById("sessions");
+    if (panel) panel.hidden = false;
+    fetchSessions();
+    setInterval(fetchSessions, SESSIONS_MS);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") fetchSessions();
+    });
+  }
+
+  /* Show a Copy status line on one session row; clears itself after 6s. */
+  function saySession(pid, text) {
+    sessionsMsg[pid] = text;
+    function paint(t) {
+      document.querySelectorAll('#sessions-body tr[data-pid]').forEach(function (tr) {
+        if (tr.getAttribute("data-pid") !== pid) return;
+        var m = tr.querySelector(".sess-msg");
+        if (m) m.textContent = t;  /* textContent, never HTML parsing */
+      });
+    }
+    paint(text);
+    setTimeout(function () {
+      if (sessionsMsg[pid] !== text) return;
+      delete sessionsMsg[pid];
+      paint("");
+    }, 6000);
+  }
+
+  /* Open and Live view need the dashboard server: never on file:// (the
+     --no-serve page). Open only when api/health says a launcher exists, Live
+     view only when it reports "pane". */
   function checkOpen() {
     if (location.protocol !== "http:" && location.protocol !== "https:") return;
     fetch("api/health?ts=" + cachebust())
@@ -1343,9 +1677,12 @@ _fleet_dash_script() {
       })
       .then(function (d) {
         openAvailable = !!(d && d.ok === true && d.open === true);
+        paneAvailable = !!(d && d.ok === true && d.pane === true);
         document.querySelectorAll(".open-btn").forEach(function (b) { b.hidden = !openAvailable; });
+        document.querySelectorAll(".pane-btn").forEach(function (b) { b.hidden = !paneAvailable; });
+        if (d && d.ok === true && d.sessions === true) startSessions();
       })
-      .catch(function () { openAvailable = false; });
+      .catch(function () { openAvailable = false; paneAvailable = false; });
   }
 
   function cardHtml(row, now, staleMin) {
@@ -1459,9 +1796,16 @@ _fleet_dash_script() {
     var staleMin = intOr(document.body.getAttribute("data-stale-min") || "0");
     var rows = parseTsv(text);
     var counts = {};
+    var hosts = {};
     rows.forEach(function (r) {
       var st = String(r.status || "");
       counts[st] = (counts[st] || 0) + 1;
+      hosts[String(r.ws_id || "")] = String(r.host || "");
+    });
+    rowHosts = hosts;
+    /* A ws that left the roster stops its live view. */
+    Object.keys(paneOpen).forEach(function (ws) {
+      if (!Object.prototype.hasOwnProperty.call(hosts, ws)) delete paneOpen[ws];
     });
     var tiles = tilesHtml(counts);
     var meter = meterHtml(counts);
@@ -1497,6 +1841,7 @@ _fleet_dash_script() {
     if (els.queuedCards) els.queuedCards.innerHTML = queuedCards;
     if (els.queued) els.queued.hidden = queuedRows.length === 0;
     if (els.queuedCount) els.queuedCount.textContent = queuedRows.length;
+    paintPanes(true);  /* refill the expanded panes the redraw just emptied */
     document.getElementById("sum-attention").textContent = rows.filter(needsAttention).length;
     document.getElementById("sum-active").textContent = (counts.spawning || 0) + (counts.started || 0) + (counts.working || 0);
     document.getElementById("sum-landed").textContent = counts.landed || 0;
@@ -1594,7 +1939,8 @@ _fleet_dash_script() {
       .catch(function () { /* keep the last good blurb */ });
   }
 
-  /* host-states.tsv: ws, host, state, flags. Absent file (no remote rows) or a
+  /* host-states.tsv: ws, host, state, flags, sock, session (sock and session
+     are the remote attach target; empty when unknown). Absent file (no remote rows) or a
      failed fetch keeps the last map; the roster poll never waits on it. */
   function pollHostStates(cb) {
     fetch("host-states.tsv?ts=" + cb)
@@ -1606,7 +1952,8 @@ _fleet_dash_script() {
         var map = {};
         text.split("\n").forEach(function (line) {
           var c = line.split("\t");
-          if (c[0]) map[c[0]] = {host: c[1] || "", state: c[2] || "", flags: c[3] || ""};
+          if (c[0]) map[c[0]] = {host: c[1] || "", state: c[2] || "", flags: c[3] || "",
+            sock: c[4] || "", session: c[5] || ""};
         });
         hostStates = map;
         rerenderLocal();
@@ -1668,6 +2015,11 @@ _fleet_dash_script() {
       if (!isFinite(d) || d < 0) d = 0;
       el.textContent = fmtAge(d);
     });
+    document.querySelectorAll(".sess-age[data-updated]").forEach(function (el) {
+      el.textContent = sessionAge(parseInt(el.getAttribute("data-updated"), 10) || 0, now);
+    });
+    paintPanes(false);  /* "updated Ns ago" lines */
+    pollPanes();
   }
 
   function applyTheme(theme, btn) {
@@ -1714,9 +2066,12 @@ _fleet_dash_script() {
         if (copy && card) { copyAttach(card); return; }
         var openBtn = e.target.closest(".open-btn");
         if (openBtn && card) { openAttach(card, openBtn); return; }
+        var paneBtn = e.target.closest(".pane-btn");
+        if (paneBtn && card) { togglePane(card); return; }
         var n = e.target.closest(".notes");
         if (n) toggleNote(n);
       });
+      grid.addEventListener("scroll", trackPaneScroll, true);
       grid.addEventListener("keydown", function (e) {
         if (e.key !== "Enter" && e.key !== " ") return;
         var n = e.target.closest(".notes");
@@ -1725,6 +2080,18 @@ _fleet_dash_script() {
         toggleNote(n);
       });
     });
+    var sbody = document.getElementById("sessions-body");
+    if (sbody) {
+      sbody.addEventListener("click", function (e) {
+        var btn = e.target.closest(".sess-copy");
+        if (!btn) return;
+        var tr = btn.closest("tr[data-pid]");
+        var code = tr && tr.querySelector(".sess-cmd");
+        if (!code) return;
+        var pid = tr.getAttribute("data-pid") || "";
+        copyCode(code, function (msg) { saySession(pid, msg); });
+      });
+    }
     if (els.sort) {
       els.sort.addEventListener("change", function () {
         sortMode = els.sort.value;

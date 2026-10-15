@@ -51,6 +51,9 @@ Subcommands:
   watch [--stale-min N] [--poll S] [--once] [--emit-events]
                                                 monitor loop (Monitor-tool ready);
                                                 --emit-events bridges to cfn-workbench
+  archive [slug|path] [--undo]                  mark a run archived (.archived marker only;
+                                                nothing deleted): hidden from run-dir
+                                                discovery and the dashboard Sessions panel
   dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]
                                                 self-contained status page (worker cards +
                                                 transition timeline) rendered from the roster;

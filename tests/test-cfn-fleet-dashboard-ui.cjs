@@ -69,6 +69,8 @@ const freePort = () => new Promise((resolve, reject) => {const s = net.createSer
     assert.equal(await page.locator('[data-ws="WS01"] .attach-cmd').textContent(), `tmux -L ${sock} attach -t auth`, 'JS card shows the local attach command');
     assert.equal(await page.locator('[data-ws="WS07"] .attach-cmd').count(), 0, 'Pending card has no attach command');
     assert.equal(await page.locator('[data-ws="WS01"] .open-btn').isVisible(), false, 'Open button hidden without /api/health');
+    assert.equal(await page.locator('.pane-btn:visible').count(), 0, 'Live view toggle hidden without /api/health');
+    assert.equal(await page.locator('#sessions').isVisible(), false, 'Sessions panel hidden without /api/health');
     await page.evaluate(() => {window.__copied = null; Object.defineProperty(navigator, 'clipboard', {configurable: true, value: {writeText: t => {window.__copied = t; return Promise.resolve();}}});});
     await page.locator('[data-ws="WS01"] .copy-btn').click();
     await page.waitForFunction(() => window.__copied !== null);
@@ -166,27 +168,47 @@ const freePort = () => new Promise((resolve, reject) => {const s = net.createSer
     const hostNow = Math.floor(Date.now() / 1000);
     await fs.writeFile(path.join(run, 'roster.tsv'), hostHeader +
       ['WS10', 'remote', 'Remote task', 'working', 'src/r', '', '', '', hostNow, 'on the server', 'claude-opus', 'vps'].join('\t') + '\n');
-    await fs.writeFile(path.join(run, 'host-states.tsv'), 'WS10\tvps\tunreachable\t\n');
+    await fs.writeFile(path.join(run, 'host-states.tsv'), 'WS10\tvps\tunreachable\t\t\t\n');
     await page.waitForSelector('[data-ws="WS10"] .chip.host');
     assert.equal(await page.locator('[data-ws="WS10"] .chip.host').textContent(), 'vps', 'Host badge names the ssh alias');
     await page.waitForSelector('[data-ws="WS10"] .badge.unreachable');
     assert.equal(await page.locator('[data-ws="WS10"] .badge.dead').count(), 0, 'Unreachable card is never shown as DEAD');
+    assert.equal(await page.locator('[data-ws="WS10"] .attach-cmd').count(), 0, 'Host row with no recorded session gets no attach command');
+    assert.equal(await page.locator('[data-ws="WS10"] .pane-btn').count(), 0, 'and no Live view toggle');
     assert.equal(await page.locator('#sum-attention').textContent(), '1', 'Unreachable host row needs attention');
-    await fs.writeFile(path.join(run, 'host-states.tsv'), 'WS10\tvps\tprompt\tnoreport\n');
+    await fs.writeFile(path.join(run, 'host-states.tsv'), 'WS10\tvps\tprompt\tnoreport\tfleet-rsock\trsess\n');
     await page.waitForSelector('[data-ws="WS10"] .badge.prompt');
     await page.waitForSelector('[data-ws="WS10"] .badge.noreport');
     assert.equal(await page.locator('[data-ws="WS10"] .badge.unreachable').count(), 0, 'Badge clears when the state changes');
-    assert.equal(await page.locator('[data-ws="WS10"] .attach-cmd').textContent(), `ssh -t vps tmux -L ${sock} attach -t remote`, 'JS remote card shows the ssh attach command');
+    assert.equal(await page.locator('[data-ws="WS10"] .attach-cmd').textContent(), `ssh -t vps tmux -L fleet-rsock attach -t rsess`, 'JS remote card shows the ssh attach command from the recorded remote session, not the local pair');
     // Open in terminal: the real dashboard server with a stub launcher that records argv.
     await fs.writeFile(path.join(run, 'roster.tsv'), hostHeader +
       ['WS01', 'auth', 'Local task', 'working', '', '', '', '', hostNow, '', 'glm', ''].join('\t') + '\n' +
       ['WS10', 'remote', 'Remote task', 'working', '', '', '', '', hostNow, '', 'glm', 'vps'].join('\t') + '\n');
-    await fs.rm(path.join(run, 'host-states.tsv'), {force: true});
+    await fs.writeFile(path.join(run, 'host-states.tsv'), 'WS10\tvps\tnone\t\tfleet-rsock\trsess\n');
+    await fs.mkdir(path.join(run, 'remote'));
+    await fs.writeFile(path.join(run, 'remote/WS10.env'), 'FLEET_HOST=vps\nFLEET_SOCK=fleet-rsock\nFLEET_SESSION=rsess\n');
     stubDir = await fs.mkdtemp(path.join(os.tmpdir(), 'fleet-ui-open-'));
+    // Live view stub for `fleet peek WSxx N`: logs the ws id, fails when fail-<ws> exists.
+    const peekDir = path.join(stubDir, 'peek'), peekLog = path.join(peekDir, 'calls.log');
+    await fs.mkdir(peekDir);
+    const peekStub = path.join(stubDir, 'peek-stub');
+    await fs.writeFile(peekStub, '#!/bin/sh\n# test stub for fleet peek\nprintf "%s\\n" "$2" >> "$FLEET_PEEK_DIR/calls.log"\nif [ -f "$FLEET_PEEK_DIR/fail-$2" ]; then echo "fleet: no session for $2" >&2; exit 65; fi\nprintf "pane of %s <b>not html</b>\\n" "$2"\n', {mode: 0o755});
+    // Sessions fixtures: this project (cwd = the run dir, a project root of its own), another project, a dead pid.
+    const sessDir = path.join(stubDir, 'sessions'), otherProj = path.join(stubDir, 'other');
+    await fs.mkdir(sessDir); await fs.mkdir(path.join(otherProj, '.git'), {recursive: true});
+    const nowMs = Date.now();
+    const sess = (pid, cwd, name, status, updatedAt, tmux) => fs.writeFile(path.join(sessDir, pid + '.json'), JSON.stringify({pid, cwd, name, status, updatedAt, startedAt: updatedAt, ...(tmux ? {tmux} : {}), sessionId: 'SECRET-SESSION-ID', messagingSocketPath: '/tmp/SECRET-SOCKET'}));
+    await sess(4001, run, 'main-chat', 'busy', nowMs);
+    await sess(4002, run, 'lane-auth', 'idle', nowMs, 'auth:0');
+    await sess(4003, run, 'old-chat', 'idle', nowMs - 2 * 86400 * 1000);
+    await sess(4004, otherProj, '<img src=x onerror="window.sessInjected=1">', 'busy', nowMs);
+    await sess(4005, run, 'dead-one', 'busy', nowMs);
+    await fs.writeFile(path.join(sessDir, '4001.k.key'), 'SECRET-KEY-CONTENT');
     const stub = path.join(stubDir, 'open-stub'), openLog = path.join(stubDir, 'argv.log');
     await fs.writeFile(stub, '#!/bin/sh\n# test stub launcher: record argv\nprintf "%s\\n" "$*" >> "$FLEET_OPEN_LOG"\n', {mode: 0o755});
     const port2 = await freePort();
-    server2 = spawn('python3', [path.join(lib, 'dashboard-server.py'), String(port2), run, sock], {env: {...process.env, FLEET_DASHBOARD_OPEN_CMD: stub, FLEET_OPEN_LOG: openLog}, stdio: 'ignore'});
+    server2 = spawn('python3', [path.join(lib, 'dashboard-server.py'), String(port2), run, sock], {env: {...process.env, FLEET_DASHBOARD_OPEN_CMD: stub, FLEET_OPEN_LOG: openLog, FLEET_DASHBOARD_PEEK_CMD: peekStub, FLEET_PEEK_DIR: peekDir, FLEET_DASHBOARD_SESSIONS_DIR: sessDir, FLEET_DASHBOARD_PID_ALIVE: '4001,4002,4003,4004'}, stdio: 'ignore'});
     for (let i = 0; i < 50; i++) {
       try { const r = await fetch(`http://127.0.0.1:${port2}/api/health`); if (r.ok) break; } catch (e) { /* not up yet */ }
       await new Promise(r => setTimeout(r, 100));
@@ -199,10 +221,86 @@ const freePort = () => new Promise((resolve, reject) => {const s = net.createSer
     await live.waitForFunction(() => /Opened/.test(document.querySelector('[data-ws="WS01"] .attach-msg').textContent));
     await live.locator('[data-ws="WS10"] .open-btn').click();
     await live.waitForFunction(() => /Opened/.test(document.querySelector('[data-ws="WS10"] .attach-msg').textContent));
-    assert.deepEqual((await fs.readFile(openLog, 'utf8')).trim().split('\n'), [`tmux -L ${sock} attach -t auth`, `ssh -t vps tmux -L ${sock} attach -t remote`], 'Open runs the launcher with the roster-derived attach argv');
+    assert.deepEqual((await fs.readFile(openLog, 'utf8')).trim().split('\n'), [`tmux -L ${sock} attach -t auth`, `ssh -t vps tmux -L fleet-rsock attach -t rsess`], 'Open runs the launcher with the roster-derived attach argv');
     await live.route('**/api/open-terminal', route => route.fulfill({status: 500, contentType: 'application/json', body: '{"ok":false,"error":"boom"}'}));
     await live.locator('[data-ws="WS01"] .open-btn').click();
     await live.waitForFunction(() => document.querySelector('[data-ws="WS01"] .attach-msg').textContent === 'Could not open a terminal, use the command shown');
+
+    // Live view: collapsed by default, polls only while open and visible, survives a redraw, text never parsed as HTML.
+    const calls = async ws => { try { return (await fs.readFile(peekLog, 'utf8')).split('\n').filter(l => l === ws).length; } catch (e) { return 0; } };
+    const waitCalls = async (ws, more, ms) => { const start = await calls(ws); for (let t = 0; t < ms; t += 100) { if (await calls(ws) >= start + more) return true; await live.waitForTimeout(100); } return false; };
+    await live.waitForSelector('[data-ws="WS01"] .pane-btn', {state: 'visible'});
+    await live.waitForSelector('[data-ws="WS10"] .pane-btn', {state: 'visible'});
+    assert.equal(await live.locator('[data-ws="WS01"] .pane-btn').getAttribute('aria-expanded'), 'false', 'Live view starts collapsed');
+    assert.equal(await live.locator('.pane').count(), 0, 'No pane box until opened');
+    await live.waitForTimeout(1500);
+    assert.equal(await calls('WS01'), 0, 'A collapsed card never reads its pane');
+    await live.locator('[data-ws="WS01"] .pane-btn').click();
+    await live.waitForFunction(() => (document.querySelector('[data-ws="WS01"] .pane-text') || {textContent: ''}).textContent.includes('pane of WS01'));
+    assert.equal(await live.locator('[data-ws="WS01"] .pane-btn').getAttribute('aria-expanded'), 'true', 'Toggle shows expanded');
+    assert.ok((await live.locator('[data-ws="WS01"] .pane-text').textContent()).includes('<b>not html</b>'), 'Pane text stays literal');
+    assert.equal(await live.locator('[data-ws="WS01"] .pane-text b').count(), 0, 'Pane text is never parsed as HTML');
+    await live.waitForFunction(() => /updated \d+s ago/.test(document.querySelector('[data-ws="WS01"] .pane-meta').textContent));
+    // A roster change redraws the card; the open pane and its text come back.
+    const rosterWith = notes => hostHeader +
+      ['WS01', 'auth', 'Local task', 'working', '', '', '', '', hostNow, notes, 'glm', ''].join('\t') + '\n' +
+      ['WS10', 'remote', 'Remote task', 'working', '', '', '', '', hostNow, '', 'glm', 'vps'].join('\t') + '\n';
+    await fs.writeFile(path.join(run, 'roster.tsv'), rosterWith('redraw-trigger'));
+    await live.waitForFunction(() => document.querySelector('[data-ws="WS01"] .notes-body')?.textContent.includes('redraw-trigger'));
+    assert.equal(await live.locator('[data-ws="WS01"] .pane-btn').getAttribute('aria-expanded'), 'true', 'Open pane survives a redraw');
+    await live.waitForFunction(() => document.querySelector('[data-ws="WS01"] .pane-text')?.textContent.includes('pane of WS01'));
+    // Polls while open and visible.
+    assert.equal(await waitCalls('WS01', 1, 8000), true, 'An open pane keeps refreshing');
+    // Hidden tab: no reads.
+    await live.evaluate(() => { Object.defineProperty(document, 'visibilityState', {configurable: true, get: () => 'hidden'}); });
+    await live.waitForTimeout(600);
+    const hiddenAt = await calls('WS01');
+    await live.waitForTimeout(4000);
+    assert.equal(await calls('WS01'), hiddenAt, 'A hidden tab stops reading the pane');
+    await live.evaluate(() => { delete document.visibilityState; });
+    assert.equal(await waitCalls('WS01', 1, 8000), true, 'Reading resumes when the tab is visible again');
+    // Collapse stops it.
+    await live.locator('[data-ws="WS01"] .pane-btn').click();
+    assert.equal(await live.locator('[data-ws="WS01"] .pane').count(), 0, 'Collapse removes the pane box');
+    await live.waitForTimeout(600);
+    const closedAt = await calls('WS01');
+    await live.waitForTimeout(4000);
+    assert.equal(await calls('WS01'), closedAt, 'A collapsed pane stops reading');
+    assert.equal(await calls('WS10'), 0, 'A card never opened never reads');
+    // Error text, shown without touching the stale text rules.
+    await fs.writeFile(path.join(peekDir, 'fail-WS10'), '');
+    await live.locator('[data-ws="WS10"] .pane-btn').click();
+    await live.waitForFunction(() => document.querySelector('[data-ws="WS10"] .pane-meta.err')?.textContent.includes('Could not read the pane: no session for WS10'));
+
+    // Sessions panel: served page, this project in the main table, other projects collapsed, escaped, no secrets.
+    await live.waitForSelector('#sessions', {state: 'visible'});
+    await live.waitForSelector('#sessions-main tr[data-pid]');
+    assert.equal(await live.locator('#sessions-count').textContent(), '4', 'Count covers live sessions only (dead pid skipped)');
+    assert.equal(await live.locator('#sessions-main tr[data-pid]').count(), 3, 'This project fills the main table');
+    assert.equal(await live.locator('#sessions-other-table tr[data-pid]').count(), 1, 'Other project sits in its own group');
+    assert.equal(await live.locator('#sessions-main tr[data-pid]').last().getAttribute('data-pid'), '4003', 'Stale session sorts last');
+    assert.equal(await live.locator('tr[data-pid="4003"] .sess-stale').count(), 1, 'Stale session is labelled');
+    assert.equal(await live.locator('tr[data-pid="4001"] .sess-state').textContent(), 'working', 'Busy session reads working');
+    const laneRow = live.locator('tr[data-pid="4002"]');
+    assert.ok((await laneRow.textContent()).includes('WS01') && (await laneRow.textContent()).includes('Local task'), 'Lane row shows its workstream and brief');
+    assert.equal(await laneRow.locator('.sess-cmd').textContent(), `tmux -L ${sock} attach -t auth`, 'Lane row shows the attach command');
+    assert.match(await live.locator('tr[data-pid="4001"] .sess-age').textContent(), /ago$/, 'Last activity reads as an age');
+    await live.evaluate(() => {window.__copied = null; Object.defineProperty(navigator, 'clipboard', {configurable: true, value: {writeText: t => {window.__copied = t; return Promise.resolve();}}});});
+    await laneRow.locator('.sess-copy').click();
+    await live.waitForFunction(() => window.__copied !== null);
+    assert.equal(await live.evaluate(() => window.__copied), `tmux -L ${sock} attach -t auth`, 'Session Copy puts the exact command on the clipboard');
+    assert.equal(await live.locator('tr[data-pid="4002"] .sess-msg').textContent(), 'Copied', 'Copy confirms');
+    assert.equal(await live.locator('#sessions-other').evaluate(el => el.open), false, 'Other projects start collapsed');
+    assert.ok((await live.locator('#sessions-other summary').textContent()).includes('Other projects (1)'), 'Group names its size');
+    await live.locator('#sessions-other summary').click();
+    await live.evaluate(() => { document.getElementById('sessions-other-table').__old = 1; document.dispatchEvent(new Event('visibilitychange')); });
+    await live.waitForFunction(() => !document.getElementById('sessions-other-table').__old);
+    assert.equal(await live.locator('#sessions-other').evaluate(el => el.open), true, 'Group stays open across a refresh');
+    assert.equal(await live.evaluate(() => window.sessInjected), undefined, 'Hostile session name never executes');
+    assert.equal(await live.locator('#sessions-other-table img').count(), 0, 'Hostile session name is escaped');
+    assert.ok((await live.locator('#sessions-other-table').textContent()).includes('<img src=x'), 'Hostile name shows as text');
+    assert.ok(!(await live.content()).includes('SECRET'), 'No session secret reaches the page');
+    assert.ok(!(await live.evaluate(() => fetch('api/sessions').then(r => r.text()))).includes('SECRET'), 'No session secret in the API body');
     await live.close();
     // file:// page (the --no-serve case): Copy only, never an Open button.
     const filePage = await browser.newPage({viewport: {width: 1440, height: 1050}});
@@ -210,14 +308,18 @@ const freePort = () => new Promise((resolve, reject) => {const s = net.createSer
     assert.equal(await filePage.locator('[data-ws="WS01"] .attach-cmd').textContent(), `tmux -L ${sock} attach -t auth`, 'Bash-rendered card shows the attach command');
     assert.equal(await filePage.locator('[data-ws="WS01"] .copy-btn').isVisible(), true, 'Copy button shown on the file page');
     assert.equal(await filePage.locator('.open-btn:visible').count(), 0, 'No Open button on a file:// page');
+    assert.equal(await filePage.locator('.pane-btn:visible').count(), 0, 'No Live view toggle on a file:// page');
+    assert.equal(await filePage.locator('#sessions').isVisible(), false, 'No Sessions panel on a file:// page');
     await filePage.close();
     assert.deepEqual(errors, [], 'No page errors across states');
-    console.log('PASS: host badge and unreachable card, attention, landed/done semantics, heartbeat sorting, filters/search across polls, files, activity, outage retention and retry, fresh timestamps, live changes, themes, responsive layouts, empty roster, XSS escaping and no-JS fallback, glossary legend with alias merge and hostile-input guards, inline term tooltips, status tooltips, notes clamp and expand, live glossary updates, attach command and Copy on JS and bash cards, Open in terminal via the stub launcher, open failure message, Open hidden on file:// and without health.');
+    console.log('PASS: host badge and unreachable card, attention, landed/done semantics, heartbeat sorting, filters/search across polls, files, activity, outage retention and retry, fresh timestamps, live changes, themes, responsive layouts, empty roster, XSS escaping and no-JS fallback, glossary legend with alias merge and hostile-input guards, inline term tooltips, status tooltips, notes clamp and expand, live glossary updates, attach command and Copy on JS and bash cards, Open in terminal via the stub launcher, open failure message, Open hidden on file:// and without health, Live view (collapsed default, redraw survival, visibility-gated polling, error line, literal text) and Sessions panel (grouping, stale label, Copy, escaping, no secrets).');
   } finally {
     await browser?.close();
     if (server && server.exitCode === null) await new Promise(resolve => {server.once('exit', resolve); server.kill();});
     if (server2 && server2.exitCode === null) await new Promise(resolve => {server2.once('exit', resolve); server2.kill();});
-    if (stubDir) await fs.rm(stubDir, {recursive: true, force: true});
-    if (run) await fs.rm(run, {recursive: true, force: true});
+    // Only ever delete a dir this script created: marker in the name, never cwd, home or repo root.
+    const safeTmp = (d, marker) => typeof d === 'string' && path.isAbsolute(d) && path.basename(d).startsWith(marker) && ![process.cwd(), os.homedir(), root, path.sep].includes(path.resolve(d));
+    if (safeTmp(stubDir, 'fleet-ui-open-')) await fs.rm(stubDir, {recursive: true, force: true});
+    if (safeTmp(run, 'fleet-ui-test-')) await fs.rm(run, {recursive: true, force: true});
   }
 })().catch(error => {console.error(error); process.exitCode = 1;});

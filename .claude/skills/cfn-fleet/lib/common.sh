@@ -46,7 +46,11 @@ fleet_die(){ # fleet_die CODE MSG — message to stderr, exit CODE
 
 # Resolve the active run dir. Precedence: $FLEET_RUN_DIR (set by the router's
 # --run-dir flag or the caller's env) > nearest planning/fleet-* walking up
-# from cwd (newest by mtime per level) > exit 64.
+# from cwd (newest by mtime per level, skipping archived runs) > exit 64.
+# A run dir holding a .archived marker (`fleet archive`) is never picked by
+# discovery; creating the marker bumps the dir's mtime, so without the skip
+# archiving a stale run would make it the newest. An explicit
+# FLEET_RUN_DIR / --run-dir still resolves an archived run.
 fleet_run_dir(){
   if [ -n "${FLEET_RUN_DIR:-}" ]; then
     [ -d "$FLEET_RUN_DIR" ] \
@@ -61,6 +65,7 @@ fleet_run_dir(){
     if compgen -G "$dir/planning/fleet-*" >/dev/null 2>&1; then
       for d in "$dir"/planning/fleet-*; do
         [ -d "$d" ] || continue
+        [ -e "$d/.archived" ] && continue
         if [ -z "$best" ] || [ "$d" -nt "$best" ]; then best="$d"; fi
       done
       if [ -n "$best" ]; then
