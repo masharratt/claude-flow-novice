@@ -10,7 +10,7 @@ set -uo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
 set +e
-source "$PROJECT_ROOT/.claude/cfn-scripts/lib/safe-rm.sh"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
 
 TOOL="$PROJECT_ROOT/.claude/cfn-scripts/readonly-data.sh"
 T=$(mktemp -d "${TMPDIR:-/tmp}/readonly-data-test-XXXXXX") || exit 1
