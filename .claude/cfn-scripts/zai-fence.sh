@@ -49,6 +49,11 @@ shopt -s execfail   # a failed exec must reach die, not exit 126/127
 
 die(){ echo "zai-fence: $*" >&2; exit 70; }
 
+RO_LIB="$(dirname "$(realpath "${BASH_SOURCE[0]}" 2>/dev/null)")/lib/readonly-list.sh"
+[ -f "$RO_LIB" ] || die "missing $RO_LIB; refusing to run without the read-only list reader"
+# shellcheck disable=SC1090
+source "$RO_LIB"
+
 [ $# -ge 1 ] || die "usage: zai-fence.sh <cmd> [args...]"
 SBX=$(command -v sandbox-exec 2>/dev/null) || die "sandbox-exec not found on PATH; refusing to run unfenced"
 command -v realpath >/dev/null 2>&1 || die "realpath not found; refusing to run unfenced"
@@ -182,8 +187,7 @@ profile(){
   # step 5 would let a test cleanup delete it (MDTWII, 2026-10-16). Listed paths
   # stay readable; writes and deletes are refused whichever path reaches them.
   local ro rel
-  ro=$( { [ -f "$ROOT/.zai-fence-readonly" ] && cat "$ROOT/.zai-fence-readonly"; \
-          printf '%s\n' "${ZAI_FENCE_READONLY:-}" | tr ':' '\n'; } | sed -e 's/#.*//' -e 's/[[:space:]]*$//' )
+  ro=$(cfn_ro_entries "$ROOT")
   if [ -n "$ro" ]; then
     echo ";; 6b. read-only shared data (.zai-fence-readonly, ZAI_FENCE_READONLY)"
     while IFS= read -r rel; do

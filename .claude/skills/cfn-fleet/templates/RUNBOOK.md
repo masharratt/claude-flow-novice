@@ -18,9 +18,10 @@ from the target project root unless resolving a different run dir on purpose.
    refuses (exit 66) when none has a token of 20+ characters. `claude-sub`
    and `codex` need nothing.
 3b. **Shared data linked into worktrees** (caches, extracted assets): make it
-   read-only before spawning (`chmod -R a-w <dir>`, `chmod -R u+w` to rebuild)
-   and list it in `<repo>/.zai-fence-readonly` (one path per line) so glm
-   workers cannot write or delete it even through the worktree's symlink. A
+   read-only before spawning: list it in `<repo>/.zai-fence-readonly` (one
+   path per line), then `~/.claude/cfn-scripts/readonly-data.sh lock` (`unlock`
+   before a rebuild, `status` to check). The lock stops every agent and
+   process; the same list also blocks glm workers inside zai-fence. A
    writable link let a worker's test cleanup wipe 7.5 GB four times (MDTWII,
    2026-10-16). If shared data vanishes and no session log shows an `rm`,
    check lane test cleanup code (`Drop`, teardown, fixtures) first: deletes
