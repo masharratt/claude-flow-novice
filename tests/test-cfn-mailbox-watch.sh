@@ -994,6 +994,103 @@ test_private_files() {
   done
 }
 
+test_listener_skip() {
+  # Stage 6: a session whose mod runs `mailbox.sh listen` is woken by the mod, so the watcher must not type.
+  local age expect
+  for spec in "10|no" "89|no" "90|yes" "600|yes"; do
+    age="${spec%%|*}"; expect="${spec#*|}"
+    new_case "listener file $age s old -> watcher nudges: $expect"
+    dir_entry s1 proj $((NOW - 60)) "$HOSTN" '[]' "main:1.0"; dir_commit
+    set_state s1 idle; seed_for s:s1 p:proj
+    printf '%s\n' $((NOW - age)) > "$CACHE/listener-s1"
+    rule "XREAD *" "$(xr "$SKEY" 1700000000500-0 ask hello)"
+    watch once --nudge
+    assert_eq "$expect" "$(nudged main:1.0)" "nudge with listener $age s old"
+    if [ "$expect" = no ]; then
+      assert_contains "$(cat "$CACHE/watch.log" 2>/dev/null)" "listener live, skipped" "skip is logged"
+    fi
+  done
+
+  new_case "no listener file -> watcher nudges as before"
+  dir_entry s1 proj $((NOW - 60)) "$HOSTN" '[]' "main:1.0"; dir_commit
+  set_state s1 idle; seed_for s:s1 p:proj
+  rule "XREAD *" "$(xr "$SKEY" 1700000000500-0 ask hello)"
+  watch once --nudge
+  assert_eq "yes" "$(nudged main:1.0)" "nudged without listener"
+
+  new_case "listener file of another session does not stop the nudge"
+  dir_entry s1 proj $((NOW - 60)) "$HOSTN" '[]' "main:1.0"; dir_commit
+  set_state s1 idle; seed_for s:s1 p:proj
+  printf '%s\n' "$NOW" > "$CACHE/listener-s2"
+  rule "XREAD *" "$(xr "$SKEY" 1700000000500-0 ask hello)"
+  watch once --nudge
+  assert_eq "yes" "$(nudged main:1.0)" "other session's listener ignored"
+}
+
+# Codex wake helper (codex-wake.py, owned by the Codex session): the watcher runs it once per nudge
+# pass, in the background, only when python3, the helper and ~/.cache/codex-mailbox all exist.
+codex_fake() { # install fake python3 that records argv and sleeps $1 seconds
+  cat > "$T/bin/python3" <<FAKE_PY
+#!/usr/bin/env bash
+echo "\$*" >> "$T/pylog"
+sleep ${1:-0}
+FAKE_PY
+  chmod +x "$T/bin/python3"
+  : > "$T/pylog"
+  printf '#!/usr/bin/env python3\n' > "$T/codex-wake.py"
+}
+codex_wait() { local i; for i in 1 2 3 4 5 6 7 8 9 10; do [ -s "$T/pylog" ] && return 0; sleep 0.2; done; return 0; }
+test_codex_wake() {
+  new_case "codex wake: helper, python3 and ~/.cache/codex-mailbox present -> run once with 'once'"
+  codex_fake; mkdir -p "$T/home/.cache/codex-mailbox"
+  WENV=(MAILBOX_CODEX_WAKE="$T/codex-wake.py")
+  watch once --nudge; codex_wait
+  assert_eq "0" "$RC" "pass ok"
+  assert_contains "$(cat "$T/pylog")" "$T/codex-wake.py once" "helper called with once"
+
+  new_case "codex wake: no ~/.cache/codex-mailbox -> never called"
+  codex_fake
+  WENV=(MAILBOX_CODEX_WAKE="$T/codex-wake.py")
+  watch once --nudge; sleep 0.5
+  assert_eq "" "$(cat "$T/pylog")" "not called without registration dir"
+
+  new_case "codex wake: helper file missing -> never called"
+  codex_fake; mkdir -p "$T/home/.cache/codex-mailbox"
+  WENV=(MAILBOX_CODEX_WAKE="$T/missing.py")
+  watch once --nudge; sleep 0.5
+  assert_eq "" "$(cat "$T/pylog")" "not called without the helper"
+
+  new_case "codex wake: lifecycle-only pass never calls it"
+  codex_fake; mkdir -p "$T/home/.cache/codex-mailbox"
+  WENV=(MAILBOX_CODEX_WAKE="$T/codex-wake.py")
+  watch once --lifecycle; sleep 0.5
+  assert_eq "" "$(cat "$T/pylog")" "not called from lifecycle"
+
+  new_case "codex wake: a slow helper never holds up the pass, and a second pass does not start another"
+  codex_fake 3; mkdir -p "$T/home/.cache/codex-mailbox"
+  WENV=(MAILBOX_CODEX_WAKE="$T/codex-wake.py")
+  local t0 t1; t0=$(date +%s)
+  watch once --nudge
+  watch once --nudge
+  t1=$(date +%s)
+  assert_eq "yes" "$([ $((t1 - t0)) -lt 3 ] && echo yes || echo no)" "passes returned while the helper ran ($((t1 - t0)) s)"
+  sleep 0.5
+  assert_eq "1" "$(grep -c once "$T/pylog")" "only one helper run at a time"
+  sleep 3
+
+  new_case "codex wake: a helper that fails is logged, the pass still succeeds"
+  cat > "$T/bin/python3" <<'FAKE_PY'
+#!/usr/bin/env bash
+exit 3
+FAKE_PY
+  chmod +x "$T/bin/python3"; printf 'x\n' > "$T/codex-wake.py"; mkdir -p "$T/home/.cache/codex-mailbox"
+  WENV=(MAILBOX_CODEX_WAKE="$T/codex-wake.py")
+  watch once --nudge; sleep 1
+  assert_eq "0" "$RC" "pass ok despite helper failure"
+  assert_contains "$(cat "$CACHE/watch.log" 2>/dev/null)" "codex-wake exited 3" "failure logged"
+  WENV=()
+}
+
 test_script_exists
 test_nudge_kinds
 test_nudge_sequence
@@ -1010,6 +1107,8 @@ test_install_systemd
 test_send_at
 test_hook_state
 test_private_files
+test_listener_skip
+test_codex_wake
 
 echo "cases=$CASES assertions_passed=$PASS assertions_failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then exit 1; fi

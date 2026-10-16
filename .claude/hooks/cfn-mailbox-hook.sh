@@ -49,7 +49,6 @@ if [[ "${CFN_MAILBOX_HOOK_TIMEOUT:-}" =~ ^[1-9][0-9]*$ ]]; then HOOK_TIMEOUT="$C
 MAX_INJECT=20           # messages per injection
 HEARTBEAT_EVERY=60      # seconds between directory heartbeats per session
 CHECK_EVERY=15          # seconds between PostToolUse mail checks per session
-NAME_MAX=40             # project part of a derived session name
 
 SELF="${BASH_SOURCE[0]}"
 HOOK_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)"
@@ -60,10 +59,6 @@ MB="$HOOK_DIR/../skills/cfn-mailbox/mailbox.sh"
 MB_SOURCED=""
 if [ -f "$MB" ] && . "$MB" 2>/dev/null; then MB_SOURCED=1; fi
 set +e
-# Project name helper (main checkout folder, also used by cfn-fleet): one definition.
-PN="$(dirname "$MB")/project-name.sh"
-[ -f "$PN" ] && . "$PN" 2>/dev/null
-type mailbox_project_name >/dev/null 2>&1 || mailbox_project_name() { basename "${1:-$PWD}"; }
 CFG="${MAILBOX_CONFIG:-$HOME/.config/cfn-mailbox/env}"
 CACHE_DIR="$HOME/.cache/cfn-mailbox"
 LOG="$CACHE_DIR/hook.log"
@@ -79,7 +74,6 @@ log_err() { # one line, never a secret (mailbox.sh already redacts its own error
   printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" >> "$LOG" 2>/dev/null || true
 }
 
-sanitize() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g'; }
 jqi() { printf '%s' "$INPUT" | jq -r "$1" 2>/dev/null; }
 
 # ------------------------------------------------------------------ taint guard (PreToolUse)
@@ -317,15 +311,9 @@ main() {
 
   OWNER="$(grep '^MAILBOX_OWNER=' "$CFG" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d "\"'\r")"
   [[ "$OWNER" =~ ^[a-z0-9-]+$ ]] || { log_err "event=$EVENT config has no usable MAILBOX_OWNER"; exit 0; }
-  PROJECT="$(sanitize "$(mailbox_project_name "$CWD")" | cut -c1-"$NAME_MAX")"
-  [ -n "$PROJECT" ] || PROJECT="unknown"
-  SESSION="${MAILBOX_SESSION:-}"
-  # A role name this session claimed (mailbox.sh claim) is its address for read, send and the directory.
-  if [ -z "$SESSION" ] && [ -f "$CACHE_DIR/alias-$SID" ]; then
-    SESSION="$(head -n 1 "$CACHE_DIR/alias-$SID" 2>/dev/null | tr -d '\r\n ')"
-    [[ "$SESSION" =~ ^[a-z0-9-]{1,64}$ ]] || SESSION=""
-  fi
-  if [ -z "$SESSION" ]; then SESSION="$(sanitize "$PROJECT-$(printf '%s' "$SID" | cut -c1-6)")"; fi
+  # Project and session name: the one resolver in mailbox.sh (also used by `mailbox.sh listen`).
+  PROJECT="$(resolve_project "$CWD")"
+  SESSION="$(resolve_session "$SID" "$CWD")"
 
   if [ -n "${CFN_MAILBOX_HOOK_INNER:-}" ]; then inner; exit 0; fi
 

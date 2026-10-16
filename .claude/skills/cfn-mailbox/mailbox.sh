@@ -9,7 +9,9 @@
 #   mailbox.sh log [N]
 #   mailbox.sh stats [--hours N]      loop/flood watch from log:<owner> (default 168 h); exit 0 clean, 1 LOOP?/FLOOD?, 2 empty
 #   mailbox.sh join <room> | leave <room>
-#   mailbox.sh claim <name> | release <name> | whoami
+#   mailbox.sh claim <name> | release <name> | whoami [--sid S [--cwd D]]   (--sid prints just the session name)
+#   mailbox.sh listen --sid S [--cwd D]   long-running JSON-lines feed for a Claude Code mod (never consumes mail)
+#   mailbox.sh unread --sid S [--cwd D]   number of unread messages for that session, nothing consumed
 #   mailbox.sh queue <to> [--kind K] [--fleet TYPE] "<text>" | flush     (worker outbound queue, MAILBOX_OUTQ)
 #   mailbox.sh doctor
 #   mailbox.sh adduser <owner>        (admin only; needs UPSTASH_MAILBOX_ADMIN_URL in the repo .env)
@@ -75,6 +77,9 @@ set -euo pipefail
 umask 077   # spool, delivered set and quarantine log hold mail: owner-only
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+# Project name helper (main checkout folder, also used by cfn-fleet): one definition.
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/project-name.sh"
 
 # Limits (named constants; one place).
 BODY_MAX=4096
@@ -94,6 +99,14 @@ MSG_ID_RE='^[A-Za-z0-9_-]{1,64}$'
 # Typed into idle tmux panes by mailbox-watch.sh; the hook keeps the taint flag on a prompt equal to it.
 NUDGE_TEXT="You have mail: run /mail read"
 CACHE_DIR="$HOME/.cache/cfn-mailbox"
+REPLY_WAKE_MIN=40       # a reply shorter than this never wakes anyone ("got it", "thanks")
+PROJECT_NAME_MAX=40     # project part of a derived session name
+LISTEN_BLOCK_MS=25000   # one blocking XREAD in `listen`
+LISTEN_ROOMS_EVERY=60   # seconds between re-reads of the joined rooms
+LISTEN_BACKOFF_MIN=5    # seconds; doubles per failed pass up to the max
+LISTEN_BACKOFF_MAX=60
+LISTEN_ERR_MAX=200      # longest error text put in a "down" event
+UNREAD_RANGE_MAX=1000   # entries one `unread` count looks at per inbox
 ALIAS_TTL=2592000       # alias keys age out after 30 days without a refresh
 ALIAS_LIVE=600          # a holder seen within 10 minutes keeps its role name
 FLEET_TYPES="status handoff claim-request done blocked assign answer stop"
@@ -321,6 +334,42 @@ receiver_keys() {
 
 # key_address KEY: the address an inbox key belongs to (mbx:o:s:n:from:x -> o/s/n, mbx:o:me:from:x -> o/me).
 key_address() { local k="${1#mbx:}"; k="${k%:from:*}"; printf '%s' "${k//://}"; }
+
+# ----- session identity and wake policy (one implementation: the hook, listen and the watcher use it)
+
+sanitize_name() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g'; }
+
+# resolve_project DIR: the project name of DIR (main checkout folder), sanitized to [a-z0-9-].
+resolve_project() {
+  local p
+  p="$(sanitize_name "$(mailbox_project_name "${1:-$PWD}")" | cut -c1-"$PROJECT_NAME_MAX")"
+  [ -n "$p" ] || p="unknown"
+  printf '%s' "$p"
+}
+
+# resolve_session SID DIR: this Claude session's name. MAILBOX_SESSION wins (fleet sets it); then a
+# role name the session claimed (alias-<sid> file); else <project>-<first 6 chars of sid>.
+resolve_session() {
+  local sid="${1:-}" dir="${2:-$PWD}" s="${MAILBOX_SESSION:-}" f
+  if [ -z "$s" ] && [ -n "$sid" ]; then
+    f="$(alias_file "$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_-' '_')")"
+    if [ -f "$f" ]; then
+      s="$(head -n 1 "$f" 2>/dev/null | tr -d '\r\n ')"
+      [[ "$s" =~ $NAME_RE ]] || s=""
+    fi
+  fi
+  if [ -z "$s" ]; then s="$(sanitize_name "$(resolve_project "$dir")-${sid:0:6}")"; fi
+  printf '%s' "$s"
+}
+
+# eligible KIND BODYLEN: does this message wake an idle session?
+eligible() {
+  case "$1" in
+    ask|reminder) return 0 ;;
+    reply) [ "$2" -ge "$REPLY_WAKE_MIN" ] ;;
+    *) return 1 ;;   # fyi, bounce and unknown kinds never wake anyone
+  esac
+}
 
 # new_msg_id: 16 random hex characters, set once by the sender and kept on every retry.
 new_msg_id() {
@@ -1004,11 +1053,231 @@ alias_touch() {
   fi
 }
 
+# whoami: owner/session/address of the calling shell. whoami --sid S [--cwd D]: just the session
+# name the hook and listen derive for Claude session S (the shared resolve_session).
 cmd_whoami() {
+  local_session_args "$@"
+  if [ -n "$L_SID" ]; then resolve_session "$L_SID" "$L_CWD"; echo; return 0; fi
   echo "owner=$MAILBOX_OWNER"
   echo "session=${SESSION:-}"
   echo "address=$(own_from_address)"
 }
+
+# --------------------------------------------------------------------- listen / unread (stage 6 mod)
+
+L_SID="" L_CWD=""
+local_session_args() { # [--sid S] [--cwd D] -> L_SID L_CWD
+  L_SID="" L_CWD="$PWD"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --sid) [ $# -ge 2 ] && [ -n "$2" ] || die 2 "--sid needs a session id"; L_SID="$2"; shift 2 ;;
+      --cwd) [ $# -ge 2 ] && [ -n "$2" ] || die 2 "--cwd needs a directory"; L_CWD="$2"; shift 2 ;;
+      *) die 2 "unknown argument $1" ;;
+    esac
+  done
+}
+
+# session_rooms: the rooms this session joined (directory entry), one per line.
+session_rooms() {
+  local room
+  rcmd HGET "dir:$MAILBOX_OWNER" "$MAILBOX_OWNER/s/$SESSION"
+  while IFS= read -r room; do
+    if [ -n "$room" ] && valid_name "$room"; then printf '%s\n' "$room"; fi
+  done < <(printf '%s' "$RC_OUT" | jq -R -r '(fromjson? // {}) | .rooms[]?' 2>/dev/null || true)
+}
+
+# count_after KEY LAST: entries newer than LAST in KEY (read-only XRANGE).
+count_after() {
+  local n
+  rcmdj XRANGE "$1" "($2" + COUNT "$UNREAD_RANGE_MAX"
+  case "$RC_OUT" in ''|null) echo 0; return 0 ;; esac
+  n="$(printf '%s' "$RC_OUT" | jq 'if type == "array" then length else 0 end' 2>/dev/null || echo 0)"
+  [[ "$n" =~ ^[0-9]+$ ]] || n=0
+  echo "$n"
+}
+
+# unread_seen KEY KIND: unread for a marker-tracked inbox (session or room). A room with no marker
+# is one the reader has not subscribed to yet: it starts at the newest message, so nothing is unread.
+unread_seen() {
+  local last
+  rcmd GET "$(marker_key "$SESSION" "$1")"
+  last="$(printf '%s' "$RC_OUT" | tr -d '\r\n ')"
+  if [ -z "$last" ]; then
+    if [ "$2" = r ]; then echo 0; return 0; fi
+    last="0-0"
+  fi
+  count_after "$1" "$last"
+}
+
+# unread_group KEY: unread for a consumer-group inbox (project): pending plus not yet delivered.
+unread_group() {
+  local info pending last new
+  RC_TOLERATE="no such key" rcmdj XINFO GROUPS "$1"
+  info="$(printf '%s' "$RC_OUT" | jq -r --arg g "$GROUP" '
+    (if type == "array" then . else [] end)
+    | map(if type == "array" then ([_nwise(2) | {(.[0] | tostring): .[1]}] | add // {}) else . end)
+    | map(select(.name == $g)) | .[0] // {}
+    | "\(.pending // 0) \(.["last-delivered-id"] // "0-0")"' 2>/dev/null || echo "0 0-0")"
+  pending="${info%% *}"; last="${info#* }"
+  [[ "$pending" =~ ^[0-9]+$ ]] || pending=0
+  [[ "$last" =~ ^[0-9]+-[0-9]+$ ]] || last="0-0"
+  new="$(count_after "$1" "$last")"
+  echo $((pending + new))
+}
+
+cmd_unread() {
+  local_session_args "$@"
+  [ -n "$L_SID" ] || die 2 "unread needs --sid"
+  SESSION="$(resolve_session "$L_SID" "$L_CWD")"
+  local project key room total=0
+  project="$(resolve_project "$L_CWD")"
+  while IFS= read -r key; do
+    [ -n "$key" ] || continue
+    total=$((total + $(unread_seen "$key" s)))
+  done < <(receiver_keys s "$SESSION")
+  while IFS= read -r key; do
+    [ -n "$key" ] || continue
+    total=$((total + $(unread_group "$key")))
+  done < <(receiver_keys p "$project")
+  while IFS= read -r room; do
+    while IFS= read -r key; do
+      [ -n "$key" ] || continue
+      total=$((total + $(unread_seen "$key" r)))
+    done < <(receiver_keys r "$room")
+  done < <(session_rooms)
+  echo "$total"
+}
+
+LS_ERR=""        # last error text of listen_rc
+LS_PID=""        # background child of listen (so SIGTERM can stop a blocked XREAD)
+LS_TMP=""
+LS_ROOMS_AT=0
+LS_KEYS=() LS_IDS=()
+
+listen_out() { { printf '%s\n' "$1"; } 2>/dev/null || exit 0; }   # reader gone (EPIPE): stop quietly
+listen_stop() { if [ -n "$LS_PID" ]; then kill "$LS_PID" 2>/dev/null || true; fi; exit 0; }
+listen_cleanup() { if [ -n "$LS_TMP" ]; then rm -f "$LS_TMP"; fi; }
+
+# listen_rc ARGS...: one Redis call that never exits the process. Reply in RC_OUT; returns 1 with
+# LS_ERR (redacted, one line) on any failure. Runs in the background so a signal stops it at once.
+listen_rc() {
+  local out status=0
+  _rc "$@" > "$LS_TMP" 2>&1 </dev/null &
+  LS_PID=$!
+  wait "$LS_PID" || status=$?
+  LS_PID=""
+  out="$(redact "$(cat "$LS_TMP" 2>/dev/null)")"
+  case "$out" in "(error)"*|ERR*|*WRONGPASS*|*NOAUTH*|*NOPERM*) [ "$status" -ne 0 ] || status=1 ;; esac
+  if [ "$status" -ne 0 ]; then
+    LS_ERR="$(printf '%s' "$out" | tr '\n\t' '  ' | cut -c1-"$LISTEN_ERR_MAX")"
+    [ -n "$LS_ERR" ] || LS_ERR="redis-cli exit $status"
+    return 1
+  fi
+  RC_OUT="$out"
+}
+
+listen_sleep() { sleep "$1" & LS_PID=$!; wait "$LS_PID" || true; LS_PID=""; }
+
+# listen_refresh: re-read the joined rooms and rebuild the key list. A key already followed keeps its
+# id; a new key starts at its newest entry, so mail that landed earlier is never reported.
+listen_refresh() {
+  local key id i found room
+  local -a want=() nk=() ni=()
+  listen_rc HGET "dir:$MAILBOX_OWNER" "$MAILBOX_OWNER/s/$SESSION" || return 1
+  while IFS= read -r key; do [ -z "$key" ] || want+=("$key"); done < <(receiver_keys s "$SESSION"; receiver_keys p "$LS_PROJECT")
+  while IFS= read -r room; do
+    if [ -n "$room" ] && valid_name "$room"; then
+      while IFS= read -r key; do [ -z "$key" ] || want+=("$key"); done < <(receiver_keys r "$room")
+    fi
+  done < <(printf '%s' "$RC_OUT" | jq -R -r '(fromjson? // {}) | .rooms[]?' 2>/dev/null || true)
+  for key in "${want[@]}"; do
+    id=""
+    for ((i = 0; i < ${#LS_KEYS[@]}; i++)); do
+      if [ "${LS_KEYS[$i]}" = "$key" ]; then id="${LS_IDS[$i]}"; break; fi
+    done
+    if [ -z "$id" ]; then
+      listen_rc XREVRANGE "$key" + - COUNT 1 || return 1
+      id="$(printf '%s' "$RC_OUT" | jq -r '.[0][0] // empty' 2>/dev/null || true)"
+      [ -n "$id" ] || id="0-0"
+    fi
+    nk+=("$key"); ni+=("$id")
+  done
+  LS_KEYS=("${nk[@]}"); LS_IDS=("${ni[@]}")
+}
+
+# listen_emit: print one metadata line per new entry of the XREAD reply in RC_OUT and move the ids.
+listen_emit() {
+  local rows key id from kind bytes to i addr akind wake
+  rows="$(printf '%s' "$RC_OUT" | jq -r '
+    (if type == "object" then [to_entries[] | [.key, .value]] elif type == "array" then . else [] end)[]
+    | .[0] as $k | (.[1] // [])[]
+    | (([.[1] | _nwise(2) | {(.[0]): .[1]}] | add) // {}) as $f
+    | [$k, .[0], ($f.from // "" | tostring), ($f.kind // "fyi" | tostring), (($f.body // "") | tostring | utf8bytelength | tostring), ($f.to // "" | tostring)]
+    | map(if . == "" then "-" else . end) | @tsv')" || { LS_ERR="unreadable XREAD reply"; return 1; }
+  while IFS=$'\t' read -r key id from kind bytes to; do
+    [ -n "$key" ] || continue
+    for ((i = 0; i < ${#LS_KEYS[@]}; i++)); do
+      if [ "${LS_KEYS[$i]}" = "$key" ]; then LS_IDS[$i]="$id"; break; fi
+    done
+    addr="$(key_address "$key")"
+    # same checks the reader makes: the entry must name this inbox and come from the key's sender owner
+    [ "$to" = "$addr" ] && [ "${from%%/*}" = "${key##*:from:}" ] || continue
+    akind="${addr#*/}"; akind="${akind%%/*}"
+    wake=false
+    if [ "$akind" != r ] && eligible "$kind" "$bytes"; then wake=true; fi
+    listen_out "$(jq -n -c --arg id "$id" --arg ak "$akind" --arg from "$from" --arg kind "$kind" \
+      --argjson bytes "$bytes" --argjson wake "$wake" \
+      '{event:"mail", id:$id, addr_kind:$ak, from:$from, kind:$kind, bytes:$bytes, wake:$wake}')"
+  done <<<"$rows"
+}
+
+# listen_pass: refresh the key list when due, then one blocking XREAD. Returns 1 on a Redis problem.
+listen_pass() {
+  local now
+  now="$(now_s)"
+  if [ "${#LS_KEYS[@]}" -eq 0 ] || [ $((now - LS_ROOMS_AT)) -ge "$LISTEN_ROOMS_EVERY" ]; then
+    listen_refresh || return 1
+    LS_ROOMS_AT="$now"
+  fi
+  listen_rc XREAD BLOCK "$LISTEN_BLOCK_MS" STREAMS "${LS_KEYS[@]}" "${LS_IDS[@]}" || return 1
+  case "$RC_OUT" in ''|null) return 0 ;; esac
+  listen_emit
+}
+
+# listen --sid S [--cwd D]: JSON lines for the Claude Code mod. Reads with plain XREAD only (no
+# group, no markers, no ack), so the hook still shows every message. Never prints a body.
+# MAILBOX_LISTEN_ONCE=N runs N passes and exits (tests).
+cmd_listen() {
+  local_session_args "$@"
+  [ -n "$L_SID" ] || die 2 "listen needs --sid"
+  SESSION="$(resolve_session "$L_SID" "$L_CWD")"
+  LS_PROJECT="$(resolve_project "$L_CWD")"
+  ensure_cache_dir || die 18 "cannot create $CACHE_DIR"
+  LS_TMP="$CACHE_DIR/listen.$$"
+  trap listen_cleanup EXIT
+  trap listen_stop TERM INT HUP PIPE
+  RC_JSON=1
+  local lf="$CACHE_DIR/listener-$SESSION" once="${MAILBOX_LISTEN_ONCE:-}" passes=0 down=0 backoff="$LISTEN_BACKOFF_MIN"
+  if [ -n "$once" ] && ! [[ "$once" =~ ^[1-9][0-9]*$ ]]; then once=1; fi
+  listen_out "$(jq -n -c --arg s "$SESSION" '{event:"ready", session:$s}')"
+  while :; do
+    passes=$((passes + 1))
+    now_s > "$lf"; chmod 600 "$lf" 2>/dev/null || true
+    if listen_pass; then
+      if [ "$down" = 1 ]; then listen_out '{"event":"up"}'; down=0; fi
+      backoff="$LISTEN_BACKOFF_MIN"
+      now_s > "$lf"
+    else
+      if [ "$down" = 0 ]; then listen_out "$(jq -n -c --arg r "$LS_ERR" '{event:"down", reason:$r}')"; down=1; fi
+      if [ -n "$once" ] && [ "$passes" -ge "$once" ]; then break; fi
+      listen_sleep "$backoff"
+      backoff=$((backoff * 2)); [ "$backoff" -le "$LISTEN_BACKOFF_MAX" ] || backoff="$LISTEN_BACKOFF_MAX"
+      continue
+    fi
+    if [ -n "$once" ] && [ "$passes" -ge "$once" ]; then break; fi
+  done
+}
+LS_PROJECT=""
 
 # --------------------------------------------------------------------- worker outbound queue
 
@@ -1154,14 +1423,14 @@ main() {
   case "$sub" in
     adduser) cmd_adduser "$@" ;;
     queue) cmd_queue "$@" ;;   # local only: no config, no network
-    send|read|who|log|stats|join|leave|heartbeat|doctor|claim|release|whoami|flush)
+    send|read|who|log|stats|join|leave|heartbeat|doctor|claim|release|whoami|flush|listen|unread)
       load_config
       "cmd_$sub" "$@" ;;
     ''|-h|--help|help)
       sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
       [ -n "$sub" ] && exit 0
       exit 2 ;;
-    *) die 2 "unknown subcommand '$sub' (send, read, who, log, stats, join, leave, claim, release, whoami, queue, flush, doctor, adduser)" ;;
+    *) die 2 "unknown subcommand '$sub' (send, read, who, log, stats, join, leave, claim, release, whoami, listen, unread, queue, flush, doctor, adduser)" ;;
   esac
 }
 

@@ -5,6 +5,10 @@ f23dd449, 19640dac, d0fc1b8d): core, hooks with trust tiers, watcher with send-l
 Stage 4b (hardening from the Operations review, below) built and tested offline 2026-10-16, not yet
 deployed: existing ACL users need `~claim:<owner>:*` added before send-later works live.
 Next: stage 5 (fleet, all workers).
+Stage 6 next (2026-10-16): `mailbox.sh listen`/`unread`, one shared session-name resolver and the
+watcher's listener skip are built and tested offline (tests/test-cfn-mailbox-listen.sh). Still to do:
+the Claude Code mod that runs `listen` and submits the nudge text on a `wake:true` line, then a live
+check with a real session (the watcher stays the fallback for sessions without a mod).
 Design history: v3 (2026-10-15) applied 16 findings from an independent design review.
 - **Hosted on Upstash, fixed $10/month plan** (user, 2026-10-15): 250 MB, unlimited commands, so
   mail checks are not rationed. Replaces the earlier self-hosted-on-the-VPS design.

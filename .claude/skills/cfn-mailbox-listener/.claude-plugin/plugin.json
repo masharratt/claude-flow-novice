@@ -1,0 +1,5 @@
+{
+  "name": "cfn-mailbox-listener",
+  "version": "0.1.0",
+  "description": "Wakes an idle session when agent-mailbox mail arrives, without typing into the terminal"
+}

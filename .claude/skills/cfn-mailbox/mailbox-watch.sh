@@ -41,7 +41,7 @@ WATCH_DIR="$(cd "$(dirname "$WATCH_SELF")" && pwd -P)"
 
 # Limits (named constants; one place). NUDGE_TEXT and CACHE_DIR come from mailbox.sh.
 NUDGE_COOLDOWN=60          # seconds between nudges to one session
-REPLY_WAKE_MIN=40          # a reply shorter than this never wakes anyone ("got it", "thanks")
+LISTENER_FRESH=90          # a listener-<session> file younger than this means the mod wakes that session
 LIFECYCLE_EVERY=60
 LOCK_TTL=60
 SESSION_BOUNCE_AGE=86400   # 24 h
@@ -148,6 +148,13 @@ pane_alive() {
 maybe_nudge() {
   local name="$1" target="$2" now last=0 stamp="$CACHE_DIR/nudge-$1"
   now="$(now_s)"
+  # A live `mailbox.sh listen` (the Claude Code mod) wakes this session itself; typing too would double it.
+  local lf="$CACHE_DIR/listener-$1" seen=0
+  read -r seen 2>/dev/null < "$lf" || seen=0
+  if [[ "$seen" =~ ^[0-9]+$ ]] && [ $((now - seen)) -lt "$LISTENER_FRESH" ]; then
+    wlog "nudge $name: listener live, skipped"
+    return 0
+  fi
   read -r last 2>/dev/null < "$stamp" || last=0
   [[ "$last" =~ ^[0-9]+$ ]] || last=0
   [ $((now - last)) -ge "$NUDGE_COOLDOWN" ] || return 0
@@ -173,15 +180,6 @@ ids_set() {
   local tmp="$IDS_FILE.$$"
   { [ ! -f "$IDS_FILE" ] || awk -F'|' -v k="$1" '$1 != k' "$IDS_FILE"; printf '%s|%s\n' "$1" "$2"; } > "$tmp"
   mv -f "$tmp" "$IDS_FILE"
-}
-
-# eligible KIND BODYLEN: does this message wake an idle session?
-eligible() {
-  case "$1" in
-    ask|reminder) return 0 ;;
-    reply) [ "$2" -ge "$REPLY_WAKE_MIN" ] ;;
-    *) return 1 ;;   # fyi, bounce and unknown kinds never wake anyone
-  esac
 }
 
 # pick_project_session PROJECT: the idle local session of that project with the newest last_seen.
@@ -540,9 +538,35 @@ lifecycle_all() {
 
 PART=""   # nudge | lifecycle | "" (both)
 
+# codex_wake_pass: run the Codex session's wake helper (codex-wake.py, owned by Codex) once, in the
+# background so its pass (up to CODEX_WAKE_TIMEOUT s) never holds up other wake-ups. Only when
+# python3, the helper and ~/.cache/codex-mailbox (its registrations) exist; one run at a time; a
+# failure is logged and never fails the watcher.
+CODEX_WAKE_TIMEOUT=45
+codex_wake_pass() {
+  local helper="${MAILBOX_CODEX_WAKE:-$WATCH_DIR/codex-wake.py}" pidf="$CACHE_DIR/codex-wake.pid" pid
+  command -v python3 >/dev/null 2>&1 && [ -f "$helper" ] && [ -d "$HOME/.cache/codex-mailbox" ] || return 0
+  pid="$(cat "$pidf" 2>/dev/null || true)"
+  if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then return 0; fi
+  (
+    python3 "$helper" once >> "$CACHE_DIR/codex-wake.log" 2>&1 &
+    local child=$! rc=0
+    ( sleep "$CODEX_WAKE_TIMEOUT"; kill "$child" 2>/dev/null ) &
+    local timer=$!
+    wait "$child" || rc=$?
+    kill "$timer" 2>/dev/null || true
+    [ "$rc" -eq 0 ] || wlog "codex-wake exited $rc"
+    rm -f "$pidf"
+  ) >/dev/null 2>&1 &
+  printf '%s\n' "$!" > "$pidf"
+}
+
 pass_all() { # one pass; returns 1 when a part failed
   local rc=0
-  if [ "$PART" != lifecycle ]; then guard "nudge pass" nudge_pass || rc=1; fi
+  if [ "$PART" != lifecycle ]; then
+    guard "nudge pass" nudge_pass || rc=1
+    codex_wake_pass || true
+  fi
   if [ "$PART" != nudge ]; then
     if [ "${FORCE_LIFE:-}" = 1 ] || [ $(( $(now_s) - LAST_LIFE )) -ge "$LIFECYCLE_EVERY" ]; then
       LAST_LIFE="$(now_s)"
