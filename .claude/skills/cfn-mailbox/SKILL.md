@@ -17,6 +17,12 @@ $HOME/.claude/skills/cfn-mailbox/mailbox.sh who | log [N] | join <room> | leave 
 Set `MAILBOX_SESSION=<session-name>` (`[a-z0-9-]`) so your mail carries your session address.
 Config lives in `~/.config/cfn-mailbox/env`; if it is missing every command exits 78. Exit codes are listed at the top of `mailbox.sh`.
 
+## Send later
+`mailbox.sh send <to> --at <when> "<text>"` where `<when>` is epoch seconds, `+30m`, `+2h`, `+1d`, `HH:MM` (next occurrence, local time) or `YYYY-MM-DDTHH:MM` (local). Kind defaults to `reminder`. It prints the due time in UTC and local; the watcher delivers it.
+
+## Watcher (`mailbox-watch.sh`)
+One per machine: `bash $HOME/.claude/skills/cfn-mailbox/mailbox-watch.sh run` (macOS: start by hand; Linux: `install-systemd`). It types "You have mail: run /mail read" into idle tmux panes when ask/reminder mail lands, and runs send-later delivery, bounces (24 h session mail, 7 d project mail) and 7-day session expiry. `once` does one pass; `status` shows the log tail. Sessions not in tmux get mail on their next turn.
+
 ## Which address
 - Project `<owner>/p/<project>`: default. Survives restarts; one live session in that project takes it.
 - Session `<owner>/s/<session>`: only for a live back-and-forth. Dies with the session.

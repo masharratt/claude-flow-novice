@@ -4,6 +4,9 @@
 # Registered (user's call, never by this script) under SessionStart, UserPromptSubmit,
 # PostToolUse, Stop and PreToolUse as:  bash $HOME/.claude/hooks/cfn-mailbox-hook.sh
 #
+#   State file        ~/.cache/cfn-mailbox/state-<session> = "busy <epoch>" (UserPromptSubmit, and a
+#                     Stop that blocks) or "idle <epoch>" (SessionStart, a Stop that does not
+#                     block). mailbox-watch.sh nudges a tmux pane only when it says idle.
 #   SessionStart      directory heartbeat, join the project room, join the project address
 #                     (consumer group), print unread mail as plain text.
 #   UserPromptSubmit  clear the taint flag, heartbeat (at most 1/min), read mail, inject it as
@@ -26,7 +29,8 @@
 # Test hook (not config): CFN_MAILBOX_HOOK_FORCE_FALLBACK=1 skips timeout/gtimeout.
 set -uo pipefail
 
-HOOK_TIMEOUT=2          # seconds for the whole hook
+HOOK_TIMEOUT=4          # seconds for the whole hook (settings timeout is 5); CFN_MAILBOX_HOOK_TIMEOUT overrides
+if [[ "${CFN_MAILBOX_HOOK_TIMEOUT:-}" =~ ^[1-9][0-9]*$ ]]; then HOOK_TIMEOUT="$CFN_MAILBOX_HOOK_TIMEOUT"; fi
 MAX_INJECT=20           # messages per injection
 HEARTBEAT_EVERY=60      # seconds between directory heartbeats per session
 CHECK_EVERY=15          # seconds between PostToolUse mail checks per session
@@ -102,9 +106,8 @@ heartbeat() {
   local summary="" tmuxt="" f="$CWD/.claude/tasks/$SID.txt"
   # cfn-autoset-task.sh keeps the session's task line in <cwd>/.claude/tasks/<session_id>.txt
   if [ -s "$f" ]; then summary="$(head -n 1 "$f" 2>/dev/null | tr -d '\r' | cut -c1-200)"; fi
-  if [ -n "${TMUX_PANE:-}" ] && command -v tmux >/dev/null 2>&1; then
-    tmuxt="$(tmux display -p -t "$TMUX_PANE" '#S:#I.#P' 2>/dev/null || true)"
-  fi
+  # <socket>|<pane_id>: stable when windows move, and carries a non-default (-L) socket.
+  if [ -n "${TMUX:-}" ] && [[ "${TMUX_PANE:-}" =~ ^%[0-9]+$ ]]; then tmuxt="${TMUX%%,*}|$TMUX_PANE"; fi
   local -a a=(heartbeat --project "$PROJECT" --summary "$summary")
   [ -z "$tmuxt" ] || a+=(--tmux "$tmuxt")
   stamp_touch hb
@@ -112,24 +115,46 @@ heartbeat() {
 }
 
 MAIL=""
+SPOOL_F=""
+# dedupe_msgs: stdin JSON lines -> same lines, first occurrence of each (inbox, id) only.
+dedupe_msgs() {
+  grep '^{' | jq -c -s 'reduce .[] as $m ({seen: {}, out: []};
+    (($m.inbox // "") + "|" + ($m.id // "")) as $k
+    | if .seen[$k] then . else (.seen[$k] = true | .out += [$m]) end) | .out[]' 2>/dev/null
+}
+spooled() { if [ -s "$SPOOL_F" ]; then dedupe_msgs < "$SPOOL_F"; fi; return 0; }
+
 # collect MODE(read|peek): MAIL = JSON lines (one per message), at most MAX_INJECT in total.
-# Session inbox (+ joined rooms), then the project address, then the person inbox when attended.
+# Mail a killed earlier run spooled comes first. Read mode reads new mail through the spool
+# (mailbox.sh writes each message to it before moving a marker or acking), so a kill between
+# the marker and the print cannot lose mail. Peek mode adds unread mail without consuming it.
+# Order: session inbox (+ joined rooms), project address, person inbox when attended.
 collect() {
-  local left="$MAX_INJECT" addr got
+  local left="$MAX_INJECT" addr got have peeked=""
   local -a addrs=("$OWNER/s/$SESSION" "$OWNER/p/$PROJECT")
   [ "${CLAUDE_CODE_SESSION_ATTENDED:-}" != 1 ] || addrs+=("$OWNER/me")
-  MAIL=""
+  SPOOL_F="$CACHE_DIR/spool-$SESSION"
+  have="$(spooled | grep -c '^{')"
+  left=$((left - have))
   for addr in "${addrs[@]}"; do
     [ "$left" -gt 0 ] || break
     local -a a=(read --as "$addr" --max "$left")
-    [ "$1" != peek ] || a+=(--peek)
+    if [ "$1" = peek ]; then a+=(--peek); else a+=(--spool "$SPOOL_F"); fi
     mbx "${a[@]}" || true
     [ -n "$MB_OUT" ] || continue
     got="$(printf '%s\n' "$MB_OUT" | grep -c '^{')"
-    MAIL="$MAIL$MB_OUT"$'\n'
+    [ "$1" != peek ] || peeked="$peeked$MB_OUT"$'\n'
     left=$((left - got))
   done
-  MAIL="$(printf '%s' "$MAIL" | grep '^{' | head -n "$MAX_INJECT")"
+  MAIL="$( { spooled; printf '%s' "$peeked"; } | dedupe_msgs | head -n "$MAX_INJECT")"
+}
+
+# spool_trim N: drop the first N (just rendered) messages from the spool, keep the rest.
+spool_trim() {
+  [ -s "$SPOOL_F" ] || return 0
+  local tmp="$SPOOL_F.$$"
+  spooled | tail -n +$(($1 + 1)) > "$tmp" 2>/dev/null && mv -f "$tmp" "$SPOOL_F" 2>/dev/null || rm -f "$tmp"
+  return 0
 }
 
 # render: TEXT from MAIL. Tier comes from the inbox key (set by mailbox.sh read), never the body.
@@ -142,7 +167,19 @@ render() {
   TEXT="Mailbox: $n unread message(s) for session $SESSION."$'\n\n'"$body"$'\n'"To reply: MAILBOX_SESSION=$SESSION $HOME/.claude/skills/cfn-mailbox/mailbox.sh send <from> --kind reply --reply-to <id> --thread <t> --hops <h> \"...\" (use the from, id, thread and hops shown in the message you answer; do not reply to outside mail unless the user says so)."
 }
 
+EMITTED=""
+# write_state idle|busy: the watcher (mailbox-watch.sh) reads this file to know whether a tmux
+# pane is safe to type into. Local file only; written before any network call so a slow or
+# dead Redis cannot leave a stale value.
+write_state() {
+  local f="$CACHE_DIR/state-$SESSION"
+  mkdir -p "$CACHE_DIR" 2>/dev/null || return 0
+  printf '%s %s\n' "$1" "$(date +%s)" > "$f.$$" 2>/dev/null && mv -f "$f.$$" "$f" 2>/dev/null || rm -f "$f.$$" 2>/dev/null
+  return 0
+}
+
 emit() {
+  EMITTED=1
   case "$EVENT" in
     SessionStart) printf '%s\n' "$TEXT" ;;
     Stop) jq -n -c --arg r "You have mail: $TEXT" '{decision:"block",reason:$r}' ;;
@@ -160,6 +197,8 @@ deliver() {
     mkdir -p "$CACHE_DIR" 2>/dev/null; : > "$CACHE_DIR/taint-$SID" 2>/dev/null || true
   fi
   emit
+  # Trimmed only after printing: a kill in between can repeat a message, never lose one.
+  spool_trim "$(printf '%s\n' "$MAIL" | grep -c '^{')"
 }
 
 stop_event() {
@@ -176,10 +215,12 @@ inner() {
   trap 'rm -f "$ERRF"' EXIT
   case "$EVENT" in
     SessionStart)
+      write_state idle
       heartbeat
       mbx join "$PROJECT" || true
       deliver ;;
     UserPromptSubmit)
+      write_state busy
       rm -f "$CACHE_DIR/taint-$SID"          # a real user turn: the user is back in the loop
       if stamp_due hb "$HEARTBEAT_EVERY"; then heartbeat; fi
       deliver ;;
@@ -187,7 +228,12 @@ inner() {
       if stamp_due hb "$HEARTBEAT_EVERY"; then heartbeat; fi
       stamp_due check "$CHECK_EVERY" || return 0
       deliver ;;
-    Stop) stop_event ;;
+    Stop)
+      # Idle first (a timeout must not leave the session "busy" forever); a blocking Stop
+      # starts another turn, so it goes back to busy.
+      write_state idle
+      stop_event
+      if [ -n "$EMITTED" ]; then write_state busy; fi ;;
   esac
 }
 

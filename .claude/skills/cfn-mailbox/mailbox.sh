@@ -3,8 +3,8 @@
 # Spec: planning/PLAN_agent-mailbox.md (stage 1, "Core").
 #
 # Usage:
-#   mailbox.sh send <to> [--kind ask|fyi|reply|reminder] [--thread ID] [--reply-to ID] [--hops N] "<text>"
-#   mailbox.sh read [--as <session-address>] [--max N] [--peek]
+#   mailbox.sh send <to> [--kind ask|fyi|reply|reminder] [--at <when>] [--thread ID] [--reply-to ID] [--hops N] "<text>"
+#   mailbox.sh read [--as <session-address>] [--max N] [--peek] [--spool FILE]
 #   mailbox.sh who
 #   mailbox.sh log [N]
 #   mailbox.sh join <room> | leave <room>
@@ -36,7 +36,13 @@
 #   20  admin credential missing or unusable (adduser)
 #   78  mailbox config missing or incomplete
 #
-# Test hooks (not config): MAILBOX_ADMIN_ENV overrides the .env file adduser reads.
+# --at <when>: epoch seconds (9 to 12 digits), +<n>m|h|d, HH:MM (next occurrence, local time) or
+# YYYY-MM-DDTHH:MM (local). The message waits in due:<owner> until mailbox-watch.sh delivers it;
+# kind defaults to reminder. Prints the due time in UTC and local.
+#
+# Test hooks (not config): MAILBOX_ADMIN_ENV overrides the .env file adduser reads; MAILBOX_NOW
+# (epoch seconds) replaces the clock. Sourcing this file (mailbox-watch.sh does) defines the
+# functions without running main.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
@@ -150,9 +156,13 @@ rcmd() {
 # rcmdj: same, JSON output.
 rcmdj() { RC_JSON=1 rcmd "$@"; }
 
-now_s() { date +%s; }
+now_s() {
+  # MAILBOX_NOW (epoch seconds) is a test hook: a fake clock for every time decision.
+  if [[ "${MAILBOX_NOW:-}" =~ ^[0-9]+$ ]]; then printf '%s\n' "$MAILBOX_NOW"; else date +%s; fi
+}
 now_ms() {
   local t
+  if [[ "${MAILBOX_NOW:-}" =~ ^[0-9]+$ ]]; then printf '%s000' "$MAILBOX_NOW"; return; fi
   t="$(date +%s%3N 2>/dev/null || true)"
   if [[ "$t" =~ ^[0-9]{13}$ ]]; then printf '%s' "$t"; return; fi
   t="$(perl -MTime::HiRes=time -e 'printf "%d", time()*1000' 2>/dev/null || true)"
@@ -210,16 +220,76 @@ sender_owners() {
   done
 }
 
+# ----- dates (GNU and BSD `date` both; no python)
+
+DATE_GNU=""
+date_flavor() {
+  if [ -z "$DATE_GNU" ]; then
+    if date -d @0 +%s >/dev/null 2>&1; then DATE_GNU=1; else DATE_GNU=0; fi
+  fi
+}
+
+# fmt_epoch EPOCH FORMAT [utc]: format an epoch in local time, or UTC when a third arg is given.
+fmt_epoch() {
+  date_flavor
+  if [ "$DATE_GNU" = 1 ]; then
+    if [ -n "${3:-}" ]; then date -u -d "@$1" "+$2"; else date -d "@$1" "+$2"; fi
+  else
+    if [ -n "${3:-}" ]; then date -u -r "$1" "+$2"; else date -r "$1" "+$2"; fi
+  fi
+}
+
+# local_epoch YYYY-MM-DD HH:MM: epoch of that local wall-clock time; prints nothing if it is invalid.
+local_epoch() {
+  date_flavor
+  local e back
+  if [ "$DATE_GNU" = 1 ]; then e="$(date -d "$1 $2" +%s 2>/dev/null || true)"
+  else e="$(date -j -f '%Y-%m-%d %H:%M:%S' "$1 $2:00" +%s 2>/dev/null || true)"; fi
+  [[ "$e" =~ ^[0-9]+$ ]] || return 0
+  # BSD date rolls 2023-02-31 over to March; reject anything that does not round-trip.
+  back="$(fmt_epoch "$e" '%Y-%m-%d %H:%M')"
+  [ "$back" = "$1 $2" ] || return 0
+  printf '%s' "$e"
+}
+
+AT_EPOCH=""
+# parse_at WHEN: sets AT_EPOCH (UTC epoch seconds). Forms: epoch, +<n>m|h|d, HH:MM (next
+# occurrence, local), YYYY-MM-DDTHH:MM (local). Anything else dies 2.
+parse_at() {
+  local w="$1" now n unit hh mm today e
+  now="$(now_s)"
+  AT_EPOCH=""
+  if [[ "$w" =~ ^[0-9]{9,12}$ ]]; then
+    AT_EPOCH="$((10#$w))"
+  elif [[ "$w" =~ ^\+([0-9]+)([mhd])$ ]]; then
+    n="${BASH_REMATCH[1]}"; unit="${BASH_REMATCH[2]}"
+    [ "${#n}" -le 6 ] && [ "$((10#$n))" -ge 1 ] || die 2 "--at '$w': the amount must be 1 to 999999"
+    case "$unit" in m) n=$((10#$n * 60)) ;; h) n=$((10#$n * 3600)) ;; d) n=$((10#$n * 86400)) ;; esac
+    AT_EPOCH=$((now + n))
+  elif [[ "$w" =~ ^([01]?[0-9]|2[0-3]):([0-5][0-9])$ ]]; then
+    hh="$(printf '%02d' "$((10#${BASH_REMATCH[1]}))")"; mm="${BASH_REMATCH[2]}"
+    today="$(fmt_epoch "$now" '%Y-%m-%d')"
+    e="$(local_epoch "$today" "$hh:$mm")"
+    # cfn: tomorrow is now+24h; a DST change can shift the wall clock by an hour, use a calendar-aware add if that ever matters
+    if [ -z "$e" ] || [ "$e" -le "$now" ]; then e="$(local_epoch "$(fmt_epoch $((now + 86400)) '%Y-%m-%d')" "$hh:$mm")"; fi
+    AT_EPOCH="$e"
+  elif [[ "$w" =~ ^([0-9]{4}-[0-9]{2}-[0-9]{2})T([01][0-9]|2[0-3]):([0-5][0-9])$ ]]; then
+    AT_EPOCH="$(local_epoch "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}:${BASH_REMATCH[3]}")"
+  fi
+  [[ "$AT_EPOCH" =~ ^[0-9]+$ ]] || die 2 "--at '$w' is not a time (use epoch seconds, +30m, +2h, +1d, HH:MM or YYYY-MM-DDTHH:MM)"
+}
+
 key_hash() { printf '%s' "$1" | cksum | awk '{print $1}'; }
 marker_key() { printf 'seen:%s:%s:%s' "$MAILBOX_OWNER" "$1" "$(key_hash "$2")"; }
 
 # --------------------------------------------------------------------- send
 
 cmd_send() {
-  local kind=fyi thread="" reply_to="" hops_in=0 to="" text="" have_text=0
+  local kind=fyi thread="" reply_to="" hops_in=0 to="" text="" have_text=0 at="" at_set=0 kind_set=0
   while [ $# -gt 0 ]; do
     case "$1" in
-      --kind) [ $# -ge 2 ] || die 2 "--kind needs a value"; kind="$2"; shift 2 ;;
+      --kind) [ $# -ge 2 ] || die 2 "--kind needs a value"; kind="$2"; kind_set=1; shift 2 ;;
+      --at) [ $# -ge 2 ] || die 2 "--at needs a time"; at="$2"; at_set=1; shift 2 ;;
       --thread) [ $# -ge 2 ] || die 2 "--thread needs a value"; thread="$2"; shift 2 ;;
       --reply-to) [ $# -ge 2 ] || die 2 "--reply-to needs a value"; reply_to="$2"; shift 2 ;;
       --hops) [ $# -ge 2 ] || die 2 "--hops needs a value"; hops_in="$2"; shift 2 ;;
@@ -235,6 +305,10 @@ cmd_send() {
   [ -n "$to" ] || die 2 "send needs <to> and \"<text>\""
   [ "$have_text" = 1 ] || die 2 "send needs \"<text>\""
 
+  if [ "$at_set" = 1 ]; then
+    parse_at "$at"
+    [ "$kind_set" = 1 ] || kind=reminder   # send-later mail is a reminder unless the sender says otherwise
+  fi
   case "$kind" in ask|fyi|reply|reminder) ;; *) die 2 "kind '$kind' not allowed (use ask, fyi, reply or reminder)" ;; esac
   [ "$kind" != reply ] || [ -n "$reply_to" ] || die 2 "kind reply needs --reply-to <message id>"
   [ -z "$reply_to" ] || [[ "$reply_to" =~ ^[0-9]+-[0-9]+$ ]] || die 2 "--reply-to must be a message id like 1700000000000-0"
@@ -272,6 +346,22 @@ cmd_send() {
   now="$(now_s)"
   local -a f=(from "$from_addr" to "$to_str" kind "$kind" body "$text" sent_at "$now" thread "$thread" hops "$hops")
   if [ -n "$reply_to" ]; then f+=(reply_to "$reply_to"); fi
+  if [ "$at_set" = 1 ]; then
+    # Send later: park it in due:<owner>; the watcher delivers it (ZREM first) when it is due.
+    local member
+    member="$(jq -n -c --arg key "$key" --arg uid "$(now_ms)-$RANDOM" --argjson bytes "$bytes" \
+      --arg from "$from_addr" --arg to "$to_str" --arg kind "$kind" --arg body "$text" --arg sent "$now" \
+      --arg thread "$thread" --arg hops "$hops" --arg reply_to "$reply_to" \
+      '{key:$key, uid:$uid, bytes:$bytes,
+        fields:({from:$from, to:$to, kind:$kind, body:$body, sent_at:$sent, thread:$thread, hops:$hops}
+                + (if $reply_to != "" then {reply_to:$reply_to} else {} end))}')" \
+      || die 18 "could not build the send-later entry"
+    rcmd ZADD "due:$MAILBOX_OWNER" "$AT_EPOCH" "$member"
+    printf 'scheduled for %s UTC (%s local) as %s\n' "$(fmt_epoch "$AT_EPOCH" '%Y-%m-%dT%H:%M:%SZ' utc)" \
+      "$(fmt_epoch "$AT_EPOCH" '%Y-%m-%d %H:%M:%S %Z')" "$kind"
+    echo "thread=$thread" >&2
+    return 0
+  fi
   if [ "$to_kind" = me ]; then
     rcmd XADD "$key" '*' "${f[@]}"
   else
@@ -298,6 +388,7 @@ cmd_send() {
 EMIT_COUNT=0 EMIT_LAST="" EMIT_IDS=""
 READ_LEFT=""   # `read --max N`: messages still allowed across the whole call (empty = no total cap)
 PEEK=""        # `read --peek`: show mail without acknowledging it or moving any marker
+SPOOL=""       # `read --spool FILE`: append each message line to FILE before any marker or XACK moves
 
 # take_count: how many messages one query may ask for (READ_COUNT, or what is left of --max).
 take_count() {
@@ -322,6 +413,9 @@ emit_msgs() {
     | ({id: .[0]} + (([.[1] | _nwise(2) | {(.[0]): .[1]}] | add) // {}))
       + {inbox: $key, sender_owner: $sender, tier: $tier}')" || die 18 "unreadable reply while reading $key"
   [ -n "$lines" ] || return 0
+  # Spool first: if this process is killed before the caller moves the marker or acks, the
+  # message is on disk and the next run still shows it (peeks consume nothing, so never spool).
+  if [ -n "$SPOOL" ] && [ -z "$PEEK" ]; then printf '%s\n' "$lines" >> "$SPOOL" || die 18 "cannot write the spool file $SPOOL"; fi
   printf '%s\n' "$lines"
   EMIT_COUNT="$(printf '%s\n' "$lines" | wc -l | tr -d ' ')"
   EMIT_IDS="$(printf '%s' "$json" | jq -r '(.[0][1] // [])[] | .[0]')"
@@ -388,6 +482,7 @@ cmd_read() {
              [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] || die 2 "--max must be a number of 1 or more"
              READ_LEFT="$2"; shift 2 ;;
       --peek) PEEK=1; shift ;;
+      --spool) [ $# -ge 2 ] && [ -n "$2" ] || die 2 "--spool needs a file"; SPOOL="$2"; shift 2 ;;
       *) die 2 "unknown argument $1 for read" ;;
     esac
   done
@@ -606,4 +701,4 @@ main() {
   esac
 }
 
-main "$@"
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then main "$@"; fi

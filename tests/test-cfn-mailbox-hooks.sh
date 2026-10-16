@@ -83,8 +83,8 @@ ev() {
 # hook JSON: run the hook with the fake redis-cli on PATH. Sets OUT, ERR, RC.
 hook() {
   RC=0
-  OUT="$(printf '%s' "$1" | env -u MAILBOX_SESSION -u CLAUDE_CODE_SESSION_ATTENDED -u TMUX_PANE \
-    PATH="$T/bin:$PATH" HOME="$T/home" MAILBOX_CONFIG="$T/env" ${HENV[@]+"${HENV[@]}"} \
+  OUT="$(printf '%s' "$1" | env -u MAILBOX_SESSION -u CLAUDE_CODE_SESSION_ATTENDED -u TMUX_PANE -u TMUX \
+    PATH="$T/bin:$PATH" HOME="$T/home" MAILBOX_CONFIG="$T/env" CFN_MAILBOX_HOOK_TIMEOUT=30 ${HENV[@]+"${HENV[@]}"} \
     bash "$HOOK" 2>"$T/stderr")" || RC=$?
   ERR="$(cat "$T/stderr")"
 }
@@ -153,11 +153,17 @@ test_identity_and_session_start() {
   assert_eq "yes" "$(yn has_cmd "XREVRANGE mbx:michael:r:$PROJ:from:michael")" "project room joined"
   assert_eq "yes" "$(yn bash -c "grep -F 'HSET dir:michael michael/s/$SESS ' '$T/calls' | grep -F -q '\"rooms\":[\"$PROJ\"]'")" "rooms list holds the project room"
 
-  new_case "SessionStart: tmux target recorded when TMUX_PANE and tmux exist"
-  printf '#!/usr/bin/env bash\necho "main:2.1"\n' > "$T/bin/tmux"; chmod +x "$T/bin/tmux"
+  new_case "SessionStart: tmux target is <socket>|<pane_id> from TMUX and TMUX_PANE (no tmux call)"
+  printf '#!/usr/bin/env bash\necho "tmux was called" >> "%s/tmuxcalled"\necho "main:2.1"\n' "$T" > "$T/bin/tmux"; chmod +x "$T/bin/tmux"
   RC=0
-  OUT="$(ev SessionStart | env -u MAILBOX_SESSION PATH="$T/bin:$PATH" HOME="$T/home" MAILBOX_CONFIG="$T/env" TMUX_PANE=%3 bash "$HOOK" 2>/dev/null)" || RC=$?
-  assert_eq "yes" "$(yn bash -c "grep -F 'HSET dir:michael' '$T/calls' | grep -F -q '\"tmux_target\":\"main:2.1\"'")" "tmux_target in the entry"
+  OUT="$(ev SessionStart | env -u MAILBOX_SESSION PATH="$T/bin:$PATH" HOME="$T/home" MAILBOX_CONFIG="$T/env" CFN_MAILBOX_HOOK_TIMEOUT=30 TMUX="/tmp/tmux-501/fleet,123,0" TMUX_PANE=%3 bash "$HOOK" 2>/dev/null)" || RC=$?
+  assert_eq "yes" "$(yn bash -c "grep -F 'HSET dir:michael' '$T/calls' | grep -F -q '\"tmux_target\":\"/tmp/tmux-501/fleet|%3\"'")" "tmux_target in the entry"
+  assert_eq "no" "$(yn test -e "$T/tmuxcalled")" "tmux not invoked"
+
+  new_case "SessionStart: no TMUX in the environment -> no tmux_target"
+  RC=0
+  OUT="$(ev SessionStart | env -u MAILBOX_SESSION -u TMUX PATH="$T/bin:$PATH" HOME="$T/home" MAILBOX_CONFIG="$T/env" CFN_MAILBOX_HOOK_TIMEOUT=30 TMUX_PANE=%3 bash "$HOOK" 2>/dev/null)" || RC=$?
+  assert_eq "no" "$(yn has_cmd 'tmux_target')" "no target without a socket"
 
   new_case "identity: MAILBOX_SESSION env wins"
   HENV=(MAILBOX_SESSION=fleet-one)
@@ -375,6 +381,7 @@ test_failure_and_timeout() {
   assert_eq "yes" "$(yn test -s "$CACHE/hook.log")" "logged"
 
   new_case "timeout: a hung redis-cli is cut off at about 2 s (timeout binary)"
+  HENV=(CFN_MAILBOX_HOOK_TIMEOUT=2)
   printf '#!/usr/bin/env bash\nsleep 6\n' > "$T/bin/redis-cli"; chmod +x "$T/bin/redis-cli"
   local t0 t1
   t0="$(date +%s)"
@@ -385,7 +392,7 @@ test_failure_and_timeout() {
 
   new_case "timeout: same with the background-kill fallback"
   printf '#!/usr/bin/env bash\nsleep 6\n' > "$T/bin/redis-cli"; chmod +x "$T/bin/redis-cli"
-  HENV=(CFN_MAILBOX_HOOK_FORCE_FALLBACK=1)
+  HENV=(CFN_MAILBOX_HOOK_FORCE_FALLBACK=1 CFN_MAILBOX_HOOK_TIMEOUT=2)
   t0="$(date +%s)"
   hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"
   t1="$(date +%s)"
@@ -399,6 +406,89 @@ test_failure_and_timeout() {
   assert_contains "$(ctx)" "via fallback" "delivered without the timeout binary"
 }
 
+# spool_line ID KIND BODY: one spooled message as `mailbox.sh read` prints it.
+spool_line() {
+  jq -n -c --arg id "$1" --arg kind "$2" --arg body "$3" --arg key "$SKEY" \
+    '{id:$id, from:"michael/s/zzz", to:"michael/s/x", kind:$kind, body:$body, sent_at:"1", thread:"t-a", hops:"0", inbox:$key, sender_owner:"michael", tier:"teammate"}'
+}
+
+test_spool() {
+  new_case "spool: a read killed after spooling but before the marker SET shows the mail next time, exactly once"
+  SP="$CACHE/spool-$SESS"
+  rule "XREAD COUNT 20 STREAMS $SKEY *" "$(mkmsg "$SKEY" 1700000000001-0 michael/s/zzz ask 'do not lose me' t-a 0)"
+  mv "$T/bin/redis-cli" "$T/bin/redis-cli-real"
+  cat > "$T/bin/redis-cli" <<WRAP
+#!/usr/bin/env bash
+case "\$*" in *"SET seen:"*) sleep 12 ;; esac
+exec "$T/bin/redis-cli-real" "\$@"
+WRAP
+  chmod +x "$T/bin/redis-cli"
+  HENV=(CFN_MAILBOX_HOOK_TIMEOUT=5)
+  hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"
+  assert_silent "first run was killed before it could print"
+  assert_contains "$(cat "$SP" 2>/dev/null)" "do not lose me" "message is in the spool"
+  mv "$T/bin/redis-cli-real" "$T/bin/redis-cli"
+  HENV=()
+  hook "$(ev UserPromptSubmit '{"prompt":"again"}')"
+  assert_eq "1" "$(header_count)" "shown exactly once (spool and re-read deduplicated)"
+  assert_contains "$(ctx)" "do not lose me" "body shown"
+  assert_eq "no" "$(yn test -s "$SP")" "spool emptied after rendering"
+
+  new_case "spool: mail left in the spool by a killed run is shown even when Redis has nothing new"
+  SP="$CACHE/spool-$SESS"
+  mkdir -p "$CACHE"; spool_line 1700000000009-0 fyi "from the spool" > "$SP"
+  hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"
+  assert_eq "1" "$(header_count)" "one message"
+  assert_contains "$(ctx)" "from the spool" "body"
+  assert_eq "no" "$(yn test -s "$SP")" "spool emptied"
+
+  new_case "spool: empty spool and nothing new -> silent, no duplicate"
+  SP="$CACHE/spool-$SESS"
+  : > "$SP" 2>/dev/null || { mkdir -p "$CACHE"; : > "$SP"; }
+  hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"
+  assert_silent "nothing to show"
+
+  new_case "spool: Stop counts a spooled ask and blocks"
+  SP="$CACHE/spool-$SESS"
+  mkdir -p "$CACHE"; spool_line 1700000000009-0 ask "spooled question" > "$SP"
+  hook "$(ev Stop)"
+  assert_eq "block" "$(printf '%s' "$OUT" | jq -r '.decision')" "blocks on spooled ask"
+  assert_contains "$(printf '%s' "$OUT" | jq -r '.reason')" "spooled question" "text in the reason"
+  assert_eq "no" "$(yn test -s "$SP")" "spool emptied"
+
+  new_case "spool: a spooled fyi alone does not block Stop and stays spooled"
+  SP="$CACHE/spool-$SESS"
+  mkdir -p "$CACHE"; spool_line 1700000000009-0 fyi "just fyi" > "$SP"
+  hook "$(ev Stop)"
+  assert_silent "no block"
+  assert_contains "$(cat "$SP")" "just fyi" "kept for the next turn"
+
+  new_case "spool: mailbox.sh read --spool writes each message before the marker SET"
+  SP="$CACHE/spool-$SESS"
+  rule "XREAD COUNT 20 STREAMS $SKEY *" "$(mkmsg "$SKEY" 1700000000001-0 michael/s/zzz ask 'order check' t-a 0)"
+  RC=0
+  env -u MAILBOX_SESSION PATH="$T/bin:$PATH" HOME="$T/home" MAILBOX_CONFIG="$T/env" MAILBOX_SESSION="$SESS" \
+    bash "$REPO/.claude/skills/cfn-mailbox/mailbox.sh" read --as "michael/s/$SESS" --spool "$T/sp" >/dev/null 2>&1 || RC=$?
+  assert_contains "$(cat "$T/sp" 2>/dev/null)" "order check" "spooled"
+  assert_eq "yes" "$(yn has_cmd 'SET seen:')" "marker set"
+
+  new_case "spool: --peek never spools"
+  SP="$CACHE/spool-$SESS"
+  rule "XREAD COUNT 20 STREAMS $SKEY *" "$(mkmsg "$SKEY" 1700000000001-0 michael/s/zzz ask 'peek me' t-a 0)"
+  env PATH="$T/bin:$PATH" HOME="$T/home" MAILBOX_CONFIG="$T/env" MAILBOX_SESSION="$SESS" \
+    bash "$REPO/.claude/skills/cfn-mailbox/mailbox.sh" read --as "michael/s/$SESS" --peek --spool "$T/sp2" >/dev/null 2>&1 || true
+  assert_eq "no" "$(yn test -s "$T/sp2")" "nothing spooled on a peek"
+
+  new_case "timeout: CFN_MAILBOX_HOOK_TIMEOUT overrides the default"
+  SP="$CACHE/spool-$SESS"
+  HENV=(CFN_MAILBOX_HOOK_TIMEOUT=1)
+  printf '#!/usr/bin/env bash\nsleep 6\n' > "$T/bin/redis-cli"; chmod +x "$T/bin/redis-cli"
+  local t0 t1; t0="$(date +%s)"
+  hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"
+  t1="$(date +%s)"
+  if [ $((t1 - t0)) -le 3 ]; then ok; else bad "took $((t1 - t0)) s with a 1 s timeout"; fi
+}
+
 test_script_exists
 test_silent_paths
 test_identity_and_session_start
@@ -409,6 +499,7 @@ test_post_tool_use
 test_stop
 test_taint_guard
 test_failure_and_timeout
+test_spool
 
 echo "cases=$CASES assertions_passed=$PASS assertions_failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then exit 1; fi

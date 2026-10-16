@@ -41,7 +41,7 @@ if [ "$matched" = 0 ]; then
     PING) reply=PONG ;;
     EXPIRE|DEL|XACK|HSET) reply=1 ;;
     XREAD|XREADGROUP) reply=null ;;
-    XREVRANGE|HGETALL) reply="[]" ;;
+    XREVRANGE|HGETALL|XRANGE|XPENDING|XINFO|ZRANGEBYSCORE) reply="[]" ;;
     GET|HGET) reply="" ;;
     *) reply=OK ;;
   esac
