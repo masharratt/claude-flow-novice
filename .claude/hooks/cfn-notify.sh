@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# cfn-notify.sh - audible completion / attention signal for WSL2 Claude Code sessions.
+# cfn-notify.sh - audible completion / attention signal for Claude Code sessions
+# on macOS (afplay + /System/Library/Sounds) and WSL2 (Windows Media).
 #
 # Usage:
 #   cfn-notify.sh <event>          play the sound bound to an event
@@ -10,19 +11,47 @@
 #           input  -> Claude needs your input   (permission prompt / question)
 #           error  -> something failed
 #
-# Defaults: stop=chimes, input=Windows Notify Calendar, error=Windows Critical Stop.
+# WSL defaults:   stop=chimes, input=Windows Notify Calendar, error=Windows Critical Stop.
+# macOS defaults: stop=Hero,   input=Glass,                   error=Basso.
 # Pick your own without editing this file. Set a basename from --list:
-#   export CFN_NOTIFY_STOP="Windows Print complete"
-#   export CFN_NOTIFY_INPUT="Windows Exclamation"
-#   export CFN_NOTIFY_ERROR="Windows Hardware Fail"
+#   export CFN_NOTIFY_STOP="Windows Print complete"   (macOS: "Ping")
+#   export CFN_NOTIFY_INPUT="Windows Exclamation"     (macOS: "Submarine")
+#   export CFN_NOTIFY_ERROR="Windows Hardware Fail"   (macOS: "Funk")
 #
-# Fire-and-forget: the PowerShell call is backgrounded and detached so the hook
-# never adds latency to the turn. Silent no-op outside WSL (no powershell.exe).
+# Fire-and-forget: the player is backgrounded and detached so the hook never
+# adds latency to the turn (CFN_NOTIFY_SYNC=1 plays in the foreground, for
+# tests). Silent no-op when neither afplay nor powershell.exe exists.
 # Disable entirely:  export CFN_NOTIFY=0
 set -uo pipefail
 
 MEDIA_UNIX='/mnt/c/Windows/Media'
 MEDIA_WIN='C:\Windows\Media'
+MEDIA_MAC='/System/Library/Sounds'
+
+# macOS: afplay a system .aiff. Kept separate from the PowerShell path below.
+if ! command -v powershell.exe >/dev/null 2>&1 && command -v afplay >/dev/null 2>&1; then
+  case "${1:-stop}" in
+    --list) ls "$MEDIA_MAC" | sed 's/\.aiff$//' | sort; exit 0 ;;
+    --play) [ -n "${2:-}" ] || { echo 'usage: cfn-notify.sh --play <sound-name>' >&2; exit 2; }
+            [ -f "$MEDIA_MAC/${2%.aiff}.aiff" ] || [ -f "$2" ] || { echo "cfn-notify: no such sound: $2 (see --list)" >&2; exit 1; }
+            PICK="$2"; SYNC=1 ;;
+    stop)   PICK="${CFN_NOTIFY_STOP:-Hero}" ;;
+    input)  PICK="${CFN_NOTIFY_INPUT:-Glass}" ;;
+    error)  PICK="${CFN_NOTIFY_ERROR:-Basso}" ;;
+    *)      PICK="Ping" ;;
+  esac
+  [[ "${CFN_NOTIFY:-1}" == "0" ]] && exit 0
+  case "$PICK" in
+    /*) SND="$PICK" ;;
+    *)  SND="$MEDIA_MAC/${PICK%.aiff}.aiff" ;;
+  esac
+  if [ -n "${SYNC:-}" ] || [ -n "${CFN_NOTIFY_SYNC:-}" ]; then
+    afplay "$SND" >/dev/null 2>&1
+  else
+    ( afplay "$SND" >/dev/null 2>&1 & )
+  fi
+  exit 0
+fi
 
 case "${1:-stop}" in
   --list)
@@ -72,7 +101,7 @@ fi
 
 PS_CMD="try { (New-Object Media.SoundPlayer '${WAV}').PlaySync() } catch { ${BEEP} }"
 
-if [ "$EVENT" = "__direct__" ]; then
+if [ "$EVENT" = "__direct__" ] || [ -n "${CFN_NOTIFY_SYNC:-}" ]; then
   # audition: play synchronously so a sequence of --play calls does not overlap
   powershell.exe -NoProfile -NonInteractive -Command "$PS_CMD" >/dev/null 2>&1
 else

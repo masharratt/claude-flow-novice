@@ -461,17 +461,17 @@ Let any Claude Code session send a request or information to another session, pr
 
 Reviewed: 2026-10-16
 
-- `.claude/skills/cfn-mailbox/mailbox.sh:312`: receiver_keys builds a contact owner's inbox key only for an address listed in MAILBOX_PUBLIC; otherwise only the owner's own from:<owner> key (source changed; review needed)
-- `.claude/skills/cfn-mailbox/mailbox.sh:579`: emit_msgs quarantines mail whose to does not match the key or whose from owner differs from the key's, drops a msg_id already shown, and still returns every id so it is acked or passed (source changed; review needed)
+- `.claude/skills/cfn-mailbox/mailbox.sh:312`: receiver_keys builds a contact owner's inbox key only for an address listed in MAILBOX_PUBLIC; otherwise only the owner's own from:<owner> key
+- `.claude/skills/cfn-mailbox/mailbox.sh:579`: emit_msgs quarantines mail whose to does not match the key or whose from owner differs from the key's, drops a msg_id already shown, and still returns every id so it is acked or passed
 - `.claude/skills/cfn-mailbox/mailbox-watch.sh:315`: job_send_later claims claim:<owner>:<msg_id> NX EX 120, XADDs with the stored msg_id, then ZREMs
 - `.claude/skills/cfn-mailbox/mailbox-watch.sh:368`: bounce_entry XADDs the bounce with msg_id b-<hash> before setting the done marker and before XACK/XDEL of the original
-- `.claude/hooks/cfn-mailbox-hook.sh:361`: the outer hook process trims the spool only after printing the inner process's output, by the ids the inner process rendered (source changed; review needed)
-- `.claude/skills/cfn-mailbox/mailbox.sh:872`: claim takes alias:<owner>:<name> with SET NX, refuses (21) a different holder seen in the last 10 minutes, takes over a quieter one under lock:<owner>:alias-<name>, and keeps the name only if the read-back shows its own session id (source changed; review needed)
-- `.claude/skills/cfn-mailbox/mailbox.sh:606`: emit_msgs labels same-owner mail coordinator only when its coord field equals the reader's MAILBOX_COORD_FILE secret and its from is MAILBOX_COORD_FROM (when set), and deletes coord from every message it prints (source changed; review needed)
-- `.claude/skills/cfn-mailbox/mailbox.sh:999`: flush sends each MAILBOX_OUTQ entry as this session with its queued msg_id, removes it once sent, stops on a Redis or rate-limit failure and sets unsendable entries aside as .failed (source changed; review needed)
-- `.claude/hooks/cfn-mailbox-hook.sh:253`: the hook flushes a sandboxed worker's outbound queue on every event, outside the Bash sandbox (source changed; review needed)
-- `.claude/skills/cfn-fleet/lib/cmd-watch.sh:193`: fleet watch reads <project>-master with its own reader marker, applies host-row worker mail to the roster, prints MAILBOX-DOWN once and falls back to fleet sync while the mailbox does not answer (source changed; review needed)
-- `.claude/skills/cfn-fleet/lib/cmd-spawn.sh:399`: fleet spawn names the worker <project>-<ws>, creates the run's coordinator secret, claims <project>-master for the spawning session, and gives each pane its own MAILBOX_SESSION (source changed; review needed)
+- `.claude/hooks/cfn-mailbox-hook.sh:361`: the outer hook process trims the spool only after printing the inner process's output, by the ids the inner process rendered
+- `.claude/skills/cfn-mailbox/mailbox.sh:872`: claim takes alias:<owner>:<name> with SET NX, refuses (21) a different holder seen in the last 10 minutes, takes over a quieter one under lock:<owner>:alias-<name>, and keeps the name only if the read-back shows its own session id
+- `.claude/skills/cfn-mailbox/mailbox.sh:606`: emit_msgs labels same-owner mail coordinator only when its coord field equals the reader's MAILBOX_COORD_FILE secret and its from is MAILBOX_COORD_FROM (when set), and deletes coord from every message it prints
+- `.claude/skills/cfn-mailbox/mailbox.sh:999`: flush sends each MAILBOX_OUTQ entry as this session with its queued msg_id, removes it once sent, stops on a Redis or rate-limit failure and sets unsendable entries aside as .failed
+- `.claude/hooks/cfn-mailbox-hook.sh:253`: the hook flushes a sandboxed worker's outbound queue on every event, outside the Bash sandbox
+- `.claude/skills/cfn-fleet/lib/cmd-watch.sh:193`: fleet watch reads <project>-master with its own reader marker, applies host-row worker mail to the roster, prints MAILBOX-DOWN once and falls back to fleet sync while the mailbox does not answer
+- `.claude/skills/cfn-fleet/lib/cmd-spawn.sh:399`: fleet spawn names the worker <project>-<ws>, creates the run's coordinator secret, claims <project>-master for the spawning session, and gives each pane its own MAILBOX_SESSION
 <!-- /wiki:enrich -->
 
 <!-- wiki:enrich id=orphan-feature-agent-memory fp=orphan -->

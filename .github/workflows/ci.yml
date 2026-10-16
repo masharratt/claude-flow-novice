@@ -302,6 +302,9 @@ jobs:
       - name: Careful-guard force-push tests
         run: bash tests/test-careful-guard-force-push.sh
 
+      - name: Notify sound tests
+        run: bash tests/test-cfn-notify.sh
+
       - name: Jev rot-risk tests
         run: bash tests/test-jev-rot-risk.sh
 
