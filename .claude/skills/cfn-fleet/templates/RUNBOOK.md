@@ -17,6 +17,16 @@ from the target project root unless resolving a different run dir on purpose.
    token to panes via tmux argv and never writes it to the run dir. glm spawn
    refuses (exit 66) when none has a token of 20+ characters. `claude-sub`
    and `codex` need nothing.
+3b. **Shared data linked into worktrees** (caches, extracted assets): make it
+   read-only before spawning (`chmod -R a-w <dir>`, `chmod -R u+w` to rebuild)
+   and list it in `<repo>/.zai-fence-readonly` (one path per line) so glm
+   workers cannot write or delete it even through the worktree's symlink. A
+   writable link let a worker's test cleanup wipe 7.5 GB four times (MDTWII,
+   2026-10-16). If shared data vanishes and no session log shows an `rm`,
+   check lane test cleanup code (`Drop`, teardown, fixtures) first: deletes
+   inside a compiled test binary never reach a shell hook.
+   Reviews: fail any lane whose test cleanup can delete a path outside its own
+   temp dir (`git diff <base>..fleet/WSxx | grep -nE 'remove_dir_all|rmtree|rm -rf|fs\.rm'`).
 4. **Write briefs**: fill `briefs/WSxx.md` from `briefs/BRIEF_WS.md` (task,
    engine, claims, allowed commands, done criteria; codex workers need the
    self-protocol note).

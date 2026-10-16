@@ -22,6 +22,9 @@
 #   6. inside the fence, writes denied to .git/config, .git/hooks,
 #      .claude/settings*.json, .claude/hooks (they run unfenced later), unless
 #      ZAI_FENCE_ALLOW_CONFIG=1.
+#   6b. read-only: paths listed in <root>/.zai-fence-readonly (one per line, relative
+#      to the root or absolute, # comments) and ZAI_FENCE_READONLY (colon-separated)
+#      refuse writes and deletes, also when reached through a worktree symlink.
 #   7. always denied: ~/.ssh ~/.aws ~/.gnupg ~/Library/Keychains ~/.npmrc
 #      ~/.config/gh; connects to tmux / docker / orbstack sockets; Keychain mach
 #      services; Apple Events; LaunchServices.
@@ -173,6 +176,22 @@ profile(){
     local r; r=$(rx "$ROOT")
     echo ";; 6. persistence paths inside the fence (ZAI_FENCE_ALLOW_CONFIG=1 lifts)"
     echo "(deny file-write* (regex #\"^$r/\\.git/(config|config\\.worktree|worktrees/[^/]+/config(\\.worktree)?)\$\" #\"^$r/\\.git/hooks(/|\$)\" #\"^$r(/\\.claude/worktrees/[^/]+)?/\\.claude/settings[^/]*\\.json\$\" #\"^$r(/\\.claude/worktrees/[^/]+)?/\\.claude/hooks(/|\$)\"))"
+  fi
+
+  # Shared data a worktree reaches through a symlink resolves inside the fence, so
+  # step 5 would let a test cleanup delete it (MDTWII, 2026-10-16). Listed paths
+  # stay readable; writes and deletes are refused whichever path reaches them.
+  local ro rel
+  ro=$( { [ -f "$ROOT/.zai-fence-readonly" ] && cat "$ROOT/.zai-fence-readonly"; \
+          printf '%s\n' "${ZAI_FENCE_READONLY:-}" | tr ':' '\n'; } | sed -e 's/#.*//' -e 's/[[:space:]]*$//' )
+  if [ -n "$ro" ]; then
+    echo ";; 6b. read-only shared data (.zai-fence-readonly, ZAI_FENCE_READONLY)"
+    while IFS= read -r rel; do
+      [ -n "$rel" ] || continue
+      case "$rel" in /*) p="$rel" ;; *) p="$ROOT/$rel" ;; esac
+      [ -e "$p" ] && p=$(realpath "$p")
+      echo "(deny file-write* $(sub "$p"))"
+    done <<<"$ro"
   fi
 
   echo ";; 7. always denied"

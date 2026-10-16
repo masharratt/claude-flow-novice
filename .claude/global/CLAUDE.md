@@ -113,6 +113,7 @@ Query CodeSearch BEFORE grep/glob/find — 400x faster:
 - **DELETE/TRUNCATE requires explicit user approval.** Explain what rows are removed and why, trace the FK cascade chain (every affected table + cascade rule), state estimated row count impact, wait for confirmation.
 - **Test fixtures MUST NOT name a real entity.** Never import or hardcode a production user id, account id, email, workspace slug, or org id into test code — not as a fixture, not as a constant, not read-only. Invent a synthetic uuid: any execution path reaching the teardown deletes real data.
 - **Destructive teardown MUST assert it is not pointed at production.** Before any DELETE, assert the fixture id differs from the known production id (`assert_ne!(TEST_USER_ID, PRODUCTION_USER_ID, "REFUSING TO RUN: ...")`). Tripwire for a fixture later repointed at real data.
+- **Test filesystem cleanup deletes only what the test created under the temp dir.** Never `remove_dir_all` / `rmtree` / `rm -rf` a path derived from the project tree: in a worktree it may be a symlink to shared data, and no shell hook sees a delete inside a test binary (MDTWII 2026-10-16, 7.5 GB wiped 4x). Keep linked shared data read-only; review fails cleanup that can reach a non-temp path.
 - **`#[ignore]` / test tags are a speed bump, NOT a safety mechanism.** An explicitly-invoked `--ignored` run bypasses them entirely. Safety = synthetic fixtures + teardown assertions above.
 
 ### Test Output Capture (MANDATORY, ALL languages)

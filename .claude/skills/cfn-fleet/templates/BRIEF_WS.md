@@ -65,4 +65,9 @@ Do not edit anything outside these claims. Need more? Ask the master to
   No shell variables at all, guarded or not: Claude Code's guard and the delete
   check both stop for approval, nobody is there to answer, and you stall then
   get denied.
+- Test cleanup (`Drop`, `afterEach`, teardown, fixtures) may delete only a
+  directory the test itself created under the temp dir (`mktemp -d`,
+  `tempfile::TempDir`, `tmp_path`). Never `remove_dir_all` / `rmtree` /
+  `rm -rf` / `fs.rm` a path built from the project tree: in a worktree it can
+  be a symlink to the master's shared data, and the delete follows it.
 - You are a leaf: do not spawn other Claude sessions.

@@ -192,6 +192,43 @@ test_config_writes_allowed_with_optin(){
   done
 }
 
+# Regression (MDTWII incident 2026-10-16): a glm worker's Rust test fixture ran
+# remove_dir_all on <worktree>/extracted/data. The worktree reached the main
+# checkout's 7.5 GB shared data through a symlink, which resolves inside the fence
+# root, so the fence allowed the delete; it wiped the shared copy four times.
+# Paths listed in <root>/.zai-fence-readonly (or ZAI_FENCE_READONLY, colon-separated)
+# stay readable but refuse every write and delete, through a symlink or not.
+test_readonly_paths_blocked(){
+  local s
+  mkdir -p "$FENCE/shared/data" "$FENCE/shared2"
+  echo keep > "$FENCE/shared/data/keep.txt"
+  echo keep2 > "$FENCE/shared2/keep.txt"
+  ln -s "$FENCE/shared" "$WT/extracted"
+  printf '# shared caches linked into worktrees\nshared\n' > "$FENCE/.zai-fence-readonly"
+
+  PROBE="echo PROBE_RAN; rm -rf extracted/data"; fence_run "$WT"
+  s=""; [ -f "$FENCE/shared/data/keep.txt" ] || s="shared data deleted through the symlink"
+  expect "readonly_delete_via_symlink_blocked" blocked "$s"
+
+  PROBE="echo PROBE_RAN; echo x > extracted/data/new.txt"; fence_run "$WT"
+  s=""; [ -e "$FENCE/shared/data/new.txt" ] && s="new.txt was created"
+  expect "readonly_write_via_symlink_blocked" blocked "$s"
+
+  PROBE="echo PROBE_RAN; cat extracted/data/keep.txt"; fence_run "$WT"
+  s=""; grep -q keep <<<"$OUT" || s="content not read"
+  expect "readonly_read_allowed" allowed "$s"
+
+  PROBE="echo PROBE_RAN; rm -f shared2/keep.txt"; fence_run "$FENCE" ZAI_FENCE_READONLY="$FENCE/shared2"
+  s=""; [ -f "$FENCE/shared2/keep.txt" ] || s="env-listed path deleted"
+  expect "readonly_env_path_blocked" blocked "$s"
+
+  PROBE="echo PROBE_RAN; echo ok > not-shared.txt"; fence_run "$FENCE"
+  s=""; [ -f "$FENCE/not-shared.txt" ] || s="file not created"
+  expect "readonly_other_fence_writes_allowed" allowed "$s"
+
+  rm -f "$FENCE/.zai-fence-readonly" "$WT/extracted"
+}
+
 test_tmux_socket_blocked(){
   if ! command -v tmux >/dev/null 2>&1; then skip "tmux_socket_blocked: tmux not installed"; return; fi
   mkdir -p "$TSOCKDIR" && chmod 700 "$TSOCKDIR"
@@ -294,6 +331,7 @@ test_home_reads_blocked
 test_fence_writes_allowed
 test_config_writes_blocked
 test_config_writes_allowed_with_optin
+test_readonly_paths_blocked
 test_tmux_socket_blocked
 test_env_scrubbed
 test_keychain_blocked
