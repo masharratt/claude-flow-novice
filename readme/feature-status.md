@@ -3,7 +3,7 @@
 
 # Feature Status
 
-**Last Updated:** 2026-10-16 (zai-fence read-only shared-data paths)
+**Last Updated:** 2026-10-16 (zai-fence read-only paths; decision-log record.sh fails loudly on write errors)
 
 ## Status Rollup
 

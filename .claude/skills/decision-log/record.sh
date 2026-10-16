@@ -44,7 +44,10 @@ fi
 
 # ensure schema present (idempotent: all CREATE ... IF NOT EXISTS).
 # migrates an existing decisions.db that predates the `decisions` table.
-sqlite3 "$DB_PATH" < "$SCRIPT_DIR/schema.sql"
+if ! sqlite3 "$DB_PATH" < "$SCRIPT_DIR/schema.sql"; then
+    echo "[decision-log] ERROR: schema init failed for $DB_PATH; nothing recorded" >&2
+    exit 3
+fi
 
 # defaults
 if [ -z "$PROJECT" ]; then
@@ -56,7 +59,7 @@ fi
 # sqlite single-quote escape
 q(){ printf "%s" "$1" | sed "s/'/''/g"; }
 
-sqlite3 "$DB_PATH" <<SQL
+if ! sqlite3 "$DB_PATH" <<SQL
 INSERT INTO decisions
   (project, slug, decision_id, title, chosen, rationale, alternatives,
    status, blocking, session_id, superseded_by, timestamp)
@@ -70,6 +73,10 @@ ON CONFLICT(project, slug, decision_id) DO UPDATE SET
    blocking=excluded.blocking, session_id=excluded.session_id,
    timestamp=excluded.timestamp;
 SQL
+then
+    echo "[decision-log] ERROR: sqlite write failed for $PROJECT/$SLUG/$DEC_ID (db: $DB_PATH); nothing recorded" >&2
+    exit 4
+fi
 
 # mark a prior decision superseded by this one.
 # A zero-match --supersede must fail loudly: a silent no-op leaves the old
