@@ -59,7 +59,11 @@ fleet_run_dir(){
   if [ -n "${FLEET_RUN_DIR:-}" ]; then
     [ -d "$FLEET_RUN_DIR" ] \
       || fleet_die 64 "fleet run dir not found: $FLEET_RUN_DIR (fleet init first)"
-    printf '%s\n' "$FLEET_RUN_DIR"
+    # Absolute, always: paths built from it go into panes and mailbox.sh, which refuse relative ones.
+    case "$FLEET_RUN_DIR" in
+      /*) printf '%s\n' "$FLEET_RUN_DIR" ;;
+      *)  (cd "$FLEET_RUN_DIR" && pwd) ;;
+    esac
     return 0
   fi
   local dir="$PWD" best d
