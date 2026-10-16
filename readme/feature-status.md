@@ -3,14 +3,14 @@
 
 # Feature Status
 
-**Last Updated:** 2026-10-16 (shared-data guard: SessionStart check, lock mirrors into Claude sandbox)
+**Last Updated:** 2026-10-16 wiki sync
 
 ## Status Rollup
 
 | Status | Features |
 |---|---|
 | prod | 0 |
-| beta | 1 |
+| beta | 2 |
 | dev | 34 |
 | stub | 2 |
 | deprecated | 0 |
@@ -50,6 +50,7 @@ Authored capabilities come first. Directory entries are an inventory, not indepe
 | Building and serving the wiki portal | dev | Assembles a self-contained HTML portal from the wiki store's five view modules (single-file or paged mode, one shared assembly core, per-page selfcheck) and serves it locally with an atomic, origin-gated annotation store. | wiki-pipeline | Source changed; explanation needs review. Source review of build-portal.sh, server.py, lib/serve.sh and portal/serve.sh at revision f248664d3997407020c8b57de4fbc92515788cfd; no build or serve was executed in this pass, so failure paths are read from the code, not observed. Verified against sources 2026-09-14. |
 | Fleet run dashboard | dev | Self-contained HTML dashboard from roster.tsv: live polling cards and tiles, glossary key, per-card attach command with Copy and gated Open in terminal, Live view of each worker's pane, a Sessions panel of every live Claude session, and archived-run hiding. | fleet-roster | Source changed; explanation needs review. Implemented and verified against a Playwright browser suite (tests/test-cfn-fleet-dashboard-ui.cjs) covering the glossary legend, term and status tooltips, notes clamp, live updates, attach command Copy and Open in terminal via a stub launcher; run against synthetic rosters, not a real multi-session run. |
 | Fleet workers on a remote host | beta | fleet spawn --host runs a worker on a server over ssh, inside Claude's Bash sandbox and a systemd CPU/memory scope, with Edit deny rules on the server deny list. The Mac roster stays authoritative: the worker commits locally and reports to a server outbox, fleet sync/watch pulls reports, land fetches the lane from the fleet clone and refuses diffs outside claims. | fleet-roster | Source changed; explanation needs review. First real lane (MDTWII WS350, docs) ran end to end 2026-10-13. Host sandbox, caps and no-push landing added 2026-10-13 and pass the stub-ssh suites; not yet run on the live server. |
+| Agent mailbox between sessions | beta | Sessions mail each other across machines and people over one hosted Redis. Readers build inbox keys themselves (outside owners only for MAILBOX_PUBLIC addresses), quarantine forged to/from, and show each msg_id once; a watcher wakes idle tmux panes and runs send-later and bounce. | - | Source changed; explanation needs review. Stages 1-4 live on the Mac and the VPS. Stage 4b hardening (receiver policy, quarantine, msg_id de-dup, crash-safe send-later and bounce) passes the offline suites; not yet deployed, and live ACL users need ~claim:<owner>:* first. |
 | api-gateway | dev | Express JWT authentication service that issues, refreshes, revokes and validates access tokens with Redis backing, rate limiting and shell test suites for gateway callers. | - | Source changed; explanation needs review. Curated status |
 | artifacts | dev | Storage area for agent task outputs: project scope schema SQL with validation queries and example agent workspace deliverables. Mostly one-off outputs, not maintained product code. | - | Source changed; explanation needs review. Curated status |
 | benchmark | dev | Benchmark suite measuring CFN infrastructure options: Node versus Rust message bus throughput, agent messaging latency, load tests and spawn cost, driven by one runner script. | - | Source changed; explanation needs review. Curated status |
@@ -152,6 +153,10 @@ Authored capabilities come first. Directory entries are an inventory, not indepe
 ### Fleet workers on a remote host
 
 [Read the execution flow](wiki/fleet-remote-hosts/wiki.md). First real lane (MDTWII WS350, docs) ran end to end 2026-10-13. Host sandbox, caps and no-push landing added 2026-10-13 and pass the stub-ssh suites; not yet run on the live server.
+
+### Agent mailbox between sessions
+
+[Read the execution flow](wiki/agent-mailbox/wiki.md). Stages 1-4 live on the Mac and the VPS. Stage 4b hardening (receiver policy, quarantine, msg_id de-dup, crash-safe send-later and bounce) passes the offline suites; not yet deployed, and live ACL users need ~claim:<owner>:* first.
 
 ### api-gateway
 

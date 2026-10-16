@@ -5,9 +5,13 @@
   "capabilities": [
     "agent-containers",
     "fleet-dashboard",
-    "fleet-roster"
+    "fleet-roster",
+    "agent-mailbox"
   ],
-  "entities": [],
+  "entities": [
+    "send-later-message-entity",
+    "bounced-message-entity"
+  ],
   "shared_contracts": [],
   "unknowns": [
     "Domain page is map-derived, not yet source-reviewed."

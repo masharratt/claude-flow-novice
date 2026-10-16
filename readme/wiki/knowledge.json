@@ -49,9 +49,12 @@
     "wiki-pipeline",
     "wiki-portal",
     "fleet-dashboard",
-    "fleet-remote-hosts"
+    "fleet-remote-hosts",
+    "agent-mailbox"
   ],
   "entities": [
-    "acceptance-check-result-entity"
+    "acceptance-check-result-entity",
+    "send-later-message-entity",
+    "bounced-message-entity"
   ]
 }

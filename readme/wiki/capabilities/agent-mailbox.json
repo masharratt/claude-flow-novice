@@ -1,0 +1,52 @@
+{
+  "id": "agent-mailbox",
+  "fid": "agent-mailbox",
+  "name": "Agent mailbox between sessions",
+  "status": "beta",
+  "status_reason": "Stages 1-4 live on the Mac and the VPS. Stage 4b hardening (receiver policy, quarantine, msg_id de-dup, crash-safe send-later and bounce) passes the offline suites; not yet deployed, and live ACL users need ~claim:<owner>:* first.",
+  "description": "Sessions mail each other across machines and people over one hosted Redis. Readers build inbox keys themselves (outside owners only for MAILBOX_PUBLIC addresses), quarantine forged to/from, and show each msg_id once; a watcher wakes idle tmux panes and runs send-later and bounce.",
+  "purpose": "Let any Claude Code session send a request or information to another session, project, room or person, without mail ever counting as permission.",
+  "reviewed_at": "2026-10-16",
+  "dependencies": [],
+  "evidence": [],
+  "domains": [
+    "session-coordination"
+  ],
+  "unknowns": [
+    "Delivery is at least once, shown once: consumer groups and retries can put a message in the stream twice; nothing makes the requested work happen once.",
+    "Sessions of one owner share one Redis login, so they are not separate secure identities; a sender can delete its own sent copies.",
+    "The hook's taint guard is advisory: it sees only Bash and a list of command patterns."
+  ],
+  "sources": [
+    {
+      "path": ".claude/skills/cfn-mailbox/mailbox.sh",
+      "line": 261,
+      "claim": "receiver_keys builds a contact owner's inbox key only for an address listed in MAILBOX_PUBLIC; otherwise only the owner's own from:<owner> key",
+      "sha256": "157dd4dd40089214b4821075587279990d53433b9cf1961a3fb750ce893ac2a2"
+    },
+    {
+      "path": ".claude/skills/cfn-mailbox/mailbox.sh",
+      "line": 507,
+      "claim": "emit_msgs quarantines mail whose to does not match the key or whose from owner differs from the key's, drops a msg_id already shown, and still returns every id so it is acked or passed",
+      "sha256": "157dd4dd40089214b4821075587279990d53433b9cf1961a3fb750ce893ac2a2"
+    },
+    {
+      "path": ".claude/skills/cfn-mailbox/mailbox-watch.sh",
+      "line": 315,
+      "claim": "job_send_later claims claim:<owner>:<msg_id> NX EX 120, XADDs with the stored msg_id, then ZREMs",
+      "sha256": "87ffc0ded617ca7a40890ec027abaddf289869586f7737ca61a060a5a77db5ef"
+    },
+    {
+      "path": ".claude/skills/cfn-mailbox/mailbox-watch.sh",
+      "line": 368,
+      "claim": "bounce_entry XADDs the bounce with msg_id b-<hash> before setting the done marker and before XACK/XDEL of the original",
+      "sha256": "87ffc0ded617ca7a40890ec027abaddf289869586f7737ca61a060a5a77db5ef"
+    },
+    {
+      "path": ".claude/hooks/cfn-mailbox-hook.sh",
+      "line": 275,
+      "claim": "the outer hook process trims the spool only after printing the inner process's output, by the ids the inner process rendered",
+      "sha256": "1517e3e4c43721b4d3660831e4fb38e5c72c3fe322e289f1a0cb26c00c9f009f"
+    }
+  ]
+}

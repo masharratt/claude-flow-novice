@@ -8,16 +8,20 @@
 #   mailbox-watch.sh install-systemd                Linux: write and enable the user service
 #   mailbox-watch.sh status                         last log lines, systemd state, session states
 #
-# It reuses mailbox.sh (sourced): one implementation of config, redis calls and key building.
+# It reuses mailbox.sh (sourced): one implementation of config, redis calls, key building and the
+# receiver policy (receiver_keys: a contact owner's key only for a MAILBOX_PUBLIC address).
 #
 # Waking: each pass reads the directory, picks this machine's sessions that run in tmux, and does
 # one plain XREAD (no group, no marker moves) over their inbox keys from its own last-notified ids
 # (~/.cache/cfn-mailbox/watch-ids). New ask/reminder mail (and replies of 40+ characters) types
-# "You have mail: run /mail read" into the pane of an idle session, at most once a minute per
+# NUDGE_TEXT (defined once in mailbox.sh) into the pane of an idle session, at most once a minute per
 # session. Idle comes from the hook's state file ~/.cache/cfn-mailbox/state-<session>.
 #
 # Lifecycle (every 60 s, only when `SET lock:<owner>:lifecycle <host> NX EX 60` succeeds):
-# send-later delivery (ZREM first), 24 h session and 7 d project bounces, 7 d session expiry.
+# send-later delivery, 24 h session and 7 d project bounces, 7 d session expiry. Both writers are
+# crash-safe and at least once: send-later claims (`SET claim:<owner>:<msg_id> <host> NX EX 120`),
+# XADDs with the stored msg_id, then ZREMs; a bounce is XADDed (msg_id b-<hash>) before its done
+# marker and before the original is removed. A repeat is dropped by the receiver's msg_id check.
 #
 # Errors: one timestamped line in ~/.cache/cfn-mailbox/watch.log (never a secret), back off
 # 5 s doubling to 60 s, and `run` never exits on a Redis error.
@@ -35,8 +39,7 @@ WATCH_DIR="$(cd "$(dirname "$WATCH_SELF")" && pwd -P)"
 # shellcheck source=mailbox.sh
 . "$WATCH_DIR/mailbox.sh"
 
-# Limits (named constants; one place).
-NUDGE_TEXT="You have mail: run /mail read"
+# Limits (named constants; one place). NUDGE_TEXT and CACHE_DIR come from mailbox.sh.
 NUDGE_COOLDOWN=60          # seconds between nudges to one session
 REPLY_WAKE_MIN=40          # a reply shorter than this never wakes anyone ("got it", "thanks")
 LIFECYCLE_EVERY=60
@@ -45,6 +48,7 @@ SESSION_BOUNCE_AGE=86400   # 24 h
 PROJECT_BOUNCE_AGE=604800  # 7 d
 EXPIRE_AGE=604800          # 7 d
 DONE_TTL=604800
+CLAIM_TTL=120              # a send-later claim; a watcher that died holding one is retried after this
 DUE_BATCH=50
 PAGE=100
 PAGES_MAX=10
@@ -53,7 +57,6 @@ BACKOFF_MAX=60
 RUN_BLOCK_MS=5000
 UNIT_NAME=cfn-mailbox-watch.service
 
-CACHE_DIR="$HOME/.cache/cfn-mailbox"
 WLOG="$CACHE_DIR/watch.log"
 IDS_FILE="$CACHE_DIR/watch-ids"
 WORK="$CACHE_DIR/w.$$"
@@ -61,7 +64,7 @@ HOST="$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo unknown)"
 BLOCK_MS="${MAILBOX_WATCH_BLOCK_MS:-}"
 
 wlog() { # one line, redacted
-  mkdir -p "$CACHE_DIR" 2>/dev/null || return 0
+  ensure_cache_dir || return 0
   printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(redact "$1")" >> "$WLOG" 2>/dev/null || true
 }
 
@@ -70,7 +73,7 @@ wlog() { # one line, redacted
 guard() {
   local label="$1" rc=0 errf="$WORK.err.$$.$RANDOM"
   shift
-  mkdir -p "$CACHE_DIR" 2>/dev/null || true
+  ensure_cache_dir || true
   set +e
   ( set -e; "$@" ) 2>"$errf"
   rc=$?
@@ -181,7 +184,7 @@ MSGSF="$WORK.msgs"
 
 nudge_pass() {
   load_dir
-  local now cutoff row name project seen host rooms tmux so room
+  local now cutoff row name project seen host rooms tmux room key
   now="$(now_s)"; cutoff=$((now - WHO_WINDOW))
   : > "$SESSF"; : > "$MAPF"
   while IFS= read -r row; do
@@ -190,16 +193,16 @@ nudge_pass() {
     [ "$host" = "$HOST" ] && [[ "$seen" =~ ^[0-9]+$ ]] && [ "$seen" -ge "$cutoff" ] && [ -n "$tmux" ] || continue
     printf '%s\n' "$row" >> "$SESSF"
     name="$(row_field "$row" $R_NAME)"; project="$(row_field "$row" $R_PROJECT)"; rooms="$(row_field "$row" $R_ROOMS)"
-    while IFS= read -r so; do
-      printf '%s|s|%s\n' "$(inbox_key "$MAILBOX_OWNER" s "$name" "$so")" "$name" >> "$MAPF"
-      if [ -n "$project" ] && valid_name "$project"; then
-        printf '%s|p|%s\n' "$(inbox_key "$MAILBOX_OWNER" p "$project" "$so")" "$project" >> "$MAPF"
-      fi
-      for room in ${rooms//,/ }; do
-        valid_name "$room" || continue
-        printf '%s|r|%s\n' "$(inbox_key "$MAILBOX_OWNER" r "$room" "$so")" "$name" >> "$MAPF"
-      done
-    done < <(sender_owners)
+    # receiver_keys: an outside owner's key only for a public address, so mail injected into a
+    # private address never wakes anyone.
+    while IFS= read -r key; do [ -z "$key" ] || printf '%s|s|%s\n' "$key" "$name" >> "$MAPF"; done < <(receiver_keys s "$name")
+    if [ -n "$project" ] && valid_name "$project"; then
+      while IFS= read -r key; do [ -z "$key" ] || printf '%s|p|%s\n' "$key" "$project" >> "$MAPF"; done < <(receiver_keys p "$project")
+    fi
+    for room in ${rooms//,/ }; do
+      valid_name "$room" || continue
+      while IFS= read -r key; do [ -z "$key" ] || printf '%s|r|%s\n' "$key" "$name" >> "$MAPF"; done < <(receiver_keys r "$room")
+    done
   done < "$DIRF"
   cut -d'|' -f1 "$MAPF" | sort -u > "$KEYSF"
   # forget keys nobody here watches any more
@@ -209,7 +212,7 @@ nudge_pass() {
   [ -s "$KEYSF" ] || return 0
 
   # Start each new key at its newest entry, so mail that lands later is never skipped.
-  local key id last
+  local id last
   local -a keys=() ids=()
   while IFS= read -r key; do
     id="$(ids_get "$key")"
@@ -268,9 +271,18 @@ life_lock() {
 
 # ----- send-later
 
-# deliver_due MEMBER: the member was already removed (ZREM won); write it into its inbox.
+# due_msg_id MEMBER: the msg_id stored at `send --at` time; a member queued before msg_ids existed
+# gets a stable one derived from the member itself, so every retry still carries the same id.
+due_msg_id() {
+  local mid
+  mid="$(printf '%s' "$1" | jq -r '.fields.msg_id // empty' 2>/dev/null || true)"
+  [[ "$mid" =~ $MSG_ID_RE ]] || mid="l-$(key_hash "$1")"
+  printf '%s' "$mid"
+}
+
+# deliver_due MEMBER MSG_ID: write a claimed member into its inbox (the caller removes it after).
 deliver_due() {
-  local m="$1" key f now bytes rec
+  local m="$1" mid="$2" key f now bytes rec
   local -a fa=()
   now="$(now_s)"
   key="$(printf '%s' "$m" | jq -r '.key // empty')" || return 1
@@ -279,8 +291,8 @@ deliver_due() {
     wlog "dropped a send-later entry with an unusable target key"
     return 0
   fi
-  while IFS= read -r -d '' f; do fa+=("$f"); done < <(printf '%s' "$m" | jq -j --arg now "$now" '
-    (.fields // {}) + {deliver_at: $now} | to_entries[] | .key, "\u0000", (.value | tostring), "\u0000"')
+  while IFS= read -r -d '' f; do fa+=("$f"); done < <(printf '%s' "$m" | jq -j --arg now "$now" --arg mid "$mid" '
+    (.fields // {}) + {deliver_at: $now, msg_id: $mid} | to_entries[] | .key, "\u0000", (.value | tostring), "\u0000"')
   [ "${#fa[@]}" -ge 2 ] || { wlog "dropped an empty send-later entry"; return 0; }
   if [[ "$key" == mbx:*:me:from:* ]]; then
     rcmd XADD "$key" '*' "${fa[@]}"
@@ -290,29 +302,33 @@ deliver_due() {
   local id="$RC_OUT"
   rcmd EXPIRE "$key" "$EXPIRE_SECS"
   # Delivered already: a failed log write must not look like a failed delivery.
-  rec="$(printf '%s' "$m" | jq -c --arg id "$id" --argjson at "$now" '
-    .fields as $f | {id:$id, from:$f.from, to:$f.to, kind:$f.kind, thread:$f.thread,
+  rec="$(printf '%s' "$m" | jq -c --arg id "$id" --argjson at "$now" --arg mid "$mid" '
+    .fields as $f | {id:$id, msg_id:$mid, from:$f.from, to:$f.to, kind:$f.kind, thread:$f.thread,
                      hops:(($f.hops // "0") | tonumber? // 0), bytes:(.bytes // 0), at:$at}' 2>/dev/null || true)"
   if [ -n "$rec" ]; then ( rcmd XADD "log:$MAILBOX_OWNER" MAXLEN '~' "$LOG_MAXLEN" '*' rec "$rec" ) 2>/dev/null || true; fi
   return 0
 }
 
+# Claim, deliver, then remove. Crash after the claim: the claim expires and a later pass delivers.
+# Crash after the XADD: a later pass XADDs again with the same msg_id and the receiver shows it once.
+# A second watcher fails the claim and leaves the member alone.
 job_send_later() {
-  local now m members failed=0
+  local now m members failed=0 mid
   now="$(now_s)"
   rcmdj ZRANGEBYSCORE "due:$MAILBOX_OWNER" -inf "$now" LIMIT 0 "$DUE_BATCH"
   members="$(printf '%s' "$RC_OUT" | jq -r 'if type == "array" then .[] else empty end')" || die 18 "unreadable due list"
   while IFS= read -r m; do
     [ -n "$m" ] || continue
-    rcmd ZREM "due:$MAILBOX_OWNER" "$m"
-    [ "$RC_OUT" = 1 ] || continue            # another watcher took it: it delivers, we do not
-    if ! guard "send-later delivery" deliver_due "$m"; then
-      # Put it back so the next pass retries; losing a reminder silently is the worse outcome.
-      guard "send-later restore" rcmd ZADD "due:$MAILBOX_OWNER" "$now" "$m" || true
-      failed=1
+    mid="$(due_msg_id "$m")"
+    rcmd SET "claim:$MAILBOX_OWNER:$mid" "$HOST" NX EX "$CLAIM_TTL"
+    [ "$RC_OUT" = OK ] || continue           # claimed elsewhere (or by a watcher that died: retried after expiry)
+    if guard "send-later delivery" deliver_due "$m" "$mid"; then
+      guard "send-later remove" rcmd ZREM "due:$MAILBOX_OWNER" "$m" || failed=1
+    else
+      failed=1                               # still queued; retried once the claim expires
     fi
   done <<<"$members"
-  [ "$failed" = 0 ] || die 18 "a send-later delivery failed and was put back"
+  [ "$failed" = 0 ] || die 18 "a send-later delivery did not finish; it stays queued and is retried"
 }
 
 # ----- bounce
@@ -346,18 +362,22 @@ bounce_target() {
 BT_OWNER=""
 
 # bounce_entry KEY ENTRY_JSON [GROUP]: return one unread message to its sender, safe to repeat.
+# Order: XADD the bounce (stable msg_id), then the done marker, then XACK/XDEL the original. A
+# failure before the marker leaves no marker, so a later pass retries; a repeated XADD carries the
+# same msg_id and the receiver shows it once; a set marker means only the removal is left to do.
 bounce_entry() {
-  local key="$1" e="$2" group="${3:-}" id kind from to body ms utc tkey now
+  local key="$1" e="$2" group="${3:-}" id kind from to body ms utc tkey now dkey done_v
   id="$(printf '%s' "$e" | jq -r '.id')"
   kind="$(printf '%s' "$e" | jq -r '.kind // "fyi"')"
   [ "$kind" != bounce ] || return 0          # bounces never bounce
   from="$(printf '%s' "$e" | jq -r '.from // ""')"
   to="$(printf '%s' "$e" | jq -r '.to // ""')"
   body="$(printf '%s' "$e" | jq -r '(.body // "") | .[0:200] | gsub("[\\r\\n\\t]"; " ")')"
-  # Marker first: only the job that sets it bounces. The id alone can repeat across streams,
-  # so the key hash is part of the marker name.
-  rcmd SET "done:$MAILBOX_OWNER:$id:$(key_hash "$key")" 1 NX EX "$DONE_TTL"
-  [ "$RC_OUT" = OK ] || return 0
+  # The id alone can repeat across streams, so the key hash is part of the marker name.
+  dkey="done:$MAILBOX_OWNER:$id:$(key_hash "$key")"
+  rcmd GET "$dkey"
+  done_v="$(printf '%s' "$RC_OUT" | tr -d '\r\n ')"
+  case "$done_v" in ''|'(nil)') ;; *) bounce_remove "$key" "$id" "$group"; return 0 ;; esac
   bounce_target "$from"
   ms="${id%%-*}"
   utc="$(fmt_epoch $((ms / 1000)) '%Y-%m-%dT%H:%MZ' utc)"
@@ -368,13 +388,18 @@ bounce_entry() {
   [ "$TARGET_KIND" = me ] || taddr="$BT_OWNER/s/$TARGET_NAME"
   local -a f=(from "$MAILBOX_OWNER/me" to "$taddr" kind bounce
     body "undelivered: $to has not read this since $utc: $body" sent_at "$now"
-    thread "$(printf '%s' "$e" | jq -r '.thread // "-"')" hops "$(printf '%s' "$e" | jq -r '.hops // "0"')" reply_to "$id")
-  # cfn: if this XADD fails the done marker already blocks a retry for 7 days; the message stays unread until then
+    thread "$(printf '%s' "$e" | jq -r '.thread // "-"')" hops "$(printf '%s' "$e" | jq -r '.hops // "0"')" reply_to "$id"
+    msg_id "b-$(key_hash "$key|$id")")
   if [ "$TARGET_KIND" = me ]; then rcmd XADD "$tkey" '*' "${f[@]}"
   else rcmd XADD "$tkey" MAXLEN '~' "$INBOX_MAXLEN" '*' "${f[@]}"; fi
   rcmd EXPIRE "$tkey" "$EXPIRE_SECS"
-  if [ -n "$group" ]; then rcmd XACK "$key" "$group" "$id"; fi
-  rcmd XDEL "$key" "$id"
+  rcmd SET "$dkey" 1 EX "$DONE_TTL"
+  bounce_remove "$key" "$id" "$group"
+}
+
+bounce_remove() { # KEY ID [GROUP]: the bounce is written; take the original out of the inbox
+  if [ -n "${3:-}" ]; then rcmd XACK "$1" "$3" "$2"; fi
+  rcmd XDEL "$1" "$2"
 }
 
 # bounce_range KEY START MAXAGE [GROUP]: bounce entries after START (exclusive id) that are older
@@ -400,10 +425,7 @@ bounce_range() {
   done
 }
 
-session_keys() { # NAME -> one key per sender owner
-  local so
-  while IFS= read -r so; do inbox_key "$MAILBOX_OWNER" s "$1" "$so"; printf '\n'; done < <(sender_owners)
-}
+session_keys() { receiver_keys s "$1"; }   # NAME -> the session's inbox keys under the receiver policy
 
 # bounce_session NAME AGE: unread mail in a session's inboxes (after its reader marker) older than AGE.
 bounce_session() {
@@ -449,12 +471,12 @@ bounce_project() {
 
 job_bounce_projects() {
   load_dir
-  local p so
+  local p key
   while IFS= read -r p; do
     [ -n "$p" ] && valid_name "$p" || continue
-    while IFS= read -r so; do
-      guard "project bounce $p" bounce_project "$(inbox_key "$MAILBOX_OWNER" p "$p" "$so")" || true
-    done < <(sender_owners)
+    while IFS= read -r key; do
+      [ -z "$key" ] || guard "project bounce $p" bounce_project "$key" || true
+    done < <(receiver_keys p "$p")
   done < <(cut -d'|' -f2 "$DIRF" | sort -u)
 }
 
@@ -470,11 +492,13 @@ job_expire() {
     [[ "$seen" =~ ^[0-9]+$ ]] && [ "$seen" -gt 0 ] && [ $((now - seen)) -ge "$EXPIRE_AGE" ] || continue
     # Unread mail goes back to its senders first; a failure here (die) stops before any DEL.
     bounce_session "$name" 0
+    # Cleanup deletes every sender owner's copy (nothing is read), so mail injected into a private
+    # address goes too; only the bounce scan above follows the receiver policy.
     keys=(); markers=()
-    while IFS= read -r key; do
-      [ -n "$key" ] || continue
+    while IFS= read -r so; do
+      key="$(inbox_key "$MAILBOX_OWNER" s "$name" "$so")"
       keys+=("$key"); markers+=("$(marker_key "$name" "$key")")
-    done < <(session_keys "$name")
+    done < <(sender_owners)
     for room in ${rooms//,/ }; do
       valid_name "$room" || continue
       while IFS= read -r so; do markers+=("$(marker_key "$name" "$(inbox_key "$MAILBOX_OWNER" r "$room" "$so")")"); done < <(sender_owners)
@@ -579,7 +603,7 @@ cmd_status() {
 main() {
   local sub="${1:-}"
   [ $# -gt 0 ] && shift
-  mkdir -p "$CACHE_DIR" 2>/dev/null || true
+  ensure_cache_dir || true
   trap 'rm -f "$WORK".* "$IDS_FILE.$$"' EXIT
   case "$sub" in
     run|once) load_config; "cmd_$sub" "$@" ;;

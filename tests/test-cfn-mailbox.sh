@@ -27,6 +27,7 @@ CASE_NAME=""
 . "$REPO/.claude/cfn-scripts/lib/safe-rm.sh"
 # shellcheck source=/dev/null
 . "$REPO/tests/lib/fake-redis-cli.sh"
+REAL_HOME="$HOME"   # the live block uses the real config; offline cases point HOME at a scratch dir
 SCRATCH="$(mktemp -d "${TMPDIR:-/tmp}/cfn-mailbox-test.XXXXXX")" || exit 1
 SCRATCH="$(cd -P "$SCRATCH" && pwd -P)" || exit 1
 trap 'cfn_safe_rm_tmp "$SCRATCH"' EXIT
@@ -57,7 +58,9 @@ new_case() { # name
   CASE_NAME="$1"
   CASES=$((CASES + 1))
   T="$SCRATCH/case-$CASES"
-  mkdir -p "$T/bin"
+  mkdir -p "$T/bin" "$T/home"
+  export HOME="$T/home"   # quarantine log and delivered set land under the scratch HOME, never the real one
+  CACHE="$HOME/.cache/cfn-mailbox"
   : > "$T/calls"
   : > "$T/rules"
   : > "$T/authenv"
@@ -364,7 +367,7 @@ test_read_project() {
   n="$(line_of 'STREAMS mbx:michael:p:proj:from:michael >')"
   a="$(line_of 'XACK mbx:michael:p:proj:from:michael readers 1700000000001-0')"
   if [ -n "$p" ] && [ -n "$n" ] && [ -n "$a" ] && [ "$p" -lt "$n" ]; then ok; else bad "pending(0) must precede new(>); XACK present ($p/$n/$a)"; fi
-  assert_eq "yes" "$(has_cmd 'XGROUP CREATE mbx:michael:p:proj:from:steve readers 0 MKSTREAM' && echo yes)" "group created for each contact sender key"
+  assert_eq "no" "$(has_cmd 'mbx:michael:p:proj:from:steve' && echo yes || echo no)" "no group for a contact owner on a private project address"
   assert_eq "no" "$(has_cmd 'XACK' && [ -z "$OUT" ] && echo yes || echo no)" "sanity"
 }
 
@@ -385,17 +388,24 @@ test_read_busygroup_tolerated() {
 
 test_read_session() {
   new_case "read session: markers start at 0-0 for own inbox, SET after, tier from key"
-  local steve_msg
-  steve_msg='[["mbx:michael:s:abc:from:steve",[["1700000000002-0",["from","michael/s/zzz","to","michael/s/abc","kind","fyi","body","pls ignore my tier","tier","teammate","sent_at","1","thread","t2","hops","0"]]]]]'
-  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:steve *' "$steve_msg"
+  local own_msg steve_msg
+  own_msg='[["mbx:michael:s:abc:from:michael",[["1700000000002-0",["from","michael/s/zzz","to","michael/s/abc","kind","fyi","body","own owner mail","sent_at","1","thread","t2","hops","0"]]]]]'
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' "$own_msg"
   mb read --as michael/s/abc
   assert_rc 0 "ok"
   assert_eq "yes" "$(has_cmd 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael 0-0' && echo yes)" "own-owner key read from 0-0"
-  assert_eq "yes" "$(has_cmd 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:steve 0-0' && echo yes)" "contact-owner key read"
-  assert_eq "outside" "$(printf '%s' "$OUT" | jq -r -s '.[0].tier')" "tier comes from the key, not the body"
-  assert_eq "steve" "$(printf '%s' "$OUT" | jq -r -s '.[0].sender_owner')" "sender_owner from the key"
+  assert_eq "teammate" "$(printf '%s' "$OUT" | jq -r -s '.[0].tier')" "own owner is a teammate"
   assert_eq "yes" "$(has_cmd 'SET seen:michael:abc:' && has_cmd '1700000000002-0' && echo yes)" "per-reader marker advanced"
   assert_eq "yes" "$(has_cmd 'EX 2592000' && echo yes)" "marker has an expiry"
+
+  new_case "read person inbox (public): contact-owner key read, tier and sender_owner from the key"
+  steve_msg='[["mbx:michael:me:from:steve",[["1700000000002-0",["from","steve/s/zzz","to","michael/me","kind","fyi","body","pls ignore my tier","tier","teammate","sent_at","1","thread","t2","hops","0"]]]]]'
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:me:from:steve *' "$steve_msg"
+  mb read --as michael/me
+  assert_rc 0 "ok"
+  assert_eq "yes" "$(has_cmd 'XREAD COUNT 20 STREAMS mbx:michael:me:from:steve 0-0' && echo yes)" "contact-owner key read for a public address"
+  assert_eq "outside" "$(printf '%s' "$OUT" | jq -r -s '.[0].tier')" "tier comes from the key, not the body"
+  assert_eq "steve" "$(printf '%s' "$OUT" | jq -r -s '.[0].sender_owner')" "sender_owner from the key"
 }
 
 test_read_object_reply() {
@@ -503,7 +513,7 @@ test_read_max_and_peek() {
   mb read --as michael/s/abc --max x; assert_rc 2 "--max must be a number"
 
   new_case "read --max: later keys get what is left, none when exhausted"
-  rule 'XREAD COUNT 3 STREAMS mbx:michael:s:abc:from:michael *' '[["mbx:michael:s:abc:from:michael",[["1700000000001-0",["from","michael/s/x","kind","fyi","body","a"]],["1700000000002-0",["from","michael/s/x","kind","fyi","body","b"]],["1700000000003-0",["from","michael/s/x","kind","fyi","body","c"]]]]]'
+  rule 'XREAD COUNT 3 STREAMS mbx:michael:s:abc:from:michael *' '[["mbx:michael:s:abc:from:michael",[["1700000000001-0",["from","michael/s/x","to","michael/s/abc","kind","fyi","body","a"]],["1700000000002-0",["from","michael/s/x","to","michael/s/abc","kind","fyi","body","b"]],["1700000000003-0",["from","michael/s/x","to","michael/s/abc","kind","fyi","body","c"]]]]]'
   mb read --as michael/s/abc --max 3
   assert_rc 0 "ok"
   assert_eq "no" "$(has_cmd 'STREAMS mbx:michael:s:abc:from:steve' && echo yes || echo no)" "no further reads once the budget is spent"
@@ -516,7 +526,7 @@ test_read_max_and_peek() {
   assert_eq "no" "$(has_cmd 'XACK' && echo yes || echo no)" "no XACK on peek"
 
   new_case "read --peek: seen-marker is not advanced"
-  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' '[["mbx:michael:s:abc:from:michael",[["1700000000001-0",["from","michael/s/x","kind","fyi","body","a"]]]]]'
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' '[["mbx:michael:s:abc:from:michael",[["1700000000001-0",["from","michael/s/x","to","michael/s/abc","kind","fyi","body","a"]]]]]'
   mb read --as michael/s/abc --peek
   assert_contains "$OUT" '"body":"a"' "message printed"
   assert_eq "no" "$(has_cmd 'SET seen:' && echo yes || echo no)" "no marker SET on peek"
@@ -605,7 +615,7 @@ test_adduser() {
   rule_line="$(grep '^STDIN	' "$T/calls" | head -1 | cut -f2-)"
   local pat
   for pat in '~mbx:steve:*' '~mbx:*:from:steve' '~dir:steve' '~seen:steve:*' '~due:steve' '~log:steve' \
-             '~lock:steve:*' '~rate:steve:*' '~done:steve:*'; do
+             '~lock:steve:*' '~rate:steve:*' '~done:steve:*' '~claim:steve:*'; do
     assert_contains " $rule_line " " $pat " "ACL has key pattern $pat"
   done
   for pat in +ping +xadd +xread +xreadgroup +xack +xautoclaim +xclaim +xpending +xinfo +xgroup +xrange \
@@ -648,9 +658,190 @@ test_adduser() {
   assert_not_contains "$OUT$ERR" "$TOKEN" "token redacted"
 }
 
+# ---------------------------------------------------------------- stage 4b hardening
+
+fmode() { stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1" 2>/dev/null; }   # GNU, then BSD
+qlog() { cat "$CACHE/quarantine.log" 2>/dev/null; }
+set_public() { # VALUE: rewrite MAILBOX_PUBLIC in the case config
+  grep -v '^MAILBOX_PUBLIC=' "$T/env" > "$T/env.new"; printf 'MAILBOX_PUBLIC="%s"\n' "$1" >> "$T/env.new"
+  mv "$T/env.new" "$T/env"; chmod 600 "$T/env"
+}
+# m1 KEY ID FROM TO BODY [MSG_ID]: one-message XREAD/XREADGROUP reply
+m1() {
+  jq -n -c --arg k "$1" --arg id "$2" --arg from "$3" --arg to "$4" --arg body "$5" --arg mid "${6:-}" \
+    '[[$k, [[$id, (["from",$from,"to",$to,"kind","ask","body",$body,"sent_at","1","thread","t","hops","0"] + (if $mid != "" then ["msg_id",$mid] else [] end))]]]]'
+}
+
+test_receiver_policy() {
+  # Stage 4b item 1 (Operations review 2026-10-16): MAILBOX_PUBLIC was loaded but never enforced on
+  # read, so an outside owner writing straight into Redis could reach a private session address.
+  new_case "receiver policy: injected outside-owner mail on a private session address is never read"
+  rule 'XREAD COUNT * STREAMS mbx:michael:s:abc:from:steve *' "$(m1 mbx:michael:s:abc:from:steve 1700000000002-0 steve/s/x michael/s/abc 'INJECTED private mail')"
+  mb read --as michael/s/abc
+  assert_rc 0 "read ok"
+  assert_not_contains "$OUT" "INJECTED" "injected mail not shown"
+  assert_eq "no" "$(has_cmd 'mbx:michael:s:abc:from:steve' && echo yes || echo no)" "outside-owner key for a private session is never built"
+  assert_eq "yes" "$(has_cmd 'STREAMS mbx:michael:s:abc:from:michael 0-0' && echo yes)" "own-owner key still read"
+
+  new_case "receiver policy: private project and room addresses build only own-owner keys"
+  mb read --as michael/p/proj
+  assert_eq "no" "$(has_cmd 'from:steve' && echo yes || echo no)" "no outside key for a private project"
+  RC=0
+  OUT="$(PATH="$T/bin:$PATH" MAILBOX_CONFIG="$T/env" MAILBOX_SESSION="abc" bash "$MB" join lounge 2>"$T/stderr" </dev/null)" || RC=$?
+  assert_rc 0 "join ok"
+  assert_eq "no" "$(has_cmd 'mbx:michael:r:lounge:from:steve' && echo yes || echo no)" "no outside key for a private room"
+  assert_eq "yes" "$(has_cmd 'XREVRANGE mbx:michael:r:lounge:from:michael' && echo yes)" "own room key still set up"
+
+  new_case "receiver policy: addresses listed in MAILBOX_PUBLIC take outside mail"
+  set_public "me p/liaison r/town"
+  mb read --as michael/p/liaison
+  assert_eq "yes" "$(has_cmd 'XGROUP CREATE mbx:michael:p:liaison:from:steve readers 0 MKSTREAM' && echo yes)" "public project address reads the contact owner"
+  mb read --as michael/me
+  assert_eq "yes" "$(has_cmd 'STREAMS mbx:michael:me:from:steve 0-0' && echo yes)" "person inbox public"
+  RC=0
+  OUT="$(PATH="$T/bin:$PATH" MAILBOX_CONFIG="$T/env" MAILBOX_SESSION="abc" bash "$MB" join town 2>"$T/stderr" </dev/null)" || RC=$?
+  assert_eq "yes" "$(has_cmd 'XREVRANGE mbx:michael:r:town:from:steve' && echo yes)" "public room reads the contact owner"
+
+  new_case "receiver policy: an owner-qualified public entry works; a malformed one stops with 78"
+  set_public "michael/p/liaison"
+  mb read --as michael/p/liaison
+  assert_eq "yes" "$(has_cmd 'mbx:michael:p:liaison:from:steve' && echo yes)" "michael/p/liaison accepted"
+  mb read --as michael/me
+  assert_eq "no" "$(has_cmd 'mbx:michael:me:from:steve' && echo yes || echo no)" "person inbox private when not listed"
+  set_public "p/Bad_Name"
+  mb read; assert_rc 78 "bad MAILBOX_PUBLIC entry"
+  set_public "steve/me"
+  mb read; assert_rc 78 "another owner's address cannot be public for me"
+}
+
+test_quarantine() {
+  # Stage 4b item 2: a message whose to/from disagree with the key it sits in is forged or misrouted.
+  new_case "quarantine: to does not match the key's address -> not shown, consumed, logged without body"
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' "$(m1 mbx:michael:s:abc:from:michael 1700000000004-0 michael/s/x michael/s/other 'SECRET forged body' mid-q1)"
+  mb read --as michael/s/abc
+  assert_rc 0 "read ok"
+  assert_not_contains "$OUT" "forged body" "not shown"
+  assert_eq "yes" "$(has_cmd 'SET seen:michael:abc:' && has_cmd '1700000000004-0' && echo yes)" "marker moved past it (consumed)"
+  assert_contains "$(qlog)" "mbx:michael:s:abc:from:michael" "log names the key"
+  assert_contains "$(qlog)" "1700000000004-0" "log names the stream id"
+  assert_contains "$(qlog)" "mid-q1" "log names the msg_id"
+  assert_contains "$(qlog)" "to-mismatch" "log gives the reason"
+  assert_not_contains "$(qlog)" "SECRET" "never the body"
+
+  new_case "quarantine: from owner differs from the key's from:<owner>"
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:me:from:steve *' "$(m1 mbx:michael:me:from:steve 1700000000005-0 michael/s/boss michael/me 'pretending to be michael')"
+  mb read --as michael/me
+  assert_not_contains "$OUT" "pretending" "not shown"
+  assert_contains "$(qlog)" "from-owner-mismatch" "reason"
+
+  new_case "quarantine: missing to field is quarantined; valid mail in the same reply is shown"
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' '[["mbx:michael:s:abc:from:michael",[["1700000000006-0",["from","michael/s/x","kind","ask","body","no to field"]],["1700000000007-0",["from","michael/s/x","to","michael/s/abc","kind","ask","body","good one"]]]]]'
+  mb read --as michael/s/abc
+  assert_not_contains "$OUT" "no to field" "missing to hidden"
+  assert_contains "$OUT" "good one" "valid mail shown"
+  assert_eq "1" "$(printf '%s\n' "$OUT" | grep -c '^{')" "one line out"
+
+  new_case "quarantine: group mail is acknowledged so it never comes back"
+  rule 'XREADGROUP GROUP readers * STREAMS mbx:michael:p:proj:from:michael 0' "$(m1 mbx:michael:p:proj:from:michael 1700000000008-0 michael/s/x michael/p/elsewhere 'misrouted')"
+  mb read --as michael/p/proj
+  assert_not_contains "$OUT" "misrouted" "not shown"
+  assert_eq "yes" "$(has_cmd 'XACK mbx:michael:p:proj:from:michael readers 1700000000008-0' && echo yes)" "acked"
+
+  new_case "quarantine: a peek hides it but logs and consumes nothing"
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' "$(m1 mbx:michael:s:abc:from:michael 1700000000004-0 michael/s/x michael/s/other 'forged')"
+  mb read --as michael/s/abc --peek
+  assert_not_contains "$OUT" "forged" "hidden on peek"
+  assert_eq "" "$(qlog)" "nothing logged on peek"
+  assert_eq "no" "$(has_cmd 'SET seen:' && echo yes || echo no)" "no marker on peek"
+
+  new_case "quarantine: doctor reports the count"
+  mkdir -p "$CACHE"; printf 'a\nb\n' > "$CACHE/quarantine.log"
+  mb doctor
+  assert_contains "$OUT" "quarantine: 2" "count shown"
+}
+
+test_msg_id_dedupe() {
+  # Stage 4b item 3: retries (send-later re-XADD, bounce repeat) reach the stream twice with one msg_id.
+  new_case "msg_id: send stamps a random 16-hex msg_id, different per send"
+  mb send michael/s/abc "one"; mb send michael/s/abc "two"
+  local ids
+  ids="$(cmds | grep -F 'XADD mbx:michael:s:abc' | grep -o -E 'msg_id [0-9a-f]+' | awk '{print $2}')"
+  assert_eq "2" "$(printf '%s\n' "$ids" | grep -c -E '^[0-9a-f]{16}$')" "two 16-hex ids"
+  assert_eq "2" "$(printf '%s\n' "$ids" | sort -u | grep -c .)" "ids differ"
+  assert_contains "$(cmds | grep -F 'XADD log:michael' | head -1)" '"msg_id":"' "log record carries msg_id"
+
+  new_case "msg_id: two stream entries with one msg_id are shown once; both consumed"
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' '[["mbx:michael:s:abc:from:michael",[["1700000000010-0",["from","michael/s/x","to","michael/s/abc","kind","ask","body","twice","msg_id","dup-1"]],["1700000000011-0",["from","michael/s/x","to","michael/s/abc","kind","ask","body","twice","msg_id","dup-1"]]]]]'
+  mb read --as michael/s/abc
+  assert_eq "1" "$(printf '%s\n' "$OUT" | grep -c '"msg_id":"dup-1"')" "shown once"
+  assert_eq "yes" "$(has_cmd 'SET seen:michael:abc:' && has_cmd '1700000000011-0' && echo yes)" "marker past both"
+  assert_contains "$(cat "$CACHE/delivered-abc" 2>/dev/null)" "dup-1" "delivered set recorded under the reader"
+
+  new_case "msg_id: a copy delivered in an earlier read is dropped; mail without msg_id passes"
+  mkdir -p "$CACHE"; printf 'seen-1 %s\n' "$(date +%s)" > "$CACHE/delivered-abc"
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' '[["mbx:michael:s:abc:from:michael",[["1700000000012-0",["from","michael/s/x","to","michael/s/abc","kind","ask","body","again","msg_id","seen-1"]],["1700000000013-0",["from","michael/s/x","to","michael/s/abc","kind","ask","body","legacy no id"]]]]]'
+  mb read --as michael/s/abc
+  assert_not_contains "$OUT" '"again"' "repeat dropped"
+  assert_contains "$OUT" "legacy no id" "no msg_id passes through"
+  assert_eq "yes" "$(has_cmd '1700000000013-0' && echo yes)" "marker still advanced"
+
+  new_case "msg_id: entries older than 7 days are pruned from the delivered set"
+  local old_ts; old_ts=$(( $(date +%s) - 8 * 86400 ))
+  mkdir -p "$CACHE"; printf 'old-1 %s\nnew-1 %s\n' "$old_ts" "$(date +%s)" > "$CACHE/delivered-abc"
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' "$(m1 mbx:michael:s:abc:from:michael 1700000000014-0 michael/s/x michael/s/abc 'old id again' old-1)"
+  mb read --as michael/s/abc
+  assert_contains "$OUT" "old id again" "a pruned id is no longer suppressed"
+  assert_not_contains "$(cat "$CACHE/delivered-abc")" "old-1 $old_ts" "8 d entry pruned"
+  assert_contains "$(cat "$CACHE/delivered-abc")" "new-1" "fresh entry kept"
+
+  new_case "msg_id: a duplicate in a group is still acknowledged"
+  mkdir -p "$CACHE"; printf 'gdup %s\n' "$(date +%s)" > "$CACHE/delivered-proj"
+  rule 'XREADGROUP GROUP readers * STREAMS mbx:michael:p:proj:from:michael 0' "$(m1 mbx:michael:p:proj:from:michael 1700000000015-0 michael/s/x michael/p/proj 'group dup' gdup)"
+  mb read --as michael/p/proj
+  assert_not_contains "$OUT" "group dup" "dropped"
+  assert_eq "yes" "$(has_cmd 'XACK mbx:michael:p:proj:from:michael readers 1700000000015-0' && echo yes)" "acked"
+
+  new_case "msg_id: peek drops known repeats but records nothing"
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' "$(m1 mbx:michael:s:abc:from:michael 1700000000016-0 michael/s/x michael/s/abc 'peeked' pk-1)"
+  mb read --as michael/s/abc --peek
+  assert_contains "$OUT" "peeked" "shown on peek"
+  assert_eq "no" "$(grep -q pk-1 "$CACHE/delivered-abc" 2>/dev/null && echo yes || echo no)" "not recorded on peek"
+
+  new_case "msg_id: MAILBOX_SESSION names the delivered set (one per session across its addresses)"
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:me:from:michael *' "$(m1 mbx:michael:me:from:michael 1700000000017-0 michael/s/x michael/me 'to the person' pm-1)"
+  RC=0
+  OUT="$(PATH="$T/bin:$PATH" MAILBOX_CONFIG="$T/env" MAILBOX_SESSION="sess-a" bash "$MB" read --as michael/me 2>"$T/stderr" </dev/null)" || RC=$?
+  assert_contains "$(cat "$CACHE/delivered-sess-a" 2>/dev/null)" "pm-1" "recorded under the session"
+}
+
+test_private_files() {
+  # Stage 4b item 8: mail bodies sit in local files; other local users must not read them.
+  new_case "private files: cache dir 700, quarantine, delivered and spool 600"
+  rule 'XREAD COUNT 20 STREAMS mbx:michael:s:abc:from:michael *' '[["mbx:michael:s:abc:from:michael",[["1700000000020-0",["from","michael/s/x","to","michael/s/abc","kind","ask","body","ok","msg_id","pf-1"]],["1700000000021-0",["from","michael/s/x","to","michael/s/nope","kind","ask","body","bad"]]]]]'
+  mb read --as michael/s/abc --spool "$CACHE/spool-abc"
+  assert_eq "700" "$(fmode "$CACHE")" "cache dir"
+  assert_eq "600" "$(fmode "$CACHE/quarantine.log")" "quarantine.log"
+  assert_eq "600" "$(fmode "$CACHE/delivered-abc")" "delivered set"
+  assert_eq "600" "$(fmode "$CACHE/spool-abc")" "spool"
+
+  new_case "private files: an existing world-readable cache dir is tightened to 700"
+  mkdir -p "$CACHE"; chmod 755 "$CACHE"
+  mb read --as michael/s/abc
+  assert_eq "700" "$(fmode "$CACHE")" "tightened"
+}
+
+test_send_at_msg_id() {
+  new_case "send --at: msg_id stored in the due member"
+  RC=0
+  OUT="$(PATH="$T/bin:$PATH" MAILBOX_CONFIG="$T/env" bash "$MB" send michael/me --at +5m "later" 2>"$T/stderr" </dev/null)" || RC=$?
+  assert_rc 0 "queued"
+  assert_eq "yes" "$(grep '^ARGV' "$T/calls" | grep -F 'ZADD' | head -1 | awk -F'\t' '{print $NF}' | jq -e '.fields.msg_id | test("^[0-9a-f]{16}$")' >/dev/null 2>&1 && echo yes || echo no)" "16-hex msg_id in fields"
+}
+
 # ---------------------------------------------------------------- live block
 
 live_block() {
+  export HOME="$REAL_HOME"
   local cfg="${MAILBOX_CONFIG:-$HOME/.config/cfn-mailbox/env}"
   if [ "${MAILBOX_LIVE:-}" != "1" ]; then echo "SKIP live: MAILBOX_LIVE is not 1"; return 3; fi
   if [ ! -r "$cfg" ]; then echo "SKIP live: no config at $cfg"; return 3; fi
@@ -720,6 +911,11 @@ run_offline() {
   test_heartbeat
   test_doctor
   test_adduser
+  test_receiver_policy
+  test_quarantine
+  test_msg_id_dedupe
+  test_private_files
+  test_send_at_msg_id
 }
 
 LIVE_RC=0

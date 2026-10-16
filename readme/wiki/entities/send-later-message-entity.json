@@ -1,0 +1,60 @@
+{
+  "name": "Send-later message",
+  "capability": "agent-mailbox",
+  "source": ".claude/skills/cfn-mailbox/mailbox-watch.sh:315",
+  "description": "A message queued with send --at waits as a member of due:<owner> carrying its msg_id. The lifecycle pass claims, writes, then removes it, so a watcher dying at any step repeats the write and the receiver shows it once.",
+  "states": [
+    "queued",
+    "claimed",
+    "written",
+    "delivered"
+  ],
+  "meanings": {
+    "queued": "Member in due:<owner>, no live claim.",
+    "claimed": "claim:<owner>:<msg_id> held by one watcher for 120 s.",
+    "written": "XADDed into the target inbox with the stored msg_id; still in due:<owner>.",
+    "delivered": "Removed from due:<owner>."
+  },
+  "transitions": [
+    {
+      "from": "[*]",
+      "to": "queued",
+      "trigger": "mailbox.sh send --at",
+      "guard": "Valid time and address; ZADD due:<owner>"
+    },
+    {
+      "from": "queued",
+      "to": "claimed",
+      "trigger": "Lifecycle pass",
+      "guard": "Due time reached, lifecycle lock held, SET claim NX succeeds"
+    },
+    {
+      "from": "claimed",
+      "to": "queued",
+      "trigger": "Claim expires",
+      "guard": "Watcher died or the XADD failed; 120 s"
+    },
+    {
+      "from": "claimed",
+      "to": "written",
+      "trigger": "XADD with the stored msg_id",
+      "guard": "Target key is this owner's own from:<owner> key"
+    },
+    {
+      "from": "written",
+      "to": "delivered",
+      "trigger": "ZREM due:<owner>",
+      "guard": "ZREM reply received"
+    },
+    {
+      "from": "written",
+      "to": "queued",
+      "trigger": "Claim expires before ZREM",
+      "guard": "Next pass writes again with the same msg_id; the receiver drops the repeat"
+    }
+  ],
+  "id": "send-later-message-entity",
+  "capability_refs": [
+    "agent-mailbox"
+  ]
+}

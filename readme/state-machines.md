@@ -3,11 +3,13 @@
 
 # State Machines
 
-**Last Updated:** 2026-10-15 wiki sync
+**Last Updated:** 2026-10-16 wiki sync
 
 ## Table of Contents
 
 - [1. Acceptance-check result](#1-acceptance-check-result)
+- [2. Send-later message](#2-send-later-message)
+- [3. Bounced message](#3-bounced-message)
 
 ## 1. Acceptance-check result
 
@@ -55,6 +57,92 @@ stateDiagram-v2
   s1 --> s4
   s2 --> s4
   s3 --> s4
+```
+
+## 2. Send-later message
+
+**Source:** .claude/skills/cfn-mailbox/mailbox-watch.sh:315
+
+A message queued with send --at waits as a member of due:<owner> carrying its msg_id. The lifecycle pass claims, writes, then removes it, so a watcher dying at any step repeats the write and the receiver shows it once.
+
+Source changed; review this model before relying on it.
+
+### States
+
+| State | Meaning |
+|---|---|
+| queued | Member in due:<owner>, no live claim. |
+| claimed | claim:<owner>:<msg_id> held by one watcher for 120 s. |
+| written | XADDed into the target inbox with the stored msg_id; still in due:<owner>. |
+| delivered | Removed from due:<owner>. |
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|---|---|---|---|
+| [*] | queued | mailbox.sh send --at | Valid time and address; ZADD due:<owner> |
+| queued | claimed | Lifecycle pass | Due time reached, lifecycle lock held, SET claim NX succeeds |
+| claimed | queued | Claim expires | Watcher died or the XADD failed; 120 s |
+| claimed | written | XADD with the stored msg_id | Target key is this owner's own from:<owner> key |
+| written | delivered | ZREM due:<owner> | ZREM reply received |
+| written | queued | Claim expires before ZREM | Next pass writes again with the same msg_id; the receiver drops the repeat |
+
+### Diagram
+
+```mermaid
+stateDiagram-v2
+  state "queued" as s0
+  state "claimed" as s1
+  state "written" as s2
+  state "delivered" as s3
+  [*] --> s0
+  s0 --> s1
+  s1 --> s0
+  s1 --> s2
+  s2 --> s3
+  s2 --> s0
+```
+
+## 3. Bounced message
+
+**Source:** .claude/skills/cfn-mailbox/mailbox-watch.sh:368
+
+Unread mail past its age (24 h session, 7 d project, or a session expiring) goes back to its sender. The bounce is written before its done marker and before the original is removed, so a failure leaves it unread and a later pass retries.
+
+Source changed; review this model before relying on it.
+
+### States
+
+| State | Meaning |
+|---|---|
+| unread | Original still in the inbox, no done marker. |
+| bounce_written | Bounce XADDed to the sender with msg_id b-<hash>. |
+| marked | done:<owner>:<id>:<hash> set for 7 days. |
+| removed | Original XACKed (project mail) and XDELed. |
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|---|---|---|---|
+| [*] | unread | Mail lands and is not read | Address passes the receiver policy |
+| unread | bounce_written | Lifecycle bounce scan | Older than the bounce age, kind is not bounce, no done marker |
+| bounce_written | unread | Pass fails before the marker | Next pass writes again with the same msg_id; the sender's reader drops the repeat |
+| bounce_written | marked | SET done marker EX 7 d | Bounce XADD succeeded |
+| marked | removed | XACK and XDEL the original | Same pass, or a later pass that finds the marker set |
+
+### Diagram
+
+```mermaid
+stateDiagram-v2
+  state "unread" as s0
+  state "bounce_written" as s1
+  state "marked" as s2
+  state "removed" as s3
+  [*] --> s0
+  s0 --> s1
+  s1 --> s0
+  s1 --> s2
+  s2 --> s3
 ```
 
 

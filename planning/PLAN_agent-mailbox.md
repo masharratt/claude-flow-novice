@@ -2,7 +2,9 @@
 
 **Status:** 2026-10-16. Stages 1-4 built and live on the Mac and the VPS (commits 4da59370,
 f23dd449, 19640dac, d0fc1b8d): core, hooks with trust tiers, watcher with send-later and bounce.
-Next: stage 4b (hardening from the Operations review, below), then stage 5 (fleet, all workers).
+Stage 4b (hardening from the Operations review, below) built and tested offline 2026-10-16, not yet
+deployed: existing ACL users need `~claim:<owner>:*` added before send-later works live.
+Next: stage 5 (fleet, all workers).
 Design history: v3 (2026-10-15) applied 16 findings from an independent design review.
 - **Hosted on Upstash, fixed $10/month plan** (user, 2026-10-15): 250 MB, unlimited commands, so
   mail checks are not rationed. Replaces the earlier self-hosted-on-the-VPS design.
@@ -276,7 +278,8 @@ the coordinator style safer.
 4. **Watcher and lifecycle.** Wake idle sessions, project groups with reassignment, send-later,
    bounce, expiry, lifecycle lock. Systemd user service on the VPS; manual start on the Mac (a
    LaunchAgent would need the user's approval). Tests with a fake tmux and a fake clock.
-4b. **Hardening (from the gg-all-projects Operations review, 2026-10-16; see that section).**
+4b. **Hardening (from the gg-all-projects Operations review, 2026-10-16; see that section). Done
+   2026-10-16 (offline suites green, including all three run concurrently).**
    Receiver-side public-address policy, verified routing fields, stable message ids with receiver
    de-duplication, crash-safe send-later and bounce, spool trimmed only by the process that prints,
    watcher-typed prompts never clear the taint flag, private spool files. Adversarial tests:
@@ -327,7 +330,7 @@ the coordinator style safer.
 Source: `~/Projects/gg-all-projects/planning/agent-inbox/MAILBOX-INTEGRATION-REVIEW.md` (a Codex
 review of d0fc1b8d). Every code-level claim was checked against the source and holds. Split:
 
-**CFN builds (stage 4b):**
+**CFN builds (stage 4b, done 2026-10-16):**
 1. **Receiver-side public addresses.** `MAILBOX_PUBLIC` is loaded but never enforced on read: read,
    group setup, the watcher and lifecycle build outside-owner keys for every address. One shared
    receiver policy: outside owners' keys are built only for the receiving owner's public addresses.
@@ -347,7 +350,16 @@ review of d0fc1b8d). Every code-level claim was checked against the source and h
    the taint flag; only a human-typed prompt does.
 7. **Private local files.** Cache dir 700, spool and state files 600.
 8. **Docs:** the hook guard is advisory, not an access boundary; mail delivery is not acceptance of
-   work; never put secrets, cookies, tokens or private source in mail.
+   work; never put secrets, cookies, tokens or private source in mail; the public-address rule is
+   enforced by the receiver (SKILL.md "Who may write to which address").
+
+**How 4b was built (for the next reader):** one receiver policy, `receiver_keys` in `mailbox.sh`,
+used by read, join, the watcher's nudge pass and the bounce scans (expiry cleanup still deletes
+every owner's copy). Quarantine reasons are `to-mismatch` and `from-owner-mismatch`. `msg_id` is 16
+hex from `/dev/urandom`; send-later members store it at `send --at` time (members queued earlier
+get a stable `l-<cksum>` id); bounces use `b-<cksum of key|id>`. The ACL gains `~claim:<owner>:*`.
+The hook sources `mailbox.sh` for `NUDGE_TEXT`, `CACHE_DIR` and `ensure_cache_dir`. The hook's
+fallback watchdog now uses the wall clock, which was the likely cause of the 12 s timing failure.
 
 **Operations builds (gg-all-projects), not CFN:** approvals, standing permissions, budgets, the
 versioned assignment envelope, durable request/outbox/inbox receipts, identity mapping from mailbox

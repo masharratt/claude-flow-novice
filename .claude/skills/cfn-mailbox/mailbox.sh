@@ -16,6 +16,15 @@
 #
 # Config: ${MAILBOX_CONFIG:-$HOME/.config/cfn-mailbox/env}, keys MAILBOX_HOST MAILBOX_PORT
 # MAILBOX_USER MAILBOX_PASS MAILBOX_OWNER (required), MAILBOX_PUBLIC MAILBOX_CONTACTS (optional).
+# MAILBOX_PUBLIC lists this owner's addresses that other owners may write to (me, p/<name>,
+# r/<name>, s/<name>, optionally prefixed <owner>/). The receiver enforces it: for any other
+# address only this owner's own from:<owner> key is ever built, read, watched or bounced.
+#
+# Delivery is at least once, shown once: every message carries a random msg_id (kept on retry),
+# and a reader drops a msg_id it already showed (~/.cache/cfn-mailbox/delivered-<session>, 7 days).
+# A message whose to field does not match its inbox key, or whose from owner differs from the
+# key's from:<owner>, is consumed without being shown and logged (metadata only) to
+# ~/.cache/cfn-mailbox/quarantine.log.
 # There are no defaults: a missing or partial config stops every command. TLS is always on.
 # The sender's session name comes from MAILBOX_SESSION (runtime, not config); without it the
 # sender is <owner>/me.
@@ -44,6 +53,7 @@
 # (epoch seconds) replaces the clock. Sourcing this file (mailbox-watch.sh does) defines the
 # functions without running main.
 set -euo pipefail
+umask 077   # spool, delivered set and quarantine log hold mail: owner-only
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 
@@ -60,8 +70,15 @@ SUMMARY_MAX=200         # longest session summary kept in the directory
 WHO_WINDOW=1800         # directory entries older than 30 minutes are hidden
 GROUP=readers
 NAME_RE='^[a-z0-9-]{1,64}$'
+DELIVERED_TTL=604800    # msg_ids a reader remembers as shown (7 days)
+MSG_ID_RE='^[A-Za-z0-9_-]{1,64}$'
+# Typed into idle tmux panes by mailbox-watch.sh; the hook keeps the taint flag on a prompt equal to it.
+NUDGE_TEXT="You have mail: run /mail read"
+CACHE_DIR="$HOME/.cache/cfn-mailbox"
 
 die() { local code="$1"; shift; echo "mailbox: $*" >&2; exit "$code"; }
+# ensure_cache_dir: create the local cache owner-only, and tighten one an older version left open.
+ensure_cache_dir() { mkdir -p "$CACHE_DIR" 2>/dev/null && chmod 700 "$CACHE_DIR" 2>/dev/null; }
 warn() { echo "mailbox: $*" >&2; }
 
 valid_name() { [[ "$1" =~ $NAME_RE ]]; }
@@ -70,6 +87,7 @@ valid_name() { [[ "$1" =~ $NAME_RE ]]; }
 
 MAILBOX_HOST="" MAILBOX_PORT="" MAILBOX_USER="" MAILBOX_PASS="" MAILBOX_OWNER=""
 MAILBOX_PUBLIC="" MAILBOX_CONTACTS=""
+PUBLIC_LIST=""    # MAILBOX_PUBLIC normalised to " me p/x r/y" (no owner prefix)
 RC_SECRET=""      # extra value to redact from Redis error text (adduser token)
 SESSION=""
 
@@ -98,9 +116,16 @@ load_config() {
   [ -z "$missing" ] || die 78 "mailbox config $cfg is missing:$missing"
   [[ "$MAILBOX_PORT" =~ ^[0-9]+$ ]] || die 78 "MAILBOX_PORT in $cfg must be a number"
   valid_name "$MAILBOX_OWNER" || die 78 "MAILBOX_OWNER in $cfg must be [a-z0-9-] only"
-  local c
+  local c n
   for c in ${MAILBOX_CONTACTS//,/ }; do
     [[ "$c" =~ ^[a-z0-9-]+/(me|[spr]/[a-z0-9-]+)$ ]] || die 78 "MAILBOX_CONTACTS entry '$c' is not a valid address"
+  done
+  PUBLIC_LIST=""
+  for c in ${MAILBOX_PUBLIC//,/ }; do
+    n="$c"
+    case "$n" in "$MAILBOX_OWNER"/*) n="${n#"$MAILBOX_OWNER"/}" ;; esac
+    [[ "$n" =~ ^(me|[spr]/[a-z0-9-]{1,64})$ ]] || die 78 "MAILBOX_PUBLIC entry '$c' is not one of your addresses (use me, p/<name>, r/<name> or s/<name>)"
+    PUBLIC_LIST="$PUBLIC_LIST $n"
   done
   SESSION="${MAILBOX_SESSION:-}"
   if [ -n "$SESSION" ]; then valid_name "$SESSION" || die 10 "MAILBOX_SESSION must be [a-z0-9-] only"; fi
@@ -218,6 +243,39 @@ sender_owners() {
     o="${c%%/*}"
     case "$seen" in *" $o "*) ;; *) seen="$seen$o "; printf '%s\n' "$o" ;; esac
   done
+}
+
+# ----- receiver policy (one implementation: read, join, the watcher and lifecycle all use it)
+
+# is_public KIND NAME: may other owners write to this address of mine (MAILBOX_PUBLIC)?
+is_public() {
+  local a="$1/$2"
+  [ "$1" != me ] || a=me
+  case "$PUBLIC_LIST " in *" $a "*) return 0 ;; esac
+  return 1
+}
+
+# receiver_keys KIND NAME: the inbox keys this owner builds for one of its own addresses, one per
+# line. Its own from:<owner> key always; a contact owner's key only when the address is public, so
+# mail injected straight into Redis at a private address is never read, watched or bounced.
+receiver_keys() {
+  local so
+  if is_public "$1" "$2"; then
+    while IFS= read -r so; do inbox_key "$MAILBOX_OWNER" "$1" "$2" "$so"; printf '\n'; done < <(sender_owners)
+  else
+    inbox_key "$MAILBOX_OWNER" "$1" "$2" "$MAILBOX_OWNER"; printf '\n'
+  fi
+}
+
+# key_address KEY: the address an inbox key belongs to (mbx:o:s:n:from:x -> o/s/n, mbx:o:me:from:x -> o/me).
+key_address() { local k="${1#mbx:}"; k="${k%:from:*}"; printf '%s' "${k//://}"; }
+
+# new_msg_id: 16 random hex characters, set once by the sender and kept on every retry.
+new_msg_id() {
+  local h
+  h="$(od -An -N8 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n')"
+  [[ "$h" =~ ^[0-9a-f]{16}$ ]] || die 18 "could not read /dev/urandom for a message id"
+  printf '%s' "$h"
 }
 
 # ----- dates (GNU and BSD `date` both; no python)
@@ -340,20 +398,22 @@ cmd_send() {
   if [ "$n" -eq 1 ]; then rcmd EXPIRE "$rate_key" "$RATE_WINDOW"; fi
   [ "$n" -le "$RATE_MAX" ] || die 13 "rate limit: more than $RATE_MAX messages from $from_id to $to_str in $((RATE_WINDOW / 60)) minutes"
 
-  local key from_addr now
+  local key from_addr now msg_id
   key="$(inbox_key "$to_owner" "$to_kind" "$to_name" "$MAILBOX_OWNER")"
   from_addr="$(own_from_address)"
   now="$(now_s)"
-  local -a f=(from "$from_addr" to "$to_str" kind "$kind" body "$text" sent_at "$now" thread "$thread" hops "$hops")
+  msg_id="$(new_msg_id)"
+  local -a f=(from "$from_addr" to "$to_str" kind "$kind" body "$text" sent_at "$now" thread "$thread" hops "$hops" msg_id "$msg_id")
   if [ -n "$reply_to" ]; then f+=(reply_to "$reply_to"); fi
   if [ "$at_set" = 1 ]; then
-    # Send later: park it in due:<owner>; the watcher delivers it (ZREM first) when it is due.
+    # Send later: park it in due:<owner>; the watcher delivers it when it is due (claim, XADD with
+    # this msg_id, then ZREM), so a crash repeats the delivery and the receiver shows it once.
     local member
     member="$(jq -n -c --arg key "$key" --arg uid "$(now_ms)-$RANDOM" --argjson bytes "$bytes" \
       --arg from "$from_addr" --arg to "$to_str" --arg kind "$kind" --arg body "$text" --arg sent "$now" \
-      --arg thread "$thread" --arg hops "$hops" --arg reply_to "$reply_to" \
+      --arg thread "$thread" --arg hops "$hops" --arg reply_to "$reply_to" --arg mid "$msg_id" \
       '{key:$key, uid:$uid, bytes:$bytes,
-        fields:({from:$from, to:$to, kind:$kind, body:$body, sent_at:$sent, thread:$thread, hops:$hops}
+        fields:({from:$from, to:$to, kind:$kind, body:$body, sent_at:$sent, thread:$thread, hops:$hops, msg_id:$mid}
                 + (if $reply_to != "" then {reply_to:$reply_to} else {} end))}')" \
       || die 18 "could not build the send-later entry"
     rcmd ZADD "due:$MAILBOX_OWNER" "$AT_EPOCH" "$member"
@@ -374,8 +434,8 @@ cmd_send() {
   # The message is already delivered; a failed log write must not turn that into an error.
   local rec
   rec="$(jq -n -c --arg id "$id" --arg from "$from_addr" --arg to "$to_str" --arg kind "$kind" \
-    --arg thread "$thread" --argjson hops "$hops" --argjson bytes "$bytes" --argjson at "$now" \
-    '{id:$id,from:$from,to:$to,kind:$kind,thread:$thread,hops:$hops,bytes:$bytes,at:$at}')"
+    --arg thread "$thread" --argjson hops "$hops" --argjson bytes "$bytes" --argjson at "$now" --arg mid "$msg_id" \
+    '{id:$id,msg_id:$mid,from:$from,to:$to,kind:$kind,thread:$thread,hops:$hops,bytes:$bytes,at:$at}')"
   if ! (rcmd XADD "log:$MAILBOX_OWNER" MAXLEN '~' "$LOG_MAXLEN" '*' rec "$rec") 2>/dev/null; then
     warn "sent $id, but the log entry could not be written"
   fi
@@ -385,10 +445,13 @@ cmd_send() {
 
 # --------------------------------------------------------------------- read
 
-EMIT_COUNT=0 EMIT_LAST="" EMIT_IDS=""
+EMIT_COUNT=0 EMIT_LAST="" EMIT_IDS="" EMIT_N=0
 READ_LEFT=""   # `read --max N`: messages still allowed across the whole call (empty = no total cap)
 PEEK=""        # `read --peek`: show mail without acknowledging it or moving any marker
 SPOOL=""       # `read --spool FILE`: append each message line to FILE before any marker or XACK moves
+DELIV_FILE=""  # this reader's delivered set: "msg_id epoch" lines
+DELIV_JSON="{}"
+QUAR_COUNT=0
 
 # take_count: how many messages one query may ask for (READ_COUNT, or what is left of --max).
 take_count() {
@@ -398,28 +461,90 @@ take_count() {
 }
 consume_left() { if [ -n "$READ_LEFT" ]; then READ_LEFT=$((READ_LEFT - $1)); fi; return 0; }
 
-# emit_msgs JSON KEY SENDER_OWNER: prints one compact JSON line per message. Tier comes from
-# the key the reader built, never from the message.
+# delivered_load FILE: the msg_ids this reader already showed. Entries older than DELIVERED_TTL are
+# pruned (not on a peek, which changes nothing on disk).
+delivered_load() {
+  DELIV_FILE="$1"; DELIV_JSON="{}"
+  [ -f "$DELIV_FILE" ] || return 0
+  if [ -z "$PEEK" ]; then
+    local cut tmp="$DELIV_FILE.$$"
+    cut=$(( $(now_s) - DELIVERED_TTL ))
+    if awk -v c="$cut" 'NF >= 2 && $2 ~ /^[0-9]+$/ && $2 + 0 >= c + 0' "$DELIV_FILE" > "$tmp" 2>/dev/null; then
+      mv -f "$tmp" "$DELIV_FILE"
+    else
+      rm -f "$tmp"
+    fi
+  fi
+  DELIV_JSON="$(awk 'NF >= 1 {print $1}' "$DELIV_FILE" | jq -R -s -c 'split("\n") | map(select(. != "") | {(.): true}) | add // {}' 2>/dev/null)" \
+    || DELIV_JSON="{}"
+  [ -n "$DELIV_JSON" ] || DELIV_JSON="{}"
+}
+
+# delivered_add IDS (one per line): remember them as shown, on disk and for the rest of this call.
+delivered_add() {
+  [ -n "$1" ] || return 0
+  local now i
+  now="$(now_s)"
+  while IFS= read -r i; do [ -n "$i" ] && printf '%s %s\n' "$i" "$now"; done <<<"$1" >> "$DELIV_FILE" \
+    || die 18 "cannot write the delivered set $DELIV_FILE"
+  DELIV_JSON="$(printf '%s\n' "$1" | jq -R -s -c --argjson d "$DELIV_JSON" '$d + (split("\n") | map(select(. != "") | {(.): true}) | add // {})')" \
+    || die 18 "cannot update the delivered set"
+}
+
+# quarantine_log JSON-LINES ({key,id,msg_id,reason}): metadata only, never a body.
+quarantine_log() {
+  ensure_cache_dir || true
+  printf '%s\n' "$1" | jq -r --arg t "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '"\($t) key=\(.key) id=\(.id) msg_id=\(if .msg_id == "" then "-" else .msg_id end) reason=\(.reason)"' \
+    >> "$CACHE_DIR/quarantine.log" 2>/dev/null || warn "could not write $CACHE_DIR/quarantine.log"
+}
+
+# emit_msgs JSON KEY SENDER_OWNER: prints one compact JSON line per message that passes the
+# checks. Tier and sender_owner come from the key the reader built, never from the message.
+# Checks, in order: to must equal the key's address and the from owner must equal the key's
+# from:<owner> (else quarantined); a msg_id already shown is dropped. Every id is still returned
+# in EMIT_IDS / EMIT_N / EMIT_LAST, so the caller acks or moves its marker past all of them.
 emit_msgs() {
-  local json="$1" key="$2" sender="$3" tier lines
-  EMIT_COUNT=0; EMIT_LAST=""; EMIT_IDS=""
+  local json="$1" key="$2" sender="$3" tier lines addr cls q mids
+  EMIT_COUNT=0; EMIT_LAST=""; EMIT_IDS=""; EMIT_N=0
   case "$json" in ''|null) return 0 ;; esac
   # redis-cli 8 --json (RESP3) returns {"key":[...]}; older/RESP2 returns [["key",[...]]].
   json="$(printf '%s' "$json" | jq -c 'if type == "object" then [to_entries[] | [.key, .value]] else . end')" \
     || die 18 "unreadable reply while reading $key"
+  EMIT_IDS="$(printf '%s' "$json" | jq -r '(.[0][1] // [])[] | .[0]')" || die 18 "unreadable reply while reading $key"
+  [ -n "$EMIT_IDS" ] || return 0
+  EMIT_N="$(printf '%s\n' "$EMIT_IDS" | wc -l | tr -d ' ')"
+  EMIT_LAST="$(printf '%s\n' "$EMIT_IDS" | tail -n 1)"
+  addr="$(key_address "$key")"
   tier=outside; [ "$sender" = "$MAILBOX_OWNER" ] && tier=teammate
-  lines="$(printf '%s' "$json" | jq -c --arg key "$key" --arg tier "$tier" --arg sender "$sender" '
-    (.[0][1] // [])[]
-    | ({id: .[0]} + (([.[1] | _nwise(2) | {(.[0]): .[1]}] | add) // {}))
-      + {inbox: $key, sender_owner: $sender, tier: $tier}')" || die 18 "unreadable reply while reading $key"
+  cls="$(printf '%s' "$json" | jq -c --arg key "$key" --arg tier "$tier" --arg sender "$sender" --arg addr "$addr" \
+    --arg idre "$MSG_ID_RE" --argjson seen "$DELIV_JSON" '
+    reduce ((.[0][1] // [])[] | ((([.[1] | _nwise(2) | {(.[0]): .[1]}] | add) // {}) + {id: .[0]})) as $m
+      ({seen: $seen, out: []};
+       (($m.msg_id // "") | if type == "string" and test($idre) then . else "" end) as $mid
+       | if ($m.to // "") != $addr then .out += [{q: "to-mismatch", id: $m.id, mid: $mid}]
+         elif ((($m.from // "") | tostring | split("/")[0]) != $sender) then .out += [{q: "from-owner-mismatch", id: $m.id, mid: $mid}]
+         elif $mid != "" and .seen[$mid] then .out += [{q: "dup", id: $m.id, mid: $mid}]
+         else (if $mid != "" then .seen[$mid] = true else . end)
+              | .out += [{q: "", id: $m.id, mid: $mid, m: ($m + {inbox: $key, sender_owner: $sender, tier: $tier})}]
+         end)
+    | .out[]')" || die 18 "unreadable reply while reading $key"
+  q="$(printf '%s\n' "$cls" | jq -c --arg key "$key" 'select(.q != "" and .q != "dup") | {key: $key, id, msg_id: .mid, reason: .q}')"
+  if [ -n "$q" ] && [ -z "$PEEK" ]; then
+    quarantine_log "$q"
+    QUAR_COUNT=$((QUAR_COUNT + $(printf '%s\n' "$q" | wc -l | tr -d ' ')))
+  fi
+  lines="$(printf '%s\n' "$cls" | jq -c 'select(.q == "") | .m')"
   [ -n "$lines" ] || return 0
   # Spool first: if this process is killed before the caller moves the marker or acks, the
   # message is on disk and the next run still shows it (peeks consume nothing, so never spool).
   if [ -n "$SPOOL" ] && [ -z "$PEEK" ]; then printf '%s\n' "$lines" >> "$SPOOL" || die 18 "cannot write the spool file $SPOOL"; fi
   printf '%s\n' "$lines"
   EMIT_COUNT="$(printf '%s\n' "$lines" | wc -l | tr -d ' ')"
-  EMIT_IDS="$(printf '%s' "$json" | jq -r '(.[0][1] // [])[] | .[0]')"
-  EMIT_LAST="$(printf '%s\n' "$EMIT_IDS" | tail -n 1)"
+  if [ -z "$PEEK" ]; then
+    mids="$(printf '%s\n' "$cls" | jq -r 'select(.q == "" and .mid != "") | .mid')"
+    delivered_add "$mids"
+  fi
 }
 
 read_group() { # key sender reader
@@ -441,8 +566,9 @@ read_group() { # key sender reader
 
 ack_ids() { # key; uses EMIT_IDS (acknowledge only after the messages were printed)
   # Peeked group mail stays in the pending list, so the next real read returns it again.
+  # Quarantined and repeated mail is acked too (EMIT_IDS holds every id read), so it never returns.
   [ -z "$PEEK" ] || return 0
-  [ "$EMIT_COUNT" -gt 0 ] || return 0
+  [ "$EMIT_N" -gt 0 ] || return 0
   local -a ids=() i
   while IFS= read -r i; do [ -n "$i" ] && ids+=("$i"); done <<<"$EMIT_IDS"
   rcmd XACK "$1" "$GROUP" "${ids[@]}"
@@ -469,7 +595,7 @@ read_seen() { # key sender reader kind
   [ "$cap" -gt 0 ] || return 0
   rcmdj XREAD COUNT "$cap" STREAMS "$key" "$last"
   emit_msgs "$RC_OUT" "$key" "$sender"
-  if [ "$EMIT_COUNT" -gt 0 ] && [ -z "$PEEK" ]; then rcmd SET "$marker" "$EMIT_LAST" EX "$EXPIRE_SECS"; fi
+  if [ "$EMIT_N" -gt 0 ] && [ -z "$PEEK" ]; then rcmd SET "$marker" "$EMIT_LAST" EX "$EXPIRE_SECS"; fi
   consume_left "$EMIT_COUNT"
 }
 
@@ -502,15 +628,22 @@ cmd_read() {
     done <<<"$rooms"
   fi
 
+  # One delivered set per session (the hook reads several addresses as one session); a reader
+  # without MAILBOX_SESSION keeps one per address name.
+  ensure_cache_dir || true
+  delivered_load "$CACHE_DIR/delivered-${SESSION:-$reader}"
+
   local t tk tn so key
   for t in "${targets[@]}"; do
     tk="${t%%:*}"; tn="${t#*:}"
-    while IFS= read -r so; do
+    while IFS= read -r key; do
+      [ -n "$key" ] || continue
       [ -z "$READ_LEFT" ] || [ "$READ_LEFT" -gt 0 ] || break 2   # --max budget spent
-      key="$(inbox_key "$MAILBOX_OWNER" "$tk" "$tn" "$so")"
+      so="${key##*:from:}"
       if [ "$tk" = p ]; then read_group "$key" "$so" "$reader"; else read_seen "$key" "$so" "$reader" "$tk"; fi
-    done < <(sender_owners)
+    done < <(receiver_keys "$tk" "$tn")
   done
+  if [ "$QUAR_COUNT" -gt 0 ]; then warn "quarantined $QUAR_COUNT message(s) whose to/from did not match their inbox; see $CACHE_DIR/quarantine.log"; fi
 }
 
 # --------------------------------------------------------------------- who / log
@@ -566,15 +699,15 @@ update_rooms() { # op(add|remove) room
 cmd_join() {
   room_arg "${1:-}"
   update_rooms add "$ROOM"
-  # Start at the newest message: record a marker for every sender key of this room.
-  local so key last
-  while IFS= read -r so; do
-    key="$(inbox_key "$MAILBOX_OWNER" r "$ROOM" "$so")"
+  # Start at the newest message: record a marker for every key the receiver policy builds.
+  local key last
+  while IFS= read -r key; do
+    [ -n "$key" ] || continue
     rcmdj XREVRANGE "$key" + - COUNT 1
     last="$(printf '%s' "$RC_OUT" | jq -r '.[0][0] // empty' 2>/dev/null || true)"
     [ -n "$last" ] || last="0-0"
     rcmd SET "$(marker_key "$SESSION" "$key")" "$last" EX "$EXPIRE_SECS"
-  done < <(sender_owners)
+  done < <(receiver_keys r "$ROOM")
   echo "joined $MAILBOX_OWNER/r/$ROOM as $MAILBOX_OWNER/s/$SESSION"
 }
 
@@ -629,6 +762,9 @@ cmd_doctor() {
   echo "contacts: ${MAILBOX_CONTACTS:-(none)}"
   mode="$(stat -c %a "${MAILBOX_CONFIG:-$HOME/.config/cfn-mailbox/env}" 2>/dev/null || stat -f %Lp "${MAILBOX_CONFIG:-$HOME/.config/cfn-mailbox/env}" 2>/dev/null || true)"
   if [ -n "$mode" ] && [ "$mode" != 600 ]; then warn "config file mode is $mode; run chmod 600 on it"; fi
+  local qn=0
+  [ ! -f "$CACHE_DIR/quarantine.log" ] || qn="$(wc -l < "$CACHE_DIR/quarantine.log" | tr -d ' ')"
+  echo "quarantine: $qn ($CACHE_DIR/quarantine.log)"
   t0="$(now_ms)"
   rcmd PING
   t1="$(now_ms)"
@@ -644,7 +780,7 @@ ACL_CMDS="ping xadd xread xreadgroup xack xautoclaim xclaim xpending xinfo xgrou
 acl_rule() { # owner token
   # reset first, so re-running adduser replaces the user's rules instead of adding to them
   local o="$1" c rule="ACL SETUSER $1 reset on >$2"
-  rule="$rule ~mbx:$o:* ~mbx:*:from:$o ~dir:$o ~seen:$o:* ~due:$o ~log:$o ~lock:$o:* ~rate:$o:* ~done:$o:*"
+  rule="$rule ~mbx:$o:* ~mbx:*:from:$o ~dir:$o ~seen:$o:* ~due:$o ~log:$o ~lock:$o:* ~rate:$o:* ~done:$o:* ~claim:$o:*"
   for c in $ACL_CMDS; do rule="$rule +$c"; done
   printf '%s' "$rule"
 }

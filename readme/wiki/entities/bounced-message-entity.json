@@ -1,0 +1,54 @@
+{
+  "name": "Bounced message",
+  "capability": "agent-mailbox",
+  "source": ".claude/skills/cfn-mailbox/mailbox-watch.sh:368",
+  "description": "Unread mail past its age (24 h session, 7 d project, or a session expiring) goes back to its sender. The bounce is written before its done marker and before the original is removed, so a failure leaves it unread and a later pass retries.",
+  "states": [
+    "unread",
+    "bounce_written",
+    "marked",
+    "removed"
+  ],
+  "meanings": {
+    "unread": "Original still in the inbox, no done marker.",
+    "bounce_written": "Bounce XADDed to the sender with msg_id b-<hash>.",
+    "marked": "done:<owner>:<id>:<hash> set for 7 days.",
+    "removed": "Original XACKed (project mail) and XDELed."
+  },
+  "transitions": [
+    {
+      "from": "[*]",
+      "to": "unread",
+      "trigger": "Mail lands and is not read",
+      "guard": "Address passes the receiver policy"
+    },
+    {
+      "from": "unread",
+      "to": "bounce_written",
+      "trigger": "Lifecycle bounce scan",
+      "guard": "Older than the bounce age, kind is not bounce, no done marker"
+    },
+    {
+      "from": "bounce_written",
+      "to": "unread",
+      "trigger": "Pass fails before the marker",
+      "guard": "Next pass writes again with the same msg_id; the sender's reader drops the repeat"
+    },
+    {
+      "from": "bounce_written",
+      "to": "marked",
+      "trigger": "SET done marker EX 7 d",
+      "guard": "Bounce XADD succeeded"
+    },
+    {
+      "from": "marked",
+      "to": "removed",
+      "trigger": "XACK and XDEL the original",
+      "guard": "Same pass, or a later pass that finds the marker set"
+    }
+  ],
+  "id": "bounced-message-entity",
+  "capability_refs": [
+    "agent-mailbox"
+  ]
+}

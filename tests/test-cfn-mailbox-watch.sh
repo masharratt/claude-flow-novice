@@ -78,6 +78,11 @@ EOF
 }
 
 rule() { printf '%s\t%s\n' "$1" "$2" >> "$T/rules"; }
+set_public() { # VALUE: rewrite MAILBOX_PUBLIC in the case config
+  grep -v '^MAILBOX_PUBLIC=' "$T/env" > "$T/env.new"; printf 'MAILBOX_PUBLIC="%s"\n' "$1" >> "$T/env.new"
+  mv "$T/env.new" "$T/env"; chmod 600 "$T/env"
+}
+fmode() { stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1" 2>/dev/null; }   # GNU, then BSD
 
 cmds() { grep '^CMD	' "$T/calls" | cut -f2-; }
 has_cmd() { cmds | grep -F -q -- "$1"; }
@@ -289,12 +294,25 @@ test_nudge_project_and_rooms() {
   assert_eq "no" "$(nudged main:4.0)" "s4 not subscribed"
   assert_eq "2" "$(nudges)" "two nudges"
 
-  new_case "contacts: mail from another owner's key wakes the session too"
+  # Stage 4b item 1: an outside owner writing straight into Redis at a private session address
+  # used to wake the session.
+  new_case "receiver policy: mail injected into a private session address never wakes it"
   dir_entry s1 proj $((NOW - 60)) "$HOSTN" '[]' "main:1.0"; dir_commit
   set_state s1 idle; seed_for s:s1 p:proj
   rule "XREAD *" "$(xr "mbx:michael:s:s1:from:steve" 1700000000500-0 ask hello)"
   watch once --nudge
-  assert_eq "yes" "$(nudged main:1.0)" "outside-owner key watched"
+  assert_eq "no" "$(nudged main:1.0)" "no nudge"
+  assert_eq "no" "$(yn has_cmd 'from:steve')" "outside-owner key of a private address not watched"
+
+  new_case "receiver policy: a public project address is watched for outside owners"
+  set_public "me p/proj"
+  dir_entry s1 proj $((NOW - 60)) "$HOSTN" '[]' "main:1.0"; dir_commit
+  set_state s1 idle; seed_for s:s1 p:proj
+  rule "XREAD *" "$(xr "mbx:michael:p:proj:from:steve" 1700000000500-0 ask hello)"
+  watch once --nudge
+  assert_eq "yes" "$(yn has_cmd 'mbx:michael:p:proj:from:steve')" "watched"
+  assert_eq "yes" "$(nudged main:1.0)" "nudged"
+  assert_eq "no" "$(yn has_cmd 'mbx:michael:s:s1:from:steve')" "the session address stays private"
 }
 
 test_nudge_reads() {
@@ -306,8 +324,8 @@ test_nudge_reads() {
   assert_eq "1" "$(count_cmd 'XREAD ')" "one XREAD for all keys"
   assert_eq "yes" "$(yn has_cmd "$SKEY")" "session key"
   assert_eq "yes" "$(yn has_cmd "$PKEY")" "project key"
-  assert_eq "yes" "$(yn has_cmd "mbx:michael:s:s1:from:steve")" "session key of the contact owner"
-  assert_eq "yes" "$(yn has_cmd "1699999999999-0 1699999999999-0 1699999999999-0 1699999999999-0")" "stored ids used"
+  assert_eq "no" "$(yn has_cmd "mbx:michael:s:s1:from:steve")" "no contact-owner key for a private session"
+  assert_eq "yes" "$(yn has_cmd "STREAMS $PKEY $SKEY 1699999999999-0 1699999999999-0")" "stored ids used"
   assert_eq "no" "$(yn has_cmd 'BLOCK')" "no BLOCK without MAILBOX_WATCH_BLOCK_MS in once"
   assert_eq "no" "$(yn has_cmd ':me:from:')" "person inbox is never watched"
   assert_eq "no" "$(yn has_cmd 'XREADGROUP')" "plain XREAD never consumes a group"
@@ -380,67 +398,98 @@ test_lifecycle_lock() {
 DUE_KEY="mbx:michael:p:proj:from:michael"
 mkdue() { # KEY KIND BODY
   jq -n -c --arg k "$1" --arg kind "$2" --arg body "$3" \
-    '{key:$k, uid:"u1", fields:{from:"michael/me", to:"michael/p/proj", kind:$kind, body:$body, sent_at:"1699999000", thread:"t-d", hops:"0"}}'
+    '{key:$k, uid:"u1", fields:{from:"michael/me", to:"michael/p/proj", kind:$kind, body:$body, sent_at:"1699999000", thread:"t-d", hops:"0", msg_id:"dm-1"}}'
 }
 test_send_later_delivery() {
-  new_case "send-later: ZREM first, then XADD into the target key, EXPIRE, log entry"
+  new_case "send-later: claim, then XADD with the stored msg_id, then ZREM; EXPIRE and log entry"
   local m; m="$(mkdue "$DUE_KEY" reminder "stand up at 9")"
   rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]')"
-  rule "ZREM due:michael *" "1"
   watch once --lifecycle
   assert_rc 0 "ok"
   assert_eq "yes" "$(yn has_cmd "ZRANGEBYSCORE due:michael -inf $NOW")" "due members up to now"
-  local z x
-  z="$(line_of 'ZREM due:michael')"; x="$(line_of "XADD $DUE_KEY MAXLEN ~ 500 *")"
-  assert_eq "yes" "$(yn test -n "$z" -a -n "$x" -a "${z:-0}" -lt "${x:-0}")" "ZREM (line $z) before XADD (line $x)"
+  local c z x
+  c="$(line_of "SET claim:michael:dm-1 $HOSTN NX EX 120")"; x="$(line_of "XADD $DUE_KEY MAXLEN ~ 500 *")"; z="$(line_of 'ZREM due:michael')"
+  assert_eq "yes" "$(yn test -n "$c" -a -n "$x" -a -n "$z")" "claim, XADD and ZREM all issued ($c $x $z)"
+  assert_eq "yes" "$(yn test "${c:-9}" -lt "${x:-0}" -a "${x:-9}" -lt "${z:-0}")" "order: claim < XADD < ZREM"
   local xadd; xadd="$(cmds | grep -F "XADD $DUE_KEY" | head -1)"
+  assert_contains "$xadd" "msg_id dm-1" "stored msg_id carried"
   assert_contains "$xadd" "kind reminder" "kind kept"
   assert_contains "$xadd" "body stand up at 9" "body kept"
   assert_contains "$xadd" "thread t-d" "thread kept"
   assert_contains "$xadd" "deliver_at $NOW" "deliver_at stamped"
   assert_eq "yes" "$(yn has_cmd "EXPIRE $DUE_KEY 2592000")" "expiry set"
   assert_eq "yes" "$(yn has_cmd 'XADD log:michael')" "log entry written"
+  assert_eq "no" "$(yn has_cmd 'ZADD due:')" "nothing put back"
 
   new_case "send-later: person inbox target has no MAXLEN"
   m="$(mkdue "mbx:michael:me:from:michael" reminder "call mum")"
   rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]')"
-  rule "ZREM due:michael *" "1"
   watch once --lifecycle
   assert_eq "yes" "$(yn has_cmd "XADD mbx:michael:me:from:michael * ")" "XADD without MAXLEN"
 
-  new_case "send-later: ZREM returned 0 (another watcher took it) -> nothing delivered"
+  # Stage 4b item 4 (Operations review): ZREM-first lost the reminder if the watcher died before XADD.
+  new_case "send-later crash after claim, before XADD: the claim expires and a later pass delivers"
+  m="$(mkdue "$DUE_KEY" reminder "stand up at 9")"
+  rule "SET claim:*" ""                      # pass 1: the dead watcher's claim is still live
+  rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]')"
+  watch once --lifecycle
+  assert_rc 0 "a held claim is not a failure"
+  assert_eq "no" "$(yn has_cmd "XADD $DUE_KEY")" "no delivery while claimed"
+  assert_eq "no" "$(yn has_cmd 'ZREM due:')" "still queued"
+  : > "$T/rules"; rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]')"
+  watch once --lifecycle                     # pass 2: claim expired
+  assert_eq "1" "$(count_cmd "XADD $DUE_KEY")" "delivered once the claim expired"
+  assert_eq "yes" "$(yn has_cmd 'ZREM due:michael')" "removed after delivery"
+
+  new_case "send-later crash after XADD, before ZREM: re-XADD with the same msg_id, receiver shows it once"
   m="$(mkdue "$DUE_KEY" reminder "stand up at 9")"
   rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]')"
-  rule "ZREM due:michael *" "0"
-  watch once --lifecycle
-  assert_eq "no" "$(yn has_cmd "XADD $DUE_KEY")" "no XADD"
+  rule "ZREM due:michael *" '!EXIT:1:Could not connect to Redis at mbx.example.test:6379: Connection refused'
+  watch once --lifecycle                     # pass 1: XADD lands, the ZREM reply is lost
+  assert_eq "1" "$RC" "pass reports the unfinished delivery"
+  : > "$T/rules"; rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]')"
+  watch once --lifecycle                     # pass 2: claim expired, still due
+  assert_eq "2" "$(count_cmd "XADD $DUE_KEY")" "delivered twice to the stream"
+  assert_eq "2" "$(cmds | grep -F "XADD $DUE_KEY" | grep -c -F 'msg_id dm-1')" "both copies carry msg_id dm-1"
+  # the receiver sees both stream entries and shows one
+  : > "$T/rules"
+  rule "XREADGROUP GROUP readers * STREAMS $DUE_KEY 0" "$(jq -n -c --arg k "$DUE_KEY" '{($k): [["1700000000100-0",["from","michael/me","to","michael/p/proj","kind","reminder","body","stand up at 9","msg_id","dm-1"]],["1700000000200-0",["from","michael/me","to","michael/p/proj","kind","reminder","body","stand up at 9","msg_id","dm-1"]]]}')"
+  run_env bash "$MB" read --as michael/p/proj
+  assert_eq "1" "$(printf '%s\n' "$OUT" | grep -c '"msg_id":"dm-1"')" "shown once"
+  assert_eq "yes" "$(yn has_cmd "XACK $DUE_KEY readers 1700000000100-0 1700000000200-0")" "both acknowledged"
 
   new_case "send-later: two watchers racing on one member deliver it once"
   m="$(mkdue "$DUE_KEY" reminder "stand up at 9")"
   rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]')"
-  rule "ZREM due:michael *" "1"
-  watch once --lifecycle          # watcher A wins
+  watch once --lifecycle          # watcher A wins the claim
   : > "$T/rules"
   rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]')"
-  rule "ZREM due:michael *" "0"
-  watch once --lifecycle          # watcher B loses the ZREM
-  assert_eq "1" "$(count_cmd "XADD $DUE_KEY")" "delivered exactly once across both"
+  rule "SET claim:*" ""
+  watch once --lifecycle          # watcher B loses the claim
+  assert_eq "1" "$(count_cmd "XADD $DUE_KEY")" "one XADD across both watchers"
 
-  new_case "send-later: XADD fails after ZREM -> entry put back in due:michael, pass reports the failure"
+  new_case "send-later: XADD fails -> no ZREM, entry stays queued, pass reports the failure"
   m="$(mkdue "$DUE_KEY" reminder "stand up at 9")"
   rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]')"
-  rule "ZREM due:michael *" "1"
   rule "XADD mbx:*" '!EXIT:1:Could not connect to Redis at mbx.example.test:6379: Connection refused'
   watch once --lifecycle
-  assert_eq "yes" "$(yn has_cmd "ZADD due:michael $NOW")" "restored with ZADD"
+  assert_eq "no" "$(yn has_cmd 'ZREM due:')" "not removed"
   assert_eq "1" "$RC" "once exits 1 when a job failed"
   assert_eq "yes" "$(yn test -s "$CACHE/watch.log")" "failure logged"
   assert_not_contains "$(cat "$CACHE/watch.log")" "$PASSWORD" "no secret in the log"
 
+  new_case "send-later: a member queued before msg_ids gets a stable derived id on every pass"
+  m="$(mkdue "$DUE_KEY" reminder "old style" | jq -c 'del(.fields.msg_id)')"
+  rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]')"
+  rule "ZREM due:michael *" '!EXIT:1:Could not connect to Redis at mbx.example.test:6379: Connection refused'
+  watch once --lifecycle; watch once --lifecycle
+  local ids; ids="$(cmds | grep -F "XADD $DUE_KEY" | grep -o -E 'msg_id l-[0-9]+' | sort -u)"
+  assert_eq "1" "$(printf '%s\n' "$ids" | grep -c .)" "one derived id across passes ($ids)"
+  assert_eq "yes" "$(yn has_cmd "SET claim:michael:${ids#msg_id } ")" "claim uses the derived id"
+
   new_case "send-later: a member whose key is not one of this owner's own :from: keys is dropped"
   m="$(mkdue "mbx:steve:me:from:steve" reminder "forged")"
   rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]')"
-  rule "ZREM due:michael *" "1"
   watch once --lifecycle
   assert_eq "no" "$(yn has_cmd "XADD mbx:steve")" "forged target not written"
 
@@ -448,7 +497,6 @@ test_send_later_delivery() {
   m="$(mkdue "$DUE_KEY" reminder $'line one\nline two')"
   # the fake prints replies through printf %b, so double the backslashes of an escaped newline
   rule "ZRANGEBYSCORE due:michael *" "$(jq -n -c --arg m "$m" '[$m]' | sed 's/\\/\\\\/g')"
-  rule "ZREM due:michael *" "1"
   watch once --lifecycle
   assert_eq "yes" "$(yn bash -c "tr '\n' '~' < '$T/calls' | grep -q -F \"$(printf 'body\tline one~line two')\"")" "newline body kept inside one argument"
 }
@@ -468,16 +516,18 @@ test_bounce_sessions() {
   assert_rc 0 "ok"
   assert_eq "yes" "$(yn has_cmd "SET done:michael:$e25")" "done marker for the 25 h entry"
   assert_eq "no" "$(yn has_cmd "SET done:michael:$e23")" "no done marker for the 23 h entry"
-  assert_eq "yes" "$(yn has_cmd " NX EX 604800")" "marker is NX with a 7 day expiry"
+  assert_eq "yes" "$(yn has_cmd "SET done:michael:$e25:" && has_cmd " 1 EX 604800")" "marker has a 7 day expiry"
   local bx; bx="$(cmds | grep -F 'XADD mbx:michael:s:sender1:from:michael' | head -1)"
   assert_contains "$bx" "MAXLEN ~ 500" "session inbox is capped"
   assert_contains "$bx" "kind bounce" "kind bounce"
   assert_contains "$bx" "undelivered: michael/s/s1 has not read this since 2023-11-13T21:13Z: old one body" "bounce body"
   assert_contains "$bx" "reply_to $e25" "points at the original"
+  assert_contains "$bx" "msg_id b-" "bounce carries a stable msg_id"
   assert_eq "yes" "$(yn has_cmd "XDEL $SK_S1 $e25")" "original deleted"
   assert_eq "no" "$(yn has_cmd "XDEL $SK_S1 $e23")" "young one kept"
+  # Stage 4b item 5: marker-first meant a failed XADD suppressed the bounce for 7 days.
   local d x; d="$(line_of "SET done:michael:$e25")"; x="$(line_of 'XADD mbx:michael:s:sender1')"
-  assert_eq "yes" "$(yn test "${d:-9}" -lt "${x:-0}" -a "${x:-9}" -lt "$(line_of "XDEL $SK_S1")")" "order: done marker, XADD bounce, XDEL"
+  assert_eq "yes" "$(yn test "${x:-9}" -lt "${d:-0}" -a "${d:-9}" -lt "$(line_of "XDEL $SK_S1")")" "order: XADD bounce, done marker, XDEL"
   assert_eq "yes" "$(yn has_cmd "XRANGE $SK_S1 (0-0 $(( (NOW - 24 * H) * 1000 )) COUNT 100")" "asks only for entries after the marker and older than 24 h"
 
   new_case "bounce: reader marker is honoured (range starts after the marker)"
@@ -486,13 +536,30 @@ test_bounce_sessions() {
   watch once --lifecycle
   assert_eq "yes" "$(yn has_cmd "XRANGE $SK_S1 (1699000000000-5 ")" "starts after the marker"
 
-  new_case "bounce: done marker already set -> no bounce, no delete (idempotent across watchers)"
+  new_case "bounce: done marker already set -> no second bounce, the removal is finished"
   bounce_setup; dir_entry sender1 proj $((NOW - H)) "elsewhere" '[]' ""; dir_commit
   rule "XRANGE $SK_S1 *" "$(xe "$e25" michael/s/sender1 ask 'old one' michael/s/s1 | jq -s -c .)"
-  rule "SET done:*" ""
+  rule "GET done:*" "1"
   watch once --lifecycle
   assert_eq "no" "$(yn has_cmd "XADD mbx:michael:s:sender1")" "no bounce"
-  assert_eq "no" "$(yn has_cmd "XDEL")" "no delete"
+  assert_eq "yes" "$(yn has_cmd "XDEL $SK_S1 $e25")" "original removed (a crash before XDEL is finished)"
+
+  new_case "bounce: XADD fails -> no done marker, no delete; a later pass retries with the same msg_id"
+  bounce_setup; dir_entry sender1 proj $((NOW - H)) "elsewhere" '[]' ""; dir_commit
+  rule "XRANGE $SK_S1 *" "$(xe "$e25" michael/s/sender1 ask 'retry me' michael/s/s1 | jq -s -c .)"
+  rule "XADD mbx:*" '!EXIT:1:Could not connect to Redis at mbx.example.test:6379: Connection refused'
+  watch once --lifecycle
+  assert_eq "no" "$(yn has_cmd 'SET done:')" "no marker after a failed write"
+  assert_eq "no" "$(yn has_cmd 'XDEL')" "original kept"
+  local mid1; mid1="$(grep '^ARGV' "$T/calls" | grep -F 'XADD' | grep -F 'mbx:michael:s:sender1' | tr '\t' '\n' | grep -A1 -x msg_id | tail -1)"
+  : > "$T/rules"; dir_commit
+  rule "XRANGE $SK_S1 *" "$(xe "$e25" michael/s/sender1 ask 'retry me' michael/s/s1 | jq -s -c .)"
+  watch once --lifecycle
+  assert_eq "yes" "$(yn has_cmd "SET done:michael:$e25")" "marker set on the retry"
+  assert_eq "yes" "$(yn has_cmd "XDEL $SK_S1 $e25")" "original removed on the retry"
+  local mid2; mid2="$(grep '^ARGV' "$T/calls" | grep -F 'XADD' | grep -F 'mbx:michael:s:sender1' | tr '\t' '\n' | grep -A1 -x msg_id | tail -1)"
+  assert_eq "$mid1" "$mid2" "retry carries the same msg_id ($mid1)"
+  assert_contains "$mid1" "b-" "bounce msg_id shape"
 
   new_case "bounce target: sender session not in the directory -> sender owner's me"
   bounce_setup; dir_commit
@@ -514,11 +581,19 @@ test_bounce_sessions() {
   assert_eq "yes" "$(yn has_cmd "XADD mbx:michael:me:from:michael * ")" "to michael/me"
 
   new_case "bounce target: cross-owner sender -> mbx:steve:me:from:michael (a key the ACL allows)"
+  set_public "me s/s1"   # outside mail reaches a session only when that address is public
   bounce_setup; dir_commit
   rule "XRANGE mbx:michael:s:s1:from:steve *" "$(xe "$e25" steve/s/x ask 'from steve' michael/s/s1 | jq -s -c .)"
   watch once --lifecycle
   assert_eq "yes" "$(yn has_cmd "XADD mbx:steve:me:from:michael * ")" "bounce into steve's from:michael key"
   assert_eq "yes" "$(yn has_cmd "XDEL mbx:michael:s:s1:from:steve $e25")" "original deleted from our copy"
+
+  new_case "receiver policy: bounce never scans an outside owner's key for a private address"
+  bounce_setup; dir_commit
+  rule "XRANGE mbx:michael:s:s1:from:steve *" "$(xe "$e25" steve/s/x ask 'injected' michael/s/s1 | jq -s -c .)"
+  watch once --lifecycle
+  assert_eq "no" "$(yn has_cmd 'XRANGE mbx:michael:s:s1:from:steve')" "not scanned"
+  assert_eq "no" "$(yn has_cmd 'XADD mbx:steve')" "nothing written to the outside owner"
 
   new_case "bounces never bounce: an unread bounce is left alone"
   bounce_setup; dir_commit
@@ -567,14 +642,15 @@ test_bounce_projects() {
   watch once --lifecycle
   assert_eq "yes" "$(yn has_cmd "XRANGE $PKEY (1600000000000-0 ")" "flat shape parsed"
 
-  new_case "bounce project mail: done marker set elsewhere -> nothing sent or deleted"
+  new_case "bounce project mail: done marker set elsewhere -> no second bounce, removal finished"
   bounce_setup; dir_commit
   rule "XPENDING $PKEY readers - + 100" "$(jq -n -c --arg b "$p8" '[[$b,"s1",600000,2]]')"
   rule "XRANGE $PKEY $p8 $p8" "$(xe "$p8" michael/s/sender1 ask 'stuck' michael/p/proj | jq -s -c .)"
-  rule "SET done:*" ""
+  rule "GET done:*" "1"
   watch once --lifecycle
-  assert_eq "no" "$(yn has_cmd "XDEL")" "no delete"
-  assert_eq "no" "$(yn has_cmd "XACK")" "no ack"
+  assert_eq "no" "$(yn has_cmd "XADD mbx:michael:s:sender1")" "no second bounce"
+  assert_eq "yes" "$(yn has_cmd "XACK $PKEY readers $p8")" "ack finished"
+  assert_eq "yes" "$(yn has_cmd "XDEL $PKEY $p8")" "delete finished"
 }
 
 test_expiry() {
@@ -794,7 +870,7 @@ state_of() { cat "$CACHE/state-$SESS" 2>/dev/null || echo "(none)"; }
 state_re() { case "$(state_of)" in "$1 "[0-9]*) return 0 ;; *) return 1 ;; esac; }
 hook_msg() { # kind -> a session-inbox XREAD reply
   jq -n -c --arg k "mbx:michael:s:$SESS:from:michael" --arg kind "$1" \
-    '[[$k, [["1700000000001-0", ["from","michael/s/zzz","to","x","kind",$kind,"body","hi there","sent_at","1","thread","t-a","hops","0"]]]]]'
+    '[[$k, [["1700000000001-0", ["from","michael/s/zzz","to",($k | ltrimstr("mbx:") | sub(":from:.*$"; "") | gsub(":"; "/")),"kind",$kind,"body","hi there","sent_at","1","thread","t-a","hops","0"]]]]]'
 }
 test_hook_state() {
   new_case "hook state: SessionStart writes 'idle <epoch>'"
@@ -836,6 +912,23 @@ test_hook_state() {
   assert_eq "yes" "$(yn state_re busy)" "a subagent Stop leaves it alone"
 }
 
+test_private_files() {
+  # Stage 4b item 8: the watcher's local files (ids, log, nudge stamps) are owner-only.
+  new_case "private files: watcher cache dir 700; watch-ids, watch.log and nudge stamp 600"
+  chmod 755 "$CACHE"
+  dir_entry s1 proj $((NOW - 60)) "$HOSTN" '[]' "main:1.0"; dir_commit
+  set_state s1 idle
+  rm -f "$CACHE/watch-ids"
+  rule "XREAD *" "$(xr "$SKEY" 1700000000500-0 ask hello)"
+  rule "ZRANGEBYSCORE *" '!EXIT:1:Could not connect to Redis at mbx.example.test:6379: Connection refused'
+  watch once
+  assert_eq "700" "$(fmode "$CACHE")" "cache dir tightened"
+  local f
+  for f in watch-ids watch.log nudge-s1; do
+    if [ -e "$CACHE/$f" ]; then assert_eq "600" "$(fmode "$CACHE/$f")" "$f"; else bad "$f was not created (case setup)"; fi
+  done
+}
+
 test_script_exists
 test_nudge_kinds
 test_nudge_sequence
@@ -851,6 +944,7 @@ test_run_loop
 test_install_systemd
 test_send_at
 test_hook_state
+test_private_files
 
 echo "cases=$CASES assertions_passed=$PASS assertions_failed=$FAIL"
 if [ "$FAIL" -gt 0 ]; then exit 1; fi
