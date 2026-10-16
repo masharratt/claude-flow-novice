@@ -82,11 +82,64 @@ test_missing_entry_reported(){
   grep -q 'missing.*nope' <<<"$OUT" && ok "missing_entry_reported" || no "missing_entry_reported: out=$OUT"
 }
 
+# Claude sandbox mirror: lock/unlock keep <root>/.claude/settings.local.json
+# .sandbox.filesystem.denyWrite in step with the chmod lock.
+SETTINGS="$REPO/.claude/settings.local.json"
+deny(){ jq -c '.sandbox.filesystem.denyWrite' "$SETTINGS" 2>/dev/null; }
+
+test_lock_adds_denywrite_preserving_keys(){
+  printf 'shared\n' > "$REPO/.zai-fence-readonly"
+  chmod -R u+w "$REPO/shared"
+  mkdir -p "$REPO/.claude"
+  echo '{"permissions":{"allow":["Bash(ls)"]},"sandbox":{"enabled":true,"filesystem":{"denyWrite":["/keep/me"]}}}' > "$SETTINGS"
+  run "$REPO" lock
+  [ "$RC" -eq 0 ] && [ "$(deny)" = "[\"/keep/me\",\"$REPO/shared\"]" ] \
+    && ok "lock_adds_denywrite" || no "lock_adds_denywrite: rc=$RC deny=$(deny) out=$OUT"
+  [ "$(jq -r '.permissions.allow[0]' "$SETTINGS")" = "Bash(ls)" ] && [ "$(jq -r '.sandbox.enabled' "$SETTINGS")" = "true" ] \
+    && ok "lock_preserves_other_keys" || no "lock_preserves_other_keys"
+}
+
+test_relock_no_duplicates(){
+  run "$REPO" lock
+  [ "$RC" -eq 0 ] && [ "$(jq '[.sandbox.filesystem.denyWrite[] | select(. == "'"$REPO/shared"'")] | length' "$SETTINGS")" = "1" ] \
+    && ok "relock_no_duplicates" || no "relock_no_duplicates: rc=$RC deny=$(deny)"
+}
+
+test_unlock_removes_only_its_paths(){
+  run "$REPO" unlock
+  [ "$RC" -eq 0 ] && [ "$(deny)" = '["/keep/me"]' ] \
+    && ok "unlock_removes_entries" || no "unlock_removes_entries: rc=$RC deny=$(deny) out=$OUT"
+}
+
+test_lock_creates_settings_when_absent(){
+  rm -f "$SETTINGS"
+  run "$REPO" lock
+  [ "$RC" -eq 0 ] && [ "$(deny)" = "[\"$REPO/shared\"]" ] \
+    && ok "lock_creates_settings_file" || no "lock_creates_settings_file: rc=$RC deny=$(deny) out=$OUT"
+  run "$REPO" unlock
+}
+
+test_unwritable_settings_exits_3_chmod_applied(){
+  echo '{}' > "$SETTINGS"
+  chmod a-w "$SETTINGS"
+  run "$REPO" lock
+  local locked=no
+  [ -z "$(find "$REPO/shared" -perm -u+w -print -quit)" ] && locked=yes
+  [ "$RC" -eq 3 ] && [ "$locked" = yes ] && grep -qi 'sandbox' <<<"$OUT" \
+    && ok "unwritable_settings_exit3_chmod_applied" || no "unwritable_settings_exit3_chmod_applied: rc=$RC locked=$locked out=$OUT"
+  chmod u+w "$SETTINGS"; run "$REPO" unlock
+}
+
 test_no_list_exits_2
 test_lock_blocks_delete_through_symlink
 test_unlock_restores_writes
 test_refuses_unsafe_entries
 test_missing_entry_reported
+test_lock_adds_denywrite_preserving_keys
+test_relock_no_duplicates
+test_unlock_removes_only_its_paths
+test_lock_creates_settings_when_absent
+test_unwritable_settings_exits_3_chmod_applied
 
 echo "readonly-data: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

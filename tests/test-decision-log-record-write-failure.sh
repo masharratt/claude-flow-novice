@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # tests/test-decision-log-record-write-failure.sh
 # Regression: record.sh printed "[decision-log] recorded ..." and exited 0 when the
 # sqlite write failed ("attempt to write a readonly database (8)"). A failed write must

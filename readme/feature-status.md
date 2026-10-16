@@ -3,7 +3,7 @@
 
 # Feature Status
 
-**Last Updated:** 2026-10-16 (read-only shared data: zai-fence list, readonly-data.sh lock helper)
+**Last Updated:** 2026-10-16 (shared-data guard: SessionStart check, lock mirrors into Claude sandbox)
 
 ## Status Rollup
 

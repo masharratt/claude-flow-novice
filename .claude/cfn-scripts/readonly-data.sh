@@ -7,12 +7,18 @@
 #   Reads <repo>/.zai-fence-readonly (one path per line, relative to the main
 #   checkout's root, # comments) plus ZAI_FENCE_READONLY (colon-separated).
 #   Works from a worktree: paths resolve against the repo that owns it.
-#   lock    chmod -R a-w each listed path (run after a rebuild)
-#   unlock  chmod -R u+w each listed path (run before a rebuild)
+#   lock    chmod -R a-w each listed path (run after a rebuild), and merge each
+#           path's realpath into <root>/.claude/settings.local.json at
+#           .sandbox.filesystem.denyWrite (keeps other content, no duplicates)
+#           so Claude's own sandbox refuses writes there too
+#   unlock  chmod -R u+w each listed path (run before a rebuild), and remove
+#           exactly those paths from denyWrite
 #   status  prints locked | unlocked | missing for each entry
 #
 # Exit: 0 ok; 1 an entry is unsafe (nothing is changed); 2 no entries, so
-# nothing is protected; 64 usage.
+# nothing is protected; 3 chmod applied but settings.local.json could not be
+# written (Claude's sandbox may protect it; rerun outside the sandbox);
+# 64 usage.
 #
 # Incident MDTWII 2026-10-16: a test Drop impl wiped 7.5 GB through a worktree
 # symlink four times; chmod a-w was the guard that held.
@@ -56,4 +62,38 @@ for p in ${PATHS[@]+"${PATHS[@]}"}; do
         echo "locked    ${p#"$ROOT"/}"
     fi
 done
+
+# Mirror the lock into Claude's sandbox deny list. New content is computed
+# first, then written atomically (temp + mv); a failure never leaves a partial file.
+if [ "$MODE" != status ] && [ "${#PATHS[@]}" -gt 0 ]; then
+    SETTINGS="$ROOT/.claude/settings.local.json"
+    sandbox_fail(){
+        echo "readonly-data: WARNING: chmod $MODE applied, but the Claude sandbox entry in $SETTINGS did NOT change ($1). Run this command outside the sandbox." >&2
+        exit 3
+    }
+    command -v jq >/dev/null 2>&1 || sandbox_fail "jq not found"
+    PJSON=$(printf '%s\n' "${PATHS[@]}" | jq -R . | jq -s .) || sandbox_fail "cannot encode paths"
+    if [ -f "$SETTINGS" ]; then BASE=$(cat "$SETTINGS") || sandbox_fail "cannot read file"; else BASE='{}'; fi
+    NEW=""
+    if [ "$MODE" = lock ]; then
+        NEW=$(printf '%s' "$BASE" | jq --argjson p "$PJSON" \
+            '(.sandbox.filesystem.denyWrite // []) as $c | .sandbox.filesystem.denyWrite = ($c + ($p - $c | unique))') \
+            || sandbox_fail "existing file is not valid JSON"
+    elif [ -f "$SETTINGS" ]; then
+        NEW=$(printf '%s' "$BASE" | jq --argjson p "$PJSON" \
+            'if (.sandbox.filesystem.denyWrite // null) == null then . else .sandbox.filesystem.denyWrite -= $p end') \
+            || sandbox_fail "existing file is not valid JSON"
+    fi
+    if [ -n "$NEW" ] && [ "$(printf '%s' "$NEW" | jq -S .)" != "$(printf '%s' "$BASE" | jq -S .)" ]; then
+        [ ! -e "$SETTINGS" ] || [ -w "$SETTINGS" ] || sandbox_fail "file is not writable"
+        mkdir -p "$(dirname "$SETTINGS")" 2>/dev/null || sandbox_fail "cannot create directory"
+        TMP=$(mktemp "$(dirname "$SETTINGS")/.settings.local.XXXXXX" 2>/dev/null) || sandbox_fail "cannot create temp file"
+        if printf '%s\n' "$NEW" > "$TMP" && mv -f "$TMP" "$SETTINGS" 2>/dev/null; then
+            echo "sandbox   denyWrite updated in ${SETTINGS#"$ROOT"/}"
+        else
+            rm -f "$TMP" 2>/dev/null
+            sandbox_fail "write failed"
+        fi
+    fi
+fi
 exit 0
