@@ -46,7 +46,7 @@ test_lock_blocks_delete_through_symlink(){
   printf '# shared data\nshared\n' > "$REPO/.zai-fence-readonly"
   run "$WT" lock
   [ "$RC" -eq 0 ] && ok "lock_from_worktree_rc0" || no "lock_from_worktree_rc0: rc=$RC out=$OUT"
-  rm -rf "$WT/extracted/data" 2>/dev/null
+  cfn_safe_rm_tmp "$WT/extracted/data" 2>/dev/null   # resolves the link; the lock must still refuse
   [ -f "$REPO/shared/data/sub/keep.txt" ] && ok "delete_via_symlink_blocked" \
     || no "delete_via_symlink_blocked: keep.txt gone"
   echo x > "$REPO/src/b.txt" 2>/dev/null

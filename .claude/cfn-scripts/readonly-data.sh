@@ -87,7 +87,7 @@ if [ "$MODE" != status ] && [ "${#PATHS[@]}" -gt 0 ]; then
     if [ -n "$NEW" ] && [ "$(printf '%s' "$NEW" | jq -S .)" != "$(printf '%s' "$BASE" | jq -S .)" ]; then
         [ ! -e "$SETTINGS" ] || [ -w "$SETTINGS" ] || sandbox_fail "file is not writable"
         mkdir -p "$(dirname "$SETTINGS")" 2>/dev/null || sandbox_fail "cannot create directory"
-        TMP=$(mktemp "$(dirname "$SETTINGS")/.settings.local.XXXXXX" 2>/dev/null) || sandbox_fail "cannot create temp file"
+        TMP=$(mktemp "$(dirname "$SETTINGS")/.settings.local.XXXXXX" 2>/dev/null) || { sandbox_fail "cannot create temp file"; }
         if printf '%s\n' "$NEW" > "$TMP" && mv -f "$TMP" "$SETTINGS" 2>/dev/null; then
             echo "sandbox   denyWrite updated in ${SETTINGS#"$ROOT"/}"
         else

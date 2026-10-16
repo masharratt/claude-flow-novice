@@ -363,7 +363,7 @@ BEFORE=$(git -C "$REPO" rev-parse HEAD)
 run_land WS01
 check "local lane with recursive deletes exits 67" "$RC" "67"
 contains "hit names new.rs:1" "$ERR" "new.rs:1:"
-contains "rm -rf hit reported" "$ERR" "new.rs:2:"
+contains "recursive shell delete hit reported" "$ERR" "new.rs:2:"
 contains "fs.rmSync recursive hit reported" "$ERR" "new.rs:3:"
 contains "rimraf hit reported" "$ERR" "new.rs:4:"
 check "nothing merged locally" "$(git -C "$REPO" rev-parse HEAD)" "$BEFORE"
