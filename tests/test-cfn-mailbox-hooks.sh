@@ -184,6 +184,22 @@ test_identity_and_session_start() {
   assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/top-repo-x-abc123 ")" "session = <toplevel project>-<sid6>"
   assert_eq "yes" "$(yn has_cmd "mbx:michael:p:top-repo-x:from:michael")" "project address uses the toplevel name"
 
+  new_case "identity: a linked worktree joins the main checkout's project, not its own folder name (stage 6)"
+  local main="$T/work/Proj_A" wt
+  mkdir -p "$main"
+  git -C "$main" init -q 2>/dev/null
+  git -C "$main" -c user.email=t@example.test -c user.name=t commit -q --allow-empty -m init 2>/dev/null
+  wt="$main/.claude/worktrees/ws01"
+  git -C "$main" worktree add -q "$wt" -b ws01 2>/dev/null
+  assert_eq "yes" "$(yn test -f "$wt/.git")" "fixture: worktree exists"
+  mkdir -p "$wt/sub"
+  W="$wt/sub"
+  hook "$(ev SessionStart)"
+  assert_eq "yes" "$(yn has_cmd "mbx:michael:p:proj-a:from:michael")" "project address uses the main checkout name"
+  assert_eq "yes" "$(yn has_cmd "XREVRANGE mbx:michael:r:proj-a:from:michael")" "room joined is the main checkout name"
+  assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/proj-a-abc123 ")" "session name from the main checkout"
+  assert_eq "no" "$(yn has_cmd "ws01")" "worktree folder name never used"
+
   new_case "SessionStart with mail: plain text, tier header present"
   rule "XREAD COUNT 20 STREAMS $SKEY *" "$(mkmsg "$SKEY" 1700000000001-0 michael/s/zzz ask 'wake up please' t-a 0)"
   hook "$(ev SessionStart)"

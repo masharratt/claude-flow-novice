@@ -5,7 +5,7 @@
 
 **Status:** beta
 
-Stages 1-4 live on the Mac and the VPS. Stages 4b and 5 (fleet workers on the mailbox: role names, coordinator tier, worker outbound queue) pass the offline suites; not yet deployed, and live ACL users need ~claim:<owner>:* and ~alias:<owner>:* first.
+Stages 1-4 live on the Mac and the VPS. Stages 4b, 5 and the CFN side of 6 (fleet workers on the mailbox: role names, coordinator tier, worker outbound queue, mesh rules: main-checkout project names, room mail never wakes, mailbox.sh stats) pass the offline suites; not yet deployed, and live ACL users need ~claim:<owner>:* and ~alias:<owner>:* first.
 
 **Source:**
 

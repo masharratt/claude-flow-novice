@@ -15,7 +15,7 @@
 # one plain XREAD (no group, no marker moves) over their inbox keys from its own last-notified ids
 # (~/.cache/cfn-mailbox/watch-ids). New ask/reminder mail (and replies of 40+ characters) types
 # NUDGE_TEXT (defined once in mailbox.sh) into the pane of an idle session, at most once a minute per
-# session. Idle comes from the hook's state file ~/.cache/cfn-mailbox/state-<session>.
+# session. Room mail of any kind never nudges (stage 6); session and project mail do. Idle comes from the hook's state file ~/.cache/cfn-mailbox/state-<session>.
 #
 # Lifecycle (every 60 s, only when `SET lock:<owner>:lifecycle <host> NX EX 60` succeeds):
 # send-later delivery, 24 h session and 7 d project bounces, 7 d session expiry. Both writers are
@@ -199,10 +199,8 @@ nudge_pass() {
     if [ -n "$project" ] && valid_name "$project"; then
       while IFS= read -r key; do [ -z "$key" ] || printf '%s|p|%s\n' "$key" "$project" >> "$MAPF"; done < <(receiver_keys p "$project")
     fi
-    for room in ${rooms//,/ }; do
-      valid_name "$room" || continue
-      while IFS= read -r key; do [ -z "$key" ] || printf '%s|r|%s\n' "$key" "$name" >> "$MAPF"; done < <(receiver_keys r "$room")
-    done
+    # Room mail is never watched for waking (stage 6): an ask in a mesh room would wake every idle
+    # subscriber at once and they would all answer. Rooms are shown at the next prompt instead.
   done < "$DIRF"
   cut -d'|' -f1 "$MAPF" | sort -u > "$KEYSF"
   # forget keys nobody here watches any more

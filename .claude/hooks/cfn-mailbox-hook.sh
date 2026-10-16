@@ -34,7 +34,8 @@
 # Identity: MAILBOX_SESSION env wins (fleet sets it); then a role name this session claimed
 # (~/.cache/cfn-mailbox/alias-<session_id>, written by `mailbox.sh claim`); otherwise
 # <project>-<first 6 chars of session_id>, lowercased, anything outside [a-z0-9-] turned into "-".
-# project = git toplevel basename, else cwd basename.
+# project = the main checkout's folder name (a linked worktree maps to its main repo; see
+# skills/cfn-mailbox/project-name.sh), else git toplevel basename, else cwd basename.
 #
 # Fleet (stage 5): MAILBOX_COORD_FILE (set by fleet spawn) lets mailbox.sh label the master's mail
 # "coordinator"; MAILBOX_OUTQ is a sandboxed worker's outbound queue, flushed here on every event.
@@ -59,6 +60,10 @@ MB="$HOOK_DIR/../skills/cfn-mailbox/mailbox.sh"
 MB_SOURCED=""
 if [ -f "$MB" ] && . "$MB" 2>/dev/null; then MB_SOURCED=1; fi
 set +e
+# Project name helper (main checkout folder, also used by cfn-fleet): one definition.
+PN="$(dirname "$MB")/project-name.sh"
+[ -f "$PN" ] && . "$PN" 2>/dev/null
+type mailbox_project_name >/dev/null 2>&1 || mailbox_project_name() { basename "${1:-$PWD}"; }
 CFG="${MAILBOX_CONFIG:-$HOME/.config/cfn-mailbox/env}"
 CACHE_DIR="$HOME/.cache/cfn-mailbox"
 LOG="$CACHE_DIR/hook.log"
@@ -312,9 +317,7 @@ main() {
 
   OWNER="$(grep '^MAILBOX_OWNER=' "$CFG" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d "\"'\r")"
   [[ "$OWNER" =~ ^[a-z0-9-]+$ ]] || { log_err "event=$EVENT config has no usable MAILBOX_OWNER"; exit 0; }
-  local top
-  top="$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null || true)"
-  PROJECT="$(sanitize "$(basename "${top:-$CWD}")" | cut -c1-"$NAME_MAX")"
+  PROJECT="$(sanitize "$(mailbox_project_name "$CWD")" | cut -c1-"$NAME_MAX")"
   [ -n "$PROJECT" ] || PROJECT="unknown"
   SESSION="${MAILBOX_SESSION:-}"
   # A role name this session claimed (mailbox.sh claim) is its address for read, send and the directory.

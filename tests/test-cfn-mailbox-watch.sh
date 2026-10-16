@@ -277,22 +277,25 @@ test_nudge_project_and_rooms() {
   watch once --nudge
   assert_eq "0" "$(nudges)" "all busy"
 
-  new_case "room mail: every idle subscriber, not the busy one or non-subscribers"
+  new_case "room mail never wakes anyone (stage 6): ask and reminder in a room nudge nobody"
   local RKEY="mbx:michael:r:dev:from:michael"
   dir_entry s1 proj $((NOW - 60)) "$HOSTN" '["dev"]' "main:1.0"
   dir_entry s2 proj $((NOW - 60)) "$HOSTN" '["dev"]' "main:2.0"
-  dir_entry s3 proj $((NOW - 60)) "$HOSTN" '["dev"]' "main:3.0"
-  dir_entry s4 proj $((NOW - 60)) "$HOSTN" '[]' "main:4.0"
   dir_commit
-  set_state s1 idle; set_state s2 idle; set_state s3 busy; set_state s4 idle
-  seed_for s:s1 s:s2 s:s3 s:s4 p:proj r:dev
+  set_state s1 idle; set_state s2 idle
+  seed_for s:s1 s:s2 p:proj r:dev
   rule "XREAD *" "$(xr "$RKEY" 1700000000500-0 ask hello)"
   watch once --nudge
-  assert_eq "yes" "$(nudged main:1.0)" "s1 subscriber idle"
-  assert_eq "yes" "$(nudged main:2.0)" "s2 subscriber idle"
-  assert_eq "no" "$(nudged main:3.0)" "s3 busy"
-  assert_eq "no" "$(nudged main:4.0)" "s4 not subscribed"
-  assert_eq "2" "$(nudges)" "two nudges"
+  assert_eq "no" "$(nudged main:1.0)" "s1 idle subscriber not woken by a room ask"
+  assert_eq "no" "$(nudged main:2.0)" "s2 idle subscriber not woken by a room ask"
+  assert_eq "0" "$(nudges)" "zero nudges for room mail"
+
+  new_case "room mail never wakes anyone: a project ask still wakes one session"
+  dir_entry s1 proj $((NOW - 60)) "$HOSTN" '["dev"]' "main:1.0"; dir_commit
+  set_state s1 idle; seed_for s:s1 p:proj r:dev
+  rule "XREAD *" "$(xr "$PKEY" 1700000000500-0 ask hello)"
+  watch once --nudge
+  assert_eq "yes" "$(nudged main:1.0)" "project ask still nudges"
 
   # Stage 4b item 1: an outside owner writing straight into Redis at a private session address
   # used to wake the session.

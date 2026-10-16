@@ -295,6 +295,12 @@ the coordinator style safer.
    messages to Mac workers) are removed once the mailbox path is green.
 6. **gg-all-projects (mesh).** Room `michael/r/gg-all-projects`, project addresses for each area,
    and a short note in that repo on when to use which. Watch the log for a week for loops.
+   **CFN part built 2026-10-16 (offline suites green, not committed):** project name from the main
+   checkout (worktrees join the main repo's room and address; one helper,
+   `cfn-mailbox/project-name.sh`, shared with fleet), room mail never wakes anyone (watcher),
+   `mailbox.sh stats [--hours N]` (LOOP?/FLOOD? flags, exit 0/1/2), mesh etiquette in SKILL.md.
+   Still open: the gg-all-projects note and the live room. **Week-long watch: run
+   `mailbox.sh stats` daily and review on 2026-10-23.**
 7. **Steve (outside).** His ACL user, his public addresses, a one-page setup for his machine, and a
    test exchange: his agent to `michael/me` delivered, his agent to a non-public address bounced.
 

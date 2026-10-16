@@ -475,6 +475,87 @@ test_who_log() {
   mb log 5; assert_eq "yes" "$(has_cmd 'COUNT 5' && echo yes)" "log N"
 }
 
+# logrec FROM KIND THREAD HOPS AT: one stats log entry as an XRANGE row (JSON).
+logrec() {
+  jq -n -c --arg f "$1" --arg k "$2" --arg t "$3" --argjson h "$4" --argjson at "$5" \
+    '[($at|tostring)+"000-0", ["rec", ({id:(($at|tostring)+"000-0"),from:$f,to:"michael/me",kind:$k,thread:$t,hops:$h,bytes:5,at:$at}|tostring)]]'
+}
+# stats_rows ROW...: set the XRANGE reply of log:michael to the given rows.
+stats_rows() { local j; j="$(printf '%s\n' "$@" | jq -s -c .)"; rule 'XRANGE log:michael *' "$j"; }
+
+test_stats() {
+  local NOW=1700100000
+  new_case "stats: clean window prints totals, kinds, senders, threads; exit 0"
+  export MAILBOX_NOW=$NOW
+  stats_rows "$(logrec michael/s/a ask t1 0 $((NOW-100)))" "$(logrec michael/s/a fyi t2 1 $((NOW-90)))" \
+    "$(logrec michael/s/b reply t1 1 $((NOW-80)))"
+  mb stats
+  assert_rc 0 "clean window"
+  assert_contains "$OUT" "total: 3" "total"
+  assert_contains "$OUT" "ask=1" "kind ask"
+  assert_contains "$OUT" "fyi=1" "kind fyi"
+  assert_contains "$OUT" "reply=1" "kind reply"
+  assert_contains "$OUT" "michael/s/a=2" "top sender"
+  assert_contains "$OUT" "t1 messages=2 max_hops=1" "top thread"
+  assert_not_contains "$OUT" "LOOP?" "no loop"
+  assert_not_contains "$OUT" "FLOOD?" "no flood"
+  assert_eq "yes" "$(has_cmd "XRANGE log:michael $(( (NOW - 168*3600) * 1000 ))" && echo yes)" "default window 168 h starts at the right stream id"
+  mb stats --hours 24
+  assert_eq "yes" "$(has_cmd "XRANGE log:michael $(( (NOW - 24*3600) * 1000 ))" && echo yes)" "--hours 24"
+
+  new_case "stats: a thread with 6 messages is a LOOP?"
+  local -a rows=() i
+  for i in 1 2 3 4 5 6; do rows+=("$(logrec michael/s/a ask tloop 0 $((NOW-1000+i*100)))"); done
+  stats_rows "${rows[@]}"
+  mb stats
+  assert_rc 1 "loop"
+  assert_contains "$OUT" "LOOP? thread tloop" "LOOP? line names the thread"
+  assert_contains "$OUT" "6 messages" "count"
+
+  new_case "stats: a thread with hops >= 3 is a LOOP?"
+  stats_rows "$(logrec michael/s/a ask thop 3 $((NOW-100)))"
+  mb stats
+  assert_rc 1 "hops loop"
+  assert_contains "$OUT" "LOOP? thread thop" "hops line"
+  assert_contains "$OUT" "max hops 3" "hops shown"
+
+  new_case "stats: 5 messages and hops 2 is not a loop (boundary)"
+  rows=()
+  for i in 1 2 3 4 5; do rows+=("$(logrec michael/s/a ask tok 2 $((NOW-1000+i*100)))"); done
+  stats_rows "${rows[@]}"
+  mb stats
+  assert_rc 0 "below both thresholds"
+  assert_not_contains "$OUT" "LOOP?" "no loop at 5 msgs / hops 2"
+
+  new_case "stats: more than 30 messages from one sender in one hour is a FLOOD?"
+  rows=()
+  for i in $(seq 1 31); do rows+=("$(logrec michael/s/spam fyi "ts$i" 0 $((NOW-3000+i)))"); done
+  stats_rows "${rows[@]}"
+  mb stats
+  assert_rc 1 "flood"
+  assert_contains "$OUT" "FLOOD? sender michael/s/spam" "FLOOD? names the sender"
+  assert_contains "$OUT" "31 messages in one hour" "count"
+
+  new_case "stats: exactly 30 in an hour is not a flood (boundary)"
+  rows=()
+  for i in $(seq 1 30); do rows+=("$(logrec michael/s/spam fyi "ts$i" 0 $((NOW-3000+i)))"); done
+  stats_rows "${rows[@]}"
+  mb stats
+  assert_rc 0 "30 is fine"
+  assert_not_contains "$OUT" "FLOOD?" "no flood at 30"
+
+  new_case "stats: empty window exits 2 and says it examined nothing"
+  mb stats
+  assert_rc 2 "zero messages"
+  assert_contains "$OUT" "examined nothing" "says so"
+
+  new_case "stats: bad --hours is a usage error and reads nothing"
+  mb stats --hours abc; assert_rc 2 "non-number"
+  mb stats --hours 0; assert_rc 2 "zero"
+  mb stats --bogus; assert_rc 2 "unknown flag"
+  unset MAILBOX_NOW
+}
+
 test_join_leave() {
   new_case "join: needs a session name"
   mb join lounge
@@ -906,6 +987,7 @@ run_offline() {
   test_read_person_default
   test_read_other_owner
   test_who_log
+  test_stats
   test_join_leave
   test_read_max_and_peek
   test_heartbeat

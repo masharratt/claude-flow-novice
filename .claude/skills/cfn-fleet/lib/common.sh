@@ -220,17 +220,12 @@ fleet_valid_host(){
 fleet_project_name(){ # REPO — the project's name: the main checkout's folder,
   # even when REPO is a linked worktree (a worktree's own folder name is not
   # the project; host-setup and spawn --host name server paths after this)
-  local repo="$1" common
-  common=$(cd "$repo" 2>/dev/null && git rev-parse --git-common-dir 2>/dev/null) || common=""
-  if [ -n "$common" ]; then
-    case "$common" in /*) ;; *) common="$repo/$common" ;; esac
-    common=$(cd "$common" 2>/dev/null && pwd -P) || common=""
-  fi
-  if [ -n "$common" ] && [ "$(basename "$common")" = ".git" ]; then
-    basename "$(dirname "$common")"
-  else
-    basename "$repo"
-  fi
+  # One definition shared with the mailbox hook: cfn-mailbox/project-name.sh.
+  local repo="$1" pn
+  pn="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../cfn-mailbox" 2>/dev/null && pwd)/project-name.sh"
+  # shellcheck source=/dev/null
+  . "$pn" || return 1
+  mailbox_project_name "$repo"
 }
 
 fleet_worktree_path(){

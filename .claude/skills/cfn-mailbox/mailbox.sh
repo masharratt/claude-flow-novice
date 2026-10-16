@@ -7,6 +7,7 @@
 #   mailbox.sh read [--as <session-address>] [--max N] [--peek] [--spool FILE] [--reader NAME]
 #   mailbox.sh who [--seen]
 #   mailbox.sh log [N]
+#   mailbox.sh stats [--hours N]      loop/flood watch from log:<owner> (default 168 h); exit 0 clean, 1 LOOP?/FLOOD?, 2 empty
 #   mailbox.sh join <room> | leave <room>
 #   mailbox.sh claim <name> | release <name> | whoami
 #   mailbox.sh queue <to> [--kind K] [--fleet TYPE] "<text>" | flush     (worker outbound queue, MAILBOX_OUTQ)
@@ -763,6 +764,55 @@ cmd_log() {
   printf '%s' "$RC_OUT" | jq -r '(. // [])[] | .[0] + "\t" + (.[1][1] // "")' || die 18 "unreadable log reply"
 }
 
+# cmd_stats [--hours N]: loop and flood watch over log:<owner> (metadata only, never bodies).
+# Exit 0 clean | 1 a LOOP? or FLOOD? line | 2 the window held no messages (examined nothing).
+STATS_LOOP_MSGS=6      # a thread with this many messages is a LOOP?
+STATS_LOOP_HOPS=3      # ... or this many hops
+STATS_FLOOD_MSGS=30    # a sender with MORE than this many in any 3600 s is a FLOOD?
+cmd_stats() {
+  local hours=168 out
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --hours) [ $# -ge 2 ] || die 2 "--hours needs a number"; hours="$2"; shift 2 ;;
+      *) die 2 "stats takes only [--hours N]" ;;
+    esac
+  done
+  [[ "$hours" =~ ^[0-9]+$ ]] && [ "$hours" -ge 1 ] && [ "$hours" -le 8760 ] || die 2 "--hours takes a number from 1 to 8760"
+  local now since
+  now="$(now_s)"; since=$(( (now - hours * 3600) * 1000 ))
+  rcmdj XRANGE "log:$MAILBOX_OWNER" "$since" +
+  out="$(printf '%s' "$RC_OUT" | jq -r --argjson h "$hours" --argjson lm "$STATS_LOOP_MSGS" \
+    --argjson lh "$STATS_LOOP_HOPS" --argjson fm "$STATS_FLOOD_MSGS" '
+    def top5: sort_by(-.n, .k) | .[:5];
+    [ (. // [])[] | (.[1][1] // "" | fromjson? // empty)
+      | select(type == "object")
+      | {from: (.from // "?"), kind: (.kind // "fyi"), thread: (.thread // "-"),
+         hops: ((.hops // 0) | tonumber? // 0),
+         at: ((.at // ((.id // "0-0" | split("-")[0] | tonumber? // 0) / 1000)) | floor)} ] as $r
+    | if ($r | length) == 0 then "stats: no messages in the last \($h) h; examined nothing"
+      else
+        "stats: last \($h) h, \($r | length) messages examined",
+        "total: \($r | length)",
+        "kinds: " + ($r | group_by(.kind) | map("\(.[0].kind)=\(length)") | join(" ")),
+        "top senders: " + ($r | group_by(.from) | map({k: .[0].from, n: length}) | top5 | map("\(.k)=\(.n)") | join(" ")),
+        ( ($r | group_by(.thread) | map({k: .[0].thread, n: length, hops: (map(.hops) | max)})) as $t
+          | "top threads: " + ($t | top5 | map("\(.k) messages=\(.n) max_hops=\(.hops)") | join(" | ")),
+          ($t[] | select(.n >= $lm or .hops >= $lh)
+            | "LOOP? thread \(.k): \(.n) messages, max hops \(.hops)") ),
+        ( $r | group_by(.from)[]
+          | {k: .[0].from, ats: (map(.at) | sort)} as $s
+          | ([range(0; $s.ats | length) | . as $i | [$s.ats[$i:][] | select(. - $s.ats[$i] < 3600)] | length] | max) as $burst
+          | select($burst > $fm)
+          | "FLOOD? sender \($s.k): \($burst) messages in one hour" )
+      end')" || die 18 "unreadable log reply"
+  printf '%s\n' "$out"
+  case "$out" in
+    *"examined nothing"*) exit 2 ;;
+    *$'\n'"LOOP?"*|*$'\n'"FLOOD?"*) exit 1 ;;
+  esac
+  return 0
+}
+
 # --------------------------------------------------------------------- rooms
 
 room_arg() { # sets ROOM
@@ -1099,14 +1149,14 @@ main() {
   case "$sub" in
     adduser) cmd_adduser "$@" ;;
     queue) cmd_queue "$@" ;;   # local only: no config, no network
-    send|read|who|log|join|leave|heartbeat|doctor|claim|release|whoami|flush)
+    send|read|who|log|stats|join|leave|heartbeat|doctor|claim|release|whoami|flush)
       load_config
       "cmd_$sub" "$@" ;;
     ''|-h|--help|help)
-      sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+      sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
       [ -n "$sub" ] && exit 0
       exit 2 ;;
-    *) die 2 "unknown subcommand '$sub' (send, read, who, log, join, leave, claim, release, whoami, queue, flush, doctor, adduser)" ;;
+    *) die 2 "unknown subcommand '$sub' (send, read, who, log, stats, join, leave, claim, release, whoami, queue, flush, doctor, adduser)" ;;
   esac
 }
 

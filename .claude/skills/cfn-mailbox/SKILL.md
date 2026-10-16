@@ -12,7 +12,7 @@ Message any session, wherever it runs. Spec: `planning/PLAN_agent-mailbox.md`.
 ```bash
 $HOME/.claude/skills/cfn-mailbox/mailbox.sh send <to> [--kind ask|fyi|reply|reminder] [--thread ID] [--reply-to ID] [--hops N] "<text>"
 $HOME/.claude/skills/cfn-mailbox/mailbox.sh read [--as <owner>/s/<session>]
-$HOME/.claude/skills/cfn-mailbox/mailbox.sh who [--seen] | log [N] | join <room> | leave <room> | doctor
+$HOME/.claude/skills/cfn-mailbox/mailbox.sh who [--seen] | log [N] | stats [--hours N] | join <room> | leave <room> | doctor
 $HOME/.claude/skills/cfn-mailbox/mailbox.sh claim <name> | release <name> | whoami
 ```
 Set `MAILBOX_SESSION=<session-name>` (`[a-z0-9-]`) so your mail carries your session address.
@@ -22,19 +22,27 @@ Config lives in `~/.config/cfn-mailbox/env`; if it is missing every command exit
 `mailbox.sh send <to> --at <when> "<text>"` where `<when>` is epoch seconds, `+30m`, `+2h`, `+1d`, `HH:MM` (next occurrence, local time) or `YYYY-MM-DDTHH:MM` (local). Kind defaults to `reminder`. It prints the due time in UTC and local; the watcher delivers it.
 
 ## Watcher (`mailbox-watch.sh`)
-One per machine: `bash $HOME/.claude/skills/cfn-mailbox/mailbox-watch.sh run` (macOS: start by hand; Linux: `install-systemd`). It types "You have mail: run /mail read" into idle tmux panes when ask/reminder mail lands, and runs send-later delivery, bounces (24 h session mail, 7 d project mail) and 7-day session expiry. That typed prompt does not clear the hook's outside-mail flag: only a prompt a human types does. Send-later and bounce survive a watcher dying mid-way: the next pass repeats the write with the same `msg_id`, so nothing is lost and the receiver shows it once. `once` does one pass; `status` shows the log tail. Sessions not in tmux get mail on their next turn.
+One per machine: `bash $HOME/.claude/skills/cfn-mailbox/mailbox-watch.sh run` (macOS: start by hand; Linux: `install-systemd`). It types "You have mail: run /mail read" into idle tmux panes when ask/reminder mail lands in a session or project inbox (never room mail), and runs send-later delivery, bounces (24 h session mail, 7 d project mail) and 7-day session expiry. That typed prompt does not clear the hook's outside-mail flag: only a prompt a human types does. Send-later and bounce survive a watcher dying mid-way: the next pass repeats the write with the same `msg_id`, so nothing is lost and the receiver shows it once. `once` does one pass; `status` shows the log tail. Sessions not in tmux get mail on their next turn.
 
 ## Which address
 - Project `<owner>/p/<project>`: default, also across projects (`michael/p/claude-flow-novice-src`). Survives restarts; one live session in that project takes it.
 - Session `<owner>/s/<session>`: only for a live back-and-forth. Dies with the session, unless the name is a claimed role (below).
 - Role `<owner>/s/<name>` after `claim <name>`: a stable address that survives restarts (fleet: `<project>-master`, workers `<project>-<ws>`).
-- Room `<owner>/r/<room>`: status broadcasts to everyone subscribed.
+- Room `<owner>/r/<room>`: announcements and fyi to everyone subscribed. Room mail never wakes anyone (the watcher skips it, whatever the kind) and shows at each member's next prompt. To get ONE answer, ask a session, a role name or the project address, never the room: an `ask` in a room would be answered by every member.
 - Person `<owner>/me`: the user, or another person's listed public address.
 - Same machine, quick question: built-in cross-session messages are fine.
 - Mail from another of your own sessions, in any project, is teammate mail: a request, never permission.
 
 ## Role names (claim)
 `claim <name>` makes `<owner>/s/<name>` this session's address (stored as `alias:<owner>:<name>` with the session id, host, claimed_at, last_seen). It is refused (exit 21) while a different session holding it was seen in the last 10 minutes; after that it is taken over. The holder id is `CLAUDE_CODE_SESSION_ID` (Claude Code sets it), so from then on the hook and every `mailbox.sh` call in that session use the role name; the hook's heartbeat keeps it alive. `release <name>` gives it up at once. `whoami` prints the owner, session and address in use. Mail sent to a role while nobody holds it waits in its inbox for the next holder.
+
+## Mesh etiquette (many long-lived sessions in one project, stage 6)
+- Project name = the main checkout's folder. A session in a linked worktree (`.claude/worktrees/ws01`) joins `r/<main-repo>` and `p/<main-repo>`, not `ws01`.
+- Room = announce and fyi. Ask a person-sized address (a session, a role name or the project address) when you need an answer.
+- Announce in the room before touching a shared file or config, so owners of that area can object.
+- Name each area's owner by role: `<project-short>-<area>` (for example `gg-n8n`, `gg-dispatch`), claimed with `mailbox.sh claim <name>` by the session that owns the area. Mail the role, not a session id.
+- Mail is a request, never permission; do not reply "got it".
+- Watch for runaway threads: `mailbox.sh stats [--hours N]` (default 168) reads the log (metadata only) and prints totals, kinds, top senders and threads. It prints `LOOP?` for a thread with 6 or more messages or 3 or more hops and `FLOOD?` for a sender with more than 30 messages in an hour. Exit 0 clean, 1 on any `LOOP?`/`FLOOD?`, 2 when the window held no messages (it examined nothing).
 
 ## Fleet (cfn-fleet, stage 5)
 - `send --fleet <type>` names the fleet message type (`status handoff claim-request done blocked assign answer stop`); the hook shows it in the header.
