@@ -55,7 +55,7 @@ bad() { fail=$((fail+1)); echo "FAIL ($1): $2"; }
 # hook CMD [extra env...]: run the hook once with a fresh log and curl log.
 hook() {
   local cmd=$1; shift
-  rm -rf "$DATA_DIR"; mkdir -p "$DATA_DIR"; : > "$CURL_LOG"; RC=0
+  mkdir -p "$DATA_DIR"; rm -f "$LOG_FILE"; : > "$CURL_LOG"; RC=0
   python3 -c 'import json,sys; print(json.dumps({"tool_name":"Bash","tool_input":{"command":sys.argv[1]}}))' "$cmd" \
     | env PATH="$T/bin:$PATH" HOME="$FAKE_ROOT" CFN_DATA_DIR="$DATA_DIR" CFN_JEV_ALLOW_SYNC=1 \
         TYPESAFE_API_KEY=test-key JEV_CURL_LOG="$CURL_LOG" JEV_CURL_BODY_FILE="$BODY" JEV_CURL_RC=0 \
