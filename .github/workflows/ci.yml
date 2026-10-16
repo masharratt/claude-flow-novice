@@ -296,6 +296,12 @@ jobs:
       - name: Jev careful-guard tests
         run: bash tests/test-jev-careful-guard.sh
 
+      - name: Jev allow shadow tests
+        run: bash tests/test-jev-allow-shadow.sh
+
+      - name: Careful-guard force-push tests
+        run: bash tests/test-careful-guard-force-push.sh
+
       - name: Jev rot-risk tests
         run: bash tests/test-jev-rot-risk.sh
 

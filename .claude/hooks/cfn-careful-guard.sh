@@ -124,7 +124,14 @@ elif echo "$CMD_LOWER" | grep -qiE '(drop[[:space:]]+table|drop[[:space:]]+datab
     echo "Confirm with the user before executing database destruction." >&2
     DENY_RULE=db-destruction
 # --- Git force operations ---
-elif echo "$MATCH_CMD" | grep -qE "$ANCHOR"'git[[:space:]]+push[[:space:]]+.*(-f|--force)'; then
+# The force flag must be a whole argument of the git push itself: same command
+# segment, same line. The old `git push .*(-f|--force)` matched any later -f
+# on the line (`| tail -1`, `--ff-only`, a branch named feature-fix), and 14 of
+# 14 logged force-push blocks were false. Segments are split one per line
+# (separators and the JSON "\n" escape become newlines) so ^ and $ bound one
+# command. Forms caught: -f / -uf, --force*, +refspec, git -C dir push.
+elif printf '%s' "$CMD_LOWER" | sed 's/\\n/;/g' | tr ';&|`(' '\n\n\n\n\n' \
+     | grep -qE '^[[:space:]]*git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*[[:space:]]+push([[:space:]]+[^[:space:]]+)*[[:space:]]+(-[a-z0-9]*f[a-z0-9]*|--force[a-z-]*|\+[^[:space:]]+)([[:space:]]|$)'; then
     echo "BLOCKED: Force push detected." >&2
     echo "Force push can overwrite remote history. Confirm with the user." >&2
     DENY_RULE=force-push
@@ -162,6 +169,22 @@ fi
 if [ -n "$DENY_RULE" ]; then
     timeout 2 "$HOME/.claude/skills/cfn-careful/lib/jev-deny-check.sh" --rule "$DENY_RULE" --cmd "$COMMAND" >/dev/null 2>&1 || true
     exit 2
+fi
+
+# Allow shadow (one-week trial, ends by itself on JEV_ALLOW_SHADOW_UNTIL): Jev
+# judges every command the rules let through, so its catches and false alarms
+# can be measured before it is ever allowed to block. Detached in the
+# background so it adds no latency; output discarded, verdict unchanged.
+# CFN_JEV_ALLOW_SYNC=1 runs it in the foreground (tests only).
+JEV_ALLOW="$HOME/.claude/skills/cfn-careful/lib/jev-allow-check.sh"
+if [ "${CFN_JEV_ALLOW_SHADOW:-on}" != off ] && [ -f "$JEV_ALLOW" ]; then
+    JEV_GUARD=allow
+    [ -z "$RM_ASK" ] || JEV_GUARD=ask
+    if [ -n "${CFN_JEV_ALLOW_SYNC:-}" ]; then
+        bash "$JEV_ALLOW" --cmd "$COMMAND" --guard "$JEV_GUARD" >/dev/null 2>&1 || true
+    else
+        ( bash "$JEV_ALLOW" --cmd "$COMMAND" --guard "$JEV_GUARD" >/dev/null 2>&1 & )
+    fi
 fi
 
 # A delete that needs the user's say: Claude Code shows a permission prompt.
