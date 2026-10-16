@@ -36,6 +36,9 @@
 #
 # Config: ${MAILBOX_CONFIG:-$HOME/.config/cfn-mailbox/env}, keys MAILBOX_HOST MAILBOX_PORT
 # MAILBOX_USER MAILBOX_PASS MAILBOX_OWNER (required), MAILBOX_PUBLIC MAILBOX_CONTACTS (optional).
+# MAILBOX_HOST_TAG (optional, e.g. vps): appended as -<tag> to a session name taken from the Claude
+# Code session registry (the status-bar name), because each machine numbers its sessions on its own
+# and two machines can both have -44. Never added to claimed role names or MAILBOX_SESSION names.
 # MAILBOX_PUBLIC lists this owner's addresses that other owners may write to (me, p/<name>,
 # r/<name>, s/<name>, optionally prefixed <owner>/). The receiver enforces it: for any other
 # address only this owner's own from:<owner> key is ever built, read, watched or bounced.
@@ -121,7 +124,7 @@ valid_name() { [[ "$1" =~ $NAME_RE ]]; }
 # --------------------------------------------------------------------- config
 
 MAILBOX_HOST="" MAILBOX_PORT="" MAILBOX_USER="" MAILBOX_PASS="" MAILBOX_OWNER=""
-MAILBOX_PUBLIC="" MAILBOX_CONTACTS=""
+MAILBOX_PUBLIC="" MAILBOX_CONTACTS="" MAILBOX_HOST_TAG=""
 PUBLIC_LIST=""    # MAILBOX_PUBLIC normalised to " me p/x r/y" (no owner prefix)
 RC_SECRET=""      # extra value to redact from Redis error text (adduser token)
 SESSION=""
@@ -143,6 +146,7 @@ load_config() {
       MAILBOX_OWNER) MAILBOX_OWNER="$val" ;;
       MAILBOX_PUBLIC) MAILBOX_PUBLIC="$val" ;;
       MAILBOX_CONTACTS) MAILBOX_CONTACTS="$val" ;;
+      MAILBOX_HOST_TAG) MAILBOX_HOST_TAG="$val" ;;
     esac
   done < "$cfg"
   for key in MAILBOX_HOST MAILBOX_PORT MAILBOX_USER MAILBOX_PASS MAILBOX_OWNER; do
@@ -347,8 +351,22 @@ resolve_project() {
   printf '%s' "$p"
 }
 
+# registry_name SID: the Claude Code session name (status-bar name) from ${CFN_SESSIONS_DIR:-~/.claude/sessions}
+# records, matched on sessionId exactly, sanitized to [a-z0-9-]. Empty when none. Local files only.
+registry_name() {
+  local sid="${1:-}" dir="${CFN_SESSIONS_DIR:-$HOME/.claude/sessions}" f n
+  [ -n "$sid" ] && [ -d "$dir" ] || return 0
+  while IFS= read -r f; do
+    n="$(jq -r --arg s "$sid" 'select(.sessionId == $s) | .name // empty' "$f" 2>/dev/null | head -n 1)" || n=""
+    n="$(sanitize_name "$n" | cut -c1-64)"
+    if [ -n "$n" ]; then printf '%s' "$n"; return 0; fi
+  done < <(grep -l -F "$sid" "$dir"/*.json 2>/dev/null)
+  return 0
+}
+
 # resolve_session SID DIR: this Claude session's name. MAILBOX_SESSION wins (fleet sets it); then a
-# role name the session claimed (alias-<sid> file); else <project>-<first 6 chars of sid>.
+# role name the session claimed (alias-<sid> file); then the Claude Code registry name (plus
+# -MAILBOX_HOST_TAG when set); else <project>-<first 6 chars of sid>.
 resolve_session() {
   local sid="${1:-}" dir="${2:-$PWD}" s="${MAILBOX_SESSION:-}" f
   if [ -z "$s" ] && [ -n "$sid" ]; then
@@ -356,6 +374,12 @@ resolve_session() {
     if [ -f "$f" ]; then
       s="$(head -n 1 "$f" 2>/dev/null | tr -d '\r\n ')"
       [[ "$s" =~ $NAME_RE ]] || s=""
+    fi
+  fi
+  if [ -z "$s" ] && [ -n "$sid" ]; then
+    s="$(registry_name "$sid")"
+    if [ -n "$s" ] && [ -n "$MAILBOX_HOST_TAG" ]; then
+      s="$(printf '%s-%s' "$s" "$(sanitize_name "$MAILBOX_HOST_TAG")" | cut -c1-64)"
     fi
   fi
   if [ -z "$s" ]; then s="$(sanitize_name "$(resolve_project "$dir")-${sid:0:6}")"; fi

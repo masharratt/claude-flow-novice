@@ -134,6 +134,14 @@ if [ -n "$session_id" ]; then
   reg_file=$(grep -l "\"sessionId\":\"$session_id\"" "$sessions_dir"/*.json 2>/dev/null | head -1)
   sname=""
   [ -n "$reg_file" ] && sname=$(jq -r '.name // empty' "$reg_file" 2>/dev/null)
+  # With a mailbox config, show the session's mailbox address (local resolver, no network) so the
+  # name on the bar is the one other sessions message. Same as the registry name: shown once.
+  mb_cfg="${MAILBOX_CONFIG:-$HOME/.config/cfn-mailbox/env}"
+  mb_sh="${CFN_MAILBOX_SH:-$HOME/.claude/skills/cfn-mailbox/mailbox.sh}"
+  if [ -r "$mb_cfg" ] && [ -f "$mb_sh" ]; then
+    mb_name=$(bash "$mb_sh" whoami --sid "$session_id" --cwd "$cwd" 2>/dev/null </dev/null | head -n 1 | tr -d '\r\n')
+    [ -n "$mb_name" ] && sname="$mb_name"
+  fi
   if [ -n "$sname" ]; then
     sid_part="\033[2m$sname\033[0m"
   else

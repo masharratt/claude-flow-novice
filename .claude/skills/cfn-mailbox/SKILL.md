@@ -16,6 +16,7 @@ $HOME/.claude/skills/cfn-mailbox/mailbox.sh who [--seen] | log [N] | stats [--ho
 $HOME/.claude/skills/cfn-mailbox/mailbox.sh claim <name> | release <name> | whoami
 ```
 Set `MAILBOX_SESSION=<session-name>` (`[a-z0-9-]`) so your mail carries your session address.
+Session names: a session's mailbox name is the Claude Code name shown in the status bar (for example `claude-flow-novice-src-44`), so "message claude-flow-novice-src-44" works. Order: `MAILBOX_SESSION`, a claimed role name (`claim`, for roles such as the fleet master), the status-bar name, else `<project>-<first 6 of sid>`. On the server set `MAILBOX_HOST_TAG=vps` in the config: status-bar names get `-vps` appended (`claude-flow-novice-src-44-vps`) because each machine numbers its sessions on its own. The status bar shows this address.
 Config lives in `~/.config/cfn-mailbox/env`; if it is missing every command exits 78. Exit codes are listed at the top of `mailbox.sh`.
 
 ## Send later

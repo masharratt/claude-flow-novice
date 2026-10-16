@@ -118,6 +118,62 @@ test_resolver() {
   mbx whoami --sid "$SID" --cwd "$T/work/My_Proj"
   assert_eq "my-proj-abc123" "$OUT" "bad alias ignored"
 
+  # Registry names (the Claude Code status-bar name), fixtures only: CFN_SESSIONS_DIR in a temp dir.
+  reg() { # NAME [SID]: write a registry record for SID (default $SID) into $T/sessions
+    mkdir -p "$T/sessions"
+    printf '{"pid":4242,"sessionId":"%s","name":"%s","nameSource":"derived"}\n' "${2:-$SID}" "$1" > "$T/sessions/4242.json"
+    LENV+=(CFN_SESSIONS_DIR="$T/sessions")
+  }
+
+  new_case "whoami --sid: the registry name (status-bar name) beats the <project>-<sid6> fallback"
+  reg "claude-flow-novice-src-44"
+  mbx whoami --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_eq "claude-flow-novice-src-44" "$OUT" "registry name"
+
+  new_case "whoami --sid: a registry name is sanitized to [a-z0-9-]"
+  reg "My Session_7!"
+  mbx whoami --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_eq "my-session-7-" "$OUT" "sanitized registry name"
+
+  new_case "whoami --sid: registry record for a different sessionId is ignored"
+  reg "someone-else-9" "zzz999"
+  mbx whoami --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_eq "my-proj-abc123" "$OUT" "no match falls back"
+
+  new_case "whoami --sid: unreadable registry file is ignored"
+  mkdir -p "$T/sessions"; printf 'not json {' > "$T/sessions/1.json"; LENV+=(CFN_SESSIONS_DIR="$T/sessions")
+  mbx whoami --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_eq "my-proj-abc123" "$OUT" "garbage file falls back"
+
+  new_case "whoami --sid: claimed role name beats the registry name"
+  reg "claude-flow-novice-src-44"
+  mkdir -p "$CACHE"; printf 'builder\n' > "$CACHE/alias-$SID"
+  mbx whoami --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_eq "builder" "$OUT" "alias beats registry"
+
+  new_case "whoami --sid: MAILBOX_SESSION beats the registry name"
+  reg "claude-flow-novice-src-44"; LENV+=(MAILBOX_SESSION=role-x)
+  mbx whoami --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_eq "role-x" "$OUT" "env beats registry"
+
+  new_case "whoami --sid: MAILBOX_HOST_TAG appends -<tag> to a registry name"
+  reg "claude-flow-novice-src-44"; printf 'MAILBOX_HOST_TAG=vps\n' >> "$T/env"
+  mbx whoami --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_eq "claude-flow-novice-src-44-vps" "$OUT" "host tag on registry name"
+
+  new_case "whoami --sid: MAILBOX_HOST_TAG is not added to alias or MAILBOX_SESSION names or the fallback"
+  printf 'MAILBOX_HOST_TAG=vps\n' >> "$T/env"; mkdir -p "$CACHE"; printf 'builder\n' > "$CACHE/alias-$SID"
+  mbx whoami --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_eq "builder" "$OUT" "alias untagged"
+  new_case "whoami --sid: host tag, env name"
+  printf 'MAILBOX_HOST_TAG=vps\n' >> "$T/env"; LENV+=(MAILBOX_SESSION=role-x)
+  mbx whoami --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_eq "role-x" "$OUT" "env name untagged"
+  new_case "whoami --sid: host tag, fallback"
+  printf 'MAILBOX_HOST_TAG=vps\n' >> "$T/env"
+  mbx whoami --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_eq "my-proj-abc123" "$OUT" "fallback untagged"
+
   new_case "whoami without flags keeps the three-line owner/session/address form"
   LENV+=(MAILBOX_SESSION=s9)
   mbx whoami

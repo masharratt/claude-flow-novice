@@ -410,6 +410,10 @@ runner, not in a general mailbox session.
 not separate secure identities; a sender can delete its own sent copies; consumer groups give
 at-least-once delivery, not exactly-once execution.
 
+## Session names = status-bar names (2026-10-16)
+
+One name per session: the Claude Code session name in the status bar (`~/.claude/sessions/<pid>.json`, matched on `sessionId`). `resolve_session` order: MAILBOX_SESSION, claimed role name, registry name (sanitized, plus `-<MAILBOX_HOST_TAG>` when set, e.g. `-vps`, since each machine numbers its sessions alone), else `<project>-<sid6>`. The status line shows the resolved address via `whoami --sid` (local, no network) when a mailbox config exists.
+
 ## Before building
 
 - The user creates the Upstash account (fixed $10/month plan) and one database in US West, and puts

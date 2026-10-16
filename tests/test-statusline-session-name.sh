@@ -44,4 +44,31 @@ assert_contains "$out" "$FIXTURE_NAME" "statusline shows registry name when reco
 out="$(statusline_out "$FIXTURE_SID" "$EMPTY_DIR")"
 assert_contains "$out" "7cf99c7a" "statusline falls back to 8-char prefix without record"
 
+# Mailbox address (names-spec): with a mailbox config the line shows the address `whoami --sid`
+# prints (a fake mailbox.sh here, no network); without a config it is unchanged.
+FAKE_MB="$FIXTURE_DIR/fake-mailbox.sh"
+cat > "$FAKE_MB" <<'EOF2'
+#!/usr/bin/env bash
+[ "$1" = whoami ] && [ "$2" = --sid ] && echo "claude-flow-novice-src-44-vps"
+EOF2
+CFG="$FIXTURE_DIR/mbx-env"; : > "$CFG"
+mb_out() {
+  printf '{"session_id":"%s","cwd":"%s"}\n' "$FIXTURE_SID" "$HOME" \
+    | CFN_SESSIONS_DIR="$FIXTURE_DIR" CFN_MAILBOX_SH="$FAKE_MB" MAILBOX_CONFIG="$1" bash "$STATUSLINE" 2>/dev/null
+}
+out="$(mb_out "$CFG")"
+assert_contains "$out" "claude-flow-novice-src-44-vps" "statusline shows the mailbox address when config exists"
+assert_not_contains "$out" "$FIXTURE_NAME" "registry name replaced by the mailbox address"
+
+out="$(mb_out "$FIXTURE_DIR/no-such-config")"
+assert_contains "$out" "$FIXTURE_NAME" "no mailbox config: registry name unchanged"
+assert_not_contains "$out" "44-vps" "no mailbox config: no address shown"
+
+cat > "$FAKE_MB" <<'EOF2'
+#!/usr/bin/env bash
+[ "$1" = whoami ] && echo "$CFN_FAKE_NAME"
+EOF2
+out="$(printf '{"session_id":"%s"}\n' "$FIXTURE_SID" | CFN_FAKE_NAME="$FIXTURE_NAME" CFN_SESSIONS_DIR="$FIXTURE_DIR" CFN_MAILBOX_SH="$FAKE_MB" MAILBOX_CONFIG="$CFG" bash "$STATUSLINE" 2>/dev/null)"
+assert_equals "1" "$(printf '%s' "$out" | grep -o "$FIXTURE_NAME" | wc -l | tr -d ' ')" "address equal to registry name is shown once"
+
 print_test_summary
