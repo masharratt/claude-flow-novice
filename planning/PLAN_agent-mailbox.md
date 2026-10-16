@@ -1,7 +1,9 @@
 # PLAN: Agent mailbox (sessions message each other across machines and accounts)
 
-**Status:** draft v3, 2026-10-15, revised after an independent design review (16 findings, all
-applied below). Nothing built yet.
+**Status:** 2026-10-16. Stages 1-4 built and live on the Mac and the VPS (commits 4da59370,
+f23dd449, 19640dac, d0fc1b8d): core, hooks with trust tiers, watcher with send-later and bounce.
+Next: stage 4b (hardening from the Operations review, below), then stage 5 (fleet, all workers).
+Design history: v3 (2026-10-15) applied 16 findings from an independent design review.
 - **Hosted on Upstash, fixed $10/month plan** (user, 2026-10-15): 250 MB, unlimited commands, so
   mail checks are not rationed. Replaces the earlier self-hosted-on-the-VPS design.
 - v3 adds: project addresses, rooms, send-later, bounce and expiry, trust tiers, loop controls, and
@@ -274,12 +276,89 @@ the coordinator style safer.
 4. **Watcher and lifecycle.** Wake idle sessions, project groups with reassignment, send-later,
    bounce, expiry, lifecycle lock. Systemd user service on the VPS; manual start on the Mac (a
    LaunchAgent would need the user's approval). Tests with a fake tmux and a fake clock.
-5. **Fleet (coordinator).** Worker reports go to the master's address; master gets them without
-   polling. Polling stays as the fallback.
+4b. **Hardening (from the gg-all-projects Operations review, 2026-10-16; see that section).**
+   Receiver-side public-address policy, verified routing fields, stable message ids with receiver
+   de-duplication, crash-safe send-later and bounce, spool trimmed only by the process that prints,
+   watcher-typed prompts never clear the taint flag, private spool files. Adversarial tests:
+   direct Redis injection to a private address, forged `from`/`to`, process death between claim
+   and write, write succeeded but the reply was lost, kill between inner and outer hook output.
+5. **Fleet, all workers at once (user, 2026-10-16: one path for every worker, for consistency and
+   faster iteration; models need the internet anyway).** See "Stage 5 design" below.
+   Fleet workers on every machine report and receive instructions through the mailbox. Roster,
+   brief and handoff files stay the record of truth; mail carries short messages that point at
+   them. The old routes (ssh polling of server workers, tmux nudges and same-machine session
+   messages to Mac workers) are removed once the mailbox path is green.
 6. **gg-all-projects (mesh).** Room `michael/r/gg-all-projects`, project addresses for each area,
    and a short note in that repo on when to use which. Watch the log for a week for loops.
 7. **Steve (outside).** His ACL user, his public addresses, a one-page setup for his machine, and a
    test exchange: his agent to `michael/me` delivered, his agent to a non-public address bounced.
+
+## Stage 5 design (fleet, all workers)
+
+- **Role names.** `mailbox.sh claim <name>`: a session takes a stable address (for example
+  `michael/s/mdtwii-master`) that survives restarts. Stored as `alias:<owner>:<name>` =
+  `{session_id, host, claimed_at}` with a heartbeat; refused while another live session holds it
+  (seen in the last 10 minutes); `release` gives it up. The hook reads the local alias for its
+  session id, so the claimed name is used for reading, sending and the directory.
+- **Worker names include the project:** `<project>-<ws>` (`mdtwii-ws445`), set by `fleet spawn`
+  via `MAILBOX_SESSION`, because WS ids repeat across projects.
+- **Coordinator secret.** `fleet spawn` generates a per-run secret, writes it only into the
+  worker's brief, and keeps it in the roster run dir. Coordinator messages carry it in a field;
+  the receiving hook compares it with the brief's copy and only then labels the message
+  `coordinator`. Without it the message is `teammate`. Never logged or echoed in mail text.
+- **Message types (kind stays the same; a `fleet` field names the type):** worker to master:
+  `status`, `handoff` (points at `handoffs/<file>`), `claim-request`, `done`, `blocked`; master to
+  worker: `assign`, `answer`, `stop`. Bodies are short and name files, never paste them.
+- **Coordinator authority is fleet-internal.** It lets a worker act within its brief, as today. It
+  is not human approval and never authorizes anything outside the brief (no push, no deploy, no
+  spending beyond the brief).
+- **Fallback.** If Upstash is unreachable, `fleet watch` reports `MAILBOX-DOWN` and the master can
+  still read roster and handoff files directly; nothing in the files depends on mail.
+- **Cross-project.** Any project's sessions can reach any other project's: project address
+  (`michael/p/claude-flow-novice-src`, exactly one live session there takes it), a claimed role
+  name, or the project room. Same-owner mail is `teammate`: a request, never permission. The
+  skill says to use the project address unless in a live back-and-forth.
+- **Tests:** claim and release races, role mail surviving a session restart, worker names unique
+  across projects, coordinator label only with the right secret, a forged coordinator message
+  labelled teammate, fleet roster updated from mail, `MAILBOX-DOWN` fallback.
+
+## Operations integration review (gg-all-projects, 2026-10-16)
+
+Source: `~/Projects/gg-all-projects/planning/agent-inbox/MAILBOX-INTEGRATION-REVIEW.md` (a Codex
+review of d0fc1b8d). Every code-level claim was checked against the source and holds. Split:
+
+**CFN builds (stage 4b):**
+1. **Receiver-side public addresses.** `MAILBOX_PUBLIC` is loaded but never enforced on read: read,
+   group setup, the watcher and lifecycle build outside-owner keys for every address. One shared
+   receiver policy: outside owners' keys are built only for the receiving owner's public addresses.
+   Messages whose `to` does not match the key, or whose `from` owner differs from the key's
+   `from:<owner>`, are quarantined (logged with metadata only, never shown to a model).
+2. **Stable message ids.** Every message gets a `msg_id` (random, set by the sender, unchanged on
+   retry). Receivers drop a `msg_id` they already delivered (local delivered-set per session, kept
+   7 days). Delivery is "at least once, shown once"; the docs stop implying exactly-once.
+3. **Crash-safe send-later.** Replace remove-then-deliver with claim-then-deliver:
+   `SET claim:<owner>:<msg_id> <host> NX EX 120`, XADD with the stored `msg_id`, then ZREM. A crash
+   anywhere repeats the XADD, which the receiver de-duplicates.
+4. **Crash-safe bounce.** Write the bounce first (with its own stable `msg_id`), then set the done
+   marker; a repeat is de-duplicated by the receiver.
+5. **Hook output window.** The inner process no longer trims the spool; it returns the rendered
+   ids, and the outer process trims only after it has printed.
+6. **Taint survives watcher prompts.** A prompt that equals the watcher's nudge text does not clear
+   the taint flag; only a human-typed prompt does.
+7. **Private local files.** Cache dir 700, spool and state files 600.
+8. **Docs:** the hook guard is advisory, not an access boundary; mail delivery is not acceptance of
+   work; never put secrets, cookies, tokens or private source in mail.
+
+**Operations builds (gg-all-projects), not CFN:** approvals, standing permissions, budgets, the
+versioned assignment envelope, durable request/outbox/inbox receipts, identity mapping from mailbox
+owner to Operations account, and private result access. The mailbox only carries an opaque
+assignment reference and wakes the recipient; Operations re-checks permission at launch, at each
+tool boundary and at result retrieval. Delegated product work runs in the restricted Operations
+runner, not in a general mailbox session.
+
+**Agreed limits (documented, not fixed):** sessions of one owner share one Redis login, so they are
+not separate secure identities; a sender can delete its own sent copies; consumer groups give
+at-least-once delivery, not exactly-once execution.
 
 ## Before building
 
