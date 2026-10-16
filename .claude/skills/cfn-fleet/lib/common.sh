@@ -27,6 +27,10 @@
 # shellcheck source=engines.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/engines.sh"
 
+# Mailbox helpers (worker/master names, coordinator secret, fleet mail): mail.sh.
+# shellcheck source=mail.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mail.sh"
+
 # Canonical roster columns (order IS the TSV layout; do not reorder). New
 # columns are APPENDED only, so cut/awk positional consumers keep their
 # indexes. Pre-engine rosters on disk carry the old 10-column header; readers

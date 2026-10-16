@@ -9,6 +9,9 @@
 # Host rows use a stub ssh that runs the remote command locally, on the same
 # private socket.
 set -uo pipefail
+# The mailbox path (stage 5) has its own suite (test-cfn-fleet-mailbox.sh, fake
+# redis-cli). Off here, so these file-based cases never reach a real mailbox config.
+export FLEET_MAILBOX=off
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 FLEET="$PROJECT_ROOT/.claude/skills/cfn-fleet/cli/fleet"

@@ -1,0 +1,64 @@
+{
+  "name": "Mailbox role name",
+  "capability": "agent-mailbox",
+  "source": ".claude/skills/cfn-mailbox/mailbox.sh:872",
+  "description": "A stable session address (<owner>/s/<name>) a session claims with mailbox.sh claim, stored as alias:<owner>:<name> with the holder's session id and last_seen. Mail to it waits in its inbox across holder restarts.",
+  "states": [
+    "free",
+    "held",
+    "stale"
+  ],
+  "meanings": {
+    "free": "No alias key (never claimed, released, or aged out after 30 days).",
+    "held": "Alias key names a holder seen within the last 10 minutes.",
+    "stale": "Alias key names a holder not seen for 10 minutes or more."
+  },
+  "transitions": [
+    {
+      "from": "[*]",
+      "to": "free",
+      "trigger": "Nobody has claimed the name",
+      "guard": "-"
+    },
+    {
+      "from": "free",
+      "to": "held",
+      "trigger": "mailbox.sh claim <name>",
+      "guard": "SET NX succeeds and the read-back shows this session id"
+    },
+    {
+      "from": "held",
+      "to": "held",
+      "trigger": "Hook heartbeat or a re-claim by the holder",
+      "guard": "Stored session id is this session's; last_seen refreshed"
+    },
+    {
+      "from": "held",
+      "to": "stale",
+      "trigger": "Holder silent for 10 minutes",
+      "guard": "No heartbeat (session ended or idle without hook events)"
+    },
+    {
+      "from": "stale",
+      "to": "held",
+      "trigger": "Another session claims it",
+      "guard": "lock:<owner>:alias-<name> taken with SET NX; read-back shows the new holder"
+    },
+    {
+      "from": "held",
+      "to": "free",
+      "trigger": "mailbox.sh release <name>",
+      "guard": "Run by the holder"
+    },
+    {
+      "from": "stale",
+      "to": "free",
+      "trigger": "Key expires",
+      "guard": "30 days without a refresh"
+    }
+  ],
+  "id": "mailbox-role-name-entity",
+  "capability_refs": [
+    "agent-mailbox"
+  ]
+}

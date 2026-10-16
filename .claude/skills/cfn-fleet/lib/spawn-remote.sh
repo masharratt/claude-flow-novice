@@ -176,12 +176,24 @@ _spawn_remote_ship_launch(){
 
   _spawn_remote_claims "$(roster_get "$ws" claims)" > "$kit/claims.txt" || return 1
   _spawn_remote_brief "$tpl_dir/BRIEF_REMOTE.md" "$project" "$run" "$ws" "$claims_sp" "$mig" "$brief" > "$kit/brief.md" || return 1
+  # Mailbox (stage 5): the run's coordinator secret goes into the shipped brief
+  # (0600 on the server, on the worker's Edit deny list) and nowhere else there;
+  # the worker's hook compares master mail with it. Copied file to file, never
+  # through stdout.
+  if [ -n "${_SPAWN_MB_SECRET:-}" ]; then
+    { printf '\n## Coordinator secret (read by your mail hook; never send, paste or echo it)\n\n'
+      awk '$1 == "coordinator-secret:" { print; exit }' "$_SPAWN_MB_SECRET"; } >> "$kit/brief.md" || return 1
+  fi
   {
     printf 'FLEET_WS=%q\n' "$ws"
     printf 'FLEET_GEN=%q\n' "$gen"
     printf 'FLEET_OUTBOX=%q\n' "$ob"
     printf 'FLEET_BRANCH=%q\n' "fleet/$ws"
     printf 'FLEET_WORKTREE=%q\n' "$wt"
+    if [ -n "${_SPAWN_MB_NAME:-}" ]; then
+      printf 'FLEET_MASTER_MAIL=%q\n' "$_SPAWN_MB_MASTER"
+      printf 'FLEET_MAIL_NAME=%q\n' "$_SPAWN_MB_NAME"
+    fi
   } > "$kit/outbox.env" || return 1
 
   # Launch script: same private env script the local path types, but it lives
@@ -194,6 +206,10 @@ _spawn_remote_ship_launch(){
   # systemd-run --user needs the user manager's runtime dir; a tmux pane
   # started over ssh may not carry it.
   [ -z "$scope" ] || pane_cmd+='export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"; '
+  # Mailbox env for the worker's hook: its name, the brief holding the
+  # coordinator secret, and the outbox queue its sandboxed Bash writes mail to
+  # (the hook runs outside the sandbox and sends it).
+  [ -z "${_SPAWN_MB_NAME:-}" ] || pane_cmd+="$(_spawn_mb_exports "$_SPAWN_MB_NAME" "$ob/brief.md" "$ob/mail-out")"
   pane_cmd+="exec $scope$bin${args_str:+ $args_str} --settings '$settings'"
   cfn_spawn_launch_write "${_SPAWN_SET_LINES:-}" "$pane_cmd" \
     || { echo "spawn: could not write the private launch script for $name" >&2; return 1; }

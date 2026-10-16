@@ -10,6 +10,7 @@
 - [1. Acceptance-check result](#1-acceptance-check-result)
 - [2. Send-later message](#2-send-later-message)
 - [3. Bounced message](#3-bounced-message)
+- [4. Mailbox role name](#4-mailbox-role-name)
 
 ## 1. Acceptance-check result
 
@@ -65,6 +66,8 @@ stateDiagram-v2
 
 A message queued with send --at waits as a member of due:<owner> carrying its msg_id. The lifecycle pass claims, writes, then removes it, so a watcher dying at any step repeats the write and the receiver shows it once.
 
+Source changed; review this model before relying on it.
+
 ### States
 
 | State | Meaning |
@@ -107,6 +110,8 @@ stateDiagram-v2
 
 Unread mail past its age (24 h session, 7 d project, or a session expiring) goes back to its sender. The bounce is written before its done marker and before the original is removed, so a failure leaves it unread and a later pass retries.
 
+Source changed; review this model before relying on it.
+
 ### States
 
 | State | Meaning |
@@ -139,6 +144,50 @@ stateDiagram-v2
   s1 --> s0
   s1 --> s2
   s2 --> s3
+```
+
+## 4. Mailbox role name
+
+**Source:** .claude/skills/cfn-mailbox/mailbox.sh:872
+
+A stable session address (<owner>/s/<name>) a session claims with mailbox.sh claim, stored as alias:<owner>:<name> with the holder's session id and last_seen. Mail to it waits in its inbox across holder restarts.
+
+Source changed; review this model before relying on it.
+
+### States
+
+| State | Meaning |
+|---|---|
+| free | No alias key (never claimed, released, or aged out after 30 days). |
+| held | Alias key names a holder seen within the last 10 minutes. |
+| stale | Alias key names a holder not seen for 10 minutes or more. |
+
+### Transitions
+
+| From | To | Trigger | Guard |
+|---|---|---|---|
+| [*] | free | Nobody has claimed the name | - |
+| free | held | mailbox.sh claim <name> | SET NX succeeds and the read-back shows this session id |
+| held | held | Hook heartbeat or a re-claim by the holder | Stored session id is this session's; last_seen refreshed |
+| held | stale | Holder silent for 10 minutes | No heartbeat (session ended or idle without hook events) |
+| stale | held | Another session claims it | lock:<owner>:alias-<name> taken with SET NX; read-back shows the new holder |
+| held | free | mailbox.sh release <name> | Run by the holder |
+| stale | free | Key expires | 30 days without a refresh |
+
+### Diagram
+
+```mermaid
+stateDiagram-v2
+  state "free" as s0
+  state "held" as s1
+  state "stale" as s2
+  [*] --> s0
+  s0 --> s1
+  s1 --> s1
+  s1 --> s2
+  s2 --> s1
+  s1 --> s0
+  s2 --> s0
 ```
 
 

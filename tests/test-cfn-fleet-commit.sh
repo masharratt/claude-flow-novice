@@ -9,6 +9,9 @@
 #     number (0082/0084). `fleet migrate-next` must reserve under one flock and
 #     never hand the same number to two workstreams.
 set -euo pipefail
+# The mailbox path (stage 5) has its own suite (test-cfn-fleet-mailbox.sh, fake
+# redis-cli). Off here, so these file-based cases never reach a real mailbox config.
+export FLEET_MAILBOX=off
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
 

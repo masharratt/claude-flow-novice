@@ -3,13 +3,30 @@
 # Spec: planning/PLAN_agent-mailbox.md (stage 1, "Core").
 #
 # Usage:
-#   mailbox.sh send <to> [--kind ask|fyi|reply|reminder] [--at <when>] [--thread ID] [--reply-to ID] [--hops N] "<text>"
-#   mailbox.sh read [--as <session-address>] [--max N] [--peek] [--spool FILE]
-#   mailbox.sh who
+#   mailbox.sh send <to> [--kind ask|fyi|reply|reminder] [--at <when>] [--thread ID] [--reply-to ID] [--hops N] [--fleet TYPE] [--coord-file F] "<text>"
+#   mailbox.sh read [--as <session-address>] [--max N] [--peek] [--spool FILE] [--reader NAME]
+#   mailbox.sh who [--seen]
 #   mailbox.sh log [N]
 #   mailbox.sh join <room> | leave <room>
+#   mailbox.sh claim <name> | release <name> | whoami
+#   mailbox.sh queue <to> [--kind K] [--fleet TYPE] "<text>" | flush     (worker outbound queue, MAILBOX_OUTQ)
 #   mailbox.sh doctor
 #   mailbox.sh adduser <owner>        (admin only; needs UPSTASH_MAILBOX_ADMIN_URL in the repo .env)
+#
+# Role names (stage 5): `claim <name>` makes <owner>/s/<name> this session's address, stored as
+# alias:<owner>:<name> = {session_id, host, claimed_at, last_seen}. Refused (21) while a different
+# session holding it was seen in the last 10 minutes; a quieter holder is taken over under
+# lock:<owner>:alias-<name>. The holder id is MAILBOX_SESSION_ID, else CLAUDE_CODE_SESSION_ID, else
+# MAILBOX_SESSION. A local file ~/.cache/cfn-mailbox/alias-<holder> makes the claimed name the
+# session for every later call and for the hook; heartbeat refreshes last_seen.
+#
+# Fleet: --fleet names the fleet message type (status handoff claim-request done blocked assign
+# answer stop). --coord-file F reads "coordinator-secret: <hex>" from F and sends it as the last
+# field (coord) through redis-cli -x, so it is never in argv, the log or output. A reader with
+# MAILBOX_COORD_FILE set labels same-owner mail whose coord matches its own file "coordinator"
+# (and, with MAILBOX_COORD_FROM set, only when from is that address);
+# coord is always removed from what read prints. A sandboxed worker that cannot reach Redis puts
+# mail in MAILBOX_OUTQ with `queue`; the (unsandboxed) hook sends it with `flush`.
 #
 # Addresses: <owner>/s/<session>, <owner>/p/<project>, <owner>/r/<room>, <owner>/me (or bare "me").
 # Names are [a-z0-9-] only.
@@ -43,6 +60,7 @@
 #   18  unexpected Redis reply
 #   19  MAILBOX_SESSION required for this command
 #   20  admin credential missing or unusable (adduser)
+#   21  role name held by another live session (claim, release)
 #   78  mailbox config missing or incomplete
 #
 # --at <when>: epoch seconds (9 to 12 digits), +<n>m|h|d, HH:MM (next occurrence, local time) or
@@ -75,6 +93,9 @@ MSG_ID_RE='^[A-Za-z0-9_-]{1,64}$'
 # Typed into idle tmux panes by mailbox-watch.sh; the hook keeps the taint flag on a prompt equal to it.
 NUDGE_TEXT="You have mail: run /mail read"
 CACHE_DIR="$HOME/.cache/cfn-mailbox"
+ALIAS_TTL=2592000       # alias keys age out after 30 days without a refresh
+ALIAS_LIVE=600          # a holder seen within 10 minutes keeps its role name
+FLEET_TYPES="status handoff claim-request done blocked assign answer stop"
 
 die() { local code="$1"; shift; echo "mailbox: $*" >&2; exit "$code"; }
 # ensure_cache_dir: create the local cache owner-only, and tighten one an older version left open.
@@ -129,8 +150,35 @@ load_config() {
   done
   SESSION="${MAILBOX_SESSION:-}"
   if [ -n "$SESSION" ]; then valid_name "$SESSION" || die 10 "MAILBOX_SESSION must be [a-z0-9-] only"; fi
+  # No explicit session: a role name this session claimed earlier is its address.
+  if [ -z "$SESSION" ]; then
+    local h a
+    h="$(holder_id)"
+    if [ -n "$h" ] && [ -f "$(alias_file "$h")" ]; then
+      a="$(head -n 1 "$(alias_file "$h")" 2>/dev/null | tr -d '\r\n ')"
+      if valid_name "$a"; then SESSION="$a"; fi
+    fi
+  fi
   command -v redis-cli >/dev/null 2>&1 || die 15 "redis-cli is not installed"
 }
+
+# holder_id: who holds a role name (claim): MAILBOX_SESSION_ID, else CLAUDE_CODE_SESSION_ID (Claude
+# Code exports it to Bash; the hook gets the same id as session_id), else MAILBOX_SESSION.
+holder_id() {
+  local h="${MAILBOX_SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-${MAILBOX_SESSION:-}}}"
+  [ -n "$h" ] || return 0
+  h="$(printf '%s' "$h" | tr -c 'A-Za-z0-9_-' '_')"
+  printf '%s' "${h:0:128}"
+}
+alias_file() { printf '%s/alias-%s' "$CACHE_DIR" "$1"; }
+
+# coord_secret FILE: the "coordinator-secret: <hex>" value in FILE (16 to 128 hex), else nothing.
+coord_secret() {
+  [ -n "${1:-}" ] && [ -r "$1" ] || return 0
+  awk '$1 == "coordinator-secret:" && $2 ~ /^[0-9a-f]+$/ && length($2) >= 16 && length($2) <= 128 { print $2; exit }' "$1" 2>/dev/null || true
+}
+
+valid_fleet_type() { case " $FLEET_TYPES " in *" $1 "*) return 0 ;; esac; return 1; }
 
 # --------------------------------------------------------------------- redis
 
@@ -144,6 +192,7 @@ RC_OUT=""
 RC_TOLERATE=""   # substring of an error reply to treat as success
 RC_STDIN=""      # when set, sent to redis-cli on stdin (keeps secrets out of argv)
 RC_JSON=""       # when set, ask for JSON output
+RC_XARG=""       # when set, sent on stdin as the command's last argument (redis-cli -x)
 
 redact() {
   local s="$1"
@@ -157,6 +206,8 @@ rcmd() {
   local status=0 out label="${1:-stdin}"
   if [ -n "$RC_STDIN" ]; then
     out="$(printf '%s\n' "$RC_STDIN" | _rc "$@" 2>&1)" || status=$?
+  elif [ -n "$RC_XARG" ]; then
+    out="$(printf '%s' "$RC_XARG" | _rc -x "$@" 2>&1)" || status=$?
   else
     out="$(_rc "$@" 2>&1 </dev/null)" || status=$?
   fi
@@ -344,9 +395,13 @@ marker_key() { printf 'seen:%s:%s:%s' "$MAILBOX_OWNER" "$1" "$(key_hash "$2")"; 
 
 cmd_send() {
   local kind=fyi thread="" reply_to="" hops_in=0 to="" text="" have_text=0 at="" at_set=0 kind_set=0
+  local fleet="" coord_file="" coord="" msg_id_in=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --kind) [ $# -ge 2 ] || die 2 "--kind needs a value"; kind="$2"; kind_set=1; shift 2 ;;
+      --fleet) [ $# -ge 2 ] || die 2 "--fleet needs a type"; fleet="$2"; shift 2 ;;
+      --coord-file) [ $# -ge 2 ] || die 2 "--coord-file needs a file"; coord_file="$2"; shift 2 ;;
+      --msg-id) [ $# -ge 2 ] || die 2 "--msg-id needs a value"; msg_id_in="$2"; shift 2 ;;
       --at) [ $# -ge 2 ] || die 2 "--at needs a time"; at="$2"; at_set=1; shift 2 ;;
       --thread) [ $# -ge 2 ] || die 2 "--thread needs a value"; thread="$2"; shift 2 ;;
       --reply-to) [ $# -ge 2 ] || die 2 "--reply-to needs a value"; reply_to="$2"; shift 2 ;;
@@ -372,6 +427,14 @@ cmd_send() {
   [ -z "$reply_to" ] || [[ "$reply_to" =~ ^[0-9]+-[0-9]+$ ]] || die 2 "--reply-to must be a message id like 1700000000000-0"
   [[ "$hops_in" =~ ^[0-9]+$ ]] || die 2 "--hops must be a number"
   [ -z "$thread" ] || [[ "$thread" =~ $NAME_RE ]] || die 2 "--thread must be [a-z0-9-] only"
+  [ -z "$fleet" ] || valid_fleet_type "$fleet" || die 2 "--fleet '$fleet' is not a fleet type ($FLEET_TYPES)"
+  [ -z "$msg_id_in" ] || [[ "$msg_id_in" =~ $MSG_ID_RE ]] || die 2 "--msg-id must be [A-Za-z0-9_-], 1 to 64 characters"
+  if [ -n "$coord_file" ]; then
+    [ "$at_set" = 0 ] || die 2 "--coord-file cannot be combined with --at (a coordinator secret is never parked in due:)"
+    coord="$(coord_secret "$coord_file")"
+    [ -n "$coord" ] || die 2 "no 'coordinator-secret: <hex>' line in $coord_file"
+    RC_SECRET="$coord"   # redacted from any Redis error text
+  fi
 
   parse_addr "$to"
   local to_owner="$A_OWNER" to_kind="$A_KIND" to_name="$A_NAME" to_str="$A_STR"
@@ -402,19 +465,21 @@ cmd_send() {
   key="$(inbox_key "$to_owner" "$to_kind" "$to_name" "$MAILBOX_OWNER")"
   from_addr="$(own_from_address)"
   now="$(now_s)"
-  msg_id="$(new_msg_id)"
+  msg_id="${msg_id_in:-$(new_msg_id)}"
   local -a f=(from "$from_addr" to "$to_str" kind "$kind" body "$text" sent_at "$now" thread "$thread" hops "$hops" msg_id "$msg_id")
   if [ -n "$reply_to" ]; then f+=(reply_to "$reply_to"); fi
+  if [ -n "$fleet" ]; then f+=(fleet "$fleet"); fi
   if [ "$at_set" = 1 ]; then
     # Send later: park it in due:<owner>; the watcher delivers it when it is due (claim, XADD with
     # this msg_id, then ZREM), so a crash repeats the delivery and the receiver shows it once.
     local member
     member="$(jq -n -c --arg key "$key" --arg uid "$(now_ms)-$RANDOM" --argjson bytes "$bytes" \
       --arg from "$from_addr" --arg to "$to_str" --arg kind "$kind" --arg body "$text" --arg sent "$now" \
-      --arg thread "$thread" --arg hops "$hops" --arg reply_to "$reply_to" --arg mid "$msg_id" \
+      --arg thread "$thread" --arg hops "$hops" --arg reply_to "$reply_to" --arg mid "$msg_id" --arg fleet "$fleet" \
       '{key:$key, uid:$uid, bytes:$bytes,
         fields:({from:$from, to:$to, kind:$kind, body:$body, sent_at:$sent, thread:$thread, hops:$hops, msg_id:$mid}
-                + (if $reply_to != "" then {reply_to:$reply_to} else {} end))}')" \
+                + (if $reply_to != "" then {reply_to:$reply_to} else {} end)
+                + (if $fleet != "" then {fleet:$fleet} else {} end))}')" \
       || die 18 "could not build the send-later entry"
     rcmd ZADD "due:$MAILBOX_OWNER" "$AT_EPOCH" "$member"
     printf 'scheduled for %s UTC (%s local) as %s\n' "$(fmt_epoch "$AT_EPOCH" '%Y-%m-%dT%H:%M:%SZ' utc)" \
@@ -422,10 +487,13 @@ cmd_send() {
     echo "thread=$thread" >&2
     return 0
   fi
-  if [ "$to_kind" = me ]; then
-    rcmd XADD "$key" '*' "${f[@]}"
+  local -a cap=()
+  [ "$to_kind" = me ] || cap=(MAXLEN '~' "$INBOX_MAXLEN")
+  if [ -n "$coord" ]; then
+    # The secret is the last field's value, read by redis-cli from stdin (-x): never in argv.
+    RC_XARG="$coord" rcmd XADD "$key" ${cap[@]+"${cap[@]}"} '*' "${f[@]}" coord
   else
-    rcmd XADD "$key" MAXLEN '~' "$INBOX_MAXLEN" '*' "${f[@]}"
+    rcmd XADD "$key" ${cap[@]+"${cap[@]}"} '*' "${f[@]}"
   fi
   local id="$RC_OUT"
   [[ "$id" =~ ^[0-9]+-[0-9]+$ ]] || die 18 "unexpected reply to XADD (no message id)"
@@ -435,7 +503,9 @@ cmd_send() {
   local rec
   rec="$(jq -n -c --arg id "$id" --arg from "$from_addr" --arg to "$to_str" --arg kind "$kind" \
     --arg thread "$thread" --argjson hops "$hops" --argjson bytes "$bytes" --argjson at "$now" --arg mid "$msg_id" \
-    '{id:$id,msg_id:$mid,from:$from,to:$to,kind:$kind,thread:$thread,hops:$hops,bytes:$bytes,at:$at}')"
+    --arg fleet "$fleet" \
+    '{id:$id,msg_id:$mid,from:$from,to:$to,kind:$kind,thread:$thread,hops:$hops,bytes:$bytes,at:$at}
+     + (if $fleet != "" then {fleet:$fleet} else {} end)')"
   if ! (rcmd XADD "log:$MAILBOX_OWNER" MAXLEN '~' "$LOG_MAXLEN" '*' rec "$rec") 2>/dev/null; then
     warn "sent $id, but the log entry could not be written"
   fi
@@ -452,6 +522,8 @@ SPOOL=""       # `read --spool FILE`: append each message line to FILE before an
 DELIV_FILE=""  # this reader's delivered set: "msg_id epoch" lines
 DELIV_JSON="{}"
 QUAR_COUNT=0
+COORD_SECRET=""  # this reader's coordinator secret (from MAILBOX_COORD_FILE), set by cmd_read
+READER=""        # `read --reader NAME`: a second reader of the same inbox with its own marker
 
 # take_count: how many messages one query may ask for (READ_COUNT, or what is left of --max).
 take_count() {
@@ -517,8 +589,12 @@ emit_msgs() {
   EMIT_LAST="$(printf '%s\n' "$EMIT_IDS" | tail -n 1)"
   addr="$(key_address "$key")"
   tier=outside; [ "$sender" = "$MAILBOX_OWNER" ] && tier=teammate
+  # Coordinator: same-owner mail whose coord field equals this reader's own secret (MAILBOX_COORD_FILE)
+  # and, when MAILBOX_COORD_FROM names the master, whose from is that master (the plan's "master
+  # named in its brief"; workers of one run share the secret, so a peer's mail stays teammate).
+  # The coord field is removed from every message, matched or not, so no secret is ever printed.
   cls="$(printf '%s' "$json" | jq -c --arg key "$key" --arg tier "$tier" --arg sender "$sender" --arg addr "$addr" \
-    --arg idre "$MSG_ID_RE" --argjson seen "$DELIV_JSON" '
+    --arg idre "$MSG_ID_RE" --argjson seen "$DELIV_JSON" --arg sec "$COORD_SECRET" --arg cfrom "${MAILBOX_COORD_FROM:-}" '
     reduce ((.[0][1] // [])[] | ((([.[1] | _nwise(2) | {(.[0]): .[1]}] | add) // {}) + {id: .[0]})) as $m
       ({seen: $seen, out: []};
        (($m.msg_id // "") | if type == "string" and test($idre) then . else "" end) as $mid
@@ -526,7 +602,9 @@ emit_msgs() {
          elif ((($m.from // "") | tostring | split("/")[0]) != $sender) then .out += [{q: "from-owner-mismatch", id: $m.id, mid: $mid}]
          elif $mid != "" and .seen[$mid] then .out += [{q: "dup", id: $m.id, mid: $mid}]
          else (if $mid != "" then .seen[$mid] = true else . end)
-              | .out += [{q: "", id: $m.id, mid: $mid, m: ($m + {inbox: $key, sender_owner: $sender, tier: $tier})}]
+              | (if $tier == "teammate" and $sec != "" and (($m.coord // "") == $sec)
+                    and ($cfrom == "" or ($m.from // "") == $cfrom) then "coordinator" else $tier end) as $t
+              | .out += [{q: "", id: $m.id, mid: $mid, m: (($m + {inbox: $key, sender_owner: $sender, tier: $t}) | del(.coord))}]
          end)
     | .out[]')" || die 18 "unreadable reply while reading $key"
   q="$(printf '%s\n' "$cls" | jq -c --arg key "$key" 'select(.q != "" and .q != "dup") | {key: $key, id, msg_id: .mid, reason: .q}')"
@@ -609,14 +687,21 @@ cmd_read() {
              READ_LEFT="$2"; shift 2 ;;
       --peek) PEEK=1; shift ;;
       --spool) [ $# -ge 2 ] && [ -n "$2" ] || die 2 "--spool needs a file"; SPOOL="$2"; shift 2 ;;
+      --reader) [ $# -ge 2 ] || die 2 "--reader needs a name"
+                valid_name "$2" || die 10 "invalid reader name '$2' (use [a-z0-9-] only)"
+                READER="$2"; shift 2 ;;
       *) die 2 "unknown argument $1 for read" ;;
     esac
   done
   if [ -z "$as" ]; then as="$(own_from_address)"; fi
   parse_addr "$as"
   [ "$A_OWNER" = "$MAILBOX_OWNER" ] || die 10 "can only read your own inboxes (owner $MAILBOX_OWNER), not $A_STR"
+  COORD_SECRET="$(coord_secret "${MAILBOX_COORD_FILE:-}")"
   local kind="$A_KIND" name="$A_NAME" addr="$A_STR" reader
   reader="${name:-me}"   # person inbox: one shared marker so any session shows each mail once
+  local deliv_name="${SESSION:-$reader}"
+  # A second reader (fleet watch beside the master's hook) keeps its own marker and delivered set.
+  if [ -n "$READER" ]; then reader="$reader--$READER"; deliv_name="$deliv_name--$READER"; fi
 
   local -a targets=("$kind:$name")
   if [ "$kind" = s ]; then
@@ -631,7 +716,7 @@ cmd_read() {
   # One delivered set per session (the hook reads several addresses as one session); a reader
   # without MAILBOX_SESSION keeps one per address name.
   ensure_cache_dir || true
-  delivered_load "$CACHE_DIR/delivered-${SESSION:-$reader}"
+  delivered_load "$CACHE_DIR/delivered-$deliv_name"
 
   local t tk tn so key
   for t in "${targets[@]}"; do
@@ -652,6 +737,16 @@ cmd_who() {
   local cutoff
   cutoff=$(( $(now_s) - WHO_WINDOW ))
   rcmdj HGETALL "dir:$MAILBOX_OWNER"
+  if [ "${1:-}" = --seen ]; then
+    # address<TAB>last_seen for every entry, any age (fleet watch reads worker liveness from it).
+    printf '%s' "$RC_OUT" | jq -r '
+      [ (. // [])[] ] as $a
+      | [range(0; ($a | length); 2) | {addr: $a[.], v: (($a[. + 1] | fromjson?) // {})}]
+      | sort_by(.addr)[]
+      | [.addr, ((.v.last_seen // 0) | tostring)] | @tsv' || die 18 "unreadable directory reply"
+    return 0
+  fi
+  [ $# -eq 0 ] || die 2 "who takes no arguments except --seen"
   printf '%s' "$RC_OUT" | jq -r --argjson cutoff "$cutoff" '
     [ (. // [])[] ] as $a
     | [range(0; ($a | length); 2) | {addr: $a[.], v: (($a[. + 1] | fromjson?) // {})}]
@@ -736,6 +831,7 @@ cmd_heartbeat() {
   [ -z "$project" ] || valid_name "$project" || die 10 "invalid project name '$project' (use [a-z0-9-] only)"
   [ -n "$host" ] || host="$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo unknown)"
   summary="${summary:0:$SUMMARY_MAX}"
+  alias_touch
   local addr cur new
   addr="$MAILBOX_OWNER/s/$SESSION"
   rcmd HGET "dir:$MAILBOX_OWNER" "$addr"
@@ -748,6 +844,182 @@ cmd_heartbeat() {
     + (if $tmux != "" then {tmux_target: $tmux} else {} end)
     | .rooms = ($c.rooms // [])')" || die 18 "could not build the directory entry"
   rcmd HSET "dir:$MAILBOX_OWNER" "$addr" "$new"
+}
+
+# --------------------------------------------------------------------- role names (claim)
+
+ALIAS_JSON=""
+# alias_value HOLDER CLAIMED_AT LAST_SEEN -> ALIAS_JSON
+alias_value() {
+  local host
+  host="$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo unknown)"
+  ALIAS_JSON="$(jq -n -c --arg s "$1" --argjson c "$2" --argjson l "$3" --arg h "$host" \
+    '{session_id:$s, host:$h, claimed_at:$c, last_seen:$l}')" || die 18 "could not build the alias entry"
+}
+# alias_field JSON FIELD: one field of a stored alias entry (empty when unreadable).
+alias_field() { printf '%s' "$1" | jq -R -r --arg f "$2" '(fromjson? // {}) | if type == "object" then (.[$f] // empty | tostring) else empty end' 2>/dev/null || true; }
+
+claim_args() { # name -> sets C_NAME C_HOLDER C_KEY, or dies
+  C_NAME="${1:-}"
+  [ -n "$C_NAME" ] || die 2 "needs a role name"
+  valid_name "$C_NAME" || die 10 "invalid role name '$C_NAME' (use [a-z0-9-] only)"
+  C_HOLDER="$(holder_id)"
+  [ -n "$C_HOLDER" ] || die 19 "no session identity: set CLAUDE_CODE_SESSION_ID, MAILBOX_SESSION_ID or MAILBOX_SESSION"
+  C_KEY="alias:$MAILBOX_OWNER:$C_NAME"
+}
+C_NAME="" C_HOLDER="" C_KEY=""
+
+cmd_claim() {
+  claim_args "${1:-}"
+  local now cur cs cl cc age lock
+  now="$(now_s)"
+  alias_value "$C_HOLDER" "$now" "$now"
+  rcmd SET "$C_KEY" "$ALIAS_JSON" NX EX "$ALIAS_TTL"
+  if [ "$RC_OUT" != OK ]; then
+    rcmd GET "$C_KEY"; cur="$RC_OUT"
+    cs="$(alias_field "$cur" session_id)"; cl="$(alias_field "$cur" last_seen)"; cc="$(alias_field "$cur" claimed_at)"
+    [[ "$cl" =~ ^[0-9]+$ ]] || cl=0
+    if [ -n "$cs" ] && [ "$cs" = "$C_HOLDER" ]; then
+      # Ours already: refresh last_seen, keep when it was first claimed.
+      [[ "$cc" =~ ^[0-9]+$ ]] || cc="$now"
+      alias_value "$C_HOLDER" "$cc" "$now"
+      rcmd SET "$C_KEY" "$ALIAS_JSON" XX EX "$ALIAS_TTL"
+      [ "$RC_OUT" = OK ] || rcmd SET "$C_KEY" "$ALIAS_JSON" NX EX "$ALIAS_TTL"
+    else
+      age=$((now - cl))
+      if [ -n "$cs" ] && [ "$age" -lt "$ALIAS_LIVE" ]; then
+        die 21 "$C_NAME is held by another live session on $(alias_field "$cur" host) (seen ${age}s ago); it frees after release or 10 minutes of silence"
+      fi
+      # Stale holder: take it over under a short lock so two takeovers cannot both win.
+      lock="lock:$MAILBOX_OWNER:alias-$C_NAME"
+      rcmd SET "$lock" "$C_HOLDER" NX EX 10
+      [ "$RC_OUT" = OK ] || die 21 "$C_NAME is being claimed by another session right now; try again"
+      rcmd GET "$C_KEY"
+      if [ "$RC_OUT" != "$cur" ]; then
+        cs="$(alias_field "$RC_OUT" session_id)"; cl="$(alias_field "$RC_OUT" last_seen)"
+        [[ "$cl" =~ ^[0-9]+$ ]] || cl=0
+        if [ -n "$cs" ] && [ "$cs" != "$C_HOLDER" ] && [ $((now - cl)) -lt "$ALIAS_LIVE" ]; then
+          rcmd DEL "$lock"
+          die 21 "$C_NAME was just claimed by another session"
+        fi
+      fi
+      rcmd SET "$C_KEY" "$ALIAS_JSON" EX "$ALIAS_TTL"
+      rcmd DEL "$lock"
+    fi
+  fi
+  # Read back: only the session whose id is stored holds the name.
+  rcmd GET "$C_KEY"
+  [ "$(alias_field "$RC_OUT" session_id)" = "$C_HOLDER" ] || die 21 "$C_NAME was taken by another session at the same moment"
+  ensure_cache_dir || true
+  printf '%s\n' "$C_NAME" > "$(alias_file "$C_HOLDER")" || die 18 "cannot write $(alias_file "$C_HOLDER")"
+  echo "claimed $MAILBOX_OWNER/s/$C_NAME"
+}
+
+cmd_release() {
+  claim_args "${1:-}"
+  local cs f
+  f="$(alias_file "$C_HOLDER")"
+  rcmd GET "$C_KEY"
+  cs="$(alias_field "$RC_OUT" session_id)"
+  if [ -n "$cs" ] && [ "$cs" != "$C_HOLDER" ]; then
+    die 21 "$C_NAME is held by another session; only its holder can release it"
+  fi
+  [ -z "$cs" ] || rcmd DEL "$C_KEY"
+  if [ -f "$f" ] && [ "$(head -n 1 "$f" | tr -d '\r\n ')" = "$C_NAME" ]; then rm -f "$f"; fi
+  echo "released $MAILBOX_OWNER/s/$C_NAME"
+}
+
+# alias_touch: heartbeat for a claimed role name (SESSION came from this holder's alias file).
+# Refreshes last_seen; a name another session has taken is dropped locally with a warning.
+alias_touch() {
+  local h f cur cs cc now
+  h="$(holder_id)"; [ -n "$h" ] || return 0
+  f="$(alias_file "$h")"
+  [ -f "$f" ] && [ "$(head -n 1 "$f" 2>/dev/null | tr -d '\r\n ')" = "$SESSION" ] || return 0
+  rcmd GET "alias:$MAILBOX_OWNER:$SESSION"; cur="$RC_OUT"
+  cs="$(alias_field "$cur" session_id)"
+  if [ "$cs" = "$h" ]; then
+    now="$(now_s)"; cc="$(alias_field "$cur" claimed_at)"
+    [[ "$cc" =~ ^[0-9]+$ ]] || cc="$now"
+    alias_value "$h" "$cc" "$now"
+    rcmd SET "alias:$MAILBOX_OWNER:$SESSION" "$ALIAS_JSON" XX EX "$ALIAS_TTL"
+  else
+    rm -f "$f"
+    warn "lost the role name $SESSION to another session; run claim again to take it back"
+  fi
+}
+
+cmd_whoami() {
+  echo "owner=$MAILBOX_OWNER"
+  echo "session=${SESSION:-}"
+  echo "address=$(own_from_address)"
+}
+
+# --------------------------------------------------------------------- worker outbound queue
+
+# queue <to> [--kind K] [--fleet T] "<text>": put one message in MAILBOX_OUTQ for the hook to send
+# (a sandboxed worker cannot reach Redis; hooks run outside the sandbox). Local only: no config.
+# File format (one JSON object, also written by cfn-fleet templates/remote-worker.sh without jq):
+#   {"to":"<address>","kind":"fyi|ask|reminder","fleet":"<type or empty>","body":"...","msg_id":"..."}
+cmd_queue() {
+  local outq="${MAILBOX_OUTQ:-}" to="" text="" have_text=0 kind=fyi fleet="" bytes f mid
+  [ -n "$outq" ] || die 2 "queue needs MAILBOX_OUTQ (the outbound queue directory)"
+  case "$outq" in /*) ;; *) die 2 "MAILBOX_OUTQ must be an absolute path" ;; esac
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --kind) [ $# -ge 2 ] || die 2 "--kind needs a value"; kind="$2"; shift 2 ;;
+      --fleet) [ $# -ge 2 ] || die 2 "--fleet needs a type"; fleet="$2"; shift 2 ;;
+      --) shift; break ;;
+      -*) die 2 "unknown flag $1 for queue" ;;
+      *) if [ -z "$to" ]; then to="$1"; elif [ "$have_text" = 0 ]; then text="$1"; have_text=1; else die 2 "queue takes one <to> and one text"; fi; shift ;;
+    esac
+  done
+  if [ $# -gt 0 ]; then
+    [ -n "$to" ] || { to="$1"; shift; }
+    if [ $# -gt 0 ] && [ "$have_text" = 0 ]; then text="$1"; have_text=1; fi
+  fi
+  [ -n "$to" ] && [ "$have_text" = 1 ] || die 2 "queue needs <to> and \"<text>\""
+  [[ "$to" =~ ^[a-z0-9-]{1,64}/(me|[spr]/[a-z0-9-]{1,64})$ ]] || die 10 "invalid address '$to' (queue needs a full <owner>/s|p|r/<name> or <owner>/me)"
+  case "$kind" in ask|fyi|reminder) ;; *) die 2 "queue kind '$kind' not allowed (use ask, fyi or reminder)" ;; esac
+  [ -z "$fleet" ] || valid_fleet_type "$fleet" || die 2 "--fleet '$fleet' is not a fleet type ($FLEET_TYPES)"
+  bytes="$(printf '%s' "$text" | wc -c | tr -d ' ')"
+  [ "$bytes" -gt 0 ] && [ "$bytes" -le "$BODY_MAX" ] || die 11 "message body must be 1 to $BODY_MAX bytes"
+  mkdir -p "$outq" || die 2 "cannot create $outq"
+  mid="$(new_msg_id)"
+  f="$outq/$(now_ms)-$mid.json"
+  jq -n -c --arg to "$to" --arg kind "$kind" --arg fleet "$fleet" --arg body "$text" --arg mid "$mid" \
+    '{to:$to, kind:$kind, fleet:$fleet, body:$body, msg_id:$mid}' > "$f.tmp" && mv -f "$f.tmp" "$f" \
+    || { rm -f "$f.tmp"; die 18 "cannot write $f"; }
+  echo "queued $f"
+}
+
+# flush: send every message in MAILBOX_OUTQ as this session, oldest first, removing each once sent.
+# Stops (keeping the rest) on a Redis or rate-limit failure; an entry that can never be sent is
+# renamed <file>.failed with a warning. The queued msg_id rides along, so a resend shows once.
+cmd_flush() {
+  local outq="${MAILBOX_OUTQ:-}" f rc n=0 line to kind fleet body mid
+  [ -n "$outq" ] || die 2 "flush needs MAILBOX_OUTQ"
+  [ -d "$outq" ] || return 0
+  for f in "$outq"/*.json; do
+    [ -f "$f" ] || continue
+    if [ -L "$f" ] || ! line="$(jq -c -e 'select(type == "object" and (.to|type) == "string" and (.body|type) == "string")' "$f" 2>/dev/null)"; then
+      mv -f "$f" "$f.failed" 2>/dev/null; warn "flush: $f is not a queue entry; set aside as .failed"; continue
+    fi
+    to="$(jq -r '.to' <<<"$line")"; kind="$(jq -r '.kind // "fyi"' <<<"$line")"
+    fleet="$(jq -r '.fleet // ""' <<<"$line")"; body="$(jq -r '.body' <<<"$line")"; mid="$(jq -r '.msg_id // ""' <<<"$line")"
+    local -a a=("$to" --kind "$kind")
+    [ -z "$fleet" ] || a+=(--fleet "$fleet")
+    [ -z "$mid" ] || ! [[ "$mid" =~ $MSG_ID_RE ]] || a+=(--msg-id "$mid")
+    rc=0
+    ( cmd_send "${a[@]}" -- "$body" ) || rc=$?
+    case "$rc" in
+      0) rm -f "$f"; n=$((n + 1)) ;;
+      13|15|16|17|18) warn "flush stopped (exit $rc); $f and later entries stay queued"; return "$rc" ;;
+      *) mv -f "$f" "$f.failed" 2>/dev/null; warn "flush: $f could not be sent (exit $rc); set aside as .failed" ;;
+    esac
+  done
+  [ "$n" -eq 0 ] || warn "flushed $n message(s) from $outq"
+  return 0
 }
 
 # --------------------------------------------------------------------- doctor
@@ -780,7 +1052,7 @@ ACL_CMDS="ping xadd xread xreadgroup xack xautoclaim xclaim xpending xinfo xgrou
 acl_rule() { # owner token
   # reset first, so re-running adduser replaces the user's rules instead of adding to them
   local o="$1" c rule="ACL SETUSER $1 reset on >$2"
-  rule="$rule ~mbx:$o:* ~mbx:*:from:$o ~dir:$o ~seen:$o:* ~due:$o ~log:$o ~lock:$o:* ~rate:$o:* ~done:$o:* ~claim:$o:*"
+  rule="$rule ~mbx:$o:* ~mbx:*:from:$o ~dir:$o ~seen:$o:* ~due:$o ~log:$o ~lock:$o:* ~rate:$o:* ~done:$o:* ~claim:$o:* ~alias:$o:*"
   for c in $ACL_CMDS; do rule="$rule +$c"; done
   printf '%s' "$rule"
 }
@@ -826,14 +1098,15 @@ main() {
   [ $# -gt 0 ] && shift
   case "$sub" in
     adduser) cmd_adduser "$@" ;;
-    send|read|who|log|join|leave|heartbeat|doctor)
+    queue) cmd_queue "$@" ;;   # local only: no config, no network
+    send|read|who|log|join|leave|heartbeat|doctor|claim|release|whoami|flush)
       load_config
       "cmd_$sub" "$@" ;;
     ''|-h|--help|help)
-      sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+      sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
       [ -n "$sub" ] && exit 0
       exit 2 ;;
-    *) die 2 "unknown subcommand '$sub' (send, read, who, log, join, leave, doctor, adduser)" ;;
+    *) die 2 "unknown subcommand '$sub' (send, read, who, log, join, leave, claim, release, whoami, queue, flush, doctor, adduser)" ;;
   esac
 }
 

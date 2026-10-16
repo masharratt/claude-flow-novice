@@ -8,6 +8,9 @@
 # the lane from the server's fleet clone instead). The script runs on a
 # Linux server but these tests run on macOS, so everything here stays portable.
 set -uo pipefail
+# The mailbox path (stage 5) has its own suite (test-cfn-fleet-mailbox.sh, fake
+# redis-cli). Off here, so these file-based cases never reach a real mailbox config.
+export FLEET_MAILBOX=off
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"

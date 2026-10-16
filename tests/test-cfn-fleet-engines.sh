@@ -19,6 +19,9 @@
 # Style: ok/no counters + trap cleanup EXIT per tests/test-brief-size-guard.sh;
 # helpers from tests/test-utils.sh per tests/CORE_TEST_STANDARDS.md.
 set -uo pipefail
+# The mailbox path (stage 5) has its own suite (test-cfn-fleet-mailbox.sh, fake
+# redis-cli). Off here, so these file-based cases never reach a real mailbox config.
+export FLEET_MAILBOX=off
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"

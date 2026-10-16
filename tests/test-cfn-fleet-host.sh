@@ -4,6 +4,9 @@
 # (planning/PLAN_fleet-remote-host-workers.md). Stub ssh/tmux first on PATH;
 # the real ssh and the real server are never touched.
 set -uo pipefail
+# The mailbox path (stage 5) has its own suite (test-cfn-fleet-mailbox.sh, fake
+# redis-cli). Off here, so these file-based cases never reach a real mailbox config.
+export FLEET_MAILBOX=off
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 HOST_LIB="$PROJECT_ROOT/.claude/skills/cfn-fleet/lib/host.sh"

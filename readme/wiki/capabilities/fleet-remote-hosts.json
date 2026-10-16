@@ -4,7 +4,7 @@
   "name": "Fleet workers on a remote host",
   "status": "beta",
   "status_reason": "First real lane (MDTWII WS350, docs) ran end to end 2026-10-13. Host sandbox, caps and no-push landing added 2026-10-13 and pass the stub-ssh suites; not yet run on the live server.",
-  "description": "fleet spawn --host runs a worker on a server over ssh, inside Claude's Bash sandbox and a systemd CPU/memory scope, with Edit deny rules on the server deny list. The Mac roster stays authoritative: the worker commits locally and reports to a server outbox, fleet sync/watch pulls reports, land fetches the lane from the fleet clone and refuses diffs outside claims.",
+  "description": "fleet spawn --host runs a worker on a server over ssh, inside Claude's Bash sandbox and a systemd CPU/memory scope, with Edit deny rules on the server deny list. The Mac roster stays authoritative: the worker commits locally and reports to a server outbox and, through its mail hook, to the master by mail (fleet watch applies it; fleet sync pulls the files by hand or while the mailbox is down), land fetches the lane from the fleet clone and refuses diffs outside claims.",
   "purpose": "Run fleet lanes on a server (own CPU, optionally its own Claude account) without giving the server any key into the Mac: all connections go Mac to server.",
   "reviewed_at": "2026-10-13",
   "dependencies": [

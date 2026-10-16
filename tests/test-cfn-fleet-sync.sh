@@ -13,6 +13,9 @@
 # side called it (STUB_SIDE=remote under ssh) and scripts list-panes /
 # capture-pane. Stub `df` scripts the server's free disk.
 set -uo pipefail
+# The mailbox path (stage 5) has its own suite (test-cfn-fleet-mailbox.sh, fake
+# redis-cli). Off here, so these file-based cases never reach a real mailbox config.
+export FLEET_MAILBOX=off
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 FLEET="$PROJECT_ROOT/.claude/skills/cfn-fleet/cli/fleet"

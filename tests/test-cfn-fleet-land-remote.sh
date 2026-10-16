@@ -8,6 +8,9 @@
 # lane branch from the server fleet clone over ssh (git runs the stub ssh with
 # git-upload-pack) and the base from the bare repo through the Mac git remote.
 set -uo pipefail
+# The mailbox path (stage 5) has its own suite (test-cfn-fleet-mailbox.sh, fake
+# redis-cli). Off here, so these file-based cases never reach a real mailbox config.
+export FLEET_MAILBOX=off
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 LAND_LIB="$PROJECT_ROOT/.claude/skills/cfn-fleet/lib/cmd-land.sh"

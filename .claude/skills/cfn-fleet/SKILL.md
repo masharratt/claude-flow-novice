@@ -16,9 +16,11 @@ commits or collide on migration numbers.
 
 Distilled from a real 12-workstream run (session e59a7826, 2026-09-05): the
 core lesson is **thin messages (control plane), fat files (data plane)**.
-Roster + planning files carry all state; SendMessage/tmux prompts only assign,
-wake, or block. A message carrying state is a bug — write the file, send the
-path.
+Roster + planning files carry all state; mailbox messages only assign, wake,
+report or block. A message carrying state is a bug — write the file, send the
+path. Since mailbox stage 5 (2026-10-16) every worker, Mac and server, talks to
+the master through the agent mailbox (see "Mailbox" below); tmux typing and
+ssh polling are the fallbacks.
 
 ## Invocation
 
@@ -82,11 +84,13 @@ STALE/DEAD until `started`).
 | `handoff WSxx` | Write `handoffs/HANDOFF_WSxx.md` for compaction restart into a spare |
 | `db WSxx` / `db-clean [--all]` | Scratch postgres containers (only when `FLEET_DB=docker`) |
 | `host-setup <alias> [--check]` | Prepare a server for `spawn --host` (see Remote hosts); idempotent |
-| `sync [WSxx]` | Pull remote workers' reports into the roster (host rows only) |
+| `sync [WSxx]` | Pull remote workers' report files into the roster (host rows only). Manual fallback: `watch` runs it each tick only while the mailbox is down |
 | `peek WSxx [lines]` | Print a worker's pane (default 40 lines); host rows read it over ssh |
-| `nudge WSxx "msg"` / `nudge WSxx --key K...` | Type the message literally plus Enter into the worker's pane, or press named keys (`Enter Escape C-u Up Down Tab BTab 1-9 y n`; use these to answer a permission prompt). One ws per call; pending/spawning rows refused (65). Host rows go over ssh. Use this, never raw `tmux send-keys` |
+| `mail WSxx <assign\|answer\|stop> "text"` | Master to worker through the mailbox: from `<project>-master` to `<project>-<ws>`, kind ask (wakes an idle pane), carrying the run's coordinator secret. Short, names files. 66 when the mailbox is off or down |
+| `report <status\|handoff\|claim-request\|done\|blocked> "text"` | Worker to master (run in the worker pane; spawn sets `FLEET_WS`): roster first (status, notes, heartbeat, `handoffs/CLAIM_REQ_<WS>.md`), then one mail to the master, queued in `MAILBOX_OUTQ` for the hook when the worker is sandboxed. A failed mail only warns |
+| `nudge WSxx [--tmux] "msg"` / `nudge WSxx --key K...` | Text goes as coordinator mail (type `answer`; the mailbox watcher wakes an idle pane). Typed literally plus Enter into the pane instead when the mailbox is off or down (`WARN nudge: MAILBOX-DOWN ...`) or with `--tmux`. `--key` presses named keys (`Enter Escape C-u Up Down Tab BTab 1-9 y n`; use these to answer a permission prompt, mail cannot). One ws per call; pending/spawning rows refused (65) for typing. Host rows go over ssh. Use this, never raw `tmux send-keys` |
 | `stop WSxx` | Close the worker's tmux session only; worktree, branch, claims, files and roster row stay. Already gone = exit 0. Use this, never raw `tmux kill-session`. `watch` then reports `DEAD <ws> (pane exited)` until you land or reset the row |
-| `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. STALE fires when a started/working row's heartbeat ages past `--stale-min` (default 5 minutes). Heartbeat-only roster diffs never emit `CHANGE` (the spawn ticker rewrites that column every tick). Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
+| `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `MAIL <ws> <type> <text>` (worker mail, applied to host rows), `MAILBOX-DOWN <reason>` / `MAILBOX-UP`, `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. STALE fires when a started/working row's heartbeat ages past `--stale-min` (default 5 minutes). Heartbeat-only roster diffs never emit `CHANGE` (the spawn ticker rewrites that column every tick). Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
 | `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained live-poll HTML tracking page from the roster (status tiles and meter, filter chips, sort, heartbeat age, engine, claims, now-editing lists, goal blurb, STALE/DEAD badges, transition timeline, per-card attach command with Copy and Open in terminal, per-card Live view of the worker's pane), served on 127.0.0.1 for VS Code Simple Browser (below) |
 | `archive <run> [--undo]` | Hide a stale run from discovery and the dashboard by writing `<run>/.archived` (undo removes it); never deletes |
 
@@ -137,8 +141,10 @@ Every host worker starts as `systemd-run --user --scope -p MemoryMax=... -p CPUQ
 - Limits: the Bash sandbox fences shell commands; Edit and Write are fenced only by the
   deny list. Weaker than a separate server account (a user decision).
 
-Reports are pulled only by `fleet watch` (each tick) or `fleet sync`. The dashboard
-never pulls them, so a dashboard-only master sees stale remote rows.
+Remote reports reach the master as mail (`fleet watch` applies them each tick);
+the report files stay on the server as the record, pulled by `fleet sync` by hand
+or by `fleet watch` while the mailbox is down. The dashboard never pulls them, so
+a dashboard-only master sees stale remote rows.
 
 Alert states (`fleet watch`, also badged on the dashboard):
 
@@ -146,7 +152,7 @@ Alert states (`fleet watch`, also badged on the dashboard):
 |---|---|
 | `UNREACHABLE <ws>` | ssh failed. Never reported as DEAD: the worker may be fine |
 | `PROMPT <ws>` | Pane waits on a permission prompt: `fleet peek` it |
-| `NOREPORT <ws>` | Started, no report after `FLEET_FIRST_REPORT_SECS` (300) |
+| `NOREPORT <ws>` | Started, no report after `FLEET_FIRST_REPORT_SECS` (300); judged only while the mailbox is down (with mail up a silent launch shows as `STALE`) |
 | `LOWDISK <host>` | Free disk under `FLEET_REMOTE_MIN_FREE_GB` |
 
 Knobs (`fleet.env` unless noted): `FLEET_HOST_REMOTE` (Mac git remote name, default
@@ -160,18 +166,57 @@ By hand, once per server: ssh config alias (key login), `claude` login on the
 server, `.env` and secrets, and dependencies (node_modules, toolchains). Host-setup
 copies none of these.
 
-Limits: remote workers have no SendMessage and no fleet CLI. They report through
-`remote-worker.sh` (heartbeat, status, commit, handoff, claim request), and the
-master decides claims. All lanes share one account's rate limits. Worker briefs
+Limits: remote workers have no fleet CLI. They report through `remote-worker.sh`
+(heartbeat, status, commit, handoff, claim request): a report file in the outbox,
+plus a queued mail for status, handoff and claim request that the worker's mail
+hook sends (its sandboxed Bash cannot reach Redis). They receive master mail
+through that hook, which needs the mailbox config and `redis-cli` on the server.
+The master decides claims. All lanes share one account's rate limits. Worker briefs
 require literal `rm` paths (`rm /full/path/x.lock`), as `templates/BRIEF_REMOTE.md` states.
+
+## Mailbox (all workers, stage 5)
+
+One path for every worker, Mac and server (user decision 2026-10-16). Roster,
+brief and handoff files stay the record of truth; mail carries short messages that
+name files. Spec: `planning/PLAN_agent-mailbox.md`, "Stage 5 design".
+
+- **Names.** Worker `<project>-<ws>` (`mdtwii-ws445`; WS ids repeat across projects),
+  spares `<project>-<ws>-spare<k>`, master `<project>-master`. `fleet spawn` sets the
+  worker's `MAILBOX_SESSION` in its pane and claims the master name for the session
+  running spawn (`mailbox.sh claim`; a role name survives a restart).
+- **Pane env** (spawn): `MAILBOX_SESSION`, `MAILBOX_COORD_FILE`, `MAILBOX_COORD_FROM` (the
+  master address), `MAILBOX_OUTQ` (`<run>/mail-out/<WS>`; server: `<outbox>/mail-out`; both
+  self-ignored by git), `FLEET_MASTER_MAIL`, `FLEET_WS`.
+- **Coordinator secret.** One per run, `<run>/.coord/secret` (dir 700 with its own
+  `.gitignore`, file 600), and in a host worker's shipped brief. `fleet mail` and
+  `nudge` send it (on stdin, never argv); the worker's hook labels mail
+  `coordinator` only when it matches, the sender is the same owner and `from` is the
+  master address, else `teammate`. It is never printed or put in mail text. It is a
+  same-user fence, not a security boundary: every session of the user can read it.
+- **Coordinator authority is fleet-internal.** A worker acts on coordinator mail
+  within its brief only. It is not the user's approval and never authorizes a push,
+  deploy, spend or approval outside the brief (both brief templates say so).
+- **Types** (the mailbox `fleet` field): worker to master `status` (fyi), `handoff`,
+  `claim-request`, `done`, `blocked`; master to worker `assign`, `answer`, `stop` (ask:
+  the mailbox watcher wakes an idle pane).
+- **Routes replaced.** Assignments and nudges go by mail (`fleet mail`, `fleet nudge`);
+  status comes by mail (`fleet report`, `remote-worker.sh`), applied by `fleet watch`,
+  instead of automatic ssh polling. `fleet watch` reads the master inbox as a second
+  reader (its own marker), so the master's own hook still shows every message.
+- **Fallbacks kept.** `fleet peek`, `fleet sync`, `fleet nudge --tmux` / `--key`, and
+  reading files over ssh by hand. When Upstash does not answer, `fleet watch` prints
+  `MAILBOX-DOWN <reason>` once and goes back to reading roster and outbox files
+  (`fleet sync` each tick) until `MAILBOX-UP`.
+- **Off switch.** `FLEET_MAILBOX=off` (env or `fleet.env`) runs the file-only paths.
+  Without a mailbox config on the machine, spawn warns and the worker uses files only.
 
 ## Worker sessions
 
 A worker's brief is `briefs/WSxx.md` (copy `briefs/BRIEF_WS.md` and fill in:
 task, claims, allowed commands, done criteria). The spawn prompt is one thin
 line: "read briefs/WSxx.md and start; coordinate as the brief says (roster files unless it asks for messages)". Workers
-commit through `fleet commit`, heartbeat as they work, and never touch another
-row's claims. Verification is scoped: workers run suites and `tsc` on CLAIMED
+commit through `fleet commit`, heartbeat as they work, report to the master with
+`fleet report`, and never touch another row's claims. Verification is scoped: workers run suites and `tsc` on CLAIMED
 paths only, and the full suite is the master's landing gate, run after all
 lanes land (a full-suite failure inside another lane's in-flight files is not
 the lane's to fix or wait on). Raw `git commit` is never a worker command;

@@ -23,6 +23,9 @@ TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/cfn-fleet-spawn-host.XXXXXX") || exit 1
 TMP_DIR=$(cd -P "$TMP_DIR" && pwd -P) || exit 1
 trap 'cleanup_temp_dir "$TMP_DIR"' EXIT
 
+# These cases test the file-based host path; the mailbox path (stage 5) is
+# switched on per case below, against a fake redis-cli, never real Redis.
+export FLEET_MAILBOX=off
 STUB_LOG="$TMP_DIR/stub-calls.log"
 TMUX_LOG="$TMP_DIR/tmux-calls.log"
 export STUB_LOG FLEET_TMUX_LOG="$TMUX_LOG"
@@ -807,6 +810,39 @@ test_spawn_host_survives_clone_config_lock() {
     assert_equals "" "$(git -C "$SRV/fleet-repos/proj" config --get branch.fleet/WS01.remote || true)" "no upstream written for the lane branch"
 }
 
+test_spawn_host_mailbox_env_and_secret() {
+    log_step "Mailbox stage 5: host worker gets its mailbox name, the coordinator secret in its brief only, and the mail queue"
+    make_fixture mailbox
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    # shellcheck source=/dev/null
+    source "$PROJECT_ROOT/tests/lib/fake-redis-cli.sh"
+    install_fake_redis_cli "$TMP_DIR/bin"
+    local mbdir="$TMP_DIR/mailbox-$RANDOM"
+    mkdir -p "$mbdir/kv"
+    : > "$mbdir/calls"; : > "$mbdir/rules"
+    printf 'MAILBOX_HOST=mbx.example.test\nMAILBOX_PORT=6379\nMAILBOX_USER=michael\nMAILBOX_PASS=pw\nMAILBOX_OWNER=michael\n' > "$mbdir/env"
+    chmod 600 "$mbdir/env"
+    export FLEET_MAILBOX=on MAILBOX_CONFIG="$mbdir/env" FAKE_LOG="$mbdir/calls" FAKE_RULES="$mbdir/rules" FAKE_KV_DIR="$mbdir/kv"
+    run_spawn WS01 --host fakehost
+    export FLEET_MAILBOX=off
+    unset MAILBOX_CONFIG FAKE_LOG FAKE_RULES FAKE_KV_DIR
+    assert_equals "0" "$FLEET_RC" "host spawn with the mailbox exits 0"
+    local ob="$SRV/fleet-runs/proj/fleet-main/WS01" sec launch
+    sec=$(awk '$1 == "coordinator-secret:" {print $2}' "$RUN_DIR/.coord/secret" 2>/dev/null)
+    assert_success "the run has a 32-hex coordinator secret" test "${#sec}" -eq 32
+    assert_contains "$(cat "$ob/brief.md")" "coordinator-secret: $sec" "the shipped brief carries the secret"
+    assert_equals "600" "$(file_mode "$ob/brief.md")" "brief stays 0600 on the server"
+    assert_contains "$(cat "$ob/outbox.env")" "FLEET_MASTER_MAIL=michael/s/proj-master" "outbox.env names the master address"
+    launch=$(cat "$ob/.launch-ws01")
+    assert_contains "$launch" "MAILBOX_SESSION=proj-ws01" "worker mailbox name in the launch"
+    assert_contains "$launch" "MAILBOX_COORD_FILE=$ob/brief.md" "hook compares with the shipped brief"
+    assert_contains "$launch" "MAILBOX_OUTQ=$ob/mail-out" "sandboxed Bash queues mail in the outbox"
+    assert_contains "$launch" "MAILBOX_COORD_FROM=michael/s/proj-master" "coordinator must come from the master"
+    assert_not_contains "$launch" "$sec" "secret not in the launch script"
+    assert_not_contains "$FLEET_OUT" "$sec" "secret not in spawn output"
+    assert_not_contains "$(cat "$TMUX_LOG" "$STUB_LOG")" "$sec" "secret not in any tmux, ssh or scp argv"
+}
+
 run_all_tests() {
     TEST_LOG="${TMPDIR:-/tmp}/cfn-fleet-spawn-host-$(date +%s).log"
     export TEST_LOG
@@ -838,6 +874,7 @@ run_all_tests() {
     test_spawn_host_excludes_sandbox_placeholders
     test_spawn_host_prints_preflight_ok_line
     test_spawn_host_survives_clone_config_lock
+    test_spawn_host_mailbox_env_and_secret
 
     print_test_summary
 }

@@ -7,9 +7,13 @@ full Claude Code session with its own context and its own subagents.
 ## Thin messages, fat files
 
 State lives in FILES, not in chat messages. Roster, briefs, and handoffs carry
-all durable information. SendMessage (or the tmux prompt) only assigns, wakes,
-or blocks. A message that carries state is a bug: put the state in a file and
-send the path.
+all durable information. Mailbox messages only assign, wake, report or block:
+the master sends `fleet mail WSxx assign|answer|stop "<text>"`, workers send
+`fleet report status|handoff|claim-request|done|blocked "<text>"` (server
+workers: `remote-worker.sh`). A message that carries state is a bug: put the
+state in a file and send the path. Coordinator mail lets a worker act within its
+brief only; it is not the user's approval. If the mailbox is down, `fleet watch`
+says `MAILBOX-DOWN` and the files still carry everything.
 
 ## Claims rule
 
@@ -20,8 +24,8 @@ you must, coordinate through the master session, never directly.
 
 ## Inter-lane channel
 
-Lanes cannot message lanes. Write handoffs/TO_WSxx_<topic>.md; the master
-relays on its check, or a lane may read the handoffs/ directory.
+Lanes do not message lanes (only the master). Write handoffs/TO_WSxx_<topic>.md;
+the master relays on its check, or a lane may read the handoffs/ directory.
 
 ## Commits
 

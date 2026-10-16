@@ -40,6 +40,26 @@
 #   LOWDISK <host>           free disk under FLEET_REMOTE_MIN_FREE_GB (15)
 #   DEAD <ws> (pane exited)  only when tmux on the host answered "dead"
 #
+# Mailbox (stage 5, on unless FLEET_MAILBOX=off): each tick first reads the
+# master's role inbox (<project>-master, as a second reader beside the master's
+# own hook, so both see every message) and turns worker mail into events and
+# roster updates. That replaces the automatic `fleet sync` over ssh:
+#   MAIL <ws> <type> <text>  worker mail (status handoff claim-request done
+#                            blocked). Host rows get it applied to the roster
+#                            (heartbeat, notes, status); local rows already wrote
+#                            the roster themselves (`fleet report`), so only the
+#                            event is shown. HANDOFF / CLAIM-REQ lines as from sync.
+#   host-row heartbeat       from the mailbox directory (last_seen of the
+#                            worker's hook), so a quiet remote worker is not STALE
+#   MAILBOX-DOWN <reason>    the mailbox did not answer (unreachable, login, no
+#                            config); emitted once. While down the old route runs:
+#                            `fleet sync` reads the outbox files over ssh each tick
+#                            and the roster stays readable as always.
+#   MAILBOX-UP               it answers again.
+# Pane probes over ssh (UNREACHABLE, DEAD, PROMPT, LOWDISK) stay: a worker stuck
+# on a prompt cannot send mail. NOREPORT is judged only while the mailbox is
+# down (with mail up, a silent launch shows as STALE instead).
+#
 # --emit-events (opt-in) bridges to cfn-workbench: roster status transitions
 # map onto its closed event set (loop_started / lane_spawned / lane_landed /
 # loop_finished) and <run-dir>/run-plan-<slug>.json is regenerated each scan
@@ -159,10 +179,89 @@ _fleet_watch_host_state() {
   case "$st" in
     unreachable|dead|prompt) out="$st" ;;
   esac
-  if [ "$st" != unreachable ] && _fleet_remote_noreport "$ws" "$now"; then
+  if [ "$st" != unreachable ] && [ "${_FLEET_WATCH_MB_UP:-0}" -ne 1 ] && _fleet_remote_noreport "$ws" "$now"; then
     out+="${out:+ }noreport"
   fi
   printf '%s\n' "$out"
+  return 0
+}
+
+# _fleet_watch_mail ROSTER: the mailbox step of one scan (see the header).
+# Uses the scan's prev/cur maps and appends to its mail_events array (dynamic
+# scope). Sets _FLEET_WATCH_MB_UP=1 when the mailbox answered, 0 otherwise.
+_FLEET_WATCH_MB_UP=0
+_fleet_watch_mail() {
+  local roster="$1" project master out rc=0 errf state reason
+  _FLEET_WATCH_MB_UP=0
+  _fleet_mb_enabled || return 0
+  project=$(_fleet_mb_project)
+  master=$(fleet_master_mail_name "$project")
+  errf=$(mktemp "${TMPDIR:-/tmp}/fleet-watch-mail.XXXXXX") || return 0
+  out=$(MAILBOX_SESSION="$master" _fleet_mb read --reader fleet-watch 2>"$errf") || rc=$?
+  rm -f "$errf"
+  if [ "$rc" -eq 0 ]; then
+    _FLEET_WATCH_MB_UP=1
+    cur["~mailbox"]=up
+    case "${prev["~mailbox"]:-}" in down*) mail_events+=("MAILBOX-UP") ;; esac
+  else
+    reason=$(_fleet_mb_down_reason "$rc")
+    cur["~mailbox"]="down $reason"
+    case "${prev["~mailbox"]:-}" in
+      down*) ;;
+      *) mail_events+=("MAILBOX-DOWN $reason; reading roster and outbox files instead (fleet sync each poll)") ;;
+    esac
+  fi
+
+  # Worker name -> ws for every roster row (spares map to their worker).
+  local -A by_name=()
+  local w
+  while IFS= read -r w; do
+    [ -n "$w" ] || continue
+    by_name["$(fleet_mail_name "$project" "$w")"]="$w"
+  done < <(awk -F'\t' 'NR > 1 { print $1 }' "$roster")
+
+  # Lines already printed by read are consumed even when it failed later: apply them.
+  local line from type body tier id n ws host lock
+  lock="$(fleet_run_dir)/.roster.lock"
+  while IFS= read -r line; do
+    case "$line" in '{'*) ;; *) continue ;; esac
+    IFS=$'\037' read -r from type body tier id < <(printf '%s' "$line" | jq -r \
+      '[.from // "", .fleet // "", ((.body // "") | gsub("[[:cntrl:]]"; " ")), .tier // "", .id // ""] | join("\u001f")' 2>/dev/null)
+    case "$tier" in teammate|coordinator) ;; *) continue ;; esac
+    case " $_FLEET_MAIL_WORKER_TYPES " in *" $type "*) ;; *) continue ;; esac
+    case "$from" in */s/*) n="${from##*/s/}" ;; *) continue ;; esac
+    [[ "$n" =~ -spare[0-9]+$ ]] && n="${n%-spare*}"
+    ws="${by_name[$n]:-}"
+    [ -n "$ws" ] || continue
+    mail_events+=("MAIL $ws $type ${body:0:120}")
+    host=$(roster_get "$ws" host 2>/dev/null || true)
+    if [ -n "$host" ]; then
+      local applied
+      applied=$( ( flock -x 9 || exit 71
+                   _fleet_mail_apply_locked "$ws" "$type" "$body" "mail $id" ) 9>"$lock" ) \
+        || { echo "fleet watch: roster update from mail failed for $ws" >&2; continue; }
+      [ -z "$applied" ] || while IFS= read -r w; do mail_events+=("$w"); done <<< "$applied"
+    else
+      case "$type" in
+        handoff) mail_events+=("HANDOFF $ws $body") ;;
+        claim-request) mail_events+=("CLAIM-REQ $ws $body") ;;
+      esac
+    fi
+  done <<< "$out"
+
+  # Host rows: the worker's hook heartbeats the mailbox directory; use it.
+  [ "$_FLEET_WATCH_MB_UP" -eq 1 ] && _fleet_roster_has_host "$roster" || return 0
+  local addr seen hb
+  while IFS=$'\t' read -r addr seen; do
+    [[ "$seen" =~ ^[0-9]+$ ]] || continue
+    case "$addr" in */s/*) n="${addr##*/s/}" ;; *) continue ;; esac
+    ws="${by_name[$n]:-}"
+    [ -n "$ws" ] || continue
+    [ -n "$(roster_get "$ws" host 2>/dev/null || true)" ] || continue
+    hb=$(roster_get "$ws" heartbeat 2>/dev/null || echo 0)
+    [[ "$hb" =~ ^[0-9]+$ ]] || hb=0
+    [ "$seen" -gt "$hb" ] && roster_set "$ws" heartbeat "$seen"
+  done < <(_fleet_mb who --seen 2>/dev/null || true)
   return 0
 }
 
@@ -205,8 +304,11 @@ _fleet_watch_scan() {
   # probe does not wait out a second ssh timeout.
   local -A host_seen=() host_unreach=()
   _FLEET_WATCH_UNREACH=" "
-  local -a sync_events=()
-  if _fleet_roster_has_host "$roster"; then
+  local -a sync_events=() mail_events=()
+  # Mailbox first: worker mail lands in the roster before the rows are judged.
+  _fleet_watch_mail "$roster"
+  # Automatic ssh sync only while the mailbox is off or down (the fallback).
+  if _fleet_roster_has_host "$roster" && [ "$_FLEET_WATCH_MB_UP" -ne 1 ]; then
     local sline
     while IFS= read -r sline; do
       case "$sline" in
@@ -313,6 +415,9 @@ _fleet_watch_scan() {
   done
 
   local e
+  for e in ${mail_events[@]+"${mail_events[@]}"}; do
+    echo "$e"
+  done
   for e in "${row_events[@]}"; do
     echo "$e"
   done

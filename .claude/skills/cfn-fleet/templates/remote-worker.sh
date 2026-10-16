@@ -5,10 +5,18 @@
 # ssh. Copied next to outbox.env + claims.txt by `fleet spawn --host`.
 #
 #   remote-worker.sh heartbeat [note]
-#   remote-worker.sh status <state>
+#   remote-worker.sh status <state> [note]
 #   remote-worker.sh handoff <file>
 #   remote-worker.sh request-claim <path>
 #   remote-worker.sh commit -m <message> [-m <paragraph>...]
+#
+# Mail (mailbox stage 5): when outbox.env names FLEET_MASTER_MAIL, status,
+# handoff and request-claim also queue one short mail to the master in
+# <outbox>/mail-out/. The worker's Bash sandbox cannot reach Redis; its mailbox
+# hook runs outside the sandbox and sends the queue (mailbox.sh flush) after the
+# tool call. The report file stays the record of truth, so a lost mail costs
+# nothing: `fleet sync` still reads it. Queue file format is mailbox.sh queue's:
+#   {"to":..,"kind":..,"fleet":..,"body":..,"msg_id":..}  (written here without jq)
 #
 # commit is local only: it never pushes. The worker's Bash sandbox cannot
 # reach the bare repo, and `fleet land` fetches fleet/<WS> from the server
@@ -93,6 +101,23 @@ write_report() {
   trap - EXIT
 }
 
+# queue_mail TYPE BODY: one mail to the master in mail-out/ (see the header).
+# Silent no-op when outbox.env has no FLEET_MASTER_MAIL (a pre-mailbox spawn).
+queue_mail() {
+  local type="$1" body="$2" kind=ask dir mid f
+  [[ -n "${FLEET_MASTER_MAIL:-}" ]] || return 0
+  [[ "$type" == status ]] && kind=fyi
+  dir="$OUTBOX/mail-out"
+  mkdir -p "$dir" || { echo "remote-worker: cannot create $dir; mail not queued (the report file has it)" >&2; return 0; }
+  mid=$(od -An -N8 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n')
+  [[ "$mid" =~ ^[0-9a-f]{16}$ ]] || mid="q$(date +%s)$$"
+  f="$dir/$(date +%s)-$mid.json"
+  printf '{"to":"%s","kind":"%s","fleet":"%s","body":"%s","msg_id":"%s"}\n' \
+    "$(json_escape "$FLEET_MASTER_MAIL")" "$kind" "$type" "$(json_escape "$body")" "$mid" > "$f.tmp" \
+    && mv "$f.tmp" "$f" || echo "remote-worker: mail not queued (the report file has it)" >&2
+  return 0
+}
+
 read_claims() {
   CLAIMS=()
   local f="$OUTBOX/claims.txt" line p
@@ -166,18 +191,25 @@ case "$sub" in
     if [[ $# -gt 0 ]]; then write_report heartbeat note "$*"; else write_report heartbeat; fi ;;
   status)
     [[ -n "${1:-}" ]] || die "status: <state> required" 64
-    write_report status status "$1" ;;
+    st="$1"; shift
+    if [[ $# -gt 0 ]]; then write_report status status "$st" note "$*"; else write_report status status "$st"; fi
+    case "$st" in
+      done|blocked) queue_mail "$st" "$st${*:+: $*}" ;;
+      *) queue_mail status "$st${*:+: $*}" ;;
+    esac ;;
   handoff)
     [[ -n "${1:-}" ]] || die "handoff: <file> required" 64
     [[ -f "$1" ]] || die "handoff: $1 not found" 66
     mkdir -p "$OUTBOX/handoffs" || die "cannot create handoffs dir"
     cp "$1" "$OUTBOX/handoffs/$(basename "$1")" || die "handoff: copy failed"
-    write_report handoff file "$(basename "$1")" ;;
+    write_report handoff file "$(basename "$1")"
+    queue_mail handoff "handoffs/$(basename "$1")" ;;
   request-claim)
     [[ -n "${1:-}" ]] || die "request-claim: <path> required" 64
-    write_report claim_request path "$1" ;;
+    write_report claim_request path "$1"
+    queue_mail claim-request "$1" ;;
   commit)
     cmd_commit "$@" ;;
   *)
-    die "usage: remote-worker.sh heartbeat [note] | status <s> | handoff <file> | request-claim <path> | commit -m <msg> [-m <msg>...]" 64 ;;
+    die "usage: remote-worker.sh heartbeat [note] | status <s> [note] | handoff <file> | request-claim <path> | commit -m <msg> [-m <msg>...]" 64 ;;
 esac

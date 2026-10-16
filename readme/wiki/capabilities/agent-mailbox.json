@@ -3,8 +3,8 @@
   "fid": "agent-mailbox",
   "name": "Agent mailbox between sessions",
   "status": "beta",
-  "status_reason": "Stages 1-4 live on the Mac and the VPS. Stage 4b hardening (receiver policy, quarantine, msg_id de-dup, crash-safe send-later and bounce) passes the offline suites; not yet deployed, and live ACL users need ~claim:<owner>:* first.",
-  "description": "Sessions mail each other across machines and people over one hosted Redis. Readers build inbox keys themselves (outside owners only for MAILBOX_PUBLIC addresses), quarantine forged to/from, and show each msg_id once; a watcher wakes idle tmux panes and runs send-later and bounce.",
+  "status_reason": "Stages 1-4 live on the Mac and the VPS. Stages 4b and 5 (fleet workers on the mailbox: role names, coordinator tier, worker outbound queue) pass the offline suites; not yet deployed, and live ACL users need ~claim:<owner>:* and ~alias:<owner>:* first.",
+  "description": "Sessions mail each other across machines and people over one hosted Redis. Readers build inbox keys themselves, quarantine forged to/from and show each msg_id once; sessions can claim stable role names; fleet workers get coordinator mail from their master and queue outgoing mail for the hook; a watcher wakes idle tmux panes.",
   "purpose": "Let any Claude Code session send a request or information to another session, project, room or person, without mail ever counting as permission.",
   "reviewed_at": "2026-10-16",
   "dependencies": [],
@@ -15,20 +15,22 @@
   "unknowns": [
     "Delivery is at least once, shown once: consumer groups and retries can put a message in the stream twice; nothing makes the requested work happen once.",
     "Sessions of one owner share one Redis login, so they are not separate secure identities; a sender can delete its own sent copies.",
-    "The hook's taint guard is advisory: it sees only Bash and a list of command patterns."
+    "The hook's taint guard is advisory: it sees only Bash and a list of command patterns.",
+    "The coordinator secret is a same-user fence, not a security boundary: any session of the owner's unix user can read the run's secret file.",
+    "Sandboxed worker Bash cannot reach Redis, so worker mail waits in MAILBOX_OUTQ until the worker's hook fires; a worker idle with no hook event sends nothing."
   ],
   "sources": [
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 261,
+      "line": 312,
       "claim": "receiver_keys builds a contact owner's inbox key only for an address listed in MAILBOX_PUBLIC; otherwise only the owner's own from:<owner> key",
-      "sha256": "157dd4dd40089214b4821075587279990d53433b9cf1961a3fb750ce893ac2a2"
+      "sha256": "31bd97d1a28560f93d870d1af68fc13e89b47f5b43bdce90cca9fdbc92416f3c"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 507,
+      "line": 579,
       "claim": "emit_msgs quarantines mail whose to does not match the key or whose from owner differs from the key's, drops a msg_id already shown, and still returns every id so it is acked or passed",
-      "sha256": "157dd4dd40089214b4821075587279990d53433b9cf1961a3fb750ce893ac2a2"
+      "sha256": "31bd97d1a28560f93d870d1af68fc13e89b47f5b43bdce90cca9fdbc92416f3c"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox-watch.sh",
@@ -44,9 +46,45 @@
     },
     {
       "path": ".claude/hooks/cfn-mailbox-hook.sh",
-      "line": 275,
+      "line": 361,
       "claim": "the outer hook process trims the spool only after printing the inner process's output, by the ids the inner process rendered",
-      "sha256": "1517e3e4c43721b4d3660831e4fb38e5c72c3fe322e289f1a0cb26c00c9f009f"
+      "sha256": "fec75e6ba742d1708f8fa5cdcda6afe80c3b5f980734da5fbf531fa3c640399b"
+    },
+    {
+      "path": ".claude/skills/cfn-mailbox/mailbox.sh",
+      "line": 872,
+      "claim": "claim takes alias:<owner>:<name> with SET NX, refuses (21) a different holder seen in the last 10 minutes, takes over a quieter one under lock:<owner>:alias-<name>, and keeps the name only if the read-back shows its own session id",
+      "sha256": "31bd97d1a28560f93d870d1af68fc13e89b47f5b43bdce90cca9fdbc92416f3c"
+    },
+    {
+      "path": ".claude/skills/cfn-mailbox/mailbox.sh",
+      "line": 606,
+      "claim": "emit_msgs labels same-owner mail coordinator only when its coord field equals the reader's MAILBOX_COORD_FILE secret and its from is MAILBOX_COORD_FROM (when set), and deletes coord from every message it prints",
+      "sha256": "31bd97d1a28560f93d870d1af68fc13e89b47f5b43bdce90cca9fdbc92416f3c"
+    },
+    {
+      "path": ".claude/skills/cfn-mailbox/mailbox.sh",
+      "line": 999,
+      "claim": "flush sends each MAILBOX_OUTQ entry as this session with its queued msg_id, removes it once sent, stops on a Redis or rate-limit failure and sets unsendable entries aside as .failed",
+      "sha256": "31bd97d1a28560f93d870d1af68fc13e89b47f5b43bdce90cca9fdbc92416f3c"
+    },
+    {
+      "path": ".claude/hooks/cfn-mailbox-hook.sh",
+      "line": 253,
+      "claim": "the hook flushes a sandboxed worker's outbound queue on every event, outside the Bash sandbox",
+      "sha256": "fec75e6ba742d1708f8fa5cdcda6afe80c3b5f980734da5fbf531fa3c640399b"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-watch.sh",
+      "line": 193,
+      "claim": "fleet watch reads <project>-master with its own reader marker, applies host-row worker mail to the roster, prints MAILBOX-DOWN once and falls back to fleet sync while the mailbox does not answer",
+      "sha256": "fac90c5eea97f149e040fb6dca0aaeb893849d0a70af641356193a7aec8d288c"
+    },
+    {
+      "path": ".claude/skills/cfn-fleet/lib/cmd-spawn.sh",
+      "line": 399,
+      "claim": "fleet spawn names the worker <project>-<ws>, creates the run's coordinator secret, claims <project>-master for the spawning session, and gives each pane its own MAILBOX_SESSION",
+      "sha256": "e2d2d73076ffa315b47362fe3a244aab6d174909d2c57cca7b259d68ee753fe4"
     }
   ]
 }

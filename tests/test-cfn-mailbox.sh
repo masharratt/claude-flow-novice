@@ -615,7 +615,7 @@ test_adduser() {
   rule_line="$(grep '^STDIN	' "$T/calls" | head -1 | cut -f2-)"
   local pat
   for pat in '~mbx:steve:*' '~mbx:*:from:steve' '~dir:steve' '~seen:steve:*' '~due:steve' '~log:steve' \
-             '~lock:steve:*' '~rate:steve:*' '~done:steve:*' '~claim:steve:*'; do
+             '~lock:steve:*' '~rate:steve:*' '~done:steve:*' '~claim:steve:*' '~alias:steve:*'; do
     assert_contains " $rule_line " " $pat " "ACL has key pattern $pat"
   done
   for pat in +ping +xadd +xread +xreadgroup +xack +xautoclaim +xclaim +xpending +xinfo +xgroup +xrange \

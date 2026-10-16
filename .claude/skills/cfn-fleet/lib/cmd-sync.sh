@@ -157,6 +157,54 @@ for r in rows:
     print("\x1f".join(str(x) for x in r))
 '
 
+# _fleet_claim_req_append WS PATH TAG: record a worker's claim request in
+# handoffs/CLAIM_REQ_<WS>.md for the master to decide (sync and mail both;
+# neither ever changes claims). WS must already be a safe file-name part.
+_fleet_claim_req_append() {
+  local ws="$1" path="$2" tag="$3" cr
+  cr="$(fleet_run_dir)/handoffs/CLAIM_REQ_$ws.md"
+  mkdir -p "$(dirname "$cr")"
+  [ -f "$cr" ] || printf '# Claim requests from %s\n\nDecide with `fleet claim`; sync never changes claims.\n\n' "$ws" > "$cr"
+  printf -- '- %s (%s)\n' "$path" "$tag" >> "$cr"
+}
+
+# _fleet_mail_apply_locked WS TYPE BODY TAG: apply one worker mail message
+# (mailbox stage 5) to the roster, under the roster flock the caller holds.
+# Same rules as a synced report: heartbeat stamped now, status only along the
+# allowed transitions, notes capped, claim requests recorded, never claims.
+#   status <state>[: note]  status = the first word when it is a state
+#   blocked | done          status blocked | done; notes = the body
+#   handoff <file>          notes "handoff <file>"
+#   claim-request <path>    CLAIM_REQ_<WS>.md (TAG says where it came from)
+# Prints HANDOFF / CLAIM-REQ lines for the caller to relay. rc 71 on a failed write.
+_fleet_mail_apply_locked() {
+  local ws="$1" type="$2" body="$3" tag="$4" cur new="" note="" st
+  body="${body//[$'\t\n\r']/ }"
+  cur=$(roster_get "$ws" status)
+  case "$type" in
+    status)
+      st="${body%%[: ]*}"
+      [[ " $_FLEET_SYNC_TO " == *" $st "* ]] && new="$st"
+      note="$body" ;;
+    blocked) new=blocked
+      case "$body" in blocked*) note="$body" ;; *) note="blocked: $body" ;; esac ;;
+    done) new=done; note="${body:+done: $body}" ;;
+    handoff) note="handoff $body"; echo "HANDOFF $ws $body" ;;
+    claim-request)
+      if [[ "$ws" =~ ^[A-Za-z0-9._-]+$ ]] && [ -n "$body" ]; then
+        _fleet_claim_req_append "$ws" "$body" "$tag"
+        echo "CLAIM-REQ $ws $body"
+      fi ;;
+  esac
+  _roster_set_locked "$ws" heartbeat "$(date +%s)" || return 71
+  [ -z "$note" ] || _roster_set_locked "$ws" notes "${note:0:200}" || return 71
+  if [ -n "$new" ] && [ "$new" != "$cur" ] \
+     && [[ " $_FLEET_SYNC_FROM " == *" $cur "* && " $_FLEET_SYNC_TO " == *" $new "* ]]; then
+    _roster_set_locked "$ws" status "$new" || return 71
+  fi
+  return 0
+}
+
 # fleet_sync [WS]: sync one host row, or every host row when WS is empty.
 fleet_sync() {
   local only="${1:-}" roster hidx ws host
@@ -266,9 +314,7 @@ _fleet_sync_apply() {
           fi ;;
         claim_request)
           if [ "$safe_ws" = 1 ] && [ -n "$path" ]; then
-            local cr="$rd/handoffs/CLAIM_REQ_$ws.md"
-            [ -f "$cr" ] || printf '# Claim requests from %s\n\nDecide with `fleet claim`; sync never changes claims.\n\n' "$ws" > "$cr"
-            printf -- '- %s (gen %s, seq %s)\n' "$path" "$gen" "$seq" >> "$cr"
+            _fleet_claim_req_append "$ws" "$path" "gen $gen, seq $seq"
             accepted=$((accepted + 1))
             echo "CLAIM-REQ $ws $path"
           fi ;;

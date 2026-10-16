@@ -389,6 +389,48 @@ _spawn_launch_one(){
 
 # --- Host (remote worker) spawns: lib/spawn-remote.sh (sourced above) ------
 
+# --- Mailbox (stage 5): every worker talks to the master through the mailbox --
+# _spawn_mailbox_prepare WS: sets _SPAWN_MB_NAME (worker address name),
+# _SPAWN_MB_MASTER (master address) and _SPAWN_MB_SECRET (the run's coordinator
+# secret file) in the caller's scope, and claims the master role name for the
+# session running spawn. All three stay empty when the mailbox is off for the
+# run or not configured on this machine: the worker then reports through
+# roster files only (said once, as a WARN). Never prints the secret.
+_spawn_mailbox_prepare(){
+  local ws="$1" project owner master_name out rc
+  _SPAWN_MB_NAME="" _SPAWN_MB_MASTER="" _SPAWN_MB_SECRET=""
+  _fleet_mb_enabled || return 0
+  project=$(_fleet_mb_project)
+  if ! owner=$(_fleet_mb_owner); then
+    echo "WARN spawn: the mailbox is not configured on this machine (mailbox.sh whoami failed); $ws reports through roster files only" >&2
+    return 0
+  fi
+  master_name=$(fleet_master_mail_name "$project")
+  _SPAWN_MB_NAME=$(fleet_mail_name "$project" "$ws")
+  _SPAWN_MB_MASTER="$owner/s/$master_name"
+  _SPAWN_MB_SECRET=$(_fleet_coord_secret_file)
+  if [ -n "${MAILBOX_SESSION_ID:-}${CLAUDE_CODE_SESSION_ID:-}" ]; then
+    rc=0
+    out=$(_fleet_mb claim "$master_name" 2>&1) || rc=$?
+    if [ "$rc" -eq 0 ]; then
+      echo "mailbox: master address $_SPAWN_MB_MASTER (claimed by this session)"
+    else
+      echo "WARN spawn: could not claim $_SPAWN_MB_MASTER for this session: ${out##*mailbox: }" >&2
+    fi
+  else
+    echo "mailbox: master address $_SPAWN_MB_MASTER (claim it from the master session: mailbox.sh claim $master_name)"
+  fi
+  return 0
+}
+
+# _spawn_mb_exports SESSION_NAME COORD_FILE OUTQ: the pane's mailbox env as one
+# shell segment ("export ...; "), %q-quoted. Empty when the mailbox is off.
+_spawn_mb_exports(){
+  [ -n "$_SPAWN_MB_NAME" ] || return 0
+  printf 'export MAILBOX_SESSION=%q MAILBOX_COORD_FILE=%q MAILBOX_COORD_FROM=%q MAILBOX_OUTQ=%q FLEET_MASTER_MAIL=%q FLEET_WS=%q; ' \
+    "$1" "$2" "$_SPAWN_MB_MASTER" "$3" "$_SPAWN_MB_MASTER" "$_SPAWN_MB_WS"
+}
+
 # _fleet_spawn_relay: copy stdin to stdout; once stdout is gone, keep
 # draining into /dev/null so the writer never sees a failed write.
 _fleet_spawn_relay(){
@@ -564,6 +606,11 @@ main() {
   # row spawning (and record the host) before any server or tmux work.
   [ "$no_tmux" -eq 1 ] || _spawn_begin "$ws" "$run_dir" "$host"
 
+  # Mailbox names, the run's coordinator secret and the master's role name
+  # (dynamic scope: the remote path reads these too).
+  local _SPAWN_MB_NAME="" _SPAWN_MB_MASTER="" _SPAWN_MB_SECRET="" _SPAWN_MB_WS="$ws"
+  _spawn_mailbox_prepare "$ws"
+
   if [ -n "$host" ]; then
     local _SPAWN_SET_LINES=""
     _SPAWN_SET_LINES=$(fleet_engine_resolve_set "$engine") || exit "$?"
@@ -583,9 +630,19 @@ main() {
   fi
 
   # The pane command: one line, exec so the pane dies with the engine.
+  # @@MBX@@ becomes each session's own mailbox env (_spawn_mb_exports): the main
+  # session and every spare get distinct names, so a spare never reads the
+  # worker's mail.
   local pane_cmd="@@SPAWN_ENV@@export FLEET_RUN_DIR=$run_dir"
   [ -n "$unset_raw" ] && pane_cmd+="; unset ${unset_raw//,/ }"
-  pane_cmd+="; exec $bin${args_str:+ $args_str}"
+  pane_cmd+="; @@MBX@@exec $bin${args_str:+ $args_str}"
+  local mb_outq="$run_dir/mail-out/$ws"
+  if [ -n "$_SPAWN_MB_NAME" ]; then
+    ( umask 077; mkdir -p "$mb_outq" ) && chmod 700 "$mb_outq" \
+      || fleet_die 71 "spawn: cannot create the worker mail queue $mb_outq"
+    # Runtime queue inside the (tracked) run dir: keep it out of git.
+    [ -f "$run_dir/mail-out/.gitignore" ] || printf '*\n' > "$run_dir/mail-out/.gitignore"
+  fi
 
   # The brief owns the coordination rules: "roster files only" here once
   # overrode briefs that require a SendMessage on handoff (MDTWII, 2026-10-13).
@@ -605,7 +662,7 @@ main() {
     cfn_spawn_env_secret_notes "$set_raw"
     line="tmux -L $sock new-session -d -s $name -c $session_cwd$set_flags"
     echo "$line"
-    echo "tmux -L $sock send-keys -t $name -l \"$pane_cmd\""
+    echo "tmux -L $sock send-keys -t $name -l \"${pane_cmd/@@MBX@@/"$(_spawn_mb_exports "$_SPAWN_MB_NAME" "$_SPAWN_MB_SECRET" "$mb_outq")"}\""
     echo "tmux -L $sock send-keys -t $name Enter"
     [ -n "$trust_re" ] && echo "# if the trust prompt appears: tmux -L $sock send-keys -t $name ${trust_keys//,/ }"
     echo "# after the banner shows (/$banner_re/):"
@@ -614,7 +671,7 @@ main() {
     for ((k = 1; k <= spares; k++)); do
       sname="$name-spare$k"
       echo "tmux -L $sock new-session -d -s $sname -c $session_cwd$set_flags"
-      echo "tmux -L $sock send-keys -t $sname -l \"$pane_cmd\""
+      echo "tmux -L $sock send-keys -t $sname -l \"${pane_cmd/@@MBX@@/"$(_spawn_mb_exports "$_SPAWN_MB_NAME-spare$k" "$_SPAWN_MB_SECRET" "$mb_outq")"}\""
       echo "tmux -L $sock send-keys -t $sname Enter"
     done
     roster_set "$ws" status started
@@ -672,7 +729,8 @@ main() {
 
   # 4-7. Main session: launch, trust, banner, roster write, then the prompt.
   banner_line=$(_spawn_launch_one "$sock" "$name" "$session_cwd" \
-    "$pane_cmd" "$trust_re" "$trust_keys" "$trust_timeout" "$banner_re" "$banner_timeout") \
+    "${pane_cmd/@@MBX@@/"$(_spawn_mb_exports "$_SPAWN_MB_NAME" "$_SPAWN_MB_SECRET" "$mb_outq")"}" \
+    "$trust_re" "$trust_keys" "$trust_timeout" "$banner_re" "$banner_timeout") \
     || fleet_die 66 "spawn: $name left pending (launch failed or engine '$engine' never showed its banner; a worker on the wrong model must not reach started)"
   roster_set "$ws" status started
   _spawn_commit
@@ -697,7 +755,8 @@ main() {
   for ((k = 1; k <= spares; k++)); do
     sname="$name-spare$k"
     banner_line=$(_spawn_launch_one "$sock" "$sname" "$session_cwd" \
-      "$pane_cmd" "$trust_re" "$trust_keys" "$trust_timeout" "$banner_re" "$banner_timeout") \
+      "${pane_cmd/@@MBX@@/"$(_spawn_mb_exports "$_SPAWN_MB_NAME-spare$k" "$_SPAWN_MB_SECRET" "$mb_outq")"}" \
+      "$trust_re" "$trust_keys" "$trust_timeout" "$banner_re" "$banner_timeout") \
       || fleet_die 66 "spawn: spare $sname failed (launch failed or engine '$engine' never showed its banner)"
     echo "spawned $sname engine=$engine banner=\"$banner_line\""
   done

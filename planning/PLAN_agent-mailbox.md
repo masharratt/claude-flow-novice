@@ -286,7 +286,9 @@ the coordinator style safer.
    direct Redis injection to a private address, forged `from`/`to`, process death between claim
    and write, write succeeded but the reply was lost, kill between inner and outer hook output.
 5. **Fleet, all workers at once (user, 2026-10-16: one path for every worker, for consistency and
-   faster iteration; models need the internet anyway).** See "Stage 5 design" below.
+   faster iteration; models need the internet anyway). Done 2026-10-16 (offline suites green;
+   live ACL needs `~alias:<owner>:*` before use, see "How stage 5 was built").** See "Stage 5
+   design" below.
    Fleet workers on every machine report and receive instructions through the mailbox. Roster,
    brief and handoff files stay the record of truth; mail carries short messages that point at
    them. The old routes (ssh polling of server workers, tmux nudges and same-machine session
@@ -324,6 +326,32 @@ the coordinator style safer.
 - **Tests:** claim and release races, role mail surviving a session restart, worker names unique
   across projects, coordinator label only with the right secret, a forged coordinator message
   labelled teammate, fleet roster updated from mail, `MAILBOX-DOWN` fallback.
+
+**How stage 5 was built (for the next reader):**
+- Routes it replaced (step 0 map): `fleet nudge` typed text over tmux `send-keys` (local and over
+  ssh); `fleet watch` ran `fleet sync` over ssh every tick for host rows (report files), then
+  probed panes over ssh; the brief templates told local workers "roster files only, no messages"
+  and remote workers "no SendMessage"; the spawn prompt is typed once after the banner.
+- Role names: `mailbox.sh claim|release|whoami`. Holder id = `MAILBOX_SESSION_ID` >
+  `CLAUDE_CODE_SESSION_ID` > `MAILBOX_SESSION`; `SET alias NX`, a takeover of a holder quiet for
+  10 minutes runs under `lock:<owner>:alias-<name>`, and a read-back decides the winner. The local
+  file `~/.cache/cfn-mailbox/alias-<holder>` makes the role the session for mailbox.sh and the
+  hook; heartbeat refreshes `last_seen` and drops a lost name. ACL gains `~alias:<owner>:*`.
+- Coordinator: `send --coord-file F` reads `coordinator-secret: <hex>` and sends it as the last
+  field through `redis-cli -x` (stdin). `read` upgrades same-owner mail to `coordinator` when it
+  matches `MAILBOX_COORD_FILE` and `from` equals `MAILBOX_COORD_FROM` (the master; workers of one
+  run share the secret, so a peer stays teammate), and always deletes `coord`. Local workers' secret file is the run's
+  `<run>/.coord/secret` (the local brief is a tracked file, so the secret is not written into it);
+  host workers get it appended to the shipped `brief.md` (0600).
+- Sandboxed Bash cannot open a TLS socket to Upstash, so worker mail goes through a queue:
+  `mailbox.sh queue` (or `remote-worker.sh`, same JSON, no jq) writes `MAILBOX_OUTQ`; the hook runs
+  outside the sandbox and calls `mailbox.sh flush` on every event. Queued `msg_id` is kept.
+- Fleet: `lib/mail.sh` (names, secret, `_fleet_mail_send`), `fleet mail`, `fleet report`, nudge by
+  mail with typing as fallback, `fleet watch` reads `<project>-master` with `read --reader
+  fleet-watch` (its own marker beside the master's hook), applies host-row mail via
+  `_fleet_mail_apply_locked` (cmd-sync.sh, same transition rules as sync), takes host-row
+  heartbeats from `who --seen`, and runs `fleet sync` only while `MAILBOX-DOWN`.
+  `FLEET_MAILBOX=off` keeps the file-only paths (the older suites run that way).
 
 ## Operations integration review (gg-all-projects, 2026-10-16)
 
