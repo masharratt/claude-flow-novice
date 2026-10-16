@@ -7,7 +7,16 @@
 # fleet/<WSxx> into the current branch (ff-only default, --no-ff flag),
 # removes the worktree, and records landed_sha.
 #
-#   fleet land WSxx [--no-ff]
+#   fleet land WSxx [--no-ff] [--allow-deletes]
+#
+# Delete gate (MDTWII 2026-10-16: a lane's test `impl Drop` ran remove_dir_all
+# on a symlinked worktree path and wiped 7.5 GB four times, no shell hook saw
+# it): before merging, ADDED lines of the lane diff are scanned for recursive
+# deletes (remove_dir_all, rmtree, rm -rf, fs.rm recursive, rimraf, ...). A hit
+# refuses the land with exit 67 and lists file:line. The reviewer confirms the
+# path is a temp dir the test created, then re-runs with --allow-deletes.
+# Exit codes: 64 usage, 65 data/claims, 66 dirty, 67 recursive-delete gate,
+# 69 host unreachable, 70 fetch or merge failed.
 
 # Claim matcher + unclaimed-dirty scan live in lib/common.sh (shared with
 # cmd-commit.sh so both guards behave identically).
@@ -48,7 +57,29 @@ _land_msg_args() {
     _LAND_MSG_BODY="Task: ${task:-(none recorded)}"$'\n\n'"Worker: ${name:-$ws}"
 }
 
-# remote_land REPO WS NO_FF: merge a host row's fleet/<WS> into REPO's current
+# _land_delete_gate REPO WS BASE HEAD ALLOW: the one recursive-delete check both
+# land paths call. rc 0 = clean or allowed (hits print as a WARN), rc 1 =
+# refused (hits printed to stderr); the caller cleans up and dies with 67.
+_land_delete_gate() {
+  local repo="$1" ws="$2" base="$3" head="$4" allow="$5" hits rc=0
+  hits=$(_fleet_scan_recursive_deletes "$repo" "$base" "$head") || rc=$?
+  [ "$rc" -eq 0 ] || fleet_die 70 "land: could not scan the diff of $ws for recursive deletes; nothing was merged"
+  [ -n "$hits" ] || return 0
+  if [ "$allow" -eq 1 ]; then
+    echo "WARN land: $ws adds recursive deletes (landing anyway, --allow-deletes):" >&2
+    printf '  %s\n' "$hits" >&2
+    return 0
+  fi
+  echo "land: $ws adds recursive deletes:" >&2
+  printf '  %s\n' "$hits" >&2
+  return 1
+}
+# _land_delete_refusal WS: the die message for a refused gate (exit 67).
+_land_delete_refusal() {
+  fleet_die 67 "land: $1 refused; confirm each path above is a temp dir the test created (never a symlink or shared data), then re-run: fleet land $1 --allow-deletes"
+}
+
+# remote_land REPO WS NO_FF ALLOW_DELETES: merge a host row's fleet/<WS> into REPO's current
 # branch. Order matters: the remote worktree is checked clean BEFORE the fetch
 # (uncommitted work there would be lost with the worktree), and the claims gate
 # runs BEFORE the merge. Reads remote/<WS>.env (written by `fleet spawn --host`).
@@ -58,7 +89,7 @@ _land_msg_args() {
 # Exit codes: 65 no env file / missing worktree / unclaimed files, 66 remote
 # worktree dirty, 69 host unreachable, 70 fetch or merge failed.
 remote_land() {
-  local repo="$1" ws="$2" no_ff="$3"
+  local repo="$1" ws="$2" no_ff="$3" allow_deletes="${4:-0}"
   local rd envf
   rd=$(fleet_run_dir)
   envf="$rd/remote/$ws.env"
@@ -139,6 +170,12 @@ remote_land() {
     fleet_die 65 "land: $FLEET_BRANCH changes files outside the claims of $ws; claim them or drop them: $unclaimed"
   fi
 
+  # Recursive-delete gate (MDTWII 2026-10-16), before anything merges.
+  if ! _land_delete_gate "$repo" "$ws" "$base_ref" "$head_ref" "$allow_deletes"; then
+    _land_drop_refs
+    _land_delete_refusal "$ws"
+  fi
+
   local mrc=0
   if [ "$no_ff" -eq 1 ]; then
     _land_msg_args "$ws"
@@ -191,10 +228,11 @@ remote_cleanup() {
 }
 
 main() {
-  local ws="" no_ff=0
+  local ws="" no_ff=0 allow_deletes=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --no-ff) no_ff=1; shift ;;
+      --allow-deletes) allow_deletes=1; shift ;;
       -*)
         fleet_die 64 "land: unknown option $1" ;;
       *)
@@ -202,7 +240,7 @@ main() {
         ws="$1"; shift ;;
     esac
   done
-  [ -n "$ws" ] || fleet_die 64 "usage: fleet land WSxx [--no-ff]"
+  [ -n "$ws" ] || fleet_die 64 "usage: fleet land WSxx [--no-ff] [--allow-deletes]"
   roster_exists "$ws" || fleet_die 65 "land: $ws not in roster"
   # A spawning row has no commits to land yet and may still fail back to
   # pending; landing it would orphan the launch in progress.
@@ -228,13 +266,19 @@ main() {
   local host
   host=$(roster_get "$ws" host)
   if [ -n "$host" ]; then
-    remote_land "$repo" "$ws" "$no_ff"
+    remote_land "$repo" "$ws" "$no_ff" "$allow_deletes"
   elif [ "$(fleet_env_get FLEET_WORKTREE)" = "on" ]; then
     local wt branch="fleet/$ws"
     wt=$(fleet_worktree_path "$repo" "$ws")
     [ -d "$wt" ] || fleet_die 65 "land: no worktree at $wt (nothing to merge)"
     [ -z "$(git -C "$wt" status --porcelain)" ] \
       || fleet_die 66 "land: worktree $wt has uncommitted changes; commit or clean first"
+    # Recursive-delete gate (MDTWII 2026-10-16), before anything merges.
+    local lbase
+    lbase=$(git -C "$repo" merge-base HEAD "$branch") \
+      || fleet_die 70 "land: no merge base between HEAD and $branch; nothing was merged"
+    _land_delete_gate "$repo" "$ws" "$lbase" "$branch" "$allow_deletes" \
+      || _land_delete_refusal "$ws"
     # A failed merge must stop here: removing the worktree and marking the row
     # landed would report unmerged work as done.
     local lrc=0

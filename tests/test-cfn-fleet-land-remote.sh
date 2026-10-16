@@ -304,6 +304,95 @@ contains "local subject names ws and task" "$SUBJ" "fleet: land WS01: Rebuild th
 contains "local body carries the full task" "$BODY" "$LONG_TASK"
 contains "local body names the worker" "$BODY" "ws01"
 
+# ---- Recursive-delete gate (exit 67) ----
+# MDTWII 2026-10-16: a worker's Rust test `impl Drop` ran std::fs::remove_dir_all
+# on a worktree path that was a symlink into the main checkout's shared data and
+# wiped 7.5 GB four times. No shell hook saw it; landing is the last checkpoint.
+
+echo "== test_land_remote_refuses_recursive_delete"
+build_fixture rdel "a.md b.rs" no
+printf 'impl Drop for G { fn drop(&mut self) { std::fs::remove_dir_all(&self.0).ok(); } }\n' >"$SRV_WT/b.rs"
+git -C "$SRV_WT" add -A && git -C "$SRV_WT" commit -qm "add guard"
+BEFORE=$(git -C "$REPO" rev-parse HEAD)
+run_land WS01
+check "recursive delete in the lane exits 67" "$RC" "67"
+contains "hit names file:line" "$ERR" "b.rs:1:"
+contains "hit prints the line" "$ERR" "remove_dir_all"
+contains "message says to confirm a temp dir" "$ERR" "temp dir the test created"
+contains "message names the override" "$ERR" "--allow-deletes"
+check "nothing merged: Mac HEAD unchanged" "$(git -C "$REPO" rev-parse HEAD)" "$BEFORE"
+check "roster status unchanged" "$(awk -F'\t' '$1=="WS01"{print $4}' "$RUN_DIR/roster.tsv")" "working"
+[ -d "$SRV_WT" ] && ok "remote worktree kept on refusal" || no "remote worktree removed on refusal"
+[ -f "$RUN_DIR/remote/WS01.env" ] && ok "env file kept on refusal" || no "env file removed on refusal"
+check "no scratch refs left after the refusal" "$(git -C "$REPO" for-each-ref refs/fleet-remote | wc -l | tr -d ' ')" "0"
+
+echo "== test_land_remote_allow_deletes_lands_with_warning"
+run_land WS01 --allow-deletes
+check "--allow-deletes lands the same lane (exit 0)" "$RC" "0"
+contains "hits still printed as a warning" "$ERR" "WARN"
+contains "warning carries the hit" "$ERR" "b.rs:1:"
+[ -f "$REPO/b.rs" ] && ok "lane merged with --allow-deletes" || no "b.rs not merged (err: $ERR)"
+check "roster status landed" "$(awk -F'\t' '$1=="WS01"{print $4}' "$RUN_DIR/roster.tsv")" "landed"
+
+# build_local NAME: local worktree-mode repo whose base already carries a
+# recursive delete in old.rs (so a lane can remove it). Sets REPO, RUN_DIR, LWT.
+build_local() {
+  local lb="$TMP_DIR/$1"
+  mkdir -p "$lb"
+  REPO="$lb/proj"
+  git init -q -b main "$REPO"
+  printf 'planning/fleet-*/\n.claude/worktrees/\n' >"$REPO/.gitignore"
+  printf 'fn old() { std::fs::remove_dir_all(p); }\nkeep\n' >"$REPO/old.rs"
+  git -C "$REPO" add -A && git -C "$REPO" commit -qm init
+  LWT="$REPO/.claude/worktrees/ws01"
+  git -C "$REPO" worktree add -q -b fleet/WS01 "$LWT" main
+  RUN_DIR="$REPO/planning/fleet-main"
+  mkdir -p "$RUN_DIR"
+  printf 'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\thost\n' >"$RUN_DIR/roster.tsv"
+  printf 'WS01\tws01\ttask\tworking\told.rs new.rs\t\t\t\t0\t\tclaude-haiku\t\n' >>"$RUN_DIR/roster.tsv"
+  : >"$RUN_DIR/.roster.lock"
+  printf 'FLEET_WORKTREE=on\n' >"$RUN_DIR/fleet.env"
+}
+lane_commit() { git -C "$LWT" add -A && git -C "$LWT" commit -qm lane; }
+
+echo "== test_land_local_refuses_recursive_delete_then_allows"
+build_local rdel_local
+printf 'fn t() { shutil.rmtree(path) }\nrm -rf "$X"\nfs.rmSync(d, { recursive: true });\nrimraf(d)\n' >"$LWT/new.rs"
+lane_commit
+BEFORE=$(git -C "$REPO" rev-parse HEAD)
+run_land WS01
+check "local lane with recursive deletes exits 67" "$RC" "67"
+contains "hit names new.rs:1" "$ERR" "new.rs:1:"
+contains "rm -rf hit reported" "$ERR" "new.rs:2:"
+contains "fs.rmSync recursive hit reported" "$ERR" "new.rs:3:"
+contains "rimraf hit reported" "$ERR" "new.rs:4:"
+check "nothing merged locally" "$(git -C "$REPO" rev-parse HEAD)" "$BEFORE"
+[ -d "$LWT" ] && ok "local worktree kept on refusal" || no "local worktree removed on refusal"
+check "roster status unchanged locally" "$(awk -F'\t' '$1=="WS01"{print $4}' "$RUN_DIR/roster.tsv")" "working"
+run_land WS01 --allow-deletes
+check "local --allow-deletes lands (exit 0)" "$RC" "0"
+contains "local override prints a warning" "$ERR" "WARN"
+[ -f "$REPO/new.rs" ] && ok "local lane merged with --allow-deletes" || no "new.rs not merged (err: $ERR)"
+
+echo "== test_land_local_clean_lane_lands"
+build_local clean_local
+printf 'fn fine() {}\n' >"$LWT/new.rs"
+lane_commit
+run_land WS01
+check "clean local lane exits 0 without the flag" "$RC" "0"
+[ -f "$REPO/new.rs" ] && ok "clean lane merged" || no "new.rs not merged (err: $ERR)"
+
+echo "== test_land_local_removed_delete_lines_do_not_trigger"
+# old.rs on the base carries remove_dir_all; the lane REMOVES it. Only added
+# lines count, so this must land without the override.
+build_local removed_local
+printf 'keep\nfn safe() {}\n' >"$LWT/old.rs"
+printf 'ok\n' >"$LWT/new.rs"
+lane_commit
+run_land WS01
+check "lane that only removes a delete line exits 0" "$RC" "0"
+case "$ERR" in *"recursive deletes"*) no "removed line triggered the gate: $ERR" ;; *) ok "no gate output for removed lines" ;; esac
+
 echo
 echo "passed=$PASS failed=$FAIL"
 [ "$FAIL" -eq 0 ]

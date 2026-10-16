@@ -44,8 +44,9 @@ Subcommands:
                                                 1-9 y n); host rows act over ssh
   stop WSxx                                     close the worker's tmux session only (worktree,
                                                 branch, claims, files untouched)
-  land WSxx [--no-ff]                          merge/mark landed (host rows: fetch from the
-                                                server, refuse files outside the claims)
+  land WSxx [--no-ff] [--allow-deletes]        merge/mark landed (host rows: fetch from the
+                                                server, refuse files outside the claims);
+                                                refuses (67) added recursive deletes
   handoff WSxx                                  write HANDOFF_WSxx.md
   db WSxx | db-clean [--all]                    scratch postgres containers
   watch [--stale-min N] [--poll S] [--once] [--emit-events]

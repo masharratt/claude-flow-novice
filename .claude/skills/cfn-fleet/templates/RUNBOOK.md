@@ -26,7 +26,9 @@ from the target project root unless resolving a different run dir on purpose.
    check lane test cleanup code (`Drop`, teardown, fixtures) first: deletes
    inside a compiled test binary never reach a shell hook.
    Reviews: fail any lane whose test cleanup can delete a path outside its own
-   temp dir (`git diff <base>..fleet/WSxx | grep -nE 'remove_dir_all|rmtree|rm -rf|fs\.rm'`).
+   temp dir. `fleet land WSxx` enforces this: it scans the lane's added lines
+   for recursive deletes and refuses (exit 67) until the reviewer confirms the
+   path and re-runs with `--allow-deletes`.
 4. **Write briefs**: fill `briefs/WSxx.md` from `briefs/BRIEF_WS.md` (task,
    engine, claims, allowed commands, done criteria; codex workers need the
    self-protocol note).

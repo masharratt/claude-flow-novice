@@ -78,7 +78,7 @@ STALE/DEAD until `started`).
 | `commit WSxx -m <msg>` | Guarded commit: stages ONLY claimed paths, refuses (66) on unclaimed dirty files |
 | `migrate-next WSxx <dir>` | Reserve next migration number (max+1, flocked); no silent collisions |
 | `spawn WSxx [--spares N] [--engine e] [--no-tmux] [--dry-run]` | Launch the worker's engine in a tmux pane on the run's socket, verify its banner, then send the thin prompt. Prints the dashboard URL: `dashboard live: http://127.0.0.1:<port>/dashboard.html` when the dashboard server is up, otherwise `dashboard: <url> (start: fleet dashboard --open)`. Engine precedence: `--engine` > roster column > `FLEET_DEFAULT_ENGINE` > `claude-sub`. Splices the activity-gated heartbeat ticker into the pane (`FLEET_TICK_SECS`, default 30s, `off` disables) |
-| `land WSxx [--no-ff]` | Worktree: merge `fleet/<WSxx>` + remove worktree (a `--no-ff` merge commit reads `fleet: land WSxx: <task, 60 chars>` with the full task and worker name in the body; refuses a spawning row); main: mark landed; then sweep `handoffs/` for files addressed to the lane (`residual:` lines) |
+| `land WSxx [--no-ff] [--allow-deletes]` | Delete gate first, for local worktree and host rows: ADDED lines of the lane diff are scanned for recursive deletes (`remove_dir_all`, `rmtree`, `rm -rf`, `fs.rm`/`rmSync`/`rmdir` with `recursive`, `rimraf`); a hit refuses with exit 67 and lists `file:line`, nothing merges (MDTWII 2026-10-16: a test `Drop` wiped shared data through a symlink). Confirm the path is a temp dir the test created, then `--allow-deletes` lands anyway. Worktree: merge `fleet/<WSxx>` + remove worktree (a `--no-ff` merge commit reads `fleet: land WSxx: <task, 60 chars>` with the full task and worker name in the body; refuses a spawning row); main: mark landed; then sweep `handoffs/` for files addressed to the lane (`residual:` lines) |
 | `handoff WSxx` | Write `handoffs/HANDOFF_WSxx.md` for compaction restart into a spare |
 | `db WSxx` / `db-clean [--all]` | Scratch postgres containers (only when `FLEET_DB=docker`) |
 | `host-setup <alias> [--check]` | Prepare a server for `spawn --host` (see Remote hosts); idempotent |
@@ -91,7 +91,7 @@ STALE/DEAD until `started`).
 | `archive <run> [--undo]` | Hide a stale run from discovery and the dashboard by writing `<run>/.archived` (undo removes it); never deletes |
 
 Exit codes: `0` ok, `64` usage, `65` data error (bad WS id, overlap, duplicate),
-`66` guard refusal, `71` internal.
+`66` guard refusal, `67` land refused by the recursive-delete gate, `71` internal.
 
 ## Remote hosts
 

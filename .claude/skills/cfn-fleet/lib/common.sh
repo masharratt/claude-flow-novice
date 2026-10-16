@@ -477,3 +477,26 @@ _fleet_sha1() {
 
 # _fleet_reverse_lines: stdin lines in reverse order (tac is GNU only).
 _fleet_reverse_lines() { awk '{ l[NR] = $0 } END { for (i = NR; i > 0; i--) print l[i] }'; }
+
+# Recursive-delete patterns (ERE) the land gate looks for in ADDED lines.
+# MDTWII 2026-10-16: a lane's Rust test `impl Drop` ran remove_dir_all on a
+# worktree path that was a symlink into shared data; no shell hook saw it.
+_FLEET_RDEL_PATTERN='remove_dir_all|remove_dir([^_[:alnum:]]|$)|rmtree|rimraf|rm[[:space:]]+-[a-zA-Z]*[rR]|fs(\.promises)?\.(rm|rmSync|rmdir|rmdirSync)[[:space:]]*\(.*recursive'
+
+# _fleet_scan_recursive_deletes REPO BASE HEAD: print one "file:line: text" per
+# ADDED line of the BASE..HEAD diff that matches a recursive-delete pattern.
+# Removed and context lines never match. Empty output = clean. Always rc 0
+# unless the diff itself fails (rc 1, message on stderr), so a caller cannot
+# read a broken diff as "clean".
+_fleet_scan_recursive_deletes() {
+  local repo="$1" base="$2" head="$3" out rc=0
+  out=$(git -C "$repo" -c core.quotepath=off diff --no-color --no-ext-diff -U0 "$base..$head") || rc=$?
+  [ "$rc" -eq 0 ] || { echo "scan: git diff $base..$head failed (rc $rc)" >&2; return 1; }
+  printf '%s\n' "$out" | FLEET_RDEL_RE="$_FLEET_RDEL_PATTERN" awk '
+    BEGIN { re = ENVIRON["FLEET_RDEL_RE"] }
+    /^\+\+\+ / { f = substr($0, 5); sub(/^b\//, "", f); if (f == "/dev/null") f = ""; next }
+    /^--- / { next }
+    /^@@ / { h = $0; sub(/^@@ -[0-9,]+ \+/, "", h); sub(/[, ].*/, "", h); ln = h + 0; next }
+    /^\+/ { if (f != "" && substr($0, 2) ~ re) print f ":" ln ": " substr($0, 2); ln++ }
+  '
+}
