@@ -188,6 +188,18 @@ test_spawn_local_env_and_secret() {
   assert_contains "$(launch_script ws01)" "MAILBOX_SESSION=proj-b-ws01" "project b"
   [ -n "$first_T" ] && ok
 
+  # Regression (live e2e 2026-10-16): `fleet spawn --run-dir planning/fleet-x` (relative) gave the
+  # pane a relative MAILBOX_OUTQ; mailbox.sh queue refuses relative paths (exit 2), so every
+  # local worker's `fleet report` mail was dropped.
+  new_case "spawn: a relative run dir still gives the pane absolute mailbox paths"
+  echo "Brief WS01" > "$RUN/briefs/WS01.md"; add_row WS01 pending
+  FENV=(FLEET_RUN_DIR="planning/fleet-r1")
+  fleet spawn WS01
+  assert_rc 0 "spawn ok with a relative run dir"
+  local lr; lr="$(launch_script ws01)"
+  assert_contains "$lr" "MAILBOX_OUTQ=$RUN/mail-out/WS01" "absolute outbound queue"
+  assert_contains "$lr" "MAILBOX_COORD_FILE=$RUN/.coord/secret" "absolute coordinator file"
+
   new_case "spawn: no mailbox config -> spawn still works, files only, says so"
   echo "Brief" > "$RUN/briefs/WS01.md"; add_row WS01 pending
   FENV=(MAILBOX_CONFIG="$T/missing")
