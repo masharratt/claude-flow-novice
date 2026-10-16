@@ -466,6 +466,37 @@ test_who_log() {
   assert_not_contains "$OUT" "michael/s/stale" "stale session hidden"
   assert_eq "yes" "$(has_cmd 'HGETALL dir:michael' && echo yes)" "reads own directory only"
 
+  # Bug (live 2026-10-16): redis-cli 8 --json answers HGETALL as an object {field: value}; who read it
+  # as a flat array, so every line paired one entry's JSON with another entry's host/name.
+  local shape reply line n
+  for shape in object flat; do
+    new_case "who: $shape HGETALL reply keeps each line's address, host and project with its own entry"
+    now="$(date +%s)"
+    if [ "$shape" = object ]; then
+      reply="$(jq -n -c --argjson n "$now" '{
+        "michael/s/zeta": ({host:"host-z", project:"pz", summary:"sz", last_seen:$n} | tojson),
+        "michael/s/alpha": ({host:"host-a", project:"pa", summary:"sa", last_seen:$n} | tojson),
+        "michael/s/mid": ({host:"host-m", project:"pm", summary:"sm", last_seen:$n} | tojson)}')"
+    else
+      reply="$(jq -n -c --argjson n "$now" '[
+        "michael/s/zeta", ({host:"host-z", project:"pz", summary:"sz", last_seen:$n} | tojson),
+        "michael/s/alpha", ({host:"host-a", project:"pa", summary:"sa", last_seen:$n} | tojson),
+        "michael/s/mid", ({host:"host-m", project:"pm", summary:"sm", last_seen:$n} | tojson)]')"
+    fi
+    rule 'HGETALL dir:michael' "$reply"
+    mb who
+    assert_rc 0 "who ok ($shape)"
+    assert_eq "3" "$(printf '%s\n' "$OUT" | grep -c .)" "three lines ($shape)"
+    for n in alpha mid zeta; do
+      line="$(printf '%s\n' "$OUT" | grep -F "michael/s/$n" | head -n 1)"
+      assert_eq "michael/s/$n	host-${n:0:1}	p${n:0:1}	s${n:0:1}" "$line" "line for $n pairs its own host/project/summary ($shape)"
+    done
+    mb who --seen
+    assert_rc 0 "who --seen ok ($shape)"
+    assert_eq "3" "$(printf '%s\n' "$OUT" | grep -c .)" "three --seen lines ($shape)"
+    assert_eq "michael/s/alpha	$now" "$(printf '%s\n' "$OUT" | head -n 1)" "--seen first line ($shape)"
+  done
+
   new_case "log: reads log:<owner>"
   rule 'XREVRANGE log:michael + - COUNT 50' '[["1700000000000-0",["rec","{\"to\":\"michael/me\",\"kind\":\"fyi\"}"]]]'
   mb log

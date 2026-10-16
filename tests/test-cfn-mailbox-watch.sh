@@ -59,7 +59,21 @@ new_case() {
   mkdir -p "$CACHE"
   : > "$T/calls"; : > "$T/rules"; : > "$T/tmuxlog"; : > "$T/sleeplog"; : > "$T/sysctllog"; : > "$T/dir.list"
   install_fake_redis_cli "$T/bin"
-  printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\n' "$T/tmuxlog" > "$T/bin/tmux"
+  # Fake tmux: display-message (the watcher's pane-exists probe) answers from $T/deadpanes (one target
+  # per line = pane gone) and is not logged, so tmuxlog still holds only the nudge keystrokes.
+  : > "$T/deadpanes"
+  cat > "$T/bin/tmux" <<FAKE_TMUX
+#!/usr/bin/env bash
+args=("\$@")
+[ "\${args[0]:-}" != -S ] || args=("\${args[@]:2}")
+if [ "\${args[0]:-}" = display-message ]; then
+  tgt=""; prev=""
+  for a in "\${args[@]}"; do [ "\$prev" != -t ] || tgt="\$a"; prev="\$a"; done
+  if grep -qxF -- "\$tgt" "$T/deadpanes" 2>/dev/null; then exit 1; fi
+  printf '%s\n' "\$tgt"; exit 0
+fi
+printf '%s\n' "\$*" >> "$T/tmuxlog"
+FAKE_TMUX
   printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\n' "$T/sleeplog" > "$T/bin/sleep"
   printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\n' "$T/sysctllog" > "$T/bin/systemctl"
   chmod +x "$T/bin/tmux" "$T/bin/sleep" "$T/bin/systemctl"
@@ -216,12 +230,46 @@ test_nudge_gates() {
   watch once --nudge
   assert_eq "0" "$(nudges)" "other host"
 
-  new_case "nudge: session not seen for 31 minutes is not nudged"
+  new_case "nudge: session not seen for 31 minutes whose pane is gone is not nudged"
   dir_entry s1 proj $((NOW - 1860)) "$HOSTN" '[]' "main:1.0"; dir_commit
+  set_state s1 idle; seed_for s:s1 p:proj
+  echo "main:1.0" > "$T/deadpanes"
+  rule "XREAD *" "$(xr "$SKEY" 1700000000500-0 ask hello)"
+  watch once --nudge
+  assert_eq "0" "$(nudges)" "stale directory entry, dead pane"
+
+  # Bug (live 2026-10-16, MDTWII fleet): last_seen only refreshes on hook events, so an idle worker
+  # (the one that needs a wake) fell out of the 30 min watch window and was never woken.
+  new_case "nudge: idle 2 h (last_seen 2 h old) with the pane alive is woken"
+  dir_entry s1 proj $((NOW - 2 * H)) "$HOSTN" '[]' "main:1.0"; dir_commit
   set_state s1 idle; seed_for s:s1 p:proj
   rule "XREAD *" "$(xr "$SKEY" 1700000000500-0 ask hello)"
   watch once --nudge
-  assert_eq "0" "$(nudges)" "stale directory entry"
+  assert_eq "yes" "$(nudged main:1.0)" "idle 2 h, pane alive"
+  assert_eq "1" "$(nudges)" "exactly one nudge"
+
+  new_case "nudge: idle 2 h and the pane is gone is not woken"
+  dir_entry s1 proj $((NOW - 2 * H)) "$HOSTN" '[]' "main:1.0"; dir_commit
+  set_state s1 idle; seed_for s:s1 p:proj
+  echo "main:1.0" > "$T/deadpanes"
+  rule "XREAD *" "$(xr "$SKEY" 1700000000500-0 ask hello)"
+  watch once --nudge
+  assert_eq "0" "$(nudges)" "pane gone"
+
+  new_case "nudge: idle 25 h (past the 24 h session age) is not woken even with the pane alive"
+  dir_entry s1 proj $((NOW - 25 * H)) "$HOSTN" '[]' "main:1.0"; dir_commit
+  set_state s1 idle; seed_for s:s1 p:proj
+  rule "XREAD *" "$(xr "$SKEY" 1700000000500-0 ask hello)"
+  watch once --nudge
+  assert_eq "0" "$(nudges)" "past the bounce age"
+
+  new_case "nudge: socket|pane target is probed on its own socket and a dead pane is skipped"
+  dir_entry s1 proj $((NOW - 2 * H)) "$HOSTN" '[]' "/tmp/tmux-501/fleet|%3"; dir_commit
+  set_state s1 idle; seed_for s:s1 p:proj
+  echo "%3" > "$T/deadpanes"
+  rule "XREAD *" "$(xr "$SKEY" 1700000000500-0 ask hello)"
+  watch once --nudge
+  assert_eq "0" "$(nudges)" "dead socket pane"
 
   new_case "nudge: at most one per session per 60 s"
   dir_entry s1 proj $((NOW - 60)) "$HOSTN" '[]' "main:1.0"; dir_commit
@@ -266,6 +314,20 @@ test_nudge_project_and_rooms() {
   watch once --nudge
   assert_eq "1" "$(nudges)" "one nudge"
   assert_eq "yes" "$(nudged main:1.0)" "the idle one"
+
+  new_case "project mail: stale rows on dead panes are ignored, exactly one live idle pane is picked"
+  dir_entry s1 proj $((NOW - 3 * H)) "$HOSTN" '[]' "main:1.0"     # idle, stale, pane alive
+  dir_entry s2 proj $((NOW - 30)) "$HOSTN" '[]' "main:2.0"        # newest, idle, pane gone
+  dir_entry s3 proj $((NOW - 2 * H)) "$HOSTN" '[]' "main:3.0"     # idle, stale, pane alive, newer than s1
+  dir_commit
+  set_state s1 idle; set_state s2 idle; set_state s3 idle
+  echo "main:2.0" > "$T/deadpanes"
+  seed_for s:s1 s:s2 s:s3 p:proj
+  rule "XREAD *" "$(xr "$PKEY" 1700000000500-0 ask hello)"
+  watch once --nudge
+  assert_eq "1" "$(nudges)" "exactly one nudge"
+  assert_eq "no" "$(nudged main:2.0)" "dead pane skipped"
+  assert_eq "yes" "$(nudged main:3.0)" "newest live idle pane wins"
 
   new_case "project mail: nobody idle -> nobody nudged"
   dir_entry s1 proj $((NOW - 600)) "$HOSTN" '[]' "main:1.0"

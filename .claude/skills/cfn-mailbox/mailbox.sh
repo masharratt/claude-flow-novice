@@ -734,22 +734,27 @@ cmd_read() {
 
 # --------------------------------------------------------------------- who / log
 
+# jq prelude: an HGETALL reply as a flat [field, value, ...] array. redis-cli 8 --json (RESP3) answers
+# an object {field: value}; RESP2 answers the flat array. Reading an object as a flat array pairs one
+# entry's JSON with another entry's address (bug seen live 2026-10-16).
+WHO_FLAT='def flat: if type == "object" then [to_entries[] | .key, .value] elif type == "array" then . else [] end;'
+
 cmd_who() {
   local cutoff
   cutoff=$(( $(now_s) - WHO_WINDOW ))
   rcmdj HGETALL "dir:$MAILBOX_OWNER"
   if [ "${1:-}" = --seen ]; then
     # address<TAB>last_seen for every entry, any age (fleet watch reads worker liveness from it).
-    printf '%s' "$RC_OUT" | jq -r '
-      [ (. // [])[] ] as $a
+    printf '%s' "$RC_OUT" | jq -r "$WHO_FLAT"'
+      (. // [] | flat) as $a
       | [range(0; ($a | length); 2) | {addr: $a[.], v: (($a[. + 1] | fromjson?) // {})}]
       | sort_by(.addr)[]
       | [.addr, ((.v.last_seen // 0) | tostring)] | @tsv' || die 18 "unreadable directory reply"
     return 0
   fi
   [ $# -eq 0 ] || die 2 "who takes no arguments except --seen"
-  printf '%s' "$RC_OUT" | jq -r --argjson cutoff "$cutoff" '
-    [ (. // [])[] ] as $a
+  printf '%s' "$RC_OUT" | jq -r --argjson cutoff "$cutoff" "$WHO_FLAT"'
+    (. // [] | flat) as $a
     | [range(0; ($a | length); 2) | {addr: $a[.], v: (($a[. + 1] | fromjson?) // {})}]
     | map(select((.v.last_seen // 0) >= $cutoff))
     | sort_by(.addr)[]

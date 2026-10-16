@@ -128,6 +128,22 @@ session_idle() { # NAME
   [ "$w" = idle ]
 }
 
+# tmux_cmd TARGET: sets TM (tmux argv, with -S <socket> for a "<socket>|<pane_id>" target) and TM_TARGET.
+# A bare target is a session:window.pane on the default socket (older directory entries).
+tmux_cmd() {
+  TM=(tmux); TM_TARGET="$1"
+  if [[ "$1" == *"|"* ]]; then TM+=(-S "${1%%|*}"); TM_TARGET="${1##*|}"; fi
+}
+
+# pane_alive TARGET: does the tmux pane still exist? Without tmux installed it answers yes, so
+# maybe_nudge logs the real reason.
+pane_alive() {
+  command -v tmux >/dev/null 2>&1 || return 0
+  local -a TM; local TM_TARGET
+  tmux_cmd "$1"
+  "${TM[@]}" display-message -p -t "$TM_TARGET" '#{pane_id}' >/dev/null 2>&1
+}
+
 # maybe_nudge NAME TMUX: honour the 60 s cap, then type the text and press Enter.
 maybe_nudge() {
   local name="$1" target="$2" now last=0 stamp="$CACHE_DIR/nudge-$1"
@@ -138,8 +154,9 @@ maybe_nudge() {
   if ! command -v tmux >/dev/null 2>&1; then wlog "nudge $name skipped: tmux is not installed"; return 0; fi
   # "<socket>|<pane_id>" (hook-written) targets a pane on its own tmux socket; a bare target is a
   # session:window.pane on the default socket (older directory entries).
-  local -a tm=(tmux)
-  if [[ "$target" == *"|"* ]]; then tm+=(-S "${target%%|*}"); target="${target##*|}"; fi
+  local -a TM; local TM_TARGET
+  tmux_cmd "$target"
+  local -a tm=("${TM[@]}"); target="$TM_TARGET"
   if "${tm[@]}" send-keys -t "$target" -l -- "$NUDGE_TEXT" >/dev/null 2>&1; then
     sleep "${MAILBOX_NUDGE_DELAY:-1}"
     "${tm[@]}" send-keys -t "$target" Enter >/dev/null 2>&1 || { wlog "nudge $name: Enter failed"; return 0; }
@@ -185,12 +202,15 @@ MSGSF="$WORK.msgs"
 nudge_pass() {
   load_dir
   local now cutoff row name project seen host rooms tmux room key
-  now="$(now_s)"; cutoff=$((now - WHO_WINDOW))
+  # last_seen only refreshes on hook events, so an idle worker (the one that needs a wake) ages out of
+  # WHO_WINDOW. Waking therefore accepts a local row seen within SESSION_BOUNCE_AGE whose pane still exists.
+  now="$(now_s)"; cutoff=$((now - SESSION_BOUNCE_AGE))
   : > "$SESSF"; : > "$MAPF"
   while IFS= read -r row; do
     [ -n "$row" ] || continue
     host="$(row_field "$row" $R_HOST)"; seen="$(row_field "$row" $R_SEEN)"; tmux="$(row_field "$row" $R_TMUX)"
     [ "$host" = "$HOST" ] && [[ "$seen" =~ ^[0-9]+$ ]] && [ "$seen" -ge "$cutoff" ] && [ -n "$tmux" ] || continue
+    pane_alive "$tmux" || continue
     printf '%s\n' "$row" >> "$SESSF"
     name="$(row_field "$row" $R_NAME)"; project="$(row_field "$row" $R_PROJECT)"; rooms="$(row_field "$row" $R_ROOMS)"
     # receiver_keys: an outside owner's key only for a public address, so mail injected into a
