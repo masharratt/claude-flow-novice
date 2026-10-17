@@ -507,6 +507,34 @@ time.sleep(1)' "$port" &
     run_dash --stop
 }
 
+# Regression (MDTWII fleet-main, 2026-10-17): a restart right after --stop was
+# refused as "port is busy" for about a minute while nothing listened on the
+# port. The open browser tab's old connections sat in TIME_WAIT, and the free
+# check bound without SO_REUSEADDR (the server itself binds with it).
+test_serve_start_ignores_time_wait_connections() {
+    if ! command -v python3 >/dev/null 2>&1; then
+        log_info "SKIP dashboard TIME_WAIT start: python3 unavailable"
+        return 0
+    fi
+    log_step "GIVEN a port with a closed connection in TIME_WAIT, WHEN dashboard starts"
+    build_run dashtw
+    add_ws WS01 ws01 "Restart work" started "" "" "" "$(date +%s)"
+    local port
+    port=$(pick_port)
+    # The listening side closes first, so the TIME_WAIT entry sits on $port.
+    python3 -c 'import socket, sys
+p = int(sys.argv[1])
+l = socket.socket(); l.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+l.bind(("127.0.0.1", p)); l.listen(1)
+c = socket.create_connection(("127.0.0.1", p)); a, _ = l.accept()
+a.close(); c.recv(1); c.close(); l.close()' "$port"
+    run_dash --once --port "$port"
+    assert_equals "0" "$DASH_RC" "start succeeds with only TIME_WAIT on the port"
+    assert_success "http 200 after the start" \
+        http_ok "http://127.0.0.1:$port/dashboard.html"
+    run_dash --stop
+}
+
 # Regression (MDTWII fleet-main, 2026-10-16): background starts failed with 66
 # "http.server failed to start" while the server itself was fine; the log had
 # no new line. Readiness was judged by the pid's command line, and a sandboxed
@@ -1649,6 +1677,7 @@ test_transitions_own_state_jsonl_and_watch_state_untouched
 test_self_contained_refresh_and_static_fallback
 test_serve_lifecycle_http200_double_start_port_busy_stop
 test_serve_start_waits_for_port_release
+test_serve_start_ignores_time_wait_connections
 test_serve_start_does_not_need_ps
 test_render_skips_rows_without_id_or_status
 test_stop_also_stops_render_loop_and_never_kills_recycled_pid

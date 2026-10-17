@@ -2311,9 +2311,11 @@ _fleet_dash_serve_start() {
   command -v python3 >/dev/null 2>&1 \
     || fleet_die 66 "dashboard: python3 not found; serving needs it (use --no-serve for a static page only)"
   # A server stopped a moment ago can still hold the port briefly, so wait up
-  # to ~3s for it to free before refusing.
+  # to ~3s for it to free before refusing. SO_REUSEADDR as http.server binds:
+  # closed connections in TIME_WAIT (an open tab's polls) do not block it,
+  # only a socket still listening does.
   local tries=0
-  until python3 -c "import socket; s = socket.socket(); s.bind(('127.0.0.1', $port)); s.close()" 2>/dev/null; do
+  until python3 -c "import socket; s = socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); s.bind(('127.0.0.1', $port)); s.close()" 2>/dev/null; do
     tries=$((tries + 1))
     [ "$tries" -lt 30 ] \
       || fleet_die 66 "dashboard: port $port is busy; free it, pass --port N, set FLEET_DASHBOARD_PORT, or stop the old server with: fleet dashboard --stop"
