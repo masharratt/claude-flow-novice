@@ -72,6 +72,7 @@ Use Codex via `codex exec` (follow-ups: `codex exec resume`; output capture: `--
 Load `~/.claude/references/codex-delegation.md` before the first codex call in a flagged project: what to offload, required call shape, output bounding, which model at which reasoning effort, and the two model-id traps that read as subscription refusals but are not.
 
 ### Operations
+- **Rust builds go on disk, never in RAM**: never set `CARGO_TARGET_DIR` to `/dev/shm` or `/run/shm` (RAM-backed; debug targets reach 20+ GB and filled WSL RAM + swap on 2026-09-25). Use `/tmp/<name>-target` (Linux ext4). Never `/mnt/d/...` either: slow 9p IO and it has served stale rlibs as fresh (caused a day of false conclusions). `cargo clean` the target dir when a build arc finishes.
 - **Batch operations**: one message per related batch (spawns, edits, bash, todos)
 - **Never mix implementers and validators** in same message
 - **Never run tests inside agents** — coordinator executes, agents read results
