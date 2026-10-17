@@ -42,17 +42,40 @@ reach a person's passwords.
 3. Never `infisical secrets get --plain`, `infisical export` to stdout, `echo $SECRET`, `env`, or
    writing values into files. A PreToolUse guard enforces this (Phase 4).
 
-### Access model
-- **Projects** group secrets by purpose: `cfn-infra`, `gg-ops`, `fireside`, `shared-team` (for
-  teammates' agents later). Environments `dev` / `prod` inside each.
-- **Machine identities**, one per machine per owner: `michael-mac`, `michael-vps`, `michael-desk`,
-  later `steve-mac`. Universal Auth: a client id plus a client secret issued once, exchanged for a
-  short-lived access token. Each identity is added only to the projects and environments it needs,
-  read-only by default.
-- **Per-machine credential file** `~/.config/cfn-secrets/env` (chmod 600, same handling as the
-  mailbox login): `INFISICAL_API_URL`, `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`. Copied by
-  hand, never by mail.
-- **Revocation:** delete or rotate one identity's client secret; nothing else changes.
+### Access model: per-project logins (user, 2026-10-16)
+An agent working in one repo can read only that repo's secrets. The server enforces it, so it holds
+even when the agent is tricked.
+- **One Infisical project per repo**: `mdtwii`, `gg-all-projects`, `fireside-family`,
+  `claude-flow-novice-src`, ... (named after the repo folder, the same name the mailbox uses for the
+  project). Environments `dev` / `prod` inside each. Plus `shared-team` later for teammates' agents.
+- **One machine identity per project per machine**: `mdtwii-mac`, `mdtwii-vps`, `gg-all-projects-desk`.
+  Universal Auth: a client id plus a client secret issued once, exchanged for a short-lived access
+  token. Each identity is a member of exactly its own project, read-only by default. Only machines
+  that work on a project get an identity for it.
+- **A project that genuinely needs another project's secret** gets an explicit second grant on that
+  one environment, recorded in the project's notes in Infisical; never a broad identity.
+- **Per-project credential file** `~/.config/cfn-secrets/<project>.env` (chmod 600, same handling as
+  the mailbox login): `INFISICAL_API_URL`, `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`,
+  `INFISICAL_PROJECT_ID`. Copied by hand, never by mail. The wrapper picks the file from the repo it
+  runs in (git main-checkout folder name, the mailbox's `mailbox_project_name`); the agent never
+  chooses.
+- **Revocation:** delete or rotate one identity's client secret (for example "MDTWII on the VPS");
+  nothing else changes.
+
+### Local isolation (the part the server cannot enforce)
+All of one person's agents on a machine run as the same OS user, so without more an MDTWII agent
+could read `gg-all-projects.env` and use that identity. Per-project scoping is only as strong as the
+fence around those files:
+1. **Claude sandbox read-deny (everyday sessions):** each project's sandbox settings deny reading
+   every `~/.config/cfn-secrets/*.env` except its own. Generated per project by `secrets.sh fence`
+   (same idea as `zai-fence.sh` / `readonly-data.sh`). Gap: a session with the sandbox turned off,
+   or a command the user runs unsandboxed, is not fenced.
+2. **Fleet workers on the VPS:** already run in a `systemd-run` scope with their own settings; the
+   spawn passes only that project's credential file into the worker (bind or copy into its private
+   outbox dir, deny the rest). Strong for fleet work.
+3. **Separate OS user per project (strongest, optional):** for a project whose secrets are high
+   value, run its agents as their own Unix user that owns only its file. Clumsy for daily work; use
+   only where warranted.
 - **Audit:** Infisical's audit log records each read with the identity that made it.
 - **Teammates' agents (later):** a separate identity per person, added only to `shared-team`. Their
   machines reach the server through a Tailscale share of that one host (no public port) or, if that is
@@ -77,13 +100,16 @@ reach a person's passwords.
 1. **Choose and buy the server** (user decision: provider and size). Harden, Tailscale, Docker.
 2. **Install Infisical** from the official compose file; set `SITE_URL` to the tailnet name; create
    Michael's admin account with MFA; store the instance keys offline.
-3. **Projects and identities**: create the four projects, three machine identities, read-only roles.
+3. **Projects and identities**: one project per repo that has agent secrets, one read-only identity per
+   project per machine that works on it.
    Move the first real secrets in (start with ones agents need today; list to be agreed). Remove
    those values from `.env` files only after the agents use the Infisical path successfully.
 4. **CFN integration (TDD in this repo)**:
-   - `cfn-secrets` skill: `secrets.sh run <project> <env> -- <cmd>` (thin wrapper over
-     `infisical run` that reads `~/.config/cfn-secrets/env`), `secrets.sh doctor`, `secrets.sh list
-     <project> <env>` (key names only, never values).
+   - `cfn-secrets` skill: `secrets.sh run <env> -- <cmd>` (thin wrapper over `infisical run`; the
+     project and its credential file come from the repo it runs in, never an argument),
+     `secrets.sh doctor`, `secrets.sh list <env>` (key names only, never values), `secrets.sh fence`
+     (writes the per-project sandbox read-deny for the other projects' credential files).
+   - Fleet spawn on the VPS hands a worker only its own project's credential file.
    - PreToolUse guard: deny Bash commands that would print a value (`infisical secrets get`,
      `infisical export` without `--output-file` to a 600 temp file, `--plain`, `printenv`/`env` inside
      `secrets.sh run`, `echo $` of a known injected key). Test with each pattern.
@@ -98,6 +124,8 @@ reach a person's passwords.
 
 ## Assumptions (testable)
 
+- A Claude Code sandbox `denyRead` entry for `~/.config/cfn-secrets/<other>.env` blocks reads by
+  every tool and Bash command in that session (check with `cat` and the Read tool).
 - `infisical run` injects values only into the child process and prints nothing by itself (check
   with a dummy secret and a command that prints nothing).
 - Universal Auth access tokens are short-lived and the client secret can be rotated without
@@ -119,7 +147,10 @@ reach a person's passwords.
 - **Risk:** losing the instance encryption key makes the backups unreadable. Store it offline in two
   places.
 - **Risk:** the agent VPS can still reach the secrets server over Tailscale. A tricked agent there
-  can read what `michael-vps` is allowed, so keep that identity's projects minimal.
+  can read what its project's VPS identity allows, so only projects that run on the VPS get one.
+- **Risk:** per-project scoping leaks if an agent reads another project's credential file. The
+  sandbox fence closes that for sandboxed sessions and fleet workers; unsandboxed commands are not
+  fenced. High-value projects can move to a separate OS user.
 
 ## Not in scope
 
