@@ -14,7 +14,7 @@
 #   mailbox.sh unread --sid S [--cwd D]   number of unread messages for that session, nothing consumed
 #   mailbox.sh queue <to> [--kind K] [--fleet TYPE] "<text>" | flush     (worker outbound queue, MAILBOX_OUTQ)
 #   mailbox.sh doctor
-#   mailbox.sh adduser <owner>        (admin only; needs UPSTASH_MAILBOX_ADMIN_URL in the repo .env)
+#   mailbox.sh adduser <owner> [--login NAME] (admin only; needs UPSTASH_MAILBOX_ADMIN_URL in the repo .env)
 #
 # Role names (stage 5): `claim <name>` makes <owner>/s/<name> this session's address, stored as
 # alias:<owner>:<name> = {session_id, host, claimed_at, last_seen}. Refused (21) while a different
@@ -1397,18 +1397,30 @@ cmd_doctor() {
 
 ACL_CMDS="ping xadd xread xreadgroup xack xautoclaim xclaim xpending xinfo xgroup xrange xrevrange xlen xdel xtrim hset hget hgetall hdel zadd zrangebyscore zrem get set del expire incr"
 
-acl_rule() { # owner token
-  # reset first, so re-running adduser replaces the user's rules instead of adding to them
-  local o="$1" c rule="ACL SETUSER $1 reset on >$2"
+acl_rule() { # owner token [login]
+  # reset first, so re-running adduser replaces the user's rules instead of adding to them.
+  # The login (default: the owner) is the Redis user; every key pattern is the owner's.
+  local o="$1" c rule="ACL SETUSER ${3:-$1} reset on >$2"
   rule="$rule ~mbx:$o:* ~mbx:*:from:$o ~dir:$o ~seen:$o:* ~due:$o ~log:$o ~lock:$o:* ~rate:$o:* ~done:$o:* ~claim:$o:* ~alias:$o:*"
   for c in $ACL_CMDS; do rule="$rule +$c"; done
   printf '%s' "$rule"
 }
 
 cmd_adduser() {
-  local owner="${1:-}" envfile url rest userinfo hostport port
+  local owner="${1:-}" login="" envfile url rest userinfo hostport port
   [ -n "$owner" ] || die 2 "adduser needs an owner name"
   valid_name "$owner" || die 10 "invalid owner name '$owner' (use [a-z0-9-] only)"
+  shift
+  # --login NAME: a separate login (one per machine) acting as this owner, so one machine can be
+  # switched off without re-keying the others.
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --login) [ $# -ge 2 ] || die 2 "--login needs a name"; login="$2"; shift 2 ;;
+      *) die 2 "unknown argument $1 for adduser" ;;
+    esac
+  done
+  [ -n "$login" ] || login="$owner"
+  valid_name "$login" || die 10 "invalid login name '$login' (use [a-z0-9-] only)"
   envfile="${MAILBOX_ADMIN_ENV:-$REPO/.env}"
   [ -r "$envfile" ] || die 20 "cannot read the admin env file $envfile"
   url="$(grep '^UPSTASH_MAILBOX_ADMIN_URL=' "$envfile" | tail -n 1 | cut -d= -f2- || true)"
@@ -1425,18 +1437,18 @@ cmd_adduser() {
   MAILBOX_PORT="$port"
   command -v redis-cli >/dev/null 2>&1 || die 15 "redis-cli is not installed"
 
-  rcmd ACL GENTOKEN "$owner"
+  rcmd ACL GENTOKEN "$login"
   local token
   token="$(printf '%s' "$RC_OUT" | tr -d '\r\n ')"
   [[ "$token" =~ ^[A-Za-z0-9_.~+/=-]+$ ]] || die 18 "ACL GENTOKEN returned an unexpected value"
   RC_SECRET="$token"
   # The token goes to Redis on stdin so it never appears in a process list.
-  RC_STDIN="$(acl_rule "$owner" "$token")" rcmd
+  RC_STDIN="$(acl_rule "$owner" "$token" "$login")" rcmd
   [ "${RC_OUT:-OK}" = OK ] || die 18 "ACL SETUSER did not answer OK"
 
-  warn "created user $owner; copy the lines below into that person's ~/.config/cfn-mailbox/env (chmod 600). They are shown once."
+  warn "created login $login for owner $owner; copy the lines below into that machine's ~/.config/cfn-mailbox/env (chmod 600). They are shown once."
   printf 'MAILBOX_HOST=%s\nMAILBOX_PORT=%s\nMAILBOX_USER=%s\nMAILBOX_PASS=%s\nMAILBOX_OWNER=%s\nMAILBOX_PUBLIC=me\n' \
-    "$MAILBOX_HOST" "$MAILBOX_PORT" "$owner" "$token" "$owner"
+    "$MAILBOX_HOST" "$MAILBOX_PORT" "$login" "$token" "$owner"
 }
 
 # --------------------------------------------------------------------- main

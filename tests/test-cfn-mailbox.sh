@@ -754,6 +754,29 @@ test_adduser() {
   assert_contains "$(cat "$T/calls")" "--tls" "TLS used for admin calls"
   assert_contains "$(cat "$T/calls")" "fine-owl-1234.upstash.io" "admin host used"
 
+  # One login per machine, all acting as one owner (user, 2026-10-16): a lost machine is switched off
+  # without re-keying the others.
+  new_case "adduser --login: a per-machine login with the owner's permissions"
+  admin_env
+  mb_admin adduser michael --login michael-desk
+  assert_rc 0 "ok"
+  assert_eq "yes" "$([ -n "$(line_of 'ACL GENTOKEN michael-desk')" ] && echo yes || echo no)" "token generated for the login"
+  rule_line="$(grep '^STDIN	' "$T/calls" | head -1 | cut -f2-)"
+  assert_contains "$rule_line" "ACL SETUSER michael-desk reset on >$TOKEN" "SETUSER names the login"
+  assert_contains " $rule_line " " ~mbx:*:from:michael " "sender fence is the owner's"
+  assert_contains " $rule_line " " ~mbx:michael:* " "inboxes are the owner's"
+  assert_not_contains "$rule_line" "from:michael-desk" "no key pattern named after the login"
+  assert_contains "$OUT" "MAILBOX_USER=michael-desk" "env line user is the login"
+  assert_contains "$OUT" "MAILBOX_OWNER=michael" "env line owner is the owner"
+
+  new_case "adduser --login: invalid login name -> 10, no redis call"
+  admin_env
+  mb_admin adduser michael --login "Bad Login"; assert_rc 10 "invalid login"
+  assert_eq "yes" "$(no_calls && echo yes)" "no redis call"
+  new_case "adduser --login without a value -> 2"
+  admin_env
+  mb_admin adduser michael --login; assert_rc 2 "missing login value"
+
   new_case "adduser: GENTOKEN refused -> error, no secrets in text"
   admin_env
   rule 'ACL GENTOKEN *' "!EXIT:1:ERR unknown command, admin $ADMIN_PASSWORD"
