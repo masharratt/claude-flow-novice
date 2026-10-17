@@ -81,6 +81,32 @@ fence around those files:
   machines reach the server through a Tailscale share of that one host (no public port) or, if that is
   too awkward, a public HTTPS endpoint behind SSO; decide at that stage.
 
+### OAuth tokens (user, 2026-10-16)
+An OAuth connection has three parts, each handled differently:
+
+| Part | Lifetime | Where it lives |
+|------|----------|----------------|
+| Client id + client secret (the app's own credentials) | Fixed until rotated by hand | Infisical, like any API key |
+| Refresh token, provider keeps it stable | Long-lived | Infisical, read-only for agents |
+| Refresh token, provider replaces it on every use (rotating) | Changes on each refresh | One owner only: n8n or a token broker (below), never agents |
+| Access token | Minutes to an hour | Nowhere: minted on demand, held in the process's memory, never written to Infisical, files, mail or logs |
+
+**Rotating refresh tokens need exactly one refresher.** If two agents refresh the same token at once,
+one invalidates the other and a person has to re-authorize. So agents never refresh those themselves:
+- **n8n first:** where n8n already holds the connection (gg-all-projects uses n8n as its OAuth layer),
+  agents call the n8n workflow and never see a token.
+- **Token broker later, if needed:** a small service on the secrets server that alone holds rotating
+  refresh tokens (write access to their Infisical folder), refreshes them under a lock, and returns a
+  short-lived access token to an authenticated, project-scoped identity. Built only when a rotating
+  provider is needed that n8n does not already cover.
+- Per-project scoping applies: an OAuth connection belongs to one project's Infisical project and is
+  usable only by that project's identities.
+- Each provider's rotation behaviour is checked before its token moves in (record it in the secret's
+  comment in Infisical: `rotating` or `stable`).
+
+People's own OAuth logins (signing in to a site) stay in Bitwarden; tokens a program must refresh
+never go there.
+
 ### Server
 - New VPS, separate provider account or at least a separate host: **4 vCPU / 8 GB recommended,
   2 vCPU / 4 GB minimum** (Infisical's official figures, covering Infisical, Postgres and Redis).
@@ -126,6 +152,8 @@ fence around those files:
 
 - A Claude Code sandbox `denyRead` entry for `~/.config/cfn-secrets/<other>.env` blocks reads by
   every tool and Bash command in that session (check with `cat` and the Read tool).
+- Each OAuth provider's refresh behaviour (stable vs rotating) is known before its token moves in;
+  n8n already refreshes the providers it connects to without agent involvement.
 - `infisical run` injects values only into the child process and prints nothing by itself (check
   with a dummy secret and a command that prints nothing).
 - Universal Auth access tokens are short-lived and the client secret can be rotated without
