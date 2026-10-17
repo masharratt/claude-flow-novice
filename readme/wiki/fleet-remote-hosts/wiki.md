@@ -40,7 +40,7 @@ Reviewed: 2026-10-13
 
 - `.claude/skills/cfn-fleet/lib/spawn-remote.sh:259`: _spawn_remote: preflight (incl. bwrap, socat, systemd-run --user probes; 66 unless FLEET_REMOTE_UNSANDBOXED=1), base push, remote worktree, kit ship and launch in a capped scope; cleans up on failure (source changed; review needed)
 - `.claude/skills/cfn-fleet/lib/spawn-remote.sh:485`: _spawn_remote_settings builds the --settings JSON: sandbox on with no unsandboxed fallback, writes limited to worktree, fleet clone and outbox, unix sockets blocked, Edit deny rules for the server deny list (source changed; review needed)
-- `.claude/skills/cfn-fleet/lib/host.sh:48`: _fleet_pane_state reports alive, dead or unreachable; an ssh failure is never dead
+- `.claude/skills/cfn-fleet/lib/host.sh:48`: _fleet_pane_state reports alive, dead or unreachable; an ssh failure is never dead (source changed; review needed)
 - `.claude/skills/cfn-fleet/lib/cmd-land.sh:60`: remote_land fetches the lane from the server fleet clone over ssh, refuses any diff outside the row's claims, and records the lane tip in lane_sha (source changed; review needed)
 - `.claude/skills/cfn-fleet/templates/remote-worker.sh:109`: remote-worker.sh commit stages claimed paths only, commits locally on fleet/<WS> and never pushes (source changed; review needed)
 - `.claude/skills/cfn-fleet/lib/cmd-host-setup.sh:130`: host-setup creates ~/git/<name>.git and ~/fleet-repos/<name>, never touching existing server checkouts

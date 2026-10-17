@@ -66,6 +66,8 @@ stateDiagram-v2
 
 A message queued with send --at waits as a member of due:<owner> carrying its msg_id. The lifecycle pass claims, writes, then removes it, so a watcher dying at any step repeats the write and the receiver shows it once.
 
+Source changed; review this model before relying on it.
+
 ### States
 
 | State | Meaning |
@@ -108,6 +110,8 @@ stateDiagram-v2
 
 Unread mail past its age (24 h session, 7 d project, or a session expiring) goes back to its sender. The bounce is written before its done marker and before the original is removed, so a failure leaves it unread and a later pass retries.
 
+Source changed; review this model before relying on it.
+
 ### States
 
 | State | Meaning |
@@ -147,6 +151,8 @@ stateDiagram-v2
 **Source:** .claude/skills/cfn-mailbox/mailbox.sh:1040
 
 A stable session address (<owner>/s/<name>) a session claims with mailbox.sh claim, stored as alias:<owner>:<name> with the holder's session id and last_seen. Mail to it waits in its inbox across holder restarts. A claimed name wins over the status-bar name and the project-id default but not over a MAILBOX_SESSION that no other live pane holds.
+
+Source changed; review this model before relying on it.
 
 ### States
 
