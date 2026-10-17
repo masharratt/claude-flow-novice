@@ -443,7 +443,11 @@ test_failure_and_timeout() {
   # an empty err.<pid> in the cache (107 on the desktop after one slow evening).
   new_case "timeout leftovers: err.<pid> files older than 10 min are swept, fresh ones kept"
   mkdir -p "$CACHE"
-  : > "$CACHE/err.111"; touch -d '20 minutes ago' "$CACHE/err.111"
+  : > "$CACHE/err.111"
+  # 20 minutes ago as [[CC]YY]MMDDhhmm.SS for touch -t: BSD date takes -r <epoch>, GNU date -d @<epoch>.
+  local old=$(( $(date +%s) - 1200 )) stamp
+  stamp="$(date -r "$old" +%Y%m%d%H%M.%S 2>/dev/null || date -d "@$old" +%Y%m%d%H%M.%S)"
+  touch -t "$stamp" "$CACHE/err.111"
   : > "$CACHE/err.222"
   hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"
   assert_eq "no" "$(yn test -e "$CACHE/err.111")" "stale leftover removed"
