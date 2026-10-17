@@ -287,6 +287,9 @@ _fleet_dash_transitions() {
     for i in "${!fields[@]}"; do
       [ "${fields[$i]}" = "status" ] && status="${cells[$i]:-}"
     done
+    # A read racing an in-place roster rewrite can see a torn row; an empty
+    # key is a fatal "bad array subscript" (MDTWII, 2026-10-16).
+    { [ -n "$ws" ] && [ -n "$status" ]; } || continue
     cur["$ws"]="$status"
     if [ -n "${prev[$ws]+set}" ] && [ "${prev[$ws]}" != "$status" ]; then
       new_lines+=("$(printf '{"ts":%s,"ws":"%s","from":"%s","to":"%s"}' \
@@ -411,6 +414,8 @@ _fleet_dash_render() {
         host)       host="${cells[$i]:-}" ;;
       esac
     done
+    # Torn row from a read racing a roster rewrite: skip, never die on it.
+    { [ -n "$ws" ] && [ -n "$status" ]; } || continue
     counts["$status"]=$(( ${counts["$status"]:-0} + 1 ))
 
     local stale=0 dead=0 hstate="" hflags=""
@@ -2214,14 +2219,21 @@ _fleet_dash_serve_start() {
   python3 "$server_py" "$port" "$rd" "$sock" >> "$log" 2>&1 &
   local pid=$!
   printf '%s\n' "$pid" > "$rd/.dashboard.pid"
-  # Wait briefly for the server process to be live; a failed bind dies
-  # instantly and the log names the reason.
-  local i
-  for i in 1 2 3 4 5 6 7 8 9 10; do
-    if _fleet_dash_serve_is_serving "$rd"; then
+  # Ready = the pid we launched is alive AND the port accepts a connection.
+  # Never judged by command line: a sandboxed or overloaded `ps` returns
+  # nothing, which failed every background start (MDTWII, 2026-10-16). A
+  # failed bind dies instantly and the log names the reason; a start still
+  # not answering after ~10s is killed so no orphan holds the port.
+  local tries=0
+  while _fleet_pid_alive "$pid"; do
+    if python3 -c "import socket, sys; socket.create_connection(('127.0.0.1', int(sys.argv[1])), 1).close()" "$port" 2>/dev/null; then
       return 0
     fi
-    kill -0 "$pid" 2>/dev/null || break
+    tries=$((tries + 1))
+    if [ "$tries" -ge 100 ]; then
+      kill -TERM "$pid" 2>/dev/null || true
+      break
+    fi
     sleep 0.1
   done
   rm -f "$rd/.dashboard.pid"

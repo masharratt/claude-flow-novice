@@ -20,6 +20,9 @@ _FLEET_TIMEOUT_RC=124
 # Runs CMD on HOST (locally when HOST is empty) and returns its exit code.
 # Each word is %q-quoted so it reaches the remote shell as exactly one word;
 # pass `bash -c '<script>'` when the server must expand ~ or $HOME.
+# ssh -n: never forward the caller's stdin. Callers run inside
+# `while read ... done < roster.tsv`, and a forwarded stdin swallowed every
+# later row (dashboard stopped at the first started host row, 2026-10-16).
 _fleet_host_run() {
   local host="${1:-}"
   [ $# -gt 0 ] && shift
@@ -29,7 +32,7 @@ _fleet_host_run() {
   fi
   local quoted
   quoted=$(printf '%q ' "$@")
-  ssh -o BatchMode=yes -o ConnectTimeout=10 \
+  ssh -n -o BatchMode=yes -o ConnectTimeout=10 \
     -o ControlMaster=auto -o ControlPersist=60 \
     "$host" "bash -lc $(printf '%q' "$_FLEET_HOST_PREAMBLE $quoted")"
 }

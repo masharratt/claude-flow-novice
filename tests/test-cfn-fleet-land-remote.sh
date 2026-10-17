@@ -37,7 +37,7 @@ cat >"$TMP_DIR/bin/ssh" <<'EOF'
 echo "ssh $*" >>"$STUB_LOG"
 [ -n "${STUB_SSH_FAIL:-}" ] && exit 255
 while [ $# -gt 0 ]; do
-  case "$1" in -o) shift 2 ;; *) break ;; esac
+  case "$1" in -o) shift 2 ;; -n) shift ;; *) break ;; esac
 done
 shift # host alias
 cd "$STUB_HOME" || exit 98 # real ssh starts in the login home

@@ -507,6 +507,58 @@ time.sleep(1)' "$port" &
     run_dash --stop
 }
 
+# Regression (MDTWII fleet-main, 2026-10-16): background starts failed with 66
+# "http.server failed to start" while the server itself was fine; the log had
+# no new line. Readiness was judged by the pid's command line, and a sandboxed
+# or overloaded `ps` returned nothing. The start now trusts the pid it launched
+# plus a TCP connect to the port, so a blind `ps` cannot fail it.
+test_serve_start_does_not_need_ps() {
+    if ! command -v python3 >/dev/null 2>&1; then
+        log_info "SKIP dashboard ps-free start: python3 unavailable"
+        return 0
+    fi
+    log_step "GIVEN a pid command-line lookup that returns nothing, WHEN dashboard starts"
+    build_run dashnops
+    add_ws WS01 ws01 "Sandboxed start" started "" "" "" "$(date +%s)"
+    local port
+    port=$(pick_port)
+    local rc=0
+    DASH_OUT=$(
+        {
+            _fleet_pid_cmdline() { :; }
+            export FLEET_RUN_DIR="$RUN_DIR"
+            main --once --port "$port"
+        } 2>&1
+    ) || rc=$?
+    assert_equals "0" "$rc" "start succeeds without a working ps"
+    assert_success "http 200 from the started server" \
+        http_ok "http://127.0.0.1:$port/dashboard.html"
+    assert_success "pidfile kept for --stop" test -f "$RUN_DIR/.dashboard.pid"
+    run_dash --stop
+}
+
+# Regression (MDTWII fleet-main, 2026-10-16): the refresh loop died with
+# "counts: bad array subscript" when a read caught a row with an empty status
+# (a roster rewritten in place mid-read). Such rows are skipped, not fatal.
+test_render_skips_rows_without_id_or_status() {
+    log_step "GIVEN rows with an empty status and an empty ws_id among good rows"
+    build_run dashtorn
+    add_ws WS01 ws01 "good one" working
+    add_ws WS02 ws02 "torn row" ""
+    add_ws "" ws03 "no id" working
+    add_ws WS04 ws04 "good two" pending
+    run_dash --no-serve --once
+    assert_equals "0" "$DASH_RC" "first render exits 0"
+    run_dash --no-serve --once
+    assert_equals "0" "$DASH_RC" "second render (transitions diff) exits 0"
+    assert_not_contains "$DASH_OUT" "bad array subscript" "no array-subscript error"
+    local html
+    html=$(static_html "$RUN_DIR/dashboard.html")
+    assert_contains "$html" 'data-ws="WS01"' "good row before the torn row drawn"
+    assert_contains "$html" 'data-ws="WS04"' "good row after the torn row drawn"
+    assert_not_contains "$html" 'data-ws="WS02"' "row with no status is skipped"
+}
+
 # Regression (MDTWII fleet-main, 2026-10-13): --stop killed the http.server
 # but left the background render loop running, still rewriting dashboard.html.
 # The loop now records its own pid (plus its command line) and --stop stops it
@@ -853,6 +905,38 @@ test_attach_command_on_bash_cards() {
     assert_equals "2" "$(printf '%s\n' "$html" | grep -oF 'class="chipbtn open-btn" hidden' | wc -l)" \
         "Open button ships hidden; only the live page reveals it after /api/health"
     assert_not_contains "$DASH_OUT" "WARN" "clean render raises no selfcheck warnings"
+    rm -f "$TEST_TMP/bin/ssh"
+}
+
+# Bug 2026-10-16 (MDTWII): the card loop reads roster.tsv on stdin, and the
+# host probe's ssh inherited it. Real ssh forwards stdin to the remote, so it
+# swallowed every later row and the panel stopped at the first started host
+# row (100 cards of a longer roster). The stub drains stdin like real ssh does.
+test_host_probe_does_not_swallow_later_roster_rows() {
+    log_step "GIVEN two started host rows then a local row, WHEN render --no-serve"
+    RUN_DIR="$TEST_TMP/planning/fleet-dashstdin"
+    mkdir -p "$RUN_DIR/remote"
+    : > "$RUN_DIR/.roster.lock"
+    printf 'FLEET_WORKTREE=off\nFLEET_DB=none\n' > "$RUN_DIR/fleet.env"
+    {
+        printf 'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\thost\n'
+        printf 'WS01\tws-r1\tremote one\tstarted\t\t\t\t\t%s\t\t\tvps\n' "$(date +%s)"
+        printf 'WS02\tws-r2\tremote two\tstarted\t\t\t\t\t%s\t\t\tvps\n' "$(date +%s)"
+        printf 'WS03\tws-loc\tlocal after\tworking\t\t\t\t\t%s\t\t\t\n' "$(date +%s)"
+    } > "$RUN_DIR/roster.tsv"
+    printf 'FLEET_HOST=vps\nFLEET_SOCK=fleet-rsock\nFLEET_SESSION=rsess-ws01\n' > "$RUN_DIR/remote/WS01.env"
+    printf 'FLEET_HOST=vps\nFLEET_SOCK=fleet-rsock\nFLEET_SESSION=rsess-ws02\n' > "$RUN_DIR/remote/WS02.env"
+    export FLEET_RUN_DIR="$RUN_DIR"
+    printf '#!/usr/bin/env bash\n# test stub: reads stdin like real ssh (unless -n), then unreachable\ncase " $* " in *" -n "*) ;; *) cat >/dev/null ;; esac\nexit 255\n' > "$TEST_TMP/bin/ssh"
+    chmod +x "$TEST_TMP/bin/ssh"
+    run_dash --no-serve --once
+
+    assert_equals "0" "$DASH_RC" "render exits 0"
+    local html
+    html=$(static_html "$RUN_DIR/dashboard.html")
+    assert_equals "3" "$(printf '%s\n' "$html" | grep -cF 'class="card" data-ws' || true)" \
+        "every roster row gets a card, including rows after started host rows"
+    assert_contains "$html" 'data-ws="WS03"' "the local row after the host rows is drawn"
     rm -f "$TEST_TMP/bin/ssh"
 }
 
@@ -1442,6 +1526,8 @@ test_transitions_own_state_jsonl_and_watch_state_untouched
 test_self_contained_refresh_and_static_fallback
 test_serve_lifecycle_http200_double_start_port_busy_stop
 test_serve_start_waits_for_port_release
+test_serve_start_does_not_need_ps
+test_render_skips_rows_without_id_or_status
 test_stop_also_stops_render_loop_and_never_kills_recycled_pid
 test_port_precedence
 test_empty_roster_empty_state
@@ -1454,6 +1540,7 @@ test_goal_blurb_rendered_and_escaped
 test_queued_section_separate_from_live_lanes
 test_open_flow
 test_attach_command_on_bash_cards
+test_host_probe_does_not_swallow_later_roster_rows
 test_open_terminal_endpoint_gate_and_launcher_argv
 test_live_view_and_sessions_static_markup_and_host_columns
 test_inline_js_live_view_and_sessions_contract
