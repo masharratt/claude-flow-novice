@@ -71,6 +71,7 @@ const freePort = () => new Promise((resolve, reject) => {const s = net.createSer
     assert.equal(await page.locator('[data-ws="WS01"] .open-btn').isVisible(), false, 'Open button hidden without /api/health');
     assert.equal(await page.locator('.pane-btn:visible').count(), 0, 'Live view toggle hidden without /api/health');
     assert.equal(await page.locator('#sessions').isVisible(), false, 'Sessions panel hidden without /api/health');
+    assert.equal(await page.locator('#mail').isVisible(), false, 'Messages panel hidden without /api/health');
     await page.evaluate(() => {window.__copied = null; Object.defineProperty(navigator, 'clipboard', {configurable: true, value: {writeText: t => {window.__copied = t; return Promise.resolve();}}});});
     await page.locator('[data-ws="WS01"] .copy-btn').click();
     await page.waitForFunction(() => window.__copied !== null);
@@ -207,8 +208,15 @@ const freePort = () => new Promise((resolve, reject) => {const s = net.createSer
     await fs.writeFile(path.join(sessDir, '4001.k.key'), 'SECRET-KEY-CONTENT');
     const stub = path.join(stubDir, 'open-stub'), openLog = path.join(stubDir, 'argv.log');
     await fs.writeFile(stub, '#!/bin/sh\n# test stub launcher: record argv\nprintf "%s\\n" "$*" >> "$FLEET_OPEN_LOG"\n', {mode: 0o755});
+    // Messages fixtures: a stub `mailbox.sh feed` with a hostile body, a long body and a body that is gone.
+    const mailStub = path.join(stubDir, 'mail-stub.sh');
+    const longBody = 'long message line. '.repeat(40);
+    await fs.writeFile(mailStub, ['#!/bin/sh', '# test stub for mailbox.sh feed',
+      `printf '%s\\n' '{"id":"1700000003000-0","at":1700000003,"from":"o/s/p-master","to":"o/p/p","kind":"ask","fleet":"task","thread":"t","hops":0,"body":"<img src=x onerror=\\"window.mailInjected=1\\"> hi"}'`,
+      `printf '%s\\n' '{"id":"1700000002000-0","at":1700000002,"from":"o/p/p","to":"o/s/p-ws01","kind":"reply","thread":"t","hops":1,"body":"${longBody}"}'`,
+      `printf '%s\\n' '{"id":"1700000001000-0","at":1700000001,"from":"o/s/p-ws02","to":"o/p/p","kind":"fyi","thread":"t","hops":0,"body":null}'`, ''].join('\n'), {mode: 0o755});
     const port2 = await freePort();
-    server2 = spawn('python3', [path.join(lib, 'dashboard-server.py'), String(port2), run, sock], {env: {...process.env, FLEET_DASHBOARD_OPEN_CMD: stub, FLEET_OPEN_LOG: openLog, FLEET_DASHBOARD_PEEK_CMD: peekStub, FLEET_PEEK_DIR: peekDir, FLEET_DASHBOARD_SESSIONS_DIR: sessDir, FLEET_DASHBOARD_PID_ALIVE: '4001,4002,4003,4004'}, stdio: 'ignore'});
+    server2 = spawn('python3', [path.join(lib, 'dashboard-server.py'), String(port2), run, sock], {env: {...process.env, FLEET_DASHBOARD_OPEN_CMD: stub, FLEET_OPEN_LOG: openLog, FLEET_DASHBOARD_PEEK_CMD: peekStub, FLEET_PEEK_DIR: peekDir, FLEET_DASHBOARD_SESSIONS_DIR: sessDir, FLEET_DASHBOARD_PID_ALIVE: '4001,4002,4003,4004', FLEET_DASHBOARD_MAILBOX_SH: mailStub}, stdio: 'ignore'});
     for (let i = 0; i < 50; i++) {
       try { const r = await fetch(`http://127.0.0.1:${port2}/api/health`); if (r.ok) break; } catch (e) { /* not up yet */ }
       await new Promise(r => setTimeout(r, 100));
@@ -301,6 +309,23 @@ const freePort = () => new Promise((resolve, reject) => {const s = net.createSer
     assert.ok((await live.locator('#sessions-other-table').textContent()).includes('<img src=x'), 'Hostile name shows as text');
     assert.ok(!(await live.content()).includes('SECRET'), 'No session secret reaches the page');
     assert.ok(!(await live.evaluate(() => fetch('api/sessions').then(r => r.text()))).includes('SECRET'), 'No session secret in the API body');
+    // Messages panel: served page, newest first, fleet badge, clamped long body with a toggle, gone body, escaped text.
+    await live.waitForSelector('#mail', {state: 'visible'});
+    await live.waitForSelector('#mail-list .mail-item');
+    assert.equal(await live.locator('#mail-count').textContent(), '3', 'Count covers every message');
+    assert.equal(await live.locator('#mail-list .mail-item').first().getAttribute('data-id'), '1700000003000-0', 'Newest message first');
+    assert.equal(await live.locator('#mail-list .mail-item').first().locator('.mail-fleet').textContent(), 'task', 'Fleet type shows as a badge');
+    assert.equal(await live.evaluate(() => window.mailInjected), undefined, 'Hostile body never executes');
+    assert.equal(await live.locator('#mail-list img').count(), 0, 'Hostile body is escaped');
+    assert.ok((await live.locator('#mail-list .mail-item').first().textContent()).includes('<img src=x'), 'Hostile body shows as text');
+    const longItem = live.locator('.mail-item[data-id="1700000002000-0"]');
+    assert.equal(await longItem.locator('.mail-text').evaluate(el => el.classList.contains('is-clamped')), true, 'Long body starts clamped');
+    await longItem.locator('.mail-more').click();
+    assert.equal(await longItem.locator('.mail-text').evaluate(el => el.classList.contains('is-clamped')), false, 'Show more expands the body');
+    await live.evaluate(() => { document.getElementById('mail-list').__old = 1; document.dispatchEvent(new Event('visibilitychange')); });
+    await live.waitForFunction(() => !document.getElementById('mail-list').__old);
+    assert.equal(await longItem.locator('.mail-text').evaluate(el => el.classList.contains('is-clamped')), false, 'Expanded state survives a refresh');
+    assert.equal(await live.locator('.mail-item[data-id="1700000001000-0"] .mail-gone').count(), 1, 'A body that is gone says so');
     await live.close();
     // file:// page (the --no-serve case): Copy only, never an Open button.
     const filePage = await browser.newPage({viewport: {width: 1440, height: 1050}});
@@ -310,9 +335,10 @@ const freePort = () => new Promise((resolve, reject) => {const s = net.createSer
     assert.equal(await filePage.locator('.open-btn:visible').count(), 0, 'No Open button on a file:// page');
     assert.equal(await filePage.locator('.pane-btn:visible').count(), 0, 'No Live view toggle on a file:// page');
     assert.equal(await filePage.locator('#sessions').isVisible(), false, 'No Sessions panel on a file:// page');
+    assert.equal(await filePage.locator('#mail').isVisible(), false, 'No Messages panel on a file:// page');
     await filePage.close();
     assert.deepEqual(errors, [], 'No page errors across states');
-    console.log('PASS: host badge and unreachable card, attention, landed/done semantics, heartbeat sorting, filters/search across polls, files, activity, outage retention and retry, fresh timestamps, live changes, themes, responsive layouts, empty roster, XSS escaping and no-JS fallback, glossary legend with alias merge and hostile-input guards, inline term tooltips, status tooltips, notes clamp and expand, live glossary updates, attach command and Copy on JS and bash cards, Open in terminal via the stub launcher, open failure message, Open hidden on file:// and without health, Live view (collapsed default, redraw survival, visibility-gated polling, error line, literal text) and Sessions panel (grouping, stale label, Copy, escaping, no secrets).');
+    console.log('PASS: host badge and unreachable card, attention, landed/done semantics, heartbeat sorting, filters/search across polls, files, activity, outage retention and retry, fresh timestamps, live changes, themes, responsive layouts, empty roster, XSS escaping and no-JS fallback, glossary legend with alias merge and hostile-input guards, inline term tooltips, status tooltips, notes clamp and expand, live glossary updates, attach command and Copy on JS and bash cards, Open in terminal via the stub launcher, open failure message, Open hidden on file:// and without health, Live view (collapsed default, redraw survival, visibility-gated polling, error line, literal text) Sessions panel (grouping, stale label, Copy, escaping, no secrets) and Messages panel (order, fleet badge, clamp and expand, gone body, escaping, hidden on file://).');
   } finally {
     await browser?.close();
     if (server && server.exitCode === null) await new Promise(resolve => {server.once('exit', resolve); server.kill();});

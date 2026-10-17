@@ -12,7 +12,7 @@ Message any session, wherever it runs. Spec: `planning/PLAN_agent-mailbox.md`.
 ```bash
 $HOME/.claude/skills/cfn-mailbox/mailbox.sh send <to> [--kind ask|fyi|reply|reminder] [--thread ID] [--reply-to ID] [--hops N] "<text>"
 $HOME/.claude/skills/cfn-mailbox/mailbox.sh read [--as <owner>/s/<session>]
-$HOME/.claude/skills/cfn-mailbox/mailbox.sh who [--seen] | log [N] | stats [--hours N] | join <room> | leave <room> | doctor
+$HOME/.claude/skills/cfn-mailbox/mailbox.sh who [--seen] | log [N] | stats [--hours N] | feed --project P [--count N] | join <room> | leave <room> | doctor
 $HOME/.claude/skills/cfn-mailbox/mailbox.sh claim <name> | release <name> | whoami
 ```
 Inside Claude Code you do not need `MAILBOX_SESSION`: the hook names each session (see Session names below) and records it in `~/.cache/cfn-mailbox/name-<session_id>`, and `mailbox.sh` run from that session's Bash uses the same name. `MAILBOX_SESSION=<name>` (`[a-z0-9-]`) overrides it for one process (fleet sets it per pane). Never set it in a tmux session's environment (`tmux set-environment`, `new-session -e`): every window inherits it. If one does, the first live pane keeps the name, `heartbeat` refuses the others (exit 23) and the hook moves each of them to its own name.

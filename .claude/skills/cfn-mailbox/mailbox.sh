@@ -8,6 +8,7 @@
 #   mailbox.sh who [--seen]
 #   mailbox.sh log [N]
 #   mailbox.sh stats [--hours N]      loop/flood watch from log:<owner> (default 168 h); exit 0 clean, 1 LOOP?/FLOOD?, 2 empty
+#   mailbox.sh feed --project P [--count N]   read-only: the project's recent mail with bodies, newest first, JSON lines
 #   mailbox.sh join <room> | leave <room>
 #   mailbox.sh claim <name> | release <name> | whoami [--sid S [--cwd D]]   (--sid prints just the session name)
 #   mailbox.sh listen --sid S [--cwd D]   long-running JSON-lines feed for a Claude Code mod (never consumes mail)
@@ -922,6 +923,60 @@ cmd_stats() {
   return 0
 }
 
+# cmd_feed --project P [--count N]: read-only. The project's recent mail, newest first, one JSON
+# object per line: {id, at, from, to, kind, fleet?, thread, hops, body}. Records come from
+# log:<owner> (the newest FEED_SCAN); a record is kept when its from or to is <owner>/p/<P>,
+# <owner>/r/<P> or <owner>/s/<P>-*. The body is read with XRANGE on the inbox key alone: no XACK,
+# no marker, no delivered set. Body gone (trimmed or expired) gives null. The coord field is
+# never copied into the output.
+FEED_SCAN=500
+FEED_DEFAULT=50
+FEED_MAX=200
+cmd_feed() {
+  local project="" count="$FEED_DEFAULT" recs rec key id body
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) [ $# -ge 2 ] || die 2 "--project needs a name"; project="$2"; shift 2 ;;
+      --count) [ $# -ge 2 ] || die 2 "--count needs a number"; count="$2"; shift 2 ;;
+      *) die 2 "feed takes --project NAME [--count N]" ;;
+    esac
+  done
+  valid_name "$project" || die 2 "feed needs --project NAME ([a-z0-9-] only)"
+  [[ "$count" =~ ^[0-9]+$ ]] && [ "$count" -ge 1 ] && [ "$count" -le "$FEED_MAX" ] || die 2 "--count takes a number from 1 to $FEED_MAX"
+  rcmdj XREVRANGE "log:$MAILBOX_OWNER" + - COUNT "$FEED_SCAN"
+  case "$RC_OUT" in ''|null) return 0 ;; esac
+  recs="$(printf '%s' "$RC_OUT" | jq -c --arg o "$MAILBOX_OWNER" --arg p "$project" --argjson max "$count" --arg re "$NAME_RE" '
+    def mine: . == "\($o)/p/\($p)" or . == "\($o)/r/\($p)" or startswith("\($o)/s/\($p)-");
+    def keyof($m):
+      ($m.to | split("/")) as $t
+      | (($m.from | split("/"))[0]) as $so
+      | if ($t | length) == 2 and $t[1] == "me" and ($t[0] | test($re)) and ($so | test($re)) then "mbx:\($t[0]):me:from:\($so)"
+        elif ($t | length) == 3 and ($t[1] | IN("s","p","r")) and ($t[0] | test($re)) and ($t[2] | test($re)) and ($so | test($re))
+          then "mbx:\($t[0]):\($t[1]):\($t[2]):from:\($so)"
+        else null end;
+    [ (. // [])[] | (.[1][1] // "" | fromjson? // empty)
+      | select(type == "object" and (.id | type) == "string" and (.from | type) == "string" and (.to | type) == "string")
+      | select((.from | mine) or (.to | mine))
+      | . as $m | select(keyof($m) != null)
+      | {id, at: (.at // 0), from, to, kind: (.kind // "fyi"), thread: (.thread // ""), hops: (.hops // 0), key: keyof($m)}
+        + (if (.fleet // "") != "" then {fleet} else {} end) ]
+    | .[:$max][]')" || die 18 "unreadable log reply"
+  [ -n "$recs" ] || return 0
+  while IFS= read -r rec; do
+    [ -n "$rec" ] || continue
+    key="$(printf '%s' "$rec" | jq -r .key)"
+    id="$(printf '%s' "$rec" | jq -r .id)"
+    [[ "$id" =~ ^[0-9]+-[0-9]+$ ]] || continue
+    rcmdj XRANGE "$key" "$id" "$id"
+    body="$(printf '%s' "$RC_OUT" | jq -c 'if type == "object" then [to_entries[] | [.key, .value]] else . end
+      | (.[0][1] // []) as $f
+      | ((([$f | _nwise(2) | {(.[0]): .[1]}] | add) // {}).body // null)
+      | if type == "string" then . else null end' 2>/dev/null)" || body=null
+    [ -n "$body" ] || body=null
+    printf '%s' "$rec" | jq -c --argjson body "$body" 'del(.key) + {body: $body}'
+  done <<<"$recs"
+}
+
 # --------------------------------------------------------------------- rooms
 
 room_arg() { # sets ROOM
@@ -1515,14 +1570,14 @@ main() {
   case "$sub" in
     adduser) cmd_adduser "$@" ;;
     queue) cmd_queue "$@" ;;   # local only: no config, no network
-    send|read|who|log|stats|join|leave|heartbeat|doctor|claim|release|whoami|flush|listen|unread)
+    send|read|who|log|stats|feed|join|leave|heartbeat|doctor|claim|release|whoami|flush|listen|unread)
       load_config
       "cmd_$sub" "$@" ;;
     ''|-h|--help|help)
-      sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+      sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
       [ -n "$sub" ] && exit 0
       exit 2 ;;
-    *) die 2 "unknown subcommand '$sub' (send, read, who, log, stats, join, leave, claim, release, whoami, listen, unread, queue, flush, doctor, adduser)" ;;
+    *) die 2 "unknown subcommand '$sub' (send, read, who, log, stats, feed, join, leave, claim, release, whoami, listen, unread, queue, flush, doctor, adduser)" ;;
   esac
 }
 

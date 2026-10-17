@@ -987,7 +987,7 @@ STUB
 
     local out
     out=$(api_call "$port" GET /api/health)
-    assert_equals '200 {"ok": true, "open": true, "pane": true, "sessions": true}' "$out" "health says open is available with the stub"
+    assert_equals '200 {"ok": true, "open": true, "pane": true, "sessions": true, "mail": true}' "$out" "health says open is available with the stub"
 
     log_step "WHEN the request fails the origin gate"
     out=$(api_call "$port" POST /api/open-terminal "http://evil.example" application/json '{"ws":"WS01"}')
@@ -1030,7 +1030,7 @@ STUB
     port=$(pick_port)
     FLEET_DASHBOARD_OPEN_CMD="$TEST_TMP/no-such-launcher" run_dash --once --port "$port"
     out=$(api_call "$port" GET /api/health)
-    assert_equals '200 {"ok": true, "open": false, "pane": true, "sessions": true}' "$out" "health says open is unavailable"
+    assert_equals '200 {"ok": true, "open": false, "pane": true, "sessions": true, "mail": true}' "$out" "health says open is unavailable"
     out=$(api_call "$port" POST /api/open-terminal "http://127.0.0.1:$port" application/json '{"ws":"WS01"}')
     assert_contains "$out" "501 " "no launcher is a 501"
     assert_contains "$out" '"command": "tmux -L fleet-dashopen attach -t ws-loc"' \
@@ -1439,6 +1439,129 @@ STUB
     unset SDIR
 }
 
+# Stub for `mailbox.sh feed`: logs argv, then behaves per the mode file.
+write_mail_stub() {
+    cat > "$TEST_TMP/bin/mail-stub.sh" <<'STUB'
+#!/usr/bin/env bash
+# test stub for mailbox.sh: $1 is the subcommand; $MAIL_MODE_FILE picks the behaviour
+printf '%s\n' "$*" >> "${MAIL_LOG:?}"
+case "$(cat "${MAIL_MODE_FILE:?}")" in
+    nosetup) echo "mailbox: no config" >&2; exit 78 ;;
+    unreachable) printf 'mailbox: cannot reach host\033[31m\n' >&2; exit 15 ;;
+    slow) sleep 5 ;;
+esac
+printf '%s\n' '{"id":"1700000002000-0","at":1700000002,"from":"michael/s/proj-ws01","to":"michael/p/proj","kind":"reply","fleet":"task","thread":"t1","hops":1,"body":"done \u001b[31mred\u001b[0m\u0007 <b>x</b>\nline2"}'
+printf '%s\n' 'this is not json'
+printf '%s\n' '{"id":"1700000001000-0","at":1700000001,"from":"michael/p/proj","to":"michael/s/proj-ws01","kind":"ask","thread":"t1","hops":0,"body":null}'
+STUB
+    chmod +x "$TEST_TMP/bin/mail-stub.sh"
+}
+
+test_api_mail_feed_cache_errors_gate() {
+    if ! command -v python3 >/dev/null 2>&1; then
+        log_info "SKIP api/mail: python3 unavailable"
+        return 0
+    fi
+    log_step "GIVEN a project folder with a name needing sanitising and a stub mailbox"
+    local SB="$TEST_TMP/Mail_Proj" mlog="$TEST_TMP/mail.log" mode="$TEST_TMP/mail.mode" port origin out
+    mkdir -p "$SB/planning/fleet-mail"
+    RUN_DIR="$SB/planning/fleet-mail"
+    printf 'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\n' > "$RUN_DIR/roster.tsv"
+    : > "$RUN_DIR/.roster.lock"
+    printf 'FLEET_WORKTREE=off\nFLEET_DB=none\n' > "$RUN_DIR/fleet.env"
+    export FLEET_RUN_DIR="$RUN_DIR"
+    mkdir -p "$TEST_TMP/bin"
+    write_mail_stub
+    : > "$mlog"; printf 'ok' > "$mode"
+    port=$(pick_port)
+    origin="http://127.0.0.1:$port"
+    FLEET_DASHBOARD_MAILBOX_SH="$TEST_TMP/bin/mail-stub.sh" MAIL_LOG="$mlog" MAIL_MODE_FILE="$mode" \
+        FLEET_DASHBOARD_MAIL_TIMEOUT_S=1 FLEET_DASHBOARD_SESSIONS_DIR="$TEST_TMP/no-sessions" \
+        run_dash --once --port "$port"
+    assert_equals "0" "$DASH_RC" "serving start exits 0"
+    assert_contains "$(api_call "$port" GET /api/health)" '"mail": true' "health reports mail available"
+
+    log_step "WHEN /api/mail is read"
+    out=$(api_call "$port" GET /api/mail)
+    assert_contains "$out" '200 {"ok": true, "project": "Mail_Proj", "ts": ' "200 with ok, project and ts"
+    assert_equals "feed --project mail-proj --count 50" "$(sed -n 1p "$mlog")" \
+        "mailbox runs as argv [feed --project <sanitised> --count 50]"
+    assert_equals "2" "$(json_q "$port" /api/mail "len(d['messages'])")" "non-JSON lines are skipped"
+    assert_equals "True" "$(json_q "$port" /api/mail "d['messages'][0]['body'] == 'done red <b>x</b>\nline2'")" \
+        "control chars and ANSI stripped from bodies, newline kept, markup left literal"
+    assert_equals "('reply', 'task', 'michael/s/proj-ws01')" "$(json_q "$port" /api/mail "(d['messages'][0]['kind'], d['messages'][0]['fleet'], d['messages'][0]['from'])")" \
+        "fields pass through"
+    assert_equals "None" "$(json_q "$port" /api/mail "d['messages'][1]['body']")" "null body stays null"
+    assert_equals "1" "$(wc -l < "$mlog")" "second read inside the cache window does not run the mailbox again"
+
+    log_step "WHEN n is given, clamped or malformed"
+    api_call "$port" GET "/api/mail?n=7" >/dev/null
+    assert_equals "1" "$(grep -c -- '--count 7$' "$mlog" || true)" "n=7 runs with --count 7"
+    api_call "$port" GET "/api/mail?n=9999" >/dev/null
+    assert_equals "1" "$(grep -c -- '--count 200$' "$mlog" || true)" "n=9999 clamps to 200"
+    assert_contains "$(api_call "$port" GET '/api/mail?n=abc')" "400 " "n=abc is a 400"
+    assert_contains "$(api_call "$port" GET '/api/mail?n=1;touch+x')" "400 " "shell text in n is a 400"
+    assert_equals "3" "$(wc -l < "$mlog")" "rejected n never ran the mailbox"
+
+    log_step "WHEN the mailbox is not set up, unreachable, slow"
+    printf 'nosetup' > "$mode"
+    out=$(api_call "$port" GET "/api/mail?n=11")
+    assert_contains "$out" "503 " "exit 78 is a 503"
+    assert_contains "$out" "mailbox not set up" "plain reason"
+    printf 'unreachable' > "$mode"
+    out=$(api_call "$port" GET "/api/mail?n=12")
+    assert_contains "$out" "500 " "other failures are a 500"
+    assert_contains "$out" "cannot reach host" "reason from stderr, controls stripped"
+    assert_not_contains "$out" '\u001b' "no escape byte in the error"
+    printf 'slow' > "$mode"
+    assert_contains "$(api_call "$port" GET "/api/mail?n=13")" "504 " "timeout is a 504"
+
+    log_step "WHEN the request fails the read-only gate"
+    assert_contains "$(api_get "$port" /api/mail "Host: 127.0.0.1:$port" "Origin: http://evil.example")" "403 " "foreign Origin refused"
+    assert_contains "$(api_get "$port" /api/mail "Host: evil.example")" "403 " "foreign Host refused"
+    assert_contains "$(api_get "$port" /api/mail "Host: 127.0.0.1:$port" "Sec-Fetch-Site: cross-site")" "403 " "cross-site refused"
+    assert_contains "$(api_get "$port" /api/mail "Host: 127.0.0.1:$port" "Origin: $origin")" "200 " "same-origin allowed"
+    assert_contains "$(api_call "$port" POST /api/mail "$origin" application/json '{}')" "404 " "POST to mail is not a route"
+    assert_equals "0" "$(grep -c 'evil' "$mlog" || true)" "gate failures never ran the mailbox"
+    run_dash --stop
+
+    log_step "GIVEN a mailbox seam that does not exist"
+    port=$(pick_port)
+    FLEET_DASHBOARD_MAILBOX_SH="$TEST_TMP/no-such-mailbox.sh" run_dash --once --port "$port"
+    assert_contains "$(api_call "$port" GET /api/health)" '"mail": false' "health says mail unavailable"
+    assert_contains "$(api_call "$port" GET /api/mail)" "501 " "no mailbox script is a 501"
+    run_dash --stop
+}
+
+test_mail_panel_static_markup_and_js_contract() {
+    log_step "GIVEN a rendered page, WHEN render --no-serve"
+    build_run dashmail
+    add_ws WS01 ws01 "Mail work" started "" "" "" "$(date +%s)"
+    run_dash --no-serve --once
+    assert_equals "0" "$DASH_RC" "render exits 0"
+    local html js
+    html=$(static_html "$RUN_DIR/dashboard.html")
+    assert_contains "$html" \
+        '<section class="mail" id="mail" aria-label="Mailbox messages for this project" hidden>' \
+        "Messages panel ships hidden until /api/health reports mail"
+    assert_contains "$html" '<h2>Messages <span class="queued-n" id="mail-count">0</span></h2>' "same heading pattern as Sessions"
+    assert_contains "$html" '<div id="mail-body"></div>' "Messages panel ships as an empty mount"
+    assert_equals "1" "$(printf '%s\n' "$html" | grep -oF 'id="mail"' | wc -l)" "one Messages section"
+    assert_equals "1" "$(printf '%s\n' "$html" | awk '/id="sessions" aria-label/ {s=NR} /id="mail" aria-label/ {m=NR} END {print (s > 0 && m > s) ? 1 : 0}')" \
+        "Messages panel sits after the Sessions panel"
+
+    log_step "WHEN the inline layer ships the Messages code"
+    js=$(sed -n '/^<script>$/,/^<\/script>$/p' "$RUN_DIR/dashboard.html")
+    assert_contains "$js" 'var MAIL_MS = 10000;' "messages refresh every 10s"
+    assert_contains "$js" 'd.mail === true) startMail();' "Messages panel needs health.mail"
+    assert_contains "$js" 'fetch("api/mail?ts="' "Messages panel reads api/mail"
+    assert_contains "$js" 'esc(m.body)' "bodies go through esc()"
+    assert_contains "$js" 'mail-more' "long bodies get a show-more toggle"
+    assert_contains "$js" 'document.visibilityState !== "visible"' "polling pauses on a hidden tab"
+    assert_not_contains "$js" 'innerHTML = m.body' "no raw body into innerHTML"
+    assert_contains "$(printf '%s\n' "$html" | grep -F '.mail[hidden]')" 'display: none' "hidden attribute wins over display"
+}
+
 test_fleet_archive_marker_discovery_and_undo() {
     # Own temp root: run discovery walks up parent dirs, and $TEST_TMP/planning holds
     # other cases' fleet runs, so an all-archived project inside $TEST_TMP would
@@ -1546,6 +1669,8 @@ test_live_view_and_sessions_static_markup_and_host_columns
 test_inline_js_live_view_and_sessions_contract
 test_api_pane_strip_clamp_cache_errors_gate
 test_api_sessions_classification_whitelist_gate
+test_api_mail_feed_cache_errors_gate
+test_mail_panel_static_markup_and_js_contract
 test_fleet_archive_marker_discovery_and_undo
 
 print_test_summary

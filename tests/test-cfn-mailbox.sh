@@ -1018,6 +1018,99 @@ live_block() {
 
 # ---------------------------------------------------------------- run
 
+# feedrec ID FROM TO KIND [FLEET]: one log:michael row (XREVRANGE shape) for the feed tests.
+feedrec() {
+  jq -n -c --arg id "$1" --arg f "$2" --arg t "$3" --arg k "$4" --arg fl "${5:-}" \
+    '[$id, ["rec", ({id:$id,msg_id:("m"+($id|split("-")[0])),from:$f,to:$t,kind:$k,thread:"th1",hops:2,bytes:5,at:(($id|split("-")[0]|tonumber)/1000|floor)}
+       + (if $fl != "" then {fleet:$fl} else {} end) | tostring)]]'
+}
+# feedbody ID BODY [coord]: the XRANGE reply for one inbox entry.
+feedbody() {
+  jq -n -c --arg id "$1" --arg b "$2" --arg c "${3:-}" \
+    '[[$id, ["from","x","to","y","body",$b] + (if $c != "" then ["coord",$c] else [] end)]]'
+}
+
+test_feed() {
+  local LOGKEY='XREVRANGE log:michael + - COUNT 500' R1 R2 R3 R4 R5 line n
+  R1="$(feedrec 1700000005000-0 michael/s/proj-master michael/p/proj ask)"
+  R2="$(feedrec 1700000004000-0 michael/s/other-master michael/p/other fyi)"
+  R3="$(feedrec 1700000003000-0 michael/p/proj michael/s/proj-ws01 reply task)"
+  R4="$(feedrec 1700000002000-0 michael/me michael/s/projector-9 fyi)"
+  R5="$(feedrec 1700000001000-0 michael/s/proj-ws02 michael/r/proj fyi)"
+
+  new_case "feed: keeps only this project's messages, newest first, with body from the inbox key"
+  rule "$LOGKEY" "[$R1,$R2,$R3,$R4,$R5]"
+  rule 'XRANGE mbx:michael:p:proj:from:michael 1700000005000-0 1700000005000-0' "$(feedbody 1700000005000-0 'plan ready')"
+  rule 'XRANGE mbx:michael:s:proj-ws01:from:michael 1700000003000-0 1700000003000-0' "$(feedbody 1700000003000-0 'done with ws01' SECRETCOORD)"
+  rule 'XRANGE mbx:michael:r:proj:from:michael 1700000001000-0 1700000001000-0' "$(feedbody 1700000001000-0 'room chatter')"
+  mb feed --project proj
+  assert_rc 0 "feed ok"
+  assert_eq "3" "$(printf '%s\n' "$OUT" | grep -c .)" "three lines: p/proj, s/proj-ws01 and r/proj (not other, not projector)"
+  assert_eq "1700000005000-0 1700000003000-0 1700000001000-0" "$(printf '%s\n' "$OUT" | jq -r '.id' | tr '\n' ' ' | sed 's/ $//')" "newest first"
+  line="$(printf '%s\n' "$OUT" | sed -n 1p)"
+  assert_eq "michael/s/proj-master" "$(printf '%s' "$line" | jq -r .from)" "from"
+  assert_eq "michael/p/proj" "$(printf '%s' "$line" | jq -r .to)" "to"
+  assert_eq "ask" "$(printf '%s' "$line" | jq -r .kind)" "kind"
+  assert_eq "plan ready" "$(printf '%s' "$line" | jq -r .body)" "body"
+  assert_eq "th1" "$(printf '%s' "$line" | jq -r .thread)" "thread"
+  assert_eq "2" "$(printf '%s' "$line" | jq -r .hops)" "hops"
+  assert_eq "1700000005" "$(printf '%s' "$line" | jq -r .at)" "at"
+  assert_eq "null" "$(printf '%s' "$line" | jq -c '.fleet')" "no fleet key value when absent"
+  assert_eq "task" "$(printf '%s\n' "$OUT" | sed -n 2p | jq -r .fleet)" "fleet type carried"
+  assert_not_contains "$OUT" "SECRETCOORD" "coord never printed"
+  assert_not_contains "$OUT" "coord" "no coord field"
+  assert_not_contains "$OUT" "$PASSWORD" "password never printed"
+
+  new_case "feed: read-only (no XACK, no marker or delivered write, no group)"
+  rule "$LOGKEY" "[$R1]"
+  rule 'XRANGE mbx:michael:p:proj:from:michael 1700000005000-0 1700000005000-0' "$(feedbody 1700000005000-0 hi)"
+  mb feed --project proj
+  assert_rc 0 "ok"
+  for n in XACK XADD SET HSET DEL EXPIRE XGROUP XREADGROUP XREAD; do
+    if cmds | grep -q "^$n "; then bad "feed issued $n"; else ok; fi
+  done
+  assert_eq "no" "$([ -e "$CACHE/delivered-proj" ] && echo yes || echo no)" "no delivered set written"
+  assert_eq "yes" "$(has_cmd 'XRANGE mbx:michael:p:proj:from:michael' && echo yes)" "body read by XRANGE"
+
+  new_case "feed: body gone (trimmed or expired) gives body null, message still listed"
+  rule "$LOGKEY" "[$R1]"
+  mb feed --project proj
+  assert_rc 0 "ok"
+  assert_eq "1" "$(printf '%s\n' "$OUT" | grep -c .)" "one line"
+  assert_eq "null" "$(printf '%s' "$OUT" | jq -c .body)" "body null"
+
+  new_case "feed: an object-shaped XRANGE reply ({id: [fields]}) works too"
+  rule "$LOGKEY" "[$R1]"
+  rule 'XRANGE mbx:michael:p:proj:from:michael *' '{"1700000005000-0":["from","x","body","obj body","coord","SECRETCOORD"]}'
+  mb feed --project proj
+  assert_eq "obj body" "$(printf '%s' "$OUT" | jq -r .body)" "body"
+  assert_not_contains "$OUT" "SECRETCOORD" "coord never printed (object shape)"
+
+  new_case "feed: --count caps the output; default and bounds"
+  rule "$LOGKEY" "[$R1,$R3,$R5]"
+  mb feed --project proj --count 2
+  assert_rc 0 "ok"
+  assert_eq "2" "$(printf '%s\n' "$OUT" | grep -c .)" "two lines"
+  mb feed --project proj --count 0; assert_rc 2 "count 0 refused"
+  mb feed --project proj --count 201; assert_rc 2 "count 201 refused"
+  mb feed --project proj --count abc; assert_rc 2 "count abc refused"
+  mb feed; assert_rc 2 "project required"
+  mb feed --project 'Bad Name'; assert_rc 2 "bad project refused"
+  mb feed --project proj --bogus; assert_rc 2 "unknown flag refused"
+
+  new_case "feed: empty log prints nothing, exit 0"
+  mb feed --project proj
+  assert_rc 0 "ok"
+  assert_eq "" "$OUT" "no output"
+
+  new_case "feed: exit codes follow the table (78 no config, 15 unreachable)"
+  rm -f "$T/env"
+  mb feed --project proj; assert_rc 78 "no config"
+  new_case "feed: unreachable"
+  rule "$LOGKEY" '!EXIT:1:Could not connect to Redis'
+  mb feed --project proj; assert_rc 15 "unreachable"
+}
+
 run_offline() {
   test_missing_script
   test_usage
@@ -1044,6 +1137,7 @@ run_offline() {
   test_read_other_owner
   test_who_log
   test_stats
+  test_feed
   test_join_leave
   test_read_max_and_peek
   test_heartbeat

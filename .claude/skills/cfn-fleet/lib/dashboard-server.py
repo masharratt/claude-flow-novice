@@ -14,7 +14,7 @@ startup errors reach the log.
 
 API:
   GET  /api/health         {"ok": true, "open": true|false, "pane": true|false,
-                            "sessions": true}
+                            "sessions": true, "mail": true|false}
   POST /api/open-terminal  {"ws": "<ws_id>"}: open a terminal window attached
                            to that worker's tmux session.
   GET  /api/pane?ws=<ws_id>&lines=<N>
@@ -26,6 +26,23 @@ API:
   GET  /api/sessions       {"ok": true, "project": "<name>", "ts": <epoch>,
                             "sessions": [...]}: every live Claude Code session
                            on this machine (see Sessions below).
+  GET  /api/mail?n=<N>     {"ok": true, "project": "<name>", "ts": <epoch>,
+                            "messages": [...]}: the project's recent mailbox
+                           traffic, newest first (see Mail below).
+
+Mail. Source: `mailbox.sh feed --project P --count N` (N clamped 1..200,
+default 50), run as ["bash", script, ...] (argv, never a shell string) with
+an 8s timeout (FLEET_DASHBOARD_MAIL_TIMEOUT_S, test seam). The script is
+FLEET_DASHBOARD_MAILBOX_SH, else cfn-mailbox/mailbox.sh beside this skill;
+health "mail" is false when it is missing (501). P is the project name
+/api/sessions reports, lowercased with anything outside [a-z0-9-] turned
+into "-". The feed is read-only and carries message bodies, so the page
+treats them as untrusted text. Each message carries only id, at, from, to,
+kind, fleet (when set), thread, hops and body; every string is stripped of
+control characters (newline and tab kept). Mailbox exit 78 is a 503 "mailbox
+not set up", a timeout 504, anything else 500 with the first stderr line.
+Each N's result (success or error) is cached MAIL_TTL_S and one run is in
+flight at a time. Same read-only gate as /api/sessions.
 
 Host rows. The session of a host row lives on the server, on the socket and
 session recorded in RUN_DIR/remote/<WS>.env by `fleet spawn --host`; the run
@@ -129,6 +146,16 @@ SESSION_NAME_MAX = 80
 SESSION_BRIEF_MAX = 160
 TMUX_PROBE_TTL_S = 30.0
 TMUX_PROBE_TIMEOUT_S = 2
+MAIL_COUNT_DEFAULT = 50
+MAIL_COUNT_MIN = 1
+MAIL_COUNT_MAX = 200
+MAIL_TIMEOUT_S = 8
+MAIL_TTL_S = 10.0
+MAIL_MAX_BYTES = 4 * 1024 * 1024
+MAIL_ERR_MAX = 200
+MAIL_NAME_MAX = 64
+MAIL_NOT_SET_UP = 78
+MAIL_STR_FIELDS = ("id", "from", "to", "kind", "fleet", "thread")
 ARCHIVE_MARKER = ".archived"
 # Closed list of keys a session object may carry; nothing else from the
 # session file ever reaches the page.
@@ -142,6 +169,8 @@ GATE_RE = re.compile(r"(?<![\w-])gate(?![\w-])", re.I)
 WORKTREE_RE = re.compile(r"^(.*?)/\.claude/worktrees/[^/]+(?:/.*)?$")
 FLEET_CLI = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
                          "cli", "fleet")
+MAILBOX_SH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+                          "cfn-mailbox", "mailbox.sh")
 # ESC-introduced sequences: CSI, OSC (BEL or ST terminated), DCS/SOS/PM/APC
 # strings, then any other escape (intermediates plus a final byte, which
 # covers charset selects like ESC ( B), then a lone ESC. Remaining C0/C1
@@ -315,6 +344,98 @@ def run_peek(run_dir, ws, lines):
     if proc.returncode == 66:
         return 503, {"ok": False, "error": err or "host is unreachable"}
     return 500, {"ok": False, "error": err or "could not read the pane"}
+
+
+def mailbox_sh():
+    """The mailbox script used for the Messages feed, or None when it is not a file."""
+    path = os.environ.get("FLEET_DASHBOARD_MAILBOX_SH", "") or MAILBOX_SH
+    return path if os.path.isfile(path) else None
+
+
+def mail_timeout_s():
+    raw = os.environ.get("FLEET_DASHBOARD_MAIL_TIMEOUT_S", "")
+    try:
+        val = float(raw)
+    except ValueError:
+        return MAIL_TIMEOUT_S
+    return val if val > 0 else MAIL_TIMEOUT_S
+
+
+def mail_project(name):
+    """The mailbox name of a project folder: lowercase, [a-z0-9-] only."""
+    return re.sub(r"[^a-z0-9-]", "-", name.lower())[:MAIL_NAME_MAX]
+
+
+def clean_message(rec):
+    """One whitelisted message object from a feed line, or None."""
+    if not isinstance(rec, dict) or not isinstance(rec.get("id"), str):
+        return None
+    out = {}
+    for key in MAIL_STR_FIELDS:
+        val = rec.get(key)
+        if isinstance(val, str):
+            out[key] = strip_controls(val)
+    at = rec.get("at")
+    out["at"] = at if isinstance(at, (int, float)) and not isinstance(at, bool) else 0
+    hops = rec.get("hops")
+    out["hops"] = hops if isinstance(hops, int) and not isinstance(hops, bool) else 0
+    body = rec.get("body")
+    out["body"] = strip_controls(body) if isinstance(body, str) else None
+    return out
+
+
+def run_mail(project, count):
+    """(http_code, body) for one `mailbox.sh feed` run."""
+    script = mailbox_sh()
+    if script is None:
+        return 501, {"ok": False, "error": "the mailbox script is not available"}
+    try:
+        proc = subprocess.run(["bash", script, "feed", "--project", mail_project(project),
+                               "--count", str(count)],
+                              stdin=subprocess.DEVNULL, capture_output=True,
+                              timeout=mail_timeout_s())
+    except subprocess.TimeoutExpired:
+        return 504, {"ok": False, "error": "reading the mailbox timed out"}
+    except OSError:
+        return 500, {"ok": False, "error": "could not run the mailbox script"}
+    if proc.returncode == MAIL_NOT_SET_UP:
+        return 503, {"ok": False, "error": "mailbox not set up"}
+    if proc.returncode != 0:
+        err = ""
+        for ln in proc.stderr.decode("utf-8", errors="replace").splitlines():
+            if ln.strip():
+                err = ln.strip()
+                break
+        if err.startswith("mailbox: "):
+            err = err[len("mailbox: "):]
+        return 500, {"ok": False, "error": strip_controls(err)[:MAIL_ERR_MAX] or "could not read the mailbox"}
+    messages = []
+    text = proc.stdout[:MAIL_MAX_BYTES].decode("utf-8", errors="replace")
+    for ln in text.splitlines():
+        try:
+            msg = clean_message(json.loads(ln))
+        except ValueError:
+            continue
+        if msg is not None:
+            messages.append(msg)
+    return 200, {"ok": True, "project": project, "ts": int(time.time()), "messages": messages}
+
+
+class MailCache:
+    """Cached /api/mail results, one entry per count; one feed runs at a time."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._hits = {}
+
+    def get(self, count, build):
+        with self._lock:
+            hit = self._hits.get(count)
+            if hit is None or time.monotonic() - hit[0] >= MAIL_TTL_S:
+                code, body = build()
+                hit = (time.monotonic(), code, body)
+                self._hits[count] = hit
+            return hit[1], hit[2]
 
 
 def roster_rows(run_dir):
@@ -611,6 +732,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     port = 0
     pane_cache = PaneCache()
     sessions_cache = SessionsCache()
+    mail_cache = MailCache()
     tmux_probe = TmuxProbe()
 
     # --- quiet logging (5xx only) ---------------------------------------
@@ -651,9 +773,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if p == "/api/health":
             return self.send_json(200, {"ok": True, "open": open_available(),
                                         "pane": peek_cmd() is not None,
-                                        "sessions": True})
+                                        "sessions": True,
+                                        "mail": mailbox_sh() is not None})
         if p == "/api/pane":
             return self.pane()
+        if p == "/api/mail":
+            return self.mail()
         if p == "/api/sessions":
             return self.sessions()
         if p.startswith("/api/"):
@@ -777,6 +902,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         body = self.sessions_cache.get(
             lambda: collect_sessions(self.run_dir, self.socket_name, self.tmux_probe))
         return self.send_json(200, body)
+
+    # --- mail -----------------------------------------------------------
+    def mail(self):
+        bad = self.gate(read_only=True)
+        if bad:
+            return self.send_json(bad[0], {"ok": False, "error": bad[1]})
+        query = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+        raw = (query.get("n") or [""])[0]
+        if raw == "":
+            count = MAIL_COUNT_DEFAULT
+        elif raw.isdigit() and len(raw) <= 6:
+            count = min(max(int(raw), MAIL_COUNT_MIN), MAIL_COUNT_MAX)
+        else:
+            return self.send_json(400, {"ok": False, "error": "n must be a number"})
+        dash_root = run_project_root(self.run_dir)
+        project = os.path.basename(dash_root) or dash_root
+        code, body = self.mail_cache.get(count, lambda: run_mail(project, count))
+        return self.send_json(code, body)
 
     # --- live pane ------------------------------------------------------
     def pane(self):

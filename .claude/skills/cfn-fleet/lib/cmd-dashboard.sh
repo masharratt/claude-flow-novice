@@ -16,7 +16,10 @@
 # /api/sessions (masters and lanes, lane brief, state, last activity, tmux
 # attach command with Copy), refreshing every 5s while the tab is visible;
 # other projects sit in a collapsed group and sessions idle over 24h are
-# labelled stale and sorted last. Deliberately never exits on ALL-DONE (the opposite of `fleet
+# labelled stale and sorted last. The Messages panel under it (served pages
+# only, /api/health "mail") lists this project's recent mailbox traffic with
+# bodies from GET /api/mail, refreshing every 10s while the tab is visible.
+# Deliberately never exits on ALL-DONE (the opposite of `fleet
 # watch`, on purpose: the dashboard is a page you leave open, not a loop that
 # ends the session).
 #
@@ -556,6 +559,9 @@ _fleet_dash_render() {
     # reports "sessions" (never on file://); the live JS fills it.
     printf '<div class="workspace"><main class="board">'
     printf '<section class="sessions" id="sessions" aria-label="Claude sessions on this machine" hidden><div class="section-heading"><h2>Sessions <span class="queued-n" id="sessions-count">0</span></h2><span class="eyebrow">ALL CLAUDE CODE SESSIONS · THIS MACHINE</span></div><div id="sessions-body"></div></section>\n'
+    # Messages panel: empty mount, hidden until a served page's /api/health
+    # reports "mail" (never on file://); the live JS fills it.
+    printf '<section class="mail" id="mail" aria-label="Mailbox messages for this project" hidden><div class="section-heading"><h2>Messages <span class="queued-n" id="mail-count">0</span></h2><span class="eyebrow">MAILBOX · THIS PROJECT</span></div><div id="mail-body"></div></section>\n'
     printf '<div class="section-heading"><h2>Workstreams</h2><span id="visible-count">%s total</span></div>' "$n_total"
     _fleet_dash_filters
     printf '<div class="grid" id="cards">\n'
@@ -1073,6 +1079,20 @@ code.sha::before { content: 'Commit '; color: var(--dim); }
 .sess-other summary { cursor: pointer; font-size: 12px; color: var(--dim); padding: 6px 0; }
 .sess-other[open] summary { margin-bottom: 8px; }
 .sess-empty { color: var(--dim); font-size: 12px; margin: 0; padding: 14px 12px; border: 1px dashed var(--line); border-radius: var(--radius); }
+.mail { margin-bottom: 28px; }
+.mail[hidden] { display: none; }
+.mail-list { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.mail-item { padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 11px; min-width: 0; }
+.mail-item:last-child { border-bottom: 0; }
+.mail-head { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; margin-bottom: 4px; }
+.mail-time { font: 10px ui-monospace, monospace; color: var(--dim); white-space: nowrap; }
+.mail-route { font: 11px ui-monospace, monospace; overflow-wrap: anywhere; }
+.mail-kind, .mail-fleet { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10px; white-space: nowrap; background: var(--st-pending-soft); color: var(--st-pending); }
+.mail-fleet { background: var(--accent-soft); color: var(--accent); }
+.mail-text { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); line-height: 1.45; }
+.mail-text.is-clamped { max-height: 5.8em; overflow: hidden; }
+.mail-gone { color: var(--dim); font-style: italic; }
+.mail-more { margin-top: 4px; padding: 3px 8px; font-size: 10px; }
 .glossary { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 22px; }
 .glossary .section-heading { margin-bottom: 4px; }
 .gl-list { display: grid; gap: 10px; margin-top: 14px; }
@@ -1652,6 +1672,101 @@ _fleet_dash_script() {
     });
   }
 
+  /* Messages panel: this project's recent mailbox traffic via GET api/mail
+     (served pages only, when api/health reports "mail"). Refreshes every
+     10s, never while the tab is hidden. Bodies are untrusted text: every
+     string goes through esc(), long bodies are clamped with a show-more
+     toggle whose state survives refreshes. A failed read keeps the last
+     list; an error reply from the server replaces it with the reason. */
+  var mailAvailable = false;
+  var mailInflight = false;
+  var mailOpen = {};  /* message id -> body expanded */
+  var MAIL_MS = 10000;
+  var MAIL_CLAMP_CHARS = 280, MAIL_CLAMP_LINES = 4;
+
+  function mailWhen(at) {
+    var t = intOr(String(at));
+    if (t <= 0) return "";
+    return new Date(t * 1000).toLocaleString([], {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit"});
+  }
+
+  function mailItemHtml(m) {
+    var id = String(m.id || "");
+    var open = !!mailOpen[id];
+    var text;
+    if (typeof m.body === "string") {
+      var long = m.body.length > MAIL_CLAMP_CHARS || m.body.split("\n").length > MAIL_CLAMP_LINES;
+      text = '<div class="mail-text' + (long && !open ? ' is-clamped' : '') + '">' + esc(m.body) + '</div>' +
+        (long ? '<button type="button" class="chipbtn mail-more" aria-expanded="' + (open ? 'true' : 'false') + '">' +
+          (open ? 'Show less' : 'Show more') + '</button>' : '');
+    } else {
+      text = '<div class="mail-text mail-gone">(message text is no longer stored)</div>';
+    }
+    return '<li class="mail-item" data-id="' + esc(id) + '"><div class="mail-head">' +
+      '<time class="mail-time">' + esc(mailWhen(m.at)) + '</time>' +
+      '<span class="mail-route">' + esc(m.from || "") + ' &rarr; ' + esc(m.to || "") + '</span>' +
+      '<span class="mail-kind">' + esc(m.kind || "") + '</span>' +
+      (m.fleet ? '<span class="mail-fleet">' + esc(m.fleet) + '</span>' : '') +
+      '</div>' + text + '</li>';
+  }
+
+  function renderMail(d) {
+    var body = document.getElementById("mail-body");
+    if (!body) return;
+    var list = (d && Array.isArray(d.messages)) ? d.messages : [];
+    body.innerHTML = list.length
+      ? '<ul class="mail-list" id="mail-list">' + list.map(mailItemHtml).join("") + '</ul>'
+      : '<p class="sess-empty">No messages for this project yet.</p>';
+    var count = document.getElementById("mail-count");
+    if (count) count.textContent = String(list.length);
+  }
+
+  function renderMailError(reason) {
+    var body = document.getElementById("mail-body");
+    if (body) body.innerHTML = '<p class="sess-empty">' + esc(reason) + '</p>';
+    var count = document.getElementById("mail-count");
+    if (count) count.textContent = "0";
+  }
+
+  function fetchMail() {
+    if (!mailAvailable || mailInflight) return;
+    if (document.visibilityState && document.visibilityState !== "visible") return;
+    mailInflight = true;
+    fetch("api/mail?ts=" + cachebust())
+      .then(function (resp) {
+        return resp.json().then(function (d) {
+          if (resp.ok) renderMail(d);
+          else renderMailError("Messages unavailable: " + String((d && d.error) || ("http " + resp.status)));
+        });
+      })
+      .catch(function () { /* keep the last list */ })
+      .then(function () { mailInflight = false; });
+  }
+
+  function startMail() {
+    if (mailAvailable) return;
+    mailAvailable = true;
+    var panel = document.getElementById("mail");
+    if (panel) panel.hidden = false;
+    var body = document.getElementById("mail-body");
+    if (body) body.addEventListener("click", function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest(".mail-more") : null;
+      var li = b ? b.closest(".mail-item") : null;
+      if (!li) return;
+      var id = li.getAttribute("data-id") || "";
+      mailOpen[id] = !mailOpen[id];
+      var t = li.querySelector(".mail-text");
+      if (t) t.classList.toggle("is-clamped", !mailOpen[id]);
+      b.setAttribute("aria-expanded", mailOpen[id] ? "true" : "false");
+      b.textContent = mailOpen[id] ? "Show less" : "Show more";
+    });
+    fetchMail();
+    setInterval(fetchMail, MAIL_MS);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") fetchMail();
+    });
+  }
+
   /* Show a Copy status line on one session row; clears itself after 6s. */
   function saySession(pid, text) {
     sessionsMsg[pid] = text;
@@ -1686,6 +1801,7 @@ _fleet_dash_script() {
         document.querySelectorAll(".open-btn").forEach(function (b) { b.hidden = !openAvailable; });
         document.querySelectorAll(".pane-btn").forEach(function (b) { b.hidden = !paneAvailable; });
         if (d && d.ok === true && d.sessions === true) startSessions();
+        if (d && d.ok === true && d.mail === true) startMail();
       })
       .catch(function () { openAvailable = false; paneAvailable = false; });
   }
