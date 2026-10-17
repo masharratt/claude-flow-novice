@@ -22,6 +22,17 @@ Config lives in `~/.config/cfn-mailbox/env`; if it is missing every command exit
 ## Send later
 `mailbox.sh send <to> --at <when> "<text>"` where `<when>` is epoch seconds, `+30m`, `+2h`, `+1d`, `HH:MM` (next occurrence, local time) or `YYYY-MM-DDTHH:MM` (local). Kind defaults to `reminder`. It prints the due time in UTC and local; the watcher delivers it.
 
+## Setting up another machine (same owner)
+Machines today: the Mac, the VPS (`MAILBOX_HOST_TAG=vps`) and the WSL desktop (`MAILBOX_HOST_TAG=desk`). Each new machine:
+1. Clone this repo and run `.claude/cfn-scripts/link-runtime-dirs.sh` (gives `~/.claude/skills`, `~/.claude/hooks`, so the mailbox, its hook and the listener mod).
+2. Tools: `redis-cli` (apt `redis-tools`), `jq`, bash 4+.
+3. Login: copy `~/.config/cfn-mailbox/env` from a machine that has it, through a password manager or `scp` (never mail, chat or a repo), `chmod 600`, then add one line `MAILBOX_HOST_TAG=<short machine name>` so session names do not clash with the other machines. Check with `mailbox.sh doctor` (auth ok).
+4. Hook: add `bash $HOME/.claude/hooks/cfn-mailbox-hook.sh` with timeout 5 to SessionStart, UserPromptSubmit, PreToolUse, PostToolUse and Stop in `~/.claude/settings.json` (the user approves this edit; back the file up first).
+5. Watcher: Linux/WSL with systemd: `mailbox-watch.sh install-systemd` (WSL needs `systemd=true` under `[boot]` in `/etc/wsl.conf`; otherwise start `mailbox-watch.sh run` by hand). macOS: a LaunchAgent running `mailbox-watch.sh run`.
+6. Test: from the new machine `mailbox.sh send michael/me --kind fyi "hello from <machine>"`, and from another machine send an `ask` to a new-machine session; it should wake within a minute.
+
+Never send secrets (API keys, tokens, cookies, `.env` values) by mail: bodies are stored in plain text at Upstash for up to 7 days, readable by every session of the owner, and enter session transcripts. Mail where the secret is ("in 1Password under X"), not the secret.
+
 ## Watcher (`mailbox-watch.sh`)
 One per machine: `bash $HOME/.claude/skills/cfn-mailbox/mailbox-watch.sh run` (macOS: start by hand; Linux: `install-systemd`). It types "You have mail: run /mail read" into idle tmux panes when ask/reminder mail lands in a session or project inbox (never room mail), and runs send-later delivery, bounces (24 h session mail, 7 d project mail) and 7-day session expiry. That typed prompt does not clear the hook's outside-mail flag: only a prompt a human types does. Send-later and bounce survive a watcher dying mid-way: the next pass repeats the write with the same `msg_id`, so nothing is lost and the receiver shows it once. `once` does one pass; `status` shows the log tail. Sessions not in tmux get mail on their next turn.
 
