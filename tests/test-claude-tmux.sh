@@ -4,7 +4,7 @@
 # install-claude-tmux.sh (point the dsp/dspr/dspc aliases at it, add a tmux config).
 # Offline: a fake tmux and a fake claude on PATH record their argv; HOME is a temp dir.
 set -euo pipefail
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 LAUNCH="$PROJECT_ROOT/.claude/cfn-scripts/claude-tmux.sh"
 INSTALL="$PROJECT_ROOT/.claude/cfn-scripts/install-claude-tmux.sh"
 
