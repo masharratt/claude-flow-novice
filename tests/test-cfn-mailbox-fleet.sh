@@ -548,6 +548,56 @@ test_shared_env_name() {
   assert_contains "$ERR" "%9" "names the holding pane"
 }
 
+# Regression (2026-10-17, MDTWII): Claude Code derives a session name as <project>-<2 hex>, so two
+# live sessions drew the same one (mdtwii-40). The heartbeat refused the second (exit 23), but only
+# a MAILBOX_SESSION name stepped aside, so the fleet master's replies went to its worker.
+registry_entry() { # NAME: Claude Code's session registry names this session NAME
+  mkdir -p "$T/home/.claude/sessions"
+  jq -n -c --arg s "$SID" --arg n "$1" '{pid:4242, sessionId:$s, name:$n, nameSource:"derived"}' \
+    > "$T/home/.claude/sessions/4242.json"
+}
+
+test_shared_registry_name() {
+  new_case "shared registry name: another live pane holds it -> this session uses its own name"
+  fake_tmux %9; shared_entry "/sock|%9" $((NOW - 30)); registry_entry shared
+  HENV=(MAILBOX_NOW="$NOW" TMUX="/sock,1,0" TMUX_PANE=%3)
+  hook "$(ev SessionStart)"
+  assert_eq "no" "$(yn has_cmd "HSET dir:michael michael/s/shared ")" "held name not overwritten"
+  assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/$SHARED_OWN ")" "own derived name heartbeated"
+  assert_eq "$SHARED_OWN" "$(cat "$CACHE/name-$SID" 2>/dev/null)" "own name recorded for the CLI"
+  : > "$T/calls"
+  hook "$(ev UserPromptSubmit '{"prompt":"x"}')"
+  assert_eq "yes" "$(yn has_cmd "mbx:michael:s:$SHARED_OWN:from:michael")" "next event reads its own inbox"
+  assert_eq "no" "$(yn has_cmd "mbx:michael:s:shared:from:michael")" "never the shared inbox again"
+  MENV=(CLAUDE_CODE_SESSION_ID="$SID")
+  rm -f "$CACHE/name-$SID"
+  mb whoami
+  assert_contains "$OUT" "-aaa111" "CLI resolver falls back to <project>-<sid6>"
+  assert_eq "no" "$(yn grep -q 'session=shared' <<< "$OUT")" "CLI resolver skips the refused name"
+
+  # Both sessions passed the start check (each read before the other wrote): the once-a-minute
+  # heartbeat finds it. A status-bar name is not re-checked before every read (that costs a call
+  # per prompt for every session); a start-time clash, the usual case, is refused at SessionStart.
+  new_case "shared registry name: clash found by the minute heartbeat -> stepped aside before reading"
+  fake_tmux %3; shared_entry "/sock|%3" $((NOW - 30)); registry_entry shared
+  HENV=(MAILBOX_NOW="$NOW" TMUX="/sock,1,0" TMUX_PANE=%3)
+  hook "$(ev SessionStart)"
+  assert_eq "shared" "$(cat "$CACHE/name-$SID" 2>/dev/null)" "held at start"
+  : > "$T/rules"; : > "$T/calls"
+  fake_tmux %9; shared_entry "/sock|%9" $((NOW - 2))
+  echo 0 > "$CACHE/hb-shared"   # heartbeat due
+  hook "$(ev UserPromptSubmit '{"prompt":"x"}')"
+  assert_eq "$SHARED_OWN" "$(cat "$CACHE/name-$SID" 2>/dev/null)" "stepped aside"
+  assert_eq "no" "$(yn has_cmd "mbx:michael:s:shared:from:michael")" "did not read the shared inbox"
+
+  new_case "shared registry name: name held by this pane -> kept"
+  fake_tmux %3; shared_entry "/sock|%3" $((NOW - 30)); registry_entry shared
+  HENV=(MAILBOX_NOW="$NOW" TMUX="/sock,1,0" TMUX_PANE=%3)
+  hook "$(ev SessionStart)"
+  assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/shared ")" "name kept"
+  assert_eq "shared" "$(cat "$CACHE/name-$SID" 2>/dev/null)" "recorded"
+}
+
 # Regression (2026-10-16): mailbox.sh run from an agent's Bash had no session (MAILBOX_SESSION
 # unset), so its mail went out from michael/me and the reply landed in whichever attended session
 # read the person inbox.
@@ -592,6 +642,7 @@ test_send_fleet_coord
 test_queue_flush
 test_reader_and_seen
 test_shared_env_name
+test_shared_registry_name
 test_cli_session_from_hook
 
 echo "cases: $CASES  assertions passed: $PASS  failed: $FAIL"

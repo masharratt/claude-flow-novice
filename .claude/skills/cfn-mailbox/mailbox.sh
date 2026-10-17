@@ -175,7 +175,7 @@ load_config() {
   cid="$(claude_id)"
   # MAILBOX_SESSION inherited from a tmux session's environment that another live pane already
   # uses: the hook recorded this session's own name instead (dup-<id> = the refused name).
-  if [ -n "$SESSION" ] && [ -n "$cid" ] && [ "$(first_line "$(dup_file "$cid")")" = "$SESSION" ]; then
+  if [ -n "$SESSION" ] && [ -n "$cid" ] && is_dup "$cid" "$SESSION"; then
     a="$(first_line "$(name_file "$cid")")"
     valid_name "$a" || a="$(resolve_session "$cid" "$PWD")"
     if valid_name "$a"; then SESSION="$a"; fi
@@ -214,8 +214,11 @@ claude_id() {
 }
 # name_file ID: the session name the hook resolved for that Claude session (written every event).
 name_file() { printf '%s/name-%s' "$CACHE_DIR" "$1"; }
-# dup_file ID: an inherited MAILBOX_SESSION refused for that session because another pane holds it.
+# dup_file ID: names refused for that session (heartbeat exit 23: another live pane holds them),
+# one per line: an inherited MAILBOX_SESSION, or a Claude Code status-bar name two sessions drew.
 dup_file() { printf '%s/dup-%s' "$CACHE_DIR" "$1"; }
+# is_dup ID NAME: NAME was refused for that session.
+is_dup() { [ -n "$1" ] && [ -n "$2" ] && grep -qxF -- "$2" "$(dup_file "$1")" 2>/dev/null; }
 first_line() { head -n 1 "$1" 2>/dev/null | tr -d '\r\n ' || true; }
 
 # coord_secret FILE: the "coordinator-secret: <hex>" value in FILE (16 to 128 hex), else nothing.
@@ -397,10 +400,10 @@ registry_name() {
 # -MAILBOX_HOST_TAG when set); else <project>-<first 6 chars of sid>.
 resolve_session() {
   local sid="${1:-}" dir="${2:-$PWD}" s="${MAILBOX_SESSION:-}" f
-  # An inherited MAILBOX_SESSION this session was refused (heartbeat exit 23: another live tmux pane
-  # holds it; the hook wrote dup-<sid>) is skipped, so hook, listen and CLI all use its own name.
-  if [ -n "$s" ] && [ -n "$sid" ] && \
-     [ "$(head -n 1 "$CACHE_DIR/dup-$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_-' '_')" 2>/dev/null)" = "$s" ]; then s=""; fi
+  # A name this session was refused (heartbeat exit 23: another live tmux pane holds it; the hook
+  # wrote dup-<sid>) is skipped, so hook, listen and CLI all use its own name.
+  local id; id="$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_-' '_')"
+  if is_dup "$id" "$s"; then s=""; fi
   if [ -z "$s" ] && [ -n "$sid" ]; then
     f="$(alias_file "$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_-' '_')")"
     if [ -f "$f" ]; then
@@ -413,6 +416,8 @@ resolve_session() {
     if [ -n "$s" ] && [ -n "$MAILBOX_HOST_TAG" ]; then
       s="$(printf '%s-%s' "$s" "$(sanitize_name "$MAILBOX_HOST_TAG")" | cut -c1-64)"
     fi
+    # Claude Code derives <project>-<2 hex>, so two live sessions can draw the same name.
+    if is_dup "$id" "$s"; then s=""; fi
   fi
   if [ -z "$s" ]; then s="$(sanitize_name "$(resolve_project "$dir")-${sid:0:6}")"; fi
   printf '%s' "$s"

@@ -31,11 +31,12 @@
 # runs under a 2 s timeout; any error -> nothing on stdout, one line in ~/.cache/cfn-mailbox/hook.log,
 # exit 0. The Redis password is never read here and never printed.
 #
-# Identity: MAILBOX_SESSION env wins (fleet sets it), unless another live tmux pane on this host
-# already uses that name (heartbeat exit 23, remembered in ~/.cache/cfn-mailbox/dup-<session_id>):
-# a tmux session's environment reaches every window, and one name shared by several sessions
-# hands each one the others' mail. Then the rest of resolve_session in mailbox.sh: a claimed role
-# name, the status-bar name, else <project>-<first 6 chars of session_id>.
+# Identity: MAILBOX_SESSION env wins (fleet sets it), then the rest of resolve_session in
+# mailbox.sh: a claimed role name, the status-bar name, else <project>-<first 6 chars of
+# session_id>. An env or status-bar name can be shared (a tmux session's environment reaches every
+# window; Claude Code derives <project>-<2 hex>), and one name shared by several sessions hands each
+# one the others' mail. So when another live tmux pane on this host already uses it (heartbeat
+# exit 23) the name is refused, remembered in ~/.cache/cfn-mailbox/dup-<session_id>, and skipped.
 # The name in use is written to ~/.cache/cfn-mailbox/name-<session_id> on every event, so
 # mailbox.sh run from this session's Bash sends from, and reads, the same address.
 # project = the main checkout's folder name (a linked worktree maps to its main repo; see
@@ -137,19 +138,31 @@ heartbeat() {
   local -a a=(heartbeat --project "$PROJECT" --summary "$summary")
   [ -z "$tmuxt" ] || a+=(--tmux "$tmuxt")
   stamp_touch hb
-  mbx "${a[@]}" && return 0
-  # 23: an inherited MAILBOX_SESSION another live pane on this host already uses. Remember the
-  # refusal for this Claude session, move to its own derived name, and heartbeat that instead.
-  [ "$MB_RC" = 23 ] && [ "$SESSION_SRC" = env ] || return 0
-  ensure_cache_dir
-  printf '%s\n' "$SESSION" > "$CACHE_DIR/dup-$SID" 2>/dev/null || true
-  local was="$SESSION"
-  SESSION="$(resolve_session "$SID" "$CWD")"; SESSION_SRC=resolved   # skips the refused name now
-  log_err "event=$EVENT session name $was is used by another live pane; this session is now $SESSION"
-  record_name
-  [ -z "$LAST_STATE" ] || write_state "$LAST_STATE"
-  stamp_touch hb
-  mbx "${a[@]}" || true
+  local tries=0 was
+  # 23: a shareable name (env or status-bar) another live pane on this host already uses. Remember
+  # the refusal for this Claude session, move to its next name, and heartbeat that instead. Twice at
+  # most: a refused env name can fall through to a status-bar name that is taken as well.
+  while ! mbx "${a[@]}"; do
+    [ "$MB_RC" = 23 ] && [ "$SESSION_SRC" != own ] && [ "$tries" -lt 2 ] || return 0
+    tries=$((tries + 1))
+    ensure_cache_dir
+    printf '%s\n' "$SESSION" >> "$CACHE_DIR/dup-$SID" 2>/dev/null || true
+    was="$SESSION"
+    SESSION="$(resolve_session "$SID" "$CWD")"; set_session_src   # skips the refused name now
+    log_err "event=$EVENT session name $was is used by another live pane; this session is now $SESSION"
+    record_name
+    [ -z "$LAST_STATE" ] || write_state "$LAST_STATE"
+    stamp_touch hb
+  done
+}
+
+# set_session_src: env = from MAILBOX_SESSION (checked before every read, see below); own = a
+# claimed role name or <project>-<sid6>, never shared; shared = Claude Code's status-bar name.
+set_session_src() {
+  if [ -n "${MAILBOX_SESSION:-}" ] && [ "$SESSION" = "$MAILBOX_SESSION" ]; then SESSION_SRC=env
+  elif [ "$SESSION" = "$(first_line "$(alias_file "$SID")")" ] || \
+       [ "$SESSION" = "$(sanitize_name "$PROJECT-${SID:0:6}")" ]; then SESSION_SRC=own
+  else SESSION_SRC=shared; fi
 }
 
 # heartbeat_before_read: a session on an inherited MAILBOX_SESSION re-checks that it still holds
@@ -356,8 +369,7 @@ main() {
   # Project and session name: the one resolver in mailbox.sh (also used by `mailbox.sh listen`).
   PROJECT="$(resolve_project "$CWD")"
   SESSION="$(resolve_session "$SID" "$CWD")"
-  # env: the name came from MAILBOX_SESSION, which can be inherited by several windows (see Identity).
-  if [ -n "${MAILBOX_SESSION:-}" ] && [ "$SESSION" = "$MAILBOX_SESSION" ]; then SESSION_SRC=env; else SESSION_SRC=resolved; fi
+  set_session_src   # env and status-bar names can be shared by several sessions (see Identity)
 
   if [ -n "${CFN_MAILBOX_HOOK_INNER:-}" ]; then record_name; inner; exit 0; fi
 
