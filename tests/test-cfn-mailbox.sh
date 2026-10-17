@@ -14,6 +14,8 @@
 #
 # No `set -e`: assertions must all run so every failure shows in one pass.
 set -uo pipefail
+# Run from inside a Claude session these would leak its identity into every mailbox.sh call.
+unset CLAUDE_CODE_SESSION_ID MAILBOX_SESSION_ID
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 MB="$REPO/.claude/skills/cfn-mailbox/mailbox.sh"

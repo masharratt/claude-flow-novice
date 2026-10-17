@@ -399,7 +399,7 @@ test_queue_flush() {
   [ -n "$f" ] && ok || bad "a queue file exists"
   assert_eq "michael/s/proj-master|ask|blocked|need src/b.md" "$(jq -r '[.to,.kind,.fleet,.body] | join("|")' "$f" 2>/dev/null)" "fields"
   assert_eq "no" "$(yn has_cmd XADD)" "no network on queue"
-  local mode; mode="$(stat -f %Lp "$f" 2>/dev/null || stat -c %a "$f" 2>/dev/null)"
+  local mode; mode="$(stat -c %a "$f" 2>/dev/null || stat -f %Lp "$f" 2>/dev/null)"
   assert_eq "600" "$mode" "queue file mode"
 
   new_case "queue: no MAILBOX_OUTQ -> 2"
@@ -474,6 +474,105 @@ test_reader_and_seen() {
   assert_contains "$OUT" "michael/s/proj-ws2	17" "old rows too"
 }
 
+# Regression (2026-10-16, MDTWII): MAILBOX_SESSION set in a tmux session's environment was
+# inherited by every window, so three Claude sessions shared michael/s/mdtwii. Whichever read
+# first took a reply meant for another, and the watcher nudged whichever pane heartbeated last.
+# fake_tmux ALIVE_PANE: a tmux whose display-message succeeds only for ALIVE_PANE.
+fake_tmux() {
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do [ "$a" = "%s" ] && exit 0; done\nexit 1\n' "$1" > "$T/bin/tmux"
+  chmod +x "$T/bin/tmux"
+}
+shared_entry() { # TMUX_TARGET LAST_SEEN: directory entry for michael/s/shared held by another pane
+  rule "HGET dir:michael michael/s/shared" "$(jq -n -c --arg h "$(hostname -s)" --arg t "$1" --argjson l "$2" '{host:$h, tmux_target:$t, last_seen:$l, rooms:[]}')"
+}
+SHARED_OWN="proj-aaa111"
+
+test_shared_env_name() {
+  new_case "shared env name: another live pane on this host holds it -> this session uses its own name"
+  fake_tmux %9; shared_entry "/sock|%9" $((NOW - 30))
+  HENV=(MAILBOX_SESSION=shared MAILBOX_NOW="$NOW" TMUX="/sock,1,0" TMUX_PANE=%3)
+  hook "$(ev SessionStart)"
+  assert_eq "no" "$(yn has_cmd "HSET dir:michael michael/s/shared ")" "held name not overwritten"
+  assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/$SHARED_OWN ")" "own derived name heartbeated"
+  assert_eq "$SHARED_OWN" "$(cat "$CACHE/name-$SID" 2>/dev/null)" "resolved name recorded for the CLI"
+  : > "$T/calls"
+  hook "$(ev UserPromptSubmit '{"prompt":"x"}')"
+  assert_eq "yes" "$(yn has_cmd "mbx:michael:s:$SHARED_OWN:from:michael")" "next event reads its own inbox"
+  assert_eq "no" "$(yn has_cmd "mbx:michael:s:shared:from:michael")" "never the shared inbox again"
+
+  new_case "shared env name: CLI in that session sends from the session's own name"
+  fake_tmux %9; shared_entry "/sock|%9" $((NOW - 30))
+  HENV=(MAILBOX_SESSION=shared MAILBOX_NOW="$NOW" TMUX="/sock,1,0" TMUX_PANE=%3)
+  hook "$(ev SessionStart)"
+  MENV=(MAILBOX_SESSION=shared CLAUDE_CODE_SESSION_ID="$SID")
+  mb whoami
+  assert_contains "$OUT" "session=$SHARED_OWN" "whoami follows the hook"
+
+  new_case "shared env name: same pane (restart) keeps the name"
+  fake_tmux %3; shared_entry "/sock|%3" $((NOW - 30))
+  HENV=(MAILBOX_SESSION=shared MAILBOX_NOW="$NOW" TMUX="/sock,1,0" TMUX_PANE=%3)
+  hook "$(ev SessionStart)"
+  assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/shared ")" "name kept"
+  assert_eq "shared" "$(cat "$CACHE/name-$SID" 2>/dev/null)" "recorded"
+
+  new_case "shared env name: the other pane is gone -> name kept"
+  fake_tmux %1; shared_entry "/sock|%9" $((NOW - 30))
+  HENV=(MAILBOX_SESSION=shared MAILBOX_NOW="$NOW" TMUX="/sock,1,0" TMUX_PANE=%3)
+  hook "$(ev SessionStart)"
+  assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/shared ")" "dead pane does not hold"
+
+  new_case "shared env name: holder silent for 10+ minutes -> name kept"
+  fake_tmux %9; shared_entry "/sock|%9" $((NOW - 700))
+  HENV=(MAILBOX_SESSION=shared MAILBOX_NOW="$NOW" TMUX="/sock,1,0" TMUX_PANE=%3)
+  hook "$(ev SessionStart)"
+  assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/shared ")" "stale holder does not hold"
+
+  # Two windows starting at once both pass the check (each reads before the other writes). The
+  # loser must step aside before its next read, not a minute later when its heartbeat is due.
+  new_case "shared env name: the holder check runs before every read, not only once a minute"
+  fake_tmux %3; shared_entry "/sock|%3" $((NOW - 30))
+  HENV=(MAILBOX_SESSION=shared MAILBOX_NOW="$NOW" TMUX="/sock,1,0" TMUX_PANE=%3)
+  hook "$(ev SessionStart)"
+  assert_eq "shared" "$(cat "$CACHE/name-$SID" 2>/dev/null)" "held at start"
+  : > "$T/rules"; : > "$T/calls"
+  fake_tmux %9; shared_entry "/sock|%9" $((NOW - 2))
+  hook "$(ev UserPromptSubmit '{"prompt":"x"}')"
+  assert_eq "$SHARED_OWN" "$(cat "$CACHE/name-$SID" 2>/dev/null)" "stepped aside on the next turn"
+  assert_eq "no" "$(yn has_cmd "mbx:michael:s:shared:from:michael")" "did not read the shared inbox"
+
+  new_case "shared env name: heartbeat CLI refuses with exit 23 and names the pane"
+  fake_tmux %9; shared_entry "/sock|%9" $((NOW - 30))
+  MENV=(MAILBOX_SESSION=shared TMUX="/sock,1,0")
+  mb heartbeat --project proj --tmux "/sock|%3"
+  assert_rc 23 "duplicate refused"
+  assert_contains "$ERR" "%9" "names the holding pane"
+}
+
+# Regression (2026-10-16): mailbox.sh run from an agent's Bash had no session (MAILBOX_SESSION
+# unset), so its mail went out from michael/me and the reply landed in whichever attended session
+# read the person inbox.
+test_cli_session_from_hook() {
+  new_case "CLI without MAILBOX_SESSION uses the name the hook recorded for this Claude session"
+  HENV=()
+  hook "$(ev SessionStart)"
+  MENV=(CLAUDE_CODE_SESSION_ID="$SID")
+  mb whoami
+  assert_contains "$OUT" "session=$SHARED_OWN" "session from the hook's record"
+  mb send michael/s/proj-ws1 "hello"
+  assert_contains "$(cmds | grep -F 'XADD mbx:michael:s:proj-ws1' | head -1)" "from michael/s/$SHARED_OWN" "from is this session"
+
+  new_case "CLI without MAILBOX_SESSION and no hook record derives <project>-<sid6> like the hook"
+  MENV=(CLAUDE_CODE_SESSION_ID="$SID")
+  RC=0
+  OUT="$(cd "$T/work/proj" && env -u MAILBOX_SESSION -u MAILBOX_SESSION_ID PATH="$T/bin:$PATH" HOME="$T/home" MAILBOX_CONFIG="$T/env" CLAUDE_CODE_SESSION_ID="$SID" bash "$MB" whoami 2>&1)" || RC=$?
+  assert_contains "$OUT" "session=$SHARED_OWN" "derived the same way"
+
+  new_case "CLI outside Claude (no session id) still has no session"
+  mb whoami
+  assert_contains "$OUT" "session=
+" "empty session"
+}
+
 test_script_exists() {
   new_case "scripts exist"
   [ -f "$MB" ] && ok || bad "missing $MB"
@@ -492,6 +591,8 @@ test_coordinator_tier
 test_send_fleet_coord
 test_queue_flush
 test_reader_and_seen
+test_shared_env_name
+test_cli_session_from_hook
 
 echo "cases: $CASES  assertions passed: $PASS  failed: $FAIL"
 [ "$FAIL" -eq 0 ]

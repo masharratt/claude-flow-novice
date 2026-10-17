@@ -41,6 +41,8 @@ WATCH_DIR="$(cd "$(dirname "$WATCH_SELF")" && pwd -P)"
 
 # Limits (named constants; one place). NUDGE_TEXT and CACHE_DIR come from mailbox.sh.
 NUDGE_COOLDOWN=60          # seconds between nudges to one session
+NEW_KEY_LOOKBACK=600       # a key seen for the first time is read from at most 10 minutes back
+NEW_KEY_MARGIN=5           # ... and from 5 s before its session's heartbeat (clock skew, SessionStart order)
 LISTENER_FRESH=90          # a listener-<session> file younger than this means the mod wakes that session
 LIFECYCLE_EVERY=60
 LOCK_TTL=60
@@ -128,21 +130,7 @@ session_idle() { # NAME
   [ "$w" = idle ]
 }
 
-# tmux_cmd TARGET: sets TM (tmux argv, with -S <socket> for a "<socket>|<pane_id>" target) and TM_TARGET.
-# A bare target is a session:window.pane on the default socket (older directory entries).
-tmux_cmd() {
-  TM=(tmux); TM_TARGET="$1"
-  if [[ "$1" == *"|"* ]]; then TM+=(-S "${1%%|*}"); TM_TARGET="${1##*|}"; fi
-}
-
-# pane_alive TARGET: does the tmux pane still exist? Without tmux installed it answers yes, so
-# maybe_nudge logs the real reason.
-pane_alive() {
-  command -v tmux >/dev/null 2>&1 || return 0
-  local -a TM; local TM_TARGET
-  tmux_cmd "$1"
-  "${TM[@]}" display-message -p -t "$TM_TARGET" '#{pane_id}' >/dev/null 2>&1
-}
+# tmux_cmd and pane_alive live in mailbox.sh (sourced above); the heartbeat uses them too.
 
 # maybe_nudge NAME TMUX: honour the 60 s cap, then type the text and press Enter.
 maybe_nudge() {
@@ -213,9 +201,9 @@ nudge_pass() {
     name="$(row_field "$row" $R_NAME)"; project="$(row_field "$row" $R_PROJECT)"; rooms="$(row_field "$row" $R_ROOMS)"
     # receiver_keys: an outside owner's key only for a public address, so mail injected into a
     # private address never wakes anyone.
-    while IFS= read -r key; do [ -z "$key" ] || printf '%s|s|%s\n' "$key" "$name" >> "$MAPF"; done < <(receiver_keys s "$name")
+    while IFS= read -r key; do [ -z "$key" ] || printf '%s|s|%s|%s\n' "$key" "$name" "$seen" >> "$MAPF"; done < <(receiver_keys s "$name")
     if [ -n "$project" ] && valid_name "$project"; then
-      while IFS= read -r key; do [ -z "$key" ] || printf '%s|p|%s\n' "$key" "$project" >> "$MAPF"; done < <(receiver_keys p "$project")
+      while IFS= read -r key; do [ -z "$key" ] || printf '%s|p|%s|%s\n' "$key" "$project" "$seen" >> "$MAPF"; done < <(receiver_keys p "$project")
     fi
     # Room mail is never watched for waking (stage 6): an ask in a mesh room would wake every idle
     # subscriber at once and they would all answer. Rooms are shown at the next prompt instead.
@@ -227,15 +215,20 @@ nudge_pass() {
   fi
   [ -s "$KEYSF" ] || return 0
 
-  # Start each new key at its newest entry, so mail that lands later is never skipped.
-  local id last
+  # Start each new key just before the earliest heartbeat of the sessions behind it (at most
+  # NEW_KEY_LOOKBACK back). Mail older than that was shown at those sessions' turns; mail that landed
+  # between a session's start and this first sight still wakes it. Starting at the stream's newest
+  # entry skipped exactly that mail (2026-10-16).
+  local id last first start
   local -a keys=() ids=()
   while IFS= read -r key; do
     id="$(ids_get "$key")"
     if [ -z "$id" ]; then
-      rcmdj XREVRANGE "$key" + - COUNT 1
-      id="$(printf '%s' "$RC_OUT" | jq -r '.[0][0] // empty' 2>/dev/null || true)"
-      [ -n "$id" ] || id="0-0"
+      first="$(awk -F'|' -v k="$key" '$1 == k {print $4}' "$MAPF" | sort -n | head -n 1)"
+      [[ "$first" =~ ^[0-9]+$ ]] || first="$now"
+      start=$((first - NEW_KEY_MARGIN))
+      [ "$start" -ge $((now - NEW_KEY_LOOKBACK)) ] || start=$((now - NEW_KEY_LOOKBACK))
+      id="${start}000-0"
       ids_set "$key" "$id"
     fi
     keys+=("$key"); ids+=("$id")
@@ -263,7 +256,7 @@ nudge_pass() {
   while IFS='|' read -r key id kind len; do
     [ -n "$key" ] || continue
     eligible "$kind" "$len" || continue
-    while IFS='|' read -r _ type target; do
+    while IFS='|' read -r _ type target _; do
       case "$type" in
         s|r) name="$target" ;;
         p) name="$(pick_project_session "$target")" ;;

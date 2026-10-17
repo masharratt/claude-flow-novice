@@ -67,6 +67,7 @@
 #   19  MAILBOX_SESSION required for this command
 #   20  admin credential missing or unusable (adduser)
 #   21  role name held by another live session (claim, release)
+#   23  session name in use by another live tmux pane on this host (heartbeat)
 #   78  mailbox config missing or incomplete
 #
 # --at <when>: epoch seconds (9 to 12 digits), +<n>m|h|d, HH:MM (next occurrence, local time) or
@@ -168,14 +169,27 @@ load_config() {
   done
   SESSION="${MAILBOX_SESSION:-}"
   if [ -n "$SESSION" ]; then valid_name "$SESSION" || die 10 "MAILBOX_SESSION must be [a-z0-9-] only"; fi
+  local h a cid
+  h="$(holder_id)"
+  cid="$(claude_id)"
+  # MAILBOX_SESSION inherited from a tmux session's environment that another live pane already
+  # uses: the hook recorded this session's own name instead (dup-<id> = the refused name).
+  if [ -n "$SESSION" ] && [ -n "$cid" ] && [ "$(first_line "$(dup_file "$cid")")" = "$SESSION" ]; then
+    a="$(first_line "$(name_file "$cid")")"
+    valid_name "$a" || a="$(resolve_session "$cid" "$PWD")"
+    if valid_name "$a"; then SESSION="$a"; fi
+  fi
   # No explicit session: a role name this session claimed earlier is its address.
-  if [ -z "$SESSION" ]; then
-    local h a
-    h="$(holder_id)"
-    if [ -n "$h" ] && [ -f "$(alias_file "$h")" ]; then
-      a="$(head -n 1 "$(alias_file "$h")" 2>/dev/null | tr -d '\r\n ')"
-      if valid_name "$a"; then SESSION="$a"; fi
-    fi
+  if [ -z "$SESSION" ] && [ -n "$h" ] && [ -f "$(alias_file "$h")" ]; then
+    a="$(first_line "$(alias_file "$h")")"
+    if valid_name "$a"; then SESSION="$a"; fi
+  fi
+  # Inside a Claude session with nothing else: the name its hook uses (recorded, else derived the
+  # same way), so mail sent from Bash carries the address replies can reach.
+  if [ -z "$SESSION" ] && [ -n "$cid" ]; then
+    a="$(first_line "$(name_file "$cid")")"
+    valid_name "$a" || a="$(resolve_session "$cid" "$PWD")"
+    if valid_name "$a"; then SESSION="$a"; fi
   fi
   command -v redis-cli >/dev/null 2>&1 || die 15 "redis-cli is not installed"
 }
@@ -189,6 +203,19 @@ holder_id() {
   printf '%s' "${h:0:128}"
 }
 alias_file() { printf '%s/alias-%s' "$CACHE_DIR" "$1"; }
+# claude_id: the Claude session id only (MAILBOX_SESSION_ID, else CLAUDE_CODE_SESSION_ID), sanitized
+# like holder_id; empty outside a Claude session. Keys the hook's name-<id> and dup-<id> records.
+claude_id() {
+  local h="${MAILBOX_SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-}}"
+  [ -n "$h" ] || return 0
+  h="$(printf '%s' "$h" | tr -c 'A-Za-z0-9_-' '_')"
+  printf '%s' "${h:0:128}"
+}
+# name_file ID: the session name the hook resolved for that Claude session (written every event).
+name_file() { printf '%s/name-%s' "$CACHE_DIR" "$1"; }
+# dup_file ID: an inherited MAILBOX_SESSION refused for that session because another pane holds it.
+dup_file() { printf '%s/dup-%s' "$CACHE_DIR" "$1"; }
+first_line() { head -n 1 "$1" 2>/dev/null | tr -d '\r\n ' || true; }
 
 # coord_secret FILE: the "coordinator-secret: <hex>" value in FILE (16 to 128 hex), else nothing.
 coord_secret() {
@@ -369,6 +396,10 @@ registry_name() {
 # -MAILBOX_HOST_TAG when set); else <project>-<first 6 chars of sid>.
 resolve_session() {
   local sid="${1:-}" dir="${2:-$PWD}" s="${MAILBOX_SESSION:-}" f
+  # An inherited MAILBOX_SESSION this session was refused (heartbeat exit 23: another live tmux pane
+  # holds it; the hook wrote dup-<sid>) is skipped, so hook, listen and CLI all use its own name.
+  if [ -n "$s" ] && [ -n "$sid" ] && \
+     [ "$(head -n 1 "$CACHE_DIR/dup-$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_-' '_')" 2>/dev/null)" = "$s" ]; then s=""; fi
   if [ -z "$s" ] && [ -n "$sid" ]; then
     f="$(alias_file "$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_-' '_')")"
     if [ -f "$f" ]; then
@@ -964,6 +995,15 @@ cmd_heartbeat() {
   addr="$MAILBOX_OWNER/s/$SESSION"
   rcmd HGET "dir:$MAILBOX_OWNER" "$addr"
   cur="$RC_OUT"
+  # One name, one pane: a MAILBOX_SESSION set in a tmux session's environment reaches every window,
+  # and two live sessions under one name take each other's mail. The pane that holds it keeps it.
+  local ch ct cl
+  ch="$(alias_field "$cur" host)"; ct="$(alias_field "$cur" tmux_target)"; cl="$(alias_field "$cur" last_seen)"
+  [[ "$cl" =~ ^[0-9]+$ ]] || cl=0
+  if [ -n "$tmux" ] && [ -n "$ct" ] && [ "$ct" != "$tmux" ] && [ "$ch" = "$host" ] \
+     && [ $(( $(now_s) - cl )) -lt "$ALIAS_LIVE" ] && pane_alive "$ct"; then
+    die 23 "$addr is in use by live tmux pane $ct on $host; give this session its own name"
+  fi
   new="$(jq -n -c --arg cur "$cur" --arg host "$host" --arg project "$project" --arg tmux "$tmux" \
     --arg summary "$summary" --argjson now "$(now_s)" '
     (($cur | fromjson?) // {}) as $c
@@ -1075,6 +1115,22 @@ alias_touch() {
     rm -f "$f"
     warn "lost the role name $SESSION to another session; run claim again to take it back"
   fi
+}
+
+# tmux_cmd TARGET: sets TM (tmux argv, with -S <socket> for a "<socket>|<pane_id>" target) and TM_TARGET.
+# A bare target is a session:window.pane on the default socket (older directory entries).
+tmux_cmd() {
+  TM=(tmux); TM_TARGET="$1"
+  if [[ "$1" == *"|"* ]]; then TM+=(-S "${1%%|*}"); TM_TARGET="${1##*|}"; fi
+}
+
+# pane_alive TARGET: does the tmux pane still exist? Without tmux installed it answers yes (the
+# watcher's maybe_nudge then logs the real reason).
+pane_alive() {
+  command -v tmux >/dev/null 2>&1 || return 0
+  local -a TM; local TM_TARGET
+  tmux_cmd "$1"
+  "${TM[@]}" display-message -p -t "$TM_TARGET" '#{pane_id}' >/dev/null 2>&1
 }
 
 # whoami: owner/session/address of the calling shell. whoami --sid S [--cwd D]: just the session

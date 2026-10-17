@@ -11,6 +11,8 @@
 #
 # No `set -e`: assertions must all run so every failure shows in one pass.
 set -uo pipefail
+# Run from inside a Claude session these would leak its identity into every mailbox.sh call.
+unset CLAUDE_CODE_SESSION_ID MAILBOX_SESSION_ID
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 WATCH="$REPO/.claude/skills/cfn-mailbox/mailbox-watch.sh"
@@ -404,16 +406,32 @@ test_nudge_reads() {
   watch once --nudge
   assert_eq "yes" "$(yn has_cmd 'BLOCK 7')" "BLOCK 7"
 
-  new_case "ids: first sight of a key starts at the stream's newest id, so mail landing later is not missed"
+  # Regression (2026-10-16): first sight used to start at the stream's newest id, so mail that
+  # landed between a session's start and the watcher's first pass over it never woke anyone.
+  new_case "ids: first sight of a key starts at the session's last heartbeat (minus 5 s), capped at 10 min back"
   dir_entry s1 proj $((NOW - 60)) "$HOSTN" '[]' "main:1.0"; dir_commit
   set_state s1 idle
   rm -f "$CACHE/watch-ids"
-  rule "XREVRANGE $SKEY *" '[["1700000000100-0",["kind","fyi"]]]'
   watch once --nudge
-  assert_eq "yes" "$(yn has_cmd "XREVRANGE $SKEY + - COUNT 1")" "seeded from XREVRANGE"
-  assert_contains "$(cat "$CACHE/watch-ids")" "$SKEY|1700000000100-0" "newest id stored"
-  assert_contains "$(cat "$CACHE/watch-ids")" "$PKEY|0-0" "empty stream starts at 0-0"
-  assert_eq "0" "$(nudges)" "old mail never nudges"
+  assert_eq "no" "$(yn has_cmd "XREVRANGE $SKEY")" "no newest-id seeding"
+  assert_contains "$(cat "$CACHE/watch-ids")" "$SKEY|$((NOW - 65))000-0" "session key starts at its heartbeat"
+  assert_contains "$(cat "$CACHE/watch-ids")" "$PKEY|$((NOW - 65))000-0" "project key starts at its earliest session"
+
+  new_case "ids: an hours-old heartbeat starts the key 10 min back, not at the heartbeat"
+  dir_entry s1 proj $((NOW - 7200)) "$HOSTN" '[]' "main:1.0"; dir_commit
+  set_state s1 idle
+  rm -f "$CACHE/watch-ids"
+  watch once --nudge
+  assert_contains "$(cat "$CACHE/watch-ids")" "$SKEY|$((NOW - 600))000-0" "capped lookback"
+
+  new_case "ids: an ask that landed after the session started, before first sight, nudges"
+  dir_entry s1 proj $((NOW - 20)) "$HOSTN" '[]' "main:1.0"; dir_commit
+  set_state s1 idle
+  rm -f "$CACHE/watch-ids"
+  rule "XREAD *" "$(xr "$SKEY" "$((NOW - 10))000-0" ask hello)"
+  watch once --nudge
+  assert_eq "yes" "$(has_cmd "STREAMS $PKEY $SKEY $((NOW - 25))000-0 $((NOW - 25))000-0" && echo yes || echo no)" "read from the heartbeat"
+  assert_eq "yes" "$(nudged main:1.0)" "nudged"
 
   new_case "ids: reply advances the stored id; flat (RESP2) reply shape works"
   dir_entry s1 proj $((NOW - 60)) "$HOSTN" '[]' "main:1.0"; dir_commit

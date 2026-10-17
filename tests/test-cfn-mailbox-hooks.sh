@@ -9,6 +9,8 @@
 #
 # No `set -e`: assertions must all run so every failure shows in one pass.
 set -uo pipefail
+# Run from inside a Claude session these would leak its identity into every mailbox.sh call.
+unset CLAUDE_CODE_SESSION_ID MAILBOX_SESSION_ID
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 HOOK="$REPO/.claude/hooks/cfn-mailbox-hook.sh"
@@ -436,6 +438,16 @@ test_failure_and_timeout() {
 
   new_case "timeout: same with the background-kill fallback; no mail is lost"
   timeout_case 1
+
+  # Regression (2026-10-16): a hook killed by its timeout never ran its EXIT trap, so each one left
+  # an empty err.<pid> in the cache (107 on the desktop after one slow evening).
+  new_case "timeout leftovers: err.<pid> files older than 10 min are swept, fresh ones kept"
+  mkdir -p "$CACHE"
+  : > "$CACHE/err.111"; touch -d '20 minutes ago' "$CACHE/err.111"
+  : > "$CACHE/err.222"
+  hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"
+  assert_eq "no" "$(yn test -e "$CACHE/err.111")" "stale leftover removed"
+  assert_eq "yes" "$(yn test -e "$CACHE/err.222")" "a running hook's file kept"
 
   new_case "fallback path still delivers mail"
   HENV=(CFN_MAILBOX_HOOK_FORCE_FALLBACK=1)
