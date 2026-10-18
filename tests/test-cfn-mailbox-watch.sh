@@ -491,7 +491,7 @@ test_send_later_delivery() {
   assert_rc 0 "ok"
   assert_eq "yes" "$(yn has_cmd "ZRANGEBYSCORE due:michael -inf $NOW")" "due members up to now"
   local c z x
-  c="$(line_of "SET claim:michael:dm-1 $HOSTN NX EX 120")"; x="$(line_of "XADD $DUE_KEY MAXLEN ~ 500 *")"; z="$(line_of 'ZREM due:michael')"
+  c="$(line_of "SET claim:michael:dm-1 $HOSTN NX EX 120")"; x="$(line_of "XADD $DUE_KEY MAXLEN ~ 10000 *")"; z="$(line_of 'ZREM due:michael')"
   assert_eq "yes" "$(yn test -n "$c" -a -n "$x" -a -n "$z")" "claim, XADD and ZREM all issued ($c $x $z)"
   assert_eq "yes" "$(yn test "${c:-9}" -lt "${x:-0}" -a "${x:-9}" -lt "${z:-0}")" "order: claim < XADD < ZREM"
   local xadd; xadd="$(cmds | grep -F "XADD $DUE_KEY" | head -1)"
@@ -601,7 +601,7 @@ test_bounce_sessions() {
   assert_eq "no" "$(yn has_cmd "SET done:michael:$e23")" "no done marker for the 23 h entry"
   assert_eq "yes" "$(yn has_cmd "SET done:michael:$e25:" && has_cmd " 1 EX 604800")" "marker has a 7 day expiry"
   local bx; bx="$(cmds | grep -F 'XADD mbx:michael:s:sender1:from:michael' | head -1)"
-  assert_contains "$bx" "MAXLEN ~ 500" "session inbox is capped"
+  assert_contains "$bx" "MAXLEN ~ 10000" "session inbox is capped"
   assert_contains "$bx" "kind bounce" "kind bounce"
   assert_contains "$bx" "undelivered: michael/s/s1 has not read this since 2023-11-13T21:13Z: old one body" "bounce body"
   assert_contains "$bx" "reply_to $e25" "points at the original"

@@ -219,10 +219,10 @@ test_key_building() {
 }
 
 test_xadd_shape() {
-  new_case "XADD: MAXLEN ~500 + EXPIRE 30d for inboxes"
+  new_case "XADD: MAXLEN ~10000 + EXPIRE 30d for inboxes"
   mb send michael/s/abc --kind ask --thread t-one "question?"
   assert_rc 0 "ok"
-  assert_eq "yes" "$(has_cmd 'XADD mbx:michael:s:abc:from:michael MAXLEN ~ 500 * ' && echo yes)" "MAXLEN ~ 500"
+  assert_eq "yes" "$(has_cmd 'XADD mbx:michael:s:abc:from:michael MAXLEN ~ 10000 * ' && echo yes)" "MAXLEN ~ 10000"
   assert_eq "yes" "$(has_cmd 'EXPIRE mbx:michael:s:abc:from:michael 2592000' && echo yes)" "EXPIRE 30d"
   local x e
   x="$(line_of 'XADD mbx:michael:s:abc')"; e="$(line_of 'EXPIRE mbx:michael:s:abc')"
