@@ -623,6 +623,143 @@ test_cli_session_from_hook() {
 " "empty session"
 }
 
+# ---------------------------------------------------------------- one name per session
+# Regression (2026-10-18, MDTWII): the master session was named mdtwii-40, then claimed mdtwii-mdesk,
+# then mdtwii-master. Its hook used mdtwii-master, but the agent kept sending with
+# MAILBOX_SESSION=mdtwii-mdesk (copied from an older delivery note) and read that inbox by hand.
+# The CLI now corrects a name the session used before; the directory forwards the old name.
+test_one_name_former() {
+  new_case "one name: master sent as stale mdesk -> hook records the old name, CLI uses the current one and warns"
+  registry_entry proj-mdesk
+  HENV=(MAILBOX_NOW="$NOW")
+  hook "$(ev SessionStart)"
+  assert_eq "proj-mdesk" "$(cat "$CACHE/name-$SID" 2>/dev/null)" "first name recorded"
+  assert_eq "no" "$(yn test -e "$CACHE/former-$SID")" "no former name yet"
+  registry_entry proj-master
+  hook "$(ev UserPromptSubmit '{"prompt":"x"}')"
+  assert_eq "proj-master" "$(cat "$CACHE/name-$SID" 2>/dev/null)" "renamed"
+  assert_eq "proj-mdesk" "$(cat "$CACHE/former-$SID" 2>/dev/null)" "old name remembered"
+  MENV=(MAILBOX_SESSION=proj-mdesk CLAUDE_CODE_SESSION_ID="$SID")
+  mb whoami
+  assert_contains "$OUT" "session=proj-master" "whoami resolves the current name"
+  assert_contains "$ERR" "name this session used before" "warns about the stale name"
+  : > "$T/calls"
+  mb send michael/s/proj-ws1 "hello"
+  assert_contains "$(cmds | grep -F 'XADD mbx:michael:s:proj-ws1' | head -1)" "from michael/s/proj-master" "send comes from the current name"
+
+  new_case "one name: a name that returns is current again and leaves the former list"
+  registry_entry proj-mdesk
+  hook "$(ev SessionStart)"
+  registry_entry proj-master
+  hook "$(ev UserPromptSubmit '{"prompt":"x"}')"
+  registry_entry proj-mdesk
+  hook "$(ev UserPromptSubmit '{"prompt":"x"}')"
+  assert_eq "proj-master" "$(cat "$CACHE/former-$SID" 2>/dev/null)" "only the name left behind is former"
+
+  new_case "one name: MAILBOX_SESSION never used by this session is left alone (fleet master name)"
+  registry_entry proj-master
+  hook "$(ev SessionStart)"
+  MENV=(MAILBOX_SESSION=fleet-master CLAUDE_CODE_SESSION_ID="$SID")
+  mb whoami
+  assert_contains "$OUT" "session=fleet-master" "explicit name kept"
+  assert_not_contains "$ERR" "used before" "no warning"
+
+  new_case "one name: former name with no Claude session id (fleet script outside Claude) is left alone"
+  mkdir -p "$CACHE"; printf 'proj-mdesk\n' > "$CACHE/former-$SID"; printf 'proj-master\n' > "$CACHE/name-$SID"
+  MENV=(MAILBOX_SESSION=proj-mdesk)
+  mb whoami
+  assert_contains "$OUT" "session=proj-mdesk" "kept without an id"
+  assert_not_contains "$ERR" "used before" "no warning"
+
+  new_case "one name: former name but no record of the current name -> unchanged"
+  mkdir -p "$CACHE"; printf 'proj-mdesk\n' > "$CACHE/former-$SID"
+  MENV=(MAILBOX_SESSION=proj-mdesk CLAUDE_CODE_SESSION_ID="$SID")
+  mb whoami
+  assert_contains "$OUT" "session=proj-mdesk" "nothing to correct to"
+}
+
+dir_entry() { # NAME TMUX_TARGET [EXTRA-JSON]: directory entry for michael/s/NAME on this host
+  local extra="${3:-}"; [ -n "$extra" ] || extra='{}'
+  rule "HGET dir:michael michael/s/$1" "$(jq -n -c --arg h "$(hostname -s)" --arg t "$2" --argjson x "$extra" \
+    '{host:$h, tmux_target:$t, last_seen:1799999000, rooms:[]} + $x')"
+}
+
+test_one_name_forwarding() {
+  new_case "one name: send to an address whose entry says moved_to goes to the new inbox"
+  dir_entry proj-mdesk "/sock|%3" '{"moved_to":"proj-master"}'
+  mb send michael/s/proj-mdesk "hello"
+  assert_rc 0 "send ok"
+  assert_eq "yes" "$(yn has_cmd "XADD mbx:michael:s:proj-master:from:michael")" "delivered to the new inbox"
+  assert_eq "no" "$(yn has_cmd "XADD mbx:michael:s:proj-mdesk:from:michael")" "not the old inbox"
+  assert_contains "$ERR" "proj-mdesk moved to michael/s/proj-master" "stderr names the move"
+  assert_contains "$(cmds | grep -F 'XADD log:michael')" "michael/s/proj-master" "log record carries the final address"
+  assert_eq "yes" "$(yn has_cmd "INCR rate:michael:me:michael-s-proj-master")" "rate key uses the final address"
+
+  new_case "one name: moved_to is followed one hop only"
+  dir_entry proj-mdesk "/sock|%3" '{"moved_to":"proj-master"}'
+  dir_entry proj-master "/sock|%3" '{"moved_to":"proj-third"}'
+  mb send michael/s/proj-mdesk "hello"
+  assert_eq "yes" "$(yn has_cmd "XADD mbx:michael:s:proj-master:from:michael")" "one hop"
+  assert_eq "no" "$(yn has_cmd "XADD mbx:michael:s:proj-third:from:michael")" "no chain"
+
+  new_case "one name: send --at to a moved address parks it for the final address"
+  dir_entry proj-mdesk "/sock|%3" '{"moved_to":"proj-master"}'
+  mb send --at +5m michael/s/proj-mdesk "later"
+  assert_rc 0 "scheduled ok"
+  assert_contains "$(cmds | grep -F 'ZADD due:michael')" "mbx:michael:s:proj-master:from:michael" "parked for the new inbox"
+
+  new_case "one name: db-desk never registered -> still sent, with a warning"
+  mb send michael/s/proj-db-desk "hello"
+  assert_rc 0 "send ok"
+  assert_eq "yes" "$(yn has_cmd "XADD mbx:michael:s:proj-db-desk:from:michael")" "delivered anyway"
+  assert_contains "$ERR" "no session has registered michael/s/proj-db-desk" "warns"
+  assert_contains "$ERR" "mailbox.sh who" "points at who"
+
+  new_case "one name: registered address and --fleet sends do not warn"
+  dir_entry proj-ws1 "/sock|%3"
+  mb send michael/s/proj-ws1 "hello"
+  assert_not_contains "$ERR" "no session has registered" "known address is quiet"
+  mb send --fleet status michael/s/proj-ghost "hello"
+  assert_eq "yes" "$(yn has_cmd "XADD mbx:michael:s:proj-ghost:from:michael")" "fleet send delivered"
+  assert_not_contains "$ERR" "no session has registered" "fleet send is quiet"
+}
+
+test_one_name_heartbeat() {
+  new_case "one name: heartbeat drops moved_to from its own entry"
+  dir_entry proj-master "/sock|%3" '{"moved_to":"proj-other"}'
+  MENV=(MAILBOX_SESSION=proj-master)
+  mb heartbeat --project proj --tmux "/sock|%3"
+  assert_rc 0 "heartbeat ok"
+  local line; line="$(cmds | grep -F 'HSET dir:michael michael/s/proj-master ' | head -1)"
+  assert_contains "$line" "last_seen" "own entry written"
+  assert_not_contains "$line" "moved_to" "moved_to removed"
+
+  new_case "one name: heartbeat marks the former entry moved when this pane held it"
+  mkdir -p "$CACHE"; printf 'proj-first\nproj-mdesk\n' > "$CACHE/former-$SID"
+  dir_entry proj-mdesk "/sock|%3"
+  MENV=(MAILBOX_SESSION=proj-master CLAUDE_CODE_SESSION_ID="$SID")
+  mb heartbeat --project proj --tmux "/sock|%3"
+  assert_rc 0 "heartbeat ok"
+  line="$(cmds | grep -F 'HSET dir:michael michael/s/proj-mdesk ' | head -1)"
+  assert_contains "$line" '"moved_to":"proj-master"' "last former name forwards to the current one"
+  assert_contains "$line" '"tmux_target":"/sock|%3"' "other fields kept"
+  assert_eq "no" "$(yn has_cmd "HSET dir:michael michael/s/proj-first ")" "only the last former name"
+
+  new_case "one name: heartbeat leaves a former entry another pane holds"
+  mkdir -p "$CACHE"; printf 'proj-mdesk\n' > "$CACHE/former-$SID"
+  dir_entry proj-mdesk "/sock|%9"
+  MENV=(MAILBOX_SESSION=proj-master CLAUDE_CODE_SESSION_ID="$SID")
+  mb heartbeat --project proj --tmux "/sock|%3"
+  assert_eq "no" "$(yn has_cmd "HSET dir:michael michael/s/proj-mdesk ")" "not forwarded"
+
+  new_case "one name: heartbeat leaves a former entry already forwarded here"
+  mkdir -p "$CACHE"; printf 'proj-mdesk\n' > "$CACHE/former-$SID"
+  dir_entry proj-mdesk "/sock|%3" '{"moved_to":"proj-master"}'
+  MENV=(MAILBOX_SESSION=proj-master CLAUDE_CODE_SESSION_ID="$SID")
+  mb heartbeat --project proj --tmux "/sock|%3"
+  assert_eq "no" "$(yn has_cmd "HSET dir:michael michael/s/proj-mdesk ")" "no rewrite"
+}
+
 test_script_exists() {
   new_case "scripts exist"
   [ -f "$MB" ] && ok || bad "missing $MB"
@@ -644,6 +781,9 @@ test_reader_and_seen
 test_shared_env_name
 test_shared_registry_name
 test_cli_session_from_hook
+test_one_name_former
+test_one_name_forwarding
+test_one_name_heartbeat
 
 echo "cases: $CASES  assertions passed: $PASS  failed: $FAIL"
 [ "$FAIL" -eq 0 ]

@@ -38,7 +38,9 @@
 # one the others' mail. So when another live tmux pane on this host already uses it (heartbeat
 # exit 23) the name is refused, remembered in ~/.cache/cfn-mailbox/dup-<session_id>, and skipped.
 # The name in use is written to ~/.cache/cfn-mailbox/name-<session_id> on every event, so
-# mailbox.sh run from this session's Bash sends from, and reads, the same address.
+# mailbox.sh run from this session's Bash sends from, and reads, the same address. A name this
+# session left behind goes to former-<session_id> (see note_former): mailbox.sh then corrects a stale
+# MAILBOX_SESSION to the current name and the directory forwards the old address.
 # project = the main checkout's folder name (a linked worktree maps to its main repo; see
 # skills/cfn-mailbox/project-name.sh), else git toplevel basename, else cwd basename.
 #
@@ -172,11 +174,25 @@ heartbeat_before_read() {
   if [ "$SESSION_SRC" = env ] || stamp_due hb "$HEARTBEAT_EVERY"; then heartbeat; fi
 }
 
+# note_former OLD: the session had name OLD and now has SESSION. Keep OLD in former-<session_id>
+# (one name per line, newest last, no duplicates; the current name is never in it), so mailbox.sh
+# can correct a stale MAILBOX_SESSION and forward the old directory entry.
+note_former() {
+  local old="$1" ff="$CACHE_DIR/former-$SID" kept
+  kept="$(grep -vxF -e "$SESSION" -e "$old" "$ff" 2>/dev/null)" || kept=""
+  [[ "$old" =~ ^[a-z0-9-]{1,64}$ ]] || { [ -f "$ff" ] || return 0; old=""; }
+  { [ -z "$kept" ] || printf '%s\n' "$kept"; [ -z "$old" ] || printf '%s\n' "$old"; } > "$ff.$$" 2>/dev/null \
+    && mv -f "$ff.$$" "$ff" 2>/dev/null || rm -f "$ff.$$" 2>/dev/null
+  return 0
+}
+
 # record_name: the session name this hook uses, for mailbox.sh run from this session's Bash.
 record_name() {
-  local f="$CACHE_DIR/name-$SID"
-  [ "$(head -n 1 "$f" 2>/dev/null)" = "$SESSION" ] && return 0
+  local f="$CACHE_DIR/name-$SID" old
+  old="$(head -n 1 "$f" 2>/dev/null)"
+  [ "$old" = "$SESSION" ] && return 0
   ensure_cache_dir || return 0
+  note_former "$old"
   printf '%s\n' "$SESSION" > "$f.$$" 2>/dev/null && mv -f "$f.$$" "$f" 2>/dev/null || rm -f "$f.$$" 2>/dev/null
   return 0
 }

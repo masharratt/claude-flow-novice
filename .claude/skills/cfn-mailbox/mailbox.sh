@@ -179,6 +179,15 @@ load_config() {
     a="$(first_line "$(name_file "$cid")")"
     valid_name "$a" || a="$(resolve_session "$cid" "$PWD")"
     if valid_name "$a"; then SESSION="$a"; fi
+  elif [ -n "$SESSION" ] && [ -n "$cid" ] && is_former "$cid" "$SESSION"; then
+    # A name this session used before (the agent copied it from an old delivery note): send and
+    # read as the current one. Only when a current name is on record; otherwise leave it alone.
+    a="$(first_line "$(alias_file "$cid")")"
+    valid_name "$a" || a="$(first_line "$(name_file "$cid")")"
+    if valid_name "$a" && [ "$a" != "$SESSION" ]; then
+      warn "MAILBOX_SESSION=$SESSION is a name this session used before; using $a"
+      SESSION="$a"
+    fi
   fi
   # No explicit session: a role name this session claimed earlier is its address.
   if [ -z "$SESSION" ] && [ -n "$h" ] && [ -f "$(alias_file "$h")" ]; then
@@ -219,6 +228,11 @@ name_file() { printf '%s/name-%s' "$CACHE_DIR" "$1"; }
 dup_file() { printf '%s/dup-%s' "$CACHE_DIR" "$1"; }
 # is_dup ID NAME: NAME was refused for that session.
 is_dup() { [ -n "$1" ] && [ -n "$2" ] && grep -qxF -- "$2" "$(dup_file "$1")" 2>/dev/null; }
+# former_file ID: names this session used before its current one (the hook writes it when the name
+# changes), one per line, newest last. Never holds the current name.
+former_file() { printf '%s/former-%s' "$CACHE_DIR" "$1"; }
+# is_former ID NAME: NAME is a name that session used before.
+is_former() { [ -n "$1" ] && [ -n "$2" ] && grep -qxF -- "$2" "$(former_file "$1")" 2>/dev/null; }
 first_line() { head -n 1 "$1" 2>/dev/null | tr -d '\r\n ' || true; }
 
 # coord_secret FILE: the "coordinator-secret: <hex>" value in FILE (16 to 128 hex), else nothing.
@@ -551,6 +565,22 @@ cmd_send() {
   local to_owner="$A_OWNER" to_kind="$A_KIND" to_name="$A_NAME" to_str="$A_STR"
   if [ "$to_owner" != "$MAILBOX_OWNER" ] && ! in_contacts "$to_str"; then
     die 14 "$to_str is another owner's address that is not in MAILBOX_CONTACTS; outside mail only goes to listed public addresses"
+  fi
+
+  # One name per session: an address whose directory entry says it moved goes to the new name (one
+  # hop), and one nobody ever registered is sent anyway but flagged. Own directory only (a contact's
+  # is not readable here).
+  if [ "$to_kind" = s ] && [ "$to_owner" = "$MAILBOX_OWNER" ]; then
+    local dent mt
+    rcmd HGET "dir:$MAILBOX_OWNER" "$to_str"
+    dent="$RC_OUT"
+    mt="$(alias_field "$dent" moved_to)"
+    if [ -n "$mt" ] && valid_name "$mt" && [ "$mt" != "$to_name" ]; then
+      warn "$to_str moved to $to_owner/s/$mt; sent there"
+      to_name="$mt"; to_str="$to_owner/s/$mt"
+    elif [ -z "$dent" ] && [ -z "$fleet" ]; then
+      warn "no session has registered $to_str; it may never be read (see: mailbox.sh who)"
+    fi
   fi
 
   local bytes
@@ -1070,8 +1100,28 @@ cmd_heartbeat() {
     | $c + {host: $host, last_seen: $now, summary: $summary}
     + (if $project != "" then {project: $project} else {} end)
     + (if $tmux != "" then {tmux_target: $tmux} else {} end)
-    | .rooms = ($c.rooms // [])')" || die 18 "could not build the directory entry"
+    | .rooms = ($c.rooms // [])
+    | del(.moved_to)')" || die 18 "could not build the directory entry"
   rcmd HSET "dir:$MAILBOX_OWNER" "$addr" "$new"
+  # Best effort: the heartbeat itself is done; a failed forward must not turn it into an error.
+  ( heartbeat_forward_former "$host" "$tmux" ) 2>/dev/null || true
+}
+
+# heartbeat_forward_former HOST TMUX: this session's newest former name still has a directory entry
+# that this pane held: mark it moved_to the current name, so mail sent to the old address is
+# re-targeted by `send`. An entry another pane holds (different tmux target) is never touched.
+heartbeat_forward_former() {
+  local cid ff f ent eh et mt
+  cid="$(claude_id)"; [ -n "$cid" ] && [ -n "$2" ] || return 0
+  ff="$(former_file "$cid")"; [ -f "$ff" ] || return 0
+  f="$(tail -n 1 "$ff" 2>/dev/null | tr -d '\r\n ')"
+  valid_name "$f" && [ "$f" != "$SESSION" ] || return 0
+  rcmd HGET "dir:$MAILBOX_OWNER" "$MAILBOX_OWNER/s/$f"
+  ent="$RC_OUT"; [ -n "$ent" ] || return 0
+  eh="$(alias_field "$ent" host)"; et="$(alias_field "$ent" tmux_target)"; mt="$(alias_field "$ent" moved_to)"
+  [ "$eh" = "$1" ] && [ "$et" = "$2" ] && [ "$mt" != "$SESSION" ] || return 0
+  ent="$(jq -n -c --arg e "$ent" --arg m "$SESSION" '(($e | fromjson?) // {}) + {moved_to: $m}')" || return 0
+  rcmd HSET "dir:$MAILBOX_OWNER" "$MAILBOX_OWNER/s/$f" "$ent"
 }
 
 # --------------------------------------------------------------------- role names (claim)
