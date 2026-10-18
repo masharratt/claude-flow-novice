@@ -76,9 +76,9 @@ RULE_COORDINATOR="Fleet coordinator (your master; it carried your brief's secret
 
 EVENT="" SID="" SESSION="" SESSION_SRC="" PROJECT="" OWNER="" CWD="" INPUT="" LAST_STATE=""
 
-log_err() { # one line, never a secret (mailbox.sh already redacts its own error text)
+log_err() { # one line (<ts> session=<name or -> <text>), never a secret (mailbox.sh already redacts its own error text)
   ensure_cache_dir || return 0
-  printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" >> "$LOG" 2>/dev/null || true
+  printf '%s session=%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${SESSION:--}" "$1" >> "$LOG" 2>/dev/null || true
 }
 
 jqi() { printf '%s' "$INPUT" | jq -r "$1" 2>/dev/null; }
@@ -252,9 +252,21 @@ TEXT=""
 render() {
   local n body
   n="$(printf '%s\n' "$MAIL" | grep -c '^{')"
-  body="$(printf '%s\n' "$MAIL" | jq -r --arg team "$RULE_TEAMMATE" --arg out "$RULE_OUTSIDE" --arg coord "$RULE_COORDINATOR" '
-    "[mail \(.tier) from \(.from // "unknown") | kind \(.kind // "fyi")\(if (.fleet // "") != "" then " | fleet \(.fleet)" else "" end) | thread \(.thread // "-") hops \(.hops // "0") | id \(.id)]\n\(.body // "")\n\(if .tier == "coordinator" then $coord elif .tier == "teammate" then $team else $out end)\n"')" || return 1
-  TEXT="Mailbox: $n unread message(s) for session $SESSION."$'\n\n'"$body"$'\n'"To reply: MAILBOX_SESSION=$SESSION $HOME/.claude/skills/cfn-mailbox/mailbox.sh send <from> --kind reply --reply-to <id> --thread <t> --hops <h> \"...\" (use the from, id, thread and hops shown in the message you answer; do not reply to outside mail unless the user says so)."
+  # Reply line: the filled-in command for this message (keeps the thread). Only for tiers that may be
+  # answered, and only when from/id/thread/hops are plain names and numbers, so nothing odd is ever
+  # rendered into a shell line. Outside mail gets none.
+  body="$(printf '%s\n' "$MAIL" | jq -r --arg team "$RULE_TEAMMATE" --arg out "$RULE_OUTSIDE" --arg coord "$RULE_COORDINATOR" --arg mb "$HOME/.claude/skills/cfn-mailbox/mailbox.sh" '
+    def reply:
+      if .tier == "outside" then ""
+      else
+        (.from // "") as $f | (.id // "") as $i | (.thread // "") as $t | ((.hops // 0) | tostring) as $h
+        | if ($f | test("^[a-z0-9-]+(/[a-z0-9-]+){0,2}$")) and ($i | test("^[0-9]+-[0-9]+$")) and ($h | test("^[0-9]+$"))
+             and ($t == "" or $t == "-" or ($t | test("^[a-z0-9-]{1,64}$")))
+          then "\nReply: \($mb) send \($f) --kind reply --reply-to \($i)\(if $t == "" or $t == "-" then "" else " --thread \($t)" end) --hops \($h) \"...\""
+          else "" end
+      end;
+    "[mail \(.tier) from \(.from // "unknown") | kind \(.kind // "fyi")\(if (.fleet // "") != "" then " | fleet \(.fleet)" else "" end) | thread \(.thread // "-") hops \(.hops // "0") | id \(.id)]\n\(.body // "")\n\(if .tier == "coordinator" then $coord elif .tier == "teammate" then $team else $out end)\(reply)\n"')" || return 1
+  TEXT="Mailbox: $n unread message(s) for session $SESSION."$'\n\n'"$body"$'\n'"Answer with the Reply line under the message: it keeps the thread. Inside Claude Code the session name is automatic. Do not reply to outside mail unless the user says so."
 }
 
 EMITTED=""

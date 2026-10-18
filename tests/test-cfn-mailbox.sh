@@ -16,6 +16,7 @@
 set -uo pipefail
 # Run from inside a Claude session these would leak its identity into every mailbox.sh call.
 unset CLAUDE_CODE_SESSION_ID MAILBOX_SESSION_ID
+export MAILBOX_RETRY_SLEEP=0   # the retry pause is real in production; tests do not wait for it
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 MB="$REPO/.claude/skills/cfn-mailbox/mailbox.sh"
@@ -353,6 +354,75 @@ test_redis_errors() {
   assert_rc 18 "generic redis error"
 }
 
+# flaky_redis PATTERN FIRST_REPLY: the first call whose argv matches the glob PATTERN fails with
+# FIRST_REPLY (exit 1); every other call, and later matches, go to the normal fake. Attempts at the
+# pattern are counted in $T/flaky-attempts.
+flaky_redis() {
+  mv "$T/bin/redis-cli" "$T/bin/redis-cli.real"
+  : > "$T/flaky-attempts"
+  cat > "$T/bin/redis-cli" <<STUB
+#!/usr/bin/env bash
+joined="\$*"
+case "\$joined" in
+  $1)
+    printf 'x\n' >> "$T/flaky-attempts"
+    if [ "\$(wc -l < "$T/flaky-attempts" | tr -d ' ')" = 1 ]; then printf '%s\n' '$2' >&2; exit 1; fi ;;
+esac
+exec "$T/bin/redis-cli.real" "\$@"
+STUB
+  chmod +x "$T/bin/redis-cli"
+}
+attempts() { wc -l < "$T/flaky-attempts" | tr -d ' '; }
+
+test_redis_retry() {
+  new_case "retry: connection reset retried for reads (log answers after one reset)"
+  flaky_redis '*XREVRANGE*' 'Error: Connection reset by peer'
+  mb log 5
+  assert_rc 0 "read survives one reset"
+  assert_eq "2" "$(attempts)" "read tried twice"
+
+  new_case "retry: reset on a write is NOT retried (an XADD may have landed)"
+  flaky_redis '*XADD*' 'Error: Connection reset by peer'
+  mb send michael/me "x"
+  assert_rc 15 "write fails on reset"
+  assert_eq "1" "$(attempts)" "write tried once"
+
+  new_case "retry: connect failure retried for a write (nothing reached the server)"
+  flaky_redis '*XADD\ mbx:*' 'Could not connect to Redis at mbx.example.test:6379: Connection refused'
+  mb send michael/me "x"
+  assert_rc 0 "write survives one refused connect"
+  assert_eq "2" "$(attempts)" "write tried twice"
+  assert_eq "1" "$(cmds | grep -c '^XADD mbx:michael:me:from:michael')" "message written once"
+
+  new_case "retry: persistent connect failure gives up after one retry (exit 15)"
+  flaky_redis '*XADD*' 'Could not connect to Redis'
+  rule 'XADD *' '!EXIT:1:Could not connect to Redis at mbx.example.test:6379: Connection refused'
+  mb send michael/me "x"
+  assert_rc 15 "still unreachable"
+  assert_eq "2" "$(attempts)" "exactly one retry"
+
+  new_case "retry: auth refusal is never retried"
+  flaky_redis '*INCR*' 'WRONGPASS invalid username-password pair'
+  mb send michael/me "x"
+  assert_rc 16 "WRONGPASS"
+  assert_eq "1" "$(attempts)" "one attempt"
+
+  new_case "retry: server error reply is never retried"
+  flaky_redis '*XREVRANGE*' '(error) ERR unknown thing'
+  mb log 5
+  assert_rc 18 "generic error"
+  assert_eq "1" "$(attempts)" "one attempt"
+
+  new_case "retry: the retry re-sends the stdin argument (-x secret)"
+  flaky_redis '*XADD*' 'Could not connect to Redis at mbx.example.test:6379: Connection refused'
+  RC=0
+  OUT="$(PATH="$T/bin:$PATH" MAILBOX_CONFIG="$T/env" bash -c '. "$1"; load_config; RC_XARG="coord-value-77" rcmd XADD k "*" a b coord; printf "%s\n" "$RC_OUT"' _ "$MB" 2>"$T/stderr" </dev/null)" || RC=$?
+  ERR="$(cat "$T/stderr")"
+  assert_rc 0 "rcmd with RC_XARG survives one refused connect"
+  assert_eq "2" "$(attempts)" "tried twice"
+  assert_eq "1" "$(grep -c "^XARG$(printf '\t')coord-value-77\$" "$T/calls")" "the retried call carried the same stdin"
+}
+
 MSG_PROJ='[["mbx:michael:p:proj:from:michael",[["1700000000001-0",["from","michael/s/x","to","michael/p/proj","kind","ask","body","hello proj","sent_at","1","thread","t1","hops","0"]]]]]'
 
 test_read_project() {
@@ -536,29 +606,52 @@ test_stats() {
   mb stats --hours 24
   assert_eq "yes" "$(has_cmd "XRANGE log:michael $(( (NOW - 24*3600) * 1000 ))" && echo yes)" "--hours 24"
 
-  new_case "stats: a thread with 6 messages is a LOOP?"
+  new_case "stats: 8 messages within 5 minutes is a LOOP?"
   local -a rows=() i
-  for i in 1 2 3 4 5 6; do rows+=("$(logrec michael/s/a ask tloop 0 $((NOW-1000+i*100)))"); done
+  for i in 1 2 3 4 5 6 7 8; do rows+=("$(logrec michael/s/a ask tloop 0 $((NOW-1000+i*30)))"); done
   stats_rows "${rows[@]}"
   mb stats
   assert_rc 1 "loop"
   assert_contains "$OUT" "LOOP? thread tloop" "LOOP? line names the thread"
-  assert_contains "$OUT" "6 messages" "count"
+  assert_contains "$OUT" "8 messages in 10 min, max hops 0" "count, window and hops in the line"
 
-  new_case "stats: a thread with hops >= 3 is a LOOP?"
-  stats_rows "$(logrec michael/s/a ask thop 3 $((NOW-100)))"
+  new_case "stats: 7 messages within 5 minutes is not a loop (boundary)"
+  rows=()
+  for i in 1 2 3 4 5 6 7; do rows+=("$(logrec michael/s/a ask tok7 0 $((NOW-1000+i*30)))"); done
+  stats_rows "${rows[@]}"
+  mb stats
+  assert_rc 0 "7 in a window is fine"
+  assert_not_contains "$OUT" "LOOP?" "no loop at 7"
+
+  new_case "stats: normal 10-message thread not flagged LOOP? (regression: 20 two-party threads were flagged)"
+  rows=()
+  for i in 1 2 3 4 5 6 7 8 9 10; do rows+=("$(logrec michael/s/a ask tslow $((i > 6 ? 6 : i)) $((NOW-2700+(i-1)*300)))"); done
+  stats_rows "${rows[@]}"
+  mb stats
+  assert_rc 0 "10 messages over 45 min, max hops 6"
+  assert_not_contains "$OUT" "LOOP?" "no loop for a slow two-party thread"
+  assert_contains "$OUT" "tslow messages=10 max_hops=6" "still listed in top threads"
+
+  new_case "stats: 8 messages spread so no 10-minute window holds 8 is not a loop"
+  rows=()
+  for i in 1 2 3 4 5 6 7 8; do rows+=("$(logrec michael/s/a ask tspread 0 $((NOW-3000+i*400)))"); done
+  stats_rows "${rows[@]}"
+  mb stats
+  assert_rc 0 "spread out"
+  assert_not_contains "$OUT" "LOOP?" "window, not total, decides"
+
+  new_case "stats: a thread with hops >= 10 is a LOOP?"
+  stats_rows "$(logrec michael/s/a ask thop 10 $((NOW-100)))"
   mb stats
   assert_rc 1 "hops loop"
   assert_contains "$OUT" "LOOP? thread thop" "hops line"
-  assert_contains "$OUT" "max hops 3" "hops shown"
+  assert_contains "$OUT" "max hops 10" "hops shown"
 
-  new_case "stats: 5 messages and hops 2 is not a loop (boundary)"
-  rows=()
-  for i in 1 2 3 4 5; do rows+=("$(logrec michael/s/a ask tok 2 $((NOW-1000+i*100)))"); done
-  stats_rows "${rows[@]}"
+  new_case "stats: hops 9 is not a loop (boundary)"
+  stats_rows "$(logrec michael/s/a ask thop9 9 $((NOW-100)))"
   mb stats
-  assert_rc 0 "below both thresholds"
-  assert_not_contains "$OUT" "LOOP?" "no loop at 5 msgs / hops 2"
+  assert_rc 0 "below the hop threshold"
+  assert_not_contains "$OUT" "LOOP?" "no loop at hops 9"
 
   new_case "stats: more than 30 messages from one sender in one hour is a FLOOD?"
   rows=()
@@ -1126,6 +1219,7 @@ run_offline() {
   test_rate_limit
   test_outside_owner
   test_redis_errors
+  test_redis_retry
   test_read_project
   test_read_project_ack_after_print
   test_read_busygroup_tolerated

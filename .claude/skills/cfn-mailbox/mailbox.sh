@@ -264,16 +264,46 @@ redact() {
   printf '%s' "$s"
 }
 
+# Retry once on a transient failure. Connect failures reached nothing, so any command may retry.
+# A reset or broken pipe may come after the server acted, so only read-only commands retry (an
+# XADD that landed would be sent twice). Auth, NOPERM and (error) replies never retry.
+RETRY_SLEEP="${MAILBOX_RETRY_SLEEP:-0.3}"   # seconds before the retry; env override is for tests
+[[ "$RETRY_SLEEP" =~ ^[0-9]+(\.[0-9]+)?$ ]] || RETRY_SLEEP=0.3
+RC_READ_CMDS=" GET HGET HGETALL XRANGE XREVRANGE XREAD XLEN XINFO XPENDING EXISTS TTL SCAN SMEMBERS ZRANGEBYSCORE "
+
+# rc_retryable LABEL OUT: true when OUT is a transient failure worth one more try for command LABEL.
+rc_retryable() {
+  local o u
+  o="$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')"
+  u="$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]')"
+  case "$o" in *wrongpass*|*noauth*|*noperm*|*"(error)"*|*"invalid password"*|*"auth failed"*) return 1 ;; esac
+  case "$o" in
+    *"could not connect"*|*"connection refused"*|*"name or service"*|*"nodename nor servname"*|*"timed out"*) return 0 ;;
+    *"connection reset"*|*"broken pipe"*|*"i/o error"*)
+      case "$RC_READ_CMDS" in *" $u "*) return 0 ;; esac ;;
+  esac
+  return 1
+}
+
 # rcmd CMD ARGS...: runs it, puts the reply in RC_OUT, dies with a distinct code on failure.
 rcmd() {
-  local status=0 out label="${1:-stdin}"
-  if [ -n "$RC_STDIN" ]; then
-    out="$(printf '%s\n' "$RC_STDIN" | _rc "$@" 2>&1)" || status=$?
-  elif [ -n "$RC_XARG" ]; then
-    out="$(printf '%s' "$RC_XARG" | _rc -x "$@" 2>&1)" || status=$?
-  else
-    out="$(_rc "$@" 2>&1 </dev/null)" || status=$?
-  fi
+  local status=0 out label="${1:-stdin}" tries=0
+  while :; do
+    status=0
+    if [ -n "$RC_STDIN" ]; then
+      out="$(printf '%s\n' "$RC_STDIN" | _rc "$@" 2>&1)" || status=$?
+    elif [ -n "$RC_XARG" ]; then
+      out="$(printf '%s' "$RC_XARG" | _rc -x "$@" 2>&1)" || status=$?
+    else
+      out="$(_rc "$@" 2>&1 </dev/null)" || status=$?
+    fi
+    if [ "$status" -ne 0 ] && [ "$tries" -eq 0 ] && rc_retryable "$label" "$out"; then
+      tries=1
+      sleep "$RETRY_SLEEP"
+      continue
+    fi
+    break
+  done
   out="$(redact "$out")"
   if [ -n "$RC_TOLERATE" ]; then
     case "$out" in *"$RC_TOLERATE"*) RC_OUT=""; return 0 ;; esac
@@ -911,8 +941,9 @@ cmd_log() {
 
 # cmd_stats [--hours N]: loop and flood watch over log:<owner> (metadata only, never bodies).
 # Exit 0 clean | 1 a LOOP? or FLOOD? line | 2 the window held no messages (examined nothing).
-STATS_LOOP_MSGS=6      # a thread with this many messages is a LOOP?
-STATS_LOOP_HOPS=3      # ... or this many hops
+STATS_LOOP_MSGS=8      # a thread with this many messages inside STATS_LOOP_WINDOW is a LOOP?
+STATS_LOOP_WINDOW=600  # seconds
+STATS_LOOP_HOPS=10     # ... or this many hops
 STATS_FLOOD_MSGS=30    # a sender with MORE than this many in any 3600 s is a FLOOD?
 cmd_stats() {
   local hours=168 out
@@ -927,7 +958,7 @@ cmd_stats() {
   now="$(now_s)"; since=$(( (now - hours * 3600) * 1000 ))
   rcmdj XRANGE "log:$MAILBOX_OWNER" "$since" +
   out="$(printf '%s' "$RC_OUT" | jq -r --argjson h "$hours" --argjson lm "$STATS_LOOP_MSGS" \
-    --argjson lh "$STATS_LOOP_HOPS" --argjson fm "$STATS_FLOOD_MSGS" '
+    --argjson lh "$STATS_LOOP_HOPS" --argjson lw "$STATS_LOOP_WINDOW" --argjson fm "$STATS_FLOOD_MSGS" '
     def top5: sort_by(-.n, .k) | .[:5];
     [ (. // [])[] | (.[1][1] // "" | fromjson? // empty)
       | select(type == "object")
@@ -940,10 +971,13 @@ cmd_stats() {
         "total: \($r | length)",
         "kinds: " + ($r | group_by(.kind) | map("\(.[0].kind)=\(length)") | join(" ")),
         "top senders: " + ($r | group_by(.from) | map({k: .[0].from, n: length}) | top5 | map("\(.k)=\(.n)") | join(" ")),
-        ( ($r | group_by(.thread) | map({k: .[0].thread, n: length, hops: (map(.hops) | max)})) as $t
+        ( ($r | group_by(.thread) | map(
+              (map(.at) | sort) as $ats
+              | {k: .[0].thread, n: length, hops: (map(.hops) | max),
+                 burst: ([range(0; $ats | length) | . as $i | [$ats[$i:][] | select(. - $ats[$i] < $lw)] | length] | max)})) as $t
           | "top threads: " + ($t | top5 | map("\(.k) messages=\(.n) max_hops=\(.hops)") | join(" | ")),
-          ($t[] | select(.n >= $lm or .hops >= $lh)
-            | "LOOP? thread \(.k): \(.n) messages, max hops \(.hops)") ),
+          ($t[] | select(.burst >= $lm or .hops >= $lh)
+            | "LOOP? thread \(.k): \(.burst) messages in \($lw / 60 | floor) min, max hops \(.hops)") ),
         ( $r | group_by(.from)[]
           | {k: .[0].from, ats: (map(.at) | sort)} as $s
           | ([range(0; $s.ats | length) | . as $i | [$s.ats[$i:][] | select(. - $s.ats[$i] < 3600)] | length] | max) as $burst

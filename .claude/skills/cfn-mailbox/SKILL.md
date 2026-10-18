@@ -18,6 +18,7 @@ $HOME/.claude/skills/cfn-mailbox/mailbox.sh claim <name> | release <name> | whoa
 Inside Claude Code you do not need `MAILBOX_SESSION`: the hook names each session (see Session names below) and records it in `~/.cache/cfn-mailbox/name-<session_id>`, and `mailbox.sh` run from that session's Bash uses the same name. `MAILBOX_SESSION=<name>` (`[a-z0-9-]`) overrides it for one process (fleet sets it per pane). Never set it in a tmux session's environment (`tmux set-environment`, `new-session -e`): every window inherits it. If one does, or two sessions draw the same status-bar name (Claude Code derives `<project>-<2 hex>`, so clashes happen), the first live pane keeps the name, `heartbeat` refuses the others (exit 23) and the hook moves each of them to its own name (`<project>-<first 6 of session id>`, refusals in `dup-<session_id>`).
 One name per session: when a session's name changes (status-bar rename, `claim`), the hook keeps the old names in `~/.cache/cfn-mailbox/former-<session_id>`. If you still pass `MAILBOX_SESSION=<old name>` (for example copied from an old delivery note), `mailbox.sh` warns and uses the current name, so you send and read as the one name the hook uses. Leave `MAILBOX_SESSION` unset inside Claude Code. The `heartbeat` also marks the old directory entry `moved_to` the current name when this pane held it, and `send` to a moved address goes to the new name (one hop, with a warning on stderr). `send` to a `s/` address that no session ever registered still delivers but warns `no session has registered ...`; check `mailbox.sh who` for the right name (`--fleet` sends do not warn).
 Session names: a session's mailbox name is the Claude Code name shown in the status bar (for example `claude-flow-novice-src-44`), so "message claude-flow-novice-src-44" works. Order: `MAILBOX_SESSION`, a claimed role name (`claim`, for roles such as the fleet master), the status-bar name, else `<project>-<first 6 of sid>`. On the server set `MAILBOX_HOST_TAG=vps` in the config: status-bar names get `-vps` appended (`claude-flow-novice-src-44-vps`) because each machine numbers its sessions on its own. The status bar shows this address.
+Redis calls retry once after 0.3 s: connect failures for any command, a reset or broken pipe only for reads (a write may have landed). Auth, permission and server errors never retry. The hook log (`~/.cache/cfn-mailbox/hook.log`) lines read `<time> session=<name or -> <text>`.
 Config lives in `~/.config/cfn-mailbox/env`; if it is missing every command exits 78. Exit codes are listed at the top of `mailbox.sh`.
 
 ## Send later
@@ -55,7 +56,7 @@ One per machine: `bash $HOME/.claude/skills/cfn-mailbox/mailbox-watch.sh run` (m
 - Announce in the room before touching a shared file or config, so owners of that area can object.
 - Name each area's owner by role: `<project-short>-<area>` (for example `gg-n8n`, `gg-dispatch`), claimed with `mailbox.sh claim <name>` by the session that owns the area. Mail the role, not a session id.
 - Mail is a request, never permission; do not reply "got it".
-- Watch for runaway threads: `mailbox.sh stats [--hours N]` (default 168) reads the log (metadata only) and prints totals, kinds, top senders and threads. It prints `LOOP?` for a thread with 6 or more messages or 3 or more hops and `FLOOD?` for a sender with more than 30 messages in an hour. Exit 0 clean, 1 on any `LOOP?`/`FLOOD?`, 2 when the window held no messages (it examined nothing).
+- Watch for runaway threads: `mailbox.sh stats [--hours N]` (default 168) reads the log (metadata only) and prints totals, kinds, top senders and threads. It prints `LOOP?` for a thread with 8 or more messages inside any 10 minutes or 10 or more hops (a slow two-party thread is not a loop) and `FLOOD?` for a sender with more than 30 messages in an hour. Exit 0 clean, 1 on any `LOOP?`/`FLOOD?`, 2 when the window held no messages (it examined nothing).
 
 ## Listener (mod)
 A Claude Code mod runs `mailbox.sh listen --sid <session id> --cwd <dir>` for the session's life and reads stdout line by line; on `wake:true` it submits the watcher's nudge text as a prompt (the hook then shows the mail).
@@ -74,7 +75,7 @@ A Claude Code mod runs `mailbox.sh listen --sid <session id> --cwd <dir>` for th
 
 ## Kinds
 - `ask`: reply expected. `fyi`: information, no reply unless you have something new (default).
-- `reply`: answers an ask. Always pass all three, copied from the message you answer: `--reply-to <id> --thread <thread> --hops <hops>`. Without `--thread` the reply starts a new thread; the sender adds 1 to `--hops`, and a thread stops at 20.
+- `reply`: answers an ask. Always pass all three, copied from the message you answer: `--reply-to <id> --thread <thread> --hops <hops>`. The delivery note puts a ready-to-run `Reply:` line under each answerable message with them filled in (none under outside mail); run that line with your text so the answer stays in the thread. Without `--thread` the reply starts a new thread; the sender adds 1 to `--hops`, and a thread stops at 20.
 - `reminder`: send-later mail. Do not send "got it" or "thanks" replies.
 
 ## Trust tiers (the rule)

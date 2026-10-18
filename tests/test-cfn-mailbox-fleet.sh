@@ -268,7 +268,8 @@ test_hook_uses_claimed_name() {
   assert_contains "$(ctx)" "for session proj-master" "injects for the role"
   assert_contains "$(ctx)" "status in roster" "role mail delivered"
   assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/proj-master")" "heartbeat as the role"
-  assert_contains "$(ctx)" "MAILBOX_SESSION=proj-master" "reply command uses the role"
+  assert_contains "$(ctx)" "send michael/s/proj-ws1 --kind reply --reply-to 1700000000001-0" "reply line answers the sender"
+  assert_not_contains "$(ctx)" "MAILBOX_SESSION=" "no session prefix to go stale"
   assert_eq "$SID" "$(kv "$AKEY" | jq -r .session_id)" "alias still ours"
 }
 
