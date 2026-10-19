@@ -1383,6 +1383,15 @@ unread_group() {
   echo $((pending + new))
 }
 
+# unread_add CMD ARGS...: add CMD's count to total. A count runs in a subshell, where a Redis
+# failure dies with its code and prints nothing; pass that code on rather than adding "".
+unread_add() {
+  local n
+  n="$("$@")" || exit $?
+  [[ "$n" =~ ^[0-9]+$ ]] || die 18 "unread: bad count from $1"
+  total=$((total + n))
+}
+
 cmd_unread() {
   local_session_args "$@"
   [ -n "$L_SID" ] || die 2 "unread needs --sid"
@@ -1391,16 +1400,16 @@ cmd_unread() {
   project="$(resolve_project "$L_CWD")"
   while IFS= read -r key; do
     [ -n "$key" ] || continue
-    total=$((total + $(unread_seen "$key" s)))
+    unread_add unread_seen "$key" s
   done < <(receiver_keys s "$SESSION")
   while IFS= read -r key; do
     [ -n "$key" ] || continue
-    total=$((total + $(unread_group "$key")))
+    unread_add unread_group "$key"
   done < <(receiver_keys p "$project")
   while IFS= read -r room; do
     while IFS= read -r key; do
       [ -n "$key" ] || continue
-      total=$((total + $(unread_seen "$key" r)))
+      unread_add unread_seen "$key" r
     done < <(receiver_keys r "$room")
   done < <(session_rooms)
   echo "$total"

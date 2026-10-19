@@ -332,6 +332,17 @@ test_unread() {
   new_case "unread: nothing waiting prints 0; a new room subscriber (no marker) counts 0 for the room"
   mbx unread --sid "$SID" --cwd "$T/work/My_Proj"
   assert_eq "0" "$OUT" "zero"
+
+  # Regression (Mac, 2026-10-19): a Redis failure inside one count made unread crash with
+  # "total + : arithmetic syntax error" instead of exiting with the failure's code.
+  new_case "unread: a Redis failure exits with its code, not an arithmetic error"
+  rule "HGET dir:michael michael/s/my-proj-abc123" '{"rooms":[]}'
+  rule "GET seen:*" '!EXIT:1:Could not connect to Redis at mbx.example.test:6379: Connection refused'
+  rule "XRANGE mbx:michael:s:*" '[["1-0",["kind","ask"]]]'
+  MAILBOX_RETRY_SLEEP=0 mbx unread --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_rc 15 "unreachable -> exit 15"
+  assert_eq "no" "$(yn grep -q 'arithmetic' <<< "$ERR")" "no arithmetic crash"
+  assert_eq "" "$OUT" "no count printed"
 }
 
 test_resolver
