@@ -558,6 +558,23 @@ registry_entry() { # NAME: Claude Code's session registry names this session NAM
     > "$T/home/.claude/sessions/4242.json"
 }
 
+# Regression (2026-10-19, MDTWII): the status bar showed mdtwii-c7-desk (registry name plus the
+# machine's MAILBOX_HOST_TAG, via `mailbox.sh whoami`) while the hook, which never read the tag,
+# used mdtwii-c7, then fell back to mdtwii-301752. Senders addressed a name no session used.
+test_host_tag_name() {
+  new_case "host tag: hook and status bar agree on <registry name>-<tag>"
+  printf 'MAILBOX_HOST_TAG=desk\n' >> "$T/env"
+  fake_tmux %3; registry_entry shared
+  HENV=(MAILBOX_NOW="$NOW" TMUX="/sock,1,0" TMUX_PANE=%3)
+  hook "$(ev SessionStart)"
+  assert_eq "shared-desk" "$(cat "$CACHE/name-$SID" 2>/dev/null)" "hook name carries the host tag"
+  assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/shared-desk ")" "tagged name heartbeated"
+  rm -f "$CACHE/name-$SID"
+  MENV=(CLAUDE_CODE_SESSION_ID="$SID")
+  mb whoami --sid "$SID" --cwd "$T/work/proj"
+  assert_eq "shared-desk" "$OUT" "status-bar resolver gives the same name"
+}
+
 test_shared_registry_name() {
   new_case "shared registry name: another live pane holds it -> this session uses its own name"
   fake_tmux %9; shared_entry "/sock|%9" $((NOW - 30)); registry_entry shared
@@ -781,6 +798,7 @@ test_queue_flush
 test_reader_and_seen
 test_shared_env_name
 test_shared_registry_name
+test_host_tag_name
 test_cli_session_from_hook
 test_one_name_former
 test_one_name_forwarding

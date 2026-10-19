@@ -394,6 +394,9 @@ main() {
 
   OWNER="$(grep '^MAILBOX_OWNER=' "$CFG" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d "\"'\r")"
   [[ "$OWNER" =~ ^[a-z0-9-]+$ ]] || { log_err "event=$EVENT config has no usable MAILBOX_OWNER"; exit 0; }
+  # The machine tag goes on status-bar names (resolve_session); `whoami` reads it too, so the
+  # status bar and this hook name the session the same way.
+  MAILBOX_HOST_TAG="$(grep '^MAILBOX_HOST_TAG=' "$CFG" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d "\"'\r")"
   # Project and session name: the one resolver in mailbox.sh (also used by `mailbox.sh listen`).
   PROJECT="$(resolve_project "$CWD")"
   SESSION="$(resolve_session "$SID" "$CWD")"
