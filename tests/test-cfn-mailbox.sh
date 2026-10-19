@@ -423,6 +423,27 @@ test_redis_retry() {
   assert_eq "1" "$(grep -c "^XARG$(printf '\t')coord-value-77\$" "$T/calls")" "the retried call carried the same stdin"
 }
 
+# Regression (mdtwii-master, 2026-10-19): a message whose body said "connection timed out" made every
+# read of that inbox die 15 "cannot reach ... over TLS", because the error patterns were matched
+# against the whole successful reply. The session could not read any mail until the message aged out.
+test_body_not_error() {
+  local body
+  for body in "ssh vps:22 connection timed out" "TLS handshake failed on vps" "NOPERM in the log, then WRONGPASS" "(error) ERR quoted in a message"; do
+    new_case "read: a body saying '$body' is mail, not a Redis error"
+    rule 'XREADGROUP GROUP readers * STREAMS mbx:michael:p:proj:from:michael 0' \
+      "[[\"mbx:michael:p:proj:from:michael\",[[\"1700000000001-0\",[\"from\",\"michael/s/x\",\"to\",\"michael/p/proj\",\"kind\",\"ask\",\"body\",\"$body\",\"sent_at\",\"1\",\"thread\",\"t1\",\"hops\",\"0\"]]]]]"
+    rule 'XREADGROUP GROUP readers * STREAMS mbx:michael:p:proj:from:michael >' "null"
+    mb read --as michael/p/proj
+    assert_rc 0 "read ok"
+    assert_contains "$OUT" "$body" "body printed"
+  done
+
+  new_case "read: a real error reply still fails (first line is the error)"
+  rule 'XREADGROUP GROUP readers * STREAMS mbx:michael:p:proj:from:michael 0' '(error) NOPERM this user has no permissions'
+  mb read --as michael/p/proj
+  assert_rc 17 "NOPERM reply still exit 17"
+}
+
 MSG_PROJ='[["mbx:michael:p:proj:from:michael",[["1700000000001-0",["from","michael/s/x","to","michael/p/proj","kind","ask","body","hello proj","sent_at","1","thread","t1","hops","0"]]]]]'
 
 test_read_project() {
@@ -1220,6 +1241,7 @@ run_offline() {
   test_outside_owner
   test_redis_errors
   test_redis_retry
+  test_body_not_error
   test_read_project
   test_read_project_ack_after_print
   test_read_busygroup_tolerated

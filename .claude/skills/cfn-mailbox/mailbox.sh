@@ -308,10 +308,17 @@ rcmd() {
     break
   done
   out="$(redact "$out")"
-  if [ -n "$RC_TOLERATE" ]; then
-    case "$out" in *"$RC_TOLERATE"*) RC_OUT=""; return 0 ;; esac
+  # What to classify: all output on a failed run; on exit 0 only a leading error line, because a
+  # successful reply carries message bodies, and a body saying "connection timed out" is mail
+  # (it once made every read of one inbox die 15).
+  local cls="$out"
+  if [ "$status" -eq 0 ]; then
+    cls="$(printf '%s\n' "$out" | head -n 3 | grep -E '^(\(error\)|ERR|NOPERM|WRONGPASS|NOAUTH|AUTH failed|Could not connect|Error:)' | head -n 1)" || cls=""
   fi
-  case "$out" in
+  if [ -n "$RC_TOLERATE" ]; then
+    case "$cls" in *"$RC_TOLERATE"*) RC_OUT=""; return 0 ;; esac
+  fi
+  case "$cls" in
     *WRONGPASS*|*NOAUTH*|*"invalid password"*|*"AUTH failed"*|*"invalid username-password"*)
       die 16 "login refused by $MAILBOX_HOST for user $MAILBOX_USER (check MAILBOX_USER and MAILBOX_PASS)" ;;
     *NOPERM*)
