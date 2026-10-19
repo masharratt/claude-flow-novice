@@ -103,6 +103,9 @@ DELIVERED_TTL=604800    # msg_ids a reader remembers as shown (7 days)
 MSG_ID_RE='^[A-Za-z0-9_-]{1,64}$'
 # Typed into idle tmux panes by mailbox-watch.sh; the hook keeps the taint flag on a prompt equal to it.
 NUDGE_TEXT="You have mail: run /mail read"
+# Same, for a Codex pane (no slash commands there): the launcher codex-mail.sh marks such a session with client-<name>.
+NUDGE_TEXT_CODEX="You have mail: run $HOME/.claude/skills/cfn-mailbox/mailbox.sh read, then answer each message with the Reply line under it."
+MB_SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/mailbox.sh"
 CACHE_DIR="$HOME/.cache/cfn-mailbox"
 REPLY_WAKE_MIN=40       # a reply shorter than this never wakes anyone ("got it", "thanks")
 PROJECT_NAME_MAX=40     # project part of a derived session name
@@ -723,13 +726,17 @@ delivered_load() {
   [ -n "$DELIV_JSON" ] || DELIV_JSON="{}"
 }
 
+DELIV_WARNED=""
 # delivered_add IDS (one per line): remember them as shown, on disk and for the rest of this call.
 delivered_add() {
   [ -n "$1" ] || return 0
   local now i
   now="$(now_s)"
-  while IFS= read -r i; do [ -n "$i" ] && printf '%s %s\n' "$i" "$now"; done <<<"$1" >> "$DELIV_FILE" \
-    || die 18 "cannot write the delivered set $DELIV_FILE"
+  # A cache the caller cannot write (a Codex sandbox) must not stop the read: the seen marker still
+  # has to move, or the same mail comes back. Warn once; the in-memory set still covers this call.
+  if ! { while IFS= read -r i; do [ -n "$i" ] && printf '%s %s\n' "$i" "$now"; done <<<"$1" >> "$DELIV_FILE"; } 2>/dev/null; then
+    if [ -z "$DELIV_WARNED" ]; then warn "cannot write the delivered set $DELIV_FILE; continuing (a repeat of this mail is possible if the marker is lost)"; DELIV_WARNED=1; fi
+  fi
   DELIV_JSON="$(printf '%s\n' "$1" | jq -R -s -c --argjson d "$DELIV_JSON" '$d + (split("\n") | map(select(. != "") | {(.): true}) | add // {})')" \
     || die 18 "cannot update the delivered set"
 }
@@ -740,6 +747,26 @@ quarantine_log() {
   printf '%s\n' "$1" | jq -r --arg t "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     '"\($t) key=\(.key) id=\(.id) msg_id=\(if .msg_id == "" then "-" else .msg_id end) reason=\(.reason)"' \
     >> "$CACHE_DIR/quarantine.log" 2>/dev/null || warn "could not write $CACHE_DIR/quarantine.log"
+}
+
+# print_msgs LINES: the message lines as printed by `read`. For MAILBOX_CLIENT=codex each line is
+# followed by a ready-to-run Reply line (Codex has no hook that renders one). Same strict guard as
+# the hook's render: from/id/thread/hops must be plain names and numbers, outside mail gets none.
+print_msgs() {
+  if [ "${MAILBOX_CLIENT:-}" != codex ]; then printf '%s\n' "$1"; return 0; fi
+  local out
+  out="$(printf '%s\n' "$1" | jq -r --arg mb "$MB_SELF" '
+    def reply:
+      if .tier == "outside" then ""
+      else
+        (.from // "") as $f | (.id // "") as $i | (.thread // "") as $t | ((.hops // 0) | tostring) as $h
+        | if ($f | test("^[a-z0-9-]+(/[a-z0-9-]+){0,2}$")) and ($i | test("^[0-9]+-[0-9]+$")) and ($h | test("^[0-9]+$"))
+             and ($t == "" or $t == "-" or ($t | test("^[a-z0-9-]{1,64}$")))
+          then "Reply: \($mb) send \($f) --kind reply --reply-to \($i)\(if $t == "" or $t == "-" then "" else " --thread \($t)" end) --hops \($h) \"...\""
+          else "" end
+      end;
+    tojson, (reply | select(. != ""))' 2>/dev/null)" || out=""
+  if [ -n "$out" ]; then printf '%s\n' "$out"; else printf '%s\n' "$1"; fi
 }
 
 # emit_msgs JSON KEY SENDER_OWNER: prints one compact JSON line per message that passes the
@@ -788,7 +815,7 @@ emit_msgs() {
   # Spool first: if this process is killed before the caller moves the marker or acks, the
   # message is on disk and the next run still shows it (peeks consume nothing, so never spool).
   if [ -n "$SPOOL" ] && [ -z "$PEEK" ]; then printf '%s\n' "$lines" >> "$SPOOL" || die 18 "cannot write the spool file $SPOOL"; fi
-  printf '%s\n' "$lines"
+  print_msgs "$lines"
   EMIT_COUNT="$(printf '%s\n' "$lines" | wc -l | tr -d ' ')"
   if [ -z "$PEEK" ]; then
     mids="$(printf '%s\n' "$cls" | jq -r 'select(.q == "" and .mid != "") | .mid')"

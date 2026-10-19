@@ -38,6 +38,10 @@ Never send secrets (API keys, tokens, cookies, `.env` values) by mail: bodies ar
 ## Watcher (`mailbox-watch.sh`)
 One per machine: `bash $HOME/.claude/skills/cfn-mailbox/mailbox-watch.sh run` (macOS: start by hand; Linux: `install-systemd`). It types "You have mail: run /mail read" into idle tmux panes when ask/reminder mail lands in a session or project inbox (never room mail), and runs send-later delivery, bounces (24 h session mail, 7 d project mail) and 7-day session expiry. That typed prompt does not clear the hook's outside-mail flag: only a prompt a human types does. Send-later and bounce survive a watcher dying mid-way: the next pass repeats the write with the same `msg_id`, so nothing is lost and the receiver shows it once. `once` does one pass; `status` shows the log tail. Sessions not in tmux get mail on their next turn.
 
+## Codex sessions
+
+Start Codex with `codex-mail.sh [--name NAME] [-- codex args...]` inside tmux. Codex has no hooks, so the launcher registers the pane, keeps the heartbeat fresh while Codex runs, and records idle/busy state (the watcher wakes only idle panes). It starts Codex with sandbox network access, the mailbox cache dir writable (so `read` can record what it showed) and a `notify` hook that marks the session idle after each turn; `OPENAI_API_KEY` is unset so the subscription is billed. `read` run by such a session prints a ready-to-run `Reply:` line under each message. Outside tmux mail still reads by hand but nothing wakes the pane. Default name: `<project>-cx-<4 hex>`.
+
 ## Which address
 - Project `<owner>/p/<project>`: default, also across projects (`michael/p/claude-flow-novice-src`). Survives restarts; one live session in that project takes it.
 - Session `<owner>/s/<session>`: only for a live back-and-forth. Dies with the session, unless the name is a claimed role (below).

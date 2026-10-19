@@ -152,10 +152,16 @@ maybe_nudge() {
   local -a TM; local TM_TARGET
   tmux_cmd "$target"
   local -a tm=("${TM[@]}"); target="$TM_TARGET"
-  if "${tm[@]}" send-keys -t "$target" -l -- "$NUDGE_TEXT" >/dev/null 2>&1; then
+  # A Codex session (client-<name> says so) gets text without slash commands; it has no prompt hook,
+  # so the nudge itself marks it busy and the launcher's notify hook marks it idle after the turn.
+  local text="$NUDGE_TEXT" client="" is_codex=""
+  read -r client 2>/dev/null < "$CACHE_DIR/client-$name" || client=""
+  if [ "$client" = codex ]; then text="$NUDGE_TEXT_CODEX"; is_codex=1; fi
+  if "${tm[@]}" send-keys -t "$target" -l -- "$text" >/dev/null 2>&1; then
     sleep "${MAILBOX_NUDGE_DELAY:-1}"
     "${tm[@]}" send-keys -t "$target" Enter >/dev/null 2>&1 || { wlog "nudge $name: Enter failed"; return 0; }
     printf '%s\n' "$now" > "$stamp"
+    if [ -n "$is_codex" ]; then printf 'busy %s\n' "$now" > "$CACHE_DIR/state-$name" 2>/dev/null || true; fi
   else
     wlog "nudge $name: tmux could not reach pane $target"
   fi
