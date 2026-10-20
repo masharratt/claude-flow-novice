@@ -58,5 +58,24 @@ grep -q '^powershell.exe .*Windows Notify Calendar' "$LOG" && ok || bad "wsl inp
 notify "$T/none" input
 [ "$RC" = 0 ] && [ ! -s "$LOG" ] && ok || bad "no player" "rc=$RC $(cat "$LOG")"
 
+# Regression (2026-10-20): a session running in a detached tmux session chimed,
+# and the user went hunting for a window they could not see. A detached session
+# (no client attached) is now silent; an attached one still plays.
+TMUX_BIN="$T/tmuxbin"; mkdir -p "$TMUX_BIN"
+cp "$WSL_BIN/powershell.exe" "$TMUX_BIN/"
+printf '#!/usr/bin/env bash\necho "${FAKE_ATTACHED:-1}"\n' > "$TMUX_BIN/tmux"; chmod +x "$TMUX_BIN/tmux"
+
+# GIVEN a pane in a detached tmux session, THEN nothing plays
+notify "$TMUX_BIN" input TMUX=/tmp/fake,1,0 TMUX_PANE=%1 FAKE_ATTACHED=0
+[ "$RC" = 0 ] && [ ! -s "$LOG" ] && ok || bad "detached tmux silent" "rc=$RC $(cat "$LOG")"
+
+# GIVEN a pane in an attached tmux session, THEN the sound plays
+notify "$TMUX_BIN" input TMUX=/tmp/fake,1,0 TMUX_PANE=%1 FAKE_ATTACHED=1
+grep -q '^powershell.exe' "$LOG" && ok || bad "attached tmux plays" "$(cat "$LOG")"
+
+# GIVEN tmux cannot answer (server gone), THEN fail open and play
+notify "$TMUX_BIN" input TMUX=/tmp/fake,1,0 TMUX_PANE=%1 FAKE_ATTACHED=
+grep -q '^powershell.exe' "$LOG" && ok || bad "tmux unknown plays" "$(cat "$LOG")"
+
 echo "passed=$pass failed=$fail"
 [ "$fail" = 0 ]

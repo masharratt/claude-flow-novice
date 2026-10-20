@@ -22,7 +22,16 @@
 # adds latency to the turn (CFN_NOTIFY_SYNC=1 plays in the foreground, for
 # tests). Silent no-op when neither afplay nor powershell.exe exists.
 # Disable entirely:  export CFN_NOTIFY=0
+# Silent when the session runs inside a detached tmux session (nobody watching).
 set -uo pipefail
+
+# A session inside a detached tmux session (no client attached) stays silent:
+# the user cannot see it, so a sound only sends them hunting for it. Fails open
+# (plays) when tmux cannot answer. --list/--play are interactive, never muted.
+if [ -n "${TMUX:-}" ] && [[ "${1:-stop}" != --* ]]; then
+  ATTACHED=$(tmux display-message -p -t "${TMUX_PANE:-}" '#{session_attached}' 2>/dev/null)
+  [ "$ATTACHED" = "0" ] && exit 0
+fi
 
 MEDIA_UNIX='/mnt/c/Windows/Media'
 MEDIA_WIN='C:\Windows\Media'
