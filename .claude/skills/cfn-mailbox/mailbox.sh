@@ -288,6 +288,13 @@ rc_retryable() {
   return 1
 }
 
+# rc_error_line OUT: the error line of a redis-cli run that exited 0 (error replies lead the output),
+# else nothing. Never the whole reply: it carries message bodies, and a body saying "timed out" or
+# "NOPERM" is mail.
+rc_error_line() {
+  printf '%s\n' "$1" | head -n 3 | grep -E '^(\(error\)|ERR|NOPERM|WRONGPASS|NOAUTH|AUTH failed|Could not connect|Error:)' | head -n 1 || true
+}
+
 # rcmd CMD ARGS...: runs it, puts the reply in RC_OUT, dies with a distinct code on failure.
 rcmd() {
   local status=0 out label="${1:-stdin}" tries=0
@@ -312,9 +319,7 @@ rcmd() {
   # successful reply carries message bodies, and a body saying "connection timed out" is mail
   # (it once made every read of one inbox die 15).
   local cls="$out"
-  if [ "$status" -eq 0 ]; then
-    cls="$(printf '%s\n' "$out" | head -n 3 | grep -E '^(\(error\)|ERR|NOPERM|WRONGPASS|NOAUTH|AUTH failed|Could not connect|Error:)' | head -n 1)" || cls=""
-  fi
+  [ "$status" -ne 0 ] || cls="$(rc_error_line "$out")"
   if [ -n "$RC_TOLERATE" ]; then
     case "$cls" in *"$RC_TOLERATE"*) RC_OUT=""; return 0 ;; esac
   fi
@@ -1419,6 +1424,7 @@ LS_ERR=""        # last error text of listen_rc
 LS_PID=""        # background child of listen (so SIGTERM can stop a blocked XREAD)
 LS_TMP=""
 LS_ROOMS_AT=0
+LS_LF=""         # listener-<name> liveness file (the watcher skips nudging a session that has one)
 LS_KEYS=() LS_IDS=()
 
 listen_out() { { printf '%s\n' "$1"; } 2>/dev/null || exit 0; }   # reader gone (EPIPE): stop quietly
@@ -1434,7 +1440,7 @@ listen_rc() {
   wait "$LS_PID" || status=$?
   LS_PID=""
   out="$(redact "$(cat "$LS_TMP" 2>/dev/null)")"
-  case "$out" in "(error)"*|ERR*|*WRONGPASS*|*NOAUTH*|*NOPERM*) [ "$status" -ne 0 ] || status=1 ;; esac
+  [ "$status" -ne 0 ] || [ -z "$(rc_error_line "$out")" ] || status=1
   if [ "$status" -ne 0 ]; then
     LS_ERR="$(printf '%s' "$out" | tr '\n\t' '  ' | cut -c1-"$LISTEN_ERR_MAX")"
     [ -n "$LS_ERR" ] || LS_ERR="redis-cli exit $status"
@@ -1445,11 +1451,21 @@ listen_rc() {
 
 listen_sleep() { sleep "$1" & LS_PID=$!; wait "$LS_PID" || true; LS_PID=""; }
 
-# listen_refresh: re-read the joined rooms and rebuild the key list. A key already followed keeps its
-# id; a new key starts at its newest entry, so mail that landed earlier is never reported.
+# listen_refresh: re-read the session name and joined rooms and rebuild the key list. A key already
+# followed keeps its id; a new key starts at its newest entry, so mail that landed earlier is never
+# reported. A name claimed since the last refresh is followed (the listener once kept its start-time
+# name for good, and mail to the claimed name never woke the session); that inbox starts just before
+# the last refresh, so mail sent right after the claim still wakes it.
 listen_refresh() {
-  local key id i found room
+  local key id i found room nm since=""
   local -a want=() nk=() ni=()
+  nm="$(resolve_session "$L_SID" "$L_CWD")"
+  if [ -n "$nm" ] && [ "$nm" != "$SESSION" ]; then
+    [ -z "$LS_LF" ] || rm -f "$LS_LF" 2>/dev/null || true
+    SESSION="$nm"; LS_LF="$CACHE_DIR/listener-$SESSION"
+    since="$(( (LS_ROOMS_AT > 5 ? LS_ROOMS_AT - 5 : 0) * 1000 ))-0"
+    listen_out "$(jq -n -c --arg s "$SESSION" '{event:"ready", session:$s}')"
+  fi
   listen_rc HGET "dir:$MAILBOX_OWNER" "$MAILBOX_OWNER/s/$SESSION" || return 1
   while IFS= read -r key; do [ -z "$key" ] || want+=("$key"); done < <(receiver_keys s "$SESSION"; receiver_keys p "$LS_PROJECT")
   while IFS= read -r room; do
@@ -1462,6 +1478,7 @@ listen_refresh() {
     for ((i = 0; i < ${#LS_KEYS[@]}; i++)); do
       if [ "${LS_KEYS[$i]}" = "$key" ]; then id="${LS_IDS[$i]}"; break; fi
     done
+    if [ -z "$id" ] && [ -n "$since" ]; then id="$since"; fi
     if [ -z "$id" ]; then
       listen_rc XREVRANGE "$key" + - COUNT 1 || return 1
       id="$(printf '%s' "$RC_OUT" | jq -r '.[0][0] // empty' 2>/dev/null || true)"
@@ -1524,16 +1541,17 @@ cmd_listen() {
   trap listen_cleanup EXIT
   trap listen_stop TERM INT HUP PIPE
   RC_JSON=1
-  local lf="$CACHE_DIR/listener-$SESSION" once="${MAILBOX_LISTEN_ONCE:-}" passes=0 down=0 backoff="$LISTEN_BACKOFF_MIN"
+  LS_LF="$CACHE_DIR/listener-$SESSION"
+  local once="${MAILBOX_LISTEN_ONCE:-}" passes=0 down=0 backoff="$LISTEN_BACKOFF_MIN"
   if [ -n "$once" ] && ! [[ "$once" =~ ^[1-9][0-9]*$ ]]; then once=1; fi
   listen_out "$(jq -n -c --arg s "$SESSION" '{event:"ready", session:$s}')"
   while :; do
     passes=$((passes + 1))
-    now_s > "$lf"; chmod 600 "$lf" 2>/dev/null || true
+    now_s > "$LS_LF"; chmod 600 "$LS_LF" 2>/dev/null || true
     if listen_pass; then
       if [ "$down" = 1 ]; then listen_out '{"event":"up"}'; down=0; fi
       backoff="$LISTEN_BACKOFF_MIN"
-      now_s > "$lf"
+      now_s > "$LS_LF"
     else
       if [ "$down" = 0 ]; then listen_out "$(jq -n -c --arg r "$LS_ERR" '{event:"down", reason:$r}')"; down=1; fi
       if [ -n "$once" ] && [ "$passes" -ge "$once" ]; then break; fi

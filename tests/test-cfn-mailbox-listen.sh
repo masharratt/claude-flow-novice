@@ -313,6 +313,41 @@ test_listen_signals() {
 
 # ---------------------------------------------------------------- unread
 
+# Regression (MDTWII, 2026-10-20): the master claimed mdtwii-master, but its listener had resolved
+# mdtwii-3053fe at start and never looked again, so mail to the master never woke it.
+test_listen_rename() {
+  new_case "listen: a name claimed after start is followed at the next refresh"
+  rule "HGET dir:michael *" '{}'
+  rule "XREVRANGE *" '[["1699999990000-0",["kind","fyi"]]]'
+  mkdir -p "$CACHE"
+  run_env bash -c '. "$1"; set +e; load_config; L_SID="$2"; L_CWD="$3"
+    SESSION="$(resolve_session "$L_SID" "$L_CWD")"; LS_PROJECT="$(resolve_project "$L_CWD")"
+    LS_LF="$CACHE_DIR/listener-$SESSION"; echo 1 > "$LS_LF"; LS_TMP="$CACHE_DIR/listen.t"; RC_JSON=1
+    listen_refresh; LS_ROOMS_AT=1699999940
+    printf "builder\n" > "$CACHE_DIR/alias-$L_SID"
+    listen_refresh
+    echo "session=$SESSION lf=${LS_LF##*/}"
+    for i in "${!LS_KEYS[@]}"; do echo "key ${LS_KEYS[$i]} ${LS_IDS[$i]}"; done' _ "$MB" "$SID" "$T/work/My_Proj"
+  assert_rc 0 "refresh ok"
+  assert_contains "$OUT" "session=builder lf=listener-builder" "listener follows the claimed name"
+  assert_contains "$OUT" '{"event":"ready","session":"builder"}' "tells the mod the new name"
+  assert_contains "$OUT" "key mbx:michael:s:builder:from:michael 1699999935000-0" "new inbox read from just before the last refresh"
+  assert_eq "no" "$(yn grep -q 'key mbx:michael:s:my-proj-abc123:' <<< "$OUT")" "old inbox dropped"
+  assert_eq "no" "$(yn test -e "$CACHE/listener-my-proj-abc123")" "old listener file removed"
+}
+
+# Same bug as rcmd (2026-10-19): a message body naming an error made the listener report itself down.
+test_listen_body_not_error() {
+  new_case "listen: a body saying NOPERM or WRONGPASS is mail, not a Redis error"
+  rule "HGET dir:michael *" '{}'
+  rule "XREVRANGE *" "null"
+  rule "XREAD *" "$(xr mbx:michael:s:my-proj-abc123:from:michael 1700000000001-0 ask 'NOPERM and WRONGPASS in the log')"
+  listen_once
+  assert_rc 0 "listen ok"
+  assert_eq "no" "$(yn grep -q '"event":"down"' <<< "$OUT")" "not reported down"
+  assert_contains "$OUT" '"event":"mail"' "mail line printed"
+}
+
 test_unread() {
   new_case "unread: counts session, project (pending + not yet delivered) and room mail without consuming"
   rule "HGET dir:michael michael/s/my-proj-abc123" '{"rooms":["ops"]}'
@@ -349,6 +384,8 @@ test_resolver
 test_listen
 test_listen_backoff
 test_listen_signals
+test_listen_rename
+test_listen_body_not_error
 test_unread
 
 echo "cases=$CASES assertions_passed=$PASS assertions_failed=$FAIL"
