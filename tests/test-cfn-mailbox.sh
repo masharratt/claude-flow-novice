@@ -412,6 +412,42 @@ test_redis_retry() {
   mb log 5
   assert_rc 18 "generic error"
   assert_eq "1" "$(attempts)" "one attempt"
+}
+
+# hung_redis PATTERN: every call whose argv matches the glob PATTERN never answers (a TLS session left
+# half-open by a network blip); other calls go to the normal fake. Attempts are counted in
+# $T/flaky-attempts.
+hung_redis() {
+  mv "$T/bin/redis-cli" "$T/bin/redis-cli.real"
+  : > "$T/flaky-attempts"
+  cat > "$T/bin/redis-cli" <<STUB
+#!/usr/bin/env bash
+case "\$*" in
+  $1) printf 'x\n' >> "$T/flaky-attempts"; exec tail -f /dev/null ;;
+esac
+exec "$T/bin/redis-cli.real" "\$@"
+STUB
+  chmod +x "$T/bin/redis-cli"
+}
+
+test_redis_hang() {
+  # Bug (live 2026-10-25): one redis-cli call hung after a network blip and never returned. With no
+  # time limit it froze the VPS watcher for 26 hours, so no idle worker was woken by mail.
+  local t0
+  new_case "hang: a call that never answers ends with exit 15 instead of waiting forever"
+  hung_redis '*XREVRANGE*'
+  t0=$SECONDS
+  MAILBOX_RC_TIMEOUT=1 mb log 5
+  assert_rc 15 "hung read gives up"
+  assert_contains "$ERR" "no reply" "says why"
+  assert_eq "2" "$(attempts)" "a hung read is retried once"
+  if [ $((SECONDS - t0)) -lt 10 ]; then ok; else bad "took $((SECONDS - t0))s, expected under 10"; fi
+
+  new_case "hang: a hung write is NOT retried (it may have landed)"
+  hung_redis '*XADD*'
+  MAILBOX_RC_TIMEOUT=1 mb send michael/me "x"
+  assert_rc 15 "hung write gives up"
+  assert_eq "1" "$(attempts)" "write tried once"
 
   new_case "retry: the retry re-sends the stdin argument (-x secret)"
   flaky_redis '*XADD*' 'Could not connect to Redis at mbx.example.test:6379: Connection refused'
@@ -1241,6 +1277,7 @@ run_offline() {
   test_outside_owner
   test_redis_errors
   test_redis_retry
+  test_redis_hang
   test_body_not_error
   test_read_project
   test_read_project_ack_after_print

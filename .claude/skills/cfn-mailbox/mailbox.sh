@@ -82,6 +82,9 @@ set -euo pipefail
 umask 077   # spool, delivered set and quarantine log hold mail: owner-only
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+# `timeout` for every redis-cli call; macOS has none. Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 # Project name helper (main checkout folder, also used by cfn-fleet): one definition.
 # shellcheck source=/dev/null
 . "$(dirname "${BASH_SOURCE[0]}")/project-name.sh"
@@ -110,6 +113,8 @@ CACHE_DIR="$HOME/.cache/cfn-mailbox"
 REPLY_WAKE_MIN=40       # a reply shorter than this never wakes anyone ("got it", "thanks")
 PROJECT_NAME_MAX=40     # project part of a derived session name
 LISTEN_BLOCK_MS=25000   # one blocking XREAD in `listen`
+RC_TIME_LIMIT="${MAILBOX_RC_TIMEOUT:-20}"   # seconds one redis-cli call may take (plus any BLOCK); env override is for tests
+[[ "$RC_TIME_LIMIT" =~ ^[0-9]+$ ]] && [ "$RC_TIME_LIMIT" -gt 0 ] || RC_TIME_LIMIT=20
 LISTEN_ROOMS_EVERY=60   # seconds between re-reads of the joined rooms
 LISTEN_BACKOFF_MIN=5    # seconds; doubles per failed pass up to the max
 LISTEN_BACKOFF_MAX=60
@@ -248,10 +253,22 @@ valid_fleet_type() { case " $FLEET_TYPES " in *" $1 "*) return 0 ;; esac; return
 
 # --------------------------------------------------------------------- redis
 
-# Password travels in REDISCLI_AUTH, never argv.
+# Password travels in REDISCLI_AUTH, never argv. Every call has a time limit: a TLS session left
+# half-open by a network blip never answers, and one such call froze the VPS watcher for 26 hours
+# (2026-10-25). A BLOCK <ms> argument adds its own wait to the limit. On timeout it prints
+# "no reply from redis within Ns" and exits 124 (GNU) or 142 (macOS perl shim).
 _rc() {
-  REDISCLI_AUTH="$MAILBOX_PASS" redis-cli --tls -h "$MAILBOX_HOST" -p "$MAILBOX_PORT" \
-    --user "$MAILBOX_USER" --no-auth-warning ${RC_JSON:+--json} "$@"
+  local limit="$RC_TIME_LIMIT" i j status=0
+  for ((i = 1; i < $#; i++)); do
+    if [ "${!i}" = BLOCK ]; then
+      j=$((i + 1))
+      [[ "${!j}" =~ ^[0-9]+$ ]] && limit=$((limit + ${!j} / 1000 + 1))
+    fi
+  done
+  REDISCLI_AUTH="$MAILBOX_PASS" timeout -k 5 "$limit" redis-cli --tls -h "$MAILBOX_HOST" -p "$MAILBOX_PORT" \
+    --user "$MAILBOX_USER" --no-auth-warning ${RC_JSON:+--json} "$@" || status=$?
+  case "$status" in 124|137|142) printf 'no reply from redis within %ss\n' "$limit" >&2 ;; esac
+  return "$status"
 }
 
 RC_OUT=""
@@ -282,7 +299,7 @@ rc_retryable() {
   case "$o" in *wrongpass*|*noauth*|*noperm*|*"(error)"*|*"invalid password"*|*"auth failed"*) return 1 ;; esac
   case "$o" in
     *"could not connect"*|*"connection refused"*|*"name or service"*|*"nodename nor servname"*|*"timed out"*) return 0 ;;
-    *"connection reset"*|*"broken pipe"*|*"i/o error"*)
+    *"connection reset"*|*"broken pipe"*|*"i/o error"*|*"no reply from redis"*)
       case "$RC_READ_CMDS" in *" $u "*) return 0 ;; esac ;;
   esac
   return 1
@@ -328,6 +345,8 @@ rcmd() {
       die 16 "login refused by $MAILBOX_HOST for user $MAILBOX_USER (check MAILBOX_USER and MAILBOX_PASS)" ;;
     *NOPERM*)
       die 17 "permission denied for $label (ACL for user $MAILBOX_USER does not allow it)" ;;
+    *"no reply from redis"*)
+      die 15 "no reply from $MAILBOX_HOST:$MAILBOX_PORT within ${RC_TIME_LIMIT}s ($label)" ;;
     *"Could not connect"*|*"Connection refused"*|*"timed out"*|*"Name or service"*|*"nodename nor servname"*|*"SSL"*|*"TLS"*)
       die 15 "cannot reach $MAILBOX_HOST:$MAILBOX_PORT over TLS ($label)" ;;
     "(error)"*|ERR*)
