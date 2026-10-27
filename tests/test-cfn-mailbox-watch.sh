@@ -1047,11 +1047,15 @@ test_listener_skip() {
 
 # Codex wake helper (codex-wake.py, owned by the Codex session): the watcher runs it once per nudge
 # pass, in the background, only when python3, the helper and ~/.cache/codex-mailbox all exist.
+# The real sleep by absolute path: $T/bin/sleep is a fake that returns at once, and the helper runs
+# with $T/bin first on PATH, so a bare `sleep` made the "slow helper" finish instantly and let a
+# second pass start a second run.
+REAL_SLEEP="$(command -v sleep)"
 codex_fake() { # install fake python3 that records argv and sleeps $1 seconds
   cat > "$T/bin/python3" <<FAKE_PY
 #!/usr/bin/env bash
 echo "\$*" >> "$T/pylog"
-sleep ${1:-0}
+"$REAL_SLEEP" ${1:-0}
 FAKE_PY
   chmod +x "$T/bin/python3"
   : > "$T/pylog"

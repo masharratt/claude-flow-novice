@@ -547,13 +547,11 @@ codex_wake_pass() {
   command -v python3 >/dev/null 2>&1 && [ -f "$helper" ] && [ -d "$HOME/.cache/codex-mailbox" ] || return 0
   pid="$(cat "$pidf" 2>/dev/null || true)"
   if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then return 0; fi
+  # timeout, not a sleep-then-kill timer: no stray timer process, and nothing that a fake `sleep`
+  # (tests) can fire early. timeout comes from cfn-portable.sh on macOS (sourced by mailbox.sh).
   (
-    python3 "$helper" once >> "$CACHE_DIR/codex-wake.log" 2>&1 &
-    local child=$! rc=0
-    ( sleep "$CODEX_WAKE_TIMEOUT"; kill "$child" 2>/dev/null ) &
-    local timer=$!
-    wait "$child" || rc=$?
-    kill "$timer" 2>/dev/null || true
+    local rc=0
+    timeout -k 5 "$CODEX_WAKE_TIMEOUT" python3 "$helper" once >> "$CACHE_DIR/codex-wake.log" 2>&1 || rc=$?
     [ "$rc" -eq 0 ] || wlog "codex-wake exited $rc"
     rm -f "$pidf"
   ) >/dev/null 2>&1 &
