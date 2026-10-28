@@ -347,7 +347,7 @@ Return exactly:
 - Invoked internally by `cfn-megaplan` (canonical pipeline) at the plan-review step, after `/write-plan`
 - Optionally preceded by `cfn-goap-plan` (goal state modeling, A* action sequence) for non-trivial tasks
 - Standalone: run after `/write-plan` or any Plan Mode session (including the lighter `/cfn-spa-plan` path)
-- Feeds into cfn-investigate if gaps reveal deeper issues
+- Hand deeper issues to the root-cause-analyst agent
 - Log significant findings to cfn-knowledge-base for future reference
 - Works with any project type (not database-specific, but database examples are most common)
 

@@ -27,7 +27,6 @@ Any skill emitting the shared manifest schema works. Manifests live under
 .cfn-cache/manifests/cfn-a11y-gate-*.json            # cfn-a11y-gate
 .cfn-cache/manifests/cfn-ab-critic-*.json            # cfn-ab-critic
 .cfn-cache/manifests/cfn-review-alpha-*.json         # cfn-alpha-launch (v1)
-.cfn-cache/manifests/cfn-review-alpha-v2-*.json      # cfn-alpha-launch-v2
 ```
 Pick the most recent by mtime. Manifest's `source` field (if present) records the producing skill.
 
@@ -161,4 +160,3 @@ On-demand report: `$HOME/.claude/skills/cfn-vote-implement/jev-shadow-report.sh 
 
 - `/cfn-dry-review` - generates the DRY/modularity review manifest
 - `/cfn-alpha-launch:manifest` - emits alpha-readiness fix-list as manifest
-- `/cfn-alpha-launch-v2:manifest` - emits priority-group fix-list as manifest
