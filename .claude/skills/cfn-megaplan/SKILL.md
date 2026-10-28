@@ -1,6 +1,6 @@
 ---
 name: cfn-megaplan
-description: "Tiered planning orchestrator. Runs the full SPARC+ pipeline (research, spec, decide, pseudo, data, arch, ux, design, test, ops) as a parallel DAG, scaled by build stage (mvp/beta/enterprise) via inclusion profiles. Enforces two gates: every success criterion is executable (verifiable-done) and every step is unambiguous (haiku-executable). Use as the entry point for any non-trivial build instead of cfn-spa-plan."
+description: "Tiered planning orchestrator. Runs the full SPARC+ pipeline (research, spec, decide, pseudo, data, arch, ux, design, test, ops) as a parallel DAG, scaled by build stage (mvp/beta/enterprise) via inclusion profiles. Enforces two gates: every success criterion is executable (verifiable-done) and every step is unambiguous (haiku-executable). Plain plan mode is the default for feature work; use this only for enterprise, compliance, ops-heavy or migration-rehearsal builds (mvp/beta programs: cfn-megaplan-fast)."
 version: 1.4.0
 tags: [planning, orchestrator, sparc, tiered, mvp, beta, enterprise, dag]
 status: production

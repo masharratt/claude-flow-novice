@@ -96,7 +96,7 @@ Query CodeSearch BEFORE grep/glob/find — 400x faster:
 ```bash
 /codebase-search "query" --top 5
 ```
-- If index missing: run `/codebase-reindex` first
+- If index missing: run `/cfn-codesearch:cfn-codebase-reindex` first
 - If reindex fails or CodeSearch returns zero: use grep (not find — less resource intensive in WSL2)
 
 ### Security

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cfn-selftest: not-a-hook manual CLI run by agents after edits (global CLAUDE.md section 1); was counted registered only via the deprecated/ folder removed 2026-10-28
 
 ##############################################################################
 # ⚠️  DEPRECATED - This bash script is deprecated

@@ -1,6 +1,6 @@
 ---
 name: cfn-spa-plan
-description: "Lighter SPARC-only sub-pipeline. Auto-chains cfn-spec + cfn-pseudo + cfn-arch into one SPA artifact bundle. cfn-megaplan is the canonical planning entry point and supersedes this. Use cfn-spa-plan directly only when you want no tiering and no extra phases."
+description: "Lighter SPARC-only sub-pipeline. Auto-chains cfn-spec + cfn-pseudo + cfn-arch into one SPA artifact bundle. Plain plan mode is the default planner; megaplan variants cover larger programs. Use cfn-spa-plan directly only when you want no tiering and no extra phases."
 version: 1.0.0
 tags: [planning, sparc, orchestrator, spec, pseudo, arch]
 status: production

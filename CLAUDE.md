@@ -1,11 +1,3 @@
-## Code Search
-
-**STOP. Before using grep, glob, find, or any file search — query CodeSearch first.**
-Run `/codebase-search "your query"` for instant semantic results (400x faster than grep).
-Only fall back to grep if CodeSearch returns zero results.
-
----
-
 # CFN Development Project
 
 This project is the source of truth for CFN infrastructure. `~/.claude/` dirs are reverse-symlinked back here so all projects share the same files.
@@ -84,11 +76,11 @@ Z.ai settings are per-project in `.claude/settings.json` `env` section. Each pro
 | Tests | `tests/CLAUDE.md` |
 | Skills | `.claude/skills/CLAUDE.md` |
 | Coordination | `.claude/CLAUDE.md` |
-| Architecture | `cfn-system-expert.md` |
+| Architecture | `.claude/cfn-extras/agents/custom-agents/cfn-system-expert.md` |
 
 ## Style
 
-Speak plainly, no fluff. Bullets > prose. Cite paths with line numbers (`src/app.ts:42`). Redact secrets as `[REDACTED]`. Avoid exaggeration, 'you're right', and self-congratulatory language. Do not give code examples unless specifically asked.
+Speak plainly, no fluff. Bullets > prose. Cite paths with line numbers (`src/app.ts:42`) in the closing "Where" line, per the global communication style. Redact secrets as `[REDACTED]`. Avoid exaggeration, 'you're right', and self-congratulatory language. Do not give code examples unless specifically asked.
 
 ## Output Locations
 

@@ -18,6 +18,22 @@ LOG="$HOME/.claude/hook-selfcheck.log"
 
 printf '%s\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S%z)" "${CLAUDE_PROJECT_DIR:-unknown}" >> "$LOG" 2>/dev/null || true
 
+# The heartbeat proves SOME hooks load, not WHICH. Work-mode hooks sat only in
+# the dead settings.local.json for two weeks (found 2026-10-28) with this log
+# green. Name every hook command stranded there and absent from settings.json;
+# SessionStart stdout reaches the model's context, so the warning is seen.
+LOCAL="$HOME/.claude/settings.local.json"
+LIVE="$HOME/.claude/settings.json"
+if [ -f "$LOCAL" ] && command -v jq >/dev/null 2>&1; then
+  CMDS='[.hooks // {} | .[][] | .hooks[]? | .command // empty] | unique | .[]'
+  STRANDED=$(comm -23 \
+    <(jq -r "$CMDS" "$LOCAL" 2>/dev/null | sort -u) \
+    <(jq -r "$CMDS" "$LIVE" 2>/dev/null | sort -u))
+  if [ -n "$STRANDED" ]; then
+    printf 'HOOK WIRING WARNING: these hooks are wired only in ~/.claude/settings.local.json, which Claude Code never reads, so they do not run. Move them to ~/.claude/settings.json:\n%s\n' "$STRANDED"
+  fi
+fi
+
 # cfn: unbounded append log; trim to last 1000 lines past 2000 (upgrade: size-based rotation)
 if [ -f "$LOG" ] && [ "$(wc -l < "$LOG" 2>/dev/null || echo 0)" -gt 2000 ]; then
   tail -1000 "$LOG" > "$LOG.tmp" 2>/dev/null && mv "$LOG.tmp" "$LOG" || true
