@@ -2,6 +2,12 @@
 
 Load when: writing project code that calls an LLM provider, scripting `claude -p`, or wiring a reasoning model. The always-loaded rules are the ban statement (CLAUDE.md §Provider Ban) and the permission requirement; the operational detail lives here.
 
+## Provider Ban: full statement (moved verbatim from CLAUDE.md, 2026-10-28)
+
+**Anthropic API calls are BANNED in all projects.** Covers Claude SDK calls, direct Anthropic provider integrations, and benchmark candidates referencing `anthropic:claude-*` models. Claude Code itself remains in use for development; the ban applies only to programmatic API usage from project code. Adding any Anthropic provider integration requires explicit user permission per request — no exceptions, no defaults.
+
+Replacement map, `claude -p` cost safety (unset `ANTHROPIC_API_KEY`, `--budget`), reasoning-model rules: `~/.claude/references/provider-cost-runtime.md`.
+
 ## Provider Ban — replacement map
 
 Anthropic API calls are BANNED in project code (see CLAUDE.md). When replacing a banned model reference:

@@ -1,6 +1,6 @@
 # Stack-Specific Rules (Rust, Docker, Supabase)
 
-Load when: building Rust, building or deploying a Docker image / Next.js app, or querying or migrating a Supabase database.
+Load when: building Rust, building or deploying a Docker image / Next.js app, querying or migrating a Supabase database, adding a DB table, writing an HTTP handler, or writing SQL.
 
 ## Rust builds go on disk, never in RAM
 
@@ -18,3 +18,9 @@ Never set `CARGO_TARGET_DIR` to `/dev/shm` or `/run/shm` (RAM-backed; debug targ
 - **NEVER `source .env`** (multi-line tokens break bash). Extract: `grep '^DATABASE_URL=' .env | cut -d'=' -f2-`
 - **DB queries:** use `./.claude/skills/db-query/execute.sh --sql "..."` (`--schema X` optional). Never raw psql. Handles `pool_size`/`search_path`.
 - **After every migration:** `db-query` auto-refreshes via the `cfn-post-migration-sync` PostToolUse (Bash) hook, which detects apply commands (`supabase db push`, `psql -f migrations/*`, `prisma`/`alembic`/`rails`/`sqlx` migrate, `manage.py migrate`, golang `migrate ... up|down`) and runs `supabase-schema-sync`. No-ops in projects without `.env` `DATABASE_URL`. Manual fallback: `~/.claude/skills/supabase-schema-sync/execute.sh`.
+
+## Database and HTTP security (moved from CLAUDE.md Security, 2026-10-28)
+
+- New database tables MUST have Row Level Security (RLS) policies before deployment
+- HTTP responses must include security headers (HSTS, CSP, X-Frame-Options) via shared middleware
+- SQL queries must use explicit schema qualification or connection-level schema setting. Never rely on search_path defaults.

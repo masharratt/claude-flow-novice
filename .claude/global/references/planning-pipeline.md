@@ -40,3 +40,19 @@ Code builds: `/cfn-megaplan` (program-scale entry, tiered DAG wrapping write-pla
 Non-code branch (deliverable is a document, not a build): `/cfn-knowledge-plan` (strategy docs, proposals, research memos; Bar K grounding + weasel scan; NO drafting before KPLAN_<slug>.md is approved) → `/cfn-share` (publish as a private page with a stable URL; re-shares update the same link).
 
 Routing wrong is the primary cause of intent drift, missed edge cases, and the dropdown-as-textbox class of UI bugs.
+
+## Plan Mode Protocol and Planning Pipeline (moved verbatim from CLAUDE.md, 2026-10-28)
+
+CLAUDE.md keeps a routing summary; this is the full text.
+
+#### Plan Mode Protocol
+- **Completeness default:** full implementation; deferring tests or edge cases saves minutes, not days.
+- **Intent confirm:** user-visible change plus a partly ambiguous ask → ONE question before the full plan. Obvious fix with no real tradeoff → state it and move on.
+- **Consult the strongest model on plan-critical forks** (architecture choice, data migration, API contract, security-sensitive path): get a second opinion from Fable via an `advisor` subagent; in `codex=true` projects also from Astra via `codex exec`.
+- **Investigate before planning:** dump actual schema/imports/config and trace dependencies before any plan that touches data or shared state.
+- **Routing:** no shared state → plan mode. Shared state, in-repo → plan mode + `/cfn-plan-review`. Known external consumer → same, plus additive-only change or version the surface. Wrong-quietly surface (RLS, visibility, policy, semantic DB changes) → manifest track regardless of size: `/write-plan` from existing artifacts → Bar A → blessed VERIFY → `cfn-loop-task`. File count is a smell test, never a router; 8+ files = check for a missed decomposition.
+- Shared-state plans list testable assumptions (`~/.claude/references/plan-completeness.md`) and run `/cfn-plan-review` in-session; implementation via sonnet-level subagents, TDD required.
+
+#### Planning Pipeline
+Plain plan mode is the default for feature work; Fable-class models made the megaplan family redundant for ordinary builds. `/cfn-megaplan-fast` only for genuine multi-part mvp/beta programs; full `/cfn-megaplan` only for enterprise/compliance/ops/migration-rehearsal. Non-code deliverables: `/cfn-knowledge-plan` (no drafting before KPLAN approval) → `/cfn-share`. Sub-pipelines (`/write-plan`, `/cfn-plan-review`, `-lite`, `-fast`, `/cfn-goap-plan`, `/cfn-spa-plan`) standalone for narrow or iterative work; `/cfn-loop-cli` only for external-API delegation.
+Canonical order, the manifest-vs-session track table (split per surface: wrong-quietly → manifest track), and sub-skill detail: `~/.claude/references/planning-pipeline.md` (load when choosing among planning skills).

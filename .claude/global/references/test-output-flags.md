@@ -9,6 +9,18 @@ OUT=/tmp/test-${PWD##*/}-$(date +%s).txt
 <test-cmd> 2>&1 | tee "$OUT"
 ```
 
+## The rule (moved verbatim from CLAUDE.md, 2026-10-28)
+
+All errors in ONE run, no run-twice. Capture full output to file, read after. Unique filename per project (projects run concurrent):
+
+```bash
+OUT=/tmp/test-${PWD##*/}-$(date +%s).txt
+<test-cmd> 2>&1 | tee "$OUT"
+```
+
+- **No watch mode** (`vitest run` not `vitest`), **no bail flag** (drop `-x` / `--bail` / `--fail-fast`), verbose + full traces — every failure first pass.
+- **Compile errors ≠ test failures.** Compile fail = zero tests run; dump ALL compile errors one pass BEFORE blaming tests.
+
 ## Per-language commands
 
 | Lang | Command |

@@ -39,8 +39,7 @@ symlinked into `~/.claude/` as individual entries, not as one directory:
 | `.claude/global/rules/` | `~/.claude/rules/` |
 | `.claude/global/references/` | `~/.claude/references/` |
 
-Edit them here. They were untracked local files until 2026-08-18, which meant a clone
-gave you the tooling but none of the rules it runs on.
+Edit them here.
 
 Set up or verify the links with:
 
@@ -60,13 +59,7 @@ Set up or verify the links with:
 
 ### Editing CFN Files
 
-Edit files directly in this project — changes propagate to all projects via reverse symlinks. Both paths resolve to the same files:
-- `.claude/skills/cfn-alpha-launch/execute.sh` (project source)
-- `~/.claude/skills/cfn-alpha-launch/execute.sh` (via reverse symlink)
-
-### Z.ai Configuration
-
-Z.ai settings are per-project in `.claude/settings.json` `env` section. Each project chooses its own API provider independently.
+Edit here; changes reach every project through the symlinks. Z.ai settings are per-project in `.claude/settings.json` `env`.
 
 ## Docs
 
@@ -93,15 +86,7 @@ Speak plainly, no fluff. Bullets > prose. Cite paths with line numbers (`src/app
 
 ## WSL Memory Monitor
 
-Background process kills test runner memory leaks. Runs on session start.
-- `>10%` memory (node test processes only) → killed
-- Parent with test children totaling `>15%` combined → test children killed
-- Targets: node processes running vitest, jest, mocha, ava, tap, playwright, cypress
-- Never kills: bash, sh, zsh (even if running tests)
-- Status: `~/.local/bin/wsl-memory-monitor.sh --status`
-- Log: `/tmp/wsl-memory-monitor.log`
-
-WSL2 only. Not present on macOS.
+WSL2 only: a background monitor kills node test runners over 10% memory (or test children over 15% combined); shells are never killed. Status: `~/.local/bin/wsl-memory-monitor.sh --status`; log `/tmp/wsl-memory-monitor.log`.
 
 ## Platform
 
