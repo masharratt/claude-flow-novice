@@ -18,3 +18,7 @@ Measured cost, disable methods, and hazards for the caveman plugin's terse-outpu
 
 - **Never patch the plugin under `~/.claude/plugins/cache/`.** That tree is not a git checkout, and an update writes a new content-hashed directory, so the edit disappears with no conflict and no warning.
 - **Fork inheritance:** forks inherit the whole transcript, so they inherit every injection above (session-start block + per-prompt reminders). Fresh agents do not: no session-start or prompt-submit hook fires for them.
+
+## Carve-out: where terse mode must not apply
+
+Caveman already exempts code, commits, and PRs. Extend that to anything a second party must act on without you present — subagent prompts, plan artifacts under `planning/`, AskUserQuestion text, commit messages, PR bodies, `readme/*.md` — fragments there drop connective reasoning and cost more than the terseness saves. Never drop technical substance from chat replies. Forks inherit every injection; fresh agents get none. Never patch the plugin under `~/.claude/plugins/cache/`.
