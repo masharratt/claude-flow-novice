@@ -82,5 +82,16 @@ after_f=$(sqlite3 "$CFN_SKILL_USAGE_DB" "SELECT COUNT(*) FROM skill_usage")
 check "[ $rc_f -eq 0 ]" "case (f): malformed JSON returns exit 0 (never-block)"
 check "[ '$before_f' = '$after_f' ]" "case (f): malformed JSON writes no row"
 
+# Harness audit 2026-10-28: agent types had no usage counter, so 59 agent
+# profiles could not be judged used or dead. Agent/Task spawns are recorded
+# as skill_norm 'agent:<type>'; a missing subagent_type is general-purpose.
+echo "== case (g): Agent and Task spawns record agent:<type> =="
+printf '%s' '{"tool_name":"Agent","tool_input":{"subagent_type":"code-reviewer","prompt":"x"},"cwd":"/tmp/ag","session_id":"g1"}' | "$HOOK"
+printf '%s' '{"tool_name":"Task","tool_input":{"prompt":"x"},"cwd":"/tmp/ag","session_id":"g2"}' | "$HOOK"
+cnt_g1=$(sqlite3 "$CFN_SKILL_USAGE_DB" "SELECT COUNT(*) FROM skill_usage WHERE skill_norm='agent:code-reviewer'")
+cnt_g2=$(sqlite3 "$CFN_SKILL_USAGE_DB" "SELECT COUNT(*) FROM skill_usage WHERE skill_norm='agent:general-purpose'")
+check "[ '$cnt_g1' = '1' ]" "case (g): Agent spawn recorded as agent:code-reviewer"
+check "[ '$cnt_g2' = '1' ]" "case (g): Task spawn without type recorded as agent:general-purpose"
+
 echo "RESULTS: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

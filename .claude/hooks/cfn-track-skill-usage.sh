@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# cfn-track-skill-usage — PostToolUse hook: record every Skill-tool invocation
+# cfn-track-skill-usage — PostToolUse hook: record every Skill-tool invocation and every Agent/Task spawn (as agent:<type>)
 # to a SQLite DB so unused skills can be surfaced later for deprecation.
 #
 #   - Fires after each Skill tool call. Reads the event JSON from stdin
 #     (tool_name, tool_input.skill, cwd, session_id) via python3 -c (stdin
 #     carries the event; no heredoc, which would replace it).
-#   - Filters: skip unless tool_name == "Skill" and skill is non-empty.
+#   - Filters: skip unless tool_name is Skill (non-empty skill) or Agent/Task.
 #   - Inserts one row per fire (raw skill, normalized skill_norm, project,
 #     session_id, ISO-8601 ts) into $CFN_SKILL_USAGE_DB. WAL + busy_timeout
 #     handle parallel sessions; no flock needed at skill-fire frequency.
@@ -33,16 +33,23 @@ try:
     data = json.loads(sys.stdin.read() or "{}")
 except Exception:
     sys.exit(0)
-if data.get("tool_name") != "Skill":
+tool = data.get("tool_name")
+tin = data.get("tool_input") or {}
+if tool == "Skill":
+    skill = tin.get("skill") or ""
+elif tool in ("Agent", "Task"):
+    # Agent spawns share the table as agent:<type> so agent profiles get the
+    # same used/dead evidence as skills. Unset type = general-purpose default.
+    skill = "agent:" + (tin.get("subagent_type") or "general-purpose")
+else:
     sys.exit(0)
-skill = (data.get("tool_input") or {}).get("skill") or ""
 if not skill.strip():
     sys.exit(0)
 cwd = data.get("cwd") or ""
 project = os.path.basename(cwd.rstrip("/")) if cwd else ""
 session = data.get("session_id") or ""
 ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-norm = skill.split(":")[-1].strip().lower()
+norm = skill.lower() if tool != "Skill" else skill.split(":")[-1].strip().lower()
 try:
     con = sqlite3.connect(db, timeout=3.0)
     con.execute("PRAGMA journal_mode=WAL")
