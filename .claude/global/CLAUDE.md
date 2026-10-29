@@ -24,19 +24,8 @@ Good:
 
 ---
 
-## 1. Edit Safety (REQUIRED)
-
-```bash
-BACKUP_PATH=$(~/.claude/hooks/cfn-invoke-pre-edit.sh "$FILE" --agent-id "$AGENT_ID")
-# ... edit ...
-~/.claude/hooks/cfn-invoke-post-edit.sh "$FILE" --agent-id "$AGENT_ID"
-```
-CFN rules override Claude Code defaults when they conflict.
-
-The post-edit hook runs `tsc` on the single file with no project tsconfig, so its
-`TYPE_WARNING` and `LINT_ISSUES` lines are usually false: unresolved workspace imports and
-missing path aliases, not real type errors. Confirm against a project-level `pnpm typecheck`
-before acting on one, and never "fix" code to satisfy a per-file warning.
+## 1. Edit Safety (automatic)
+Hooks back up every edited file (`cfn-pre-edit-backup-hook.sh`) and check it after the edit (`cfn-post-edit-check-hook.sh`: secrets, shellcheck warnings, validator errors; silent when clean). Act on what the check reports. It skips per-file tsc, so run the project typecheck for types. Roll back from `.backups/` with `cfn-restore-from-backup.sh`, never `git checkout`. CFN rules override Claude Code defaults when they conflict.
 
 ---
 

@@ -166,8 +166,13 @@ function runLocalTool(bin, toolArgs, timeout = 15000) {
   });
 }
 
+// CFN_POST_EDIT_SKIP_JS_TOOLS=1 skips tsc/eslint/prettier. The automatic
+// PostToolUse hook sets it: per-file tsc runs without the project tsconfig, so
+// its warnings were mostly false (2026-10-28) and it cost ~6s per edit.
+const SKIP_JS_TOOLS = process.env.CFN_POST_EDIT_SKIP_JS_TOOLS === '1';
+
 // ---------------------------------------------------------------- TypeScript
-if (['.ts', '.tsx'].includes(ext)) {
+if (!SKIP_JS_TOOLS && ['.ts', '.tsx'].includes(ext)) {
   const tscBin = resolveLocalBin('tsc');
   if (!tscBin) {
     log('SKIPPED', 'TypeScript validation skipped (tsc not installed for this project)');
@@ -233,7 +238,7 @@ if (['.ts', '.tsx'].includes(ext)) {
 }
 
 // -------------------------------------------------------------------- ESLint
-if (['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx'].includes(ext)) {
+if (!SKIP_JS_TOOLS && ['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx'].includes(ext)) {
   const eslintBin = resolveLocalBin('eslint');
   if (!eslintBin) {
     log('SKIPPED', 'ESLint validation skipped (eslint not installed for this project)');
@@ -289,7 +294,7 @@ if (['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx'].includes(ext)) {
 }
 
 // ------------------------------------------------------------------ Prettier
-if (['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.json', '.css', '.html'].includes(ext)) {
+if (!SKIP_JS_TOOLS && ['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.json', '.css', '.html'].includes(ext)) {
   const prettierBin = resolveLocalBin('prettier');
   if (!prettierBin) {
     log('SKIPPED', 'Prettier check skipped (prettier not installed for this project)');
