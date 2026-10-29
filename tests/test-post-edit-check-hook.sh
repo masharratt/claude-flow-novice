@@ -78,6 +78,28 @@ ELAPSED=$(( $(date +%s) - START ))
 [[ "$OUT" != *TS2307* && "$OUT" != *TYPE_WARNING* && "$OUT" != *LINT_ISSUES* ]] \
   && ok "typescript: no type/lint noise" || bad "typescript: noise in '$OUT'"
 
+# 8. Widened secret formats (2026-10-29): AWS access key, GitHub token,
+#    private key block. Built at runtime: no credential-shaped literal here.
+printf 'aws_access = "%s"\n' "AKIA""IOSFODNN7""EXAMPLE" > "$PROJ/src/aws.py"
+fire Write "$PROJ/src/aws.py"
+[[ "$OUT" == *AWS_ACCESS_KEY* ]] && ok "aws key: reported" || bad "aws key: out='$OUT'"
+printf 'GH="%s"\n' "ghp_""$(printf 'b%.0s' $(seq 1 36))" > "$PROJ/src/gh.sh"
+fire Write "$PROJ/src/gh.sh"
+[[ "$OUT" == *GITHUB_TOKEN* ]] && ok "github token: reported" || bad "github token: out='$OUT'"
+printf 'K="%s"\n' "-----BEGIN RSA ""PRIVATE KEY-----" > "$PROJ/src/pk.sh"
+fire Write "$PROJ/src/pk.sh"
+[[ "$OUT" == *PRIVATE_KEY* ]] && ok "private key: reported" || bad "private key: out='$OUT'"
+
+# 9. Scanner findings that are not secrets stay silent: a package.json with
+#    versions (INSECURE_DEPENDENCIES) and a SQL string (SQL_INJECTION) were
+#    reported as "possible secret" by the first version of this hook.
+printf '{"name":"p","version":"1.2.3"}\n' > "$PROJ/src/package.json"
+fire Edit "$PROJ/src/package.json"
+[ -z "$OUT" ] && ok "package.json: silent" || bad "package.json: out='$OUT'"
+printf 'q = "SELECT * FROM t WHERE a = %s"\n' "'x'" > "$PROJ/src/q.py"
+fire Edit "$PROJ/src/q.py"
+[ -z "$OUT" ] && ok "sql string: silent" || bad "sql string: out='$OUT'"
+
 # 7. The checker's log never lands in the edited project.
 [ ! -d "$PROJ/.artifacts" ] && ok "no .artifacts in project" || bad ".artifacts created in project"
 

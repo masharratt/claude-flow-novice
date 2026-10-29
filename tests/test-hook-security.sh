@@ -14,7 +14,9 @@ set -uo pipefail
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SETTINGS="${HOME}/.claude/settings.local.json"
+# User-level settings.local.json is never read by Claude Code (retired
+# 2026-10-28); hooks asserted here must be in settings.json to run at all.
+SETTINGS="${HOME}/.claude/settings.json"
 SCRATCH=$(mktemp -d /tmp/hook-sec-test-XXXXXX)
 trap 'rm -rf "$SCRATCH"' EXIT
 

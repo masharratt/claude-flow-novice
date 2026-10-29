@@ -43,10 +43,10 @@ detect_pattern() {
     local pattern="$2"
     local finding_type="$3"
 
-    if grep -qE "$pattern" "$file_path" 2>/dev/null; then
+    if grep -qE -e "$pattern" "$file_path" 2>/dev/null; then
         # Extract matching lines for reporting
         local matches
-        matches=$(grep -nE "$pattern" "$file_path" 2>/dev/null | head -3)
+        matches=$(grep -nE -e "$pattern" "$file_path" 2>/dev/null | head -3)
         # stderr, NOT stdout: the caller (.claude/hooks/post-edit-pipeline.js)
         # JSON.parses this script's stdout. Emitting this line there made every
         # real detection crash the parse, and the catch-block fallback then
@@ -100,6 +100,24 @@ run_security_scan() {
         echo "Found Z.ai API key in ${file_path}" >&2
     fi
 
+    # Common provider token formats (added 2026-10-29: an AWS access key in a
+    # plain assignment scanned clean). One entry per line: TYPE|regex.
+    local provider_patterns=(
+        'AWS_ACCESS_KEY|(AKIA|ASIA)[0-9A-Z]{16}'
+        'GITHUB_TOKEN|gh[pousr]_[A-Za-z0-9]{36,}'
+        'SLACK_TOKEN|xox[abprs]-[A-Za-z0-9-]{10,}'
+        'ANTHROPIC_API_KEY|sk-ant-[A-Za-z0-9_-]{20,}'
+        'PRIVATE_KEY|-----BEGIN ([A-Z]+ )?PRIVATE KEY-----'
+    )
+    local entry ptype pregex
+    for entry in "${provider_patterns[@]}"; do
+        ptype="${entry%%|*}"; pregex="${entry#*|}"
+        if detect_pattern "$file_path" "$pregex" "$ptype"; then
+            vulnerabilities+=("$ptype")
+            ((scan_confidence+=25))
+        fi
+    done
+
     # JavaScript/TypeScript Object Literal Detection
     # Detects patterns like: apiKey: 'value' or key: "value" or token: 'AIza...'
     if grep -qE "(apiKey|api_key|token|secret|password|Authorization|Bearer|key):\s*['\"][^'\"]{10,}['\"]" "$file_path" 2>/dev/null; then
@@ -128,7 +146,10 @@ run_security_scan() {
     # Hardcoded Secrets Detection (environment variable style)
     # Case-insensitive: real secrets are uppercase env vars (OPENAI_API_KEY,
     # DATABASE_PASSWORD). A case-sensitive match saw none of them.
-    if grep -qiE "(password|secret|token|api_key|apikey).*=.*['\"]" "${file_path}" 2>/dev/null; then
+    # Tightened 2026-10-29: the name must be assigned directly to a quoted
+    # literal of 8+ chars with no whitespace or $ (interpolation). The old
+    # `name.*=.*quote` matched `token = req.headers['x']` and test prose.
+    if grep -qiE "(password|secret|token|api_?key)[a-z0-9_]*[[:space:]]*[:=][[:space:]]*['\"][^'\"[:space:]\$]{8,}['\"]" "${file_path}" 2>/dev/null; then
         # Only flag if not already flagged as object literal
         if ! grep -qE "(apiKey|api_key|token|secret|password):\s*['\"]" "$file_path" 2>/dev/null; then
             vulnerabilities+=("HARDCODED_SECRETS")

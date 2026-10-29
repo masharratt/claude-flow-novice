@@ -51,6 +51,7 @@ trap 'rm -f "$OUT_FILE"' EXIT
 python3 -c '
 import json, re, sys
 path, out_file = sys.argv[1], sys.argv[2]
+NOT_SECRETS = {"SQL_INJECTION", "XSS_VULNERABILITY", "INSECURE_DEPENDENCIES", "FILE_NOT_FOUND"}
 items = []
 try:
     lines = open(out_file, encoding="utf-8", errors="replace").read().splitlines()
@@ -66,8 +67,11 @@ for line in lines:
         items.append((st + ": " + str(d.get("message") or ""))[:200])
     sec = d.get("security")
     if isinstance(sec, dict) and sec.get("passed") is False:
-        kinds = ", ".join(sec.get("issues") or []) or "unknown pattern"
-        items.append(f"possible secret ({kinds}): remove it, load from env instead")
+        # The scanner also flags SQL strings, innerHTML/eval and any versioned
+        # package.json; those are not secrets and were pure noise here.
+        kinds = [k for k in (sec.get("issues") or []) if k not in NOT_SECRETS]
+        if kinds:
+            items.append("possible secret (" + ", ".join(kinds) + "): remove it, load from env instead")
     sc = d.get("shellcheck")
     if isinstance(sc, dict):
         for f in sc.get("findings") or []:
