@@ -19,8 +19,9 @@ FAIL=0
 ok()  { PASS=$((PASS + 1)); echo "ok: $1"; }
 bad() { FAIL=$((FAIL + 1)); echo "FAIL: $1"; }
 
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/cfn-post-edit-check.XXXXXX")"
-trap 'rm -rf "$WORK"' EXIT
+source "$REPO_ROOT/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/cfn-post-edit-check.XXXXXX")" || exit 1
+trap 'cfn_safe_rm_tmp "$WORK"' EXIT
 PROJ="$WORK/proj"
 mkdir -p "$PROJ/src" "$PROJ/node_modules/pkg"
 export CFN_POST_EDIT_STATE_DIR="$WORK/state"

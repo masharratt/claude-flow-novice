@@ -17,8 +17,9 @@ FAIL=0
 ok()   { PASS=$((PASS + 1)); echo "ok: $1"; }
 bad()  { FAIL=$((FAIL + 1)); echo "FAIL: $1"; }
 
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/cfn-selfcheck-test.XXXXXX")"
-trap 'rm -rf "$WORK"' EXIT
+source "$REPO_ROOT/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/cfn-selfcheck-test.XXXXXX")" || exit 1
+trap 'cfn_safe_rm_tmp "$WORK"' EXIT
 mkdir -p "$WORK/.claude"
 
 ERR=$(echo '{}' | HOME="$WORK" CLAUDE_PROJECT_DIR=/proj/x bash "$HOOK" 2>&1 >/dev/null)
@@ -41,7 +42,7 @@ PROJ=$(printf '%s' "$LINE" | cut -f2)
 # logged, so the tripwire stayed green while the hooks were dead. The hook must
 # now name every command stranded in that file and absent from settings.json.
 if command -v jq >/dev/null 2>&1; then
-  STRAND="$(mktemp -d "${TMPDIR:-/tmp}/cfn-selfcheck-strand.XXXXXX")"
+  STRAND="$(mktemp -d "${TMPDIR:-/tmp}/cfn-selfcheck-strand.XXXXXX")" || exit 1
   mkdir -p "$STRAND/.claude"
   cat > "$STRAND/.claude/settings.json" <<'JSON'
 {"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"bash $HOME/.claude/hooks/live.sh"}]}]}}
@@ -56,7 +57,7 @@ JSON
   rm -f "$STRAND/.claude/settings.local.json"
   OUT=$(echo '{}' | HOME="$STRAND" CLAUDE_PROJECT_DIR=/proj/x bash "$HOOK" 2>/dev/null)
   [ -z "$OUT" ] && ok "silent with no settings.local.json" || bad "unexpected output: '$OUT'"
-  rm -rf "$STRAND"
+  cfn_safe_rm_tmp "$STRAND"
 else
   echo "skip: jq missing, stranded-hook check not exercised"
 fi
