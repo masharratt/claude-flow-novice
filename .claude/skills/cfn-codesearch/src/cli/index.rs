@@ -15,7 +15,7 @@
 //! - rs, ts, js, json, md, sh, yaml, yml, txt, config
 //! - Use --types to specify custom extensions
 //!
-//! ## Excluded Directories (see EXCLUDED_DIRS constant - 56 patterns):
+//! ## Excluded Directories (see EXCLUDED_DIRS constant - 57 patterns):
 //! - Dependencies: node_modules, vendor, .pnpm, .yarn
 //! - Build artifacts: target, dist, build, out, .next, .nuxt, .output, .turbo, .parcel-cache
 //! - VCS: .git, .svn, .hg
@@ -121,6 +121,7 @@ const EXCLUDED_DIRS: &[&str] = &[
     ".terraform",        // Terraform state/cache
     ".serverless",       // Serverless framework
     ".aws-sam",          // AWS SAM
+    "google-cloud-sdk",  // Vendored gcloud SDK (237k entities found inside ebay, 2026-10-30)
 
     // Project-specific
     ".artifacts",        // CFN Loop artifacts
@@ -1294,6 +1295,16 @@ function test()"#;
         // JSON top-level keys are bare names ("version", "scripts"): vectors add noise, not recall.
         for p in ["a.json", "a.yaml", "a.yml", "a.txt", "Makefile"] {
             assert!(!should_embed(Path::new(p)), "{p} must not be embedded");
+        }
+    }
+
+    /// Regression (2026-10-30): a vendored Google Cloud SDK unpacked inside the
+    /// ebay project (folder "gcloud auth login/google-cloud-sdk") was 237,000
+    /// of ebay's 259,000 indexed entities and drowned its search results.
+    #[test]
+    fn test_vendored_cloud_sdk_dirs_excluded() {
+        for d in ["google-cloud-sdk", "node_modules", "archive"] {
+            assert!(EXCLUDED_DIRS.contains(&d), "{d} must be excluded");
         }
     }
 
