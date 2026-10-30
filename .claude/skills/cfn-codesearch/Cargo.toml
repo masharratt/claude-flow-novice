@@ -50,6 +50,11 @@ uuid = { version = "1.0", features = ["v5"] }
 neo4rs = "0.8"
 # Local embeddings (no API key needed)
 fastembed = "4"
+# ONNX Runtime with the CUDA execution provider (same version fastembed 4.9.1 pins).
+# Opt-in via `--features gpu`: the cuda feature switches ort-sys to the dynamic cu12
+# build, so that binary needs libonnxruntime*.so on the loader path (see
+# bin/local-codesearch-gpu). Default builds stay static, CPU-only, wrapper-free.
+ort = { version = "=2.0.0-rc.9", default-features = false, features = ["cuda", "copy-dylibs"], optional = true }
 # Tree-sitter for AST parsing
 # Tree-sitter for AST parsing
 
@@ -61,3 +66,8 @@ tree-sitter-python = "0.20"
 
 [dev-dependencies]
 tempfile = "3.23.0"
+
+[features]
+default = []
+# CUDA embeddings; build with --features gpu, run via bin/local-codesearch-gpu.
+gpu = ["dep:ort"]

@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Run the CUDA-enabled CodeSearch indexer (cargo build --release --features gpu) with its
+# runtime libraries on the loader path.
+# The binary links libonnxruntime.so dynamically (ort "cuda" feature), so it cannot start
+# without this path, even in CPU mode.
+#   CODESEARCH_GPU_BIN      binary to run (default ~/.local/bin/local-codesearch-gpu.bin)
+#   CODESEARCH_DEVICE=cpu   force the CPU provider
+#   CODESEARCH_GPU_MEM_MB   CUDA arena cap in MiB (default 3072)
+set -euo pipefail
+
+BIN="${CODESEARCH_GPU_BIN:-$HOME/.local/bin/local-codesearch-gpu.bin}"
+SHARE="${CODESEARCH_SHARE_DIR:-$HOME/.local/share/codesearch}"
+ORT_DIR="$SHARE/ort"
+CUDA_DIR="$SHARE/cuda/nvidia"
+
+if [[ ! -x "$BIN" ]]; then
+  echo "local-codesearch-gpu: binary not found or not executable: $BIN" >&2
+  exit 127
+fi
+if [[ ! -f "$ORT_DIR/libonnxruntime.so" ]]; then
+  echo "local-codesearch-gpu: missing $ORT_DIR/libonnxruntime.so (copy the three libonnxruntime*.so files there)" >&2
+  exit 127
+fi
+
+LIBS="$ORT_DIR"
+for sub in cuda_runtime cublas cufft curand cudnn; do
+  [[ -d "$CUDA_DIR/$sub/lib" ]] && LIBS="$LIBS:$CUDA_DIR/$sub/lib"
+done
+# WSL2 exposes the driver's libcuda.so here.
+[[ -d /usr/lib/wsl/lib ]] && LIBS="$LIBS:/usr/lib/wsl/lib"
+
+export LD_LIBRARY_PATH="$LIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+exec "$BIN" "$@"

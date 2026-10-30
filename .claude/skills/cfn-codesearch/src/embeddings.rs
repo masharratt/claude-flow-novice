@@ -1,7 +1,76 @@
 use anyhow::{Result, anyhow};
 use std::path::Path;
 use std::env;
-use tracing::{info, debug};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use tracing::{info, debug, warn};
+
+/// Env var: `cpu` forces the CPU provider; anything else (or unset) tries CUDA first.
+pub const DEVICE_ENV: &str = "CODESEARCH_DEVICE";
+/// Env var: CUDA arena cap in MiB (the GPU is shared with renders, so keep it small).
+pub const GPU_MEM_ENV: &str = "CODESEARCH_GPU_MEM_MB";
+/// Default CUDA arena cap in MiB.
+pub const DEFAULT_GPU_MEM_MB: usize = 3072;
+
+/// Which ONNX Runtime execution provider the local model should try.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DevicePlan {
+    Cpu,
+    Cuda { mem_limit_bytes: usize },
+}
+
+/// Pure provider selection from the two env values (testable without touching the process env).
+pub fn plan_device(device_env: Option<&str>, gpu_mem_env: Option<&str>) -> DevicePlan {
+    if device_env.map(|d| d.trim().eq_ignore_ascii_case("cpu")).unwrap_or(false) {
+        return DevicePlan::Cpu;
+    }
+    let mem_mb = gpu_mem_env
+        .and_then(|v| v.trim().parse::<usize>().ok())
+        .filter(|mb| *mb > 0)
+        .unwrap_or(DEFAULT_GPU_MEM_MB);
+    DevicePlan::Cuda { mem_limit_bytes: mem_mb * 1024 * 1024 }
+}
+
+fn plan_device_from_env() -> DevicePlan {
+    plan_device(env::var(DEVICE_ENV).ok().as_deref(), env::var(GPU_MEM_ENV).ok().as_deref())
+}
+
+fn load_cpu_model() -> Result<fastembed::TextEmbedding> {
+    fastembed::TextEmbedding::try_new(
+        fastembed::InitOptions::new(fastembed::EmbeddingModel::BGESmallENV15)
+    ).map_err(|e| anyhow!("Failed to load fastembed model: {}", e))
+}
+
+/// Load the local model on the planned device. Returns the model and whether it runs on CUDA.
+/// Any CUDA failure (missing libs, no device, out of memory) falls back to CPU.
+fn load_local_model(plan: DevicePlan) -> Result<(fastembed::TextEmbedding, bool)> {
+    #[cfg(not(feature = "gpu"))]
+    if matches!(plan, DevicePlan::Cuda { .. }) {
+        debug!("Built without the gpu feature: using CPU");
+    }
+    #[cfg(feature = "gpu")]
+    if let DevicePlan::Cuda { mem_limit_bytes } = plan {
+        use ort::execution_providers::{ArenaExtendStrategy, CUDAExecutionProvider};
+        let ep = CUDAExecutionProvider::default()
+            .with_memory_limit(mem_limit_bytes)
+            .with_arena_extend_strategy(ArenaExtendStrategy::SameAsRequested)
+            .build()
+            .error_on_failure();
+        let opts = fastembed::InitOptions::new(fastembed::EmbeddingModel::BGESmallENV15)
+            .with_execution_providers(vec![ep]);
+        match fastembed::TextEmbedding::try_new(opts) {
+            Ok(model) => {
+                info!("Embedding provider: CUDAExecutionProvider (GPU, arena cap {} MiB)",
+                    mem_limit_bytes / (1024 * 1024));
+                return Ok((model, true));
+            }
+            Err(e) => warn!("CUDA provider unavailable, falling back to CPU: {}", e),
+        }
+    }
+    let model = load_cpu_model()?;
+    info!("Embedding provider: CPUExecutionProvider");
+    Ok((model, false))
+}
 
 /// Which embedding backend to use
 #[derive(Debug, Clone)]
@@ -22,7 +91,11 @@ pub struct EmbeddingsManager {
     openai_api_key: Option<String>,
     http_client: Option<reqwest::Client>,
     // fastembed model is not Clone, so we hold it behind Arc
-    local_model: Option<std::sync::Arc<fastembed::TextEmbedding>>,
+    local_model: Option<Arc<fastembed::TextEmbedding>>,
+    // True while `local_model` runs on CUDA; cleared (shared across clones) after a GPU failure.
+    gpu_active: Arc<AtomicBool>,
+    // CPU model built lazily if the CUDA model fails mid-run (e.g. GPU out of memory).
+    cpu_fallback: Arc<Mutex<Option<Arc<fastembed::TextEmbedding>>>>,
 }
 
 impl std::fmt::Debug for EmbeddingsManager {
@@ -40,6 +113,8 @@ impl Clone for EmbeddingsManager {
             openai_api_key: self.openai_api_key.clone(),
             http_client: self.http_client.clone(),
             local_model: self.local_model.clone(),
+            gpu_active: self.gpu_active.clone(),
+            cpu_fallback: self.cpu_fallback.clone(),
         }
     }
 }
@@ -62,21 +137,23 @@ impl EmbeddingsManager {
                 openai_api_key: Some(api_key),
                 http_client: Some(reqwest::Client::new()),
                 local_model: None,
+                gpu_active: Arc::new(AtomicBool::new(false)),
+                cpu_fallback: Arc::new(Mutex::new(None)),
             });
         }
 
         // Default: local fastembed
         info!("Loading fastembed BGE-small-en-v1.5 ({}d, no API key needed)...", LOCAL_DIMENSION);
-        let model = fastembed::TextEmbedding::try_new(
-            fastembed::InitOptions::new(fastembed::EmbeddingModel::BGESmallENV15)
-        ).map_err(|e| anyhow!("Failed to load fastembed model: {}", e))?;
+        let (model, on_gpu) = load_local_model(plan_device_from_env())?;
         info!("fastembed model loaded");
 
         Ok(Self {
             backend: EmbeddingBackend::Local,
             openai_api_key: None,
             http_client: None,
-            local_model: Some(std::sync::Arc::new(model)),
+            local_model: Some(Arc::new(model)),
+            gpu_active: Arc::new(AtomicBool::new(on_gpu)),
+            cpu_fallback: Arc::new(Mutex::new(None)),
         })
     }
 
@@ -101,10 +178,42 @@ impl EmbeddingsManager {
         let model = self.local_model.as_ref()
             .ok_or_else(|| anyhow!("Local model not initialized"))?;
         let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-        let embeddings = model.embed(text_refs, None)
-            .map_err(|e| anyhow!("fastembed error: {}", e))?;
+        let embeddings = if self.gpu_active.load(Ordering::Acquire) {
+            match model.embed(text_refs.clone(), None) {
+                Ok(e) => e,
+                Err(e) => {
+                    warn!("CUDA embedding failed, switching to CPU for the rest of this run: {}", e);
+                    self.gpu_active.store(false, Ordering::Release);
+                    self.cpu_model()?.embed(text_refs, None)
+                        .map_err(|e| anyhow!("fastembed error: {}", e))?
+                }
+            }
+        } else if self.cpu_fallback_loaded() {
+            self.cpu_model()?.embed(text_refs, None)
+                .map_err(|e| anyhow!("fastembed error: {}", e))?
+        } else {
+            model.embed(text_refs, None)
+                .map_err(|e| anyhow!("fastembed error: {}", e))?
+        };
         info!("Generated {} embeddings", embeddings.len());
         Ok(embeddings)
+    }
+
+    fn cpu_fallback_loaded(&self) -> bool {
+        self.cpu_fallback.lock().map(|g| g.is_some()).unwrap_or(false)
+    }
+
+    /// The lazily built CPU model used after a CUDA failure.
+    fn cpu_model(&self) -> Result<Arc<fastembed::TextEmbedding>> {
+        let mut guard = self.cpu_fallback.lock()
+            .map_err(|_| anyhow!("CPU fallback model lock poisoned"))?;
+        if let Some(m) = guard.as_ref() {
+            return Ok(m.clone());
+        }
+        let model = Arc::new(load_cpu_model()?);
+        info!("Embedding provider: CPUExecutionProvider (fallback after CUDA failure)");
+        *guard = Some(model.clone());
+        Ok(model)
     }
 
     fn generate_openai(&self, texts: &[String]) -> Result<Vec<Vec<f32>>> {
@@ -173,5 +282,45 @@ impl EmbeddingsManager {
 
     pub fn batch_cosine_similarity(&self, query: &[f32], embeddings: &[Vec<f32>]) -> Result<Vec<f32>> {
         embeddings.iter().map(|emb| self.compute_similarity(query, emb)).collect()
+    }
+}
+
+#[cfg(test)]
+mod device_plan_tests {
+    use super::*;
+
+    const MIB: usize = 1024 * 1024;
+
+    #[test]
+    fn plan_device_defaults_to_cuda_with_3gib_cap() {
+        assert_eq!(plan_device(None, None), DevicePlan::Cuda { mem_limit_bytes: 3072 * MIB });
+    }
+
+    #[test]
+    fn plan_device_cpu_env_forces_cpu_case_insensitive() {
+        assert_eq!(plan_device(Some("cpu"), None), DevicePlan::Cpu);
+        assert_eq!(plan_device(Some(" CPU "), Some("8000")), DevicePlan::Cpu);
+    }
+
+    #[test]
+    fn plan_device_explicit_cuda_or_auto_uses_gpu() {
+        assert_eq!(plan_device(Some("cuda"), None), DevicePlan::Cuda { mem_limit_bytes: 3072 * MIB });
+        assert_eq!(plan_device(Some("auto"), None), DevicePlan::Cuda { mem_limit_bytes: 3072 * MIB });
+    }
+
+    #[test]
+    fn plan_device_gpu_mem_env_overrides_cap() {
+        assert_eq!(plan_device(None, Some("1536")), DevicePlan::Cuda { mem_limit_bytes: 1536 * MIB });
+    }
+
+    #[test]
+    fn plan_device_invalid_gpu_mem_falls_back_to_default() {
+        for bad in ["", "0", "-5", "lots", "3.5"] {
+            assert_eq!(
+                plan_device(None, Some(bad)),
+                DevicePlan::Cuda { mem_limit_bytes: 3072 * MIB },
+                "input {bad:?}"
+            );
+        }
     }
 }
