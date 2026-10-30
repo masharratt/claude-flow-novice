@@ -4,7 +4,7 @@ Load when: the CodeSearch index is missing, a reindex fails, or a query returns 
 
 ## Rule (full text)
 
-Query CodeSearch BEFORE grep/glob/find — 400x faster:
+Query CodeSearch BEFORE grep/glob/find:
 
 ```bash
 /codebase-search "query" --top 5

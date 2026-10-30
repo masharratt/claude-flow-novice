@@ -1,63 +1,28 @@
 ---
-description: Search codebase using CodeSearch semantic index (400x faster than grep)
+description: Search code with the CodeSearch index (names, files mentioning them, semantic matches)
 arguments:
   query:
-    description: Natural language search query
+    description: Question or identifier to search for
     required: true
   --top:
-    description: Number of results to return (default 10)
+    description: Number of results per step (default 5)
     required: false
 ---
 
 # Codebase Search Command
 
-Search your indexed codebase using CodeSearch. Uses SQLite index for fast lookups.
+Runs `.claude/skills/cfn-codesearch/search.sh` (one script behind all three search commands):
 
-**Examples:**
-- `/cfn-codesearch:cfn-codebase-search authentication logic`
-- `/cfn-codesearch:cfn-codebase-search React components --top 20`
-- `/cfn-codesearch:cfn-codebase-search database migration`
+- **Names:** identifiers in the question (`reap_kill`, `link-runtime-dirs.sh`) matched against indexed names and paths.
+- **Files mentioning:** every file that names those identifiers literally, for "who uses X" questions.
+- **Semantic:** local embedding model for concept questions; no API key needed.
 
-**Prerequisites:**
-- Codebase must be indexed: `/cfn-codebase-reindex`
-- OPENAI_API_KEY optional (SQL search works without it, semantic search needs it)
+Add `--top N` for more results (default 5).
+
+**Prerequisite:** the project is indexed (`/cfn-codebase-reindex`).
 
 ---
 
-Execute the search:
-
 ```bash
-QUERY="{{query}}"
-MAX_RESULTS={{#if top}}{{top}}{{else}}10{{/if}}
-DB_PATH="$HOME/.local/share/codesearch/index_v2.db"
-PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-
-# Try SQL first (no API key needed, fastest path)
-if [ -f "$DB_PATH" ]; then
-    SAFE_Q=$(echo "$QUERY" | sed "s/'/''/g")
-    SAFE_ROOT=$(echo "$PROJECT_ROOT" | sed "s/'/''/g")
-    SQL_RESULTS=$(sqlite3 -separator ' | ' "$DB_PATH" \
-        "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, kind, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_Q}%' OR file_path LIKE '%${SAFE_Q}%') LIMIT $MAX_RESULTS" 2>/dev/null || true)
-    if [ -n "$SQL_RESULTS" ]; then
-        echo "=== CodeSearch SQL Results ==="
-        echo "$SQL_RESULTS"
-        echo ""
-    fi
-fi
-
-# Try semantic search if API key available
-if [[ "${OPENAI_API_KEY:-}" != sk-* ]] && [[ -f ".env" ]]; then
-    export OPENAI_API_KEY=$(grep "^OPENAI_API_KEY=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || true)
-fi
-
-if [[ "${OPENAI_API_KEY:-}" == sk-* ]]; then
-    CODESEARCH_BIN="${HOME}/.local/bin/local-codesearch"
-    [ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="$HOME/.claude/skills/cfn-codesearch/target/release/local-codesearch"
-    if [ -x "$CODESEARCH_BIN" ]; then
-        echo "=== CodeSearch Semantic Results ==="
-        "$CODESEARCH_BIN" query "$QUERY" --max-results "$MAX_RESULTS" --threshold 0.1 2>/dev/null || true
-    fi
-elif [ -z "${SQL_RESULTS:-}" ]; then
-    echo "No results. Index may be missing for this project. Run: /cfn-codebase-reindex"
-fi
+bash "$HOME/.claude/skills/cfn-codesearch/search.sh" "{{query}}" --top "{{#if top}}{{top}}{{else}}5{{/if}}"
 ```

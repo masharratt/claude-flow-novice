@@ -1,6 +1,6 @@
 ---
 name: codesearch-code-search
-description: "MANDATORY: Query CodeSearch BEFORE using grep, glob, find, or search. 400x faster semantic/structural code search via SQL on indexed codebase. Use to find functions, classes, patterns, callers, implementations. Agents MUST query CodeSearch first; grep only allowed after CodeSearch returns zero results."
+description: "MANDATORY: Query CodeSearch BEFORE using grep, glob, find, or search. Indexed name, mention and semantic search in one call (search.sh). Use to find functions, classes, patterns, callers, implementations. Agents MUST query CodeSearch first; grep only allowed after CodeSearch returns zero results."
 allowed-tools: Bash, Read, SlashCommand
 ---
 
@@ -11,7 +11,7 @@ allowed-tools: Bash, Read, SlashCommand
 **This is a PROTOCOL REQUIREMENT, not a suggestion. Failure to query CodeSearch first is a violation.**
 
 ### WHY THIS IS MANDATORY
-- CodeSearch SQL: 0.002s | grep: 0.8s (400x slower)
+- One call answers names, callers (files mentioning X) and concepts
 - Agents using grep first waste tokens and time
 - Index already exists at `~/.local/share/codesearch/index_v2.db`
 
