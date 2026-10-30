@@ -273,6 +273,22 @@ pub struct IndexCommand {
     text_fallback_extractor: TextFallbackExtractor,
 }
 
+/// Whether entities extracted from this file get a vector embedding.
+/// SQLite-fallback semantic search only sees entities that have one
+/// (query_v2.rs JOINs entity_embeddings), so every language with a real
+/// extractor must be here. JSON/YAML/plain text are excluded: their entities
+/// are bare key names that add vector noise without recall.
+fn should_embed(file_path: &Path) -> bool {
+    let ext = file_path
+        .extension()
+        .map(|e| e.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    matches!(
+        ext.as_str(),
+        "rs" | "ts" | "tsx" | "js" | "jsx" | "py" | "sh" | "bash" | "md" | "markdown"
+    )
+}
+
 /// Extract doc comments from a signature string.
 /// Supports Rust-style (///, //!) and JSDoc-style (/** */) comments.
 fn extract_doc_comment(signature: &str) -> Option<String> {
@@ -684,12 +700,9 @@ impl IndexCommand {
         self.store_references(file_path, &extraction_result.references, &entity_ids)?;
         self.store_type_usage(file_path, &extraction_result.entities, &entity_ids)?;
 
-        // Skip embedding generation for text/non-code files (md, json, yaml, sh, etc.)
-        // These still get stored in SQLite and Memgraph but don't need vector search
-        let language = self.detect_language(file_path)?;
-        let is_code_file = matches!(language.as_str(), "rust" | "typescript" | "javascript");
-
-        let embeddings = if is_code_file {
+        // Embed every language with a real extractor (see should_embed);
+        // json/yaml/txt entities are stored in SQLite and Memgraph only.
+        let embeddings = if should_embed(file_path) {
             let embs = self.generate_entity_embeddings(&extraction_result.entities, &content)?;
             // Store embeddings in SQLite entity_embeddings table (metadata)
             for (entity_id, embedding) in entity_ids.iter().zip(embs.iter()) {
@@ -1266,6 +1279,22 @@ function create(name: string)"#;
 function test()"#;
         let doc = extract_doc_comment(signature);
         assert_eq!(doc, Some("Quick summary".to_string()));
+    }
+
+    /// Regression (2026-10-29 index-gap RCA): the embed gate was
+    /// `matches!(language, "rust" | "typescript" | "javascript")`, so every
+    /// python, shell and markdown entity was stored without a vector. In
+    /// claude-flow-novice that left 2,279 of 122,857 entities embedded and
+    /// semantic queries for hook scripts returned nothing.
+    #[test]
+    fn test_should_embed_covers_every_extracted_language() {
+        for p in ["a.rs", "a.ts", "a.tsx", "a.js", "a.jsx", "a.py", "a.sh", "a.bash", "a.md", "a.markdown"] {
+            assert!(should_embed(Path::new(p)), "{p} entities must get embeddings");
+        }
+        // JSON top-level keys are bare names ("version", "scripts"): vectors add noise, not recall.
+        for p in ["a.json", "a.yaml", "a.yml", "a.txt", "Makefile"] {
+            assert!(!should_embed(Path::new(p)), "{p} must not be embedded");
+        }
     }
 
     #[test]

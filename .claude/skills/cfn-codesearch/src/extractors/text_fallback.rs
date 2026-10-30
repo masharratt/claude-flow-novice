@@ -126,22 +126,21 @@ impl TextFallbackExtractor {
     /// Variable assignments are too noisy (every config line becomes an entity).
     fn extract_shell_structure(source: &str, file_path: &str) -> Vec<Entity> {
         let mut entities = Vec::new();
-        let mut line_num = 0;
+        let lines: Vec<&str> = source.lines().collect();
 
-        for line in source.lines() {
-            line_num += 1;
-
+        for (idx, line) in lines.iter().enumerate() {
+            let line_num = idx + 1;
             let trimmed = line.trim();
+            let next_opens_body = || {
+                lines[idx + 1..]
+                    .iter()
+                    .map(|l| l.trim())
+                    .find(|l| !l.is_empty())
+                    .map_or(false, |l| l.starts_with('{') || l.starts_with('('))
+            };
 
-            // Extract function definitions only
-            if (trimmed.starts_with("function ") || trimmed.contains("() {")) && !trimmed.starts_with("#") {
-                let name = if trimmed.starts_with("function ") {
-                    trimmed[9..].split('(').next().unwrap_or("unknown").trim().to_string()
-                } else {
-                    trimmed.split('(').next().unwrap_or("unknown").trim().to_string()
-                };
-
-                if !name.is_empty() && !name.starts_with('#') {
+            if let Some(name) = Self::shell_function_name(trimmed, next_opens_body) {
+                {
                     entities.push(Entity {
                         id: format!("sh:{}:{}:{}", file_path, line_num, name),
                         kind: EntityKind::Function,
@@ -163,6 +162,38 @@ impl TextFallbackExtractor {
         }
 
         entities
+    }
+
+    /// Parse a bash function header: `name()`, `name ()`, `function name`,
+    /// `function name()`, followed by `{`/`(` on the same line or the next
+    /// non-blank one. Returns None for calls like `NOW()` or `foo() && bar`.
+    fn shell_function_name(trimmed: &str, next_opens_body: impl Fn() -> bool) -> Option<String> {
+        if trimmed.starts_with('#') {
+            return None;
+        }
+        let (has_keyword, rest) = match trimmed.strip_prefix("function ") {
+            Some(r) => (true, r.trim_start()),
+            None => (false, trimmed),
+        };
+        let name_len = rest
+            .find(|c: char| !(c.is_ascii_alphanumeric() || matches!(c, '_' | ':' | '-' | '.')))
+            .unwrap_or(rest.len());
+        let name = &rest[..name_len];
+        if name.is_empty() || name.starts_with(|c: char| c.is_ascii_digit()) {
+            return None;
+        }
+        let after = rest[name_len..].trim_start();
+        let body_part = if let Some(r) = after.strip_prefix("()") {
+            r.trim_start()
+        } else if has_keyword {
+            after
+        } else {
+            return None;
+        };
+        let opens = body_part.starts_with('{')
+            || body_part.starts_with('(')
+            || (body_part.is_empty() && next_opens_body());
+        if opens { Some(name.to_string()) } else { None }
     }
 }
 
@@ -325,6 +356,44 @@ setup_environment
 
         let cleanup_fn = result.entities.iter().find(|e| e.name == "cleanup");
         assert!(cleanup_fn.is_some());
+    }
+
+    /// Regression (2026-10-29 index-gap RCA): the old matcher required the
+    /// literal "() {", so `name(){` and `name()` with the brace on the next
+    /// line produced zero entities and ~32 repo scripts were unsearchable
+    /// (e.g. readonly-list.sh `die(){ ... }`).
+    #[test]
+    fn test_shell_extraction_compact_and_next_line_brace_forms() {
+        let mut extractor = TextFallbackExtractor::new().unwrap();
+        let source = "#!/usr/bin/env bash\n\
+die(){ echo \"x: $*\" >&2; exit 1; }\n\
+main()\n\
+{\n\
+  die oops\n\
+}\n\
+sandbox_fail (){\n\
+  :\n\
+}\n\
+function keyword_no_parens {\n\
+  :\n\
+}\n\
+cfn_safe_rm_tmp() {\n\
+  :\n\
+}\n\
+cat <<SQL\n\
+SELECT NOW()\n\
+SQL\n\
+# commented() {\n";
+        let result = extractor.extract("tool.sh", source).unwrap();
+        let names: Vec<&str> = result.entities.iter().map(|e| e.name.as_str()).collect();
+        for want in ["die", "main", "sandbox_fail", "keyword_no_parens", "cfn_safe_rm_tmp"] {
+            assert!(names.contains(&want), "missing shell function {want}; got {names:?}");
+        }
+        for unwanted in ["SELECT NOW", "NOW", "commented", "# commented"] {
+            assert!(!names.contains(&unwanted), "false positive {unwanted}; got {names:?}");
+        }
+        let main_fn = result.entities.iter().find(|e| e.name == "main").unwrap();
+        assert_eq!(main_fn.line, 3, "line number must point at the name line");
     }
 
     #[test]
