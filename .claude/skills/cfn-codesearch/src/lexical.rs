@@ -143,8 +143,12 @@ pub fn search(conn: &Connection, project_root: &str, question: &str, limit: usiz
          WHERE file_fts MATCH ?1 AND l.project_root = ?2
          ORDER BY s LIMIT ?4"
     );
+    let names = exact_names(question);
+    // Fetch extra candidates so an exact-name file outside the BM25 top
+    // `limit` can still be promoted.
+    let fetch = if names.is_empty() { limit } else { limit.max(1) * 4 };
     let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt.query_map(params![expr, project_root, md_weight, limit as i64], |r| {
+    let rows = stmt.query_map(params![expr, project_root, md_weight, fetch as i64], |r| {
         Ok(LexHit {
             rel_path: r.get(0)?,
             file_path: r.get(1)?,
@@ -152,7 +156,33 @@ pub fn search(conn: &Connection, project_root: &str, question: &str, limit: usiz
             score: -r.get::<_, f64>(2)?,
         })
     })?;
-    Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
+    let mut hits = rows.collect::<std::result::Result<Vec<_>, _>>()?;
+    // A file named after an identifier in the question is its definition:
+    // stable-sort those first, BM25 order otherwise unchanged.
+    hits.sort_by_key(|h| !names.contains(&file_stem(&h.rel_path)));
+    hits.truncate(limit);
+    Ok(hits)
+}
+
+/// Compound identifiers in the question (contain - _ or .), lowercased and
+/// stripped of punctuation and any extension: "cfn-careful-guard.sh?" -> "cfn-careful-guard".
+fn exact_names(question: &str) -> Vec<String> {
+    question
+        .split_whitespace()
+        .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric() && c != '-' && c != '_' && c != '.'))
+        .map(|w| w.trim_end_matches('.'))
+        .filter(|w| w.contains(['-', '_', '.']) && w.len() >= 3)
+        .map(|w| file_stem(w))
+        .collect()
+}
+
+fn file_stem(path: &str) -> String {
+    let base = path.rsplit('/').next().unwrap_or(path);
+    let stem = match base.rfind('.') {
+        Some(i) if i > 0 => &base[..i],
+        _ => base,
+    };
+    stem.to_lowercase()
 }
 
 /// Weighted reciprocal-rank fusion: lexical leads, semantic file list
@@ -199,6 +229,22 @@ mod tests {
 
     fn paths(h: &[LexHit]) -> Vec<&str> {
         h.iter().map(|x| x.rel_path.as_str()).collect()
+    }
+
+    /// Live index 2026-10-30: "Where is the cfn-careful-guard hook defined?"
+    /// ranked three tests that name the hook many times above the hook itself.
+    /// A file whose name (minus extension) equals an identifier in the
+    /// question is the definition and ranks first.
+    #[test]
+    fn test_exact_file_name_match_outranks_heavy_mentions() {
+        let c = db();
+        let noisy = "cfn-careful-guard cfn-careful-guard careful guard hook defined cfn-careful-guard\n".repeat(20);
+        add(&c, "/p", "tests/test-careful-guard-force-push.sh", &noisy);
+        add(&c, "/p", "tests/test-jev-careful-guard.sh", &noisy);
+        add(&c, "/p", ".claude/hooks/cfn-careful-guard.sh", "#!/bin/sh\n# Guard for rm\nexit 0\n");
+        let h = search(&c, "/p", "Where is the cfn-careful-guard hook defined?", 3, 0.3).unwrap();
+        assert_eq!(paths(&h)[0], ".claude/hooks/cfn-careful-guard.sh", "{h:?}");
+        assert_eq!(h.len(), 3, "{h:?}");
     }
 
     #[test]
