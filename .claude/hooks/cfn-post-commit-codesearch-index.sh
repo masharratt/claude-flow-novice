@@ -137,7 +137,13 @@ index_dir() {
     # `|| rc=$?` swallows the failure so `set -e` does not abort the drain loop.
     cd "$PROJECT_ROOT" || return 0
     local rc=0
-    timeout --signal=KILL "${INDEX_TIMEOUT:-600}" "$BINARY" \
+    # The local embedding model takes ~9 of 16 cores unpinned; cap it
+    # (user request 2026-10-29). CODESEARCH_CPUS="" disables pinning.
+    local pin=()
+    if [ -n "${CODESEARCH_CPUS-0,1}" ] && command -v taskset >/dev/null 2>&1; then
+        pin=(taskset -c "${CODESEARCH_CPUS-0,1}")
+    fi
+    timeout --signal=KILL "${INDEX_TIMEOUT:-600}" "${pin[@]}" "$BINARY" \
         --project-dir . \
         --qdrant-url "$QDRANT_URL" \
         --memgraph-url "bolt://$MEMGRAPH_BOLT" \

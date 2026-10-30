@@ -32,6 +32,7 @@ mkdir -p "$FAKE_HOME/.local/bin" "$FAKE_HOME/.local/share/codesearch"
 CALLS="$WORK/calls.log"
 cat > "$FAKE_HOME/.local/bin/local-codesearch" <<EOF
 #!/usr/bin/env bash
+command -v taskset >/dev/null && taskset -cp \$\$ | sed "s/.*: //" > "$WORK/affinity"
 while [ \$# -gt 0 ]; do [ "\$1" = "--path" ] && echo "\$2" >> "$CALLS"; shift; done
 exit 0
 EOF
@@ -69,6 +70,12 @@ OUT=$(run_hook)
 BASE=$(git -C "$REPO" rev-list --max-parents=0 HEAD)
 OUT=$(run_hook "$BASE..HEAD" | tr '\n' ' ')
 [ "$OUT" = "beta gamma " ] && ok "range indexes every changed dir" || bad "range indexed: '$OUT'"
+
+# 4. Indexer is pinned to CODESEARCH_CPUS (default 0,1): the local embedding
+#    model otherwise takes ~9 of 16 cores (user request 2026-10-29).
+if command -v taskset >/dev/null; then
+  [ "$(cat "$WORK/affinity" 2>/dev/null)" = "0,1" ] && ok "indexer pinned to cores 0,1" || bad "affinity: '$(cat "$WORK/affinity" 2>/dev/null)'"
+fi
 
 # 3. The live queue dir is never used by this test.
 [ -z "$(find /tmp/codesearch-queue -name "*$$*.job" 2>/dev/null)" ] && ok "live queue untouched" || bad "wrote to live queue"
