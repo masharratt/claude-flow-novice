@@ -77,6 +77,27 @@ if command -v taskset >/dev/null; then
   [ "$(cat "$WORK/affinity" 2>/dev/null)" = "0,1" ] && ok "indexer pinned to cores 0,1" || bad "affinity: '$(cat "$WORK/affinity" 2>/dev/null)'"
 fi
 
+# 5. GPU auto-select (2026-10-30): when local-codesearch-gpu is installed the
+#    hook uses it; machines without it (the VPS, no GPU) keep the CPU binary.
+GPU_CALLS="$WORK/gpu-calls.log"
+cat > "$FAKE_HOME/.local/bin/local-codesearch-gpu" <<EOF
+#!/usr/bin/env bash
+while [ \$# -gt 0 ]; do [ "\$1" = "--path" ] && echo "\$2" >> "$GPU_CALLS"; shift; done
+exit \${FAKE_GPU_RC:-0}
+EOF
+chmod +x "$FAKE_HOME/.local/bin/local-codesearch-gpu"
+: > "$WORK/hook.log"; : > "$GPU_CALLS"
+OUT=$(run_hook)
+[ "$(sort -u "$GPU_CALLS")" = "gamma" ] && [ -z "$OUT" ] && ok "gpu binary used when installed" \
+  || bad "gpu not used: gpu='$(cat "$GPU_CALLS")' cpu='$OUT'"
+
+# 6. GPU wrapper that cannot start (exit 127: missing CUDA/onnxruntime libs)
+#    falls back to the CPU binary for the same directory.
+: > "$WORK/hook.log"; : > "$GPU_CALLS"
+OUT=$(FAKE_GPU_RC=127 run_hook)
+[ "$OUT" = "gamma" ] && ok "gpu start failure falls back to cpu" || bad "no cpu fallback: cpu='$OUT'"
+rm -f "$FAKE_HOME/.local/bin/local-codesearch-gpu"
+
 # 3. The live queue dir is never used by this test.
 [ -z "$(find /tmp/codesearch-queue -name "*$$*.job" 2>/dev/null)" ] && ok "live queue untouched" || bad "wrote to live queue"
 

@@ -77,6 +77,24 @@ local-codesearch --version
 
 This installs to `~/.local/bin/local-codesearch` for access from any project.
 
+**Optional GPU build (machines with an NVIDIA card only):** embeddings run ~18x faster
+on CUDA. The default build stays CPU-only and needs no CUDA libraries.
+
+```bash
+cargo build --release --features gpu
+cp "$CARGO_TARGET_DIR/release/local-codesearch" ~/.local/bin/local-codesearch-gpu.bin
+ln -sf "$PWD/bin/local-codesearch-gpu" ~/.local/bin/local-codesearch-gpu
+```
+
+- Runtime libraries: `~/.local/share/codesearch/ort/libonnxruntime*.so` and the CUDA 12 /
+  cuDNN 9 pip libs under `~/.local/share/codesearch/cuda/nvidia/`. The wrapper
+  `bin/local-codesearch-gpu` puts them on the loader path; it exits 127 when any is missing.
+- `CODESEARCH_GPU_MEM_MB` caps the CUDA arena (default 3072; peak seen ~1.9 GB).
+  `CODESEARCH_DEVICE=cpu` forces CPU. Any CUDA failure at load falls back to CPU.
+- The post-commit hook uses `~/.local/bin/local-codesearch-gpu` when it exists and reruns
+  the CPU binary on exit 127. Machines without it (the VPS) use the CPU binary.
+- Test: `bash tests/test-codesearch-gpu-wrapper.sh`.
+
 ## Prerequisites
 
 **OPENAI_API_KEY is REQUIRED for indexing.** Indexing will fail without a valid key.

@@ -18,6 +18,11 @@ HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HOOK_DIR/cfn-codesearch-logger.sh"
 
 BINARY="${HOME}/.local/bin/local-codesearch"
+# GPU build (cargo --features gpu) wrapper; installed only on machines with a
+# CUDA card. Absent (e.g. the VPS) means the CPU binary above. The binary
+# itself drops to CPU on any CUDA runtime failure; exit 127 (wrapper cannot
+# find its libraries) retries with the CPU binary.
+GPU_BINARY="${HOME}/.local/bin/local-codesearch-gpu"
 INDEX_DB="${HOME}/.local/share/codesearch/index_v2.db"
 QDRANT_URL="http://localhost:6334"
 QDRANT_REST="http://localhost:6333"
@@ -143,15 +148,22 @@ index_dir() {
     if [ -n "${CODESEARCH_CPUS-0,1}" ] && command -v taskset >/dev/null 2>&1; then
         pin=(taskset -c "${CODESEARCH_CPUS-0,1}")
     fi
-    timeout --signal=KILL "${INDEX_TIMEOUT:-600}" "${pin[@]}" "$BINARY" \
-        --project-dir . \
-        --qdrant-url "$QDRANT_URL" \
-        --memgraph-url "bolt://$MEMGRAPH_BOLT" \
-        $memgraph_flag \
-        index \
-        --path "$dir" \
-        --types "$(echo "$INDEXED_TYPES" | tr '|' ',')" \
-        2>>"$LOG" || rc=$?
+    local args=(--project-dir . --qdrant-url "$QDRANT_URL" --memgraph-url "bolt://$MEMGRAPH_BOLT")
+    [ -n "$memgraph_flag" ] && args+=("$memgraph_flag")
+    args+=(index --path "$dir" --types "$(echo "$INDEXED_TYPES" | tr '|' ',')")
+    if [ -x "$GPU_BINARY" ]; then
+        timeout --signal=KILL "${INDEX_TIMEOUT:-600}" "${pin[@]}" "$GPU_BINARY" "${args[@]}" \
+            2>>"$LOG" || rc=$?
+        if [ "$rc" = "127" ]; then
+            log "WARN: gpu indexer could not start for $dir; using cpu"
+            rc=0
+            timeout --signal=KILL "${INDEX_TIMEOUT:-600}" "${pin[@]}" "$BINARY" "${args[@]}" \
+                2>>"$LOG" || rc=$?
+        fi
+    else
+        timeout --signal=KILL "${INDEX_TIMEOUT:-600}" "${pin[@]}" "$BINARY" "${args[@]}" \
+            2>>"$LOG" || rc=$?
+    fi
     if [ "$rc" = "137" ]; then
         log "WARN: index TIMED OUT for $dir (backend unreachable?) — killed after ${INDEX_TIMEOUT:-600}s"
     elif [ "$rc" != "0" ]; then
