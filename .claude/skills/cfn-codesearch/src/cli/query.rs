@@ -71,7 +71,7 @@ impl QueryCommand {
                     Some(store)
                 }
                 Err(e) => {
-                    warn!("Failed to connect to Qdrant: {}. Will try pgvector or SQLite.", e);
+                    debug!("Qdrant unavailable: {}. Will try pgvector or SQLite.", e);
                     None
                 }
             }
@@ -87,7 +87,7 @@ impl QueryCommand {
                     Some(store)
                 }
                 Err(e) => {
-                    warn!("Failed to connect to pgvector: {}. Using SQLite only.", e);
+                    debug!("pgvector unavailable: {}. Using SQLite only.", e);
                     None
                 }
             }
@@ -216,7 +216,7 @@ impl QueryCommand {
             println!("{} {} in {}{} (similarity: {:.3})",
                 result.entity_kind,
                 result.entity_name,
-                result.file_path,
+                display_path(&result.file_path, &self.project_dir),
                 line_info,
                 result.similarity
             );
@@ -229,7 +229,7 @@ impl QueryCommand {
             .map(|r| json!({
                 "entity_kind": r.entity_kind,
                 "entity_name": r.entity_name,
-                "file_path": r.file_path,
+                "file_path": display_path(&r.file_path, &self.project_dir),
                 "similarity": r.similarity,
                 "line_start": r.line_start,
                 "line_end": r.line_end
@@ -247,11 +247,11 @@ impl QueryCommand {
                 i + 1, 
                 result.entity_kind, 
                 result.entity_name,
-                result.file_path,
+                display_path(&result.file_path, &self.project_dir),
                 line_info,
                 result.similarity
             );
-            println!("   File: {}", result.file_path);
+            println!("   File: {}", display_path(&result.file_path, &self.project_dir));
             if let Some(line_start) = result.line_start {
                 println!("   Line: {}", line_start);
             }
@@ -261,6 +261,14 @@ impl QueryCommand {
             println!();
         }
         Ok(())
+    }
+}
+
+/// Path as printed in query output (relative to the project dir when inside it).
+pub fn display_path(file_path: &str, project_dir: &Path) -> String {
+    match Path::new(file_path).strip_prefix(project_dir) {
+        Ok(rel) if !rel.as_os_str().is_empty() => rel.to_string_lossy().into_owned(),
+        _ => file_path.to_string(),
     }
 }
 
@@ -349,5 +357,20 @@ impl BatchQueryCommand {
 
         info!("Batch query complete");
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regression (deep-dive fix 6): absolute paths roughly doubled the bytes
+    /// per result line and the wrapper had to strip them with sed.
+    #[test]
+    fn test_display_path_is_relative_to_project() {
+        let root = Path::new("/home/u/proj");
+        assert_eq!(display_path("/home/u/proj/src/a.rs", root), "src/a.rs");
+        assert_eq!(display_path("/elsewhere/b.rs", root), "/elsewhere/b.rs");
+        assert_eq!(display_path("/home/u/project2/c.rs", root), "/home/u/project2/c.rs");
     }
 }

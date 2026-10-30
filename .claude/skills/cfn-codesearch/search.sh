@@ -5,8 +5,11 @@
 # Usage: search.sh "<question or identifier>" [--top N]
 #
 # Three steps, each printed only when it finds something:
-#   1. Names:    identifiers pulled out of the question, matched against indexed
-#                entity names and file paths (exact name first).
+#   1. Files:    `codesearch lexical`, BM25 over file path + entity names +
+#                content, markdown down-weighted, one row per file, no model load.
+#      Names:    fallback when the installed binary predates `lexical` or the
+#                index has no lexical table yet: identifiers pulled out of the
+#                question, matched against entity names and file paths.
 #   2. Mentions: files that mention those identifiers literally (who uses X).
 #   3. Semantic: local embedding model; no API key needed.
 #
@@ -49,8 +52,20 @@ mapfile -t TERMS < <(
 sql_quote() { printf "%s" "$1" | sed "s/'/''/g"; }
 
 found=0
-# 1. Names
-if [ "${#TERMS[@]}" -gt 0 ] && [ -f "$DB" ]; then
+# 1. Files (lexical). Fails on old binaries or a pre-lexical index: fall back.
+lexical_ok=0
+if [ -x "$BIN" ] && [ -f "$DB" ]; then
+  # Empty output also falls back: projects not reindexed since `lexical` landed
+  # have no rows in its table yet.
+  files=$( (cd "$ROOT" && "$BIN" --project-dir "$ROOT" lexical "$QUERY" -n "$TOP" --db "$DB") 2>/dev/null) || files=""
+  if [ -n "$files" ]; then
+    lexical_ok=1
+    echo "=== Files ==="; echo "$files"; echo; found=1
+  fi
+fi
+
+# 1b. Names (fallback)
+if [ "$lexical_ok" = 0 ] && [ "${#TERMS[@]}" -gt 0 ] && [ -f "$DB" ]; then
   root_q=$(sql_quote "$ROOT")
   conds="" order=""
   for t in "${TERMS[@]}"; do

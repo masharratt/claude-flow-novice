@@ -50,12 +50,21 @@ INSERT INTO entities VALUES ('/elsewhere/hooks/reap.sh', 1, 'function', 'reap_ki
 FAKE_BIN="$WORK/fake-codesearch"
 cat > "$FAKE_BIN" <<'EOF'
 #!/usr/bin/env bash
+if [[ " $* " == *" lexical "* ]]; then
+  # Older installed binaries have no lexical subcommand.
+  [ -n "${FAKE_NO_LEXICAL:-}" ] && { echo "error: unrecognized subcommand 'lexical'" >&2; exit 2; }
+  # A project not reindexed since `lexical` landed has no rows: empty output.
+  [ -n "${FAKE_LEXICAL_EMPTY:-}" ] && exit 0
+  echo "hooks/reap.sh (score: 3.200) args=$*"; exit 0
+fi
 echo "LOG noise line"; echo "function f in $PWD/x.sh:1 (similarity: 0.9) key=[${OPENAI_API_KEY:-}] args=$*"
 EOF
 chmod +x "$FAKE_BIN"
 
 run() { (cd "$PROJ" && env -u OPENAI_API_KEY CLAUDE_PROJECT_DIR="$PROJ" CODESEARCH_DB="$DB" \
           CODESEARCH_BIN="$FAKE_BIN" bash "$SEARCH" "$@" 2>&1); }
+# Steps 1 and 4 cover the Names fallback used with binaries that predate `lexical`.
+export FAKE_NO_LEXICAL=1
 
 # 1. Identifier inside a natural-language question is found by name.
 OUT=$(run "Where is reap_kill defined?")
@@ -87,6 +96,22 @@ OUT=$(cd "$PROJ" && env -u OPENAI_API_KEY CLAUDE_PROJECT_DIR="$PROJ" CODESEARCH_
       CODESEARCH_BIN="$WORK/none-bin" bash "$SEARCH" "Who uses run-with-memory-limit.sh?" 2>&1); RC=$?
 [ "$RC" = 0 ] && [[ "$OUT" == *"package.json"* && "$OUT" == *"cfn-codebase-reindex"* ]] \
   && ok "no index: mentions + hint" || bad "no index: rc=$RC '$OUT'"
+
+# 6. Lexical step (2026-10-30 engine fix): BM25 over path + content answers a
+#    plain-English question with no identifier in it, where the Names step
+#    found nothing; it gets the DB, project and --top passed through.
+unset FAKE_NO_LEXICAL
+OUT=$(run "what stops orphaned workers" --top 3)
+[[ "$OUT" == *"=== Files ==="*"hooks/reap.sh (score: 3.200)"* ]] && ok "lexical step lists files" \
+  || bad "lexical step: '$OUT'"
+[[ "$OUT" == *"lexical what stops orphaned workers -n 3 --db $DB"* && "$OUT" == *"--project-dir $PROJ"* ]] \
+  && ok "lexical gets db, project, top" || bad "lexical args: '$OUT'"
+[[ "$OUT" != *"=== Names ==="* ]] && ok "lexical replaces Names" || bad "both steps ran: '$OUT'"
+OUT=$(FAKE_NO_LEXICAL=1 run "Where is reap_kill defined?")
+[[ "$OUT" == *"=== Names ==="*"reap_kill"* ]] && ok "old binary falls back to Names" || bad "fallback: '$OUT'"
+OUT=$(FAKE_LEXICAL_EMPTY=1 run "Where is reap_kill defined?")
+[[ "$OUT" == *"=== Names ==="*"reap_kill"* ]] && ok "empty lexical (not reindexed) falls back to Names" \
+  || bad "empty fallback: '$OUT'"
 
 echo "pass=$PASS fail=$FAIL"
 [ "$FAIL" = 0 ]

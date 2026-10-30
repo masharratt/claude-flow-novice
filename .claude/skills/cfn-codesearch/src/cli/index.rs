@@ -274,6 +274,21 @@ pub struct IndexCommand {
     text_fallback_extractor: TextFallbackExtractor,
 }
 
+/// True for an extensionless file that starts with a shebang, when "sh" is
+/// among the requested types. Git hooks (.husky/post-commit) and bin/ tools
+/// have no extension; without this they were never indexed.
+fn is_extensionless_script(path: &Path, file_types: &[String]) -> bool {
+    use std::io::Read;
+    if !file_types.iter().any(|t| t.eq_ignore_ascii_case("sh")) {
+        return false;
+    }
+    let mut head = [0u8; 2];
+    std::fs::File::open(path)
+        .and_then(|mut f| f.read_exact(&mut head))
+        .map(|_| &head == b"#!")
+        .unwrap_or(false)
+}
+
 /// Whether entities extracted from this file get a vector embedding.
 /// SQLite-fallback semantic search only sees entities that have one
 /// (query_v2.rs JOINs entity_embeddings), so every language with a real
@@ -356,6 +371,117 @@ fn extract_doc_comment(signature: &str) -> Option<String> {
         None
     } else {
         Some(doc_lines.join("\n"))
+    }
+}
+
+/// Lines of a file shown in its file-level entity (plus any longer header).
+const FILE_ENTITY_LINES: usize = 30;
+/// Cap on a file entity's signature; the embedder only reads ~1500 chars.
+const FILE_ENTITY_MAX_CHARS: usize = 4000;
+
+/// Number of leading lines that form the file's header comment block
+/// (shebang, blank lines and comment lines in any common syntax).
+fn header_comment_len(lines: &[&str]) -> usize {
+    let mut in_block = false;
+    let mut len = 0;
+    for line in lines {
+        let t = line.trim();
+        if in_block {
+            if t.contains("*/") || t.contains("-->") || t.contains("\"\"\"") {
+                in_block = false;
+            }
+            len += 1;
+            continue;
+        }
+        let is_comment = t.is_empty()
+            || t.starts_with('#')
+            || t.starts_with("//")
+            || t.starts_with("--")
+            || t.starts_with(';');
+        if is_comment {
+            len += 1;
+        } else if t.starts_with("/*") || t.starts_with("<!--") || t.starts_with("\"\"\"") {
+            let closed = match t.strip_prefix("\"\"\"") {
+                Some(rest) => rest.contains("\"\"\""),
+                None => t[2..].contains("*/") || t.contains("-->"),
+            };
+            in_block = !closed;
+            len += 1;
+        } else {
+            break;
+        }
+    }
+    len
+}
+
+/// One file-level entity per indexed file: kind module, name = file name,
+/// signature = relative path + header comment block + first lines.
+/// Gives every file (shell scripts without functions, extensionless hooks)
+/// something that semantic and lexical search can find.
+fn file_entity(rel_path: &str, abs_path: &str, content: &str) -> Entity {
+    let lines: Vec<&str> = content.lines().collect();
+    let shown = header_comment_len(&lines).max(FILE_ENTITY_LINES).min(lines.len());
+    let mut signature = format!("{}\n{}", rel_path, lines[..shown].join("\n"));
+    cut_at_char_boundary(&mut signature, FILE_ENTITY_MAX_CHARS);
+    let name = Path::new(rel_path)
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| rel_path.to_string());
+    let mut metadata = std::collections::HashMap::new();
+    metadata.insert("chunk_type".to_string(), "file".to_string());
+    Entity {
+        id: format!("file:{}", abs_path),
+        kind: crate::extractors::EntityKind::Module,
+        name,
+        file_path: abs_path.to_string(),
+        line: 1,
+        column: 0,
+        signature,
+        visibility: crate::extractors::Visibility::Public,
+        parent_id: None,
+        metadata,
+    }
+}
+
+fn is_file_entity(entity: &Entity) -> bool {
+    entity.metadata.get("chunk_type").map(String::as_str) == Some("file")
+}
+
+/// Extracted entities with the file-level entity prepended.
+fn entities_with_file_entity(extracted: Vec<Entity>, rel_path: &str, abs_path: &str, content: &str) -> Vec<Entity> {
+    let mut out = Vec::with_capacity(extracted.len() + 1);
+    out.push(file_entity(rel_path, abs_path, content));
+    out.extend(extracted);
+    out
+}
+
+/// Text sent to the embedding model for one entity.
+fn embed_text(entity: &Entity, rel_path: &str, source_lines: &[&str]) -> String {
+    // BGE-small-en-v1.5 max sequence = 512 tokens (~2000 chars).
+    // Cut at 1500 chars to avoid wasting ONNX arena memory.
+    const MAX_EMBED_CHARS: usize = 1500;
+    let declaration = format!("{}:{}:{}", entity.kind.as_str(), entity.name, entity.signature);
+    let start = entity.line.saturating_sub(1);
+    let end = (start + 30).min(source_lines.len());
+    let mut text = if is_file_entity(entity) {
+        // Signature is already "rel path + header + first lines".
+        entity.signature.clone()
+    } else if start < source_lines.len() {
+        format!("{}\n{}\n{}", rel_path, declaration, source_lines[start..end].join("\n"))
+    } else {
+        format!("{}\n{}", rel_path, declaration)
+    };
+    cut_at_char_boundary(&mut text, MAX_EMBED_CHARS);
+    text
+}
+
+fn cut_at_char_boundary(text: &mut String, max: usize) {
+    if text.len() > max {
+        let mut end = max;
+        while !text.is_char_boundary(end) && end > 0 {
+            end -= 1;
+        }
+        text.truncate(end);
     }
 }
 
@@ -524,6 +650,8 @@ impl IndexCommand {
 
         // Initialize Schema V2 tables (entities, refs, etc.)
         crate::schema_v2::SchemaV2::initialize(&self.store_v2.conn)?;
+        // Additive migration: lexical (FTS5) file index.
+        crate::lexical::migrate(&self.store_v2.conn)?;
 
         self.store_v2.conn.execute(
             "CREATE TABLE IF NOT EXISTS file_hashes (
@@ -590,8 +718,8 @@ impl IndexCommand {
                         if !self.file_types.iter().any(|t| t.eq_ignore_ascii_case(&ext_str)) {
                             return false;
                         }
-                    } else {
-                        // No extension — skip unless user explicitly asked for extensionless files
+                    } else if !is_extensionless_script(e.path(), &self.file_types) {
+                        // No extension: only shebang scripts (git hooks, bin/ tools) when sh is requested
                         return false;
                     }
                 }
@@ -671,6 +799,7 @@ impl IndexCommand {
         if self.is_file_in_index(file_path)? {
             debug!("Updating existing file entries: {}", file_path.display());
             self.store_v2.delete_file_entities(&file_path_str, &self.project_dir)?;
+            crate::lexical::delete_file(&self.store_v2.conn, &file_path_str)?;
 
             // Clean up Qdrant entries for this file
             if let (Some(ref qdrant_store), Some(ref rt)) = (&self.qdrant_store, &self.tokio_runtime) {
@@ -690,36 +819,40 @@ impl IndexCommand {
         let content = fs::read_to_string(file_path)
             .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
 
-        let extraction_result = self.process_ast_extraction(file_path, &content)?;
-
-        if extraction_result.entities.is_empty() {
-            debug!("No entities found in {}", file_path.display());
-            return Ok(());
-        }
+        let mut extraction_result = self.process_ast_extraction(file_path, &content)?;
+        let rel_path = self.relative_path(file_path);
+        let extracted = std::mem::take(&mut extraction_result.entities);
+        extraction_result.entities = entities_with_file_entity(extracted, &rel_path, &file_path_str, &content);
 
         let entity_ids = self.store_entities(file_path, &extraction_result.entities)?;
-        self.store_references(file_path, &extraction_result.references, &entity_ids)?;
+        let names: Vec<String> = extraction_result.entities[1..].iter().map(|e| e.name.clone()).collect();
+        crate::lexical::upsert_file(&self.store_v2.conn, &project_root_str, &file_path_str, &rel_path, &names, &content)?;
+        // References are positional per extracted entity; the file entity at
+        // index 0 has none, so skip its id.
+        self.store_references(file_path, &extraction_result.references, &entity_ids[1..])?;
         self.store_type_usage(file_path, &extraction_result.entities, &entity_ids)?;
 
-        // Embed every language with a real extractor (see should_embed);
-        // json/yaml/txt entities are stored in SQLite and Memgraph only.
-        let embeddings = if should_embed(file_path) {
-            let embs = self.generate_entity_embeddings(&extraction_result.entities, &content)?;
-            // Store embeddings in SQLite entity_embeddings table (metadata)
-            for (entity_id, embedding) in entity_ids.iter().zip(embs.iter()) {
-                self.store_v2.store_embedding(*entity_id, embedding, "text-embedding-3-small")?;
-            }
-            Some(embs)
+        // Embed every entity of a language with a real extractor (see
+        // should_embed); for json/yaml/txt/extensionless files only the
+        // file-level entity gets a vector.
+        let embed_idx: Vec<usize> = if should_embed(file_path) {
+            (0..extraction_result.entities.len()).collect()
         } else {
-            debug!("Skipping embeddings for non-code file: {}", file_path.display());
-            None
+            vec![0]
         };
+        let embed_entities: Vec<Entity> = embed_idx.iter().map(|&i| extraction_result.entities[i].clone()).collect();
+        let embs = self.generate_entity_embeddings(&embed_entities, &content, &rel_path)?;
+        for (&i, embedding) in embed_idx.iter().zip(embs.iter()) {
+            self.store_v2.store_embedding(entity_ids[i], embedding, "text-embedding-3-small")?;
+        }
+        let embeddings = Some(embs);
 
         // Store embeddings in pgvector if available (code files only)
         if let (Some(ref embeddings), Some(ref pgvector_store)) = (&embeddings, &self.pgvector_store) {
             if let Some(ref rt) = self.tokio_runtime {
                 // Build entities the same way store_entities does
-                for (i, entity) in extraction_result.entities.iter().enumerate() {
+                for (k, &i) in embed_idx.iter().enumerate() {
+                    let entity = &extraction_result.entities[i];
                     let store_entity = codesearch::store_v2::Entity {
                         id: entity_ids[i],
                         kind: match entity.kind {
@@ -765,7 +898,7 @@ impl IndexCommand {
                     // Use the stored runtime (created once in new())
                     match rt.block_on(pgvector_store.store_entity_with_embedding(
                         &store_entity,
-                        &embeddings[i],
+                        &embeddings[k],
                         &project_root_str,
                     )) {
                         Ok(_) => debug!("Stored entity in pgvector: {}", store_entity.name),
@@ -780,8 +913,8 @@ impl IndexCommand {
         // Store entities + embeddings in Qdrant (code files only — skip text/md)
         if let (Some(ref embeddings), Some(ref qdrant_store), Some(ref rt)) = (&embeddings, &self.qdrant_store, &self.tokio_runtime) {
             // Build store entities for Qdrant
-            let store_entities: Vec<codesearch::store_v2::Entity> = extraction_result.entities.iter()
-                .enumerate()
+            let store_entities: Vec<codesearch::store_v2::Entity> = embed_idx.iter()
+                .map(|&i| (i, &extraction_result.entities[i]))
                 .map(|(i, entity)| codesearch::store_v2::Entity {
                     id: entity_ids[i],
                     kind: match entity.kind {
@@ -860,9 +993,9 @@ impl IndexCommand {
             let ref_tuples: Vec<(i64, String, String, String)> = extraction_result.references.iter()
                 .enumerate()
                 .filter_map(|(i, reference)| {
-                    if i < entity_ids.len() {
+                    if i + 1 < entity_ids.len() {
                         Some((
-                            entity_ids[i],
+                            entity_ids[i + 1],
                             reference.target_name.clone(),
                             format!("{:?}", reference.ref_kind).to_lowercase(),
                             project_root_str.clone(),
@@ -1015,32 +1148,10 @@ impl IndexCommand {
         Ok(())
     }
 
-    fn generate_entity_embeddings(&self, entities: &[Entity], source: &str) -> Result<Vec<Vec<f32>>> {
+    fn generate_entity_embeddings(&self, entities: &[Entity], source: &str, rel_path: &str) -> Result<Vec<Vec<f32>>> {
         let source_lines: Vec<&str> = source.lines().collect();
-        // BGE-small-en-v1.5 max sequence = 512 tokens (~2000 chars).
-        // Truncate to 1500 chars to avoid wasting ONNX arena memory.
-        const MAX_EMBED_CHARS: usize = 1500;
         let texts: Vec<String> = entities.iter()
-            .map(|e| {
-                let declaration = format!("{}:{}:{}", e.kind.as_str(), e.name, e.signature);
-                let start = e.line.saturating_sub(1);
-                let end = (start + 30).min(source_lines.len());
-                if start < source_lines.len() {
-                    let body: String = source_lines[start..end].join("\n");
-                    let mut text = format!("{}\n{}", declaration, body);
-                    if text.len() > MAX_EMBED_CHARS {
-                        // Find nearest char boundary at or before MAX_EMBED_CHARS
-                        let mut end = MAX_EMBED_CHARS;
-                        while !text.is_char_boundary(end) && end > 0 {
-                            end -= 1;
-                        }
-                        text.truncate(end);
-                    }
-                    text
-                } else {
-                    declaration
-                }
-            })
+            .map(|e| embed_text(e, rel_path, &source_lines))
             .collect();
 
         // Embed in small chunks. One ONNX forward pass for a whole file's
@@ -1142,6 +1253,14 @@ impl IndexCommand {
         Ok(())
     }
 
+    /// Path relative to the project root (unchanged when outside it).
+    fn relative_path(&self, file_path: &Path) -> String {
+        file_path
+            .strip_prefix(&self.project_dir)
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_else(|_| file_path.to_string_lossy().into_owned())
+    }
+
     fn calculate_file_hash(&self, file_path: &Path) -> Result<String> {
         use std::io::Read;
 
@@ -1196,6 +1315,10 @@ impl IndexCommand {
             // 1. Delete from SQLite v2 store (entities, refs, type_usage, embeddings)
             if let Err(e) = self.store_v2.delete_file_entities(file_path_str, &self.project_dir) {
                 warn!("Failed to prune SQLite entities for {}: {}", file_path_str, e);
+            }
+
+            if let Err(e) = crate::lexical::delete_file(&self.store_v2.conn, file_path_str) {
+                warn!("Failed to prune lexical row for {}: {}", file_path_str, e);
             }
 
             // 2. Delete from file_hashes
@@ -1308,6 +1431,25 @@ function test()"#;
         }
     }
 
+    /// Regression (2026-10-30 benchmark W1): files without an extension were
+    /// dropped whenever --types was set (always), so .husky/post-commit and
+    /// other extensionless hook scripts were never indexed. A shebang script
+    /// counts as shell when "sh" is among the requested types.
+    #[test]
+    fn test_extensionless_shebang_script_is_indexed_as_shell() {
+        let dir = tempfile::tempdir().unwrap();
+        let hook = dir.path().join("post-commit");
+        std::fs::write(&hook, "#!/usr/bin/env sh\nbash index.sh\n").unwrap();
+        let notes = dir.path().join("LICENSE");
+        std::fs::write(&notes, "MIT License\n").unwrap();
+        let sh = vec!["sh".to_string(), "md".to_string()];
+        let no_sh = vec!["md".to_string()];
+        assert!(is_extensionless_script(&hook, &sh));
+        assert!(!is_extensionless_script(&hook, &no_sh));
+        assert!(!is_extensionless_script(&notes, &sh));
+        assert!(!is_extensionless_script(&dir.path().join("missing"), &sh));
+    }
+
     #[test]
     fn test_no_doc_comment() {
         let signature = r#"pub fn new() -> Self"#;
@@ -1327,5 +1469,63 @@ function test()"#;
 pub fn new() -> Self"#;
         let doc = extract_doc_comment(signature);
         assert_eq!(doc, None);
+    }
+
+    /// Regression (deep-dive fix 2): 447 of 1,459 shell scripts had zero
+    /// entities, so cfn-careful-guard.sh's header "PreToolUse hook for
+    /// destructive command detection" was never searchable.
+    #[test]
+    fn test_file_entity_for_shell_script_without_functions() {
+        let src = "#!/usr/bin/env bash\n# PreToolUse hook for destructive command detection\nset -euo pipefail\nguard=1\n";
+        let e = file_entity(".claude/hooks/cfn-careful-guard.sh", "/p/.claude/hooks/cfn-careful-guard.sh", src);
+        assert_eq!(e.kind, crate::extractors::EntityKind::Module);
+        assert_eq!(e.name, "cfn-careful-guard.sh");
+        assert_eq!(e.line, 1);
+        assert_eq!(e.file_path, "/p/.claude/hooks/cfn-careful-guard.sh");
+        assert!(e.signature.starts_with(".claude/hooks/cfn-careful-guard.sh\n"), "{}", e.signature);
+        assert!(e.signature.contains("PreToolUse hook for destructive command detection"));
+        assert_eq!(e.metadata.get("chunk_type").map(String::as_str), Some("file"));
+    }
+
+    #[test]
+    fn test_file_entity_extensionless_hook_and_long_header() {
+        let mut src = String::from("#!/bin/sh\n");
+        for i in 0..40 { src.push_str(&format!("# header line {i}\n")); }
+        src.push_str("exec npm test\n");
+        for i in 0..50 { src.push_str(&format!("echo body {i}\n")); }
+        let e = file_entity(".husky/pre-commit", "/p/.husky/pre-commit", &src);
+        assert_eq!(e.name, "pre-commit");
+        assert!(e.signature.contains("# header line 39"), "whole header kept past line 30");
+        assert!(!e.signature.contains("echo body 20"), "body cut after the header/first lines");
+        assert_eq!(header_comment_len(&src.lines().collect::<Vec<_>>()), 41);
+    }
+
+    #[test]
+    fn test_every_file_gets_a_file_entity() {
+        let out = entities_with_file_entity(Vec::new(), "a/b.json", "/p/a/b.json", "{}");
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].name, "b.json");
+    }
+
+    /// Deep-dive fix 7: embedded text had no file path, so "the guard hook"
+    /// could not match a chunk from hooks/cfn-careful-guard.sh by path words.
+    #[test]
+    fn test_embed_text_carries_relative_path() {
+        let src = "#!/bin/bash\n# does things\nfoo() {\n  echo hi\n}\n";
+        let lines: Vec<&str> = src.lines().collect();
+        let f = Entity {
+            id: "x".into(), kind: crate::extractors::EntityKind::Function, name: "foo".into(),
+            file_path: "/p/lib/x.sh".into(), line: 3, column: 0, signature: "foo() {".into(),
+            visibility: crate::extractors::Visibility::Private, parent_id: None,
+            metadata: std::collections::HashMap::new(),
+        };
+        let t = embed_text(&f, "lib/x.sh", &lines);
+        assert!(t.starts_with("lib/x.sh\n"), "{t}");
+        assert!(t.contains("function:foo:foo() {"));
+        // The file entity's signature already holds path + first lines: no duplicate body.
+        let fe = file_entity("lib/x.sh", "/p/lib/x.sh", src);
+        let ft = embed_text(&fe, "lib/x.sh", &lines);
+        assert!(ft.starts_with("lib/x.sh\n"));
+        assert_eq!(ft.matches("does things").count(), 1, "{ft}");
     }
 }

@@ -9,6 +9,7 @@ pub mod reset;
 pub mod export;
 pub mod find;
 pub mod refs;
+pub mod lexical;
 
 // Re-export the command structs only, not internal types
 pub use init::InitCommand;
@@ -22,3 +23,4 @@ pub use reset::ResetCommand;
 pub use export::{ExportCommand, ExportFormat};
 pub use find::FindCommand;
 pub use refs::RefsCommand;
+pub use lexical::LexicalCommand;

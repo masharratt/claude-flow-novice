@@ -22,6 +22,7 @@ mod query_v2;
 mod store_qdrant;
 mod store_memgraph;
 mod unified_query;
+mod lexical;
 
 #[cfg(test)]
 mod transaction_tests;
@@ -234,6 +235,11 @@ enum Commands {
         #[arg(long, value_enum, default_value = "simple")]
         format: QueryOutputFormat,
     },
+    /// Lexical (BM25) file search: fast, no model load; optional semantic fusion
+    Lexical {
+        #[command(flatten)]
+        args: cli::lexical::LexicalCommand,
+    },
     /// Graph dependency queries
     Graph {
         #[command(subcommand)]
@@ -299,13 +305,31 @@ enum MigrationSource {
 }
 
 
+/// Log filter directive: RUST_LOG wins when set, else debug with --verbose.
+fn log_filter(verbose: bool, rust_log: Option<String>) -> String {
+    match rust_log {
+        Some(f) if !f.trim().is_empty() => f,
+        _ => if verbose { "debug" } else { "warn" }.to_string(),
+    }
+}
+
+/// Vector backends a query should probe as (pg_url, qdrant_url).
+fn query_vector_urls<'a>(skip_qdrant: bool, pg_url: &'a str, qdrant_url: &'a str) -> (Option<&'a str>, Option<&'a str>) {
+    // --skip-qdrant means "SQLite only": the pgvector probe is skipped too.
+    if skip_qdrant { (None, None) } else { (Some(pg_url), Some(qdrant_url)) }
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Initialize logging
-    let log_level = if cli.verbose { "debug" } else { "info" };
+    let log_level = log_filter(cli.verbose, std::env::var("RUST_LOG").ok());
+    // Logs go to stderr so stdout carries only results; no ANSI when piped.
+    use std::io::IsTerminal;
     tracing_subscriber::fmt()
-        .with_env_filter(log_level)
+        .with_writer(std::io::stderr)
+        .with_ansi(std::io::stderr().is_terminal())
+        .with_env_filter(log_level.as_str())
         .with_target(false)
         .with_thread_ids(false)
         .with_file(false)
@@ -395,7 +419,7 @@ fn main() -> Result<()> {
                     QueryOutputFormat::Detailed => cli::query::OutputFormat::Detailed,
                 };
 
-                let qdrant_url = if cli.skip_qdrant { None } else { Some(cli.qdrant_url.as_str()) };
+                let (pg_url, qdrant_url) = query_vector_urls(cli.skip_qdrant, &cli.pg_url, &cli.qdrant_url);
                 let cmd = QueryCommand::new(
                     &project_path,
                     query,
@@ -404,7 +428,7 @@ fn main() -> Result<()> {
                     output_format,
                     context,
                     file,
-                    Some(&cli.pg_url),
+                    pg_url,
                     qdrant_url,
                     cli.use_openai,
                 )?;
@@ -503,6 +527,9 @@ fn main() -> Result<()> {
             }
             args.execute(&project_path)?;
         }
+        Commands::Lexical { args } => {
+            args.execute(&project_path)?;
+        }
         Commands::Impact { entity_name, max_depth, format: _ } => {
             if cli.skip_memgraph {
                 return Err(anyhow!("Impact analysis requires Memgraph. Remove --skip-memgraph."));
@@ -598,4 +625,27 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod main_tests {
+    use super::*;
+
+    /// Regression (deep-dive 2026-10-30 fix 6): filter was hard-coded to
+    /// info, so RUST_LOG was ignored and every query printed INFO lines.
+    #[test]
+    fn test_log_filter_defaults_to_warn_and_honours_rust_log() {
+        assert_eq!(log_filter(false, None), "warn");
+        assert_eq!(log_filter(true, None), "debug");
+        assert_eq!(log_filter(false, Some("codesearch=trace".into())), "codesearch=trace");
+        assert_eq!(log_filter(false, Some("  ".into())), "warn");
+    }
+
+    /// Regression: --skip-qdrant still probed pgvector (refused connection,
+    /// ~5 ms and a warning line per query).
+    #[test]
+    fn test_skip_qdrant_skips_every_vector_probe() {
+        assert_eq!(query_vector_urls(true, "pg", "qd"), (None, None));
+        assert_eq!(query_vector_urls(false, "pg", "qd"), (Some("pg"), Some("qd")));
+    }
 }
