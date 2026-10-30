@@ -23,7 +23,18 @@ set -euo pipefail
 
 TEST_AGE_MIN=${REAP_AGE_MIN_SECONDS:-1800}        # 30 min — orphaned test workers
 INDEXER_AGE_MIN=${REAP_INDEXER_AGE_SECONDS:-1200} # 20 min — stuck codesearch indexers
-LOG="/tmp/reap-orphan-test-workers.log"
+LOG="${REAP_LOG:-/tmp/reap-orphan-test-workers.log}"
+# Test seams: REAP_PS_OUTPUT replaces the live process list with a file;
+# REAP_DRY_RUN=1 logs what would be killed without signalling anything.
+REAP_PS_OUTPUT="${REAP_PS_OUTPUT:-}"
+REAP_DRY_RUN="${REAP_DRY_RUN:-0}"
+reap_kill() {
+    if [ "$REAP_DRY_RUN" = "1" ]; then log "DRY RUN: would kill pid=$1"; return 0; fi
+    kill -9 "$1" 2>/dev/null
+}
+list_procs() {
+    if [ -n "$REAP_PS_OUTPUT" ]; then cat "$REAP_PS_OUTPUT"; else ps -eo pid=,ppid=,etimes=,args=; fi
+}
 
 # RULE A signatures (specific worker entrypoints, NOT generic node):
 #   jest:       jest-worker/build/processChild.js
@@ -42,20 +53,24 @@ while read -r pid ppid etimes args; do
     if [ "$ppid" = "1" ] && [ "$etimes" -gt "$TEST_AGE_MIN" ] \
        && echo "$args" | grep -qE "$WORKER_REGEX"; then
         log "KILL orphaned test worker pid=$pid age=${etimes}s args=${args:0:120}"
-        kill -9 "$pid" 2>/dev/null && killed=$((killed + 1)) || true
+        reap_kill "$pid" && killed=$((killed + 1)) || true
         continue
     fi
 
-    # RULE B: stuck codesearch indexer (parent-agnostic, age is the signal)
+    # RULE B: stuck codesearch indexer (parent-agnostic, age is the signal).
+    # Exempt runs with BOTH --skip-qdrant and --skip-memgraph: they cannot
+    # block on a backend connect, and since py/sh/md got embeddings
+    # (2026-10-29) a legitimate full reindex runs for hours.
     if [ "$etimes" -gt "$INDEXER_AGE_MIN" ] \
-       && echo "$args" | grep -qE "$INDEXER_REGEX"; then
+       && echo "$args" | grep -qE "$INDEXER_REGEX" \
+       && ! { echo "$args" | grep -q -- '--skip-qdrant' && echo "$args" | grep -q -- '--skip-memgraph'; }; then
         log "KILL stuck codesearch indexer pid=$pid age=${etimes}s args=${args:0:120}"
-        kill -9 "$pid" 2>/dev/null && killed=$((killed + 1)) || true
+        reap_kill "$pid" && killed=$((killed + 1)) || true
         # Also clear a stale drain lock so the queue can resume after the hang.
-        rm -f /tmp/codesearch-post-commit.lock 2>/dev/null || true
+        [ "$REAP_DRY_RUN" = "1" ] || rm -f /tmp/codesearch-post-commit.lock 2>/dev/null || true
         continue
     fi
-done < <(ps -eo pid=,ppid=,etimes=,args=)
+done < <(list_procs)
 
 if [ "$killed" -gt 0 ]; then
     log "Reaped $killed leaked worker(s)"
