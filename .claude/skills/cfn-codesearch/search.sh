@@ -2,7 +2,7 @@
 # One search entry point for /codebase-search, /cfn-codesearch-search and
 # /cfn-codesearch:cfn-codebase-search (they were three drifting copies).
 #
-# Usage: search.sh "<question or identifier>" [--top N]
+# Usage: search.sh "<question or identifier>" [--top N] [--semantic]
 #
 # Three steps, each printed only when it finds something:
 #   1. Files:    `codesearch lexical`, BM25 over file path + entity names +
@@ -11,7 +11,7 @@
 #                index has no lexical table yet: identifiers pulled out of the
 #                question, matched against entity names and file paths.
 #   2. Mentions: files that mention those identifiers literally (who uses X).
-#   3. Semantic: local embedding model; no API key needed.
+#   3. Semantic: local embedding model, no API key; only when 1-2 find nothing, or --semantic.
 #
 # Env: CODESEARCH_DB (index, default ~/.local/share/codesearch/index_v2.db),
 #      CODESEARCH_BIN (default ~/.local/bin/local-codesearch),
@@ -24,9 +24,11 @@ set -uo pipefail
 QUERY="${1:-}"
 shift || true
 TOP=5
+SEMANTIC=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --top) TOP="${2:-5}"; shift 2 || shift ;;
+    --semantic) SEMANTIC=1; shift ;;
     *) shift ;;
   esac
 done
@@ -100,8 +102,10 @@ if [ "${#TERMS[@]}" -gt 0 ]; then
   fi
 fi
 
-# 3. Semantic (local model; never reads or needs an API key)
-if [ -x "$BIN" ] && [ -f "$DB" ]; then
+# 3. Semantic (local model; never reads or needs an API key). Fallback only:
+#    on the 2026-10-30 live rerun, steps 1-2 hit 18/20 in ~35 ms and semantic
+#    added ~2 s per query (model load) with no extra hits.
+if { [ "$found" = 0 ] || [ "$SEMANTIC" = 1 ]; } && [ -x "$BIN" ] && [ -f "$DB" ]; then
   # The binary prints its log lines on stdout; keep only result lines, paths relative.
   # cfn: wrapper-side filter, drop once the binary logs to stderr
   sem=$( (cd "$ROOT" && env -u OPENAI_API_KEY "$BIN" query "$QUERY" --max-results "$TOP" --threshold 0.1) 2>/dev/null |

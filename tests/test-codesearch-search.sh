@@ -113,5 +113,17 @@ OUT=$(FAKE_LEXICAL_EMPTY=1 run "Where is reap_kill defined?")
 [[ "$OUT" == *"=== Names ==="*"reap_kill"* ]] && ok "empty lexical (not reindexed) falls back to Names" \
   || bad "empty fallback: '$OUT'"
 
+# 7. Semantic is a fallback (2026-10-30 live rerun: lexical + mentions hit
+#    18/20 in ~35 ms; semantic added 2 s per query and no extra hits). It runs
+#    only when the earlier steps find nothing, or with --semantic.
+OUT=$(run "what stops orphaned workers")
+[[ "$OUT" == *"=== Files ==="* && "$OUT" != *"=== Semantic ==="* ]] && ok "semantic skipped when files found" \
+  || bad "semantic not skipped: '$OUT'"
+OUT=$(run "what stops orphaned workers" --semantic)
+[[ "$OUT" == *"=== Files ==="* && "$OUT" == *"=== Semantic ==="* ]] && ok "--semantic forces semantic" \
+  || bad "--semantic: '$OUT'"
+OUT=$(FAKE_LEXICAL_EMPTY=1 run "what stops orphaned workers")
+[[ "$OUT" == *"=== Semantic ==="* ]] && ok "semantic runs when nothing else found" || bad "no fallback: '$OUT'"
+
 echo "pass=$PASS fail=$FAIL"
 [ "$FAIL" = 0 ]
