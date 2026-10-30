@@ -1,0 +1,9 @@
+#!/bin/bash
+# Post-rewrite: after a rebase, index the files that changed relative to the
+# pre-rebase head. `git commit --amend` also lands here, but post-commit
+# already covers amends, so only rebases are handled.
+[ "${1:-}" = "rebase" ] || exit 0
+HOOK="$HOME/.claude/hooks/cfn-post-commit-codesearch-index.sh"
+git rev-parse -q --verify ORIG_HEAD >/dev/null || exit 0
+[ -x "$HOOK" ] && CFN_CODESEARCH_RANGE="ORIG_HEAD..HEAD" "$HOOK"
+exit 0

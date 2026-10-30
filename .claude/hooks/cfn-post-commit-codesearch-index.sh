@@ -24,9 +24,13 @@ QDRANT_REST="http://localhost:6333"
 # codesearch-memgraph maps bolt to host 7689 (7687 is fireside-memgraph; see
 # ~/.claude/references/project-ports.md). Pointing here avoids the wrong-DB hang.
 MEMGRAPH_BOLT="localhost:7689"
-LOG="/tmp/codesearch-post-commit.log"
-LOCK_FILE="/tmp/codesearch-post-commit.lock"
-QUEUE_DIR="/tmp/codesearch-queue"
+LOG="${CFN_CODESEARCH_LOG:-/tmp/codesearch-post-commit.log}"
+LOCK_FILE="${CFN_CODESEARCH_LOCK_FILE:-/tmp/codesearch-post-commit.lock}"
+QUEUE_DIR="${CFN_CODESEARCH_QUEUE_DIR:-/tmp/codesearch-queue}"
+# Range mode: .husky/post-merge and post-rewrite set this to ORIG_HEAD..HEAD.
+# Without it, commits arriving by pull or rebase were never indexed (~80
+# commits pulled 2026-10-16 left ~60 files missing from the index).
+RANGE="${CFN_CODESEARCH_RANGE:-}"
 
 # Bail if binary or DB missing
 [ -x "$BINARY" ] || exit 0
@@ -48,9 +52,14 @@ log() {
 enqueue() {
     mkdir -p "$QUEUE_DIR"
 
-    local changed_files deleted_files
-    changed_files=$(git diff-tree --no-commit-id --name-status -r HEAD 2>/dev/null | grep -E '^[AMR]' | awk '{print $NF}') || true
-    deleted_files=$(git diff-tree --no-commit-id --name-status -r HEAD 2>/dev/null | grep -E '^D' | awk '{print $2}') || true
+    local name_status changed_files deleted_files
+    if [ -n "$RANGE" ]; then
+        name_status=$(git diff --name-status "$RANGE" 2>/dev/null) || true
+    else
+        name_status=$(git diff-tree --no-commit-id --name-status -r HEAD 2>/dev/null) || true
+    fi
+    changed_files=$(printf '%s\n' "$name_status" | grep -E '^[AMR]' | awk '{print $NF}') || true
+    deleted_files=$(printf '%s\n' "$name_status" | grep -E '^D' | awk '{print $2}') || true
 
     local job
     job="$QUEUE_DIR/$(date +%s%N)-$$.job"

@@ -1,0 +1,8 @@
+#!/bin/bash
+# Post-merge (git pull/merge): index every file the merge brought in.
+# post-commit does not fire for pulls; without this, pulled commits were
+# never indexed (2026-10-29 index-gap RCA).
+HOOK="$HOME/.claude/hooks/cfn-post-commit-codesearch-index.sh"
+git rev-parse -q --verify ORIG_HEAD >/dev/null || exit 0
+[ -x "$HOOK" ] && CFN_CODESEARCH_RANGE="ORIG_HEAD..HEAD" "$HOOK"
+exit 0
