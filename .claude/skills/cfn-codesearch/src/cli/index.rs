@@ -274,6 +274,30 @@ pub struct IndexCommand {
     text_fallback_extractor: TextFallbackExtractor,
 }
 
+/// Paths under `root` that git ignores, as absolute paths. Wholly ignored
+/// directories come back as one entry, so the walker can prune them without
+/// descending. Empty when `root` is not in a git repo or git is missing.
+fn git_ignored_paths(root: &Path) -> std::collections::HashSet<PathBuf> {
+    let out = std::process::Command::new("git")
+        .arg("-C").arg(root)
+        .args(["ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"])
+        .output();
+    match out {
+        Ok(o) if o.status.success() => o.stdout
+            .split(|b| *b == 0)
+            .filter(|p| !p.is_empty())
+            .map(|p| root.join(String::from_utf8_lossy(p).trim_end_matches('/')))
+            .collect(),
+        _ => std::collections::HashSet::new(),
+    }
+}
+
+/// True when git ignores `path`. Anything under `.claude/` is kept: per-project
+/// skills and agents are indexed on purpose even where a project ignores them.
+fn is_git_ignored(path: &Path, ignored: &std::collections::HashSet<PathBuf>) -> bool {
+    ignored.contains(path) && !path.components().any(|c| c.as_os_str() == ".claude")
+}
+
 /// True for an extensionless file that starts with a shebang, when "sh" is
 /// among the requested types. Git hooks (.husky/post-commit) and bin/ tools
 /// have no extension; without this they were never indexed.
@@ -672,6 +696,8 @@ impl IndexCommand {
         info!("Excluded files: {} patterns", EXCLUDED_FILES.len());
 
         let mut files = Vec::new();
+        let ignored = git_ignored_paths(&self.source_path);
+        info!("Git-ignored paths pruned: {}", ignored.len());
 
         let walker = WalkDir::new(&self.source_path)
             .into_iter()
@@ -680,7 +706,7 @@ impl IndexCommand {
 
                 // Exclude build artifacts, dependencies, and sensitive directories
                 // Allow .claude and other important folders (not in EXCLUDED_DIRS)
-                !EXCLUDED_DIRS.contains(&name.as_ref())
+                !EXCLUDED_DIRS.contains(&name.as_ref()) && !is_git_ignored(e.path(), &ignored)
             })
             .filter_map(|e| e.ok())
             .filter(|e| {
@@ -1448,6 +1474,36 @@ function test()"#;
         assert!(!is_extensionless_script(&hook, &no_sh));
         assert!(!is_extensionless_script(&notes, &sh));
         assert!(!is_extensionless_script(&dir.path().join("missing"), &sh));
+    }
+
+    /// Regression (2026-10-31): the walker only knew EXCLUDED_DIRS, so MDTWII's
+    /// gitignored data folders (extracted/, game/, ghidra/: 63 GB, ~46,000
+    /// files) were walked on every 30-minute refresh and leaked 10 entities.
+    /// Paths git ignores are now pruned, except under .claude/ (indexed on purpose).
+    #[test]
+    fn test_gitignored_paths_are_pruned_except_claude_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let git = |args: &[&str]| {
+            assert!(std::process::Command::new("git").arg("-C").arg(root).args(args)
+                .output().unwrap().status.success());
+        };
+        git(&["init", "-q"]);
+        std::fs::write(root.join(".gitignore"), "/extracted\n*.log\n.claude/local/\n").unwrap();
+        for f in ["extracted/meshy/METHOD.md", "src/main.rs", "run.log", ".claude/local/s.sh"] {
+            let p = root.join(f);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(&p, "x\n").unwrap();
+        }
+        let ignored = git_ignored_paths(root);
+        assert!(is_git_ignored(&root.join("extracted"), &ignored), "ignored dir must be pruned");
+        assert!(is_git_ignored(&root.join("run.log"), &ignored), "ignored file must be skipped");
+        assert!(!is_git_ignored(&root.join("src"), &ignored));
+        assert!(!is_git_ignored(&root.join("src/main.rs"), &ignored));
+        assert!(!is_git_ignored(&root.join(".claude/local"), &ignored), ".claude stays indexed");
+
+        let plain = tempfile::tempdir().unwrap();
+        assert!(git_ignored_paths(plain.path()).is_empty(), "not a repo: prune nothing");
     }
 
     #[test]
