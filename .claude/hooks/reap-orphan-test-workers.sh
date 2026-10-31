@@ -44,6 +44,9 @@ WORKER_REGEX='jest-worker/build/processChild\.js|vitest/dist/.*worker|tinypool/d
 
 # RULE B signature: the codesearch binary running an index subcommand.
 INDEXER_REGEX='local-codesearch.* index( |$)'
+# Never reaped: `codesearch serve`, the resident model daemon, is long-lived by
+# design (exits itself after CODESEARCH_SERVE_IDLE_SECS idle, default 30 min).
+SERVE_REGEX='codesearch[^ ]* (.* )?serve( |$)'
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"; }
 
@@ -63,6 +66,7 @@ while read -r pid ppid etimes args; do
     # (2026-10-29) a legitimate full reindex runs for hours.
     if [ "$etimes" -gt "$INDEXER_AGE_MIN" ] \
        && echo "$args" | grep -qE "$INDEXER_REGEX" \
+       && ! echo "$args" | grep -qE "$SERVE_REGEX" \
        && ! { echo "$args" | grep -q -- '--skip-qdrant' && echo "$args" | grep -q -- '--skip-memgraph'; }; then
         log "KILL stuck codesearch indexer pid=$pid age=${etimes}s args=${args:0:120}"
         reap_kill "$pid" && killed=$((killed + 1)) || true

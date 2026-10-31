@@ -50,6 +50,11 @@ INSERT INTO entities VALUES ('/elsewhere/hooks/reap.sh', 1, 'function', 'reap_ki
 FAKE_BIN="$WORK/fake-codesearch"
 cat > "$FAKE_BIN" <<'EOF'
 #!/usr/bin/env bash
+if [[ " $* " == *" serve "* || "$*" == "serve" ]]; then
+  # Record the launch, then stay up like a real daemon would.
+  echo "serve args=$* sid=$(ps -o sid= -p $$ | tr -d ' ') pid=$$" >> "${FAKE_SERVE_MARK:-/dev/null}"
+  sleep 3; exit 0
+fi
 if [[ " $* " == *" lexical "* ]]; then
   # Older installed binaries have no lexical subcommand.
   [ -n "${FAKE_NO_LEXICAL:-}" ] && { echo "error: unrecognized subcommand 'lexical'" >&2; exit 2; }
@@ -61,8 +66,10 @@ echo "LOG noise line"; echo "function f in $PWD/x.sh:1 (similarity: 0.9) key=[${
 EOF
 chmod +x "$FAKE_BIN"
 
+# Daemon disabled by default so earlier steps never spawn it; step 8 enables it.
 run() { (cd "$PROJ" && env -u OPENAI_API_KEY CLAUDE_PROJECT_DIR="$PROJ" CODESEARCH_DB="$DB" \
-          CODESEARCH_BIN="$FAKE_BIN" bash "$SEARCH" "$@" 2>&1); }
+          CODESEARCH_BIN="$FAKE_BIN" CODESEARCH_SOCKET="$WORK/rt/serve.sock" \
+          CODESEARCH_NO_DAEMON="${CODESEARCH_NO_DAEMON-1}" bash "$SEARCH" "$@" 2>&1); }
 # Steps 1 and 4 cover the Names fallback used with binaries that predate `lexical`.
 export FAKE_NO_LEXICAL=1
 
@@ -124,6 +131,57 @@ OUT=$(run "what stops orphaned workers" --semantic)
   || bad "--semantic: '$OUT'"
 OUT=$(FAKE_LEXICAL_EMPTY=1 run "what stops orphaned workers")
 [[ "$OUT" == *"=== Semantic ==="* ]] && ok "semantic runs when nothing else found" || bad "no fallback: '$OUT'"
+
+# 8. Resident model (2026-10-30): search.sh starts `serve` in the background
+#    on first use, never waits for it, and starts only one.
+MARK="$WORK/serve.mark"; : > "$MARK"
+t0=$(date +%s%N)
+OUT=$(CODESEARCH_NO_DAEMON= FAKE_SERVE_MARK="$MARK" run "what stops orphaned workers")
+ms=$(( ($(date +%s%N) - t0) / 1000000 ))
+[[ "$OUT" == *"=== Files ==="* ]] && [ "$ms" -lt 2000 ] && ok "search does not wait for the daemon (${ms} ms)" \
+  || bad "search blocked or broke: ${ms} ms '$OUT'"
+for _ in $(seq 1 40); do [ -s "$MARK" ] && break; sleep 0.05; done
+grep -q "serve args=" "$MARK" && ok "daemon launched on first use" || bad "no serve launch: '$(cat "$MARK")'"
+sid=$(sed -n 's/.* sid=\([0-9]*\) pid=\([0-9]*\)/\1 \2/p' "$MARK" | head -1)
+[ -n "$sid" ] && [ "${sid%% *}" = "${sid##* }" ] && ok "daemon detached in its own session (setsid)" \
+  || bad "daemon not detached: '$(cat "$MARK")'"
+[ -f "$WORK/rt/serve.log" ] && ok "daemon log next to socket" || bad "no log at $WORK/rt/serve.log"
+# Running daemon (socket present, lock held): no second launch.
+mkdir -p "$WORK/rt"; : > "$MARK"
+python3 -c "import socket,sys; s=socket.socket(socket.AF_UNIX); s.bind(sys.argv[1])" "$WORK/rt/serve.sock"
+exec 9>"$WORK/rt/serve.sock.lock"; flock -n 9
+CODESEARCH_NO_DAEMON= FAKE_SERVE_MARK="$MARK" run "what stops orphaned workers" >/dev/null
+sleep 0.3
+[ ! -s "$MARK" ] && ok "no launch while a daemon holds the lock" || bad "relaunched: '$(cat "$MARK")'"
+exec 9>&-
+# Stale socket (daemon died, lock free): relaunch.
+CODESEARCH_NO_DAEMON= FAKE_SERVE_MARK="$MARK" run "what stops orphaned workers" >/dev/null
+for _ in $(seq 1 40); do [ -s "$MARK" ] && break; sleep 0.05; done
+[ -s "$MARK" ] && ok "stale socket: daemon relaunched" || bad "stale socket not relaunched"
+# Opt-out.
+: > "$MARK"; CODESEARCH_NO_DAEMON=1 FAKE_SERVE_MARK="$MARK" run "what stops orphaned workers" >/dev/null; sleep 0.3
+[ ! -s "$MARK" ] && ok "CODESEARCH_NO_DAEMON=1 never launches" || bad "launched despite opt-out"
+
+# 10. Default policy (80-question eval 2026-10-30: fusing semantic into Files
+#     at weight 0.5 hit 76/80 vs 74/80 lexical-only, same bytes): fuse only
+#     while a daemon is alive, so no query pays the ~2 s in-process model load.
+python3 -c "import socket,sys; s=socket.socket(socket.AF_UNIX); s.bind(sys.argv[1])" "$WORK/rt/serve.sock" 2>/dev/null
+exec 9>"$WORK/rt/serve.sock.lock"; flock -n 9
+OUT=$(CODESEARCH_NO_DAEMON= run "what stops orphaned workers")
+[[ "$OUT" == *"--semantic-weight 0.5"* ]] && ok "daemon alive: semantic fused at 0.5 by default" || bad "no default fusion: '$OUT'"
+OUT=$(CODESEARCH_NO_DAEMON= run "what stops orphaned workers" --semantic-weight 0)
+[[ "$OUT" != *"--semantic-weight"* ]] && ok "--semantic-weight 0 turns fusion off" || bad "weight 0: '$OUT'"
+exec 9>&-
+OUT=$(CODESEARCH_NO_DAEMON= run "what stops orphaned workers")
+[[ "$OUT" != *"--semantic-weight"* ]] && ok "daemon not alive: lexical only (no 2 s load)" || bad "fused without daemon: '$OUT'"
+OUT=$(run "what stops orphaned workers")
+[[ "$OUT" != *"--semantic-weight"* ]] && ok "CODESEARCH_NO_DAEMON=1: lexical only" || bad "fused with opt-out: '$OUT'"
+
+# 9. --semantic-weight W fuses semantic into Files via lexical.
+OUT=$(run "what stops orphaned workers" --semantic-weight 0.5)
+[[ "$OUT" == *"--semantic-weight 0.5"* ]] && ok "--semantic-weight passed to lexical" || bad "weight: '$OUT'"
+OUT=$(run "what stops orphaned workers" --semantic-weight 'x;rm')
+[[ "$OUT" != *"--semantic-weight x"* ]] && ok "non-numeric weight ignored" || bad "bad weight passed: '$OUT'"
 
 echo "pass=$PASS fail=$FAIL"
 [ "$FAIL" = 0 ]

@@ -157,6 +157,25 @@ impl EmbeddingsManager {
         })
     }
 
+    /// Local model on the CPU provider regardless of CODESEARCH_DEVICE or the
+    /// gpu feature (the resident `serve` process must never hold GPU memory).
+    pub fn new_cpu_only() -> Result<Self> {
+        let (model, on_gpu) = load_local_model(DevicePlan::Cpu)?;
+        Ok(Self {
+            backend: EmbeddingBackend::Local,
+            openai_api_key: None,
+            http_client: None,
+            local_model: Some(Arc::new(model)),
+            gpu_active: Arc::new(AtomicBool::new(on_gpu)),
+            cpu_fallback: Arc::new(Mutex::new(None)),
+        })
+    }
+
+    /// Whether embeddings currently run on CUDA.
+    pub fn on_gpu(&self) -> bool {
+        self.gpu_active.load(Ordering::Acquire)
+    }
+
     /// Embedding dimension for the active backend
     pub fn dimension(&self) -> usize {
         match self.backend {
@@ -306,6 +325,20 @@ mod device_plan_tests {
     fn plan_device_explicit_cuda_or_auto_uses_gpu() {
         assert_eq!(plan_device(Some("cuda"), None), DevicePlan::Cuda { mem_limit_bytes: 3072 * MIB });
         assert_eq!(plan_device(Some("auto"), None), DevicePlan::Cuda { mem_limit_bytes: 3072 * MIB });
+    }
+
+    /// `serve` is resident for up to 30 min: it must load on CPU even when the
+    /// env asks for CUDA (and in the gpu build). Loads the real model (~1.5 s,
+    /// needs .fastembed_cache in the crate dir).
+    #[test]
+    fn new_cpu_only_never_uses_gpu_even_when_env_asks() {
+        // Process env: only this test reads DEVICE_ENV through new_cpu_only.
+        std::env::set_var(DEVICE_ENV, "cuda");
+        let m = EmbeddingsManager::new_cpu_only().expect("model loads");
+        std::env::remove_var(DEVICE_ENV);
+        assert!(!m.on_gpu());
+        let v = m.generate_embeddings(&["orphan reaper".to_string()]).unwrap();
+        assert_eq!(v[0].len(), LOCAL_DIMENSION);
     }
 
     #[test]

@@ -23,6 +23,8 @@ mod store_qdrant;
 mod store_memgraph;
 mod unified_query;
 mod lexical;
+mod vector_cache;
+mod daemon;
 
 #[cfg(test)]
 mod transaction_tests;
@@ -239,6 +241,15 @@ enum Commands {
     Lexical {
         #[command(flatten)]
         args: cli::lexical::LexicalCommand,
+    },
+    /// Resident CPU embedding server (Unix socket); query/lexical use it when running
+    Serve {
+        /// Print the running daemon's status JSON (exit 1 when not running)
+        #[arg(long)]
+        ping: bool,
+        /// Ask the running daemon to exit
+        #[arg(long)]
+        stop: bool,
     },
     /// Graph dependency queries
     Graph {
@@ -526,6 +537,15 @@ fn main() -> Result<()> {
                 return Err(anyhow!("CodeSearch database not found. Run 'init' and 'index' first."));
             }
             args.execute(&project_path)?;
+        }
+        Commands::Serve { ping, stop } => {
+            if ping {
+                daemon::run_ping()?;
+            } else if stop {
+                daemon::run_stop()?;
+            } else {
+                daemon::run_serve()?;
+            }
         }
         Commands::Lexical { args } => {
             args.execute(&project_path)?;

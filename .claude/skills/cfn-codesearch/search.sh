@@ -2,7 +2,7 @@
 # One search entry point for /codebase-search, /cfn-codesearch-search and
 # /cfn-codesearch:cfn-codebase-search (they were three drifting copies).
 #
-# Usage: search.sh "<question or identifier>" [--top N] [--semantic]
+# Usage: search.sh "<question or identifier>" [--top N] [--semantic] [--semantic-weight W]
 #
 # Three steps, each printed only when it finds something:
 #   1. Files:    `codesearch lexical`, BM25 over file path + entity names +
@@ -12,10 +12,18 @@
 #                question, matched against entity names and file paths.
 #   2. Mentions: files that mention those identifiers literally (who uses X).
 #   3. Semantic: local embedding model, no API key; only when 1-2 find nothing, or --semantic.
+#   --semantic-weight W fuses semantic hits into step 1 (RRF weight W).
+#
+# Resident model: the first search starts `codesearch serve` in the background
+# (CPU only, exits after CODESEARCH_SERVE_IDLE_SECS idle, default 30 min).
+# Later semantic lookups then take ~0.06 s instead of ~2 s. Never waited for;
+# without it the binary loads the model itself. CODESEARCH_NO_DAEMON=1 opts out.
 #
 # Env: CODESEARCH_DB (index, default ~/.local/share/codesearch/index_v2.db),
 #      CODESEARCH_BIN (default ~/.local/bin/local-codesearch),
-#      CLAUDE_PROJECT_DIR (project root; else git toplevel; else cwd).
+#      CLAUDE_PROJECT_DIR (project root; else git toplevel; else cwd),
+#      CODESEARCH_SOCKET (daemon socket; else $XDG_RUNTIME_DIR/codesearch/serve.sock;
+#      else ~/.local/share/codesearch/serve.sock, same order as the binary).
 #
 # Benchmark 2026-10-30: matching the whole question as a name found 0 of 20,
 # and the semantic step only ran when an OpenAI key was present.
@@ -25,14 +33,17 @@ QUERY="${1:-}"
 shift || true
 TOP=5
 SEMANTIC=0
+SEMW=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --top) TOP="${2:-5}"; shift 2 || shift ;;
     --semantic) SEMANTIC=1; shift ;;
+    --semantic-weight) SEMW="${2:-}"; shift 2 || shift ;;
     *) shift ;;
   esac
 done
 [[ "$TOP" =~ ^[0-9]+$ ]] && [ "$TOP" -gt 0 ] || TOP=5
+[[ "$SEMW" =~ ^[0-9]+([.][0-9]+)?$ ]] || SEMW=""
 if [ -z "$QUERY" ]; then
   echo "usage: search.sh \"<query>\" [--top N]" >&2
   exit 2
@@ -42,6 +53,41 @@ DB="${CODESEARCH_DB:-$HOME/.local/share/codesearch/index_v2.db}"
 BIN="${CODESEARCH_BIN:-$HOME/.local/bin/local-codesearch}"
 ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 ROOT="${ROOT%/}"
+
+# Resident model daemon: start in the background if none is running. A live
+# daemon holds an flock on <socket>.lock; a socket file whose lock is free is
+# stale (crash) and gets replaced. Concurrent launches are harmless: the loser
+# finds the lock taken and exits before loading anything.
+if [ -n "${CODESEARCH_SOCKET:-}" ]; then SOCK="$CODESEARCH_SOCKET"
+elif [ -n "${XDG_RUNTIME_DIR:-}" ]; then SOCK="${XDG_RUNTIME_DIR%/}/codesearch/serve.sock"
+else SOCK="$HOME/.local/share/codesearch/serve.sock"; fi
+daemon_alive() {
+  [ "${CODESEARCH_NO_DAEMON:-}" = 1 ] && return 1
+  [ -S "$SOCK" ] || return 1
+  command -v flock >/dev/null 2>&1 || return 0   # cannot tell: assume alive
+  ! flock -n "$SOCK.lock" true 2>/dev/null       # lock held: alive
+}
+start_daemon() {
+  [ "${CODESEARCH_NO_DAEMON:-}" = 1 ] && return 0
+  [ -x "$BIN" ] || return 0
+  daemon_alive && return 0
+  local dir="${SOCK%/*}"
+  mkdir -p "$dir" 2>/dev/null && chmod 700 "$dir" 2>/dev/null
+  local detach=(); command -v setsid >/dev/null 2>&1 && detach=(setsid)
+  # Redirect the whole background job, or it holds the caller's stdout pipe open.
+  (cd "$ROOT" && exec "${detach[@]}" nohup "$BIN" serve) </dev/null >>"$dir/serve.log" 2>&1 &
+  return 0
+}
+start_daemon
+
+# Semantic fusion policy. 80-question eval (2026-10-30, 4 question sets, 3
+# repos): weight 0.5 hit 76/80 vs 74/80 lexical-only at the same output size
+# (0.15: 74, 1: 76, 2: 74, 4: 72; a separate Semantic section: 74, 2x bytes).
+# Default on only while the daemon answers (~0.06 s); in-process fusion would
+# add a ~2 s model load per query. --semantic-weight 0 turns it off.
+DEFAULT_SEMW=0.5
+if [ -z "$SEMW" ] && daemon_alive; then SEMW="$DEFAULT_SEMW"; fi
+[[ "$SEMW" =~ ^0*([.]0*)?$ ]] && SEMW=""
 
 # Identifiers: tokens holding - _ . / or an inner capital (camelCase), with
 # surrounding punctuation stripped. Plain English words are left to step 3.
@@ -59,7 +105,7 @@ lexical_ok=0
 if [ -x "$BIN" ] && [ -f "$DB" ]; then
   # Empty output also falls back: projects not reindexed since `lexical` landed
   # have no rows in its table yet.
-  files=$( (cd "$ROOT" && "$BIN" --project-dir "$ROOT" lexical "$QUERY" -n "$TOP" --db "$DB") 2>/dev/null) || files=""
+  files=$( (cd "$ROOT" && "$BIN" --project-dir "$ROOT" lexical "$QUERY" -n "$TOP" --db "$DB" ${SEMW:+--semantic-weight "$SEMW"}) 2>/dev/null) || files=""
   if [ -n "$files" ]; then
     lexical_ok=1
     echo "=== Files ==="; echo "$files"; echo; found=1
@@ -108,7 +154,7 @@ fi
 if { [ "$found" = 0 ] || [ "$SEMANTIC" = 1 ]; } && [ -x "$BIN" ] && [ -f "$DB" ]; then
   # The binary prints its log lines on stdout; keep only result lines, paths relative.
   # cfn: wrapper-side filter, drop once the binary logs to stderr
-  sem=$( (cd "$ROOT" && env -u OPENAI_API_KEY "$BIN" query "$QUERY" --max-results "$TOP" --threshold 0.1) 2>/dev/null |
+  sem=$( (cd "$ROOT" && env -u OPENAI_API_KEY "$BIN" --skip-qdrant query "$QUERY" --max-results "$TOP" --threshold 0.1) 2>/dev/null |
     grep -E ' in .+:[0-9]+ \(similarity' | sed "s| in $ROOT/| in |")
   if [ -n "$sem" ]; then
     echo "=== Semantic ==="; echo "$sem"; found=1

@@ -83,8 +83,7 @@ impl LexicalCommand {
         let hits = lexical_results(
             &conn, &root, &self.query, self.max_results, self.md_weight, self.semantic_weight,
             || {
-                let q = crate::query_v2::QueryV2::new(&db_path)?;
-                Ok(q.search(&self.query, CANDIDATES, 0.0, project_dir)?
+                Ok(crate::daemon::semantic_search(&db_path, &self.query, CANDIDATES, 0.0, project_dir)?
                     .into_iter()
                     .map(|r| r.file_path)
                     .collect())

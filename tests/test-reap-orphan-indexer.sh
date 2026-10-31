@@ -15,7 +15,8 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REAPER="$REPO_ROOT/.claude/hooks/reap-orphan-test-workers.sh"
+# REAPER_UNDER_TEST lets a mutated copy prove the tests can fail.
+REAPER="${REAPER_UNDER_TEST:-$REPO_ROOT/.claude/hooks/reap-orphan-test-workers.sh}"
 source "$REPO_ROOT/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
 
 PASS=0
@@ -33,6 +34,8 @@ cat > "$PS_FAKE" <<'EOF'
  900002 1 5000 local-codesearch --project-dir . --qdrant-url http://localhost:6334 index --path src --types rs
  900003 1 60 local-codesearch --project-dir . --qdrant-url http://localhost:6334 index --path src
  900004 1 5000 local-codesearch --project-dir . --skip-qdrant index --path src
+ 900005 1 5000 /srv/u/.local/bin/local-codesearch serve
+ 900006 1 9000 /tmp/build/codesearch --project-dir /srv/u/proj serve
 EOF
 
 REAP_PS_OUTPUT="$PS_FAKE" REAP_DRY_RUN=1 REAP_LOG="$LOGF" bash "$REAPER"
@@ -43,6 +46,10 @@ grep -q "pid=900001" "$LOGF" 2>/dev/null && bad "backend-free full reindex was r
 grep -q "KILL stuck codesearch indexer pid=900002" "$LOGF" 2>/dev/null && ok "old backend-connected indexer reaped" || bad "old backend-connected indexer not reaped"
 grep -q "pid=900003" "$LOGF" 2>/dev/null && bad "young indexer reaped" || ok "young indexer left alone"
 grep -q "KILL stuck codesearch indexer pid=900004" "$LOGF" 2>/dev/null && ok "half-skipped (memgraph live) indexer reaped" || bad "half-skipped indexer not reaped"
+# The resident model daemon (2026-10-30) lives up to 30 min idle by design,
+# detached (PPID 1); it is not a hung indexer.
+grep -q "pid=900005" "$LOGF" 2>/dev/null && bad "serve daemon was reaped" || ok "serve daemon spared"
+grep -q "pid=900006" "$LOGF" 2>/dev/null && bad "serve daemon (dev build) was reaped" || ok "dev-build serve daemon spared"
 grep -q "DRY RUN" "$LOGF" 2>/dev/null && ok "dry run logged, nothing killed" || bad "dry-run marker missing"
 
 echo "pass=$PASS fail=$FAIL"

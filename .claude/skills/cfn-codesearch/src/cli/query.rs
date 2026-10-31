@@ -33,7 +33,7 @@ pub struct QueryConfig {
 pub struct QueryCommand {
     project_dir: PathBuf,
     config: QueryConfig,
-    query_v2: QueryV2,
+    db_path: PathBuf,
     pgvector_store: Option<PgvectorStore>,
     qdrant_store: Option<QdrantStore>,
     embeddings_manager: Option<EmbeddingsManager>,
@@ -57,8 +57,8 @@ impl QueryCommand {
         let canonical_project_dir = path_validator::canonicalize(project_dir)?;
         debug!("Project root canonicalized: {}", canonical_project_dir.display());
 
+        // The model is loaded only if the in-process path runs (no daemon).
         let db_path = get_database_path()?;
-        let query_v2 = QueryV2::new(&db_path)?;
 
         // Single tokio runtime for all async stores
         let rt = tokio::runtime::Runtime::new()?;
@@ -119,7 +119,7 @@ impl QueryCommand {
                 context_lines,
                 file_filter,
             },
-            query_v2,
+            db_path,
             pgvector_store,
             qdrant_store,
             embeddings_manager,
@@ -185,7 +185,7 @@ impl QueryCommand {
             }).collect()
         } else {
             info!("Using SQLite for search");
-            self.query_v2.search(&self.config.query, max_results, threshold, &self.project_dir)?
+            crate::daemon::semantic_search(&self.db_path, &self.config.query, max_results, threshold, &self.project_dir)?
         };
 
         // Filter by file if specified
