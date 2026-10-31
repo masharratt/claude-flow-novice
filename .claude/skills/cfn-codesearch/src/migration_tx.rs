@@ -28,9 +28,31 @@ impl MigrationWithTx {
 
         // Ensure atomic migration - if anything fails, rollback everything
         let migration_result = (|| {
+            // Step 0: move the v1 tables (`embeddings`, `files`) aside as old_* so the
+            // v2 `files` table can be created under its own name and the data readers
+            // below find their source tables.
+            for (v1, old) in [("embeddings", "old_embeddings"), ("files", "old_files")] {
+                let exists = tx.prepare(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?"
+                )?.exists([v1])?;
+                if exists {
+                    tx.execute_batch(&format!("ALTER TABLE {} RENAME TO {};", v1, old))?;
+                }
+            }
+
             // Step 1: Create new v2 schema
             info!("Creating v2 schema");
             SchemaV2::initialize(&tx)?;
+            // file_hashes backs incremental indexing (store_v2_tx, cli/index.rs) and is
+            // required by validate_migration; SchemaV2::initialize does not create it.
+            tx.execute(
+                "CREATE TABLE IF NOT EXISTS file_hashes (
+                    file_path TEXT PRIMARY KEY,
+                    file_hash TEXT NOT NULL,
+                    indexed_at INTEGER NOT NULL
+                )",
+                [],
+            )?;
 
             // Step 2: Migrate file data
             info!("Migrating file metadata");
@@ -42,12 +64,17 @@ impl MigrationWithTx {
 
             // Step 4: Create backup of old tables and drop them
             info!("Creating backup of v1 tables");
-            tx.execute_batch(
-                r#"
-                ALTER TABLE embeddings RENAME TO embeddings_v1_backup;
-                ALTER TABLE files RENAME TO files_v1_backup;
-                "#
-            )?;
+            for (old, backup) in [
+                ("old_embeddings", "embeddings_v1_backup"),
+                ("old_files", "files_v1_backup"),
+            ] {
+                let exists = tx.prepare(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?"
+                )?.exists([old])?;
+                if exists {
+                    tx.execute_batch(&format!("ALTER TABLE {} RENAME TO {};", old, backup))?;
+                }
+            }
 
             Ok::<(), anyhow::Error>(())
         })();
@@ -177,7 +204,7 @@ impl MigrationWithTx {
                 let embedding: Vec<u8> = row.get(2)?;
                 let metadata: String = row.get(3)?;
                 let created_at: u64 = row.get(4)?;
-                let _file_hash: String = row.get(5)?;
+                let _file_hash: Option<String> = row.get(5)?; // nullable in v1
 
                 batch_count += 1;
 

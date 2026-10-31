@@ -133,7 +133,7 @@ fn test_atomic_file_indexing_with_rollback() -> Result<()> {
         Ok(())
     });
 
-    assert!(result.is_ok());
+    assert!(result.is_ok(), "migration: {:?}", result);
 
     // Verify new entities were inserted
     let count: i64 = conn.query_row(
@@ -258,10 +258,10 @@ fn test_schema_migration_atomic() -> Result<()> {
     let db_path = dir.path().join("test_migration.db");
     let mut conn = Connection::open(&db_path)?;
 
-    // Create v1 tables
+    // Create v1 tables (real v1 names: `embeddings`, `files`)
     conn.execute_batch(
         r#"
-        CREATE TABLE old_files (
+        CREATE TABLE files (
             id INTEGER PRIMARY KEY,
             path TEXT NOT NULL,
             hash TEXT,
@@ -269,7 +269,7 @@ fn test_schema_migration_atomic() -> Result<()> {
             patterns_count INTEGER
         );
 
-        CREATE TABLE old_embeddings (
+        CREATE TABLE embeddings (
             id INTEGER PRIMARY KEY,
             pattern TEXT NOT NULL,
             embedding BLOB,
@@ -278,11 +278,11 @@ fn test_schema_migration_atomic() -> Result<()> {
             file_hash TEXT
         );
 
-        INSERT INTO old_files (path, hash, patterns_count) VALUES
+        INSERT INTO files (path, hash, patterns_count) VALUES
             ('/old_file.rs', 'hash123', 3),
             ('/old_file2.rs', 'hash456', 5);
 
-        INSERT INTO old_embeddings (pattern, embedding, metadata, created_at) VALUES
+        INSERT INTO embeddings (pattern, embedding, metadata, created_at) VALUES
             ('fn test1()', x'01020304', '{"path": "/old_file.rs", "line_number": 10}', 1234567890),
             ('struct TestStruct', x'05060708', '{"path": "/old_file.rs", "line_number": 20}', 1234567891);
         "#
@@ -291,11 +291,11 @@ fn test_schema_migration_atomic() -> Result<()> {
     // Run atomic migration - requires mutable connection
     let result = crate::migration_tx::MigrationWithTx::migrate_v1_to_v2_atomic(&mut conn);
 
-    assert!(result.is_ok());
+    assert!(result.is_ok(), "migration: {:?}", result);
 
     // Validate migration
     let validation_result = crate::migration_tx::MigrationWithTx::validate_migration(&conn);
-    assert!(validation_result.is_ok());
+    assert!(validation_result.is_ok(), "validation: {:?}", validation_result);
 
     // Check v2 tables exist
     let v2_tables = ["entities", "entity_embeddings", "files"];
@@ -317,7 +317,7 @@ fn test_schema_migration_atomic() -> Result<()> {
 
     // Check old tables were renamed
     let backup_exists = conn.prepare(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='old_embeddings_v1_backup'"
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='embeddings_v1_backup'"
     )?.exists([])?;
     assert!(backup_exists, "Backup table should exist");
 

@@ -23,6 +23,14 @@ impl MigrationManager {
     
     /// Get the current schema version
     pub fn current_version(&self) -> Result<u32> {
+        // A fresh or pre-versioned database has no schema_version table yet.
+        let has_version_table = self.conn.prepare(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_version'"
+        )?.exists([])?;
+        if !has_version_table {
+            return if self.has_v1_tables()? { Ok(1) } else { Ok(0) };
+        }
+
         let mut stmt = self.conn.prepare(
             "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1"
         )?;
