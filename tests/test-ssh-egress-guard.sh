@@ -42,8 +42,11 @@ has "$OUT" "iptables -A CFN_SSH_EGRESS -o lo -j RETURN" && ok "loopback allowed"
 has "$OUT" "iptables -A CFN_SSH_EGRESS -o tailscale0 -j RETURN" && ok "tailscale iface allowed" || bad "no tailscale0 allow"
 has "$OUT" "iptables -A CFN_SSH_EGRESS -d 100.64.0.0/10 -j RETURN" && ok "tailscale v4 range allowed" || bad "no 100.64/10 allow"
 has "$OUT" "ip6tables -A CFN_SSH_EGRESS -d fd7a:115c:a1e0::/48 -j RETURN" && ok "tailscale v6 range allowed" || bad "no fd7a allow"
-has "$OUT" "iptables -A CFN_SSH_EGRESS -m comment --comment cfn-ssh-egress -j REJECT" && ok "v4 default reject" || bad "no v4 reject"
-has "$OUT" "ip6tables -A CFN_SSH_EGRESS -m comment --comment cfn-ssh-egress -j REJECT" && ok "v6 default reject" || bad "no v6 reject"
+# Regression (2026-10-31): `--reject-with tcp-reset` without `-p tcp` is refused
+# by iptables ("RULE_APPEND failed (Invalid argument)"), so the live install
+# had no reject rule and port 22 stayed open.
+has "$OUT" "iptables -A CFN_SSH_EGRESS -p tcp -m comment --comment cfn-ssh-egress -j REJECT --reject-with tcp-reset" && ok "v4 default reject (tcp)" || bad "no valid v4 reject"
+has "$OUT" "ip6tables -A CFN_SSH_EGRESS -p tcp -m comment --comment cfn-ssh-egress -j REJECT --reject-with tcp-reset" && ok "v6 default reject (tcp)" || bad "no valid v6 reject"
 has "$OUT" "iptables -I OUTPUT -p tcp --dport 22 -j CFN_SSH_EGRESS" && ok "OUTPUT jumps on tcp/22 only" || bad "no OUTPUT jump"
 
 # Reject must come after every allow, or the allows are dead.
@@ -69,6 +72,18 @@ RC=$?
 if [ "$(id -u)" != 0 ]; then
   [ "$RC" != 0 ] && has "$OUT" "root" && ok "real apply refuses without root" || bad "non-root apply rc=$RC: $OUT"
 fi
+
+# Regression (2026-10-31): a failed rule append was ignored and apply printed
+# "outbound port 22 blocked" anyway, so the outage was silent. Simulate root
+# with stubs where only the REJECT append fails.
+mkdir -p "$WORK/failbin"
+for t in iptables ip6tables; do
+  printf '#!/usr/bin/env bash\ncase "$*" in *REJECT*) echo "RULE_APPEND failed" >&2; exit 4 ;; *" -C "*) exit 1 ;; esac\nexit 0\n' > "$WORK/failbin/$t"
+  chmod +x "$WORK/failbin/$t"
+done
+OUT=$(PATH="$WORK/failbin:$PATH" CFN_SSH_EGRESS_UID=0 bash "$GUARD" apply 2>&1); RC=$?
+[ "$RC" != 0 ] && has "$OUT" "RULE_APPEND failed" && ok "apply fails when a rule is refused" || bad "refused rule not detected (rc=$RC): $OUT"
+has "$OUT" "blocked except" && bad "claimed success after refused rule" || ok "no false success message"
 
 OUT=$(bash "$GUARD" bogus 2>&1); RC=$?
 [ "$RC" = 2 ] && ok "unknown command exits 2" || bad "unknown command rc=$RC"

@@ -44,7 +44,10 @@ done
 
 die() { echo "ssh-egress-guard: $*" >&2; exit 1; }
 run() { if [ "$DRY" = 1 ]; then echo "$*"; else "$@"; fi; }
-need_root() { [ "$(id -u)" = 0 ] || die "must run as root (try: sudo $0 $CMD)"; }
+# must: like run, but a refused rule is remembered so apply can fail loudly.
+FAILED=0
+must() { run "$@" || { echo "ssh-egress-guard: rule refused: $*" >&2; FAILED=1; }; }
+need_root() { [ "${CFN_SSH_EGRESS_UID:-$(id -u)}" = 0 ] || die "must run as root (try: sudo $0 $CMD)"; }
 
 V4_EXTRA=()
 V6_EXTRA=()
@@ -64,15 +67,17 @@ parse_allow() {
 build_family() {  # $1 = iptables|ip6tables, $2 = tailscale range, rest = extra allows
   local t="$1" ts="$2" e; shift 2
   if [ "$DRY" = 1 ]; then echo "$t -N $CHAIN"; else "$t" -N "$CHAIN" 2>/dev/null || true; fi
-  run "$t" -F "$CHAIN"
-  run "$t" -A "$CHAIN" -o lo -j RETURN
-  run "$t" -A "$CHAIN" -o tailscale0 -j RETURN
-  run "$t" -A "$CHAIN" -d "$ts" -j RETURN
-  for e in "$@"; do run "$t" -A "$CHAIN" -d "$e" -j RETURN; done
-  run "$t" -A "$CHAIN" -m comment --comment "$TAG" -j REJECT --reject-with tcp-reset
+  must "$t" -F "$CHAIN"
+  must "$t" -A "$CHAIN" -o lo -j RETURN
+  must "$t" -A "$CHAIN" -o tailscale0 -j RETURN
+  must "$t" -A "$CHAIN" -d "$ts" -j RETURN
+  for e in "$@"; do must "$t" -A "$CHAIN" -d "$e" -j RETURN; done
+  # tcp-reset is only valid on a rule that matches -p tcp
+  must "$t" -A "$CHAIN" -p tcp -m comment --comment "$TAG" -j REJECT --reject-with tcp-reset
   if [ "$DRY" = 1 ] || ! "$t" -C OUTPUT -p tcp --dport 22 -j "$CHAIN" 2>/dev/null; then
-    run "$t" -I OUTPUT -p tcp --dport 22 -j "$CHAIN"
+    must "$t" -I OUTPUT -p tcp --dport 22 -j "$CHAIN"
   fi
+  [ "$FAILED" = 0 ]
 }
 
 drop_family() {  # $1 = iptables|ip6tables
