@@ -141,5 +141,6 @@ Every commit updates `readme/feature-status.md` and `readme/state-machines.md` (
 | Nitpicky repo | `~/.claude/references/nitpicky-repo.md` | nitpicky skill/UI work |
 | Browser-only frontend traps | `~/.claude/references/frontend-browser-traps.md` | frontend test green in jsdom only |
 | RTK commands | `~/.claude/references/rtk.md` | rtk savings, rtk misbehaves |
+| Desktop disks (WSL) | `~/.claude/references/desktop-disks.md` | disk space low, big caches or build output, moving data, WSL disk attach/shrink/grow |
 
 @RTK.md
