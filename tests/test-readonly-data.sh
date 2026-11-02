@@ -130,6 +130,72 @@ test_unwritable_settings_exits_3_chmod_applied(){
   chmod u+w "$SETTINGS"; run "$REPO" unlock
 }
 
+# Out-of-repo real paths: accepted only under a root listed in
+# <repo>/.zai-fence-readonly-roots (one absolute folder per line).
+OUT_ROOT="$T/outside"; FAKEHOME="$T/fakehome"
+mkdir -p "$OUT_ROOT/data/sub" "$OUT_ROOT/other" "$FAKEHOME/data"
+echo k > "$OUT_ROOT/data/sub/k.txt"; echo k > "$OUT_ROOT/other/k.txt"; echo k > "$FAKEHOME/data/k.txt"
+ROOTS="$REPO/.zai-fence-readonly-roots"
+writable(){ [ -n "$(find "$1" -perm -u+w -print -quit 2>/dev/null)" ]; }
+
+test_outside_unlisted_refused(){
+  rm -f "$ROOTS"; chmod -R u+w "$OUT_ROOT"
+  printf '%s\n' "$OUT_ROOT/data" > "$REPO/.zai-fence-readonly"
+  run "$REPO" lock
+  [ "$RC" -eq 1 ] && writable "$OUT_ROOT/data" && ok "outside_unlisted_refused" \
+    || no "outside_unlisted_refused: rc=$RC out=$OUT"
+}
+
+test_outside_listed_locked(){
+  printf '# roots\n\n%s\n' "$OUT_ROOT" > "$ROOTS"
+  rm -f "$SETTINGS"
+  run "$REPO" lock
+  [ "$RC" -eq 0 ] && ! writable "$OUT_ROOT/data" && [ "$(deny)" = "[\"$OUT_ROOT/data\"]" ] \
+    && ok "outside_listed_locked_and_denywrite" || no "outside_listed_locked: rc=$RC deny=$(deny) out=$OUT"
+  run "$REPO" status
+  [ "$RC" -eq 0 ] && grep -q 'locked' <<<"$OUT" && ok "outside_listed_status_locked" || no "outside_listed_status: rc=$RC out=$OUT"
+  run "$REPO" unlock
+  [ "$RC" -eq 0 ] && writable "$OUT_ROOT/data" && ok "outside_listed_unlock" || no "outside_listed_unlock: rc=$RC out=$OUT"
+}
+
+test_outside_other_root_entry_refused(){
+  printf '%s\n' "$OUT_ROOT/other" > "$REPO/.zai-fence-readonly"
+  printf '%s\n' "$OUT_ROOT/data" > "$ROOTS"
+  run "$REPO" lock
+  [ "$RC" -eq 1 ] && writable "$OUT_ROOT/other" && ok "outside_every_root_refused" || no "outside_every_root_refused: rc=$RC out=$OUT"
+}
+
+test_home_refused_even_if_listed(){
+  printf '%s\n' "$FAKEHOME" > "$ROOTS"
+  local e
+  for e in "$FAKEHOME" "$FAKEHOME/data"; do
+    printf '%s\n' "$e" > "$REPO/.zai-fence-readonly"
+    OUT=$(cd "$REPO" && HOME="$FAKEHOME" "$TOOL" lock 2>&1); RC=$?
+    [ "$RC" -eq 1 ] && writable "$FAKEHOME/data" && ok "home_refused_even_if_listed:${e#"$T"/}" \
+      || no "home_refused_even_if_listed:$e rc=$RC out=$OUT"
+  done
+}
+
+test_repo_root_and_slash_refused_as_roots(){
+  local r
+  for r in "/" "$REPO"; do
+    printf '%s\n' "$r" > "$ROOTS"
+    printf '%s\n' "$OUT_ROOT/data" > "$REPO/.zai-fence-readonly"
+    run "$REPO" lock
+    [ "$RC" -eq 1 ] && writable "$OUT_ROOT/data" && ok "root_refused:$r" || no "root_refused:$r rc=$RC out=$OUT"
+  done
+}
+
+test_two_entries_one_bad_changes_nothing(){
+  printf '%s\n' "$OUT_ROOT" > "$ROOTS"
+  printf '%s\n%s\n' "$OUT_ROOT/data" "$T" > "$REPO/.zai-fence-readonly"
+  rm -f "$SETTINGS"
+  run "$REPO" lock
+  [ "$RC" -eq 1 ] && writable "$OUT_ROOT/data" && [ ! -e "$SETTINGS" ] \
+    && ok "two_entries_one_bad_changes_nothing" || no "two_entries_one_bad: rc=$RC out=$OUT"
+  rm -f "$ROOTS"
+}
+
 test_no_list_exits_2
 test_lock_blocks_delete_through_symlink
 test_unlock_restores_writes
@@ -140,6 +206,12 @@ test_relock_no_duplicates
 test_unlock_removes_only_its_paths
 test_lock_creates_settings_when_absent
 test_unwritable_settings_exits_3_chmod_applied
+test_outside_unlisted_refused
+test_outside_listed_locked
+test_outside_other_root_entry_refused
+test_home_refused_even_if_listed
+test_repo_root_and_slash_refused_as_roots
+test_two_entries_one_bad_changes_nothing
 
 echo "readonly-data: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

@@ -6,6 +6,9 @@
 # Usage: readonly-data.sh lock|unlock|status
 #   Reads <repo>/.zai-fence-readonly (one path per line, relative to the main
 #   checkout's root, # comments) plus ZAI_FENCE_READONLY (colon-separated).
+#   Optional <repo>/.zai-fence-readonly-roots (absolute folders, # comments):
+#   an entry whose real path is outside the repo is accepted only under one of
+#   them; /, $HOME and the repo root are refused as roots even if listed.
 #   Works from a worktree: paths resolve against the repo that owns it.
 #   lock    chmod -R a-w each listed path (run after a rebuild), and merge each
 #           path's realpath into <root>/.claude/settings.local.json at
@@ -35,6 +38,28 @@ HOME_R=$(realpath "$HOME")
 ENTRIES=$(cfn_ro_entries "$ROOT")
 [ -n "$ENTRIES" ] || die "no entries in $ROOT/.zai-fence-readonly or ZAI_FENCE_READONLY; nothing is protected" 2
 
+# Optional allowlist of out-of-repo roots: <repo>/.zai-fence-readonly-roots,
+# one absolute folder per line (# comments, blank lines ok). /, $HOME and the
+# repo root are never accepted as roots, even if listed.
+ROOTS=()
+if [ -f "$ROOT/.zai-fence-readonly-roots" ]; then
+    while IFS= read -r r || [ -n "$r" ]; do
+        r="${r%%#*}"; r="${r#"${r%%[![:space:]]*}"}"; r="${r%"${r##*[![:space:]]}"}"
+        case "$r" in /*) ;; *) continue ;; esac
+        [ -d "$r" ] || continue
+        r=$(realpath "$r") || continue
+        case "$r" in /|"$HOME_R"|"$ROOT") continue ;; esac
+        ROOTS+=("$r")
+    done < "$ROOT/.zai-fence-readonly-roots"
+fi
+under_listed_root(){
+    local r
+    for r in ${ROOTS[@]+"${ROOTS[@]}"}; do
+        case "$1" in "$r"|"$r"/*) return 0 ;; esac
+    done
+    return 1
+}
+
 # Validate every entry before touching anything.
 PATHS=(); MISSING=()
 while IFS= read -r e; do
@@ -45,7 +70,7 @@ while IFS= read -r e; do
     case "$p" in
         /|"$HOME_R"|"$ROOT") die "refusing entry '$e': resolves to $p" ;;
         "$ROOT"/*) ;;
-        *) die "refusing entry '$e': $p is outside $ROOT" ;;
+        *) under_listed_root "$p" || die "refusing entry '$e': $p is outside $ROOT and not under a root in .zai-fence-readonly-roots" ;;
     esac
     PATHS+=("$p")
 done <<<"$ENTRIES"
