@@ -60,6 +60,8 @@ bash $HOME/.claude/skills/cfn-night-mode/night-mode.sh report [--ack] [--since Y
 bash $HOME/.claude/skills/cfn-night-mode/night-mode.sh doctor [--install]
 ```
 
+Surface night-mode decisions only when `status` says pending review: yes OR a new night's slug has rows. Historical proposed rows are not open asks.
+
 Window precedence for `report`: `--since` > pending marker > flag start timestamp > today. State lives in `$HOME/.claude/` (dotfiles: `.night-mode-active`, `.night-mode-pending-review`, `.night-mode-events.log`) unless overridden. Test/sandbox overrides: `CFN_NIGHT_MODE_DIR`, `CFN_NIGHT_SETTINGS`, `DB_PATH`.
 
 ## Hooks

@@ -49,3 +49,8 @@ task does not rerun; a new shell runs it (`~/.bashrc` block "WSL cache relocatio
   `wsl.exe -u root -e /usr/sbin/resize2fs /dev/<dev>` (find it by label: `lsblk -o NAME,SIZE,LABEL`; device names
   change between restarts).
 - Changing the logon task: `C:\Users\masha\setup-build-disk.ps1` (two-disk version) recreates both disks and the task.
+
+## MDTWII path details
+- In the MDTWII main checkout (`~/projects/MDTWII`), `.git/mdtwii-warm` resolves into the churn disk; the old `/mnt/wsl/build/mdtwii-warm/env.sh` is only a forwarding path. Do not assume another project's or a linked worktree's `.git` has this layout.
+- Workshop trials/cache resolve to churn. Permanent study/archive/cc0/prepared/bodies/approved/refs/references/intake resolve into `/mnt/wsl/build/art-permanent`.
+- Protected out-of-repo data roots are listed in `.zai-fence-readonly-roots`; keep that allowlist aligned with physical extracted-data storage when moving it.

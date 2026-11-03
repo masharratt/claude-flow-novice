@@ -24,3 +24,7 @@ Never set `CARGO_TARGET_DIR` to `/dev/shm` or `/run/shm` (RAM-backed; debug targ
 - New database tables MUST have Row Level Security (RLS) policies before deployment
 - HTTP responses must include security headers (HSTS, CSP, X-Frame-Options) via shared middleware
 - SQL queries must use explicit schema qualification or connection-level schema setting. Never rely on search_path defaults.
+
+## Cargo flags across shells
+- Do not store a multi-package cargo argument list in an unquoted string: zsh does not split it. Use explicit flags or a bash script with an argument array and `"${args[@]}"`.
+- Verify the command actually reached its intended tests; an immediate package-ID argument error is not a code failure.

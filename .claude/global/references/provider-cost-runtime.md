@@ -28,3 +28,8 @@ Adding any Anthropic provider integration requires explicit user permission per 
 
 - Reasoning models reject `temperature` parameters. Use a wrapper that detects and strips it.
 - Reasoning tokens consume `max_completion_tokens` budget. Set 4x normal or output will be silently empty.
+
+## GLM billing checks
+- Keep z.ai credentials and GLM workers on the local workstation. Never copy the token to a server or run a GLM worker there.
+- Establish the authorized billing mode before treating an API Usage Billing banner as evidence of extra spend; verify the applicable billing context rather than inferring charges from the banner alone.
+- Size authorized GLM work by dependencies, CPU and review capacity.

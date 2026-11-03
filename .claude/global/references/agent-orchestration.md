@@ -29,3 +29,7 @@ Never block on `Monitor` waiting for a subagent notification. Never treat a size
 ## Tests inside agents (user decision 2026-10-28)
 
 Helpers may run the single test file they are working on, to see it go red then green. Only the main session runs full suites. (Replaces the older "never run tests inside agents" rule, which contradicted TDD-by-subagent.)
+
+## Shell watchdog PID
+- Read the tracked shell PID from the matching newest row, column one, in `/tmp/cfn-shell-watch/<session>.tsv`, or from the hook's printed PID. Create the watched marker for that PID.
+- Do not use pgrep head output for the marker: it may identify ssh/vps.sh or another child rather than the shell tracked by the Stop hook.

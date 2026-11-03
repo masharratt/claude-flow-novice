@@ -27,3 +27,7 @@ which rtk             # Verify correct binary
 
 All other commands are automatically rewritten by the Claude Code hook (`rtk-rewrite.sh`, PreToolUse).
 Example: `git status` → `rtk git status` (transparent, 0 tokens overhead)
+
+## Raw comparison and file lists
+- For file equivalence use cmp, sha256sum or Python difflib. A wrapped diff reporting identical is not sufficient evidence; use `rtk proxy diff` for the actual changed lines.
+- Generate machine-readable file lists with Python or find -printf, not wrapped ls, which may append sizes. Inspect the final names before passing lists to an image screen or script.

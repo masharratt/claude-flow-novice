@@ -140,7 +140,9 @@ Every commit updates `readme/feature-status.md` and `readme/state-machines.md` (
 | Signed-in Chrome (playwright-mcp) | `~/.claude/references/playwright-signed-chrome.md` | wiring a signed-in browser |
 | Nitpicky repo | `~/.claude/references/nitpicky-repo.md` | nitpicky skill/UI work |
 | Browser-only frontend traps | `~/.claude/references/frontend-browser-traps.md` | frontend test green in jsdom only |
-| RTK commands | `~/.claude/references/rtk.md` | rtk savings, rtk misbehaves |
+| RTK commands | `~/.claude/references/rtk.md` | rtk savings, rtk misbehaves, raw file comparison or machine-readable file lists |
+| Shell safety | `~/.claude/references/shell-safety.md` | rewriting a file from the shell, replacing a running script, backups across sandboxes, killing processes |
+| Desktop operations | `~/.claude/references/desktop-operations.md` | desktop heat, swap, sensor, TCP, stale-session or session-PID diagnosis |
 | Desktop disks (WSL) | `~/.claude/references/desktop-disks.md` | disk space low, big caches or build output, moving data, WSL disk attach/shrink/grow |
 
 @RTK.md

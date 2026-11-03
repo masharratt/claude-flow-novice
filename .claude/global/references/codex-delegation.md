@@ -81,3 +81,10 @@ message, and the retired `gpt-5.2-codex` draws the identical line. Never conclud
 that a model is unavailable to the account. Misread that way on 2026-09-04, and two audits
 ran on the default model as a result. Check `~/.codex/models_cache.json` for the live slug
 list before substituting anything.
+
+## Scripted-agent pitfalls
+- Bound individual command time separately from the agent's total task time. Long queue waits can outlive a tool command; verify the job itself completed, not a wrapper's detached done marker.
+- The recorded harness cut commands near 196 seconds; treat that as version-specific diagnosis, not a permanent Codex limit. Read current local CLI help before relying on timeout/resume flags.
+- For the observed resume interface, run from the intended session folder and set sandbox mode explicitly; do not assume initial-call -C/-s options exist on resume.
+- With claude -p, pass prompts on stdin when --allowedTools accepts a list, or that list may consume the positional prompt. User settings/hooks can steer a scripted trial; record inherited settings and authorized billing mode.
+- Run fair agent trials in the daytime when inherited night-mode hooks steer a scripted trial. Do not use a bare/API-key workaround to suppress hooks: it changes billing, and dropping user settings also drops the Bash sandbox. Preserve the authorized billing mode and required sandbox/authority boundaries.
