@@ -111,8 +111,9 @@ Never use terse (caveman) mode in Subagent prompts, plan artifacts (PLAN, SPEC, 
 - **Bug fixes start with a reproducing test.** Write a test that fails with the current bug before touching production code.
 
 ### Debugging Protocol
-- **Root cause first:** Trace the symptom back through data flow before proposing any fix.
+- **Root cause first:** Trace the symptom back through data flow before proposing any fix. After one failed fix, name the cause with evidence before the next; never repeat the same method.
 - **3-strike rule:** If 3 hypotheses fail, stop and escalate to the user.
+- **Shared-source defect:** list everything built on it before fixing.
 - **No "quick fix for now":** Fix it right or escalate.
 - **Red flags:** Proposing a fix before tracing data flow = guessing. Each fix revealing a new problem elsewhere = wrong architectural layer. Both mean stop and reassess.
 

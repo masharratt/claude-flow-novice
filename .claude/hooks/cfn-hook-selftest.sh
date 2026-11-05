@@ -204,7 +204,7 @@ while IFS= read -r path; do
         fail "missing: $path"
     elif [ -L "$resolved" ] && [ ! -e "$(readlink -f "$resolved")" ]; then
         fail "broken symlink: $path -> $(readlink "$resolved")"
-    elif [ ! -x "$resolved" ] && ! echo "$REGISTERED_CMDS" | grep -q "bash[[:space:]]*[^|]*$(basename "$resolved")"; then
+    elif [ ! -x "$resolved" ] && ! grep -q "bash[[:space:]]*[^|]*$(basename "$resolved")" <<< "$REGISTERED_CMDS"; then
         # Invoked bare (not via `bash <path>`) but lacks the exec bit: this is
         # the Permission-denied-swallowed-by-|| true case.
         fail "not executable and not invoked via bash: $path"
@@ -218,7 +218,7 @@ done <<< "$(echo "$REGISTERED_CMDS" | grep -oE '[$A-Za-z0-9_./-]+\.(sh|js|py)' |
 # hides it. This is the idiom that made the March breakage invisible.
 say ""
 say "guard idioms"
-if echo "$REGISTERED_CMDS" | grep -q '\[ -f "[^"]*\.\(sh\|js\|py\)"'; then
+if grep -q '\[ -f "[^"]*\.\(sh\|js\|py\)"' <<< "$REGISTERED_CMDS"; then
     fail "a registered hook guards an exec target with [ -f ] (use [ -x ])"
 else
     pass "no [ -f ]-guarded exec targets"
@@ -268,7 +268,10 @@ for script in "$HOOKS_DIR"/*.sh; do
     # ALL_REGISTERED_CMDS, not REGISTERED_CMDS: registration in ANY project
     # counts. Using the own-settings-only set here is what let a hook wired
     # into 16 projects be reported as "registered nowhere".
-    if echo "$ALL_REGISTERED_CMDS" | grep -q "$base"; then
+    # Here-string, never `echo "$VAR" | grep -q`: under pipefail, grep -q's
+    # early exit SIGPIPEs echo's later write chunks and a registered hook is
+    # randomly reported as an orphan (2026-11-05, ~1 run in 40, blocked a commit).
+    if grep -q -- "$base" <<< "$ALL_REGISTERED_CMDS"; then
         [ "$ORPHANS_ONLY" -eq 1 ] || pass "$base"
     else
         orphan_msg="$base is on disk but registered nowhere (register it, or mark it '# cfn-selftest: not-a-hook <reason>')"

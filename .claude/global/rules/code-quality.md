@@ -60,6 +60,7 @@ globs: "**/*"
 
 ## Checks, Tests and Scripted Edits
 - **Guards name their failure:** emit `missing=[...] unexpected=[...]`, never a bare count or boolean; report population size; exit 2 on zero rows read.
-- **Watch every new test go red** before trusting it: distinct fixture ids per identity axis, real-DB test for raw SQL, fixture shape checked against the validator.
+- **A written limit needs an automated check.** A rule no hook, test or guard enforces gets skipped.
+- **Watch every new test or check go red** before trusting it, and run a control on any new kind of failure: distinct fixture ids per identity axis, real-DB test for raw SQL, fixture shape checked against the validator.
 - **Scripted edits:** compute content before opening for write; never trust a clean `git apply --unidiff-zero`.
-- Detail and incidents for all three: load `~/.claude/references/verification-traps.md` when writing a guard, a new test, or a scripted edit.
+- Detail and incidents for guards, tests and scripted edits: load `~/.claude/references/verification-traps.md` when writing a guard, a new test, or a scripted edit.
