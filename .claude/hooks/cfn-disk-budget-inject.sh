@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cfn-selftest: not-a-hook disabled 2026-11-05 by user (MDTWII tracks disk); re-wire under UserPromptSubmit to enable.
 # cfn-disk-budget-inject - UserPromptSubmit hook. If the disk budget watchdog
 # (cfn-disk-budget.sh) wrote disk-alert.json and it is newer than the last ack, inject one line
 # of additionalContext, once per session per alert. `--ack` records the acknowledgement.
