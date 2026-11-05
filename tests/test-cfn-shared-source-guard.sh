@@ -9,8 +9,9 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GUARD="$ROOT/.claude/hooks/cfn-shared-source-guard.sh"
 
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/ssg-test-XXXXXX")
-trap 'rm -rf "$TMP"' EXIT
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/ssg-test-XXXXXX") || exit 1
+trap 'cfn_safe_rm_tmp "$TMP"' EXIT
 export XDG_RUNTIME_DIR="$TMP/run"; mkdir -p "$XDG_RUNTIME_DIR"
 unset CFN_SHARED_SOURCE_GUARD CFN_SHARED_SOURCE_THRESHOLD CFN_SHARED_SOURCE_MAX_PATHS
 export CFN_SSG_CODESEARCH_BIN="$TMP/none"      # no index by default
@@ -101,7 +102,7 @@ echo "lib/shared-part.sh (score: 30)"
 EOS
 chmod +x "$FAKE"; : > "$TMP/none.db"
 export CFN_SSG_CODESEARCH_BIN="$FAKE" CFN_SSG_CODESEARCH_DB="$TMP/none.db"
-rm -rf "$XDG_RUNTIME_DIR/cfn-guards"
+cfn_safe_rm_tmp "$XDG_RUNTIME_DIR/cfn-guards"
 OUT=$(run "$(payload "$REPO/lib/shared-part.sh" i1)"); C=$(ctx "$OUT")
 [[ "$C" == *"count=6"* && "$C" != *"solo.sh"* && "$C" != *"- lib/shared-part.sh"* ]] && ok "index used; unverified + self candidates dropped" || no "index ctx=[$C]"
 [ "$(wc -l < "$TMP/calls")" -eq 1 ] && ok "index called once" || no "index calls=$(wc -l < "$TMP/calls")"

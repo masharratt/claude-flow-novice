@@ -9,11 +9,12 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GUARD="$ROOT/.claude/hooks/cfn-fanout-guard.sh"
 
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/fanout-test-XXXXXX")
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/fanout-test-XXXXXX") || exit 1
 export XDG_RUNTIME_DIR="$TMP/run"
 mkdir -p "$XDG_RUNTIME_DIR"
 unset CFN_FANOUT_WINDOW CFN_FANOUT_THRESHOLD CFN_FANOUT_GUARD CLAUDE_CODE_SESSION_ID 2>/dev/null || true
-trap 'rm -rf "$TMP"' EXIT
+trap 'cfn_safe_rm_tmp "$TMP"' EXIT
 
 PASS=0; FAIL=0
 ok(){ echo "PASS: $1"; PASS=$((PASS+1)); }

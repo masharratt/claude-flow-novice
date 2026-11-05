@@ -25,6 +25,7 @@
 set -euo pipefail
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$SKILL_DIR/../../cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
 EXE="$SKILL_DIR/execute.sh"
 SOCK="tagents-spawn-$$"
 export TMUX_AGENTS_AUTH_TIMEOUT=1
@@ -33,12 +34,12 @@ export TMUX_AGENTS_TRUST_TIMEOUT=1
 export TMUX_AGENTS_SUBMIT_VERIFY=2
 export TMUX_AGENTS_SUBMIT_RETRIES=2
 
-TD=$(mktemp -d)
+TD=$(mktemp -d) || exit 1
 PASS=0 FAIL=0 TOTAL=0
 cleanup() {
   tmux -L "$SOCK" kill-server 2>/dev/null || true
   tmux -L "$SOCK-p" kill-server 2>/dev/null || true
-  rm -rf "$TD"
+  cfn_safe_rm_tmp "$TD"
 }
 trap cleanup EXIT
 ok()  { TOTAL=$((TOTAL+1)); PASS=$((PASS+1)); echo "  PASS: $1"; }

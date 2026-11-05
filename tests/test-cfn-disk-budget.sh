@@ -13,8 +13,9 @@ eq(){ [ "$1" = "$2" ] && ok || bad "$3: expected [$1] got [$2]"; }
 has(){ case "$1" in *"$2"*) ok;; *) bad "$3: missing [$2] in [$1]";; esac; }
 hasnt(){ case "$1" in *"$2"*) bad "$3: unexpected [$2]";; *) ok;; esac; }
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
 S="$(mktemp -d "${TMPDIR:-/tmp}/cfn-disk-test.XXXXXX")" || exit 1
-trap 'case "$S" in "${TMPDIR:-/tmp}"/cfn-disk-test.*) rm -rf -- "$S";; esac' EXIT
+trap 'cfn_safe_rm_tmp "$S"' EXIT
 export CFN_DISK_STATE_DIR="$S/state" CFN_DISK_FAKE_DF="$S/df" CFN_DISK_NOTIFY_CMD="$S/notify.sh"
 export CFN_DISK_ROOTS="$S/proj/*:$S/tmpx" XDG_RUNTIME_DIR="$S/run"
 printf '#!/usr/bin/env bash\necho "$@" >> "%s/notified"\n' "$S" > "$S/notify.sh"; chmod +x "$S/notify.sh"
@@ -37,14 +38,14 @@ has "$J" '"mount": "/"' mount; has "$J" '"drop_gb"' drop
 eq "$S/proj/b" "$(jq -r '.growers[0].path' "$ALERT" 2>/dev/null)" "top grower"
 has "$(cat "$S/notified" 2>/dev/null)" error "notified"
 CASE="floor breach (<10%)"
-rm -rf "$S/state"; setdf 60000; run; has "$(jq -r '.alerts[0].reasons|join(",")' "$ALERT" 2>/dev/null)" floor "floor reason"
+cfn_safe_rm_tmp "$S/state"; setdf 60000; run; has "$(jq -r '.alerts[0].reasons|join(",")' "$ALERT" 2>/dev/null)" floor "floor reason"
 CASE="floor breach, small drop: reuses growers, no rescan"
 J1=$(jq -c .growers "$ALERT"); setdf 59900; run; eq "$J1" "$(jq -c .growers "$ALERT")" "growers reused"
 CASE="du is /usr/bin/du"; grep -q 'bare du' "$CHK" && ok || bad "no du note"; grep -qE '(^|[ |;(`$])du ' "$CHK" && bad "bare du call" || ok
 CASE="--crontab prints line, installs nothing"
 OUT=$(bash "$CHK" --crontab); has "$OUT" cfn-disk-budget.sh crontab; has "$OUT" '*/' schedule
 CASE="inject: silent without alert"
-rm -rf "$S/state"; OUT=$(echo '{"session_id":"s1"}' | bash "$INJ"); eq "" "$OUT" "silent"
+cfn_safe_rm_tmp "$S/state"; OUT=$(echo '{"session_id":"s1"}' | bash "$INJ"); eq "" "$OUT" "silent"
 CASE="inject: one-liner on alert, ack silences"
 setdf 500000; run; setdf 100000; run
 OUT=$(echo '{"session_id":"s2","hook_event_name":"UserPromptSubmit"}' | bash "$INJ")

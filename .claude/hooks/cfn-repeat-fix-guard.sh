@@ -104,9 +104,9 @@ ensure_scope() { # ensure_scope <dir>: create, pruning stale siblings on first u
     local d="$1" old
     [ -d "$d" ] && return 0
     mkdir -p "$d" 2>/dev/null || return 1
-    while IFS= read -r old; do
-        case "$old" in "$STATE_ROOT"/?*) rm -rf -- "$old" ;; esac
-    done < <(find "$STATE_ROOT" -mindepth 1 -maxdepth 1 -type d -mtime +"$TTL_DAYS" 2>/dev/null)
+    # find bounds the delete to direct children of STATE_ROOT (no variable rm target).
+    [ -n "$STATE_ROOT" ] && [ "$STATE_ROOT" != / ] && \
+        find "$STATE_ROOT" -mindepth 1 -maxdepth 1 -type d -mtime +"$TTL_DAYS" -exec rm -rf -- {} + 2>/dev/null || true
     return 0
 }
 
