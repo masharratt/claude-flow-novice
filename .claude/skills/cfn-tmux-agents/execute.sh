@@ -5,6 +5,7 @@
 #
 # Exit codes: 0 ok | 64 usage | 3 tmux missing | 65 unknown engine/session
 #             66 env/guard refusal or launch failure | 68 banner timeout
+#             69 prompt typed but not submitted (session left alive)
 
 set -euo pipefail
 
@@ -156,8 +157,27 @@ cmd_spawn() {
   resolved=$(_ta_engine_resolve_set "$engine") || exit "$?"
   set_raw=$(_ta_engine_field "$engine" 4)
 
+  # BUG codex-no-banner (11-04): the pane resolved the engine itself; with
+  # codex gone from every PATH, `exec codex` killed the pane and spawn showed
+  # only an empty "no banner match". Resolve bin and its #! interpreter here,
+  # before any side effect, and exec the absolute path. Dry-run only warns.
+  local bin_abs interp
+  if bin_abs=$(_ta_resolve_bin "$bin"); then
+    interp=$(_ta_shebang_interp "$bin_abs")
+    if [ -n "$interp" ] && ! _ta_resolve_bin "$interp" >/dev/null; then
+      [ "$dry_run" = 1 ] || _ta_die 66 "spawn: engine '$engine' binary $bin_abs needs interpreter '$interp' (from its #! line), which is not on this shell's PATH"
+      echo "WARN spawn: interpreter '$interp' for $bin_abs not on this shell's PATH" >&2
+    fi
+    bin="$bin_abs"
+  else
+    [ "$dry_run" = 1 ] || _ta_die 66 "spawn: engine '$engine' binary '$bin' not found or not executable (looked up in this shell's PATH; pass --bin /abs/path)"
+    echo "WARN spawn: engine binary '$bin' not found on this shell's PATH" >&2
+  fi
+
   # The pane command: one literal line, exec so the pane dies with the engine.
-  local pane_cmd="unset ${unset_raw//,/ }; exec $bin${args_str:+ $args_str}"
+  local pane_cmd bin_q
+  bin_q=$(printf '%q' "$bin")
+  pane_cmd="unset ${unset_raw//,/ }; exec $bin_q${args_str:+ $args_str}"
 
   [ -n "$trust_timeout" ] || trust_timeout=$(_ta_env_seconds TMUX_AGENTS_TRUST_TIMEOUT 15)
   [ -n "$banner_timeout" ] || banner_timeout=$(_ta_env_seconds TMUX_AGENTS_BANNER_TIMEOUT 20)
@@ -184,6 +204,9 @@ cmd_spawn() {
     [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
     _ta_die 66 "spawn: tmux new-session failed for $name (duplicate session name? socket: $TA_SOCK)"
   fi
+  # Keep a pane that dies before its banner, so its error text and exit
+  # status can be printed; switched off again once the banner shows.
+  tmux -L "$TA_SOCK" set-option -w -t "$name" remain-on-exit on 2>/dev/null || true
   if ! tmux -L "$TA_SOCK" send-keys -t "$name" -l "$CFN_SPAWN_LAUNCH_LINE"; then
     [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
     _ta_die 66 "spawn: could not reach pane $name (session died at launch?)"
@@ -232,12 +255,26 @@ cmd_spawn() {
     banner_line=$(_ta_pane_wait "$TA_SOCK" "$name" "$banner_re" "$banner_timeout" || true)
   fi
   if [ -z "$banner_line" ]; then
-    echo "spawn: $name: no banner match within ${banner_timeout}s (regex: $banner_re); last pane lines:" >&2
-    tmux -L "$TA_SOCK" capture-pane -p -t "$name" 2>/dev/null | tail -n 10 >&2
+    # Blank lines stripped: a dead pane's text sits at the top of a mostly
+    # empty screen, and a plain `tail` printed only blanks. `|| true`: under
+    # pipefail a vanished session used to abort here with rc 1 and no dump.
+    # tmux 3.4 leaves #{pane_dead_status} empty here, so the status comes
+    # from its "Pane is dead (status N, ...)" marker line.
+    local pane_raw pane_tail dead_status=""
+    pane_raw=$(tmux -L "$TA_SOCK" capture-pane -p -S -200 -t "$name" 2>/dev/null \
+      | sed -e 's/\r$//' -e 's/[[:space:]]*$//' -e '/^$/d' || true)
+    pane_tail=$(printf '%s\n' "$pane_raw" | grep -v '^Pane is dead' | tail -n 10 || true)
+    if [ "$(tmux -L "$TA_SOCK" display-message -p -t "$name" '#{pane_dead}' 2>/dev/null || true)" = 1 ]; then
+      dead_status=$(printf '%s\n' "$pane_raw" | sed -n 's/^Pane is dead (status \([0-9]*\).*/\1/p' | tail -n 1)
+      echo "spawn: $name: engine exited with status ${dead_status:-unknown} before its banner; last pane lines:" >&2
+    else
+      echo "spawn: $name: no banner match within ${banner_timeout}s (regex: $banner_re); last pane lines:" >&2
+    fi
+    printf '%s\n' "${pane_tail:-(pane empty or gone)}" >&2
     # SHADOW: jev classifies the miss tail (logs only); never blocks the dump + exit 68 below.
     tail_file=$(mktemp) || tail_file=""
     if [ -n "$tail_file" ]; then
-      tmux -L "$TA_SOCK" capture-pane -p -t "$name" 2>/dev/null | tail -n 10 > "$tail_file" 2>/dev/null || true
+      printf '%s\n' "$pane_tail" > "$tail_file" 2>/dev/null || true
       timeout 5 "$HOME/.claude/skills/cfn-tmux-agents/lib/jev-outcome.sh" \
         --name "$name" --engine "$engine" --tail-file "$tail_file" >/dev/null 2>&1 || true
       rm -f "$tail_file"
@@ -245,6 +282,7 @@ cmd_spawn() {
     tmux -L "$TA_SOCK" kill-session -t "$name" 2>/dev/null || true
     exit 68
   fi
+  tmux -L "$TA_SOCK" set-option -w -t "$name" remain-on-exit off 2>/dev/null || true
   echo "spawned $name engine=$engine cwd=$cwd banner=\"$banner_line\""
 
   if [ -n "$prompt_file" ]; then
@@ -253,7 +291,12 @@ cmd_spawn() {
     prompt=$(cat "$prompt_file")
   fi
   if [ -n "$prompt" ]; then
-    _ta_send_text "$TA_SOCK" "$name" "$prompt"
+    local send_rc=0
+    _ta_send_text "$TA_SOCK" "$name" "$prompt" || send_rc=$?
+    if [ "$send_rc" -ne 0 ]; then
+      echo "spawn: $name: prompt typed but not submitted (input line never cleared after Enter retries). Session left alive; inspect with: execute.sh capture $name --socket $TA_SOCK, or submit with: tmux -L $TA_SOCK send-keys -t $name Enter" >&2
+      exit 69
+    fi
   fi
 
   # Auth probe after the first request: a relay token the banner cannot see

@@ -219,8 +219,10 @@ test_watcher() {
   watch_case codex
   run_env bash "$WATCH" once --nudge
   assert_rc 0 "pass ok"
-  local want="You have mail: run $T/home/.claude/skills/cfn-mailbox/mailbox.sh read, then answer each message with the Reply line under it."
+  local want="You have mail: run $T/home/.claude/skills/cfn-mailbox/mailbox.sh read. Reply (with the Reply line under it) only to messages that ask something or need your result; never reply to fyi or acknowledgements."
   assert_eq "send-keys -t main:1.0 -l -- $want" "$(sed -n 1p "$T/tmuxlog")" "codex text typed"
+  assert_not_contains "$(sed -n 1p "$T/tmuxlog")" "answer each message" "codex nudge must not say answer each message (ack-loop bug)"
+  assert_contains "$(sed -n 1p "$T/tmuxlog")" "never reply to fyi" "codex nudge says not to reply to fyi"
   assert_eq "send-keys -t main:1.0 Enter" "$(sed -n 2p "$T/tmuxlog")" "then Enter"
   assert_match "$(cat "$CACHE/state-s1")" '^busy [0-9]+$' "state busy after codex nudge"
 

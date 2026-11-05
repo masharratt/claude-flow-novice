@@ -72,7 +72,12 @@ Env knobs: `TMUX_AGENTS_SOCKET` (default `tmux-agents`),
 (the skill picks those up).
 
 Exit codes: 0 ok, 64 usage, 3 tmux missing, 65 unknown engine/session,
-66 env/guard refusal or launch failure, 68 banner timeout (session killed).
+66 env/guard refusal or launch failure (incl. engine binary or its #!
+interpreter not found on the launching shell's PATH), 68 banner timeout or
+engine died before its banner (session killed; pane text and exit status
+printed), 69 prompt typed but never submitted (session left alive).
+Prompt submit knobs: `TMUX_AGENTS_SUBMIT_SETTLE` (1), `TMUX_AGENTS_SUBMIT_VERIFY`
+(3), `TMUX_AGENTS_SUBMIT_RETRIES` (3).
 
 ### Engines
 
@@ -148,6 +153,7 @@ only readback.
 
 ```bash
 $HOME/.claude/skills/cfn-tmux-agents/tests/test-agents.sh
+$HOME/.claude/skills/cfn-tmux-agents/tests/test-spawn-path.sh
 ```
 
 21 assertions against fake engine binaries (`tests/fake-engine.sh`,

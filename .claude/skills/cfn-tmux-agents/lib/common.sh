@@ -33,6 +33,8 @@ _ta_pane_wait() {
   local sock="$1" tgt="$2" re="$3" timeout="$4" i=0 line
   local max=$((timeout * 5))
   while [ "$i" -lt "$max" ]; do
+    # a dead pane (kept by remain-on-exit) will never match: stop polling
+    [ "$(tmux -L "$sock" display-message -p -t "$tgt" '#{pane_dead}' 2>/dev/null || echo 1)" = 1 ] && return 1
     line=$(tmux -L "$sock" capture-pane -p -t "$tgt" 2>/dev/null \
       | sed -e 's/\r$//' -e 's/[[:space:]]*$//' -e '/^$/d' \
       | grep -v -E -- 'exec |--model |send-keys|^unset |cfn-spawn-launch' \
@@ -117,11 +119,102 @@ _ta_claude_repo_settings_warn() {
   return 0
 }
 
-# _ta_send_text SOCK TARGET TEXT — initial prompt: literal text then Enter,
-# back to back (the worker is idle right after its banner).
+# _ta_resolve_bin BIN — absolute path of the engine binary, resolved in the
+# LAUNCHING shell (a leading $HOME or ~ is expanded; a bare name goes
+# through this shell's PATH). rc 1 when it does not exist or is not
+# executable. Spawn calls this before any side effect: a missing binary
+# used to surface only as a dead pane and an empty "no banner match" dump.
+_ta_resolve_bin() {
+  local b="$1" p
+  # shellcheck disable=SC2016,SC2088  # literal $HOME / ~ from the registry
+  case "$b" in '$HOME/'*) b="${HOME}/${b#\$HOME/}" ;; '~/'*) b="${HOME}/${b#\~/}" ;; esac
+  if [[ "$b" == */* ]]; then
+    [ -f "$b" ] && [ -x "$b" ] || return 1
+    printf '%s\n' "$b"
+    return 0
+  fi
+  p=$(type -P -- "$b" 2>/dev/null) || return 1
+  [ -n "$p" ] || return 1
+  printf '%s\n' "$p"
+}
+
+# _ta_shebang_interp FILE — for a script whose #! line names an interpreter
+# (`#!/usr/bin/env node`, `#!/usr/bin/env -S node --flag`, `#!/bin/bash`),
+# print that interpreter's name or path; print nothing for binaries.
+_ta_shebang_interp() {
+  local f="$1" line w
+  local -a words=()
+  [ "$(head -c 2 "$f" 2>/dev/null || true)" = "#!" ] || return 0
+  line=$(head -n 1 "$f" 2>/dev/null | tr -d '\r') || return 0
+  read -r -a words <<< "${line#\#!}"
+  [ "${#words[@]}" -gt 0 ] || return 0
+  if [ "$(basename "${words[0]}")" = "env" ]; then
+    for w in "${words[@]:1}"; do
+      case "$w" in -*|*=*) continue ;; esac
+      printf '%s\n' "$w"
+      return 0
+    done
+    return 0
+  fi
+  printf '%s\n' "${words[0]}"
+}
+
+# _ta_pane_cursor_line SOCK TARGET — the visible pane line holding the
+# cursor, trailing space stripped. TUIs (Claude Code 2.1.318, measured
+# 2026-11-05) park the cursor at the end of the input text.
+_ta_pane_cursor_line() {
+  local y
+  y=$(tmux -L "$1" display-message -p -t "$2" '#{cursor_y}' 2>/dev/null) || return 1
+  [[ "$y" =~ ^[0-9]+$ ]] || return 1
+  tmux -L "$1" capture-pane -p -t "$2" 2>/dev/null \
+    | sed -n "$((y + 1))p" | sed -e 's/\r$//' -e 's/[[:space:]]*$//'
+}
+
+# _ta_input_pending SOCK TARGET TEXT — rc 0 when the input line still holds
+# TEXT: the cursor line is non-empty and its last few chars are the tail of
+# TEXT's last line (works when the text wraps), or a paste placeholder.
+_ta_input_pending() {
+  local cl tail k
+  cl=$(_ta_pane_cursor_line "$1" "$2") || return 1
+  [ -n "$cl" ] || return 1
+  case "$cl" in *"[Pasted text"*) return 0 ;; esac
+  tail="${3##*$'\n'}"
+  tail="${tail%"${tail##*[![:space:]]}"}"
+  [ -n "$tail" ] || return 1
+  k=12
+  [ "${#cl}" -lt "$k" ] && k="${#cl}"
+  [ "${#tail}" -lt "$k" ] && k="${#tail}"
+  [ "${tail: -$k}" = "${cl: -$k}" ]
+}
+
+# _ta_send_text SOCK TARGET TEXT — initial prompt with verified submit.
+# BUG prompt-not-submitted (Claude Code 2.1.318, 11-03/11-04): text and
+# Enter sent back to back right after the banner left the text in the input
+# box; the fresh TUI took the text but dropped the Enter. Now: type, wait for
+# the echo, settle, Enter, then verify the input line cleared; retry Enter a
+# bounded number of times. rc 2 when the input never clears.
+# Knobs: TMUX_AGENTS_SUBMIT_SETTLE (s, 1), TMUX_AGENTS_SUBMIT_VERIFY (s per
+# try, 3), TMUX_AGENTS_SUBMIT_RETRIES (extra Enters, 3).
 _ta_send_text() {
-  tmux -L "$1" send-keys -t "$2" -l "$3" || return 1
-  tmux -L "$1" send-keys -t "$2" Enter
+  local sock="$1" tgt="$2" text="$3" i n try retries verify
+  retries=$(_ta_env_seconds TMUX_AGENTS_SUBMIT_RETRIES 3)
+  verify=$(_ta_env_seconds TMUX_AGENTS_SUBMIT_VERIFY 3)
+  tmux -L "$sock" send-keys -t "$tgt" -l "$text" || return 1
+  # echo wait: up to 5s for the text to show on the input line
+  for ((i = 0; i < 25; i++)); do
+    _ta_input_pending "$sock" "$tgt" "$text" && break
+    sleep 0.2
+  done
+  sleep "${TMUX_AGENTS_SUBMIT_SETTLE:-1}"
+  for ((try = 0; try <= retries; try++)); do
+    tmux -L "$sock" send-keys -t "$tgt" Enter || return 1
+    n=$((verify * 5))
+    for ((i = 0; i < n; i++)); do
+      sleep 0.2
+      _ta_input_pending "$sock" "$tgt" "$text" || return 0
+    done
+  done
+  return 2
 }
 
 # _ta_send_followup SOCK TARGET TEXT — mid-turn follow-up. Sending text and

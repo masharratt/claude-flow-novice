@@ -107,7 +107,7 @@ MSG_ID_RE='^[A-Za-z0-9_-]{1,64}$'
 # Typed into idle tmux panes by mailbox-watch.sh; the hook keeps the taint flag on a prompt equal to it.
 NUDGE_TEXT="You have mail: run /mail read"
 # Same, for a Codex pane (no slash commands there): the launcher codex-mail.sh marks such a session with client-<name>.
-NUDGE_TEXT_CODEX="You have mail: run $HOME/.claude/skills/cfn-mailbox/mailbox.sh read, then answer each message with the Reply line under it."
+NUDGE_TEXT_CODEX="You have mail: run $HOME/.claude/skills/cfn-mailbox/mailbox.sh read. Reply (with the Reply line under it) only to messages that ask something or need your result; never reply to fyi or acknowledgements."
 MB_SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/mailbox.sh"
 CACHE_DIR="$HOME/.cache/cfn-mailbox"
 REPLY_WAKE_MIN=40       # a reply shorter than this never wakes anyone ("got it", "thanks")
