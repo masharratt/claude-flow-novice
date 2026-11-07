@@ -29,9 +29,11 @@
 # Server scripts run as `bash -c SCRIPT _ ARGS...`: host.sh %q-quotes each word,
 # so ~ and $HOME only expand inside the script, never in an argument.
 
-# Preflight, args: clone bare wt base_ref. Prints facts; the Mac decides.
+# Preflight, args: clone bare wt base_ref allow_paths (space separated,
+# validated by _spawn_remote_allow_write). Prints facts; the Mac decides.
 _SPAWN_REMOTE_PREFLIGHT='
-clone="$1"; bare="$2"; wt="$3"; baseref="$4"
+clone="$1"; bare="$2"; wt="$3"; baseref="$4"; allow="${5:-}"
+for p in $allow; do [ -e "$p" ] || echo "ALLOW_MISSING $p"; done
 if [ ! -d "$clone/.git" ]; then
   echo NOCLONE
 else
@@ -307,6 +309,7 @@ _spawn_remote(){
   [[ "$gitremote" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] \
     || fleet_die 64 "spawn: FLEET_HOST_REMOTE '$gitremote' is not a safe git remote name"
   _spawn_remote_limits
+  _spawn_remote_allow_write
 
   # 1. Server home, once: later steps use absolute paths, never ~ expansion.
   home=$(_fleet_host_run "$host" bash -c 'printf %s "$HOME"') || rc=$?
@@ -322,7 +325,8 @@ _spawn_remote(){
 
   # 2. Preflight (read-only on the server).
   rc=0
-  out=$(_fleet_host_run "$host" bash -c "$_SPAWN_REMOTE_PREFLIGHT" _ "$clone" "$bare" "$wt" "fleet-base/$ws") || rc=$?
+  out=$(_fleet_host_run "$host" bash -c "$_SPAWN_REMOTE_PREFLIGHT" _ "$clone" "$bare" "$wt" "fleet-base/$ws" \
+    "${_SPAWN_REMOTE_ALLOW[*]-}") || rc=$?
   [ "$rc" -eq 0 ] || fleet_die 66 "spawn: host $host is unreachable over ssh (rc $rc); $ws left pending"
   local wt_exists=0 base_exists=0 srv_commit="" bwrap_ok=0 socat_ok=0 scope_ok=0
   while IFS= read -r line; do
@@ -346,6 +350,8 @@ _spawn_remote(){
       SANDBOX_BWRAP_OK) bwrap_ok=1 ;;
       SANDBOX_SOCAT_OK) socat_ok=1 ;;
       SCOPE_OK) scope_ok=1 ;;
+      "ALLOW_MISSING "*)
+        echo "WARN spawn: FLEET_REMOTE_ALLOW_WRITE path ${line#ALLOW_MISSING } does not exist on $host; the sandbox may not open a path that is missing at start, so create it there before spawning" >&2 ;;
     esac
   done <<< "$out"
   local sandbox_on scope=""
@@ -439,18 +445,30 @@ _FLEET_REMOTE_CPU_DEFAULT=400%
 # Server write deny list (PLAN_fleet-host-sandbox.md; MDTWII tools/vps
 # gate.sh, suite.sh, promote.sh): main checkouts, bare repos and gate refs,
 # gate worktrees and slot locks, build slots, the cfn-vps job runner, Claude
-# config, ssh and gh credentials, ~/opt. Home-relative entries first, then
+# config, ssh and gh credentials, the mailbox config (its host and password
+# must never be worker-chosen), ~/opt. Home-relative entries first, then
 # absolute ones. A glob that names a directory gets a /** twin so the files
 # under it match as well.
 _SPAWN_REMOTE_DENY_HOME=(
   'Projects/**' 'git/**'
   '.cache/mdtwii-target-*' '.cache/mdtwii-target-*/**' '.cache/cfn-vps/**'
-  '.claude/**' '.ssh/**' '.config/gh/**' 'opt/**'
+  '.claude/**' '.ssh/**' '.config/gh/**' '.config/cfn-mailbox/**' 'opt/**'
 )
 _SPAWN_REMOTE_DENY_ABS=(
   '/tmp/gate-*' '/tmp/gate-*/**' '/tmp/cand-*' '/tmp/cand-*/**'
   '/tmp/mdtwii-*' '/tmp/mdtwii-*/**'
 )
+# /tmp names FLEET_REMOTE_ALLOW_WRITE can never open (gate worktrees). The
+# home entries above are out of its reach already: it only takes /tmp paths.
+_SPAWN_REMOTE_HARD_DENY_TMP=('gate-*' 'cand-*')
+# Characters an allow-list path may hold; the /tmp/mdtwii-* complement rules
+# are built over this alphabet.
+_SPAWN_REMOTE_NAME_CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-'
+# Every other character (except /), as a glob class of ranges written with
+# JSON \u escapes: U+0001-',', ':'-'@', '['-'^', '`', '{'-U+FFFF (UTF-16
+# code units, so astral characters are covered through their surrogates).
+# No quote, backslash or paren appears literally once the JSON is decoded.
+_SPAWN_REMOTE_NAME_OTHER='[\u0001-,:-@[-^`{-￿]'
 
 # Fix commands printed when a host cannot fence a worker (Ubuntu 24.04 blocks
 # unprivileged user namespaces for bwrap unless an AppArmor profile allows it).
@@ -486,6 +504,107 @@ _spawn_remote_safe_path(){
   [[ "${1:-}" =~ ^/[A-Za-z0-9._/-]+$ ]]
 }
 
+# _spawn_remote_allow_write: resolve FLEET_REMOTE_ALLOW_WRITE (path:path...)
+# into _SPAWN_REMOTE_ALLOW (caller scope). Each entry is an exact absolute
+# path under /tmp (a directory entry covers the files beneath it): no glob,
+# no . or .. segment, no trailing slash, nothing outside /tmp, never a hard
+# denied name, and a /tmp/mdtwii-* entry is one segment (it is carved out of
+# the broad /tmp/mdtwii-* deny by name). Refuses (64) before any ssh, naming
+# the bad entry. Wildcard names (mdtwii-slot*) must be listed one by one.
+_spawn_remote_allow_write(){
+  local raw e seg first hd
+  local -a segs entries
+  _SPAWN_REMOTE_ALLOW=()
+  raw=$(_spawn_remote_knob FLEET_REMOTE_ALLOW_WRITE "")
+  [ -n "$raw" ] || return 0
+  # read -a, never an unquoted $raw: that would glob-expand '/tmp/mdtwii-*'
+  # against the local /tmp and slip the expanded names past the glob check.
+  IFS=: read -r -a entries <<< "$raw"
+  for e in "${entries[@]}"; do
+    [ -n "$e" ] || continue
+    local why=""
+    if [[ "$e" == *[\*\?\[]* ]]; then why="globs are not allowed (list each path)"
+    elif [[ "$e" != /tmp/* ]]; then why="must be an absolute path under /tmp"
+    elif [[ "$e" == */ ]]; then why="must not end in /"
+    elif ! [[ "$e" =~ ^/tmp(/[A-Za-z0-9._-]+)+$ ]]; then why="may hold only letters, digits, . _ - and /"
+    else
+      IFS=/ read -r -a segs <<< "${e#/tmp/}"
+      for seg in "${segs[@]}"; do
+        [ "$seg" != . ] && [ "$seg" != .. ] || why="must not hold . or .. segments"
+      done
+      first="${segs[0]}"
+      for hd in "${_SPAWN_REMOTE_HARD_DENY_TMP[@]}"; do
+        # shellcheck disable=SC2053  # hd is a glob on purpose
+        [[ "$first" != $hd ]] || why="/tmp/$hd is never writable"
+      done
+      [[ -n "$why" || "$first" != mdtwii-* || "${#segs[@]}" -eq 1 ]] \
+        || why="a /tmp/mdtwii-* entry must be a single name directly under /tmp"
+    fi
+    [ -z "$why" ] || fleet_die 64 "spawn: FLEET_REMOTE_ALLOW_WRITE entry '$e' refused: $why"
+    _SPAWN_REMOTE_ALLOW+=("$e")
+  done
+  return 0
+}
+
+# _spawn_remote_mdtwii_deny NAME... -> deny globs (one per line, each with a
+# /** twin) covering every /tmp/mdtwii-<x> except the listed names <x>.
+# A deny always wins over an allowWrite, so the broad /tmp/mdtwii-* rule
+# cannot stay. Claude Code matches Edit rules with a default `ignore()`
+# instance (read from the 2.1.319 binary): gitignore rules, case-insensitive,
+# no negated [!..] class, a rule naming a directory covers everything under
+# it. The rules are built to hold under a case-sensitive matcher as well:
+#   - trie complement: every prefix that is not a listed name is denied
+#     exactly, and each prefix denies "prefix + any alphabet character no
+#     listed name continues with" (both cases of a child are excluded);
+#   - every letter in a prefix is written [xX], so a case variant walks the
+#     same trie whichever way the matcher treats case;
+#   - a catch-all denies any name holding a character outside the alphabet.
+# Limit: a case variant of a listed name itself (mdtwii-Slot.queue for
+# mdtwii-slot.queue) cannot be denied, since the real matcher folds case and
+# would deny the listed name too. The Bash sandbox's allowWrite is
+# case-exact, so Bash still cannot write such a variant.
+_spawn_remote_mdtwii_deny(){
+  # Keys carry a leading "k": bash refuses an empty associative-array key,
+  # and the empty prefix is the trie root.
+  local -A pre=() full=()
+  local n i k p c kids cls ch lit
+  for n in "$@"; do
+    full["k$n"]=1
+    for ((i = 0; i <= ${#n}; i++)); do pre["k${n:0:i}"]=1; done
+  done
+  printf '/tmp/mdtwii-*%s*\n/tmp/mdtwii-*%s*/**\n' "$_SPAWN_REMOTE_NAME_OTHER" "$_SPAWN_REMOTE_NAME_OTHER"
+  for k in "${!pre[@]}"; do
+    p="${k#k}"
+    lit=""
+    for ((i = 0; i < ${#p}; i++)); do
+      c="${p:i:1}"
+      if [[ "$c" == [A-Za-z] ]]; then
+        lit+="[$(printf '%s' "$c" | tr '[:upper:]' '[:lower:]')$(printf '%s' "$c" | tr '[:lower:]' '[:upper:]')]"
+      else
+        lit+="$c"
+      fi
+    done
+    kids=""
+    for n in "${!pre[@]}"; do
+      n="${n#k}"
+      [ "${#n}" -eq $(( ${#p} + 1 )) ] && [ "${n:0:${#p}}" = "$p" ] && kids+="${n: -1}"
+    done
+    kids=$(printf '%s' "$kids" | tr '[:upper:]' '[:lower:]')
+    [ -n "${full[$k]:-}" ] || printf '/tmp/mdtwii-%s\n/tmp/mdtwii-%s/**\n' "$lit" "$lit"
+    if [ -z "$kids" ]; then
+      printf '/tmp/mdtwii-%s?*\n/tmp/mdtwii-%s?*/**\n' "$lit" "$lit"
+      continue
+    fi
+    cls=""
+    for ((i = 0; i < ${#_SPAWN_REMOTE_NAME_CHARS}; i++)); do
+      c="${_SPAWN_REMOTE_NAME_CHARS:i:1}"
+      ch=$(printf '%s' "$c" | tr '[:upper:]' '[:lower:]')
+      [[ "$kids" == *"$ch"* ]] || cls+="$c"
+    done
+    [ -z "$cls" ] || printf '/tmp/mdtwii-%s[%s]*\n/tmp/mdtwii-%s[%s]*/**\n' "$lit" "$cls" "$lit" "$cls"
+  done | sort
+}
+
 # _spawn_remote_gate WS HOST BWRAP_OK SOCAT_OK SCOPE_OK -> prints 1 (sandbox
 # on) or 0. Exits 66 with the fix commands when a fence is missing, unless
 # FLEET_REMOTE_UNSANDBOXED=1, which turns each refusal into a WARN. The caller
@@ -511,7 +630,8 @@ _spawn_remote_gate(){
 }
 
 # _spawn_json_list ITEM... -> ["a","b"]. Items must be pre-validated (no
-# quote, backslash or control character).
+# quote, backslash or control character; the one exception is the deliberate
+# \u escapes of _SPAWN_REMOTE_NAME_OTHER, which are valid JSON).
 _spawn_json_list(){
   local out="" x
   for x in "$@"; do out+="${out:+,}\"$x\""; done
@@ -520,8 +640,10 @@ _spawn_json_list(){
 
 # _spawn_remote_settings HOME WT CLONE OB SANDBOX_ON -> the --settings JSON on
 # stdout, one line. Returns 1 when a path is not safe to embed.
+# _SPAWN_REMOTE_ALLOW (validated FLEET_REMOTE_ALLOW_WRITE) joins allowWrite.
 _spawn_remote_settings(){
   local home="$1" wt="$2" clone="$3" ob="$4" sandbox_on="$5" p sandbox
+  local -a allow=(${_SPAWN_REMOTE_ALLOW[@]+"${_SPAWN_REMOTE_ALLOW[@]}"}) mdt=() deny_abs=()
   for p in "$home" "$wt" "$clone" "$ob"; do
     _spawn_remote_safe_path "$p" || { echo "spawn: unsafe server path for settings: $p" >&2; return 1; }
   done
@@ -533,12 +655,24 @@ _spawn_remote_settings(){
   local kit=("$ob/brief.md" "$ob/claims.txt" "$ob/outbox.env" "$ob/remote-worker.sh")
   local rules=()
   for p in "${_SPAWN_REMOTE_DENY_HOME[@]}"; do rules+=("Edit(/$home/$p)"); done
-  for p in "${_SPAWN_REMOTE_DENY_ABS[@]}"; do rules+=("Edit(/$p)"); done
+  # Listed /tmp/mdtwii-* names replace the broad /tmp/mdtwii-* deny with its
+  # complement; with none listed the broad rule stays as is.
+  for p in "${allow[@]}"; do [[ "$p" != /tmp/mdtwii-* ]] || mdt+=("${p#/tmp/mdtwii-}"); done
+  for p in "${_SPAWN_REMOTE_DENY_ABS[@]}"; do
+    [[ ${#mdt[@]} -gt 0 && "$p" == /tmp/mdtwii-* ]] || deny_abs+=("$p")
+  done
+  if [ "${#mdt[@]}" -gt 0 ]; then
+    local gen
+    gen=$(_spawn_remote_mdtwii_deny "${mdt[@]}") && [ -n "$gen" ] \
+      || { echo "spawn: could not build the /tmp/mdtwii-* deny rules" >&2; return 1; }
+    while IFS= read -r p; do deny_abs+=("$p"); done <<< "$gen"
+  fi
+  for p in "${deny_abs[@]}"; do rules+=("Edit(/$p)"); done
   for p in "${kit[@]}"; do rules+=("Edit(/$p)"); done
   rules+=("Edit(/$clone/.git/config)" "Edit(/$clone/.git/hooks/**)" "Edit(/$wt/.git)")
   if [ "$sandbox_on" = 1 ]; then
     sandbox=$(printf '{"enabled":true,"failIfUnavailable":true,"allowUnsandboxedCommands":false,"filesystem":{"allowWrite":%s,"denyWrite":%s},"network":{"allowAllUnixSockets":false}}' \
-      "$(_spawn_json_list "$wt" "$clone" "$ob")" \
+      "$(_spawn_json_list "$wt" "$clone" "$ob" "${allow[@]}")" \
       "$(_spawn_json_list "${kit[@]}" "$clone/.git/config" "$clone/.git/hooks" "$wt/.git")")
   else
     sandbox='{"enabled":false}'

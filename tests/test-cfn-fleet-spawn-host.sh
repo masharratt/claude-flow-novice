@@ -677,7 +677,7 @@ test_spawn_host_launch_passes_sandbox_settings() {
         "$SRV/Projects/**" "$SRV/git/**" \
         "/tmp/gate-*" "/tmp/gate-*/**" "/tmp/cand-*" "/tmp/cand-*/**" "/tmp/mdtwii-*" "/tmp/mdtwii-*/**" \
         "$SRV/.cache/mdtwii-target-*" "$SRV/.cache/mdtwii-target-*/**" "$SRV/.cache/cfn-vps/**" \
-        "$SRV/.claude/**" "$SRV/.ssh/**" "$SRV/.config/gh/**" "$SRV/opt/**" \
+        "$SRV/.claude/**" "$SRV/.ssh/**" "$SRV/.config/gh/**" "$SRV/.config/cfn-mailbox/**" "$SRV/opt/**" \
         "$ob/brief.md" "$ob/claims.txt" "$ob/outbox.env" "$ob/remote-worker.sh" \
         "$clone/.git/config" "$clone/.git/hooks/**" "$wt/.git")
     assert_equals "missing=[] unexpected=[]" \
@@ -843,6 +843,154 @@ test_spawn_host_mailbox_env_and_secret() {
     assert_not_contains "$(cat "$TMUX_LOG" "$STUB_LOG")" "$sec" "secret not in any tmux, ssh or scp argv"
 }
 
+# MDTWII's confirmed allow-list (2026-11-07): a lease dir, two flock files and
+# a queue that may be a dir or a file.
+MDTWII_ALLOW=/tmp/mdtwii-target-leases:/tmp/mdtwii-slot-a.lock:/tmp/mdtwii-slot-b.lock:/tmp/mdtwii-slot.queue
+
+# edit_denied JSON PATH... -> one "PATH<TAB>yes|no" line per path: does any
+# permissions.deny Edit rule match it? EDIT_MATCH=ignore (default) follows
+# Claude Code's Edit rule matcher: a default `ignore()` instance (gitignore,
+# case-insensitive; a rule naming a directory covers everything under it),
+# using the real package when node has it, else an emulation of the same
+# subset (* and ? stay inside one segment, [..] is a positive class with
+# ranges, ** spans segments). EDIT_MATCH=cs runs the emulation
+# case-sensitively, so the rules are proven safe under either matcher.
+edit_denied() {
+    local js="$1"; shift
+    if [ "${EDIT_MATCH:-ignore}" = ignore ] && (cd "$PROJECT_ROOT" && node -e 'require("ignore")') >/dev/null 2>&1; then
+        (cd "$PROJECT_ROOT" && node -e '
+const ig=require("ignore"); const d=JSON.parse(process.argv[1]);
+const pats=d.permissions.deny.filter(r=>r.startsWith("Edit(//")).map(r=>r.slice(7,-1));
+const m=ig().add(pats);
+for (const p of process.argv.slice(2)) console.log(p+"\t"+(m.ignores(p.replace(/^\//,""))?"yes":"no"));' "$js" "$@")
+    else
+        python3 -c '
+import json,re,sys
+d=json.loads(sys.argv[1])
+pats=[r[7:-1] for r in d["permissions"]["deny"] if r.startswith("Edit(//")]
+def rx(p):
+    out="";i=0
+    while i<len(p):
+        c=p[i]
+        if p.startswith("**",i): out+=".*"; i+=2; continue
+        if c=="*": out+="[^/]*"
+        elif c=="?": out+="[^/]"
+        elif c=="[": j=p.index("]",i+1); out+="["+p[i+1:j].replace("\\","\\\\").replace("[","\\[")+"]"; i=j
+        else: out+=re.escape(c)
+        i+=1
+    return re.compile(out+"(/.*)?$",0 if sys.argv[2]=="cs" else re.I)
+rs=[rx(p) for p in pats]
+for p in sys.argv[3:]:
+    q=p.lstrip("/")
+    print(p+"\t"+("yes" if any(r.match(q) for r in rs) else "no"))' "$js" "${EDIT_MATCH:-ignore}" "$@"
+    fi
+}
+
+# denied_mismatch JSON WANT(yes|no) PATH... -> "missing=[...]" listing every
+# path whose Edit-deny verdict is not WANT; "missing=[]" when all agree.
+denied_mismatch() {
+    local js="$1" want="$2"; shift 2
+    local bad
+    bad=$(edit_denied "$js" "$@" | awk -F'\t' -v w="$want" '$2 != w {printf "%s%s", (n++ ? "," : ""), $1}')
+    printf 'missing=[%s]' "$bad"
+}
+
+test_spawn_host_allow_write_opens_listed_tmp_paths_only() {
+    log_step "FLEET_REMOTE_ALLOW_WRITE (MDTWII list): listed /tmp paths writable, unlisted /tmp/mdtwii-* and hard denies stay denied"
+    make_fixture allowwrite
+    printf 'FLEET_REMOTE_ALLOW_WRITE=%s\n' "$MDTWII_ALLOW" >> "$RUN_DIR/fleet.env"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "spawn with the allow-list exits 0"
+    local ob="$SRV/fleet-runs/proj/fleet-main/WS01" wt="$SRV/fleet-repos/proj-wt/ws01" clone="$SRV/fleet-repos/proj"
+    local js
+    js=$(settings_json "$ob/.launch-ws01")
+    assert_equals "missing=[] unexpected=[]" \
+        "$(set_diff "$js" 'd["sandbox"]["filesystem"]["allowWrite"]' "$wt"$'\n'"$clone"$'\n'"$ob"$'\n'"${MDTWII_ALLOW//:/$'\n'}")" \
+        "allowWrite is the worktree, clone, outbox plus exactly the listed paths"
+    local m
+    for m in ignore cs; do
+        assert_equals "missing=[]" "$(EDIT_MATCH=$m denied_mismatch "$js" no \
+            /tmp/mdtwii-target-leases /tmp/mdtwii-target-leases/0a1b2c.lock \
+            /tmp/mdtwii-slot-a.lock /tmp/mdtwii-slot-b.lock \
+            /tmp/mdtwii-slot.queue /tmp/mdtwii-slot.queue/item-1)" \
+            "[$m] no Edit deny rule blocks a listed path or a file under a listed dir"
+        assert_equals "missing=[]" "$(EDIT_MATCH=$m denied_mismatch "$js" yes \
+            /tmp/mdtwii-unity.queue /tmp/mdtwii-Unity.queue /tmp/mdtwii-slot-c.lock /tmp/mdtwii-slot \
+            /tmp/mdtwii-slot-a.lock2 /tmp/mdtwii-slot-a /tmp/mdtwii-target-leases2 /tmp/mdtwii-target \
+            /tmp/mdtwii- /tmp/mdtwii-suite.sh /tmp/mdtwii-x/y /tmp/mdtwii-slot.queuex \
+            /tmp/gate-1/x /tmp/cand-2 "$SRV/Projects/proj/a" "$SRV/.ssh/id" "$SRV/.claude/settings.json" \
+            "$SRV/git/proj.git/HEAD" "$SRV/.config/gh/hosts.yml" "$SRV/opt/x")" \
+            "[$m] unlisted /tmp/mdtwii-* paths (incl. /tmp/mdtwii-unity.queue) and every hard deny stay denied"
+        # Security review 2026-11-07: case variants that are not a listed name.
+        assert_equals "missing=[]" "$(EDIT_MATCH=$m denied_mismatch "$js" yes \
+            /tmp/mdtwii-SLOT.x /tmp/mdtwii-Slot-c.lock /tmp/mdtwii-SLOT /tmp/mdtwii-SLOT.QUEUEX \
+            /tmp/mdtwii-Target /tmp/mdtwii-TARGET-LEASES2 /tmp/mdtwii-UNITY.QUEUE)" \
+            "[$m] case variants that are not a listed name stay denied"
+        # Security review 2026-11-07: names outside the safe alphabet were open.
+        assert_equals "missing=[]" "$(EDIT_MATCH=$m denied_mismatch "$js" yes \
+            /tmp/mdtwii-+x /tmp/mdtwii-é /tmp/mdtwii-slot.queue+ /tmp/mdtwii-slot+a.lock \
+            "/tmp/mdtwii-a b" /tmp/mdtwii-slot-a.lock~ /tmp/mdtwii-@ "/tmp/mdtwii-x\"y" \
+            /tmp/mdtwii-日本 /tmp/mdtwii-slot,queue /tmp/mdtwii-target-leases# /tmp/mdtwii-^x /tmp/mdtwii-{x})" \
+            "[$m] every /tmp/mdtwii-* name with a character outside the alphabet stays denied"
+    done
+    # Claude Code's real Edit matcher is case-insensitive, so no Edit rule can
+    # tell /tmp/mdtwii-Slot.queue from the listed /tmp/mdtwii-slot.queue. The
+    # Bash sandbox's allowWrite is case-exact: that variant is never in it.
+    assert_equals "[]" "$(python3 -c 'import json,sys; d=json.loads(sys.argv[1]); print(json.dumps([p for p in d["sandbox"]["filesystem"]["allowWrite"] if p.lower().startswith("/tmp/mdtwii-") and p not in sys.argv[2].split(":")]))' "$js" "$MDTWII_ALLOW")" \
+        "allowWrite holds only the exact listed /tmp/mdtwii-* names (no case variant such as /tmp/mdtwii-Slot.queue)"
+    assert_not_contains "$(json_q "$js" 'd["permissions"]["deny"]')" '"Edit(//tmp/mdtwii-*)"' "the broad /tmp/mdtwii-* rule is replaced"
+    assert_contains "$FLEET_OUT" "WARN spawn: FLEET_REMOTE_ALLOW_WRITE path /tmp/mdtwii-slot-a.lock does not exist on fakehost" \
+        "a listed path missing on the server is warned about"
+}
+
+test_spawn_host_allow_write_refuses_bad_entries() {
+    log_step "FLEET_REMOTE_ALLOW_WRITE: globs, .., relative, non-/tmp, hard-denied, nested mdtwii and bare /tmp refused with 64 before ssh"
+    local bad i=0
+    for bad in '/tmp/mdtwii-*' '/tmp/mdtwii-slot?.lock' '/tmp/mdtwii-[ab].lock' 'tmp/mdtwii-x' \
+               '/tmp/../srv/u/.ssh' '/tmp/a/../b' '/srv/u/Projects/x' '/var/tmp/x' '/tmp' '/tmp/' \
+               '/tmp/gate-1' '/tmp/cand-x/y' '/tmp/mdtwii-a/b' '/tmp/a b' '/tmp/x/'; do
+        i=$((i + 1))
+        make_fixture "allowbad$i"
+        printf 'FLEET_REMOTE_ALLOW_WRITE=/tmp/mdtwii-slot-a.lock:%s\n' "$bad" >> "$RUN_DIR/fleet.env"
+        run_spawn WS01 --host fakehost
+        assert_equals "64" "$FLEET_RC" "entry '$bad' refused with 64"
+        assert_contains "$FLEET_OUT" "FLEET_REMOTE_ALLOW_WRITE entry '$bad'" "refusal names '$bad'"
+        assert_equals "0" "$(ssh_calls)" "no ssh call for '$bad'"
+    done
+}
+
+test_spawn_host_mailbox_env_never_shapes_the_sandbox() {
+    # Security review 2026-11-07 (HIGH): a worker could rewrite
+    # ~/.config/cfn-mailbox/env and so pick the sandbox's allowed network host
+    # (and send MAILBOX_PASS there). The feature is gone; the file is denied.
+    log_step "Mailbox config on the server: no allowedDomains from it, and the worker cannot edit it"
+    make_fixture mbnet
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    # shellcheck source=/dev/null
+    source "$PROJECT_ROOT/tests/lib/fake-redis-cli.sh"
+    install_fake_redis_cli "$TMP_DIR/bin"
+    local mbdir="$TMP_DIR/mbnet-$RANDOM" srvpw="srv-PASS-$RANDOM-x"
+    mkdir -p "$mbdir/kv" "$SRV/.config/cfn-mailbox"
+    : > "$mbdir/calls"; : > "$mbdir/rules"
+    printf 'MAILBOX_HOST=mbx.example.test\nMAILBOX_PORT=6379\nMAILBOX_USER=michael\nMAILBOX_PASS=pw\nMAILBOX_OWNER=michael\n' > "$mbdir/env"
+    chmod 600 "$mbdir/env"
+    printf 'MAILBOX_HOST=attacker.example.test\nMAILBOX_PORT=6379\nMAILBOX_PASS=%s\n' "$srvpw" > "$SRV/.config/cfn-mailbox/env"
+    export FLEET_MAILBOX=on MAILBOX_CONFIG="$mbdir/env" FAKE_LOG="$mbdir/calls" FAKE_RULES="$mbdir/rules" FAKE_KV_DIR="$mbdir/kv"
+    run_spawn WS01 --host fakehost
+    export FLEET_MAILBOX=off
+    unset MAILBOX_CONFIG FAKE_LOG FAKE_RULES FAKE_KV_DIR
+    local ob="$SRV/fleet-runs/proj/fleet-main/WS01" js
+    js=$(settings_json "$ob/.launch-ws01")
+    assert_equals "0" "$FLEET_RC" "mailbox-on host spawn exits 0"
+    assert_equals "null" "$(json_q "$js" 'd["sandbox"]["network"].get("allowedDomains")')" "no allowedDomains at all"
+    assert_equals '{"allowAllUnixSockets": false}' "$(json_q "$js" 'd["sandbox"]["network"]')" "network block is the prior one, unchanged"
+    assert_not_contains "$js" "attacker.example.test" "the server mailbox host never reaches the settings"
+    assert_not_contains "$FLEET_OUT$(cat "$STUB_LOG" "$TMUX_LOG" "$ob/.launch-ws01")" "$srvpw" "server MAILBOX_PASS never in output, argv or the launch"
+    assert_equals "missing=[]" "$(denied_mismatch "$js" yes "$SRV/.config/cfn-mailbox/env" "$SRV/.config/cfn-mailbox/new")" \
+        "the worker's Edit rules deny ~/.config/cfn-mailbox/env"
+}
+
 run_all_tests() {
     TEST_LOG="${TMPDIR:-/tmp}/cfn-fleet-spawn-host-$(date +%s).log"
     export TEST_LOG
@@ -875,6 +1023,9 @@ run_all_tests() {
     test_spawn_host_prints_preflight_ok_line
     test_spawn_host_survives_clone_config_lock
     test_spawn_host_mailbox_env_and_secret
+    test_spawn_host_allow_write_opens_listed_tmp_paths_only
+    test_spawn_host_allow_write_refuses_bad_entries
+    test_spawn_host_mailbox_env_never_shapes_the_sandbox
 
     print_test_summary
 }

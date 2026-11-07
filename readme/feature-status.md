@@ -3,7 +3,7 @@
 
 # Feature Status
 
-**Last Updated:** 2026-11-05 wiki sync
+**Last Updated:** 2026-11-07 wiki sync
 
 ## Status Rollup
 

@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily Codex session retention at 05:50
+
+[Timer]
+OnCalendar=*-*-* 05:50:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -126,9 +126,15 @@ Every host worker starts as `systemd-run --user --scope -p MemoryMax=... -p CPUQ
   docker is out of reach.
 - `permissions.deny` holds `Edit(...)` rules for the server deny list: `~/Projects`,
   `~/git`, `/tmp/gate-*`, `/tmp/cand-*`, `/tmp/mdtwii-*`, `~/.cache/mdtwii-target-*`,
-  `~/.cache/cfn-vps`, `~/.claude`, `~/.ssh`, `~/.config/gh`, `~/opt`, plus the outbox kit
+  `~/.cache/cfn-vps`, `~/.claude`, `~/.ssh`, `~/.config/gh`, `~/.config/cfn-mailbox`, `~/opt`, plus the outbox kit
   files, the clone's `.git/config` and hooks, and the worktree's `.git` file. An `Edit`
   rule covers Edit, Write, MultiEdit and NotebookEdit. Reads stay allowed.
+- Per-project write allow-list: `FLEET_REMOTE_ALLOW_WRITE=path1:path2` in `fleet.env` opens exact
+  `/tmp` paths (a dir covers files under it) that the `/tmp/mdtwii-*` deny would block, e.g. a test
+  queue's lock files. No globs, `..`, relative or non-`/tmp` paths, and never `/tmp/gate-*` or
+  `/tmp/cand-*`: spawn refuses (64) before any ssh. List concrete names (`slot-a.lock`, not `slot*`).
+  Unlisted `/tmp/mdtwii-*` names stay denied. Pre-create listed lock files: the sandbox may not
+  create a missing one. Workers get no mailbox network access inside the sandbox.
 - Workers commit locally only: `remote-worker.sh commit` never pushes, and refuses off
   `fleet/<WS>`.
 - Caps per worker: `FLEET_REMOTE_MEM` (MemoryMax, default `12G`) and `FLEET_REMOTE_CPU`
@@ -160,7 +166,8 @@ the host alias), `FLEET_REMOTE_LINKS` (paths symlinked into the server worktree 
 `~/Projects/<project>`, e.g. `extracted,game`), `FLEET_REMOTE_MIN_FREE_GB` (15),
 `FLEET_AUTH_TIMEOUT` (seconds to wait for a login failure banner, 12),
 `FLEET_HOST_PROBE_SECS` (dashboard host probe interval, 30), `FLEET_REMOTE_MEM` (12G),
-`FLEET_REMOTE_CPU` (400%), `FLEET_REMOTE_UNSANDBOXED` (0; env or `fleet.env`).
+`FLEET_REMOTE_CPU` (400%), `FLEET_REMOTE_UNSANDBOXED` (0; env or `fleet.env`),
+`FLEET_REMOTE_ALLOW_WRITE` (empty; exact `/tmp` paths, colon-separated).
 
 By hand, once per server: ssh config alias (key login), `claude` login on the
 server, `.env` and secrets, and dependencies (node_modules, toolchains). Host-setup

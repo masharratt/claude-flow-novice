@@ -23,9 +23,22 @@ task does not rerun; a new shell runs it (`~/.bashrc` block "WSL cache relocatio
 - Keep pnpm's store on `/` (it hard-links into projects; across disks it copies and doubles use).
 - Rust: never put `CARGO_TARGET_DIR` in RAM (`/dev/shm`); see `stack-rules.md`.
 
+## Growth sources on `/` (2026-11 audit: 182 -> 256 GB in 5 days)
+- 28 GB art cache in `/tmp` (30-day default age). 15 GB Codex sessions in `~/.codex/sessions`. 10 GB cargo target
+  at `~/.cache/<x>-target` (an explicit `CARGO_TARGET_DIR` bypasses the churn disk). 26 GB model files.
+- Guards (repo `.claude/cfn-scripts/desktop-disk/`, tests `tests/test-desktop-disk-guards.sh`):
+  - `tmp-age.conf`: `D /tmp ... 7d`. Installed by hand, needs sudo: `sudo install -m 0644 <repo>/.claude/cfn-scripts/desktop-disk/tmp-age.conf /etc/tmpfiles.d/tmp.conf`.
+  - `codex-session-reaper.sh` + user timer `codex-session-reaper.timer` (05:50 daily): deletes `*.jsonl` older than 3 days
+    under `~/.codex/sessions` only, then empty dirs. Refuses every other path; never touches
+    `/mnt/c/Users/masha/.codex` (Windows desktop app).
+  - `disk-growth-guard.sh`, called by desktop-health: logs `root_used=<GB>`, mails when `/` used > 200 GB or grew
+    > 15 GB in 7 days, and lists dirs > 2 GB that look like cargo targets (`CACHEDIR.TAG` or `debug/.fingerprint`)
+    outside `/mnt/wsl/churn` as `cargo_big=[...]`. Report only, never deletes. Scans `/` on one filesystem, never
+    `/mnt`; the scan runs detached every 6 h (about 3 min).
+
 ## Health and warnings
 - `~/.local/bin/desktop-health.sh` (systemd user timer, about every 5 min), log
-  `~/.local/state/desktop-health/health.log`: `d_free`, `c_free`, `build=`, `churn=`, `churn_used=`. Warns by mail
+  `~/.local/state/desktop-health/health.log`: `d_free`, `c_free`, `build=`, `churn=`, `churn_used=`, `root_used=`, `cargo_big=`. Warns by mail
   at D: < 50 GB (pauses MDTWII art builds, resumes at 80), C: < 80 GB, churn >= 90 % used, disk not mounted.
 - Daily: `lane-build-sweep.timer` 05:45 (MDTWII per-lane builds on churn), `art-cache-clean.timer` 05:30.
 - `wsl-memory-monitor.service` (systemd user, 30 s): kills non-protected processes over 15 % of RAM, or a process
@@ -38,6 +51,8 @@ task does not rerun; a new shell runs it (`~/.bashrc` block "WSL cache relocatio
    `detach vdisk`. No sleep or power loss during compact.
 3. **Expect about 1.5x of the used size, not the used size** (main 182 GiB used -> 271.6 GiB file; data 90 -> 161.7).
    Re-compact main when D: free < 60 GiB.
+4. **1.5x rule: compact the vhdx only when its file size is more than 1.5x the used space** (`df` used on `/` vs the
+   `ext4.vhdx` size on D:). Under that, a compact gains little and costs a full WSL shutdown.
 
 ## Attaching, formatting, growing (admin PowerShell)
 - `wsl --mount` / `--unmount` need an elevated PowerShell; from WSL they fail with `E_ACCESSDENIED`.

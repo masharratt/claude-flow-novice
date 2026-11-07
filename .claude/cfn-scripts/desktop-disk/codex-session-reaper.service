@@ -1,0 +1,6 @@
+[Unit]
+Description=Delete WSL Codex session logs older than 3 days (~/.codex/sessions only)
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/codex-session-reaper.sh
