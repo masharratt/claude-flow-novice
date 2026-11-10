@@ -56,7 +56,7 @@ Reviewed: 2026-10-16
 - `.claude/skills/cfn-mailbox/mailbox-watch.sh:218`: nudge_pass starts a newly seen key at the earliest heartbeat of the sessions behind it minus 5 s (NEW_KEY_MARGIN), capped 10 minutes back (NEW_KEY_LOOKBACK), instead of the stream's newest entry (source changed; review needed)
 - `.claude/hooks/cfn-mailbox-hook.sh:303`: inner sweeps err.* files older than 10 minutes from the cache dir on every run, because a run killed by the timeout never reaches its EXIT trap (source changed; review needed)
 - `.claude/skills/cfn-mailbox/mailbox.sh:397`: resolve_session picks a Claude session's name in order: MAILBOX_SESSION (unless dup-<sid> names it as refused), a claimed role name (alias-<sid>), the status-bar name from the Claude Code sessions registry (registry_name, plus -MAILBOX_HOST_TAG when set), else <project>-<first 6 chars of sid> (source changed; review needed)
-- `.claude/skills/cfn-mailbox/mailbox.sh:286`: rc_route starts proxy-tunnel.py when a sandbox proxy applies to the mail host, and _rc points redis-cli at the local relay with --sni set to the real host (source changed; review needed)
+- `.claude/skills/cfn-mailbox/mailbox.sh:286`: rc_route starts proxy-tunnel.py when a sandbox proxy applies to the mail host, and _rc points redis-cli at the local relay with --sni set to the real host
 - `.claude/skills/cfn-mailbox/proxy-tunnel.py:79`: handle sends one HTTP CONNECT per local connection and closes the client if the proxy refuses; TLS stays end to end
 <!-- /wiki:enrich -->
 

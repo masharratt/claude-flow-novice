@@ -554,7 +554,9 @@ new_msg_id() {
 DATE_GNU=""
 date_flavor() {
   if [ -z "$DATE_GNU" ]; then
-    if date -d @0 +%s >/dev/null 2>&1; then DATE_GNU=1; else DATE_GNU=0; fi
+    # `command`: cfn-portable.sh's date() shim accepts -d @N but not -d "YYYY-MM-DD HH:MM", so
+    # probing through it called macOS GNU and broke `send --at HH:MM` (test-cfn-mailbox-watch.sh, 2026-11-10).
+    if command date -d @0 +%s >/dev/null 2>&1; then DATE_GNU=1; else DATE_GNU=0; fi
   fi
 }
 
