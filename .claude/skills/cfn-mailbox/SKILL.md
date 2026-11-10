@@ -100,7 +100,7 @@ A Claude Code mod runs `mailbox.sh listen --sid <session id> --cwd <dir>` for th
 A message whose `to` does not match the inbox it sits in, or whose `from` owner differs from the owner in the inbox key, is not shown: it is consumed and logged (time, key, id, msg_id, reason; never the body) to `~/.cache/cfn-mailbox/quarantine.log`. `doctor` prints the count.
 
 ## Delivery: at least once, shown once
-Every message carries a random `msg_id` that stays the same on every retry (send-later redelivery, a repeated bounce). Each session keeps the ids it has shown for 7 days in `~/.cache/cfn-mailbox/delivered-<session>` and drops a repeat. Mail can reach the stream twice; a session shows it once. Nothing here makes the work it asks for happen exactly once. Local mailbox files are owner-only (folder 700, files 600).
+Every message carries a random `msg_id` that stays the same on every retry (send-later redelivery, a repeated bounce). Each session keeps the ids it has shown for 7 days in `~/.cache/cfn-mailbox/delivered-<session>` and drops a repeat. Mail can reach the stream twice; a session shows it once. A retried `send --msg-id` (a worker's queued mail) whose first try reached the stream is not sent again (`done:<owner>:sent:<msg_id>`, 7 days), and `listen` and `unread` skip repeats and mail already shown, so a repeat never wakes a session. Nothing here makes the work it asks for happen exactly once. Local mailbox files are owner-only (folder 700, files 600).
 
 ## Limits
 Body 4096 bytes, 20 hops per thread, 10 messages per sender/receiver pair per 10 minutes.

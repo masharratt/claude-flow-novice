@@ -1143,6 +1143,32 @@ test_private_files() {
   assert_eq "700" "$(fmode "$CACHE")" "tightened"
 }
 
+# Regression (MDTWII fleet, 2026-11-10): a server worker's mail hook flushed its queue under a 4 s
+# timeout; the timeout killed `flush` after XADD but before it removed the queue file, so every
+# later hook event sent the same claim request again (5 copies, one msg_id), the master was woken
+# once a minute for mail `read` then hid as a repeat, and the queue file behind it never went out.
+test_send_msg_id_idempotent() {
+  new_case "send --msg-id: an id already sent is not sent again (no XADD, no rate count), prints the first id"
+  rule 'GET done:michael:sent:retry-1' '1700000000099-0'
+  mb send michael/s/abc --kind ask --msg-id retry-1 "claim this file"
+  assert_rc 0 "a repeat is a success, so flush removes the queue file"
+  assert_eq "0" "$(cmds | grep -c -F 'XADD mbx:' || true)" "no second stream entry"
+  assert_eq "0" "$(cmds | grep -c -F 'INCR rate:' || true)" "a repeat does not count against the rate limit"
+  assert_eq "1700000000099-0" "$OUT" "prints the id of the first send"
+
+  new_case "send --msg-id: records the msg_id as sent right after XADD, before anything else can fail"
+  mb send michael/s/abc --kind ask --msg-id retry-2 "claim that file"
+  assert_rc 0 "sent"
+  assert_eq "yes" "$(has_cmd 'SET done:michael:sent:retry-2 1700000000000-0 EX 604800' && echo yes)" "done key holds the stream id, 7 day expiry"
+  local x d e
+  x="$(line_of 'XADD mbx:michael:s:abc')"; d="$(line_of 'SET done:michael:sent:retry-2')"; e="$(line_of 'EXPIRE mbx:michael:s:abc')"
+  if [ -n "$x" ] && [ -n "$d" ] && [ -n "$e" ] && [ "$d" -gt "$x" ] && [ "$d" -lt "$e" ]; then ok; else bad "done SET must sit right after XADD ($x/$d/$e)"; fi
+
+  new_case "send without --msg-id: no done lookup (a fresh id cannot be a repeat)"
+  mb send michael/s/abc --kind ask "fresh"
+  assert_eq "0" "$(cmds | grep -c -F 'done:michael:sent:' || true)" "no done key touched"
+}
+
 test_send_at_msg_id() {
   new_case "send --at: msg_id stored in the due member"
   RC=0
@@ -1327,6 +1353,7 @@ run_offline() {
   test_quarantine
   test_msg_id_dedupe
   test_private_files
+  test_send_msg_id_idempotent
   test_send_at_msg_id
 }
 

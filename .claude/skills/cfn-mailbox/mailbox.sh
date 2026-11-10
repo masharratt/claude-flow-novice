@@ -119,6 +119,7 @@ LISTEN_ROOMS_EVERY=60   # seconds between re-reads of the joined rooms
 LISTEN_BACKOFF_MIN=5    # seconds; doubles per failed pass up to the max
 LISTEN_BACKOFF_MAX=60
 LISTEN_ERR_MAX=200      # longest error text put in a "down" event
+LISTEN_SEEN_MAX=500     # msg_ids `listen` remembers to report each message once
 UNREAD_RANGE_MAX=1000   # entries one `unread` count looks at per inbox
 ALIAS_TTL=2592000       # alias keys age out after 30 days without a refresh
 ALIAS_LIVE=600          # a holder seen within 10 minutes keeps its role name
@@ -690,6 +691,20 @@ cmd_send() {
   [ "$hops" -le "$HOP_MAX" ] || die 12 "hop limit: this thread is at $hops hops (limit $HOP_MAX); stop and ask the user"
   [ -n "$thread" ] || thread="t-$(now_s)-$RANDOM"
 
+  # A retry with a fixed msg_id (flush of a worker's queue) whose earlier try reached the stream is
+  # not sent again: a hook timeout can kill flush between XADD and removing the queue file, and
+  # every later hook event then re-sent the same mail and woke the receiver for it (2026-11-10).
+  local done_key=""
+  if [ -n "$msg_id_in" ] && [ "$at_set" = 0 ]; then
+    done_key="done:$MAILBOX_OWNER:sent:$msg_id_in"
+    rcmd GET "$done_key"
+    if [[ "$RC_OUT" =~ ^[0-9]+-[0-9]+$ ]]; then
+      printf '%s\n' "$RC_OUT"
+      echo "thread=$thread" >&2
+      return 0
+    fi
+  fi
+
   # Rate limit per sender/receiver pair.
   local from_id="${SESSION:-me}" rate_key
   rate_key="rate:$MAILBOX_OWNER:$from_id:$to_owner-$to_kind${to_name:+-$to_name}"
@@ -735,6 +750,11 @@ cmd_send() {
   fi
   local id="$RC_OUT"
   [[ "$id" =~ ^[0-9]+-[0-9]+$ ]] || die 18 "unexpected reply to XADD (no message id)"
+  # First thing after XADD, so a kill leaves the narrowest window for a repeat. Kept as long as
+  # readers remember shown msg_ids. A failed write only loses the repeat guard, never the mail.
+  if [ -n "$done_key" ] && ! (rcmd SET "$done_key" "$id" EX "$DELIVERED_TTL") 2>/dev/null; then
+    warn "sent $id, but could not record msg_id $msg_id_in as sent; a retry may repeat it"
+  fi
   rcmd EXPIRE "$key" "$EXPIRE_SECS"
 
   # The message is already delivered; a failed log write must not turn that into an error.
@@ -1406,7 +1426,14 @@ count_after() {
   local n
   rcmdj XRANGE "$1" "($2" + COUNT "$UNREAD_RANGE_MAX"
   case "$RC_OUT" in ''|null) echo 0; return 0 ;; esac
-  n="$(printf '%s' "$RC_OUT" | jq 'if type == "array" then length else 0 end' 2>/dev/null || echo 0)"
+  # Count what `read` would show: one per msg_id, none already shown (DELIV_JSON); no msg_id counts.
+  n="$(printf '%s' "$RC_OUT" | jq --argjson d "$DELIV_JSON" '
+    if type == "array" then
+      reduce .[] as $e ({seen: $d, n: 0};
+        (((([($e[1] // []) | _nwise(2) | {(.[0] | tostring): .[1]}] | add) // {}).msg_id // "") | tostring) as $m
+        | if $m == "" then .n += 1 elif .seen[$m] then . else (.seen[$m] = true | .n += 1) end)
+      | .n
+    else 0 end' 2>/dev/null || echo 0)"
   [[ "$n" =~ ^[0-9]+$ ]] || n=0
   echo "$n"
 }
@@ -1455,6 +1482,8 @@ cmd_unread() {
   SESSION="$(resolve_session "$L_SID" "$L_CWD")"
   local project key room total=0
   project="$(resolve_project "$L_CWD")"
+  PEEK=1   # read-only: load the delivered set without pruning it
+  delivered_load "$CACHE_DIR/delivered-$SESSION"
   while IFS= read -r key; do
     [ -n "$key" ] || continue
     unread_add unread_seen "$key" s
@@ -1478,6 +1507,7 @@ LS_TMP=""
 LS_ROOMS_AT=0
 LS_LF=""         # listener-<name> liveness file (the watcher skips nudging a session that has one)
 LS_KEYS=() LS_IDS=()
+LS_SEEN=""       # msg_ids listen already reported, newest last (at most LISTEN_SEEN_MAX)
 
 listen_out() { { printf '%s\n' "$1"; } 2>/dev/null || exit 0; }   # reader gone (EPIPE): stop quietly
 listen_stop() { if [ -n "$LS_PID" ]; then kill "$LS_PID" 2>/dev/null || true; fi; exit 0; }
@@ -1548,9 +1578,9 @@ listen_emit() {
     (if type == "object" then [to_entries[] | [.key, .value]] elif type == "array" then . else [] end)[]
     | .[0] as $k | (.[1] // [])[]
     | (([.[1] | _nwise(2) | {(.[0]): .[1]}] | add) // {}) as $f
-    | [$k, .[0], ($f.from // "" | tostring), ($f.kind // "fyi" | tostring), (($f.body // "") | tostring | utf8bytelength | tostring), ($f.to // "" | tostring)]
+    | [$k, .[0], ($f.from // "" | tostring), ($f.kind // "fyi" | tostring), (($f.body // "") | tostring | utf8bytelength | tostring), ($f.to // "" | tostring), ($f.msg_id // "" | tostring)]
     | map(if . == "" then "-" else . end) | @tsv')" || { LS_ERR="unreadable XREAD reply"; return 1; }
-  while IFS=$'\t' read -r key id from kind bytes to; do
+  while IFS=$'\t' read -r key id from kind bytes to mid; do
     [ -n "$key" ] || continue
     for ((i = 0; i < ${#LS_KEYS[@]}; i++)); do
       if [ "${LS_KEYS[$i]}" = "$key" ]; then LS_IDS[$i]="$id"; break; fi
@@ -1558,6 +1588,15 @@ listen_emit() {
     addr="$(key_address "$key")"
     # same checks the reader makes: the entry must name this inbox and come from the key's sender owner
     [ "$to" = "$addr" ] && [ "${from%%/*}" = "${key##*:from:}" ] || continue
+    # A repeat of one msg_id (a retried send) is reported once, and not at all once the hook has
+    # shown it: `read` hides repeats, so waking for one finds an empty mailbox (2026-11-10).
+    if [ "$mid" != "-" ] && [[ "$mid" =~ $MSG_ID_RE ]]; then
+      case $'\n'"$LS_SEEN"$'\n' in *$'\n'"$mid"$'\n'*) continue ;; esac
+      if [ -f "$CACHE_DIR/delivered-$SESSION" ] && awk -v m="$mid" '$1 == m {f = 1} END {exit !f}' "$CACHE_DIR/delivered-$SESSION" 2>/dev/null; then
+        continue
+      fi
+      LS_SEEN="$(printf '%s\n%s' "$LS_SEEN" "$mid" | tail -n "$LISTEN_SEEN_MAX")"
+    fi
     akind="${addr#*/}"; akind="${akind%%/*}"
     wake=false
     if [ "$akind" != r ] && eligible "$kind" "$bytes"; then wake=true; fi

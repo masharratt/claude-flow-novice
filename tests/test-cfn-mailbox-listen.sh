@@ -380,8 +380,47 @@ test_unread() {
   assert_eq "" "$OUT" "no count printed"
 }
 
+# Regression (MDTWII fleet, 2026-11-10): one claim request reached the master's inbox 5 times with
+# one msg_id. `read` showed it once, but listen reported every copy and unread counted every copy,
+# so the mod woke the master once a minute for mail it could not find.
+xrm() { # KEY then ID MSG_ID pairs: one XREAD reply, each entry an ask carrying that msg_id
+  local k="$1" to="${1#mbx:}"; shift; to="${to%%:from:*}"; to="${to//://}"
+  local entries="[]"
+  while [ $# -ge 2 ]; do
+    entries="$(jq -c --arg id "$1" --arg mid "$2" --arg to "$to" \
+      '. + [[$id, ["from","michael/s/zzz","to",$to,"kind","ask","body","claim it","msg_id",$mid]]]' <<<"$entries")"
+    shift 2
+  done
+  jq -n -c --arg k "$k" --argjson e "$entries" '{($k): $e}'
+}
+
+test_listen_repeats() {
+  new_case "listen: two copies of one msg_id in one reply are reported once"
+  rule "XREAD *" "$(xrm "$SKEY" 1700000000500-0 dup-a 1700000000501-0 dup-a 1700000000502-0 other-b)"
+  listen_once
+  assert_eq "1" "$(printf '%s\n' "$OUT" | grep -c '"id":"1700000000500-0"')" "first copy reported"
+  assert_eq "0" "$(printf '%s\n' "$OUT" | grep -c '"id":"1700000000501-0"')" "repeat not reported"
+  assert_eq "1" "$(printf '%s\n' "$OUT" | grep -c '"id":"1700000000502-0"')" "a different message still reported"
+
+  new_case "listen: a copy of mail this session already shown (delivered set) is not reported"
+  mkdir -p "$CACHE"; printf 'seen-a %s\n' "$NOW" > "$CACHE/delivered-my-proj-abc123"
+  rule "XREAD *" "$(xrm "$SKEY" 1700000000600-0 seen-a)"
+  listen_once
+  assert_eq "1" "$(printf '%s\n' "$OUT" | wc -l | tr -d ' ')" "only the ready line"
+
+  new_case "unread: repeats of one msg_id and mail already shown are not counted"
+  mkdir -p "$CACHE"; printf 'seen-a %s\n' "$NOW" > "$CACHE/delivered-my-proj-abc123"
+  rule "HGET dir:michael michael/s/my-proj-abc123" '{"rooms":[]}'
+  rule "GET seen:*" "1700000000000-0"
+  rule "XRANGE mbx:michael:s:*" "$(xrm "$SKEY" 1-0 seen-a 2-0 new-b 3-0 new-b 4-0 new-c | jq -c 'to_entries[0].value + [["5-0",["kind","ask","body","no id"]]]')"
+  mbx unread --sid "$SID" --cwd "$T/work/My_Proj"
+  assert_rc 0 "unread"
+  assert_eq "3" "$OUT" "new-b once + new-c + one without a msg_id; seen-a dropped"
+}
+
 test_resolver
 test_listen
+test_listen_repeats
 test_listen_backoff
 test_listen_signals
 test_listen_rename
