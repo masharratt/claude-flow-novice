@@ -265,10 +265,40 @@ _rc() {
       [[ "${!j}" =~ ^[0-9]+$ ]] && limit=$((limit + ${!j} / 1000 + 1))
     fi
   done
-  REDISCLI_AUTH="$MAILBOX_PASS" timeout -k 5 "$limit" redis-cli --tls -h "$MAILBOX_HOST" -p "$MAILBOX_PORT" \
+  local h="$MAILBOX_HOST" p="$MAILBOX_PORT" sni=()
+  if [ -n "$RC_TUNNEL_PORT" ] && [ "$RC_ROUTE_FOR" = "$MAILBOX_HOST:$MAILBOX_PORT" ]; then
+    h=127.0.0.1 p="$RC_TUNNEL_PORT" sni=(--sni "$MAILBOX_HOST")
+  fi
+  REDISCLI_AUTH="$MAILBOX_PASS" timeout -k 5 "$limit" redis-cli --tls -h "$h" -p "$p" ${sni[@]+"${sni[@]}"} \
     --user "$MAILBOX_USER" --no-auth-warning ${RC_JSON:+--json} "$@" || status=$?
   case "$status" in 124|137|142) printf 'no reply from redis within %ss\n' "$limit" >&2 ;; esac
   return "$status"
+}
+
+# Sandbox route. Inside the Claude Code sandbox the only way out is its HTTP proxy, and redis-cli
+# ignores proxy settings, so every call failed "cannot reach ... over TLS" even with the host in
+# allowedDomains (bug 2026-11-09, session claude-flow-novice-src-7a). When HTTPS_PROXY/ALL_PROXY
+# applies to the host, proxy-tunnel.py relays a 127.0.0.1 port through the proxy with CONNECT and
+# _rc points redis-cli there, keeping the real host as SNI. TLS stays end to end. Started once per
+# host:port from the main shell (rcmd), because _rc runs in a subshell; the tunnel exits with $$.
+RC_TUNNEL_PORT=""
+RC_ROUTE_FOR=""   # host:port the route was decided for; empty = not decided yet
+rc_route() {
+  local key="$MAILBOX_HOST:$MAILBOX_PORT" port status=0
+  [ "$RC_ROUTE_FOR" = "$key" ] && return 0
+  RC_ROUTE_FOR="$key" RC_TUNNEL_PORT=""
+  [ -n "${HTTPS_PROXY:-}${https_proxy:-}${ALL_PROXY:-}${all_proxy:-}" ] || return 0
+  if ! command -v python3 >/dev/null 2>&1; then
+    warn "a proxy is set but python3 is missing, so redis-cli connects directly"
+    return 0
+  fi
+  port="$(python3 -I "$(dirname "$MB_SELF")/proxy-tunnel.py" "$MAILBOX_HOST" "$MAILBOX_PORT" "$$" </dev/null)" || status=$?
+  case "$status" in
+    0) [[ "$port" =~ ^[0-9]+$ ]] && RC_TUNNEL_PORT="$port" ;;
+    3) ;;   # NO_PROXY covers the host: direct
+    *) warn "could not start the proxy tunnel (exit $status), so redis-cli connects directly" ;;
+  esac
+  return 0
 }
 
 RC_OUT=""
@@ -315,6 +345,7 @@ rc_error_line() {
 # rcmd CMD ARGS...: runs it, puts the reply in RC_OUT, dies with a distinct code on failure.
 rcmd() {
   local status=0 out label="${1:-stdin}" tries=0
+  rc_route
   while :; do
     status=0
     if [ -n "$RC_STDIN" ]; then
@@ -1655,6 +1686,9 @@ cmd_flush() {
 cmd_doctor() {
   local mode t0 t1
   echo "host:     $MAILBOX_HOST:$MAILBOX_PORT (TLS)"
+  rc_route
+  if [ -n "$RC_TUNNEL_PORT" ]; then echo "route:    sandbox proxy (local tunnel 127.0.0.1:$RC_TUNNEL_PORT)"
+  else echo "route:    direct"; fi
   echo "user:     $MAILBOX_USER"
   echo "owner:    $MAILBOX_OWNER"
   echo "session:  ${SESSION:-(none)}"

@@ -840,6 +840,32 @@ test_doctor() {
   rm -f "$T/env"; mb doctor; assert_rc 78 "doctor needs config"
 }
 
+# Bug (2026-11-09, session claude-flow-novice-src-7a): inside the Claude Code sandbox every call died
+# "cannot reach <host>:6379 over TLS". The sandbox only lets traffic out through its HTTP proxy and
+# redis-cli ignores proxy settings, so redis-cli must go through proxy-tunnel.py on 127.0.0.1.
+test_sandbox_proxy() {
+  new_case "proxy: with HTTPS_PROXY set, redis-cli goes through the local tunnel"
+  HTTPS_PROXY="http://u:p@127.0.0.1:9" mb doctor
+  assert_rc 0 "doctor ok through tunnel"
+  local argv; argv="$(grep '^ARGV' "$T/calls" | head -1)"
+  assert_contains "$argv" "$(printf -- '-h\t127.0.0.1\t-p\t')" "connects to the local tunnel"
+  assert_contains "$argv" "$(printf -- '--sni\tmbx.example.test')" "TLS still names the real host"
+  assert_not_contains "$argv" "$(printf -- '-h\tmbx.example.test')" "never dials the host directly"
+  assert_contains "$OUT" "sandbox proxy" "doctor says how it connects"
+
+  new_case "proxy: NO_PROXY covering the host keeps the direct connection"
+  HTTPS_PROXY="http://u:p@127.0.0.1:9" NO_PROXY="mbx.example.test" mb doctor
+  assert_rc 0 "doctor ok direct"
+  argv="$(grep '^ARGV' "$T/calls" | head -1)"
+  assert_contains "$argv" "$(printf -- '-h\tmbx.example.test\t-p\t6379')" "direct to the host"
+  assert_not_contains "$argv" "--sni" "no SNI override when direct"
+
+  new_case "proxy: no proxy in the environment keeps the direct connection"
+  mb doctor
+  argv="$(grep '^ARGV' "$T/calls" | head -1)"
+  assert_contains "$argv" "$(printf -- '-h\tmbx.example.test\t-p\t6379')" "direct to the host"
+}
+
 # adduser -------------------------------------------------------------------
 
 admin_env() { # writes $T/admin.env
@@ -1295,6 +1321,7 @@ run_offline() {
   test_read_max_and_peek
   test_heartbeat
   test_doctor
+  test_sandbox_proxy
   test_adduser
   test_receiver_policy
   test_quarantine

@@ -6,6 +6,10 @@
 # value to $FAKE_LOG.authenv, and answers from $FAKE_RULES (glob<TAB>reply, first match wins).
 # No test using it ever touches a network.
 
+# Suites run inside the Claude Code sandbox, which exports proxy variables. Left set, mailbox.sh
+# would route the fake through proxy-tunnel.py; cases that test the tunnel set them per call.
+unset HTTPS_PROXY https_proxy ALL_PROXY all_proxy NO_PROXY no_proxy
+
 install_fake_redis_cli() {
   local dest="$1/redis-cli"
   cat > "$dest" <<'STUB'
@@ -20,7 +24,7 @@ while [ $# -gt 0 ]; do
     --tls|--no-auth-warning) shift ;;
     --json) json=1; shift ;;
     -x) xarg=1; shift ;;
-    -h|-p|--user) shift 2 ;;
+    -h|-p|--user|--sni) shift 2 ;;
     *) break ;;
   esac
 done

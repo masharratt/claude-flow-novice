@@ -33,6 +33,8 @@ Machines today: the Mac, the VPS (`MAILBOX_HOST_TAG=vps`) and the WSL desktop (`
 5. Watcher: Linux/WSL with systemd: `mailbox-watch.sh install-systemd` (WSL needs `systemd=true` under `[boot]` in `/etc/wsl.conf`; otherwise start `mailbox-watch.sh run` by hand). macOS: a LaunchAgent running `mailbox-watch.sh run`.
 6. Test: from the new machine `mailbox.sh send michael/me --kind fyi "hello from <machine>"`, and from another machine send an `ask` to a new-machine session; it should wake within a minute.
 
+Sandboxed sessions: redis-cli ignores proxy settings and the Claude Code sandbox only lets traffic out through its proxy, so when `HTTPS_PROXY`/`ALL_PROXY` is set `mailbox.sh` relays through `proxy-tunnel.py` (a local port, HTTP CONNECT, TLS still end to end). The mail host must be in `sandbox.network.allowedDomains`; do not tell the user to exclude the command or add the host to `excludedCommands`. `doctor` prints the route it used.
+
 Never send secrets (API keys, tokens, cookies, `.env` values) by mail: bodies are stored in plain text at Upstash for up to 7 days, readable by every session of the owner, and enter session transcripts. Mail where the secret is ("in 1Password under X"), not the secret.
 
 ## Watcher (`mailbox-watch.sh`)
