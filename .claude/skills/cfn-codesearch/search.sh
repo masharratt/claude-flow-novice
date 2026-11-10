@@ -53,6 +53,17 @@ DB="${CODESEARCH_DB:-$HOME/.local/share/codesearch/index_v2.db}"
 BIN="${CODESEARCH_BIN:-$HOME/.local/bin/local-codesearch}"
 ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 ROOT="${ROOT%/}"
+# Index lookups (steps 1, 1b, 3) use IDX_ROOT: ROOT itself, or the indexed main
+# checkout of the same repo when ROOT is a fleet clone/worktree. Step 2
+# (literal mentions) stays on ROOT so the worker's own edits are still found.
+. "$(dirname "${BASH_SOURCE[0]}")/lib/index-root.sh"
+IDX_ROOT=$(cs_index_root "$ROOT" "$DB")
+[ -n "$IDX_ROOT" ] || IDX_ROOT="$ROOT"
+[ "$IDX_ROOT" = "$ROOT" ] || echo "(index: $IDX_ROOT, the main checkout of this repo; unmerged edits here are not in it)"
+# Usage log, read by cs-usage reports: did sessions actually search?
+CS_LOG_DIR="${CFN_CS_LOG_DIR:-$HOME/.local/share/codesearch/logs}"
+mkdir -p "$CS_LOG_DIR" 2>/dev/null &&
+  printf '%s\t%s\tsearch\t%s\n' "$(date -u +%FT%TZ)" "$ROOT" "search.sh" >>"$CS_LOG_DIR/usage-$(date +%Y-%m).tsv" 2>/dev/null
 
 # Resident model daemon: start in the background if none is running. A live
 # daemon holds an flock on <socket>.lock; a socket file whose lock is free is
@@ -105,7 +116,7 @@ lexical_ok=0
 if [ -x "$BIN" ] && [ -f "$DB" ]; then
   # Empty output also falls back: projects not reindexed since `lexical` landed
   # have no rows in its table yet.
-  files=$( (cd "$ROOT" && "$BIN" --project-dir "$ROOT" lexical "$QUERY" -n "$TOP" --db "$DB" ${SEMW:+--semantic-weight "$SEMW"}) 2>/dev/null) || files=""
+  files=$( (cd "$IDX_ROOT" && "$BIN" --project-dir "$IDX_ROOT" lexical "$QUERY" -n "$TOP" --db "$DB" ${SEMW:+--semantic-weight "$SEMW"}) 2>/dev/null) || files=""
   if [ -n "$files" ]; then
     lexical_ok=1
     echo "=== Files ==="; echo "$files"; echo; found=1
@@ -114,7 +125,7 @@ fi
 
 # 1b. Names (fallback)
 if [ "$lexical_ok" = 0 ] && [ "${#TERMS[@]}" -gt 0 ] && [ -f "$DB" ]; then
-  root_q=$(sql_quote "$ROOT")
+  root_q=$(sql_quote "$IDX_ROOT")
   conds="" order=""
   for t in "${TERMS[@]}"; do
     base="${t##*/}"; stem="${base%.*}"; [ -n "$stem" ] || stem="$base"
@@ -154,8 +165,8 @@ fi
 if { [ "$found" = 0 ] || [ "$SEMANTIC" = 1 ]; } && [ -x "$BIN" ] && [ -f "$DB" ]; then
   # The binary prints its log lines on stdout; keep only result lines, paths relative.
   # cfn: wrapper-side filter, drop once the binary logs to stderr
-  sem=$( (cd "$ROOT" && env -u OPENAI_API_KEY "$BIN" --skip-qdrant query "$QUERY" --max-results "$TOP" --threshold 0.1) 2>/dev/null |
-    grep -E ' in .+:[0-9]+ \(similarity' | sed "s| in $ROOT/| in |")
+  sem=$( (cd "$IDX_ROOT" && env -u OPENAI_API_KEY "$BIN" --skip-qdrant query "$QUERY" --max-results "$TOP" --threshold 0.1) 2>/dev/null |
+    grep -E ' in .+:[0-9]+ \(similarity' | sed "s| in $IDX_ROOT/| in |")
   if [ -n "$sem" ]; then
     echo "=== Semantic ==="; echo "$sem"; found=1
   fi

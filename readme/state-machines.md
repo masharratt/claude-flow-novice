@@ -1005,3 +1005,23 @@ _No curated description yet. Edit this wiki:enrich block to describe entity-tool
 _No curated description yet. Edit this wiki:enrich block to describe entity-training._
 <!-- /wiki:enrich -->
 
+
+<!-- wiki:enrich id=orphan-entity-codesearch-gate fp=orphan -->
+**Imported entity:** CodeSearch Gate (per Claude session)
+
+**Source:** `.claude/hooks/cfn-codesearch-gate.sh` (marker file `$CFN_CS_GATE_DIR/<session_id>`)
+
+### States
+
+**States:** `GATED | SEARCHED`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| GATED | GATED | recursive grep/rg/git grep/Grep call denied | project (or its main checkout) is indexed |
+| GATED | SEARCHED | Bash call runs cfn-codesearch/search.sh | none |
+| SEARCHED | SEARCHED | any grep passes | none |
+
+```
+GATED --search.sh--> SEARCHED
+```
+<!-- /wiki:enrich -->
