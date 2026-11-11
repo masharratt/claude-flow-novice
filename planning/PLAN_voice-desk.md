@@ -82,8 +82,12 @@ mailbox ──► michael/s/gg-desk ──watcher wakes pane──► desk sessi
 ### n8n workflow "Voice desk MCP"
 
 - MCP Server Trigger, bearer auth (new token, connector added as **personal**, not organization).
-- Two HTTP Request tools to `https://vps.tail07931e.ts.net:8443/voice/send` and `/voice/check`,
-  header auth credential holding `VOICE_DESK_TOKEN`.
+- Two HTTP Request tools to `http://172.18.0.1:8790/voice/send` and `/voice/check` (the existing
+  `gg-runner-relay.service` socat relay from the n8n docker network to the runner), header auth
+  credential holding `VOICE_DESK_TOKEN`. Not the Funnel URL: n8n runs on the same VPS, the Funnel
+  name resolves to the tailnet IP inside the container and 8443 is bound to tailscale0 only, so a
+  hairpin can never connect (found live 2026-11-11; dispatch and the Sentry investigator already use
+  the relay).
 - Tool descriptions tell voice mode: send, then come back later and check; read replies aloud as given.
 - Repo copy `scripts/n8n/voice-desk-mcp.json`, row in `docs/operations/n8n-map.md`.
 
