@@ -18,11 +18,12 @@ the existing runner, because the Claude app and n8n cannot speak the mailbox pro
 
 ## User decisions (2026-11-10)
 
-1. **Voice powers:** read, test, message other sessions, and code changes as pull requests into dev.
+1. **Voice powers:** read, test, message other sessions, and code changes as pull requests into main
+   (dev is retired; decided 2026-11-11 in the gg-all-projects VPS session). The desk never merges.
    Merging, deploying, production database, secrets and firewall wait for Michael at a keyboard.
 2. **How the desk gets work done:** it coordinates. It may launch subagents, open new tmux worker
    sessions (cfn-tmux-agents) and assign work to existing sessions by mail. Workers change code only
-   on branches in their own worktrees and open PRs into dev. (This replaces the v1 "always the
+   on branches in their own worktrees and open PRs into main; Michael merges. (This replaces the v1 "always the
    dispatch runner" recommendation; the Operations-runner rule from the mailbox plan is knowingly
    relaxed for the desk, which is Michael's own coordinator, not a delegated product runner.)
 3. **Relay:** add a voice door to the existing dispatch runner (no new always-on service, no new
@@ -43,7 +44,7 @@ dispatch runner on the VPS: POST /voice/send, POST /voice/check
    ▼
 mailbox ──► michael/s/gg-desk ──watcher wakes pane──► desk session (tmux "gg-desk")
                  ▲                                      ├─ subagents
-                 │                                      ├─ tmux workers (worktrees, PRs into dev)
+                 │                                      ├─ tmux workers (worktrees, PRs into main)
                  └── michael/s/voice ◄── replies ───────└─ mail to other gg sessions
 ```
 
@@ -119,7 +120,7 @@ mailbox ──► michael/s/gg-desk ──watcher wakes pane──► desk sessi
 ## Risks
 
 - **Risk:** Anyone with the connector token can steer the desk, if they get the token. Limits are
-  advisory, so the real guard is the token plus "PRs into dev only, nothing merges without Michael".
+  advisory, so the real guard is the token plus "PRs only, nothing merges without Michael".
 - **Risk:** The desk shares the Linux user with the runner and can read the runner's secrets file and
   the checkout's `.env`. Accepted for now; `cfn:` upgrade trigger is a separate Linux user if the desk
   ever takes mail from anyone but Michael.
@@ -133,7 +134,7 @@ mailbox ──► michael/s/gg-desk ──watcher wakes pane──► desk sessi
 | Voice tier spoofable; login cannot be limited to two keys (both) | Dropped the tier and the new login; voice is teammate |
 | Connector is org-wide, static token (Fable) | Personal connector, own token |
 | Deny list not enforceable (both) | Kept, labelled advisory; real guard is PR-only plus token |
-| `/dispatch` needs Slack fields, opens PRs into main (both) | Desk no longer uses `/dispatch`; workers open PRs into dev |
+| `/dispatch` needs Slack fields, opens PRs into main (both) | Desk no longer uses `/dispatch`; workers open PRs into main, Michael merges |
 | `read` consumes mail, reply can be lost (both) | Door persists before answering, re-returns last 24 h |
 | Heartbeat misreports idle desk (both) | Health from tmux |
 | HMAC replay (both) | Bearer plus `request_id` as `msg_id` |
