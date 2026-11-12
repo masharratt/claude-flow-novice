@@ -297,15 +297,19 @@ _spawn_remote_ship_launch(){
 # all of it. A failed fetch or a remote with no main warns and continues.
 _spawn_remote_check_host_main(){
   local repo="$1" ws="$2" gitremote="$3" missing
+  _SPAWN_BASE_SRC=HEAD  # base source for the push; host main once the check passes
   if ! GIT_TERMINAL_PROMPT=0 git -C "$repo" fetch -q "$gitremote" "+refs/heads/main:refs/remotes/$gitremote/main" >/dev/null 2>&1 \
      || ! git -C "$repo" rev-parse --verify -q "refs/remotes/$gitremote/main" >/dev/null 2>&1; then
-    echo "WARN spawn: could not fetch main from $gitremote; not checking that HEAD is current" >&2
+    echo "WARN spawn: could not fetch main from $gitremote; not checking that HEAD is current, pushing HEAD as the base" >&2
     return 0
   fi
   missing=$(git -C "$repo" rev-list --count "HEAD..refs/remotes/$gitremote/main" 2>/dev/null || echo 0)
   [[ "$missing" =~ ^[0-9]+$ ]] || missing=0
   [ "$missing" -eq 0 ] \
     || fleet_die 66 "spawn: HEAD is missing $missing commit(s) from $gitremote/main; run: git fetch $gitremote && git merge $gitremote/main; $ws left pending"
+  # The lane starts from host main, not Mac HEAD: Mac-only roster/brief commits
+  # must never reach server main when the lane lands.
+  _SPAWN_BASE_SRC="refs/remotes/$gitremote/main"
 }
 
 # _spawn_remote WS NAME HOST ENGINE BIN ARGS UNSET TRUST_RE TRUST_KEYS BANNER_RE
@@ -406,8 +410,8 @@ _spawn_remote(){
     || fleet_die 66 "spawn: this repo has no git remote '$gitremote' for $host; run: fleet host-setup $host"
   _spawn_remote_check_host_main "$repo" "$ws" "$gitremote"
   if [ "$wt_exists" -eq 0 ] || [ "$base_exists" -eq 0 ]; then
-    GIT_TERMINAL_PROMPT=0 git -C "$repo" push -q "$gitremote" "+HEAD:refs/heads/fleet-base/$ws" \
-      || fleet_die 66 "spawn: git push $gitremote HEAD:fleet-base/$ws failed; $ws left pending"
+    GIT_TERMINAL_PROMPT=0 git -C "$repo" push -q "$gitremote" "+$_SPAWN_BASE_SRC:refs/heads/fleet-base/$ws" \
+      || fleet_die 66 "spawn: git push $gitremote $_SPAWN_BASE_SRC:fleet-base/$ws failed; $ws left pending"
   fi
 
   # 4. Remote worktree, links, outbox.

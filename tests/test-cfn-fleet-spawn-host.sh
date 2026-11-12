@@ -1028,7 +1028,7 @@ test_spawn_host_refuses_when_head_behind_host_main() {
 }
 
 test_spawn_host_replaces_stale_fleet_base_on_fresh_spawn() {
-    log_step "MDTWII 2026-11-12: a fleet-base/WS01 left by an earlier run must be moved to HEAD when there is no worktree"
+    log_step "MDTWII 2026-11-12: a fleet-base/WS01 left by an earlier run must be moved to host main when there is no worktree"
     make_fixture stalebase
     local old
     old=$(git -C "$PROJ" rev-parse HEAD)
@@ -1039,9 +1039,9 @@ test_spawn_host_replaces_stale_fleet_base_on_fresh_spawn() {
     capture_script 1 "Sonnet 5 with high effort | Claude Team"
     run_spawn WS01 --host fakehost
     assert_equals "0" "$FLEET_RC" "fresh spawn over a stale base exits 0"
-    assert_equals "$(git -C "$PROJ" rev-parse HEAD)" \
+    assert_equals "$(git --git-dir="$SRV/git/proj.git" rev-parse refs/heads/main)" \
         "$(git --git-dir="$SRV/git/proj.git" rev-parse refs/heads/fleet-base/WS01)" \
-        "stale fleet-base/WS01 (was ${old:0:8}) replaced by HEAD"
+        "stale fleet-base/WS01 (was ${old:0:8}) replaced by host main"
 }
 
 test_spawn_host_no_host_main_warns_and_continues() {
@@ -1069,6 +1069,42 @@ test_spawn_host_diverged_but_containing_host_main_spawns() {
     run_spawn WS01 --host fakehost
     assert_equals "0" "$FLEET_RC" "diverged-but-containing HEAD spawns"
     assert_not_contains "$FLEET_OUT" "commit(s) from" "no missing-commits refusal"
+}
+
+test_spawn_host_base_is_host_main_not_mac_head() {
+    log_step "MDTWII 2026-11-12: Mac HEAD carries Mac-only commits; the lane base must be host main so they never reach server main"
+    make_fixture hostbase
+    echo m > "$PROJ/src/mac-only.md"
+    git -C "$PROJ" add -A
+    git -C "$PROJ" commit -qm "mac-only roster commit"
+    local hostmain
+    hostmain=$(git --git-dir="$SRV/git/proj.git" rev-parse refs/heads/main)
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "spawn with Mac HEAD ahead exits 0"
+    assert_equals "$hostmain" "$(git --git-dir="$SRV/git/proj.git" rev-parse refs/heads/fleet-base/WS01)" "fleet-base/WS01 is host main"
+    assert_failure "Mac HEAD is not the base" test "$(git -C "$PROJ" rev-parse HEAD)" = "$(git --git-dir="$SRV/git/proj.git" rev-parse refs/heads/fleet-base/WS01)"
+    local wt="$SRV/fleet-repos/proj-wt/ws01"
+    assert_success "Mac-only commit is not in the lane" test ! -e "$wt/src/mac-only.md"
+
+    log_step "GIVEN a lane commit on that base, THEN merging it into the Mac HEAD (which contains host main) is clean"
+    echo lane > "$wt/src/a.md"
+    git -C "$wt" -c user.email=w@t.l -c user.name=w commit -qam "lane work"
+    git -C "$PROJ" fetch -q "$SRV/fleet-repos/proj" fleet/WS01
+    assert_success "lane merges cleanly into Mac HEAD" git -C "$PROJ" merge -q --no-edit FETCH_HEAD
+    assert_equals "lane" "$(cat "$PROJ/src/a.md")" "lane change landed"
+    assert_equals "m" "$(cat "$PROJ/src/mac-only.md")" "Mac-only file still on Mac"
+}
+
+test_spawn_host_no_host_main_pushes_head_and_says_so() {
+    log_step "GIVEN host main cannot be fetched, THEN the base falls back to Mac HEAD and the WARN says so"
+    make_fixture basefallback
+    git --git-dir="$SRV/git/proj.git" update-ref -d refs/heads/main
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "fallback spawn exits 0"
+    assert_contains "$FLEET_OUT" "pushing HEAD as the base" "WARN names the fallback"
+    assert_equals "$(git -C "$PROJ" rev-parse HEAD)" "$(git --git-dir="$SRV/git/proj.git" rev-parse refs/heads/fleet-base/WS01)" "base is Mac HEAD on fallback"
 }
 
 run_all_tests() {
@@ -1110,6 +1146,8 @@ run_all_tests() {
     test_spawn_host_replaces_stale_fleet_base_on_fresh_spawn
     test_spawn_host_no_host_main_warns_and_continues
     test_spawn_host_diverged_but_containing_host_main_spawns
+    test_spawn_host_base_is_host_main_not_mac_head
+    test_spawn_host_no_host_main_pushes_head_and_says_so
 
     print_test_summary
 }
