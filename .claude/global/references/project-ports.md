@@ -30,10 +30,15 @@ Load when starting a dev server or debugging a port conflict. Extracted from `~/
 | 54421-54427 | NYSDRA | |
 | 54532 | gg-slack-scratch-pg | bare `postgres:17` container, not a Supabase stack: no auth, storage or extensions schema, no anon/authenticated/service_role roles, no citext. Cannot host a migration rehearsal |
 | 54533 | da-scratch | same shape as above |
+| 54536 | gg-people-profiles-pg | gg-all-projects people-research pilot: `pgvector/pgvector:pg17` container (volume `gg-people-profiles-pg`), roles copied from the cfn scratch cluster; holds `people_profiles_batch1` (moved off 54534 on 2026-10-21 so scratch resets work) |
 | 54641-54647 | gg-loop-old | a real local Supabase stack, used to confirm what a full stack provides |
 | 54721-54729 | ggi-curve26 (gg-all-projects `packages/db`) | reserved. 54721 api, 54722 db, 54723 studio, 54724 inbucket, 54727 analytics. This is the migration-rehearsal and integration-test target for the Curve 2026 build |
 
 A bare Postgres container is not a substitute for a local Supabase stack when the migration under test creates policies, storage buckets or role grants. It fails on the first statement that names `auth`, `storage` or `service_role`.
+
+**Public exposure on the VPS.** `supabase start` publishes every port on `0.0.0.0` and `[::]`, and Docker-published ports skip ufw's INPUT rules. On the Contabo VPS this is covered by a default-deny `DOCKER-USER` chain saved in `/etc/ufw/after.rules` and `after6.rules` (root-only): inbound on `eth0` is dropped except established traffic and ports 80/443 (Caddy). Verified 2026-11-12 by an outside probe from the Mac: 54721-54727 and 54751-54752 time out on IPv4 and IPv6, 443 connects. A new public service on the VPS needs a `--ctorigdstport <port> -j RETURN` line there as well as a ufw allow. A machine without that chain (a new server, a rebuild that skips it) exposes every local stack with the default database login.
+
+The personal VPS (`vps-personal`, 5.183.32.155) had an empty `DOCKER-USER` chain until 2026-11-12; it now has the same default-deny block (marked `BEGIN docker-user-default-deny` in both after*.rules files) with no public port allowed through. Its Docker services bind 127.0.0.1 or the Tailscale address, which the block does not touch (it matches `-i eth0` only).
 
 ## Graph DB (Memgraph) bolt/web port assignments
 
@@ -62,3 +67,4 @@ Non-project dev tooling that binds loopback:
 |------|------|-------|
 | cfn-fleet dashboard | **4880** | `fleet dashboard` python3 http.server, 127.0.0.1 only, rooted at the fleet run dir. Per-run pidfile `.dashboard.pid`; move with `--port` or `FLEET_DASHBOARD_PORT`. Busy port exits 66. |
 | cfn-wiki portal | **4885** | `wiki serve` python3 annotation server, 127.0.0.1 only, rooted at `<repo>/.wiki/portal/`. Pidfile `.wiki/cache/serve.pid`; move with `--port` or `WIKI_PORT`. Opens VS Code Simple Browser by default (`browser: system` in `.wiki/config.json` for the OS browser). |
+| gg-all-projects operations pilot (people-profiles worktree) | **55838** (Postgres), **55839** (GoTrue) | Disposable, loopback only (127.0.0.1). Containers `gg-operations-pilot-codex-20261020-fe608f` and `-auth`. Runtime: `.claude/worktrees/people-research/packages/db/operations-pilot/runtime/runs/eventtest-people-profiles-1020/`. |

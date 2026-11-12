@@ -17,6 +17,7 @@ Never set `CARGO_TARGET_DIR` to `/dev/shm` or `/run/shm` (RAM-backed; debug targ
 - `DATABASE_URL` from `.env` (pooler, IPv4). `SUPABASE_DIRECT_CONNECTION` is IPv6, may fail in WSL2.
 - **NEVER `source .env`** (multi-line tokens break bash). Extract: `grep '^DATABASE_URL=' .env | cut -d'=' -f2-`
 - **DB queries:** use `./.claude/skills/db-query/execute.sh --sql "..."` (`--schema X` optional). Never raw psql. Handles `pool_size`/`search_path`.
+- **Local stacks on a server are published on every address.** `supabase start` binds `0.0.0.0` and `[::]` with the default database login, and Docker-published ports skip ufw. Before calling a server stack exposed or safe, read the `DOCKER-USER` chain (`sudo iptables -S DOCKER-USER`, `ip6tables` too); `/etc/ufw/after*.rules` are root-only, so a non-sudo read prints nothing. Per-server state and the 2026-11-12 check: `project-ports.md`, "Public exposure on the VPS".
 - **After every migration:** `db-query` auto-refreshes via the `cfn-post-migration-sync` PostToolUse (Bash) hook, which detects apply commands (`supabase db push`, `psql -f migrations/*`, `prisma`/`alembic`/`rails`/`sqlx` migrate, `manage.py migrate`, golang `migrate ... up|down`) and runs `supabase-schema-sync`. No-ops in projects without `.env` `DATABASE_URL`. Manual fallback: `~/.claude/skills/supabase-schema-sync/execute.sh`.
 
 ## Database and HTTP security (moved from CLAUDE.md Security, 2026-10-28)
