@@ -290,6 +290,24 @@ _spawn_remote_ship_launch(){
   return 0
 }
 
+# Refuse a spawn whose HEAD lacks commits the host's main already has (a lane
+# must not start from stale code; MDTWII 2026-11-12: base ~1000 commits behind,
+# missing lane-preflight.sh). Compared against main on the Mac git remote used
+# for this host, not @{u}. Ahead or diverged is fine as long as HEAD contains
+# all of it. A failed fetch or a remote with no main warns and continues.
+_spawn_remote_check_host_main(){
+  local repo="$1" ws="$2" gitremote="$3" missing
+  if ! GIT_TERMINAL_PROMPT=0 git -C "$repo" fetch -q "$gitremote" "+refs/heads/main:refs/remotes/$gitremote/main" >/dev/null 2>&1 \
+     || ! git -C "$repo" rev-parse --verify -q "refs/remotes/$gitremote/main" >/dev/null 2>&1; then
+    echo "WARN spawn: could not fetch main from $gitremote; not checking that HEAD is current" >&2
+    return 0
+  fi
+  missing=$(git -C "$repo" rev-list --count "HEAD..refs/remotes/$gitremote/main" 2>/dev/null || echo 0)
+  [[ "$missing" =~ ^[0-9]+$ ]] || missing=0
+  [ "$missing" -eq 0 ] \
+    || fleet_die 66 "spawn: HEAD is missing $missing commit(s) from $gitremote/main; run: git fetch $gitremote && git merge $gitremote/main; $ws left pending"
+}
+
 # _spawn_remote WS NAME HOST ENGINE BIN ARGS UNSET TRUST_RE TRUST_KEYS BANNER_RE
 # REPO RUN_DIR BRIEF: the whole --host path: preflight, push base, remote
 # worktree, ship, launch. Exits via fleet_die; never leaves a half-made remote
@@ -386,6 +404,7 @@ _spawn_remote(){
   # 3. Push the base the worker branches from (fleet land fetches it back).
   git -C "$repo" remote get-url "$gitremote" >/dev/null 2>&1 \
     || fleet_die 66 "spawn: this repo has no git remote '$gitremote' for $host; run: fleet host-setup $host"
+  _spawn_remote_check_host_main "$repo" "$ws" "$gitremote"
   if [ "$wt_exists" -eq 0 ] || [ "$base_exists" -eq 0 ]; then
     GIT_TERMINAL_PROMPT=0 git -C "$repo" push -q "$gitremote" "+HEAD:refs/heads/fleet-base/$ws" \
       || fleet_die 66 "spawn: git push $gitremote HEAD:fleet-base/$ws failed; $ws left pending"

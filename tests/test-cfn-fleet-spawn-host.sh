@@ -991,6 +991,86 @@ test_spawn_host_mailbox_env_never_shapes_the_sandbox() {
         "the worker's Edit rules deny ~/.config/cfn-mailbox/env"
 }
 
+# host_main_moves_on SLUG: another clone pushes a new commit to main of the
+# host's bare repo (the Mac git remote "fakehost"), so the Mac HEAD lacks it.
+host_main_moves_on() {
+    local other="$TMP_DIR/$1/other"
+    git clone -q "$SRV/git/proj.git" "$other"
+    git -C "$other" config user.email fleet@test.local
+    git -C "$other" config user.name fleet
+    echo b > "$other/b.md"
+    git -C "$other" add -A
+    git -C "$other" commit -qm "host main moves on"
+    git -C "$other" push -q origin main
+}
+
+test_spawn_host_refuses_when_head_behind_host_main() {
+    log_step "MDTWII 2026-11-12: WS1140 base was ~1000 commits behind; spawn must refuse (66) when HEAD lacks host main commits"
+    make_fixture behind
+    host_main_moves_on behind
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "66" "$FLEET_RC" "behind host main exits 66"
+    assert_contains "$FLEET_OUT" "missing 1 commit" "refusal names the count"
+    assert_contains "$FLEET_OUT" "git fetch fakehost && git merge fakehost/main" "refusal gives the merge fix"
+    assert_contains "$FLEET_OUT" "left pending" "refusal says the row stays pending"
+    assert_failure "nothing pushed when behind" \
+        git --git-dir="$SRV/git/proj.git" rev-parse --verify --quiet refs/heads/fleet-base/WS01
+    assert_success "no remote worktree when behind" test ! -e "$SRV/fleet-repos/proj-wt/ws01"
+    assert_equals "pending" "$(roster_field WS01 status)" "row stays pending"
+
+    log_step "GIVEN the user merges host main, THEN the spawn goes through"
+    git -C "$PROJ" fetch -q fakehost
+    git -C "$PROJ" merge -q --no-edit fakehost/main
+    rm -f "$CAPTURE_DIR/.count"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "merged HEAD spawns"
+}
+
+test_spawn_host_replaces_stale_fleet_base_on_fresh_spawn() {
+    log_step "MDTWII 2026-11-12: a fleet-base/WS01 left by an earlier run must be moved to HEAD when there is no worktree"
+    make_fixture stalebase
+    local old
+    old=$(git -C "$PROJ" rev-parse HEAD)
+    git -C "$PROJ" push -q fakehost "HEAD:refs/heads/fleet-base/WS01"
+    echo c > "$PROJ/src/c.md"
+    git -C "$PROJ" add -A
+    git -C "$PROJ" commit -qm "newer work"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "fresh spawn over a stale base exits 0"
+    assert_equals "$(git -C "$PROJ" rev-parse HEAD)" \
+        "$(git --git-dir="$SRV/git/proj.git" rev-parse refs/heads/fleet-base/WS01)" \
+        "stale fleet-base/WS01 (was ${old:0:8}) replaced by HEAD"
+}
+
+test_spawn_host_no_host_main_warns_and_continues() {
+    log_step "MDTWII 2026-11-12: a host remote with no main means a WARN, not a refusal"
+    make_fixture nomain
+    git --git-dir="$SRV/git/proj.git" update-ref -d refs/heads/main
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "no host main still spawns"
+    assert_contains "$FLEET_OUT" "WARN spawn: could not fetch main from fakehost" "WARN names the failed comparison"
+}
+
+test_spawn_host_diverged_but_containing_host_main_spawns() {
+    log_step "MDTWII 2026-11-12: Mac main carries local-only commits and cannot fast-forward; a HEAD that contains host main must spawn"
+    make_fixture diverged
+    host_main_moves_on diverged
+    echo l > "$PROJ/src/local.md"
+    git -C "$PROJ" add -A
+    git -C "$PROJ" commit -qm "local only"
+    git -C "$PROJ" fetch -q fakehost
+    git -C "$PROJ" merge -q --no-edit fakehost/main
+    assert_equals "0" "$(git -C "$PROJ" rev-list --count HEAD..fakehost/main)" "fixture: HEAD contains host main"
+    assert_equals "2" "$(git -C "$PROJ" rev-list --count fakehost/main..HEAD)" "fixture: HEAD carries its own commits past host main"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "diverged-but-containing HEAD spawns"
+    assert_not_contains "$FLEET_OUT" "commit(s) from" "no missing-commits refusal"
+}
+
 run_all_tests() {
     TEST_LOG="${TMPDIR:-/tmp}/cfn-fleet-spawn-host-$(date +%s).log"
     export TEST_LOG
@@ -1026,6 +1106,10 @@ run_all_tests() {
     test_spawn_host_allow_write_opens_listed_tmp_paths_only
     test_spawn_host_allow_write_refuses_bad_entries
     test_spawn_host_mailbox_env_never_shapes_the_sandbox
+    test_spawn_host_refuses_when_head_behind_host_main
+    test_spawn_host_replaces_stale_fleet_base_on_fresh_spawn
+    test_spawn_host_no_host_main_warns_and_continues
+    test_spawn_host_diverged_but_containing_host_main_spawns
 
     print_test_summary
 }
