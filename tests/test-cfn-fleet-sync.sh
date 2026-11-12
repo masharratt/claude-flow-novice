@@ -369,6 +369,28 @@ OUT=$(fleet sync WS01 2>&1)
 check "worker report leaves a spawning row alone" "$(cell WS01 status)" "spawning"
 contains "sync says it refused the status" "$OUT" "refused status 'working'"
 
+echo "== sync: lane mail that never left the host (MDTWII 2026-11-12) =="
+# Regression: a blocked report synced fine while its mail sat in mail-out for an
+# hour, and nothing told the master. Sync now names stuck and set-aside mail.
+fresh_run
+report "$GEN" 1 status status blocked note "waiting on claims"
+mkdir -p "$OUTBOX/mail-out"
+old=$(( $(date +%s) - 1800 ))
+printf '{"to":"m/s/x","kind":"ask","fleet":"blocked","body":"b","msg_id":"aa"}\n' >"$OUTBOX/mail-out/$old-00aa.json"
+printf '{"to":"m/s/x","kind":"ask","fleet":"claim-request","body":"c","msg_id":"bb"}\n' >"$OUTBOX/mail-out/$((old + 5))-00bb.json"
+printf '{}\n' >"$OUTBOX/mail-out/$old-00cc.json.failed"
+out=$(fleet sync 2>&1)
+contains "stuck lane mail is named with its age" "$out" "MAIL-PENDING WS01 2 oldest 30m"
+contains "set-aside lane mail is named" "$out" "MAIL-FAILED WS01 1"
+contains "the report itself still applies" "$out" "SYNC WS01 applied 1"
+fresh_run
+report "$GEN" 1 status status working
+mkdir -p "$OUTBOX/mail-out"
+printf '{}\n' >"$OUTBOX/mail-out/$(date +%s)-00dd.json"
+out=$(fleet sync 2>&1)
+lacks "mail queued moments ago is not stuck yet" "$out" "MAIL-PENDING"
+lacks "no failed entries, no MAIL-FAILED" "$out" "MAIL-FAILED"
+
 echo
 echo "sync suite: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

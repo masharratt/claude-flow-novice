@@ -19,7 +19,11 @@
 #
 # Output (one line each): SYNC <ws> applied N | up to date | ..., UNREACHABLE
 # <ws> <host> (link down; roster untouched, never a DEAD), HANDOFF <ws> <file>,
-# CLAIM-REQ <ws> <path>. Exit 0 unless the ws is unknown (65) or usage (64).
+# CLAIM-REQ <ws> <path>, MAIL-PENDING <ws> <n> oldest <m>m (lane mail still in
+# its mail-out queue after FLEET_MAIL_STUCK_SECS, default 120: the master never
+# got it, the report above is the only copy), MAIL-FAILED <ws> <n> (entries the
+# lane's hook set aside as .failed; never retried). Exit 0 unless the ws is
+# unknown (65) or usage (64).
 #
 # This file also holds the remote-row helpers watch, dashboard and peek share
 # (env loader, pane capture, prompt regex, live state), because the router
@@ -157,6 +161,42 @@ for r in rows:
     print("\x1f".join(str(x) for x in r))
 '
 
+# Reads mail-out/ from an extracted outbox (remote-worker.sh names entries
+# <epoch>-<id>.json) and prints "<pending> <oldest epoch or 0> <failed>".
+_FLEET_MAILQ_PY='
+import os, re, sys
+d = os.path.join(sys.argv[1], "mail-out")
+pending, oldest, failed = 0, 0, 0
+for n in (os.listdir(d) if os.path.isdir(d) else []):
+    if n.endswith(".json.failed"):
+        failed += 1
+        continue
+    m = re.fullmatch(r"([0-9]{9,11})-[A-Za-z0-9_-]+\.json", n)
+    if not m:
+        continue
+    pending += 1
+    t = int(m.group(1))
+    oldest = t if oldest == 0 or t < oldest else oldest
+print(pending, oldest, failed)
+'
+
+# _fleet_sync_mailq WS DIR: MAIL-PENDING / MAIL-FAILED lines for lane mail that
+# never left the host (see the header). Silent when the queue is clean.
+_fleet_sync_mailq() {
+  local ws="$1" dir="$2" secs pending oldest failed now age
+  secs="${FLEET_MAIL_STUCK_SECS:-$(fleet_env_get FLEET_MAIL_STUCK_SECS)}"
+  [[ "$secs" =~ ^[0-9]+$ ]] || secs=120
+  read -r pending oldest failed < <(python3 -I -c "$_FLEET_MAILQ_PY" "$dir" 2>/dev/null) || return 0
+  [[ "$pending" =~ ^[0-9]+$ && "$oldest" =~ ^[0-9]+$ && "$failed" =~ ^[0-9]+$ ]] || return 0
+  now=$(date +%s)
+  if [ "$pending" -gt 0 ] && [ $((now - oldest)) -ge "$secs" ]; then
+    age=$(( (now - oldest) / 60 ))
+    echo "MAIL-PENDING $ws $pending oldest ${age}m"
+  fi
+  [ "$failed" -eq 0 ] || echo "MAIL-FAILED $ws $failed"
+  return 0
+}
+
 # _fleet_claim_req_append WS PATH TAG: record a worker's claim request in
 # handoffs/CLAIM_REQ_<WS>.md for the master to decide (sync and mail both;
 # neither ever changes claims). WS must already be a safe file-name part.
@@ -257,7 +297,7 @@ _fleet_sync_apply() {
 
   # One ssh call: the whole outbox state this command needs, as a tar.
   _fleet_host_run "$host" bash -c \
-    'cd "$1" 2>/dev/null || exit 3; mkdir -p reports handoffs; tar -cf - reports handoffs' \
+    'cd "$1" 2>/dev/null || exit 3; mkdir -p reports handoffs; set -- reports handoffs; [ ! -d mail-out ] || set -- "$@" mail-out; tar -cf - "$@"' \
     _ "$outbox" > "$tmp/pull.tar" 2>/dev/null || rc=$?
   case "$rc" in
     0) ;;
@@ -269,6 +309,7 @@ _fleet_sync_apply() {
   tar -xf "$tmp/pull.tar" -C "$tmp/x" 2>/dev/null \
     || { echo "SYNC $ws pull failed on $host (unreadable archive)"; return 0; }
 
+  _fleet_sync_mailq "$ws" "$tmp/x"
   local lines
   lines=$(python3 -I -c "$_FLEET_SYNC_PY" "$tmp/x" "$ws" "$gen" "$amax") \
     || { echo "SYNC $ws could not read reports (python3 needed)"; return 0; }

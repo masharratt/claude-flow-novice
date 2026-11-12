@@ -446,10 +446,48 @@ test_queue_flush() {
   HENV=(MAILBOX_SESSION=proj-ws1 MAILBOX_OUTQ="$T/outq")
   hook "$(ev PostToolUse '{"tool_name":"Bash"}')"
   assert_rc 0 "hook ok"
+  wait_drained "$T/outq" 20
   assert_eq "yes" "$(yn has_cmd 'XADD mbx:michael:s:proj-master:from:michael')" "queued mail sent by the hook"
   assert_eq "0" "$(ls "$T/outq"/*.json 2>/dev/null | wc -l | tr -d ' ')" "queue drained"
   assert_eq "no" "$(yn has_cmd 'XREAD')" "mail check still throttled"
   HENV=()
+
+  # Regression, MDTWII 2026-11-12: lane mail (claim requests, blocked, done) sat in mail-out for an
+  # hour or arrived one per event, because the hook flushed inline inside its 4 s budget: a slow
+  # Redis got the flush killed partway, and an idle lane has no next event to finish it.
+  new_case "hook: a slow Redis does not hold the hook, and the whole queue still drains after it returns"
+  slow_redis_cli "$T/bin" 0.3
+  MENV=(MAILBOX_OUTQ="$T/outq")
+  mb queue michael/s/proj-master --kind ask --fleet claim-request "src/a.rs"
+  mb queue michael/s/proj-master --kind ask --fleet claim-request "src/b.rs"
+  mb queue michael/s/proj-master --kind ask --fleet blocked "blocked: waiting on claims"
+  mkdir -p "$CACHE"; date +%s > "$CACHE/check-proj-ws1"; date +%s > "$CACHE/hb-proj-ws1"
+  HENV=(MAILBOX_SESSION=proj-ws1 MAILBOX_OUTQ="$T/outq" CFN_MAILBOX_HOOK_TIMEOUT=2)
+  local t0=$SECONDS
+  hook "$(ev Stop '{}')"
+  assert_rc 0 "hook ok"
+  [ $((SECONDS - t0)) -le 3 ] && ok || bad "hook returned in $((SECONDS - t0))s, budget 2s"
+  wait_drained "$T/outq" 60
+  assert_eq "0" "$(ls "$T/outq"/*.json 2>/dev/null | wc -l | tr -d ' ')" "all three sent with no further hook event"
+  assert_eq "3" "$(cmds | grep -c '^XADD mbx:michael:s:proj-master:from:michael')" "three messages reached the stream"
+  [ -d "$T/outq/.flushing" ] && bad "drain lock left behind" || ok
+  HENV=()
+}
+
+# wait_drained DIR SECS: poll until DIR has no queued *.json or SECS pass (the hook drains detached).
+wait_drained() {
+  local i=0
+  while ls "$1"/*.json >/dev/null 2>&1 || [ -d "$1/.flushing" ]; do
+    i=$((i + 1)); [ "$i" -le $(( $2 * 10 )) ] || return 0
+    sleep 0.1
+  done
+}
+
+# slow_redis_cli DIR SECS: wrap the fake so every redis-cli call takes SECS (a TLS round trip).
+slow_redis_cli() {
+  mv "$1/redis-cli" "$1/redis-cli-fast"
+  printf '#!/usr/bin/env bash\nsleep %s\nexec "$(dirname "$0")/redis-cli-fast" "$@"\n' "$2" > "$1/redis-cli"
+  chmod +x "$1/redis-cli"
 }
 
 # ---------------------------------------------------------------- read --reader / who --seen

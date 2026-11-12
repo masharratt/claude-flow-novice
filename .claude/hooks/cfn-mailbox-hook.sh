@@ -45,7 +45,11 @@
 # skills/cfn-mailbox/project-name.sh), else git toplevel basename, else cwd basename.
 #
 # Fleet (stage 5): MAILBOX_COORD_FILE (set by fleet spawn) lets mailbox.sh label the master's mail
-# "coordinator"; MAILBOX_OUTQ is a sandboxed worker's outbound queue, flushed here on every event.
+# "coordinator"; MAILBOX_OUTQ is a sandboxed worker's outbound queue. Every event starts a detached
+# drain of it (one per queue, lock <outq>/.flushing) that retries with backoff for up to
+# FLUSH_MAX_SECS, so a slow send never eats the hook's time budget and a lane that goes idle right
+# after `status done` still gets its mail out (MDTWII 2026-11-12: inline flush was killed by the
+# 4 s budget, and the rest waited for the next event, which an idle lane never has).
 #
 # Test hook (not config): CFN_MAILBOX_HOOK_FORCE_FALLBACK=1 skips timeout/gtimeout.
 set -uo pipefail
@@ -56,6 +60,8 @@ if [[ "${CFN_MAILBOX_HOOK_TIMEOUT:-}" =~ ^[1-9][0-9]*$ ]]; then HOOK_TIMEOUT="$C
 MAX_INJECT=20           # messages per injection
 HEARTBEAT_EVERY=60      # seconds between directory heartbeats per session
 CHECK_EVERY=15          # seconds between PostToolUse mail checks per session
+FLUSH_MAX_SECS=900      # a detached outbound-queue drain gives up after this; the next event starts another
+FLUSH_BACKOFF_MAX=60    # seconds between drain retries after a failed flush (5, 10, 20, ... up to this)
 
 SELF="${BASH_SOURCE[0]}"
 HOOK_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)"
@@ -323,15 +329,88 @@ stop_event() {
   deliver
 }
 
+# outq_pending DIR: true when DIR holds at least one queued message.
+outq_pending() {
+  local f
+  for f in "$1"/*.json; do [ -f "$f" ] && return 0; done
+  return 1
+}
+
+# drain_lock_stale LOCK: a drain lock whose owner is gone. The owner writes its pid right after
+# taking the lock; a lock with no pid yet is live for its first minute.
+drain_lock_stale() {
+  local pid
+  pid="$(cat "$1/pid" 2>/dev/null)"
+  if [[ "$pid" =~ ^[0-9]+$ ]]; then
+    if kill -0 "$pid" 2>/dev/null; then return 1; fi
+    return 0
+  fi
+  [ -n "$(find "$1" -maxdepth 0 -mmin +1 2>/dev/null)" ]
+}
+
 # flush_outq: a sandboxed fleet worker queues its outgoing mail in MAILBOX_OUTQ (its Bash cannot
-# reach Redis); the hook runs outside the sandbox and sends it, on every event, unthrottled.
+# reach Redis); the hook runs outside the sandbox. It never sends inline: it starts one detached
+# drain per queue (see drain_outq) and returns at once. Without setsid or python3 to detach, it
+# falls back to one inline flush, as before.
 flush_outq() {
-  local q="${MAILBOX_OUTQ:-}" f
+  local q="${MAILBOX_OUTQ:-}" lock
   [ -n "$q" ] && [ -d "$q" ] || return 0
-  for f in "$q"/*.json; do
-    [ -f "$f" ] || return 0
+  outq_pending "$q" || return 0
+  lock="$q/.flushing"
+  if ! mkdir "$lock" 2>/dev/null; then
+    drain_lock_stale "$lock" || return 0
+    rm -f "$lock/pid" 2>/dev/null; rmdir "$lock" 2>/dev/null
+    mkdir "$lock" 2>/dev/null || return 0
+  fi
+  local -a det=()
+  if command -v setsid >/dev/null 2>&1; then
+    det=(setsid)
+  elif command -v python3 >/dev/null 2>&1; then
+    det=(python3 -I -c 'import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])')
+  else
+    rmdir "$lock" 2>/dev/null
     mbx flush || true
     return 0
+  fi
+  # Own session, every fd closed or redirected: the hook's timeout (which signals its whole
+  # process group) and Claude Code's 5 s kill cannot reach it, and nothing holds the hook's pipe.
+  MAILBOX_SESSION="$SESSION" MAILBOX_SESSION_ID="$SID" CFN_MAILBOX_DRAIN_LOCK="$lock" \
+    nohup "${det[@]}" bash "$SELF" --drain-outq </dev/null >/dev/null 2>&1 &
+  return 0
+}
+
+# drain_outq: the detached drain (hook.sh --drain-outq). Holds the lock named by
+# CFN_MAILBOX_DRAIN_LOCK, runs `mailbox.sh flush` until the queue is empty, backs off on a failed
+# flush (Redis down, rate limit), stops after FLUSH_MAX_SECS. Every flush warning, including an
+# entry set aside as .failed, goes to hook.log (flush itself exits 0 after a .failed).
+drain_outq() {
+  local q="${MAILBOX_OUTQ:-}" lock="${CFN_MAILBOX_DRAIN_LOCK:-}" start="$SECONDS" wait=5 rc errf line
+  SESSION="${MAILBOX_SESSION:-}" EVENT=drain
+  [ -n "$q" ] && [ -d "$q" ] && [ -n "$lock" ] && [ -d "$lock" ] || return 0
+  ensure_cache_dir || true
+  errf="$CACHE_DIR/drain-err.$$"
+  printf '%s\n' "$$" > "$lock/pid" 2>/dev/null || true
+  trap 'rm -f "$errf" "$lock/pid" 2>/dev/null; rmdir "$lock" 2>/dev/null' EXIT
+  [ -n "$MB_SOURCED" ] || { log_err "event=drain mailbox.sh missing; $q not sent"; return 0; }
+  while :; do
+    if ! outq_pending "$q"; then
+      # Release, then look once more: a message queued while we held the lock found it taken.
+      rm -f "$lock/pid" 2>/dev/null; rmdir "$lock" 2>/dev/null
+      outq_pending "$q" && mkdir "$lock" 2>/dev/null || return 0
+      printf '%s\n' "$$" > "$lock/pid" 2>/dev/null || true
+    fi
+    if [ $((SECONDS - start)) -ge "$FLUSH_MAX_SECS" ]; then
+      log_err "event=drain gave up after ${FLUSH_MAX_SECS}s; $q still has queued mail (the next hook event retries)"
+      return 0
+    fi
+    rc=0
+    bash "$MB" flush </dev/null >/dev/null 2>"$errf" || rc=$?
+    while IFS= read -r line; do log_err "event=drain $line"; done < "$errf"
+    # rc 0: every entry was sent or set aside; anything left arrived meanwhile.
+    if [ "$rc" -eq 0 ]; then wait=5; ! outq_pending "$q" || sleep 1; continue; fi
+    log_err "event=drain flush exit=$rc; retrying in ${wait}s"
+    sleep "$wait"
+    wait=$((wait * 2)); [ "$wait" -le "$FLUSH_BACKOFF_MAX" ] || wait="$FLUSH_BACKOFF_MAX"
   done
 }
 
@@ -375,6 +454,7 @@ inner() {
 # ------------------------------------------------------------------ entry
 
 main() {
+  if [ "${1:-}" = --drain-outq ]; then drain_outq; exit 0; fi   # detached by flush_outq; no stdin
   INPUT="$(cat 2>/dev/null || true)"
   [ -r "$CFG" ] || exit 0                                        # machine not set up
   command -v jq >/dev/null 2>&1 || exit 0
@@ -443,4 +523,4 @@ main() {
   exit 0
 }
 
-main
+main "$@"
