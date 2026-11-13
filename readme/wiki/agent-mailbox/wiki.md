@@ -7,8 +7,6 @@
 
 Stages 1-4 live on the Mac and the VPS. Stages 4b, 5 and the CFN side of 6 (fleet workers on the mailbox: role names, coordinator tier, worker outbound queue, mesh rules: main-checkout project names, room mail never wakes, mailbox.sh stats) pass the offline suites; not yet deployed, and live ACL users need ~claim:<owner>:* and ~alias:<owner>:* first.
 
-**Review needed:** Source contents changed since this explanation was reviewed.
-
 **Source:**
 
 - `.claude/hooks/cfn-mailbox-hook.sh`
@@ -36,30 +34,32 @@ Let any Claude Code session send a request or information to another session, pr
 
 ## Evidence
 
-Reviewed: 2026-10-16
+Reviewed: 2026-11-13
 
-- `.claude/skills/cfn-mailbox/mailbox.sh:471`: receiver_keys builds a contact owner's inbox key only for an address listed in MAILBOX_PUBLIC; otherwise only the owner's own from:<owner> key
-- `.claude/skills/cfn-mailbox/mailbox.sh:861`: emit_msgs quarantines mail whose to does not match the key or whose from owner differs from the key's, drops a msg_id already shown, and still returns every id so it is acked or passed
-- `.claude/skills/cfn-mailbox/mailbox-watch.sh:324`: job_send_later claims claim:<owner>:<msg_id> NX EX 120, XADDs with the stored msg_id, then ZREMs (source changed; review needed)
-- `.claude/skills/cfn-mailbox/mailbox-watch.sh:377`: bounce_entry XADDs the bounce with msg_id b-<hash> before setting the done marker and before XACK/XDEL of the original (source changed; review needed)
-- `.claude/hooks/cfn-mailbox-hook.sh:399`: the outer hook process trims the spool only after printing the inner process's output, by the ids the inner process rendered (source changed; review needed)
-- `.claude/skills/cfn-mailbox/mailbox.sh:1295`: claim takes alias:<owner>:<name> with SET NX, refuses (21) a different holder seen in the last 10 minutes, takes over a quieter one under lock:<owner>:alias-<name>, and keeps the name only if the read-back shows its own session id
-- `.claude/skills/cfn-mailbox/mailbox.sh:874`: emit_msgs labels same-owner mail coordinator only when its coord field equals the reader's MAILBOX_COORD_FILE secret and its from is MAILBOX_COORD_FROM (when set), and deletes coord from every message it prints
-- `.claude/skills/cfn-mailbox/mailbox.sh:1699`: flush sends each MAILBOX_OUTQ entry as this session with its queued msg_id, removes it once sent, stops on a Redis or rate-limit failure and sets unsendable entries aside as .failed
-- `.claude/skills/cfn-mailbox/mailbox.sh:697`: send with a fixed --msg-id returns the first stream id without a second XADD or rate count when done:<owner>:sent:<msg_id> exists, and sets that key right after XADD
-- `.claude/skills/cfn-mailbox/mailbox.sh:1575`: listen_emit reports each msg_id once and skips one already in the session's delivered set, so a repeated send never wakes the session
-- `.claude/skills/cfn-mailbox/mailbox.sh:1425`: count_after counts one entry per msg_id and none already shown, matching what read would print
-- `.claude/hooks/cfn-mailbox-hook.sh:287`: the hook flushes a sandboxed worker's outbound queue on every event, outside the Bash sandbox (source changed; review needed)
+- `.claude/skills/cfn-mailbox/mailbox.sh:476`: receiver_keys builds a contact owner's inbox key only for an address listed in MAILBOX_PUBLIC; otherwise only the owner's own from:<owner> key
+- `.claude/skills/cfn-mailbox/mailbox.sh:869`: emit_msgs quarantines mail whose to does not match the key or whose from owner differs from the key's, drops a msg_id already shown, and still returns every id so it is acked or passed
+- `.claude/skills/cfn-mailbox/mailbox-watch.sh:330`: job_send_later claims claim:<owner>:<msg_id> NX EX 120, XADDs with the stored msg_id, then ZREMs
+- `.claude/skills/cfn-mailbox/mailbox-watch.sh:383`: bounce_entry XADDs the bounce with msg_id b-<hash> before setting the done marker and before XACK/XDEL of the original
+- `.claude/hooks/cfn-mailbox-hook.sh:546`: the outer hook process trims the spool only after printing the inner process's output, by the ids the inner process rendered
+- `.claude/skills/cfn-mailbox/mailbox.sh:1375`: claim takes alias:<owner>:<name> with SET NX, refuses (21) a different holder seen in the last 10 minutes, takes over a quieter one under lock:<owner>:alias-<name>, and keeps the name only if the read-back shows its own session id
+- `.claude/skills/cfn-mailbox/mailbox.sh:882`: emit_msgs labels same-owner mail coordinator only when its coord field equals the reader's MAILBOX_COORD_FILE secret and its from is MAILBOX_COORD_FROM (when set), and deletes coord from every message it prints
+- `.claude/skills/cfn-mailbox/mailbox.sh:1779`: flush sends each MAILBOX_OUTQ entry as this session with its queued msg_id, removes it once sent, stops on a Redis or rate-limit failure and sets unsendable entries aside as .failed
+- `.claude/skills/cfn-mailbox/mailbox.sh:703`: send with a fixed --msg-id returns the first stream id without a second XADD or rate count when done:<owner>:sent:<msg_id> exists, and sets that key right after XADD
+- `.claude/skills/cfn-mailbox/mailbox.sh:1655`: listen_emit reports each msg_id once and skips one already in the session's delivered set, so a repeated send never wakes the session
+- `.claude/skills/cfn-mailbox/mailbox.sh:1505`: count_after counts one entry per msg_id and none already shown, matching what read would print
+- `.claude/hooks/cfn-mailbox-hook.sh:381`: the hook starts one detached drain per sandboxed worker's outbound queue on every event (lock <outq>/.flushing) and returns at once; the drain runs mailbox.sh flush with backoff, outside the Bash sandbox, so a slow send cannot eat the hook's time budget
 - `.claude/skills/cfn-fleet/lib/cmd-watch.sh:193`: fleet watch reads <project>-master with its own reader marker, applies host-row worker mail to the roster, prints MAILBOX-DOWN once and falls back to fleet sync while the mailbox does not answer
 - `.claude/skills/cfn-fleet/lib/cmd-spawn.sh:399`: fleet spawn names the worker <project>-<ws>, creates the run's coordinator secret, claims <project>-master for the spawning session, and gives each pane its own MAILBOX_SESSION
-- `.claude/skills/cfn-mailbox/mailbox.sh:1213`: heartbeat refuses (exit 23) a session name whose directory entry is a different tmux pane on the same host, seen within the last 10 minutes (ALIAS_LIVE) and still alive, so two panes cannot share one name
-- `.claude/hooks/cfn-mailbox-hook.sh:131`: on heartbeat exit 23 for an env-named session the hook writes dup-<session_id>, re-resolves the name with resolve_session (which skips the refused name) and heartbeats again; env-named sessions re-check before every read (heartbeat_before_read) (source changed; review needed)
-- `.claude/skills/cfn-mailbox/mailbox.sh:143`: load_config uses dup-<id> to drop a refused MAILBOX_SESSION for the hook's name-<id> file, else a claimed alias, else name-<id>; each falls back to resolve_session, so CLI mail from a Claude session carries the address replies reach
-- `.claude/hooks/cfn-mailbox-hook.sh:163`: the hook writes name-<session_id> (atomic rename, only when changed) on every event so mailbox.sh run from that session's Bash uses the same name (source changed; review needed)
-- `.claude/skills/cfn-mailbox/mailbox-watch.sh:218`: nudge_pass starts a newly seen key at the earliest heartbeat of the sessions behind it minus 5 s (NEW_KEY_MARGIN), capped 10 minutes back (NEW_KEY_LOOKBACK), instead of the stream's newest entry (source changed; review needed)
-- `.claude/hooks/cfn-mailbox-hook.sh:303`: inner sweeps err.* files older than 10 minutes from the cache dir on every run, because a run killed by the timeout never reaches its EXIT trap (source changed; review needed)
-- `.claude/skills/cfn-mailbox/mailbox.sh:511`: resolve_session picks a Claude session's name in order: MAILBOX_SESSION (unless dup-<sid> names it as refused), a claimed role name (alias-<sid>), the status-bar name from the Claude Code sessions registry (registry_name, plus -MAILBOX_HOST_TAG when set), else <project>-<first 6 chars of sid>
-- `.claude/skills/cfn-mailbox/mailbox.sh:287`: rc_route starts proxy-tunnel.py when a sandbox proxy applies to the mail host, and _rc points redis-cli at the local relay with --sni set to the real host
+- `.claude/skills/cfn-mailbox/mailbox.sh:1318`: heartbeat refuses (exit 23) a session name whose directory entry is a different tmux pane on the same host, seen within the last 10 minutes (ALIAS_LIVE) and still alive, so two panes cannot share one name
+- `.claude/hooks/cfn-mailbox-hook.sh:155`: on heartbeat exit 23 for an env-named session the hook writes dup-<session_id>, re-resolves the name with resolve_session (which skips the refused name) and heartbeats again; env-named sessions re-check before every read (heartbeat_before_read)
+- `.claude/skills/cfn-mailbox/mailbox.sh:192`: load_config uses dup-<id> to drop a refused MAILBOX_SESSION for the hook's name-<id> file, else a claimed alias, else name-<id>; a name the session used before (former-<id>) is corrected to the current one, and each falls back to resolve_session, so CLI mail from a Claude session carries the address replies reach
+- `.claude/hooks/cfn-mailbox-hook.sh:198`: the hook writes name-<session_id> (atomic rename, only when changed) on every event so mailbox.sh run from that session's Bash uses the same name
+- `.claude/skills/cfn-mailbox/mailbox-watch.sh:233`: nudge_pass starts a newly seen key at the earliest heartbeat of the sessions behind it minus 5 s (NEW_KEY_MARGIN), capped 10 minutes back (NEW_KEY_LOOKBACK), instead of the stream's newest entry
+- `.claude/hooks/cfn-mailbox-hook.sh:449`: inner sweeps err.* and rd.* files older than 10 minutes from the cache dir on every run, because a run killed by the timeout never reaches its EXIT trap
+- `.claude/skills/cfn-mailbox/mailbox.sh:516`: resolve_session picks a Claude session's name in order: MAILBOX_SESSION (unless dup-<sid> names it as refused), a claimed role name (alias-<sid>), the status-bar name from the Claude Code sessions registry (registry_name, plus -MAILBOX_HOST_TAG when set), else <project>-<first 6 chars of sid>
+- `.claude/skills/cfn-mailbox/mailbox.sh:292`: rc_route starts proxy-tunnel.py when a sandbox proxy applies to the mail host, and _rc points redis-cli at the local relay with --sni set to the real host
 - `.claude/skills/cfn-mailbox/proxy-tunnel.py:79`: handle sends one HTTP CONNECT per local connection and closes the client if the proxy refuses; TLS stays end to end
+- `.claude/hooks/cfn-mailbox-hook.sh:238`: collect shows mail held in the spool first and alone, with no Redis read that run; otherwise it reads the session inbox, and on UserPromptSubmit also the project inbox and (when attended) the person inbox, each in parallel into its own spool file, capped at MAX_INJECT
+- `.claude/skills/cfn-mailbox/mailbox.sh:1016`: read_all (plain read as a session) prints held mail first, then the session, project and (when attended) person inboxes, and prints "No new mail." when nothing was shown
 <!-- /wiki:enrich -->
 

@@ -4,9 +4,9 @@
   "name": "Agent mailbox between sessions",
   "status": "beta",
   "status_reason": "Stages 1-4 live on the Mac and the VPS. Stages 4b, 5 and the CFN side of 6 (fleet workers on the mailbox: role names, coordinator tier, worker outbound queue, mesh rules: main-checkout project names, room mail never wakes, mailbox.sh stats) pass the offline suites; not yet deployed, and live ACL users need ~claim:<owner>:* and ~alias:<owner>:* first.",
-  "description": "Sessions mail each other across machines and people over one hosted Redis. Readers build inbox keys themselves, quarantine forged to/from and show each msg_id once (a retried queued send is not stored twice, and the listener never wakes a session for a repeat); sessions can claim stable role names; fleet workers get coordinator mail from their master and queue outgoing mail for the hook; a name already held by another live pane on the host is refused and the session gets its own (claimed name, then status-bar name, then project-id); a watcher wakes idle tmux panes (a new key starts just before its sessions' first heartbeat); room mail is shown at the next prompt and never wakes a pane; mailbox.sh stats flags loops and floods from the log; inside the Claude Code sandbox, redis-cli reaches the server through a local relay over the sandbox proxy.",
+  "description": "Sessions mail each other across machines and people over one hosted Redis. Readers build inbox keys themselves, quarantine forged to/from and show each msg_id once (a retried queued send is not stored twice, and the listener never wakes a session for a repeat); sessions can claim stable role names; fleet workers get coordinator mail from their master and queue outgoing mail that the hook sends from a detached drain; a name already held by another live pane on the host is refused and the session gets its own (claimed name, then status-bar name, then project-id); a watcher wakes idle tmux panes (a new key starts just before its sessions' first heartbeat); room mail is shown at the next prompt and never wakes a pane; the hook shows held mail first and alone, reads project and person inboxes only on a prompt (in parallel), and plain read prints \"No new mail.\" when empty; mailbox.sh stats flags loops and floods from the log; inside the Claude Code sandbox, redis-cli reaches the server through a local relay over the sandbox proxy.",
   "purpose": "Let any Claude Code session send a request or information to another session, project, room or person, without mail ever counting as permission.",
-  "reviewed_at": "2026-10-16",
+  "reviewed_at": "2026-11-13",
   "dependencies": [],
   "evidence": [],
   "domains": [
@@ -17,80 +17,80 @@
     "Sessions of one owner share one Redis login, so they are not separate secure identities; a sender can delete its own sent copies.",
     "The hook's taint guard is advisory: it sees only Bash and a list of command patterns.",
     "The coordinator secret is a same-user fence, not a security boundary: any session of the owner's unix user can read the run's secret file.",
-    "Sandboxed worker Bash cannot reach Redis, so worker mail waits in MAILBOX_OUTQ until the worker's hook fires; a worker idle with no hook event sends nothing."
+    "Sandboxed worker Bash cannot reach Redis, so worker mail waits in MAILBOX_OUTQ until a hook event starts the detached drain (which then retries with backoff for up to FLUSH_MAX_SECS); a worker with no hook event sends nothing."
   ],
   "sources": [
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 471,
+      "line": 476,
       "claim": "receiver_keys builds a contact owner's inbox key only for an address listed in MAILBOX_PUBLIC; otherwise only the owner's own from:<owner> key",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 861,
+      "line": 869,
       "claim": "emit_msgs quarantines mail whose to does not match the key or whose from owner differs from the key's, drops a msg_id already shown, and still returns every id so it is acked or passed",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox-watch.sh",
-      "line": 324,
+      "line": 330,
       "claim": "job_send_later claims claim:<owner>:<msg_id> NX EX 120, XADDs with the stored msg_id, then ZREMs",
-      "sha256": "4792f300c5903db0e2e2722aac9eaf0821c1338ebe42075cb65f32cad237d6f7"
+      "sha256": "db9f02907afdc889ad1c6dfb5201329d1763db543a453da5d7e3c80e09ce3336"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox-watch.sh",
-      "line": 377,
+      "line": 383,
       "claim": "bounce_entry XADDs the bounce with msg_id b-<hash> before setting the done marker and before XACK/XDEL of the original",
-      "sha256": "4792f300c5903db0e2e2722aac9eaf0821c1338ebe42075cb65f32cad237d6f7"
+      "sha256": "db9f02907afdc889ad1c6dfb5201329d1763db543a453da5d7e3c80e09ce3336"
     },
     {
       "path": ".claude/hooks/cfn-mailbox-hook.sh",
-      "line": 399,
+      "line": 546,
       "claim": "the outer hook process trims the spool only after printing the inner process's output, by the ids the inner process rendered",
-      "sha256": "1339099085b24b1f8cf57276b1a3c00fae87d6422039468d8d59ff5b418bc286"
+      "sha256": "13bc06eba955ed2d2f0810e3ccc6dba05a18de341d7da3f5d96fd35cc6347162"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 1295,
+      "line": 1375,
       "claim": "claim takes alias:<owner>:<name> with SET NX, refuses (21) a different holder seen in the last 10 minutes, takes over a quieter one under lock:<owner>:alias-<name>, and keeps the name only if the read-back shows its own session id",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 874,
+      "line": 882,
       "claim": "emit_msgs labels same-owner mail coordinator only when its coord field equals the reader's MAILBOX_COORD_FILE secret and its from is MAILBOX_COORD_FROM (when set), and deletes coord from every message it prints",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 1699,
+      "line": 1779,
       "claim": "flush sends each MAILBOX_OUTQ entry as this session with its queued msg_id, removes it once sent, stops on a Redis or rate-limit failure and sets unsendable entries aside as .failed",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 697,
+      "line": 703,
       "claim": "send with a fixed --msg-id returns the first stream id without a second XADD or rate count when done:<owner>:sent:<msg_id> exists, and sets that key right after XADD",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 1575,
+      "line": 1655,
       "claim": "listen_emit reports each msg_id once and skips one already in the session's delivered set, so a repeated send never wakes the session",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 1425,
+      "line": 1505,
       "claim": "count_after counts one entry per msg_id and none already shown, matching what read would print",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/hooks/cfn-mailbox-hook.sh",
-      "line": 287,
-      "claim": "the hook flushes a sandboxed worker's outbound queue on every event, outside the Bash sandbox",
-      "sha256": "1339099085b24b1f8cf57276b1a3c00fae87d6422039468d8d59ff5b418bc286"
+      "line": 381,
+      "claim": "the hook starts one detached drain per sandboxed worker's outbound queue on every event (lock <outq>/.flushing) and returns at once; the drain runs mailbox.sh flush with backoff, outside the Bash sandbox, so a slow send cannot eat the hook's time budget",
+      "sha256": "13bc06eba955ed2d2f0810e3ccc6dba05a18de341d7da3f5d96fd35cc6347162"
     },
     {
       "path": ".claude/skills/cfn-fleet/lib/cmd-watch.sh",
@@ -106,57 +106,69 @@
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 1213,
+      "line": 1318,
       "claim": "heartbeat refuses (exit 23) a session name whose directory entry is a different tmux pane on the same host, seen within the last 10 minutes (ALIAS_LIVE) and still alive, so two panes cannot share one name",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/hooks/cfn-mailbox-hook.sh",
-      "line": 131,
+      "line": 155,
       "claim": "on heartbeat exit 23 for an env-named session the hook writes dup-<session_id>, re-resolves the name with resolve_session (which skips the refused name) and heartbeats again; env-named sessions re-check before every read (heartbeat_before_read)",
-      "sha256": "1339099085b24b1f8cf57276b1a3c00fae87d6422039468d8d59ff5b418bc286"
+      "sha256": "13bc06eba955ed2d2f0810e3ccc6dba05a18de341d7da3f5d96fd35cc6347162"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 143,
-      "claim": "load_config uses dup-<id> to drop a refused MAILBOX_SESSION for the hook's name-<id> file, else a claimed alias, else name-<id>; each falls back to resolve_session, so CLI mail from a Claude session carries the address replies reach",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "line": 192,
+      "claim": "load_config uses dup-<id> to drop a refused MAILBOX_SESSION for the hook's name-<id> file, else a claimed alias, else name-<id>; a name the session used before (former-<id>) is corrected to the current one, and each falls back to resolve_session, so CLI mail from a Claude session carries the address replies reach",
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/hooks/cfn-mailbox-hook.sh",
-      "line": 163,
+      "line": 198,
       "claim": "the hook writes name-<session_id> (atomic rename, only when changed) on every event so mailbox.sh run from that session's Bash uses the same name",
-      "sha256": "1339099085b24b1f8cf57276b1a3c00fae87d6422039468d8d59ff5b418bc286"
+      "sha256": "13bc06eba955ed2d2f0810e3ccc6dba05a18de341d7da3f5d96fd35cc6347162"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox-watch.sh",
-      "line": 218,
+      "line": 233,
       "claim": "nudge_pass starts a newly seen key at the earliest heartbeat of the sessions behind it minus 5 s (NEW_KEY_MARGIN), capped 10 minutes back (NEW_KEY_LOOKBACK), instead of the stream's newest entry",
-      "sha256": "4792f300c5903db0e2e2722aac9eaf0821c1338ebe42075cb65f32cad237d6f7"
+      "sha256": "db9f02907afdc889ad1c6dfb5201329d1763db543a453da5d7e3c80e09ce3336"
     },
     {
       "path": ".claude/hooks/cfn-mailbox-hook.sh",
-      "line": 303,
-      "claim": "inner sweeps err.* files older than 10 minutes from the cache dir on every run, because a run killed by the timeout never reaches its EXIT trap",
-      "sha256": "1339099085b24b1f8cf57276b1a3c00fae87d6422039468d8d59ff5b418bc286"
+      "line": 449,
+      "claim": "inner sweeps err.* and rd.* files older than 10 minutes from the cache dir on every run, because a run killed by the timeout never reaches its EXIT trap",
+      "sha256": "13bc06eba955ed2d2f0810e3ccc6dba05a18de341d7da3f5d96fd35cc6347162"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 511,
+      "line": 516,
       "claim": "resolve_session picks a Claude session's name in order: MAILBOX_SESSION (unless dup-<sid> names it as refused), a claimed role name (alias-<sid>), the status-bar name from the Claude Code sessions registry (registry_name, plus -MAILBOX_HOST_TAG when set), else <project>-<first 6 chars of sid>",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/skills/cfn-mailbox/mailbox.sh",
-      "line": 287,
+      "line": 292,
       "claim": "rc_route starts proxy-tunnel.py when a sandbox proxy applies to the mail host, and _rc points redis-cli at the local relay with --sni set to the real host",
-      "sha256": "f085f0f2b4e98ce48c0a6649455323cad3c8c727b5f75707639445a8bce7abcf"
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     },
     {
       "path": ".claude/skills/cfn-mailbox/proxy-tunnel.py",
       "line": 79,
       "claim": "handle sends one HTTP CONNECT per local connection and closes the client if the proxy refuses; TLS stays end to end",
       "sha256": "697c471c4b65f74c1306664174b43beb93975eb3723234123b4b8c9508c5d62d"
+    },
+    {
+      "path": ".claude/hooks/cfn-mailbox-hook.sh",
+      "line": 238,
+      "claim": "collect shows mail held in the spool first and alone, with no Redis read that run; otherwise it reads the session inbox, and on UserPromptSubmit also the project inbox and (when attended) the person inbox, each in parallel into its own spool file, capped at MAX_INJECT",
+      "sha256": "13bc06eba955ed2d2f0810e3ccc6dba05a18de341d7da3f5d96fd35cc6347162"
+    },
+    {
+      "path": ".claude/skills/cfn-mailbox/mailbox.sh",
+      "line": 1016,
+      "claim": "read_all (plain read as a session) prints held mail first, then the session, project and (when attended) person inboxes, and prints \"No new mail.\" when nothing was shown",
+      "sha256": "a23db62fcae4aa1b8c3ddbc5963715f0462814784413d43ce71adc7246dae06a"
     }
   ]
 }
