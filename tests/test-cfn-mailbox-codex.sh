@@ -16,6 +16,10 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 LAUNCH="$REPO/.claude/skills/cfn-mailbox/codex-mail.sh"
 WATCH="$REPO/.claude/skills/cfn-mailbox/mailbox-watch.sh"
 MB="$REPO/.claude/skills/cfn-mailbox/mailbox.sh"
+# The nudge text, read from its one definition in mailbox.sh (never a copy here, so a change there
+# cannot leave this suite matching stale text).
+NUDGE="$(sed -n "s/^NUDGE_TEXT='\\(.*\\)'\$/\\1/p" "$REPO/.claude/skills/cfn-mailbox/mailbox.sh")"
+[ -n "$NUDGE" ] || { echo "FAIL could not read NUDGE_TEXT from mailbox.sh" >&2; exit 1; }
 
 PASS=0; FAIL=0; CASES=0; CASE_NAME=""
 # shellcheck source=/dev/null
@@ -226,10 +230,10 @@ test_watcher() {
   assert_eq "send-keys -t main:1.0 Enter" "$(sed -n 2p "$T/tmuxlog")" "then Enter"
   assert_match "$(cat "$CACHE/state-s1")" '^busy [0-9]+$' "state busy after codex nudge"
 
-  new_case "watcher: a Claude session (no client file) keeps the slash-command text and its state"
+  new_case "watcher: a Claude session (no client file) keeps the shared nudge text and its state"
   watch_case ""
   run_env bash "$WATCH" once --nudge
-  assert_eq "send-keys -t main:1.0 -l -- You have mail: run /mail read" "$(sed -n 1p "$T/tmuxlog")" "claude text typed"
+  assert_eq "send-keys -t main:1.0 -l -- $NUDGE" "$(sed -n 1p "$T/tmuxlog")" "claude text typed"
   assert_match "$(cat "$CACHE/state-s1")" '^idle ' "state untouched"
 }
 

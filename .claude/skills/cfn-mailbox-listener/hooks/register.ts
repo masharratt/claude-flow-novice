@@ -9,8 +9,8 @@ import type { EngineInterface, Register } from 'claude-code'
 // Needs mailbox.sh listen/unread (mailbox stage 6 listener work).
 
 // Must equal NUDGE_TEXT in mailbox.sh: the hook keeps the outside-mail guard up for this exact
-// prompt, since no person typed it. tests/test-cfn-mailbox-listener-mod.sh checks they match.
-export const NUDGE_TEXT = 'You have mail: run /mail read'
+// prompt, since no person typed it. tests/test-cfn-mailbox-delivery.sh checks they match.
+export const NUDGE_TEXT = 'You have mail: run $HOME/.claude/skills/cfn-mailbox/mailbox.sh read'
 const COOLDOWN_MS = 60_000
 const SCRIPT = '$HOME/.claude/skills/cfn-mailbox/mailbox.sh'
 

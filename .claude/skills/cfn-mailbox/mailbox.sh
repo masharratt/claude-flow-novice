@@ -5,6 +5,7 @@
 # Usage:
 #   mailbox.sh send <to> [--kind ask|fyi|reply|reminder] [--at <when>] [--thread ID] [--reply-to ID] [--hops N] [--fleet TYPE] [--coord-file F] "<text>"
 #   mailbox.sh read [--as <session-address>] [--max N] [--peek] [--spool FILE] [--reader NAME]
+#                     (plain `read`: held mail, then session + project (+ person when attended); "No new mail." if none)
 #   mailbox.sh who [--seen]
 #   mailbox.sh log [N]
 #   mailbox.sh stats [--hours N]      loop/flood watch from log:<owner> (default 168 h); exit 0 clean, 1 LOOP?/FLOOD?, 2 empty
@@ -105,9 +106,13 @@ NAME_RE='^[a-z0-9-]{1,64}$'
 DELIVERED_TTL=604800    # msg_ids a reader remembers as shown (7 days)
 MSG_ID_RE='^[A-Za-z0-9_-]{1,64}$'
 # Typed into idle tmux panes by mailbox-watch.sh; the hook keeps the taint flag on a prompt equal to it.
-NUDGE_TEXT="You have mail: run /mail read"
-# Same, for a Codex pane (no slash commands there): the launcher codex-mail.sh marks such a session with client-<name>.
-NUDGE_TEXT_CODEX="You have mail: run $HOME/.claude/skills/cfn-mailbox/mailbox.sh read. Reply (with the Reply line under it) only to messages that ask something or need your result; never reply to fyi or acknowledgements."
+# The real command, with $HOME left literal so the text is the same on every machine (the listener
+# mod's NUDGE_TEXT in cfn-mailbox-listener/hooks/register.ts must equal it); the shell expands it.
+# shellcheck disable=SC2016
+NUDGE_TEXT='You have mail: run $HOME/.claude/skills/cfn-mailbox/mailbox.sh read'
+# Same, for a Codex pane: the launcher codex-mail.sh marks such a session with client-<name>. Built
+# from NUDGE_TEXT (with $HOME expanded) so the command text is written once.
+NUDGE_TEXT_CODEX="${NUDGE_TEXT//\$HOME/$HOME}. Reply (with the Reply line under it) only to messages that ask something or need your result; never reply to fyi or acknowledgements."
 MB_SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/mailbox.sh"
 CACHE_DIR="$HOME/.cache/cfn-mailbox"
 REPLY_WAKE_MIN=40       # a reply shorter than this never wakes anyone ("got it", "thanks")
@@ -780,6 +785,8 @@ SPOOL=""       # `read --spool FILE`: append each message line to FILE before an
 DELIV_FILE=""  # this reader's delivered set: "msg_id epoch" lines
 DELIV_JSON="{}"
 QUAR_COUNT=0
+READ_PRINTED=0 # messages this `read` call printed (plain `read` says "No new mail." when it stays 0)
+DIR_PROJECT="" # the project in this session's directory entry (set while reading a session address)
 COORD_SECRET=""  # this reader's coordinator secret (from MAILBOX_COORD_FILE), set by cmd_read
 READER=""        # `read --reader NAME`: a second reader of the same inbox with its own marker
 
@@ -789,6 +796,7 @@ take_count() {
   if [ -n "$READ_LEFT" ] && [ "$READ_LEFT" -lt "$n" ]; then n="$READ_LEFT"; fi
   printf '%s' "$n"
 }
+budget_left() { [ -z "$READ_LEFT" ] || [ "$READ_LEFT" -gt 0 ]; }   # --max not yet spent
 consume_left() { if [ -n "$READ_LEFT" ]; then READ_LEFT=$((READ_LEFT - $1)); fi; return 0; }
 
 # delivered_load FILE: the msg_ids this reader already showed. Entries older than DELIVERED_TTL are
@@ -901,6 +909,7 @@ emit_msgs() {
   if [ -n "$SPOOL" ] && [ -z "$PEEK" ]; then printf '%s\n' "$lines" >> "$SPOOL" || die 18 "cannot write the spool file $SPOOL"; fi
   print_msgs "$lines"
   EMIT_COUNT="$(printf '%s\n' "$lines" | wc -l | tr -d ' ')"
+  READ_PRINTED=$((READ_PRINTED + EMIT_COUNT))
   if [ -z "$PEEK" ]; then
     mids="$(printf '%s\n' "$cls" | jq -r 'select(.q == "" and .mid != "") | .mid')"
     delivered_add "$mids"
@@ -959,6 +968,63 @@ read_seen() { # key sender reader kind
   consume_left "$EMIT_COUNT"
 }
 
+# spool_files SESSION: the hook's holding files for this session that exist, one path per line.
+# One file per address the hook reads (in parallel, so never one shared file): spool-<s> for the
+# session inbox, spool-<s>@p for the project, spool-<s>@me for the person inbox. "@" is never in a
+# name, so no session's files can collide with another's. The hook and plain `read` share this list.
+SPOOL_SUFFIXES="@p @me"
+spool_files() {
+  local s
+  for s in "" $SPOOL_SUFFIXES; do
+    if [ -f "$CACHE_DIR/spool-$1$s" ]; then printf '%s\n' "$CACHE_DIR/spool-$1$s"; fi
+  done
+  return 0
+}
+
+# dedupe_msgs: stdin JSON lines -> same lines, first occurrence of each (inbox, id) only.
+dedupe_msgs() {
+  # grep exits 1 on no match (empty spool); under set -e + pipefail that killed plain `read`.
+  { grep '^{' || true; } | jq -c -s 'reduce .[] as $m ({seen: {}, out: []};
+    (($m.inbox // "") + "|" + ($m.id // "")) as $k
+    | if .seen[$k] then . else (.seen[$k] = true | .out += [$m]) end) | .out[]' 2>/dev/null
+}
+
+# read_spooled: print the mail the hook holds for this session (read from Redis, never shown,
+# e.g. a hook run cut off by its time limit), then remove it. Each file is renamed before it is
+# read, so a hook appending at the same moment writes to a fresh file instead of losing mail.
+read_spooled() {
+  [ -n "$SESSION" ] || return 0
+  local f all="" lines n
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    mv -f "$f" "$f.read.$$" 2>/dev/null || continue
+    all="$all$(cat "$f.read.$$" 2>/dev/null)"$'\n'
+    rm -f "$f.read.$$"
+  done < <(spool_files "$SESSION")
+  lines="$(printf '%s' "$all" | dedupe_msgs)"
+  [ -n "$lines" ] || return 0
+  print_msgs "$lines"
+  n="$(printf '%s\n' "$lines" | wc -l | tr -d ' ')"
+  READ_PRINTED=$((READ_PRINTED + n))
+  consume_left "$n"
+}
+
+# read_all: plain `read` (no --as) as a session: held (spooled) mail first, then the session inbox
+# (and its rooms), the project inbox, and the person inbox when a human attends the session (the
+# hook's rule: an unattended session never takes the shared person inbox's mail). Says
+# "No new mail." when nothing was shown, so an empty answer is never mistaken for a failure.
+read_all() {
+  read_spooled
+  local project
+  if budget_left; then read_addr "$MAILBOX_OWNER/s/$SESSION"; fi
+  project="$DIR_PROJECT"
+  valid_name "$project" || project="$(resolve_project "$PWD")"
+  if budget_left; then read_addr "$MAILBOX_OWNER/p/$project"; fi
+  if [ "${CLAUDE_CODE_SESSION_ATTENDED:-}" = 1 ] && budget_left; then read_addr "$MAILBOX_OWNER/me"; fi
+  if [ "$READ_PRINTED" -eq 0 ]; then echo "No new mail."; fi
+  return 0
+}
+
 cmd_read() {
   local as=""
   while [ $# -gt 0 ]; do
@@ -975,10 +1041,23 @@ cmd_read() {
       *) die 2 "unknown argument $1 for read" ;;
     esac
   done
-  if [ -z "$as" ]; then as="$(own_from_address)"; fi
-  parse_addr "$as"
-  [ "$A_OWNER" = "$MAILBOX_OWNER" ] || die 10 "can only read your own inboxes (owner $MAILBOX_OWNER), not $A_STR"
   COORD_SECRET="$(coord_secret "${MAILBOX_COORD_FILE:-}")"
+  # Plain `read` is the person-facing command (the nudge names it): everything for this session.
+  # The hook (--as/--spool/--peek) and fleet watch (--reader) keep the one-address form.
+  if [ -z "$as" ] && [ -z "$PEEK" ] && [ -z "$SPOOL" ] && [ -z "$READER" ]; then
+    if [ -n "$SESSION" ]; then read_all; return 0; fi
+    read_addr "$(own_from_address)"
+    if [ "$READ_PRINTED" -eq 0 ]; then echo "No new mail."; fi
+    return 0
+  fi
+  if [ -z "$as" ]; then as="$(own_from_address)"; fi
+  read_addr "$as"
+}
+
+# read_addr ADDRESS: read one of this owner's addresses (plus its joined rooms for a session).
+read_addr() {
+  parse_addr "$1"
+  [ "$A_OWNER" = "$MAILBOX_OWNER" ] || die 10 "can only read your own inboxes (owner $MAILBOX_OWNER), not $A_STR"
   local kind="$A_KIND" name="$A_NAME" addr="$A_STR" reader
   reader="${name:-me}"   # person inbox: one shared marker so any session shows each mail once
   local deliv_name="${SESSION:-$reader}"
@@ -990,6 +1069,7 @@ cmd_read() {
     local room rooms
     rcmd HGET "dir:$MAILBOX_OWNER" "$addr"
     rooms="$(printf '%s' "$RC_OUT" | jq -R -r '(fromjson? // {}) | .rooms[]?' 2>/dev/null || true)"
+    DIR_PROJECT="$(printf '%s' "$RC_OUT" | jq -R -r '(fromjson? // {}) | .project // empty | strings' 2>/dev/null || true)"
     while IFS= read -r room; do
       [ -n "$room" ] && valid_name "$room" && targets+=("r:$room")
     done <<<"$rooms"
@@ -1010,7 +1090,7 @@ cmd_read() {
       if [ "$tk" = p ]; then read_group "$key" "$so" "$reader"; else read_seen "$key" "$so" "$reader" "$tk"; fi
     done < <(receiver_keys "$tk" "$tn")
   done
-  if [ "$QUAR_COUNT" -gt 0 ]; then warn "quarantined $QUAR_COUNT message(s) whose to/from did not match their inbox; see $CACHE_DIR/quarantine.log"; fi
+  if [ "$QUAR_COUNT" -gt 0 ]; then warn "quarantined $QUAR_COUNT message(s) whose to/from did not match their inbox; see $CACHE_DIR/quarantine.log"; QUAR_COUNT=0; fi
 }
 
 # --------------------------------------------------------------------- who / log

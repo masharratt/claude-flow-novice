@@ -7,14 +7,16 @@
 #   State file        ~/.cache/cfn-mailbox/state-<session> = "busy <epoch>" (UserPromptSubmit, and a
 #                     Stop that blocks) or "idle <epoch>" (SessionStart, a Stop that does not
 #                     block). mailbox-watch.sh nudges a tmux pane only when it says idle.
-#   SessionStart      directory heartbeat, join the project room, join the project address
-#                     (consumer group), print unread mail as plain text.
+#   SessionStart      directory heartbeat, join the project room (at most once a day per name),
+#                     print unread session mail as plain text.
 #   UserPromptSubmit  clear the taint flag (not when the prompt is the watcher's nudge text: the
-#                     watcher typed it, not a human), heartbeat (at most 1/min), read mail, inject
-#                     it as additionalContext.
-#   PostToolUse       heartbeat (1/min), mail check at most once per 15 s per session.
-#   Stop              block once when unread ask/reminder mail exists; fyi waits for the next turn
-#                     and is not consumed. Never blocks when stop_hook_active is set.
+#                     watcher typed it, not a human), heartbeat (at most 1/5 min), read the session,
+#                     project and (attended) person inboxes in parallel, inject as additionalContext.
+#   PostToolUse       heartbeat (1/5 min), session-inbox check at most once per 15 s per session.
+#   Stop              block once when unread ask/reminder session mail exists; fyi waits for the
+#                     next turn and is not consumed. Never blocks when stop_hook_active is set.
+#   Every event       mail held in the spool (read by a run the timeout cut off) is shown first and
+#                     alone: no Redis read that run, so it cannot be cut off again.
 #   PreToolUse        taint guard: after outside mail was injected, ask before risky Bash. The guard
 #                     is advisory, not an access boundary: it sees only Bash and a list of command
 #                     patterns, never MCP tools or other clients.
@@ -58,7 +60,8 @@ umask 077
 HOOK_TIMEOUT=4          # seconds for the whole hook (settings timeout is 5); CFN_MAILBOX_HOOK_TIMEOUT overrides
 if [[ "${CFN_MAILBOX_HOOK_TIMEOUT:-}" =~ ^[1-9][0-9]*$ ]]; then HOOK_TIMEOUT="$CFN_MAILBOX_HOOK_TIMEOUT"; fi
 MAX_INJECT=20           # messages per injection
-HEARTBEAT_EVERY=60      # seconds between directory heartbeats per session
+HEARTBEAT_EVERY=300     # seconds between directory heartbeats per session (`who` hides entries after 30 min)
+JOIN_EVERY=86400        # seconds between project-room joins per session name (the dir entry keeps its rooms)
 CHECK_EVERY=15          # seconds between PostToolUse mail checks per session
 FLUSH_MAX_SECS=900      # a detached outbound-queue drain gives up after this; the next event starts another
 FLUSH_BACKOFF_MAX=60    # seconds between drain retries after a failed flush (5, 10, 20, ... up to this)
@@ -113,14 +116,13 @@ pre_tool_use() {
 # ------------------------------------------------------------------ mailbox calls
 
 ERRF=""
-MB_OUT=""
 MB_RC=0
-# mbx ARGS...: run mailbox.sh as this session. Output in MB_OUT (even on failure: lines already
-# printed were already acknowledged, so they must still be shown). Failure is logged, never fatal.
+# mbx ARGS...: run mailbox.sh as this session for its side effect (heartbeat, join, flush); mail
+# reads go through mbx_to. Failure is logged, never fatal.
 mbx() {
   local rc=0
   # MAILBOX_SESSION_ID: the Claude session id, so a claimed role name is refreshed by its holder.
-  MB_OUT="$(MAILBOX_SESSION="$SESSION" MAILBOX_SESSION_ID="$SID" bash "$MB" "$@" 2>"$ERRF" </dev/null)" || rc=$?
+  MAILBOX_SESSION="$SESSION" MAILBOX_SESSION_ID="$SID" bash "$MB" "$@" >/dev/null 2>"$ERRF" </dev/null || rc=$?
   MB_RC="$rc"
   if [ "$rc" -ne 0 ]; then
     log_err "event=$EVENT mailbox $1 exit=$rc: $(head -c 300 "$ERRF" 2>/dev/null | tr '\n\t' '  ')"
@@ -204,52 +206,76 @@ record_name() {
 }
 
 MAIL=""
-SPOOL_F=""
-# dedupe_msgs: stdin JSON lines -> same lines, first occurrence of each (inbox, id) only.
-dedupe_msgs() {
-  grep '^{' | jq -c -s 'reduce .[] as $m ({seen: {}, out: []};
-    (($m.inbox // "") + "|" + ($m.id // "")) as $k
-    | if .seen[$k] then . else (.seen[$k] = true | .out += [$m]) end) | .out[]' 2>/dev/null
+# spooled: the mail held for this session (all its spool files, see spool_files in mailbox.sh),
+# first occurrence of each message only.
+spooled() {
+  local f
+  while IFS= read -r f; do [ -s "$f" ] && cat "$f"; done < <(spool_files "$SESSION") | dedupe_msgs
+  return 0
 }
-spooled() { if [ -s "$SPOOL_F" ]; then dedupe_msgs < "$SPOOL_F"; fi; return 0; }
+spool_pending() { [ -n "$(spooled | head -n 1)" ]; }
 
-# collect MODE(read|peek): MAIL = JSON lines (one per message), at most MAX_INJECT in total.
-# Mail a killed earlier run spooled comes first. Read mode reads new mail through the spool
-# (mailbox.sh writes each message to it before moving a marker or acking), so a kill between
-# the marker and the print cannot lose mail. Peek mode adds unread mail without consuming it.
-# Order: session inbox (+ joined rooms), project address, person inbox when attended.
+# mbx_to OUTFILE ARGS...: mailbox.sh as this session, stdout to OUTFILE (for parallel reads; mbx
+# keeps its output in shared variables, so it cannot run in the background). Failure is logged.
+mbx_to() {
+  local o="$1" rc=0; shift
+  MAILBOX_SESSION="$SESSION" MAILBOX_SESSION_ID="$SID" bash "$MB" "$@" > "$o" 2> "$o.err" </dev/null || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    log_err "event=$EVENT mailbox $1 $3 exit=$rc: $(head -c 300 "$o.err" 2>/dev/null | tr '\n\t' '  ')"
+  fi
+  rm -f "$o.err"
+  return "$rc"
+}
+
+# collect MODE(read|peek) SCOPE(session|all): MAIL = JSON lines (one per message), at most
+# MAX_INJECT. Mail held in the spool comes first and alone: that run makes no Redis read, so a run
+# the timeout keeps cutting off still shows what it already took. Otherwise read mode reads new mail
+# through the spool (mailbox.sh writes each message to it before moving a marker or acking), so a
+# kill between the marker and the print cannot lose mail; peek mode adds unread mail without
+# consuming it. SCOPE all (a prompt) adds the project address and, when attended, the person inbox,
+# each read in parallel into its own spool file (one Redis round trip is ~100-500 ms, so in
+# sequence they overran the 4 s limit). Mail over the cap stays spooled for the next event.
 collect() {
-  local left="$MAX_INJECT" addr got have peeked=""
-  local -a addrs=("$OWNER/s/$SESSION" "$OWNER/p/$PROJECT")
-  [ "${CLAUDE_CODE_SESSION_ATTENDED:-}" != 1 ] || addrs+=("$OWNER/me")
-  SPOOL_F="$CACHE_DIR/spool-$SESSION"
-  have="$(spooled | grep -c '^{')"
-  left=$((left - have))
+  local addr i=0 peeked="" f
+  if spool_pending; then MAIL="$(spooled | head -n "$MAX_INJECT")"; return 0; fi
+  local -a addrs=("$OWNER/s/$SESSION") sfx=("") pids=() outs=()
+  if [ "$2" = all ]; then
+    addrs+=("$OWNER/p/$PROJECT"); sfx+=("@p")
+    if [ "${CLAUDE_CODE_SESSION_ATTENDED:-}" = 1 ]; then addrs+=("$OWNER/me"); sfx+=("@me"); fi
+  fi
   for addr in "${addrs[@]}"; do
-    [ "$left" -gt 0 ] || break
-    local -a a=(read --as "$addr" --max "$left")
-    if [ "$1" = peek ]; then a+=(--peek); else a+=(--spool "$SPOOL_F"); fi
-    mbx "${a[@]}" || true
-    [ -n "$MB_OUT" ] || continue
-    got="$(printf '%s\n' "$MB_OUT" | grep -c '^{')"
-    [ "$1" != peek ] || peeked="$peeked$MB_OUT"$'\n'
-    left=$((left - got))
+    local -a a=(read --as "$addr" --max "$MAX_INJECT")
+    if [ "$1" = peek ]; then a+=(--peek); else a+=(--spool "$CACHE_DIR/spool-$SESSION${sfx[$i]}"); fi
+    f="$CACHE_DIR/rd.$$.$i"
+    mbx_to "$f" "${a[@]}" &
+    pids+=("$!"); outs+=("$f")
+    i=$((i + 1))
+  done
+  for i in "${!pids[@]}"; do
+    wait "${pids[$i]}" 2>/dev/null || true
+    [ "$1" != peek ] || peeked="$peeked$(cat "${outs[$i]}" 2>/dev/null)"$'\n'
+    rm -f "${outs[$i]}"
   done
   MAIL="$( { spooled; printf '%s' "$peeked"; } | dedupe_msgs | head -n "$MAX_INJECT")"
 }
 
 # spool_trim IDS_FILE: drop the spooled messages whose "inbox|id" is listed (the ones the outer
-# process just printed), keep the rest. Called only by the outer process, after printing.
+# process just printed) from every spool file of this session, keep the rest. Called only by the
+# outer process, after printing.
 spool_trim() {
-  [ -s "$SPOOL_F" ] && [ -s "$1" ] || return 0
-  local tmp="$SPOOL_F.$$"
-  if spooled | jq -c --rawfile ids "$1" '
-      ($ids | split("\n") | map(select(. != "") | {(.): true}) | add // {}) as $r
-      | select(($r[(.inbox // "") + "|" + (.id // "")] // false) | not)' > "$tmp" 2>/dev/null; then
-    mv -f "$tmp" "$SPOOL_F" 2>/dev/null || rm -f "$tmp"
-  else
-    rm -f "$tmp"
-  fi
+  [ -s "$1" ] || return 0
+  local f tmp
+  while IFS= read -r f; do
+    [ -s "$f" ] || continue
+    tmp="$f.$$"
+    if dedupe_msgs < "$f" | jq -c --rawfile ids "$1" '
+        ($ids | split("\n") | map(select(. != "") | {(.): true}) | add // {}) as $r
+        | select(($r[(.inbox // "") + "|" + (.id // "")] // false) | not)' > "$tmp" 2>/dev/null; then
+      mv -f "$tmp" "$f" 2>/dev/null || rm -f "$tmp"
+    else
+      rm -f "$tmp"
+    fi
+  done < <(spool_files "$SESSION")
   return 0
 }
 
@@ -296,9 +322,9 @@ emit() {
   esac
 }
 
-# deliver: consume mail and print it in this event's shape. Outside mail taints the session.
+# deliver [SCOPE]: consume mail and print it in this event's shape. Outside mail taints the session.
 deliver() {
-  collect read
+  collect read "${1:-session}"
   stamp_touch check
   [ -n "$MAIL" ] || return 0
   render || { log_err "event=$EVENT could not render mail"; return 0; }
@@ -323,7 +349,7 @@ is_watcher_prompt() {
 
 stop_event() {
   [ "$(jqi '.stop_hook_active // false')" != true ] || return 0
-  collect peek
+  collect peek session
   [ -n "$MAIL" ] || return 0
   printf '%s\n' "$MAIL" | jq -e -s 'any(.[]; .kind == "ask" or .kind == "reminder")' >/dev/null 2>&1 || return 0
   deliver
@@ -420,22 +446,23 @@ inner() {
   trap 'rm -f "$ERRF"' EXIT
   # A run cut off by the timeout never reaches its EXIT trap (bash runs traps only after the hung
   # redis-cli returns), so sweep the err files such runs left behind.
-  find "$CACHE_DIR" -maxdepth 1 -type f -name 'err.*' -mmin +10 -delete 2>/dev/null || true
+  find "$CACHE_DIR" -maxdepth 1 -type f \( -name 'err.*' -o -name 'rd.*' \) -mmin +10 -delete 2>/dev/null || true
   flush_outq
   case "$EVENT" in
     SessionStart)
       write_state idle
       heartbeat
-      mbx join "$PROJECT" || true
+      if stamp_due join "$JOIN_EVERY"; then stamp_touch join; mbx join "$PROJECT" || true; fi
       deliver ;;
     UserPromptSubmit)
       write_state busy
       # A real user turn: the user is back in the loop. The watcher's own nudge is not one.
       if ! is_watcher_prompt "$(jqi '.prompt // empty')"; then rm -f "$CACHE_DIR/taint-$SID"; fi
       heartbeat_before_read
-      deliver ;;
+      deliver all ;;
     PostToolUse)
-      if ! stamp_due check "$CHECK_EVERY"; then
+      # Held mail costs no Redis call, so it never waits for the 15 s check window.
+      if ! stamp_due check "$CHECK_EVERY" && ! spool_pending; then
         if stamp_due hb "$HEARTBEAT_EVERY"; then heartbeat; fi
         return 0
       fi
@@ -518,7 +545,6 @@ main() {
   # The inner process may have moved this session to its own name (heartbeat exit 23).
   local rn; rn="$(head -n 1 "$CACHE_DIR/name-$SID" 2>/dev/null)"
   [[ "$rn" =~ ^[a-z0-9-]{1,64}$ ]] && SESSION="$rn"
-  SPOOL_F="$CACHE_DIR/spool-$SESSION"
   spool_trim "$RENDERED"
   exit 0
 }

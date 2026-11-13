@@ -18,6 +18,10 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 WATCH="$REPO/.claude/skills/cfn-mailbox/mailbox-watch.sh"
 MB="$REPO/.claude/skills/cfn-mailbox/mailbox.sh"
 HOOK="$REPO/.claude/hooks/cfn-mailbox-hook.sh"
+# The nudge text, read from its one definition in mailbox.sh (never a copy here, so a change there
+# cannot leave this suite matching stale text).
+NUDGE="$(sed -n "s/^NUDGE_TEXT='\\(.*\\)'\$/\\1/p" "$REPO/.claude/skills/cfn-mailbox/mailbox.sh")"
+[ -n "$NUDGE" ] || { echo "FAIL could not read NUDGE_TEXT from mailbox.sh" >&2; exit 1; }
 
 PASS=0
 FAIL=0
@@ -106,8 +110,8 @@ count_cmd() { cmds | grep -F -c -- "$1" || true; }
 line_of() { cmds | grep -n -F -- "$1" | head -1 | cut -d: -f1; }
 line_of_re() { cmds | grep -n -E -- "$1" | head -1 | cut -d: -f1; }
 has_re() { cmds | grep -E -q -- "$1"; }
-nudges() { grep -c -F -- '-l -- You have mail: run /mail read' "$T/tmuxlog" || true; }
-nudged() { grep -F -- "send-keys -t $1 -l -- You have mail: run /mail read" "$T/tmuxlog" >/dev/null 2>&1 && echo yes || echo no; }
+nudges() { grep -c -F -- "-l -- $NUDGE" "$T/tmuxlog" || true; }
+nudged() { grep -F -- "send-keys -t $1 -l -- $NUDGE" "$T/tmuxlog" >/dev/null 2>&1 && echo yes || echo no; }
 
 run_env() { # CMD... : run with the fakes on PATH. Sets OUT ERR RC.
   RC=0
@@ -195,7 +199,7 @@ test_nudge_sequence() {
   set_state s1 idle; seed_for s:s1 p:proj
   rule "XREAD *" "$(xr "$SKEY" 1700000000500-0 ask hello)"
   watch once --nudge
-  assert_eq "send-keys -t main:1.0 -l -- You have mail: run /mail read" "$(sed -n 1p "$T/tmuxlog")" "literal text first"
+  assert_eq "send-keys -t main:1.0 -l -- $NUDGE" "$(sed -n 1p "$T/tmuxlog")" "literal text first"
   assert_eq "send-keys -t main:1.0 Enter" "$(sed -n 2p "$T/tmuxlog")" "then Enter"
   assert_eq "2" "$(wc -l < "$T/tmuxlog" | tr -d ' ')" "exactly two tmux calls"
   assert_eq "0" "$(sed -n 1p "$T/sleeplog")" "pause uses MAILBOX_NUDGE_DELAY"
@@ -818,7 +822,7 @@ test_install_systemd() {
   set_state s1 idle; seed_for s:s1 p:proj
   rule "XREAD *" "$(xr "$SKEY" 1700000000500-0 ask hello)"
   watch once --nudge
-  assert_eq "-S /tmp/tmux-501/fleet send-keys -t %3 -l -- You have mail: run /mail read" "$(sed -n 1p "$T/tmuxlog")" "literal text on the socket's pane"
+  assert_eq "-S /tmp/tmux-501/fleet send-keys -t %3 -l -- $NUDGE" "$(sed -n 1p "$T/tmuxlog")" "literal text on the socket's pane"
   assert_eq "-S /tmp/tmux-501/fleet send-keys -t %3 Enter" "$(sed -n 2p "$T/tmuxlog")" "then Enter"
 
   new_case "install-systemd: refuses on macOS, writes nothing, never calls systemctl"

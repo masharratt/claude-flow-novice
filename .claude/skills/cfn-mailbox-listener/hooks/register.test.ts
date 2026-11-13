@@ -79,7 +79,7 @@ test('a non-interactive run (claude -p) starts no listener', async ($, on) => {
 })
 
 test('the nudge text matches the mailbox hook guard text', () => {
-  expect(NUDGE_TEXT).toBe('You have mail: run /mail read')
+  expect(NUDGE_TEXT).toBe('You have mail: run $HOME/.claude/skills/cfn-mailbox/mailbox.sh read')
 })
 
 test('mail during a busy turn waits for the turn to end, then wakes once', async ($, on) => {

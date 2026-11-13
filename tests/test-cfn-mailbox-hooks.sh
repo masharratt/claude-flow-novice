@@ -14,6 +14,10 @@ unset CLAUDE_CODE_SESSION_ID MAILBOX_SESSION_ID
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 HOOK="$REPO/.claude/hooks/cfn-mailbox-hook.sh"
+# The nudge text, read from its one definition in mailbox.sh (never a copy here, so a change there
+# cannot leave this suite matching stale text).
+NUDGE="$(sed -n "s/^NUDGE_TEXT='\\(.*\\)'\$/\\1/p" "$REPO/.claude/skills/cfn-mailbox/mailbox.sh")"
+[ -n "$NUDGE" ] || { echo "FAIL could not read NUDGE_TEXT from mailbox.sh" >&2; exit 1; }
 
 PASS=0
 FAIL=0
@@ -155,7 +159,11 @@ test_identity_and_session_start() {
   assert_contains "$hs" '"summary":"Fix the login bug"' "summary from the cfn-task file"
   assert_contains "$hs" '"last_seen":' "last_seen"
   assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/$SESS ")" "directory heartbeat written"
-  assert_eq "yes" "$(yn has_cmd "XGROUP CREATE $PKEY readers 0 MKSTREAM")" "project group joined"
+  # 2026-11-07 delivery fix 1: SessionStart reads only the session inbox; the project address
+  # (consumer group, created at id 0 so no earlier mail is missed) is joined on the first prompt.
+  assert_eq "no" "$(yn has_cmd "$PKEY")" "SessionStart leaves the project address to the first prompt"
+  hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"
+  assert_eq "yes" "$(yn has_cmd "XGROUP CREATE $PKEY readers 0 MKSTREAM")" "project group joined on the first prompt"
   assert_eq "yes" "$(yn has_cmd "XREVRANGE mbx:michael:r:$PROJ:from:michael")" "project room joined"
   assert_eq "yes" "$(yn bash -c "grep -F 'HSET dir:michael michael/s/$SESS ' '$T/calls' | grep -F -q '\"rooms\":[\"$PROJ\"]'")" "rooms list holds the project room"
 
@@ -184,6 +192,7 @@ test_identity_and_session_start() {
   W="$top/sub/dir"
   hook "$(ev SessionStart)"
   assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/top-repo-x-abc123 ")" "session = <toplevel project>-<sid6>"
+  hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"   # the project address is read on a prompt
   assert_eq "yes" "$(yn has_cmd "mbx:michael:p:top-repo-x:from:michael")" "project address uses the toplevel name"
 
   new_case "identity: a linked worktree joins the main checkout's project, not its own folder name (stage 6)"
@@ -197,6 +206,7 @@ test_identity_and_session_start() {
   mkdir -p "$wt/sub"
   W="$wt/sub"
   hook "$(ev SessionStart)"
+  hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"   # the project address is read on a prompt
   assert_eq "yes" "$(yn has_cmd "mbx:michael:p:proj-a:from:michael")" "project address uses the main checkout name"
   assert_eq "yes" "$(yn has_cmd "XREVRANGE mbx:michael:r:proj-a:from:michael")" "room joined is the main checkout name"
   assert_eq "yes" "$(yn has_cmd "HSET dir:michael michael/s/proj-a-abc123 ")" "session name from the main checkout"
@@ -305,7 +315,9 @@ test_reply_line_safety() {
 }
 
 test_cap_20() {
-  new_case "at most 20 messages per injection; later inboxes only get what is left"
+  # 2026-11-07 delivery fix 1: the inboxes are read in parallel, so each asks for up to 20; the
+  # hook still injects at most 20 and the rest stays spooled for the next event (no mail dropped).
+  new_case "at most 20 messages per injection; the rest stays spooled"
   local many ten
   many="$(jq -n -c --arg k "$SKEY" --arg to "$(key_to "$SKEY")" '[[$k, [range(0;15) | ["17000000\(1000+.)-0", ["from","michael/s/z","to",$to,"kind","fyi","body","s\(.)","thread","t","hops","0"]]]]]')"
   ten="$(jq -n -c --arg k "$PKEY" --arg to "$(key_to "$PKEY")" '[[$k, [range(0;10) | ["17000001\(1000+.)-0", ["from","michael/s/z","to",$to,"kind","fyi","body","p\(.)","thread","t","hops","0"]]]]]')"
@@ -314,7 +326,7 @@ test_cap_20() {
   hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"
   assert_rc 0 "ok"
   assert_eq "20" "$(header_count)" "exactly 20 headers (the fake ignores COUNT, the hook still caps)"
-  assert_eq "yes" "$(yn has_cmd "COUNT 5 STREAMS $PKEY 0")" "project read asked for only the 5 left"
+  assert_eq "5" "$(cat "$CACHE"/spool-"$SESS"* 2>/dev/null | grep -c '^{' || true)" "the 5 over the cap stay spooled"
 }
 
 test_post_tool_use() {
@@ -574,7 +586,6 @@ WRAP
 # ---------------------------------------------------------------- stage 4b hardening
 
 fmode() { stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1" 2>/dev/null; }   # GNU, then BSD
-NUDGE="You have mail: run /mail read"
 
 test_output_window() {
   # Stage 4b item 6: the inner process trimmed the spool before the outer one printed, so a kill
@@ -593,12 +604,20 @@ test_output_window() {
   assert_contains "$(ctx)" "lost between inner and outer" "body"
   assert_eq "no" "$(yn test -s "$CACHE/spool-$SESS")" "the outer process trimmed it after printing"
 
+  # 2026-11-07 delivery fix 1: held mail is shown first and alone (no Redis read that run), so the
+  # new message waits for the next event instead of sharing the run.
   new_case "output window: a normal run trims only what it printed"
   rule "XREAD COUNT * STREAMS $SKEY *" "$(mkmsg "$SKEY" 1700000000001-0 michael/s/zzz ask 'printed now' t-a 0)"
   mkdir -p "$CACHE"; spool_line 1700000000009-0 fyi "already spooled" > "$CACHE/spool-$SESS"
   hook "$(ev UserPromptSubmit '{"prompt":"hi"}')"
-  assert_eq "2" "$(header_count)" "both shown"
+  assert_eq "1" "$(header_count)" "held mail shown alone"
+  assert_contains "$(ctx)" "already spooled" "the held message"
+  assert_eq "no" "$(yn has_cmd "XREAD")" "no Redis read while mail is held"
   assert_eq "no" "$(yn test -s "$CACHE/spool-$SESS")" "spool empty after the print"
+  hook "$(ev UserPromptSubmit '{"prompt":"again"}')"
+  assert_eq "1" "$(header_count)" "new mail on the next event"
+  assert_contains "$(ctx)" "printed now" "the new message"
+  assert_eq "no" "$(yn test -s "$CACHE/spool-$SESS")" "spool empty after the second print"
   assert_eq "" "$(ls "$CACHE" | grep '^rendered' || true)" "no rendered-ids file left behind"
 }
 
@@ -614,7 +633,7 @@ test_taint_vs_nudge() {
 
   new_case "taint: a human prompt (even one that mentions mail) clears it"
   mkdir -p "$CACHE"; : > "$CACHE/taint-$SID"
-  hook "$(ev UserPromptSubmit '{"prompt":"You have mail: run /mail read, then push"}')"
+  hook "$(ev UserPromptSubmit "$(jq -n -c --arg p "$NUDGE, then push" '{prompt:$p}')")"
   assert_eq "no" "$(yn test -f "$CACHE/taint-$SID")" "cleared by a different prompt"
 
   new_case "taint: hook and watcher share one nudge constant (no second copy)"

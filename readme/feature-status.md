@@ -3,7 +3,7 @@
 
 # Feature Status
 
-**Last Updated:** 2026-11-12 wiki sync
+**Last Updated:** 2026-11-13 wiki sync
 
 ## Status Rollup
 
@@ -472,9 +472,7 @@ Reviewed: 2026-10-16
 - `.claude/skills/cfn-mailbox/mailbox.sh:697`: send with a fixed --msg-id returns the first stream id without a second XADD or rate count when done:<owner>:sent:<msg_id> exists, and sets that key right after XADD
 - `.claude/skills/cfn-mailbox/mailbox.sh:1575`: listen_emit reports each msg_id once and skips one already in the session's delivered set, so a repeated send never wakes the session
 - `.claude/skills/cfn-mailbox/mailbox.sh:1425`: count_after counts one entry per msg_id and none already shown, matching what read would print
-- `.claude/hooks/cfn-mailbox-hook.sh:355`: flush_outq never sends inline; on every event it starts one detached drain per outbound queue (lock <outq>/.flushing, setsid or python3 os.setsid) and returns, so the hook's 4 s budget cannot cut a queue short
-- `.claude/hooks/cfn-mailbox-hook.sh:386`: drain_outq runs mailbox.sh flush until the queue is empty, backs off 5-60 s on a failed flush, gives up after 15 minutes, and logs every flush warning (including .failed entries) to hook.log
-- `.claude/skills/cfn-fleet/lib/cmd-sync.sh:185`: fleet sync prints MAIL-PENDING <ws> <n> oldest <m>m for lane mail still queued after FLEET_MAIL_STUCK_SECS (default 120) and MAIL-FAILED <ws> <n> for entries set aside as .failed
+- `.claude/hooks/cfn-mailbox-hook.sh:287`: the hook flushes a sandboxed worker's outbound queue on every event, outside the Bash sandbox (source changed; review needed)
 - `.claude/skills/cfn-fleet/lib/cmd-watch.sh:193`: fleet watch reads <project>-master with its own reader marker, applies host-row worker mail to the roster, prints MAILBOX-DOWN once and falls back to fleet sync while the mailbox does not answer
 - `.claude/skills/cfn-fleet/lib/cmd-spawn.sh:399`: fleet spawn names the worker <project>-<ws>, creates the run's coordinator secret, claims <project>-master for the spawning session, and gives each pane its own MAILBOX_SESSION
 - `.claude/skills/cfn-mailbox/mailbox.sh:1213`: heartbeat refuses (exit 23) a session name whose directory entry is a different tmux pane on the same host, seen within the last 10 minutes (ALIAS_LIVE) and still alive, so two panes cannot share one name

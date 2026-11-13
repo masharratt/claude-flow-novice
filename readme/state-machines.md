@@ -3,7 +3,7 @@
 
 # State Machines
 
-**Last Updated:** 2026-11-12 wiki sync
+**Last Updated:** 2026-11-13 wiki sync
 
 ## Table of Contents
 
