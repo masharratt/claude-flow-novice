@@ -47,6 +47,18 @@ Every `rm` (any flags) is resolved to real paths, following `VAR=value` and
 
 An ask is held until the other rules run, so a deny elsewhere in the same
 command still wins. Without python3 the old flag-and-whitelist rule applies.
+Generic build-output names (`build`, `.build`, `dist`, `target`) count as
+rebuildable only below a repo's top folder; outside a project they ask.
+
+**Extra scratch roots (machine-local).** List glob patterns, one per line, in
+`~/.config/cfn/careful-scratch-roots` (`#` comments allowed), or set
+`CFN_CAREFUL_SCRATCH_ROOTS` (colon list). Each pattern expands to existing
+folders. A path strictly inside one passes like temp. The folder itself, its
+parents and its siblings keep the normal verdict, and a whole repo is still
+blocked. A match that is `/`, a top-level or system folder, or `$HOME` or one
+of its main folders is ignored. Example line: `/mnt/wsl/churn/art/trials/*`
+lets art lanes delete anything inside `trials/<trial>/` without asking.
+
 Tests: `tests/test-careful-guard-rm.sh`. `CFN_CAREFUL_TEMP_ROOTS`
 (colon list) overrides the temp roots, for tests only.
 

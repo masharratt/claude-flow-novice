@@ -299,5 +299,49 @@ run ask  "nested subst in template"     'x=$(mktemp -d "$(pwd)/a.XXXXXX"); rm -r
 run ask  "template with a space, unquoted" 'x=$(mktemp -d "/tmp/a b.XXXXXX"); rm -rf $x'
 run ask  "variable template, unquoted"  'x=$(mktemp -d "$D.XXXXXX"); rm -rf $x'
 
+
+# --- extra scratch roots (MDTWII 2026-11-15) ----------------------------------
+# Art lanes stalled overnight (5 asks, one ~1 h) deleting their own scratch under
+# /mnt/wsl/churn/art/trials/<trial>/. Machine-local list of glob patterns in
+# ~/.config/cfn/careful-scratch-roots (or CFN_CAREFUL_SCRATCH_ROOTS): paths
+# strictly INSIDE a matching folder pass like temp; the folder itself, its
+# parents and siblings keep the normal verdict.
+CHURN="$T/churn"
+mkdir -p "$CHURN/art/trials/x/out" "$CHURN/art/trials/y" "$CHURN/build/art-permanent/p" "$CHURN/approved"
+echo a > "$CHURN/art/trials/x/out/a.json"; echo b > "$CHURN/art/trials/y/b.png"
+echo k > "$CHURN/build/art-permanent/p/keep.png"; echo k > "$CHURN/approved/k.png"
+run ask  "scratch roots: none configured yet"   "rm $CHURN/art/trials/x/out/a.json"
+mkdir -p "$FAKE_HOME/.config/cfn"
+printf '# MDTWII art trials\n%s/art/trials/*\n\n/\n' "$CHURN" > "$FAKE_HOME/.config/cfn/careful-scratch-roots"
+run allow "scratch roots: file inside a trial"  "rm $CHURN/art/trials/x/out/a.json"
+run allow "scratch roots: folder inside a trial" "rm -rf $CHURN/art/trials/x/out"
+run allow "scratch roots: glob inside a trial"  "rm -rf $CHURN/art/trials/y/*"
+run ask  "scratch roots: the trial itself"      "rm -rf $CHURN/art/trials/x"
+run ask  "scratch roots: trials folder"         "rm -rf $CHURN/art/trials/"
+run ask  "scratch roots: churn root"            "rm -rf $CHURN"
+run ask  "scratch roots: art-permanent"         "rm $CHURN/build/art-permanent/p/keep.png"
+run ask  "scratch roots: approved"              "rm -rf $CHURN/approved"
+run ask  "scratch roots: dot-dot escape"        "rm -rf $CHURN/art/trials/x/../../../approved"
+run ask  "scratch roots: a bare / entry is ignored" "rm $CHURN/approved/k.png"
+run deny "scratch roots: repo root still denied" "rm -rf $REPO"
+# A fleet worker turns ask into worker-deny; an allowed scratch path must stay allow.
+wout=$(python3 -c 'import json,sys; print(json.dumps({"tool_name":"Bash","cwd":sys.argv[2],"tool_input":{"command":sys.argv[1]}}))' "rm -rf $CHURN/art/trials/x/out" "$REPO" \
+  | env HOME="$FAKE_HOME" CFN_CAREFUL_TEMP_ROOTS="$SCRATCH" CFN_DATA_DIR="$T/data" TYPESAFE_API_KEY= \
+      FLEET_RUN_DIR="$T/run" CLAUDE_PROJECT_DIR= bash "$HOOK" 2>/dev/null) && wrc=0 || wrc=$?
+if [ "$wrc" = 0 ] && ! printf '%s' "$wout" | grep -q permissionDecision; then pass=$((pass+1)); else fail=$((fail+1)); echo "FAIL (scratch roots: fleet worker allowed): rc=$wrc out=$wout"; fi
+rm -f "$FAKE_HOME/.config/cfn/careful-scratch-roots"
+# Generic build-output names count only inside a project.
+mkdir -p "$T/outside/build/keep" "$T/outside/node_modules/p" "$REPO/dist/x" "$REPO/target/debug"
+echo k > "$T/outside/build/keep/k.png"; echo x > "$T/outside/node_modules/p/i.js"
+echo o > "$REPO/dist/x/o.js"; echo o > "$REPO/target/debug/bin"
+run ask   "build folder outside a project asks"   "rm -rf $T/outside/build/keep"
+run allow "node_modules outside a project allows" "rm -rf $T/outside/node_modules"
+run allow "untracked dist inside a project"       "rm -rf dist/x"
+run allow "untracked target inside a project"     "rm -rf $REPO/target"
+out=$(python3 -c 'import json,sys; print(json.dumps({"tool_name":"Bash","cwd":sys.argv[2],"tool_input":{"command":sys.argv[1]}}))' "rm $CHURN/art/trials/x/out/a.json" "$REPO" \
+  | env HOME="$FAKE_HOME" CFN_CAREFUL_TEMP_ROOTS="$SCRATCH" CFN_CAREFUL_SCRATCH_ROOTS="$CHURN/art/trials/*" CFN_DATA_DIR="$T/data" TYPESAFE_API_KEY= \
+      FLEET_RUN_DIR= CLAUDE_PROJECT_DIR= bash "$HOOK" 2>/dev/null) && rc=0 || rc=$?
+if [ "$rc" = 0 ] && ! printf '%s' "$out" | grep -q permissionDecision; then pass=$((pass+1)); else fail=$((fail+1)); echo "FAIL (scratch roots: env var): rc=$rc"; fi
+
 echo "passed=$pass failed=$fail"
 [ "$fail" = 0 ]

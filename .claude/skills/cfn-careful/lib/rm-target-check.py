@@ -50,11 +50,15 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fresh_temp_var import fresh_temp_vars  # noqa: E402
 
 REBUILDABLE = {
-    "node_modules", ".next", "dist", "build", ".build", ".turbo", "coverage",
+    "node_modules", ".next", ".turbo", "coverage",
     "DerivedData", "__pycache__", ".cache", ".pytest_cache", ".parcel-cache",
     ".svelte-kit", ".nuxt", ".vercel", ".swc", ".mypy_cache", ".ruff_cache",
-    "target", ".gradle", ".DS_Store",
+    ".gradle", ".DS_Store",
 }
+# Generic names that are build output only inside a project. Outside one they
+# are often real data (MDTWII 2026-11-15: /mnt/wsl/build/art-permanent/ was
+# passing silently), so there they count only below a repo's top folder.
+REBUILDABLE_IN_REPO = {"dist", "build", ".build", "target"}
 SYSTEM_PREFIXES = (
     "/System", "/Library", "/usr", "/bin", "/sbin", "/etc", "/opt",
     "/Applications", "/private/etc", "/private/var/db", "/cores", "/Volumes",
@@ -88,6 +92,34 @@ def temp_roots():
         if os.environ.get("TMPDIR"):
             roots.append(os.environ["TMPDIR"])
     return [real(r).rstrip("/") for r in roots if r]
+
+
+SCRATCH_ROOTS_FILE = os.path.join(HOME, ".config", "cfn", "careful-scratch-roots")
+
+
+def scratch_roots():
+    """Extra scratch folders, machine-local: glob patterns, one per line in
+    ~/.config/cfn/careful-scratch-roots, plus CFN_CAREFUL_SCRATCH_ROOTS (colon
+    list). Each pattern is expanded to existing folders; a path strictly inside
+    one passes like temp. A match that is /, a top-level folder, a system
+    folder, $HOME or one of its main folders is ignored, never trusted."""
+    pats = [p for p in os.environ.get("CFN_CAREFUL_SCRATCH_ROOTS", "").split(":") if p]
+    try:
+        with open(SCRATCH_ROOTS_FILE) as f:
+            pats += [ln.strip() for ln in f if ln.strip() and not ln.strip().startswith("#")]
+    except OSError:
+        pass
+    home_keys = {HOME} | {os.path.join(HOME, d) for d in HOME_KEY_DIRS}
+    roots = []
+    for pat in pats:
+        for hit in glob.glob(os.path.expanduser(pat)):
+            r = real(hit).rstrip("/")
+            if not os.path.isdir(r) or len([x for x in r.split("/") if x]) < 2:
+                continue
+            if r in home_keys or any(r == p or r.startswith(p + "/") for p in SYSTEM_PREFIXES):
+                continue
+            roots.append(r)
+    return roots
 
 
 def strip_heredocs(cmd):
@@ -209,8 +241,8 @@ def fleet_worker(cwd):
     return False
 
 
-def has_rebuildable_part(path):
-    return any(part in REBUILDABLE for part in path.split("/"))
+def has_rebuildable_part(path, names=REBUILDABLE):
+    return any(part in names for part in path.split("/"))
 
 
 def classify(path, cwd):
@@ -237,6 +269,8 @@ def classify(path, cwd):
         return "allow", ""
     if os.path.isdir(path) and os.path.exists(os.path.join(path, ".git")):
         return "deny", "%s is a whole project" % shown
+    if any(path.startswith(r + "/") for r in scratch_roots()):
+        return "allow", ""
     if not os.path.lexists(path):
         return "allow", ""
     if has_rebuildable_part(path):
@@ -246,6 +280,9 @@ def classify(path, cwd):
     top = git(["rev-parse", "--show-toplevel"], where)
     if top.returncode != 0:
         return "ask", "%s is outside any project and outside the temp area" % shown
+    if has_rebuildable_part(os.path.relpath(path, real(top.stdout.strip())),
+                            REBUILDABLE_IN_REPO):
+        return "allow", ""
     st = git(["status", "--porcelain=v1", "-z", "--ignored",
               "--untracked-files=all", "--", path], top.stdout.strip())
     if st.returncode != 0:
@@ -255,7 +292,7 @@ def classify(path, cwd):
         if len(entry) < 4:
             continue
         code, name = entry[:2], entry[3:]
-        if code == "!!" and has_rebuildable_part(name):
+        if code == "!!" and has_rebuildable_part(name, REBUILDABLE | REBUILDABLE_IN_REPO):
             continue
         lost.append(name)
         if code != "??":
