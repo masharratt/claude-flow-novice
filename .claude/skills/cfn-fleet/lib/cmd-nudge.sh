@@ -8,6 +8,10 @@
 #   fleet nudge WSxx --key K [K ...]  press named keys only (allowlist below;
 #                                     always typed: a prompt cannot read mail)
 #
+# Host rows (no --tmux, no --key): the lane is sandboxed and cannot read mail,
+# so the text goes into its <outbox>/FROM_MASTER.md over ssh (type answer) and
+# a short pointer is typed into the pane, then a separate Enter
+# (lane-deliver.sh). The mailbox is skipped for them.
 # The text goes through `send-keys -l`, so shell metacharacters arrive as
 # literal characters in the pane and are never interpreted here or on the host.
 # Host rows act on the server pane over ssh exactly like `fleet peek`.
@@ -65,6 +69,23 @@ main() {
   fi
   [ $# -eq 2 ] || _fleet_nudge_usage
   [ -n "$2" ] || _fleet_nudge_usage
+  # Host row: FROM_MASTER.md + pointer nudge (the lane cannot read mail).
+  if [ "$force_tmux" -eq 0 ]; then
+    roster_exists "$ws" || fleet_die 65 "unknown workstream: $ws"
+    local host drc=0
+    host=$(roster_get "$ws" host)
+    if [ -n "$host" ]; then
+      _fleet_mail_body_ok "$2" || fleet_die 64 "nudge: text must be 1 to $_FLEET_MAIL_BODY_MAX bytes; name a file instead"
+      _fleet_lane_deliver "$ws" answer "$2" || drc=$?
+      case "$drc" in
+        0) echo "delivered $ws answer to FROM_MASTER.md on $host; lane nudged"; return 0 ;;
+        5) fleet_die 66 "nudge: FROM_MASTER.md on $host has the text, but typing the pointer into the pane failed (fleet peek $ws)" ;;
+        2) ;;  # no remote env yet: the pane-target path below says so
+        "$_FLEET_SSH_FAIL_RC"|"$_FLEET_TIMEOUT_RC") fleet_die 66 "nudge: host $host is unreachable" ;;
+        *) fleet_die 66 "nudge: FROM_MASTER.md on $host not written (rc $drc)" ;;
+      esac
+    fi
+  fi
   # Mailbox first (stage 5): the text goes as coordinator mail of type answer
   # and the mailbox watcher wakes the pane if it is idle. Typing is the
   # fallback when the mailbox cannot take it, or forced with --tmux.

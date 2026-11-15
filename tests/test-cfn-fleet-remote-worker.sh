@@ -240,6 +240,73 @@ else
   ok "worker does not use jq (jq absent)"
 fi
 
+# Fix A (MDTWII 2026-11-14, WS1232/33/36/37/38): spawn wrote claims.txt with no
+# final newline, so a later `echo path >> claims.txt` glued onto the last line
+# ("...HANDOFF_WS1238.mdcrates/...") and commit skipped BOTH paths: a grep for
+# the new path hit, yet the lane still said "unclaimed". Fixed at write time:
+# spawn ends the file with a newline and the grant path re-adds one if missing.
+echo "test_claims_txt_newline_and_glued_line"
+SPAWN_REMOTE="$PROJECT_ROOT/.claude/skills/cfn-fleet/lib/spawn-remote.sh"
+LANE_DELIVER="$PROJECT_ROOT/.claude/skills/cfn-fleet/lib/lane-deliver.sh"
+WT2="$TMP/wt2"; OB2="$TMP/outbox2/WS2"
+git init -q -b main "$WT2"
+git -C "$WT2" config user.email t@example.com
+git -C "$WT2" config user.name tester
+git -C "$WT2" config commit.gpgsign false
+mkdir -p "$WT2/src" "$WT2/crates/x" "$OB2"
+for f in src/a.txt src/b.txt src/c.txt crates/x/lib.rs; do echo one > "$WT2/$f"; done
+git -C "$WT2" add -A && git -C "$WT2" commit -q -m base
+git -C "$WT2" checkout -q -b fleet/WS2
+cp "$WORKER_SRC" "$OB2/remote-worker.sh"
+printf 'FLEET_WS=WS2\nFLEET_GEN=g2\nFLEET_OUTBOX=%s\nFLEET_BRANCH=fleet/WS2\nFLEET_WORKTREE=%s\n' "$OB2" "$WT2" > "$OB2/outbox.env"
+W2() { bash "$OB2/remote-worker.sh" "$@"; }
+
+( source "$SPAWN_REMOTE"; _spawn_remote_claims "src/a.txt,src/b.txt src/c.txt" ) > "$OB2/claims.txt"
+[[ "$(tail -c1 "$OB2/claims.txt" | od -An -c | tr -d ' ')" == '\n' ]] \
+  && ok "spawn claims.txt from a 3-path row ends with a newline" || no "spawn claims.txt from a 3-path row ends with a newline"
+echo crates/x/lib.rs >> "$OB2/claims.txt"
+[[ "$(wc -l < "$OB2/claims.txt" | tr -d ' ')" == 4 ]] && ok "appending a 4th path gives 4 lines" \
+  || no "appending a 4th path gives 4 lines (got: $(cat "$OB2/claims.txt"))"
+echo two > "$WT2/crates/x/lib.rs"
+W2 commit -m "after grant" >/dev/null 2>&1 && ok "commit sees a path appended after spawn" \
+  || no "commit sees a path appended after spawn"
+
+# The exact incident shape: a newline-less file plus a plain append reads as one
+# bogus token, so the granted path is in the file (grep hits) but not claimed.
+printf 'src/a.txt' > "$OB2/claims.txt"
+echo crates/x/lib.rs >> "$OB2/claims.txt"
+grep -q 'crates/x/lib.rs' "$OB2/claims.txt" && ok "glued file: grep finds the granted path" || no "glued file: grep finds the granted path"
+echo three > "$WT2/crates/x/lib.rs"
+out=$(W2 commit -m "glued" 2>&1) && no "glued line: commit must not see the path (characterizes the bug)" \
+  || { [[ "$out" == *"nothing claimed has changed"* ]] && ok "glued line reads as one bogus token: commit refuses the granted path" \
+       || no "glued line: unexpected commit error: $out"; }
+
+# The grant path (lane-deliver.sh) repairs a newline-less file before appending.
+printf 'src/a.txt' > "$OB2/claims.txt"
+( source "$LANE_DELIVER"; bash -c "$_FLEET_CLAIMS_APPEND_SH" _ "$OB2" crates/x/lib.rs src/a.txt )
+[[ "$(cat "$OB2/claims.txt")" == $'crates/x/lib.rs\nsrc/a.txt' && "$(tail -c1 "$OB2/claims.txt" | od -An -c | tr -d ' ')" == '\n' ]] \
+  && ok "grant append on a newline-less file: one path per line, sorted unique, final newline" \
+  || no "grant append on a newline-less file (got: $(od -c "$OB2/claims.txt" | head -3))"
+W2 commit -m "after repaired grant" >/dev/null 2>&1 && ok "commit sees the path after the grant-path append" \
+  || no "commit sees the path after the grant-path append"
+
+# Finding 7 (codex review 2026-11-14): FROM_MASTER.md was created with an
+# unlocked check and a truncating `>`, so two first messages could erase each
+# other. Writes are serialized with a host-side lock and the header is appended.
+echo "test_finding7_from_master_concurrent_writers_keep_every_message"
+( source "$LANE_DELIVER"; printf '%s' "$_FLEET_FROM_MASTER_SH" ) > "$TMP/fm.sh"
+if grep -Eq '[^>0-9]>[[:space:]]*"\$f"' "$TMP/fm.sh"; then no "FROM_MASTER.md script never truncates the file"; else ok "FROM_MASTER.md script never truncates the file"; fi
+lost=0
+for round in $(seq 1 15); do
+  d="$TMP/fm-$round"; mkdir -p "$d"
+  for w in 1 2 3 4; do bash "$TMP/fm.sh" "$d" "t$w" answer "message-$w" & done
+  wait
+  for w in 1 2 3 4; do grep -q "message-$w" "$d/FROM_MASTER.md" 2>/dev/null || lost=$((lost + 1)); done
+  [[ "$(grep -c '^# Messages from the fleet master' "$d/FROM_MASTER.md" 2>/dev/null)" == 1 ]] || lost=$((lost + 1))
+done
+[[ "$lost" == 0 ]] && ok "4 concurrent writers x 15 rounds: every message kept, one header" \
+  || no "concurrent writers lost $lost message(s) or duplicated the header"
+
 echo
 echo "passed=$PASS failed=$FAIL"
 [[ $FAIL -eq 0 ]]

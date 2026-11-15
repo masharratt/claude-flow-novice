@@ -95,6 +95,12 @@ case "$cmd" in
         fi
         [ -n "${STUB_TMUX_HAS_SESSION:-}" ] && exit 0 || exit 1 ;;
     capture-pane)
+        # Finding 3: run a command once, mid-launch (e.g. a `fleet claim` made
+        # while the spawn waits for the banner).
+        if [ -n "${STUB_TMUX_HOOK:-}" ] && [ -n "${FLEET_CAPTURE_DIR:-}" ] && [ ! -e "$FLEET_CAPTURE_DIR/.hooked" ]; then
+            : > "$FLEET_CAPTURE_DIR/.hooked"
+            bash -c "$STUB_TMUX_HOOK" >/dev/null 2>&1 </dev/null
+        fi
         d="${FLEET_CAPTURE_DIR:-}"
         if [[ -n $d && -d $d ]]; then
             n=$(( $(cat "$d/.count" 2>/dev/null || printf 0) + 1 ))
@@ -405,6 +411,25 @@ test_spawn_host_ssh_sequence() {
     assert_equals "fakehost" "$(roster_field WS01 host)" "roster host column written"
     assert_equals "claude-sub" "$(roster_field WS01 engine)" "roster engine written"
     assert_success "spawning marker cleared after success" test ! -e "$RUN_DIR/.spawning/WS01"
+}
+
+# Finding 3 (codex review 2026-11-14): spawn snapshots claims.txt before the
+# banner and publishes remote/<WS>.env after it; a grant in between reached the
+# roster only. Spawn now reconciles once the env is published.
+test_finding3_spawn_end_reconciles_mid_spawn_grant() {
+    log_step "GIVEN a fleet claim made while spawn --host waits for the banner, THEN the lane gets it"
+    make_fixture midgrant
+    capture_script 1 "  Do you trust the files in this folder? No, exit"
+    capture_script 2 "Sonnet 5 with high effort | Claude Team"
+    export STUB_TMUX_HOOK="FLEET_RUN_DIR='$RUN_DIR' HOME='$TMP_DIR/mac-home' FLEET_MAILBOX=off bash '$SKILL_DIR/cli/fleet' claim WS01 docs/c.md"
+    run_spawn WS01 --host fakehost
+    unset STUB_TMUX_HOOK
+    local ob="$SRV/fleet-runs/proj/fleet-main/WS01"
+    assert_equals "0" "$FLEET_RC" "host spawn exits 0"
+    assert_contains "$(roster_field WS01 claims)" "docs/c.md" "mid-spawn grant is in the roster"
+    assert_contains "$(cat "$ob/claims.txt")" "docs/c.md" "mid-spawn grant reached claims.txt"
+    assert_contains "$(cat "$ob/FROM_MASTER.md" 2>/dev/null)" "GRANTED docs/c.md" "lane told of the mid-spawn grant"
+    assert_success "pending record cleared" test ! -s "$RUN_DIR/remote/WS01.pending"
 }
 
 test_spawn_host_new_generation_each_spawn() {
@@ -1119,6 +1144,7 @@ run_all_tests() {
     test_spawn_host_unreachable_stays_pending
     test_spawn_host_refuses_row_without_claims
     test_spawn_host_ssh_sequence
+    test_finding3_spawn_end_reconciles_mid_spawn_grant
     test_spawn_host_new_generation_each_spawn
     test_spawn_host_banner_timeout_cleans_remote_worktree
     test_spawn_host_scp_failure_cleans_remote_worktree

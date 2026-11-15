@@ -85,6 +85,11 @@ if ! command -v _fleet_host_run >/dev/null 2>&1; then
   # shellcheck source=host.sh
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/host.sh"
 fi
+# Host lane delivery (claims.txt/FROM_MASTER.md reconcile at the end of a
+# --host spawn) and the remote env loader it needs. cmd-sync.sh's main is
+# replaced by this file's main, defined below.
+# shellcheck source=cmd-sync.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cmd-sync.sh"
 
 # spawn-remote.sh: the --host path, its sandbox settings and limits.
 # shellcheck source=spawn-remote.sh
@@ -479,6 +484,12 @@ main() {
   roster_exists "$ws" || fleet_die 65 "spawn: $ws not in roster (fleet add first)"
   local brief="$run_dir/briefs/$ws.md"
   [ -f "$brief" ] || fleet_die 65 "spawn: missing brief $brief (write briefs/$ws.md first)"
+
+  # A lane without claims could never commit and stalls with "unknown workstream" or an
+  # empty claims.txt. Refuse on every launch path; FLEET_SPAWN_ALLOW_NO_CLAIMS=1 is the
+  # explicit opt-out for read-only lanes (reviewers).
+  [ "${FLEET_SPAWN_ALLOW_NO_CLAIMS:-0}" = 1 ] || [ -n "$(roster_get "$ws" claims)" ] \
+    || fleet_die 65 "spawn: $ws has no claims in the roster; grant claims first (fleet claim $ws <path>), or set FLEET_SPAWN_ALLOW_NO_CLAIMS=1 for a read-only lane"
 
   local name
   name=$(roster_get "$ws" name)

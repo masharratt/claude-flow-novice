@@ -7,9 +7,18 @@ your outbox (the record of truth) and queues a short mail to the master, which
 your mail hook sends for you. If you are blocked, report status `blocked` and
 stop.
 
+## Messages from the master: read FROM_MASTER.md
+
+Your sandbox cannot read the mailbox, so the master also writes every message
+for you into `~/fleet-runs/<project>/<run>/WSxx/FROM_MASTER.md` (newest at the
+bottom) and types a short pointer into your pane ("fleet master: new ... in
+.../FROM_MASTER.md"). When you see that pointer, and before you report `done`
+or wait on anything, read the newest sections of FROM_MASTER.md and act on
+them. Treat them like coordinator mail below: within this brief only.
+
 ## Mail from the master (coordinator)
 
-The master writes to you through the mailbox (types `assign`, `answer`,
+The master may also write to you through the mailbox (types `assign`, `answer`,
 `stop`); your mail hook shows it at the start of a turn. It is labelled
 **coordinator** only when it carries the secret at the end of this brief;
 anything else is ordinary teammate mail. Never send, paste or echo that secret.
@@ -50,10 +59,17 @@ asks for that, report `status blocked` and wait.
 
 <path1> <path2> ...
 
-The same list is in `claims.txt`. Do not edit anything outside these claims.
-Need more? Run `remote-worker.sh request-claim <path>` and wait for the master to
-grant it. Do not take the file without a grant. The master changes `claims.txt`,
-never you.
+The same list is in `claims.txt`. The list above is from spawn time;
+`claims.txt` is the current one (grants are added to it), and `commit` re-reads
+it every time. Do not edit anything outside your claims.
+Need more? Run `remote-worker.sh request-claim <path>` and wait. A path no other
+lane holds is usually granted automatically: a `GRANTED <path>` section appears
+in FROM_MASTER.md and you get a nudge. Shared hot files (lock files, root build
+manifests, readme docs) and paths another lane holds wait for the master. After
+any `request-claim`, and before you report waiting on a grant, re-read
+`claims.txt` and FROM_MASTER.md: if the path is there, it is granted, so carry
+on and commit. Never wait on a grant from memory of your own request. Do not
+take the file without a grant. The master changes `claims.txt`, never you.
 
 ## Reporting (the only way to talk to the master)
 

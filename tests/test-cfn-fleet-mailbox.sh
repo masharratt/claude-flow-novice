@@ -71,10 +71,19 @@ for a in "$@"; do case "$a" in capture-pane) echo "Claude Max"; exit 0 ;; esac; 
 exit 0
 STUB
   # Stub ssh: logs the remote command; list-panes says alive; tar (fleet sync) says no outbox.
+  # Finding 9 (codex review 2026-11-14): lane delivery scripts (claims.txt,
+  # FROM_MASTER.md) really RUN here against the fake host dir, so tests check
+  # the remote file changed, not only that ssh was called. STUB_SSH_FAIL_MATCH
+  # fails a matching call like a dead link.
   cat > "$T/bin/ssh" <<'STUB'
 #!/usr/bin/env bash
 printf 'ssh %s\n' "$*" >> "$STUB_SSH_LOG"
-case "$*" in *tar*reports*) exit 3 ;; *list-panes*) echo 0 ;; esac
+if [ -n "${STUB_SSH_FAIL_MATCH:-}" ]; then case "$*" in *"$STUB_SSH_FAIL_MATCH"*) exit 255 ;; esac; fi
+case "$*" in
+  *tar*reports*) exit 3 ;;
+  *list-panes*) echo 0 ;;
+  *claims.txt*|*FROM_MASTER.md*) last="${*: -1}"; exec bash -c "bash -c ${last#bash -lc }" ;;
+esac
 exit 0
 STUB
   printf '#!/usr/bin/env bash\nexit 0\n' > "$T/bin/claude"
@@ -287,7 +296,9 @@ watch_fixture() {
   add_row WS01 started
   add_row WS02 started vps
   mkdir -p "$RUN/remote"
-  printf 'FLEET_HOST=vps\nFLEET_GEN=g1\nFLEET_OUTBOX=/srv/ob/WS02\nFLEET_SOCK=fleet-r1\nFLEET_SESSION=ws02\n' > "$RUN/remote/WS02.env"
+  mkdir -p "$T/srv/ob/WS02"
+  printf 'src/a.md\n' > "$T/srv/ob/WS02/claims.txt"
+  printf 'FLEET_HOST=vps\nFLEET_GEN=g1\nFLEET_OUTBOX=%s\nFLEET_SOCK=fleet-r1\nFLEET_SESSION=ws02\n' "$T/srv/ob/WS02" > "$RUN/remote/WS02.env"
   FENV=(FLEET_TMUX_SOCKET=fleet-r1)
 }
 
@@ -303,7 +314,11 @@ test_watch_applies_mail() {
   fleet watch --once
   assert_rc 0 "watch ok"
   assert_contains "$OUT" "MAIL WS02 status working: parsed inputs" "status event"
-  assert_contains "$OUT" "CLAIM-REQ WS02 src/c.md" "claim request event"
+  # Auto-grant (2026-11-14): src/c.md is free, so the host lane gets it.
+  assert_contains "$OUT" "GRANTED WS02 src/c.md" "claim request auto-granted event"
+  assert_eq "src/a.md src/c.md" "$(cell WS02 claims)" "auto-grant wrote the roster store"
+  assert_eq $'src/a.md\nsrc/c.md' "$(cat "$T/srv/ob/WS02/claims.txt" 2>/dev/null)" "finding 9: auto-grant really changed the host claims.txt"
+  assert_contains "$(cat "$T/srv/ob/WS02/FROM_MASTER.md" 2>/dev/null)" "GRANTED src/c.md" "finding 9: GRANTED notice really written on the host"
   assert_contains "$OUT" "HANDOFF WS02 handoffs/HANDOFF_WS02.md" "handoff event"
   assert_contains "$OUT" "MAIL WS01 blocked local note" "local worker mail shown"
   assert_not_contains "$OUT" "ignore me" "unknown sender ignored"
@@ -318,6 +333,21 @@ test_watch_applies_mail() {
   # Same reply again: the delivered set drops what was already applied.
   fleet watch --once
   assert_not_contains "$OUT" "MAIL WS02" "nothing applied twice"
+}
+
+# Finding 5 (codex review 2026-11-14): mail to a host lane exited 0 when Redis
+# took the message but FROM_MASTER.md failed; the sandboxed lane cannot read Redis.
+test_finding5_host_mail_needs_from_master() {
+  new_case "fleet mail to a host lane: 0 only when FROM_MASTER.md was written"
+  watch_fixture
+  fleet mail WS02 answer "rebase first"
+  assert_rc 0 "host mail ok"
+  assert_contains "$(cat "$T/srv/ob/WS02/FROM_MASTER.md" 2>/dev/null)" "rebase first" "message really on the host"
+  FENV+=(STUB_SSH_FAIL_MATCH=FROM_MASTER)
+  fleet mail WS02 answer "second note"
+  assert_rc 66 "FROM_MASTER.md failed: 66 even though the mailbox took it"
+  assert_eq "yes" "$(yn has_cmd "XADD mbx:michael:s:proj-a-ws02")" "the mailbox did take it"
+  assert_contains "$OUT" "FROM_MASTER.md" "says the file delivery failed"
 }
 
 test_watch_dir_heartbeat() {
@@ -441,6 +471,7 @@ test_spawn_local_env_and_secret
 test_fleet_mail
 test_fleet_report
 test_watch_applies_mail
+test_finding5_host_mail_needs_from_master
 test_watch_dir_heartbeat
 test_watch_mailbox_down
 test_nudge_via_mail

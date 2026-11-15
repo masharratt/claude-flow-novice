@@ -22,14 +22,15 @@
 #                         run's dedicated socket (FLEET_TMUX_SOCKET, default
 #                         fleet-<slug>); tmux absent or server down is
 #                         tooling, never a false DEAD.
-#   ALL-DONE              every row landed|done -> exits 0 (ends the loop)
+#   ALL-DONE              every row released (FLEET_RELEASED_STATUSES) or landed -> exits 0
 #
 # `spawning` rows (a launch in progress) are deliberately ignored by every probe
 # and event above: they have no session or heartbeat to judge yet. They only
 # keep ALL-DONE from firing.
 #
 # Host rows (workers on a remote machine, roster `host` column set): each tick
-# first runs `fleet sync` (pulls their reports, prints HANDOFF / CLAIM-REQ), then
+# first runs `fleet sync` (pulls their reports, prints HANDOFF / GRANTED /
+# CLAIM-REQ / WARN), then
 # probes the pane over ssh instead of the local socket. Extra events, each
 # emitted when it newly appears, not on every poll:
 #   UNREACHABLE <ws> <host>  ssh could not ask. Never DEAD: a flaky link is not
@@ -48,7 +49,7 @@
 #                            blocked). Host rows get it applied to the roster
 #                            (heartbeat, notes, status); local rows already wrote
 #                            the roster themselves (`fleet report`), so only the
-#                            event is shown. HANDOFF / CLAIM-REQ lines as from sync.
+#                            event is shown. HANDOFF / GRANTED / CLAIM-REQ lines as from sync.
 #   host-row heartbeat       from the mailbox directory (last_seen of the
 #                            worker's hook), so a quiet remote worker is not STALE
 #   MAILBOX-DOWN <reason>    the mailbox did not answer (unreachable, login, no
@@ -241,6 +242,9 @@ _fleet_watch_mail() {
                    _fleet_mail_apply_locked "$ws" "$type" "$body" "mail $id" ) 9>"$lock" ) \
         || { echo "fleet watch: roster update from mail failed for $ws" >&2; continue; }
       [ -z "$applied" ] || while IFS= read -r w; do mail_events+=("$w"); done <<< "$applied"
+      # Lock released: deliver any grant to the host lane (never under the lock).
+      applied=$(_fleet_lane_settle_sync "$ws")
+      [ -z "$applied" ] || while IFS= read -r w; do mail_events+=("$w"); done <<< "$applied"
     else
       case "$type" in
         handoff) mail_events+=("HANDOFF $ws $body") ;;
@@ -313,7 +317,7 @@ _fleet_watch_scan() {
     while IFS= read -r sline; do
       case "$sline" in
         "UNREACHABLE "*) _FLEET_WATCH_UNREACH+="$(printf '%s' "$sline" | awk '{print $2}') " ;;
-        HANDOFF\ *|CLAIM-REQ\ *|*" refused "*) sync_events+=("$sline") ;;
+        HANDOFF\ *|CLAIM-REQ\ *|GRANTED\ *|DELIVERED\ *|WARN\ *|*" refused "*) sync_events+=("$sline") ;;
       esac
     done < <(fleet_sync 2>&1 || true)
   fi
@@ -393,9 +397,8 @@ _fleet_watch_scan() {
           row_events+=("STALE $ws $age_min")
         fi ;;
     esac
-    if [ "$status" != "landed" ] && [ "$status" != "done" ]; then
-      alldone=0
-    fi
+    # landed counts as finished here even on a local row (it was ALL-DONE before).
+    _fleet_status_released "$status" || [ "$status" = landed ] || alldone=0
   done < <(awk 'NR > 1' "$roster")
 
   # Disk is a host property: one probe per host that has live rows and could

@@ -49,7 +49,18 @@ export SRV_HOME="$TMP_DIR/server-home"
 cat >"$TMP_DIR/bin/ssh" <<'EOF'
 #!/usr/bin/env bash
 { echo "--ssh"; for a in "$@"; do echo "$a"; done; } >>"$STUB_LOG"
+# Finding 2: an ssh made while the roster flock is held is logged (the stub
+# inherits the holder's fd, so a fresh flock -n on the file fails).
+if [ -n "${STUB_ROSTER_LOCK:-}" ] && [ -e "$STUB_ROSTER_LOCK" ] && ! flock -n "$STUB_ROSTER_LOCK" true 2>/dev/null; then
+  echo "--LOCKED-SSH" >>"$STUB_LOG"
+fi
 [ "${STUB_SSH_RC:-0}" = "0" ] || exit "$STUB_SSH_RC"
+if [ -n "${STUB_SSH_FAIL_MATCH:-}" ]; then case "$*" in *"$STUB_SSH_FAIL_MATCH"*) exit 255 ;; esac; fi
+if [ -n "${STUB_SSH_SLEEP_MATCH:-}" ]; then case "$*" in *"$STUB_SSH_SLEEP_MATCH"*) sleep "${STUB_SSH_SLEEP:-30}" ;; esac; fi
+# Round 3: run STUB_SSH_HOOK once, before the first ssh matching STUB_SSH_HOOK_MATCH.
+if [ -n "${STUB_SSH_HOOK_MATCH:-}" ] && [ -n "${STUB_SSH_HOOK_FLAG:-}" ] && [ ! -e "$STUB_SSH_HOOK_FLAG" ]; then
+  case "$*" in *"$STUB_SSH_HOOK_MATCH"*) : >"$STUB_SSH_HOOK_FLAG"; bash -c "$STUB_SSH_HOOK" </dev/null >/dev/null 2>&1 ;; esac
+fi
 last="${*: -1}"
 HOME="$SRV_HOME" STUB_SIDE=remote exec bash -c "bash -c ${last#bash -lc }"
 EOF
@@ -102,6 +113,8 @@ fresh_run() {
   export FLEET_RUN_DIR="$RUN_DIR"
   : >"$STUB_LOG"
   unset STUB_SSH_RC STUB_LP_RC STUB_PANE_DEAD STUB_CAPTURE STUB_DF_KB STUB_CAPTURE_RC
+  unset STUB_SSH_FAIL_MATCH STUB_SSH_SLEEP_MATCH STUB_SSH_SLEEP STUB_SSH_HOOK_MATCH STUB_SSH_HOOK STUB_SSH_HOOK_FLAG
+  export STUB_ROSTER_LOCK="$RUN_DIR/.roster.lock"
 }
 
 # write_env GEN SPAWNED_AT: the remote/<WS>.env contract spawn --host writes.
@@ -179,14 +192,16 @@ check "new generation starts from seq 1" "$(cell WS01 notes)" "new generation"
 check ".applied follows the new generation" "$(cat "$RUN_DIR/remote/WS01.applied")" "new02 1"
 
 echo "== test_sync_never_writes_claims"
+# A report never sets claims itself; a request for a path an active row holds
+# stays with the master, holder named (auto-grant refuses it).
 fresh_run
-report "$GEN" 1 claim_request path "src/c.md"
+report "$GEN" 1 claim_request path "src/b.md"
 printf '{"ws":"WS01","gen":"%s","seq":2,"kind":"heartbeat","claims":"src","migration_num":"0099","note":"sneaky"}\n' "$GEN" >"$OUTBOX/reports/$GEN-2.json"
 OUT=$(fleet sync 2>&1)
 check "claims unchanged" "$(cell WS01 claims)" "src/a.md"
 check "migration_num unchanged" "$(cell WS01 migration_num)" "0007"
-contains "claim request filed for the master" "$(cat "$RUN_DIR/handoffs/CLAIM_REQ_WS01.md" 2>/dev/null)" "src/c.md"
-contains "claim request surfaced" "$OUT" "CLAIM-REQ WS01 src/c.md"
+contains "claim request filed for the master" "$(cat "$RUN_DIR/handoffs/CLAIM_REQ_WS01.md" 2>/dev/null)" "src/b.md"
+contains "claim request surfaced with the holder" "$OUT" "CLAIM-REQ WS01 src/b.md (held by WS02)"
 check "extra report keys ignored, note applied" "$(cell WS01 notes)" "sneaky"
 
 echo "== test_sync_status_transitions_allowed_only"
@@ -288,8 +303,10 @@ contains "first scan reports UNREACHABLE" "$OUT1" "UNREACHABLE WS01"
 lacks "second scan does not repeat UNREACHABLE" "$OUT2" "UNREACHABLE WS01"
 fresh_run
 report "$GEN" 1 claim_request path "src/c.md"
+report "$GEN" 2 claim_request path "src/b.md"
 OUT=$(fleet watch --once 2>&1)
-contains "watch surfaces a claim request from its sync" "$OUT" "CLAIM-REQ WS01 src/c.md"
+contains "watch surfaces an auto-grant from its sync" "$OUT" "GRANTED WS01 src/c.md"
+contains "watch surfaces a claim request left for the master" "$OUT" "CLAIM-REQ WS01 src/b.md (held by WS02)"
 lacks "watch hides sync progress chatter" "$OUT" "SYNC WS01"
 
 echo "== test_dashboard_shows_host_states"
@@ -390,6 +407,273 @@ printf '{}\n' >"$OUTBOX/mail-out/$(date +%s)-00dd.json"
 out=$(fleet sync 2>&1)
 lacks "mail queued moments ago is not stuck yet" "$out" "MAIL-PENDING"
 lacks "no failed entries, no MAIL-FAILED" "$out" "MAIL-FAILED"
+
+# --- Grant path and remote-lane delivery (MDTWII 2026-11-14) ----------------
+# Two claim stores: the roster (land's claims gate) and the lane's claims.txt on
+# the host (remote-worker.sh commit re-reads it every commit). One grant path
+# writes both, then a GRANTED line goes to FROM_MASTER.md and the pane is nudged.
+
+# tmux_sends: one line per stub tmux call made on the server, args joined by |.
+tmux_sends() {
+  awk '/^--ssh$/ { if (line != "") print line; line = ""; next } /^--tmux remote$/ { if (line != "") print line; line = "T"; next }
+       /^--tmux / { if (line != "") print line; line = ""; next }
+       line != "" { line = line "|" $0 }
+       END { if (line != "") print line }' "$STUB_LOG" | grep 'send-keys' || true
+}
+CLAIMS_TXT() { cat "$OUTBOX/claims.txt" 2>/dev/null; }
+FROM_MASTER() { cat "$OUTBOX/FROM_MASTER.md" 2>/dev/null; }
+export FLEET_NUDGE_DELAY=0
+
+echo "== test_claim_host_row_updates_both_stores (3D)"
+fresh_run
+printf 'src/a.md' >"$OUTBOX/claims.txt"   # a pre-fix spawn: no final newline
+OUT=$(fleet claim WS01 docs/x.md 2>&1); RC=$?
+check "fleet claim on a host row exits 0" "$RC" "0"
+check "roster store has the grant" "$(cell WS01 claims)" "src/a.md docs/x.md"
+check "host claims.txt has the grant, one per line, newline repaired" "$(CLAIMS_TXT)" $'docs/x.md\nsrc/a.md'
+check "host claims.txt ends with a newline" "$(tail -c1 "$OUTBOX/claims.txt" | od -An -c | tr -d ' ')" '\n'
+contains "lane learns of the grant in FROM_MASTER.md" "$(FROM_MASTER)" "GRANTED docs/x.md"
+SENDS=$(tmux_sends)
+contains "nudge types a pointer to FROM_MASTER.md" "$SENDS" "-l|--|fleet master: new GRANTED in $OUTBOX/FROM_MASTER.md"
+contains "nudge targets the lane session exactly" "$SENDS" "send-keys|-t|=ws01:|-l"
+contains "Enter is a separate send-keys" "$SENDS" "send-keys|-t|=ws01:|Enter"
+lacks "text and Enter never share one send" "$(printf '%s\n' "$SENDS" | grep -- '-l|' )" "|Enter"
+contains "fleet claim says what it granted" "$OUT" "GRANTED WS01 docs/x.md"
+
+: >"$STUB_LOG"
+OUT=$(fleet claim WS01 src/b.md 2>&1); RC=$?
+check "overlap with an active row refused" "$RC" "65"
+check "host claims.txt untouched on refusal" "$(CLAIMS_TXT)" $'docs/x.md\nsrc/a.md'
+check "no ssh on refusal" "$(grep -c '^--ssh' "$STUB_LOG")" "0"
+
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"   # lane missed the earlier push
+: >"$STUB_LOG"
+OUT=$(fleet claim WS01 docs/x.md 2>&1); RC=$?
+check "rerun on an already-held path exits 0" "$RC" "0"
+check "rerun re-sends the path to the host" "$(CLAIMS_TXT)" $'docs/x.md\nsrc/a.md'
+check "rerun adds no second GRANTED line" "$(FROM_MASTER | grep -c 'GRANTED docs/x.md')" "1"
+
+OUT=$(STUB_SSH_RC=255 fleet claim WS01 lib/y.md 2>&1); RC=$?
+check "host unreachable: exit 66" "$RC" "66"
+check "host unreachable: roster still granted" "$(cell WS01 claims)" "src/a.md docs/x.md lib/y.md"
+contains "host unreachable: says to rerun" "$OUT" "rerun: fleet claim WS01 lib/y.md"
+
+: >"$STUB_LOG"
+OUT=$(fleet claim WS02 lib/z.md 2>&1); RC=$?
+check "local row claim exits 0" "$RC" "0"
+check "local row claim makes no ssh call" "$(grep -c '^--ssh' "$STUB_LOG")" "0"
+
+echo "== test_sync_auto_grants_free_claim_request (3C)"
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+report "$GEN" 1 claim_request path "src/c.md"
+OUT=$(fleet sync 2>&1)
+contains "auto-grant is reported" "$OUT" "GRANTED WS01 src/c.md"
+check "roster store granted" "$(cell WS01 claims)" "src/a.md src/c.md"
+check "host claims.txt granted" "$(CLAIMS_TXT)" $'src/a.md\nsrc/c.md'
+contains "GRANTED line in FROM_MASTER.md" "$(FROM_MASTER)" "GRANTED src/c.md"
+contains "lane pane nudged" "$(tmux_sends)" "fleet master: new GRANTED"
+contains "request file says it was auto-granted" "$(cat "$RUN_DIR/handoffs/CLAIM_REQ_WS01.md")" "GRANTED automatically"
+
+echo "== test_sync_auto_grant_refuses_hot_files_and_released_holders"
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+report "$GEN" 1 claim_request path "Cargo.lock"
+report "$GEN" 2 claim_request path "readme/feature-status.md"
+report "$GEN" 3 claim_request path "../etc/passwd"
+OUT=$(fleet sync 2>&1)
+contains "hot root file left for the master" "$OUT" "CLAIM-REQ WS01 Cargo.lock (hot shared file)"
+contains "hot readme glob left for the master" "$OUT" "CLAIM-REQ WS01 readme/feature-status.md (hot shared file)"
+contains "path escaping the repo left for the master" "$OUT" "CLAIM-REQ WS01 ../etc/passwd (not a plain repo path)"
+check "nothing granted" "$(cell WS01 claims)" "src/a.md"
+check "host claims.txt unchanged" "$(CLAIMS_TXT)" "src/a.md"
+lacks "no FROM_MASTER.md GRANTED line" "$(FROM_MASTER)" "GRANTED"
+
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+# A LOCAL landed holder still holds (fleet commit sets landed while it works on).
+awk -F'\t' -v OFS='\t' '$1=="WS02"{$4="landed"; $12=""} {print}' "$RUN_DIR/roster.tsv" >"$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+report "$GEN" 1 claim_request path "src/b.md"
+OUT=$(fleet sync 2>&1)
+contains "a local landed holder still blocks the grant" "$OUT" "CLAIM-REQ WS01 src/b.md (held by WS02)"
+# Regression 2026-11-14 (MDTWII WS1242/WS1243): a merged HOST lane marked landed released nothing.
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+awk -F'\t' -v OFS='\t' '$1=="WS02"{$4="landed"; $12="vps_personal"} {print}' "$RUN_DIR/roster.tsv" >"$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+report "$GEN" 1 claim_request path "src/b.md"
+OUT=$(fleet sync 2>&1)
+contains "a landed host holder no longer blocks the grant" "$OUT" "GRANTED WS01 src/b.md"
+
+fresh_run
+printf 'FLEET_HOT_FILES=src/*.md\n' >>"$RUN_DIR/fleet.env"
+report "$GEN" 1 claim_request path "src/c.md"
+OUT=$(fleet sync 2>&1)
+contains "hot list is per run (fleet.env FLEET_HOT_FILES)" "$OUT" "CLAIM-REQ WS01 src/c.md (hot shared file)"
+
+fresh_run
+report "$GEN" 1 claim_request path "src/c.md"
+OUT=$(FLEET_AUTO_GRANT=off fleet sync 2>&1)
+contains "FLEET_AUTO_GRANT=off leaves every request for the master" "$OUT" "CLAIM-REQ WS01 src/c.md (auto-grant off)"
+check "auto-grant off: claims unchanged" "$(cell WS01 claims)" "src/a.md"
+
+echo "== test_mail_and_nudge_reach_a_host_lane (3B)"
+fresh_run
+OUT=$(fleet mail WS01 answer "rebase on main, then continue" 2>&1); RC=$?
+check "fleet mail to a host row exits 0 with the mailbox off" "$RC" "0"
+contains "message lands in FROM_MASTER.md" "$(FROM_MASTER)" "rebase on main, then continue"
+contains "FROM_MASTER.md section names the type" "$(FROM_MASTER)" " answer"
+SENDS=$(tmux_sends)
+contains "lane nudged with a pointer" "$SENDS" "fleet master: new answer in $OUTBOX/FROM_MASTER.md"
+contains "Enter sent separately" "$SENDS" "send-keys|-t|=ws01:|Enter"
+contains "mail says it delivered to the file" "$OUT" "delivered WS01 answer"
+OUT=$(fleet mail WS02 answer "local lane" 2>&1); RC=$?
+check "local row with the mailbox off still refuses (66)" "$RC" "66"
+
+fresh_run
+OUT=$(fleet nudge WS01 "check FROM_MASTER for review notes" 2>&1); RC=$?
+check "fleet nudge to a host row exits 0" "$RC" "0"
+contains "nudge text lands in FROM_MASTER.md" "$(FROM_MASTER)" "check FROM_MASTER for review notes"
+contains "nudge types the pointer" "$(tmux_sends)" "fleet master: new answer in $OUTBOX/FROM_MASTER.md"
+
+fresh_run
+OUT=$(STUB_SSH_RC=255 fleet mail WS01 answer "x" 2>&1); RC=$?
+check "host unreachable and mailbox off: mail exits 66" "$RC" "66"
+
+# --- Codex review round (2026-11-14): findings 1-6 --------------------------
+PENDING() { cat "$RUN_DIR/remote/WS01.pending" 2>/dev/null; }
+
+echo "== test_finding1_autogrant_rejects_path_aliases"
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+report "$GEN" 1 claim_request path "tools/./dev/file-size-allow.txt"
+report "$GEN" 2 claim_request path "src//b.md"
+report "$GEN" 3 claim_request path "."
+report "$GEN" 4 claim_request path "docs/../src/b.md"
+OUT=$(fleet sync 2>&1)
+contains "a/./b alias is not auto-granted" "$OUT" "CLAIM-REQ WS01 tools/./dev/file-size-allow.txt (not a plain repo path)"
+contains "a//b alias is not auto-granted" "$OUT" "CLAIM-REQ WS01 src//b.md (not a plain repo path)"
+contains "the whole repo (.) is not auto-granted" "$OUT" "CLAIM-REQ WS01 . (not a plain repo path)"
+contains "a/../b alias is not auto-granted" "$OUT" "CLAIM-REQ WS01 docs/../src/b.md (not a plain repo path)"
+check "no alias reached the roster" "$(cell WS01 claims)" "src/a.md"
+check "no alias reached claims.txt" "$(CLAIMS_TXT)" "src/a.md"
+
+echo "== test_finding1_fleet_claim_rejects_path_aliases"
+fresh_run
+for bad in "a//b.md" "a/./b.md" "a/../b.md" "/etc/passwd" "." "src/./"; do
+  OUT=$(fleet claim WS02 "$bad" 2>&1); RC=$?
+  check "fleet claim refuses '$bad' (65)" "$RC" "65"
+done
+check "refused aliases never reach the roster" "$(cell WS02 claims)" "src/b.md"
+
+echo "== test_finding2_no_ssh_while_roster_lock_held"
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+fleet claim WS01 docs/x.md >/dev/null 2>&1
+report "$GEN" 1 claim_request path "src/c.md"
+fleet sync >/dev/null 2>&1
+fleet mail WS01 answer "hello" >/dev/null 2>&1
+check "grant and auto-grant deliveries ran" "$(CLAIMS_TXT)" $'docs/x.md\nsrc/a.md\nsrc/c.md'
+check "no ssh call ran while the roster flock was held" "$(grep -c '^--LOCKED-SSH' "$STUB_LOG")" "0"
+
+echo "== test_finding2_delivery_ssh_is_bounded"
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+T0=$(date +%s)
+OUT=$(FLEET_DELIVER_TIMEOUT=2 STUB_SSH_SLEEP_MATCH=claims.txt STUB_SSH_SLEEP=30 fleet claim WS01 docs/y.md 2>&1); RC=$?
+EL=$(( $(date +%s) - T0 ))
+if [ "$EL" -lt 15 ]; then ok "a stalled delivery ssh is cut off (${EL}s)"; else no "a stalled delivery ssh is cut off (took ${EL}s)"; fi
+check "stalled delivery: exit 66" "$RC" "66"
+check "stalled delivery: roster still granted" "$(cell WS01 claims)" "src/a.md docs/y.md"
+contains "stalled delivery: stays pending" "$(PENDING)" "docs/y.md"
+
+echo "== test_finding3_grant_without_remote_env_stays_pending"
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+mv "$RUN_DIR/remote/WS01.env" "$RUN_DIR/remote/WS01.env.away"
+OUT=$(fleet claim WS01 docs/z.md 2>&1); RC=$?
+check "no remote env: not reported as delivered (66)" "$RC" "66"
+contains "no remote env: says delivery is pending" "$OUT" "delivery pending"
+contains "no remote env: pending record kept" "$(PENDING)" "docs/z.md"
+check "no remote env: claims.txt untouched" "$(CLAIMS_TXT)" "src/a.md"
+mv "$RUN_DIR/remote/WS01.env.away" "$RUN_DIR/remote/WS01.env"
+OUT=$(fleet sync 2>&1)
+check "next sync unions roster claims into claims.txt" "$(CLAIMS_TXT)" $'docs/z.md\nsrc/a.md'
+contains "next sync delivers the GRANTED notice" "$(FROM_MASTER)" "GRANTED docs/z.md"
+check "next sync clears the pending record" "$(PENDING)" ""
+
+echo "== test_finding4_autogrant_delivery_failure_is_retried"
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+report "$GEN" 1 claim_request path "src/c.md"
+OUT=$(STUB_SSH_FAIL_MATCH=claims.txt fleet sync 2>&1)
+contains "failed delivery prints a WARN" "$OUT" "WARN WS01"
+contains "request file says delivery is pending" "$(cat "$RUN_DIR/handoffs/CLAIM_REQ_WS01.md")" "GRANTED in roster, delivery pending"
+lacks "request file does not claim GRANTED automatically" "$(cat "$RUN_DIR/handoffs/CLAIM_REQ_WS01.md")" "GRANTED automatically"
+check "roster granted" "$(cell WS01 claims)" "src/a.md src/c.md"
+check "claims.txt not yet updated" "$(CLAIMS_TXT)" "src/a.md"
+OUT=$(fleet sync 2>&1)
+check "the next sync delivers claims.txt" "$(CLAIMS_TXT)" $'src/a.md\nsrc/c.md'
+contains "the next sync delivers the GRANTED notice" "$(FROM_MASTER)" "GRANTED src/c.md"
+check "the next sync clears the pending record" "$(PENDING)" ""
+
+echo "== test_finding6_retry_repairs_the_grant_notification"
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+OUT=$(STUB_SSH_FAIL_MATCH=FROM_MASTER fleet claim WS01 docs/w.md 2>&1); RC=$?
+check "notice failed: exit 66" "$RC" "66"
+lacks "notice failed: nothing in FROM_MASTER.md" "$(FROM_MASTER)" "GRANTED docs/w.md"
+OUT=$(fleet claim WS01 docs/w.md 2>&1); RC=$?
+check "rerun on the held path exits 0" "$RC" "0"
+contains "rerun delivers the missed GRANTED notice" "$(FROM_MASTER)" "GRANTED docs/w.md"
+contains "rerun nudges the lane" "$(tmux_sends)" "fleet master: new GRANTED"
+check "rerun clears the pending record" "$(PENDING)" ""
+
+# --- Codex review round 2 (2026-11-14): reconcile races --------------------
+# grant_phase1 WS PATH: what a concurrent grant's locked phase leaves behind
+# (roster claim + pending notice), written straight to the files.
+grant_phase1() {
+  awk -F'\t' -v OFS='\t' -v ws="$1" -v p="$2" '$1 == ws { $5 = $5 " " p } { print }' "$RUN_DIR/roster.tsv" >"$RUN_DIR/r.tmp" && mv "$RUN_DIR/r.tmp" "$RUN_DIR/roster.tsv"
+  printf '%s\tfleet claim\n' "$2" >>"$RUN_DIR/remote/$1.pending"
+}
+
+echo "== test_r3_snapshot_before_claims_read"
+# A grant landing while reconcile pushes claims.txt must not be announced
+# unless its path was in the pushed set; otherwise it stays pending.
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+grant_phase1 WS01 docs/a2.md
+export STUB_SSH_HOOK_FLAG="$TMP_DIR/hook.flag"; rm -f "$STUB_SSH_HOOK_FLAG"
+OUT=$(STUB_SSH_HOOK_MATCH=claims.txt STUB_SSH_HOOK="cd '$TMP_DIR' && $(declare -f grant_phase1); RUN_DIR='$RUN_DIR' grant_phase1 WS01 docs/b2.md" fleet sync 2>&1)
+contains "the earlier grant is delivered" "$(FROM_MASTER)" "GRANTED docs/a2.md"
+if grep -q 'GRANTED docs/b2.md' "$OUTBOX/FROM_MASTER.md" 2>/dev/null && ! grep -qx 'docs/b2.md' "$OUTBOX/claims.txt"; then
+  no "a grant announced without its path in claims.txt"
+else
+  ok "no grant announced without its path in claims.txt"
+fi
+contains "the mid-push grant stays pending" "$(PENDING)" "docs/b2.md"
+OUT=$(fleet sync 2>&1)
+contains "the next sync delivers its path" "$(CLAIMS_TXT)" "docs/b2.md"
+contains "the next sync announces it" "$(FROM_MASTER)" "GRANTED docs/b2.md"
+
+echo "== test_r3_delivered_lines_removed_by_content"
+# Another reconciler drains A and a new grant B is appended while this one
+# writes FROM_MASTER.md: removing "the first N lines" would delete B.
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+grant_phase1 WS01 docs/a3.md
+export STUB_SSH_HOOK_FLAG="$TMP_DIR/hook3.flag"; rm -f "$STUB_SSH_HOOK_FLAG"
+OUT=$(STUB_SSH_HOOK_MATCH=FROM_MASTER STUB_SSH_HOOK="cd '$TMP_DIR' && $(declare -f grant_phase1); : >'$RUN_DIR/remote/WS01.pending'; RUN_DIR='$RUN_DIR' grant_phase1 WS01 docs/b3.md" fleet sync 2>&1)
+contains "an undelivered grant appended mid-delivery survives the trim" "$(PENDING)" "docs/b3.md"
+
+echo "== test_r3_concurrent_reconcilers_deliver_once"
+fresh_run
+printf 'src/a.md\n' >"$OUTBOX/claims.txt"
+grant_phase1 WS01 docs/a4.md
+( STUB_SSH_SLEEP_MATCH=FROM_MASTER STUB_SSH_SLEEP=2 fleet sync >/dev/null 2>&1 ) &
+( STUB_SSH_SLEEP_MATCH=FROM_MASTER STUB_SSH_SLEEP=2 fleet sync >/dev/null 2>&1 ) &
+wait
+check "two concurrent syncs announce a grant once" "$(grep -c 'GRANTED docs/a4.md' "$OUTBOX/FROM_MASTER.md" 2>/dev/null)" "1"
+check "and leave nothing pending" "$(PENDING)" ""
 
 echo
 echo "sync suite: $PASS passed, $FAIL failed"

@@ -58,7 +58,12 @@ planning/fleet-<slug>/
 ```
 
 Status vocabulary (closed): `pending | spawning | started | working | blocked |
-landed | done | dead`. `spawning` is set by `fleet spawn` while a launch is in
+landed | done | dead`. Released statuses (one list, `FLEET_RELEASED_STATUSES` in
+`lib/common.sh`): `done merged skip skipped reverted superseded abandoned`, plus
+`landed` on a host row (only the master sets that, after merging).
+A row in one of them no longer blocks claims (`fleet claim`, `fleet add --claims`,
+auto-grant) and counts toward watch's `ALL-DONE`; `parked` and every live status
+still hold. `spawning` is set by `fleet spawn` while a launch is in
 progress (banner wait, ssh round trips) and holds a marker file
 `<run dir>/.spawning/WSxx` (pid, start time, previous status and host). Success
 makes the row `started`; any failure restores the previous status and host. A
@@ -75,20 +80,20 @@ STALE/DEAD until `started`).
 | `add WSxx "task" [--name s] [--claims p1,p2] [--engine e] [--force]` | Register a workstream (status=pending, heartbeat=0); `--engine` defaults to `claude-sub`. An id already in the roster, any status, exits 65 and names the existing row's task ("queued placeholder" when it starts `QUEUED:`), so a queued item is never overwritten by accident; `--force` replaces the row |
 | `next-id` | Print the first WS id numerically above every roster row (placeholders included), zero-padded to the widest existing id; `WS01` on an empty roster. Use it instead of guessing "the next free id" |
 | `status [--tsv]` | Aligned table: ws_id, status, task(40), #claims, heartbeat age |
-| `claim WSxx <path...>` | Register file ownership; refuses overlapping claims (65), prefix dirs and glob scopes count as overlap; claims of `done` rows no longer block |
+| `claim WSxx <path...>` | Register file ownership; refuses overlapping claims (65), prefix dirs and glob scopes count as overlap; claims of released rows (see status vocabulary) no longer block. Paths must be canonical: `a//b`, `a/./b`, `a/../b`, `.` and absolute paths exit 65. Host rows: after the roster lock is released, the paths go into the lane's `claims.txt` on the host (the store its commit reads), a `GRANTED` section into its `FROM_MASTER.md`, and its pane is nudged; 66 when that delivery is still pending (the roster is granted; `fleet sync` or rerunning `fleet claim` retries it) |
 | `heartbeat WSxx [--files p1,p2,...] [note...]` | Liveness ts; latest note replaces the previous; `--files` publishes the comma-separated paths as the worker's now-editing list (`files/<ws>.txt`, one per line, shown on the dashboard card) |
 | `commit WSxx -m <msg>` | Guarded commit: stages ONLY claimed paths, refuses (66) on unclaimed dirty files |
 | `migrate-next WSxx <dir>` | Reserve next migration number (max+1, flocked); no silent collisions |
-| `spawn WSxx [--spares N] [--engine e] [--no-tmux] [--dry-run]` | Launch the worker's engine in a tmux pane on the run's socket, verify its banner, then send the thin prompt. Prints the dashboard URL: `dashboard live: http://127.0.0.1:<port>/dashboard.html` when the dashboard server is up, otherwise `dashboard: <url> (start: fleet dashboard --open)`. Engine precedence: `--engine` > roster column > `FLEET_DEFAULT_ENGINE` > `claude-sub`. Splices the activity-gated heartbeat ticker into the pane (`FLEET_TICK_SECS`, default 30s, `off` disables) |
+| `spawn WSxx [--spares N] [--engine e] [--no-tmux] [--dry-run]` | Refuses (65) a row with no claims on every launch path: it could never commit. `FLEET_SPAWN_ALLOW_NO_CLAIMS=1` is the opt-out for a read-only (reviewer) lane on a local spawn (`--host` still needs claims). Launch the worker's engine in a tmux pane on the run's socket, verify its banner, then send the thin prompt. Prints the dashboard URL: `dashboard live: http://127.0.0.1:<port>/dashboard.html` when the dashboard server is up, otherwise `dashboard: <url> (start: fleet dashboard --open)`. Engine precedence: `--engine` > roster column > `FLEET_DEFAULT_ENGINE` > `claude-sub`. Splices the activity-gated heartbeat ticker into the pane (`FLEET_TICK_SECS`, default 30s, `off` disables) |
 | `land WSxx [--no-ff] [--allow-deletes]` | Delete gate first, for local worktree and host rows: ADDED lines of the lane diff are scanned for recursive deletes (`remove_dir_all`, `rmtree`, `rm -rf`, `fs.rm`/`rmSync`/`rmdir` with `recursive`, `rimraf`); a hit refuses with exit 67 and lists `file:line`, nothing merges (MDTWII 2026-10-16: a test `Drop` wiped shared data through a symlink). Confirm the path is a temp dir the test created, then `--allow-deletes` lands anyway. Worktree: merge `fleet/<WSxx>` + remove worktree (a `--no-ff` merge commit reads `fleet: land WSxx: <task, 60 chars>` with the full task and worker name in the body; refuses a spawning row); main: mark landed; then sweep `handoffs/` for files addressed to the lane (`residual:` lines) |
 | `handoff WSxx` | Write `handoffs/HANDOFF_WSxx.md` for compaction restart into a spare |
 | `db WSxx` / `db-clean [--all]` | Scratch postgres containers (only when `FLEET_DB=docker`) |
 | `host-setup <alias> [--check]` | Prepare a server for `spawn --host` (see Remote hosts); idempotent |
 | `sync [WSxx]` | Pull remote workers' report files into the roster (host rows only). Manual fallback: `watch` runs it each tick only while the mailbox is down |
 | `peek WSxx [lines]` | Print a worker's pane (default 40 lines); host rows read it over ssh |
-| `mail WSxx <assign\|answer\|stop> "text"` | Master to worker through the mailbox: from `<project>-master` to `<project>-<ws>`, kind ask (wakes an idle pane), carrying the run's coordinator secret. Short, names files. 66 when the mailbox is off or down |
+| `mail WSxx <assign\|answer\|stop> "text"` | Master to worker through the mailbox: from `<project>-master` to `<project>-<ws>`, kind ask (wakes an idle pane), carrying the run's coordinator secret. Short, names files. Host rows also get it in `<outbox>/FROM_MASTER.md` over ssh plus a pointer typed into the pane, then a separate Enter: a sandboxed host lane cannot read mail. For a host row exit 0 means FROM_MASTER.md was written; 66 when it was not, even if the mailbox took the message |
 | `report <status\|handoff\|claim-request\|done\|blocked> "text"` | Worker to master (run in the worker pane; spawn sets `FLEET_WS`): roster first (status, notes, heartbeat, `handoffs/CLAIM_REQ_<WS>.md`), then one mail to the master, queued in `MAILBOX_OUTQ` for the hook when the worker is sandboxed. A failed mail only warns |
-| `nudge WSxx [--tmux] "msg"` / `nudge WSxx --key K...` | Text goes as coordinator mail (type `answer`; the mailbox watcher wakes an idle pane). Typed literally plus Enter into the pane instead when the mailbox is off or down (`WARN nudge: MAILBOX-DOWN ...`) or with `--tmux`. `--key` presses named keys (`Enter Escape C-u Up Down Tab BTab 1-9 y n`; use these to answer a permission prompt, mail cannot). One ws per call; pending/spawning rows refused (65) for typing. Host rows go over ssh. Use this, never raw `tmux send-keys` |
+| `nudge WSxx [--tmux] "msg"` / `nudge WSxx --key K...` | Host rows: text goes into the lane's `FROM_MASTER.md` and a pointer is typed into its pane, then a separate Enter (no mailbox; the lane cannot read it). Other rows: text goes as coordinator mail (type `answer`; the mailbox watcher wakes an idle pane). Typed literally plus Enter into the pane instead when the mailbox is off or down (`WARN nudge: MAILBOX-DOWN ...`) or with `--tmux`. `--key` presses named keys (`Enter Escape C-u Up Down Tab BTab 1-9 y n`; use these to answer a permission prompt, mail cannot). One ws per call; pending/spawning rows refused (65) for typing. Host rows go over ssh. Use this, never raw `tmux send-keys` |
 | `stop WSxx` | Close the worker's tmux session only; worktree, branch, claims, files and roster row stay. Already gone = exit 0. Use this, never raw `tmux kill-session`. `watch` then reports `DEAD <ws> (pane exited)` until you land or reset the row |
 | `watch [--stale-min N] [--poll S] [--once] [--emit-events]` | Event lines: `MAIL <ws> <type> <text>` (worker mail, applied to host rows), `MAILBOX-DOWN <reason>` / `MAILBOX-UP`, `CHANGE`/`STALE`/`DEAD`/`DEAD <ws> (pane exited)`/`ALL-DONE`; Monitor-tool ready. STALE fires when a started/working row's heartbeat ages past `--stale-min` (default 5 minutes). Heartbeat-only roster diffs never emit `CHANGE` (the spawn ticker rewrites that column every tick). Pane-exit DEAD fires when a started/working row's tmux session is gone (spawn `exec`s the engine, so the pane dies with it). `--emit-events` also feeds cfn-workbench (below) |
 | `dashboard [--port N] [--poll S] [--stale-min N] [--once] [--no-serve] [--open] [--stop]` | Self-contained live-poll HTML tracking page from the roster (status tiles and meter, filter chips, sort, heartbeat age, engine, claims, now-editing lists, goal blurb, STALE/DEAD badges, transition timeline, per-card attach command with Copy and Open in terminal, per-card Live view of the worker's pane), served on 127.0.0.1 for VS Code Simple Browser (below) |
@@ -111,7 +116,7 @@ outboxes `~/fleet-runs/<project>/<run>/<WS>/`. `fleet host-setup` never touches
 |---|---|---|
 | Set up | `fleet host-setup <alias> [--check]` | Creates the bare repo, pushes main, adds the Mac git remote `<alias>`, clones to `~/fleet-repos`. `--check` prints tmux/claude versions, logged-in account, free disk, cfn-fleet drift |
 | Spawn | `fleet spawn WSxx --host <alias>` | Refuses (66) below `FLEET_REMOTE_MIN_FREE_GB` or when the host cannot fence workers (see Sandbox); refuses (66) when HEAD lacks commits the host remote's `main` has (fix: `git fetch <alias> && git merge <alias>/main`; a failed fetch or missing `main` only warns); force-pushes a fresh `fleet-base/<WS>` cut from the host's `main` (not Mac HEAD, so Mac-only commits stay off the server; Mac HEAD is used only when host main cannot be fetched) when the server worktree is new, creates the worktree, ships brief and `remote-worker.sh` |
-| Pull reports | `fleet sync [WS]` | Applies heartbeat, notes, status, handoffs; claim requests land in `handoffs/CLAIM_REQ_<WS>.md` for the master. Prints `MAIL-PENDING <ws> <n> oldest <m>m` for lane mail still queued on the host after `FLEET_MAIL_STUCK_SECS` (default 120) and `MAIL-FAILED <ws> <n>` for queued mail set aside as unsendable. Never changes claims |
+| Pull reports | `fleet sync [WS]` | Applies heartbeat, notes, status, handoffs. Claim requests are auto-granted (see Auto-grant) or land in `handoffs/CLAIM_REQ_<WS>.md` for the master. Prints `MAIL-PENDING <ws> <n> oldest <m>m` for lane mail still queued on the host after `FLEET_MAIL_STUCK_SECS` (default 120) and `MAIL-FAILED <ws> <n>` for queued mail set aside as unsendable. Changes claims only through auto-grant |
 | Look | `fleet peek WSxx [lines]` | Read a remote prompt before answering it |
 | Land | `fleet land WSxx` | Fetches `fleet/<WS>` from the server fleet clone over ssh (workers never push), refuses (65) files outside the claims, merges, records the lane tip in `lane_sha`, closes the server tmux session and cleans the server |
 
@@ -699,6 +704,47 @@ unclaimed dirt and committed with `--force-with-note`, so the commits stayed pat
   the rehearsed tip. Hot-file conflicts (changelog, feature-status) show up there instead of
   in the shared checkout.
 
+### Auto-grant and the two claim stores (MDTWII 2026-11-14)
+
+- **A host lane has two claim stores.** The roster `claims` column is what `fleet land`'s
+  claims gate and every overlap check read; `<outbox>/claims.txt` on the host is what the
+  lane's `remote-worker.sh commit` reads (every commit). A grant written to only one of them
+  looks granted from one side and unclaimed from the other. `fleet claim` and auto-grant share
+  one two-phase grant path (`lib/lane-deliver.sh`). Under the roster lock, with no ssh: overlap
+  check, roster write, and a pending-delivery record `<run>/remote/<WS>.pending` (host rows and
+  rows still spawning). After the lock: the roster claims are unioned into `claims.txt`, the
+  pending `GRANTED` notices go into `FROM_MASTER.md` (the brief's claim list is from spawn time),
+  the pane is nudged, and the delivered lines are dropped. A failure, or a missing
+  `remote/<WS>.env`, stays pending: every `fleet sync` of the row, a rerun of `fleet claim`, and
+  the end of `fleet spawn --host` retry it. Every delivery ssh or tmux call is cut off after
+  `FLEET_DELIVER_TIMEOUT` seconds (env or `fleet.env`, default 20); `FROM_MASTER.md` and
+  `claims.txt` writes on the host are serialized by an outbox lock. Locally, one reconcile per
+  lane runs at a time (`remote/<WS>.reconcile.lock`); it reads the pending notices before the
+  roster claims it pushes, and removes delivered notices by exact line. Lock order is roster ->
+  `<WS>.pending.lock` (short, never held across ssh); the reconcile lock is never taken while
+  the roster lock is held.
+- **claims.txt must end with a newline.** Spawn wrote it without one, and a later
+  `echo path >> claims.txt` glued onto the last line (`...HANDOFF_WS1238.mdcrates/...`): a grep
+  for the path hit, the lane still said "unclaimed". Spawn now ends it with a newline and the
+  grant path adds a missing one before appending (`sort -u`).
+- **Auto-grant.** A claim request (`fleet sync` report, worker mail through `fleet watch`, or
+  `fleet report claim-request`) is granted when the path is one canonical plain repo path (no
+  `a//b`, `a/./b`, `a/../b` or `.` aliases), is not a hot
+  shared file, the requester is not released, and no active row holds an overlapping path.
+  Otherwise it stays in `handoffs/CLAIM_REQ_<WS>.md` "for the master" with the reason
+  (`held by WSxx`, `hot shared file`, ...) and prints `CLAIM-REQ <ws> <path> (<reason>)`.
+  Hot list: `FLEET_HOT_FILES` (env or `fleet.env`, space-separated globs), default
+  `Cargo.toml Cargo.lock readme/*.md tools/dev/file-size-allow.txt`; a request for a directory
+  holding one counts as hot. `FLEET_AUTO_GRANT=off` turns auto-grant off. For a host row the
+  request file says "GRANTED in roster, delivery pending" until delivery succeeds, then adds a
+  "GRANTED automatically, delivered to <host>" line; a failed delivery prints `WARN`.
+- **`landed` releases host rows only.** A local `fleet commit` sets `landed` on a lane's first
+  commit while it keeps working (trap 3), so a local `landed` row still holds its claims; set it
+  to `done` when it is finished. A host row's `landed` is set by the master after merging, so it
+  releases. Watch's `ALL-DONE` counts `landed` either way. The dashboard's Finished count, meter
+  and status filters use the same released list (passed into the page as `data-released`) and
+  count a host row's `landed` as finished.
+
 ### 6. Messages to a pane and lanes that outlive a base rebase (2026-09-10)
 
 - **`tmux send-keys "<text>" Enter` in one call leaves the text sitting unsent in the
@@ -760,7 +806,8 @@ unclaimed dirt and committed with `--force-with-note`, so the commits stayed pat
   lane's files; "run the full project check" cost about 20 minutes of unrelated sweeps and benches.
 - **Finished lanes used to hold their claims.** Four merged lanes still held files and blocked two new
   lanes. Fixed: a row with status `done` no longer blocks `fleet add --claims` or `fleet claim`; its
-  claims cell stays as history. `landed` rows still block, since a landed lane may continue.
+  claims cell stays as history. Since 2026-11-14 every released status does the same, and `landed`
+  on a host row (see "Auto-grant and the two claim stores").
 
 ### Two smaller ones
 

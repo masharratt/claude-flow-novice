@@ -459,6 +459,25 @@ test_spawn_missing_brief_dies_65() {
     assert_contains "$FLEET_OUT" "brief" "error names the missing brief"
 }
 
+# CFN_PATCH_WS1210: a lane without claims could never commit and stalled with
+# "unknown workstream" or an empty claims.txt. Every launch path refuses it;
+# FLEET_SPAWN_ALLOW_NO_CLAIMS=1 is the opt-out for read-only (reviewer) lanes.
+test_spawn_refuses_row_without_claims_local() {
+    log_step "GIVEN a pending local row with no claims, WHEN spawn --no-tmux"
+    make_project spawn-noclaims
+    echo "Review brief" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Read-only review" pending ""
+    run_fleet spawn WS01 --no-tmux
+    assert_equals "65" "$FLEET_RC" "no-claims spawn exits 65"
+    assert_contains "$FLEET_OUT" "no claims" "message says the row has no claims"
+    assert_equals "pending" "$(roster_field WS01 status)" "row stays pending"
+
+    log_step "WHEN FLEET_SPAWN_ALLOW_NO_CLAIMS=1, THEN the read-only lane spawns"
+    FLEET_SPAWN_ALLOW_NO_CLAIMS=1 run_fleet spawn WS01 --no-tmux
+    assert_equals "0" "$FLEET_RC" "opt-out spawn exits 0"
+    assert_equals "started" "$(roster_field WS01 status)" "opt-out row started"
+}
+
 test_spawn_dry_run_main_mode() {
     log_step "GIVEN a brief and pending row, WHEN spawn --dry-run in main mode"
     make_project spawn-dry
@@ -1542,6 +1561,19 @@ test_watch_once_all_done() {
     assert_equals "0" "$FLEET_RC" "ALL-DONE exits 0"
 }
 
+# watch shares the released-status list with the claim check (FLEET_RELEASED_STATUSES):
+# merged, skipped, superseded and abandoned rows are finished too.
+test_watch_once_all_done_released_statuses() {
+    log_step "GIVEN rows merged|skipped|superseded|abandoned, WHEN watch --once"
+    make_project watch-released
+    add_ws WS01 ws01 "a" merged "src/a.md"
+    add_ws WS02 ws02 "b" skipped "src/b.md"
+    add_ws WS03 ws03 "c" superseded "src/c.md"
+    add_ws WS04 ws04 "d" abandoned "src/d.md"
+    run_fleet watch --once
+    assert_contains "$FLEET_OUT" "ALL-DONE" "released statuses count as finished"
+}
+
 test_watch_change_detection() {
     log_step "GIVEN a roster edited between --once scans, WHEN watch --once twice"
     make_project watch-change
@@ -1863,6 +1895,7 @@ run_all_tests() {
     (( DOCKER_OK )) || log_info "docker unavailable: db lifecycle test will skip"
 
     test_spawn_missing_brief_dies_65
+    test_spawn_refuses_row_without_claims_local
     test_spawn_dry_run_main_mode
     test_spawn_dry_run_worktree_mode
     test_spawn_no_tmux_main_marks_started
@@ -1911,6 +1944,7 @@ run_all_tests() {
     test_watch_once_stale_and_not_stale
     test_watch_once_dead
     test_watch_once_all_done
+    test_watch_once_all_done_released_statuses
     test_watch_change_detection
     test_watch_heartbeat_only_diff_emits_no_change
     test_watch_dead_pane_detected

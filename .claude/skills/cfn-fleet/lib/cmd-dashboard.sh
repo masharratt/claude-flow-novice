@@ -72,8 +72,9 @@ _fleet_dash_status_help() {
     landed)  printf 'Has at least one commit. Not necessarily finished: a fresh heartbeat means work continues' ;;
     done)    printf 'Worker reported finished with a clean tree' ;;
     dead)    printf 'Worker process stopped' ;;
-    *)       printf '' ;;
+    *)       _fleet_status_released "$1" && printf 'Finished (released status): its claims no longer block' ;;
   esac
+  return 0
 }
 
 # _fleet_dash_glossary_read RUN_DIR: echo valid `code TAB meaning` rows from
@@ -387,7 +388,7 @@ _fleet_dash_render() {
   local -a fields=("${_FIELDS[@]}")
 
   local -A counts=()
-  local cards="" queued_cards="" row i n_attention=0 n_total=0
+  local cards="" queued_cards="" row i n_attention=0 n_total=0 n_finished=0
   local ws name task status claims sha notes hb engine host
   # Host rows (remote workers): states probed over ssh and written to
   # host-states.tsv for the live page. Disk is probed once per host.
@@ -420,6 +421,9 @@ _fleet_dash_render() {
     # Torn row from a read racing a roster rewrite: skip, never die on it.
     { [ -n "$ws" ] && [ -n "$status" ]; } || continue
     counts["$status"]=$(( ${counts["$status"]:-0} + 1 ))
+    # Finished: a released status, or landed on a host row (the master set it
+    # after merging; a local landed lane may still be working).
+    if _fleet_row_released "$status" "$host"; then n_finished=$(( n_finished + 1 )); fi
 
     local stale=0 dead=0 hstate="" hflags=""
     # Attach target: local rows use the run socket and roster name. Host rows
@@ -510,14 +514,15 @@ _fleet_dash_render() {
     rm -f "$run_dir/host-states.tsv"
   fi
 
-  # Meter groups the 8 statuses into 5 adjacency-safe segments (plan 1.3):
-  # queued / active(spawning+started+working) / blocked / landed+done / dead.
+  # Meter groups the statuses into 5 adjacency-safe segments (plan 1.3):
+  # queued / active(spawning+started+working) / blocked / landed+released / dead.
   # spawning is a launch in progress: in flight, never stale or dead (it has
   # no session or heartbeat to judge yet).
   local n_queued=${counts[pending]:-0}
   local n_active=$(( ${counts[spawning]:-0} + ${counts[started]:-0} + ${counts[working]:-0} ))
   local n_blocked=${counts[blocked]:-0}
-  local n_landed=$(( ${counts[landed]:-0} + ${counts[done]:-0} ))
+  local n_landed=${counts[landed]:-0} rs
+  for rs in $FLEET_RELEASED_STATUSES; do n_landed=$(( n_landed + ${counts[$rs]:-0} )); done
   local n_dead=${counts[dead]:-0}
 
   local updated
@@ -530,8 +535,8 @@ _fleet_dash_render() {
     printf '<noscript><meta http-equiv="refresh" content="15"></noscript>\n'
     _fleet_dash_boot_theme
     _fleet_dash_style
-    printf '</head>\n<body data-poll="%s" data-stale-min="%s" data-engine-default="%s" data-socket="%s">\n' \
-      "$poll" "$stale_min" "$(_fleet_html_escape "$eng_default")" "$(_fleet_html_escape "$attach_sock")"
+    printf '</head>\n<body data-poll="%s" data-stale-min="%s" data-engine-default="%s" data-socket="%s" data-released="%s">\n' \
+      "$poll" "$stale_min" "$(_fleet_html_escape "$eng_default")" "$(_fleet_html_escape "$attach_sock")" "$(_fleet_html_escape "$FLEET_RELEASED_STATUSES")"
     printf '<header class="top"><div class="head-card"><div class="head-row">'
     printf '<div class="brand"><span class="fleet-mark" aria-hidden="true">▰</span><strong>fleet</strong><span class="brand-divider">/</span><span class="brand-label">OPERATIONS</span></div>'
     printf '<div class="head-actions"><span class="connection" role="status"><span class="live-dot" id="live-dot" data-state="ok" title="live: fetching roster"></span><span id="live-label">Connecting</span></span>'
@@ -549,7 +554,7 @@ _fleet_dash_render() {
     printf '<button class="summary-card attention" data-view="attention" aria-pressed="false"><span class="summary-label">Needs attention <span aria-hidden="true">↗</span></span><strong id="sum-attention">%s</strong><span class="summary-hint">Blocked, stale or stopped</span></button>' "$n_attention"
     printf '<button class="summary-card active" data-view="active" aria-pressed="false"><span class="summary-label">In flight <span aria-hidden="true">↗</span></span><strong id="sum-active">%s</strong><span class="summary-hint">Spawning, started and working</span></button>' "$n_active"
     printf '<button class="summary-card landed" data-view="landed" aria-pressed="false"><span class="summary-label">Landed <span aria-hidden="true">↗</span></span><strong id="sum-landed">%s</strong><span class="summary-hint">Commit exists, work may continue</span></button>' "${counts[landed]:-0}"
-    printf '<button class="summary-card complete" data-view="done" aria-pressed="false"><span class="summary-label">Finished <span aria-hidden="true">↗</span></span><strong id="sum-done">%s<span class="summary-total"> / %s</span></strong><span class="summary-hint">Workstreams marked done</span></button></div>' "${counts[done]:-0}" "$n_total"
+    printf '<button class="summary-card complete" data-view="done" aria-pressed="false"><span class="summary-label">Finished <span aria-hidden="true">↗</span></span><strong id="sum-done">%s<span class="summary-total"> / %s</span></strong><span class="summary-hint">Done or released, host landed included</span></button></div>' "$n_finished" "$n_total"
     printf '<div class="distribution"><div class="distribution-title"><span class="eyebrow">Status distribution</span><span id="fleet-total">%s workstreams</span></div>' "$n_total"
     _fleet_dash_meter "$n_queued" "$n_active" "$n_blocked" "$n_landed" "$n_dead"
     _fleet_dash_tiles counts
@@ -592,6 +597,31 @@ _fleet_dash_render() {
   mv "$tmp" "$out"
 }
 
+# _fleet_dash_vocab: the statuses the page knows, in display order: the live
+# vocabulary, landed and done, every other released status
+# (FLEET_RELEASED_STATUSES in common.sh, never copied here), then dead.
+_fleet_dash_vocab() {
+  local out="pending spawning started working blocked landed done" s
+  for s in $FLEET_RELEASED_STATUSES; do
+    case " $out " in *" $s "*) ;; *) out+=" $s" ;; esac
+  done
+  printf '%s dead\n' "$out"
+}
+
+# _fleet_dash_st_class STATUS: the whitelisted CSS class for a status. The
+# released statuses beyond done reuse done's color (st-done); anything outside
+# the vocabulary is st-unknown (roster cells are user-typed).
+_fleet_dash_st_class() {
+  case " $(_fleet_dash_vocab) " in
+    *" ${1:-} "*)
+      case "$1" in
+        pending|spawning|started|working|blocked|landed|done|dead) printf 'st-%s' "$1" ;;
+        *) printf 'st-done' ;;
+      esac ;;
+    *) printf 'st-unknown' ;;
+  esac
+}
+
 # _fleet_dash_filters: static filter chip row (all + the closed vocab) and
 # the sort control. These are NOT rebuilt by the live JS, so the selection
 # survives every poll; the JS only toggles the .on class.
@@ -600,10 +630,9 @@ _fleet_dash_filters() {
   printf '<div class="search-row"><input id="search" type="search" aria-label="Search workstreams" placeholder="Search workstreams, tasks, engines or claims...">\n'
   printf '<div class="filters" id="filters" role="group" aria-label="Filter by status">\n'
   printf '<button type="button" class="filterchip on" data-filter="all" aria-pressed="true">All</button>\n'
-  # shellcheck disable=SC1010  # 'done' is a roster status value, not the keyword
-  for s in pending spawning started working blocked landed done dead; do
-    printf '<button type="button" class="filterchip" data-filter="%s" aria-pressed="false" title="%s"><span class="dot st-%s"></span>%s</button>\n' \
-      "$s" "$(_fleet_html_escape "$(_fleet_dash_status_help "$s")")" "$s" "$s"
+  for s in $(_fleet_dash_vocab); do
+    printf '<button type="button" class="filterchip" data-filter="%s" aria-pressed="false" title="%s"><span class="dot %s"></span>%s</button>\n' \
+      "$s" "$(_fleet_html_escape "$(_fleet_dash_status_help "$s")")" "$(_fleet_dash_st_class "$s")" "$s"
   done
   printf '</div><div class="sort-row"><button type="button" id="clear-filters" class="chipbtn">Reset view</button>'
   printf '<label for="sort">Order</label><select id="sort" class="sortsel" title="sort cards">'
@@ -619,14 +648,13 @@ _fleet_dash_filters() {
 _fleet_dash_tiles() {
   local -n cnt="$1"
   local s n out="" zero
-  # shellcheck disable=SC1010  # 'done' is a roster status value, not the keyword
-  for s in pending spawning started working blocked landed done dead; do
+  for s in $(_fleet_dash_vocab); do
     n="${cnt[$s]:-0}"
     [[ "$n" =~ ^[0-9]+$ ]] || n=0
     zero=""
     [ "$n" -eq 0 ] && zero=" zero"
     out+="<span class=\"tile${zero}\" data-st=\"$s\" title=\"$(_fleet_html_escape "$(_fleet_dash_status_help "$s")")\">"
-    out+="<span class=\"dot st-$s\"></span><span class=\"tile-label\">$s</span>"
+    out+="<span class=\"dot $(_fleet_dash_st_class "$s")\"></span><span class=\"tile-label\">$s</span>"
     out+="<span class=\"tile-n\">$n</span></span>"
   done
   printf '<div class="tiles" id="tiles">%s</div>\n' "$out"
@@ -690,10 +718,8 @@ _fleet_dash_card() {
         sock="${18:-}" attach_session="${19-$2}"
   # Pill classes are whitelist-mapped: an unknown status must never become a
   # styleable class (roster cells are user-typed).
-  local st_class="st-unknown"
-  case "$status" in
-    pending|spawning|started|working|blocked|landed|done|dead) st_class="st-$status" ;;
-  esac
+  local st_class
+  st_class=$(_fleet_dash_st_class "$status")
   # Engine: roster cell > FLEET_DEFAULT_ENGINE env > fleet.env > claude-sub.
   [ -n "$engine" ] || engine="${FLEET_DEFAULT_ENGINE:-$(fleet_engine_default)}"
 
@@ -799,10 +825,7 @@ _fleet_dash_events_html() {
     [[ "$line" =~ \"ws\":\"([^\"]*)\" ]]   && ws="${BASH_REMATCH[1]}"
     [[ "$line" =~ \"from\":\"([^\"]*)\" ]] && from="${BASH_REMATCH[1]}"
     [[ "$line" =~ \"to\":\"([^\"]*)\" ]]   && to="${BASH_REMATCH[1]}"
-    to_class="st-unknown"
-    case "$to" in
-      pending|spawning|started|working|blocked|landed|done|dead) to_class="st-$to" ;;
-    esac
+    to_class=$(_fleet_dash_st_class "$to")
     printf '<li class="tl-item"><span class="dot %s"></span><time>%s</time> <span class="tl-ws">%s</span><span class="tl-change">%s -&gt; %s</span></li>\n' \
       "$to_class" \
       "$(_fleet_dash_ts_text "$ts")" \
@@ -1158,8 +1181,19 @@ _fleet_dash_script() {
 <script>
 (function () {
   "use strict";
-  /* Closed status vocab, pinned to the bash whitelist in _fleet_dash_card. */
-  var VOCAB = ["pending", "spawning", "started", "working", "blocked", "landed", "done", "dead"];
+  /* Status vocab, pinned to _fleet_dash_vocab in the bash renderer: the live
+     statuses, landed and done, every other released status read from the
+     page's data-released (FLEET_RELEASED_STATUSES, never copied here), dead. */
+  var BASE_VOCAB = ["pending", "spawning", "started", "working", "blocked", "landed", "done", "dead"];
+  var RELEASED = String(document.body.getAttribute("data-released") || "")
+    .split(/\s+/).filter(function (x) { return /^[a-z]+$/.test(x); });
+  var VOCAB = BASE_VOCAB.slice(0, 7).concat(RELEASED.filter(function (x) {
+    return BASE_VOCAB.indexOf(x) < 0;
+  })).concat(["dead"]);
+  function isFinished(r) {
+    var st = String(r.status || "");
+    return RELEASED.indexOf(st) >= 0 || (st === "landed" && String(r.host || "") !== "");
+  }
 
   /* Shared escape helper. EVERY interpolated string goes through this. */
   function esc(s) {
@@ -1172,7 +1206,8 @@ _fleet_dash_script() {
   }
 
   function stClass(st) {
-    return VOCAB.indexOf(st) >= 0 ? "st-" + st : "st-unknown";
+    if (VOCAB.indexOf(st) < 0) return "st-unknown";
+    return BASE_VOCAB.indexOf(st) >= 0 ? "st-" + st : "st-done";
   }
 
   function stRank(st) {
@@ -1194,7 +1229,8 @@ _fleet_dash_script() {
   };
 
   function statusTitle(st) {
-    return STATUS_HELP[st] || "";
+    if (STATUS_HELP[st]) return STATUS_HELP[st];
+    return RELEASED.indexOf(st) >= 0 ? "Finished (released status): its claims no longer block" : "";
   }
 
   /* Glossary: rows come from glossary.tsv (same guards as the bash reader:
@@ -1900,7 +1936,7 @@ _fleet_dash_script() {
       ["queued", counts.pending || 0],
       ["active", (counts.spawning || 0) + (counts.started || 0) + (counts.working || 0)],
       ["blocked", counts.blocked || 0],
-      ["landed", (counts.landed || 0) + (counts.done || 0)],
+      ["landed", RELEASED.reduce(function (n, st) { return n + (counts[st] || 0); }, counts.landed || 0)],
       ["dead", counts.dead || 0]
     ];
     return segs.map(function (seg) {
@@ -1932,6 +1968,7 @@ _fleet_dash_script() {
     var meter = meterHtml(counts);
     var visible = sortRows(rows).filter(function (r) {
       var match = filter === "all" || String(r.status || "") === filter ||
+        (filter === "done" && isFinished(r)) ||
         (filter === "attention" && needsAttention(r)) ||
         (filter === "active" && (r.status === "spawning" || r.status === "started" || r.status === "working"));
       return match && (!query || [r.ws_id, r.name, r.task, r.engine, r.claims, r.notes, r.landed_sha].join(" ").toLowerCase().includes(query));
@@ -1966,7 +2003,7 @@ _fleet_dash_script() {
     document.getElementById("sum-attention").textContent = rows.filter(needsAttention).length;
     document.getElementById("sum-active").textContent = (counts.spawning || 0) + (counts.started || 0) + (counts.working || 0);
     document.getElementById("sum-landed").textContent = counts.landed || 0;
-    document.getElementById("sum-done").innerHTML = (counts.done || 0) + '<span class="summary-total"> / ' + rows.length + '</span>';
+    document.getElementById("sum-done").innerHTML = rows.filter(isFinished).length + '<span class="summary-total"> / ' + rows.length + '</span>';
     document.getElementById("fleet-total").textContent = rows.length + " workstreams";
     document.getElementById("visible-count").textContent = visible.length + " of " + rows.length + " shown";
     syncControls();

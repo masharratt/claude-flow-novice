@@ -23,18 +23,57 @@ _FLEET_TIMEOUT_RC=124
 # ssh -n: never forward the caller's stdin. Callers run inside
 # `while read ... done < roster.tsv`, and a forwarded stdin swallowed every
 # later row (dashboard stopped at the first started host row, 2026-10-16).
+# _FLEET_HOST_DEADLINE (seconds, unset = none): when set, the whole call is
+# cut off after that long (rc $_FLEET_TIMEOUT_RC). ConnectTimeout only bounds
+# the handshake; an established connection that stalls would otherwise hang
+# its caller forever. Use _fleet_host_run_bounded rather than setting it.
 _fleet_host_run() {
   local host="${1:-}"
   [ $# -gt 0 ] && shift
   if [ -z "$host" ]; then
-    "$@"
+    _fleet_with_deadline "${_FLEET_HOST_DEADLINE:-}" "$@"
     return $?
   fi
   local quoted
   quoted=$(printf '%q ' "$@")
-  ssh -n -o BatchMode=yes -o ConnectTimeout=10 \
+  _fleet_with_deadline "${_FLEET_HOST_DEADLINE:-}" ssh -n -o BatchMode=yes -o ConnectTimeout=10 \
     -o ControlMaster=auto -o ControlPersist=60 \
     "$host" "bash -lc $(printf '%q' "$_FLEET_HOST_PREAMBLE $quoted")"
+}
+
+# _fleet_host_run_bounded SECS HOST CMD...: _fleet_host_run cut off after SECS.
+_fleet_host_run_bounded() {
+  local secs="$1"
+  shift
+  _FLEET_HOST_DEADLINE="$secs" _fleet_host_run "$@"
+}
+
+# _fleet_with_deadline SECS CMD...: run CMD (an external command), killing it
+# after SECS (rc $_FLEET_TIMEOUT_RC). Empty SECS runs it unbounded. timeout(1)
+# where it exists (GNU), else a shell watchdog (stock macOS has no timeout).
+_fleet_with_deadline() {
+  local secs="$1" pid w rc=0
+  shift
+  if [ -z "$secs" ]; then
+    "$@"
+    return $?
+  fi
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$secs" "$@"
+    return $?
+  fi
+  "$@" &
+  pid=$!
+  ( sleep "$secs"; kill -TERM "$pid" 2>/dev/null ) &
+  w=$!
+  wait "$pid" || rc=$?
+  if kill -0 "$w" 2>/dev/null; then
+    kill "$w" 2>/dev/null
+    wait "$w" 2>/dev/null
+  else
+    rc="$_FLEET_TIMEOUT_RC"
+  fi
+  return "$rc"
 }
 
 # _fleet_tmux HOST ARGS...  -> tmux ARGS on HOST.

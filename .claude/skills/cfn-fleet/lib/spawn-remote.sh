@@ -151,9 +151,12 @@ _spawn_remote_brief(){
   cat "$master"
 }
 
-# _spawn_remote_claims ROSTER_CLAIMS -> one claim per line (commas or spaces).
+# _spawn_remote_claims ROSTER_CLAIMS -> one claim per line (commas or spaces),
+# every line newline-terminated. The final newline is load-bearing: without it
+# a later `echo path >> claims.txt` glued onto the last line and the lane's
+# commit skipped both paths (MDTWII 2026-11-14, five lanes).
 _spawn_remote_claims(){
-  printf '%s' "$1" | tr ', \t' '\n\n\n\n' | sed '/^$/d'
+  printf '%s\n' "$1" | tr ', \t' '\n\n\n\n' | sed '/^$/d'
 }
 
 # _spawn_remote_ship_launch ...: everything after the remote worktree exists:
@@ -279,6 +282,14 @@ _spawn_remote_ship_launch(){
   _spawn_commit
   ( roster_get "$ws" engine >/dev/null 2>&1 ) && roster_set "$ws" engine "$engine"
   echo "spawned $ws engine=$engine host=$host banner=\"$banner_line\""
+
+  # claims.txt above is a snapshot from before the banner wait; a grant made
+  # since reached only the roster (codex review 2026-11-14, finding 3). Now
+  # that remote/<WS>.env is published, union the roster claims into claims.txt
+  # and deliver any pending GRANTED notice. A failure stays pending for sync.
+  local rrc=0
+  _fleet_lane_reconcile "$ws" || rrc=$?
+  [ "$rrc" -eq 0 ] || echo "WARN spawn: $ws claims.txt/FROM_MASTER.md reconcile on $host failed (rc $rrc); fleet sync $ws retries it" >&2
 
   # Thin prompt only after the banner; the brief on the server owns the rules.
   prompt_line="read $ob/brief.md and start; report to the master only through $ob/remote-worker.sh, as the brief says"

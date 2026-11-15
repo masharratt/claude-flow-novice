@@ -278,6 +278,33 @@ test_status_pills_all_seven_statuses() {
     done
 }
 
+# Finding 8 (codex review 2026-11-14): the dashboard counted only landed|done
+# as complete and knew none of the newer released statuses, so a run of merged
+# or skipped rows showed an empty distribution while watch said ALL-DONE.
+test_finding8_released_statuses_count_as_complete() {
+    log_step "GIVEN merged, skipped, abandoned, host-landed and local-landed rows, WHEN render"
+    build_run dashreleased
+    printf 'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\thost\n' > "$RUN_DIR/roster.tsv"
+    printf 'WS01\tws01\tm\tmerged\t\t\t\t\t0\t\t\t\n' >> "$RUN_DIR/roster.tsv"
+    printf 'WS02\tws02\ts\tskipped\t\t\t\t\t0\t\t\t\n' >> "$RUN_DIR/roster.tsv"
+    printf 'WS03\tws03\ta\tabandoned\t\t\t\t\t0\t\t\t\n' >> "$RUN_DIR/roster.tsv"
+    printf 'WS04\tws04\th\tlanded\t\tabc1234\t\t\t0\t\t\tfakehost\n' >> "$RUN_DIR/roster.tsv"
+    printf 'WS05\tws05\tl\tlanded\t\tdef5678\t\t\t0\t\t\t\n' >> "$RUN_DIR/roster.tsv"
+    printf 'WS06\tws06\tw\tworking\t\t\t\t\t0\t\t\t\n' >> "$RUN_DIR/roster.tsv"
+    run_dash --no-serve --once
+    local html="$RUN_DIR/dashboard.html" st page rel
+    rel=$(bash -c 'source "$1" >/dev/null 2>&1; printf "%s" "$FLEET_RELEASED_STATUSES"' _ "$PROJECT_ROOT/.claude/skills/cfn-fleet/lib/common.sh")
+    page=$(static_html "$html")
+    for st in merged skipped abandoned; do
+        assert_contains "$page" "data-filter=\"$st\"" "filter chip for released status $st"
+        assert_contains "$page" "data-st=\"$st\"" "stat tile for released status $st"
+    done
+    assert_contains "$page" 'id="sum-done">4<' "finished = merged + skipped + abandoned + host landed (local landed may continue)"
+    assert_contains "$page" '<span class="seg seg-landed" style="flex-grow:5">' "complete meter segment holds every released row plus both landed rows"
+    assert_contains "$(cat "$html")" "data-released=\"$rel\"" "page carries FLEET_RELEASED_STATUSES ($rel)"
+    assert_not_contains "$(sed -n '/^<script>$/,/^<\/script>$/p' "$html")" '"merged"' "the JS reads the list from the page, never copies it"
+}
+
 test_stale_badge_derivation() {
     log_step "GIVEN a 20-min-old working heartbeat, fresh started, pending rows, WHEN render"
     build_run dashstale
@@ -731,8 +758,10 @@ test_inline_js_live_layer_contract() {
     assert_contains "$js" 'esc(' "every interpolated string goes through esc()"
     assert_contains "$js" 'encodeURIComponent(' "ws ids percent-encoded for the files path"
     assert_contains "$js" \
-        'var VOCAB = ["pending", "spawning", "started", "working", "blocked", "landed", "done", "dead"];' \
-        "JS vocab array pins the 8 closed-vocab statuses in order"
+        'var BASE_VOCAB = ["pending", "spawning", "started", "working", "blocked", "landed", "done", "dead"];' \
+        "JS base vocab pins the 8 live statuses in order"
+    assert_contains "$js" 'getAttribute("data-released")' \
+        "JS adds the released statuses from the page (finding 8), never a copy"
     assert_contains "$js" 'spawning: "Launching: the worker session is starting, banner not seen yet"' \
         "JS status help carries the spawning text"
     assert_contains "$js" '(counts.spawning || 0) + (counts.started || 0) + (counts.working || 0)' \
@@ -1671,6 +1700,7 @@ test_render_structure_cards_title_count_pills
 test_html_escape_payload_neutralized
 test_spawning_row_is_in_flight_not_attention
 test_status_pills_all_seven_statuses
+test_finding8_released_statuses_count_as_complete
 test_stale_badge_derivation
 test_dead_badge_derivation
 test_transitions_own_state_jsonl_and_watch_state_untouched

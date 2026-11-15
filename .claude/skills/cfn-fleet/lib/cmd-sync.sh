@@ -10,16 +10,20 @@
 # rest under ONE roster lock. Only worker fields are ever written: heartbeat
 # (stamped at Mac receive time, never the worker's clock), notes, status
 # (allowed transitions only), handoff files copied into <run>/handoffs/, and
-# claim requests appended to handoffs/CLAIM_REQ_<WS>.md for the master to
-# decide. claims and migration_num are never touched: a remote report is
-# input, not authority.
+# claim requests, decided by auto-grant (lane-deliver.sh): a plain, non-hot path
+# no active row holds is granted through the same path as `fleet claim`
+# (roster under the lock; after it, host claims.txt + FROM_MASTER.md GRANTED
+# line + nudge, retried by every later sync until delivered); anything
+# else stays in handoffs/CLAIM_REQ_<WS>.md for the master, holder named.
+# FLEET_AUTO_GRANT=off turns that off. A report never sets claims or
+# migration_num directly: a remote report is input, not authority.
 #
 # Progress lives in <run>/remote/<WS>.applied as "<gen> <max seq>". A new
 # generation (respawn) restarts from seq 0.
 #
 # Output (one line each): SYNC <ws> applied N | up to date | ..., UNREACHABLE
 # <ws> <host> (link down; roster untouched, never a DEAD), HANDOFF <ws> <file>,
-# CLAIM-REQ <ws> <path>, MAIL-PENDING <ws> <n> oldest <m>m (lane mail still in
+# GRANTED <ws> <path> | CLAIM-REQ <ws> <path> (<why not granted>), MAIL-PENDING <ws> <n> oldest <m>m (lane mail still in
 # its mail-out queue after FLEET_MAIL_STUCK_SECS, default 120: the master never
 # got it, the report above is the only copy), MAIL-FAILED <ws> <n> (entries the
 # lane's hook set aside as .failed; never retried). Exit 0 unless the ws is
@@ -31,6 +35,9 @@
 
 # shellcheck source=host.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/host.sh"
+# Master -> host lane delivery and the claim grant path (fleet claim, auto-grant).
+# shellcheck source=lane-deliver.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lane-deliver.sh"
 
 # A permission or confirmation prompt on a worker pane. One constant so watch,
 # dashboard and peek agree on what "waiting on a human" looks like.
@@ -198,25 +205,25 @@ _fleet_sync_mailq() {
 }
 
 # _fleet_claim_req_append WS PATH TAG: record a worker's claim request in
-# handoffs/CLAIM_REQ_<WS>.md for the master to decide (sync and mail both;
-# neither ever changes claims). WS must already be a safe file-name part.
+# handoffs/CLAIM_REQ_<WS>.md, with TAG saying how it was decided (auto-grant or
+# left for the master). WS must already be a safe file-name part.
 _fleet_claim_req_append() {
   local ws="$1" path="$2" tag="$3" cr
   cr="$(fleet_run_dir)/handoffs/CLAIM_REQ_$ws.md"
   mkdir -p "$(dirname "$cr")"
-  [ -f "$cr" ] || printf '# Claim requests from %s\n\nDecide with `fleet claim`; sync never changes claims.\n\n' "$ws" > "$cr"
+  [ -f "$cr" ] || printf '# Claim requests from %s\n\nRequests marked "for the master": decide with `fleet claim`. GRANTED ones were auto-granted.\n\n' "$ws" > "$cr"
   printf -- '- %s (%s)\n' "$path" "$tag" >> "$cr"
 }
 
 # _fleet_mail_apply_locked WS TYPE BODY TAG: apply one worker mail message
 # (mailbox stage 5) to the roster, under the roster flock the caller holds.
 # Same rules as a synced report: heartbeat stamped now, status only along the
-# allowed transitions, notes capped, claim requests recorded, never claims.
+# allowed transitions, notes capped, claim requests auto-granted or recorded.
 #   status <state>[: note]  status = the first word when it is a state
 #   blocked | done          status blocked | done; notes = the body
 #   handoff <file>          notes "handoff <file>"
-#   claim-request <path>    CLAIM_REQ_<WS>.md (TAG says where it came from)
-# Prints HANDOFF / CLAIM-REQ lines for the caller to relay. rc 71 on a failed write.
+#   claim-request <path>    auto-grant or CLAIM_REQ_<WS>.md (TAG says where it came from)
+# Prints HANDOFF / GRANTED / CLAIM-REQ lines for the caller to relay. rc 71 on a failed write.
 _fleet_mail_apply_locked() {
   local ws="$1" type="$2" body="$3" tag="$4" cur new="" note="" st
   body="${body//[$'\t\n\r']/ }"
@@ -232,8 +239,7 @@ _fleet_mail_apply_locked() {
     handoff) note="handoff $body"; echo "HANDOFF $ws $body" ;;
     claim-request)
       if [[ "$ws" =~ ^[A-Za-z0-9._-]+$ ]] && [ -n "$body" ]; then
-        _fleet_claim_req_append "$ws" "$body" "$tag"
-        echo "CLAIM-REQ $ws $body"
+        _fleet_claim_autogrant_locked "$ws" "$body" "$tag" || return 71
       fi ;;
   esac
   _roster_set_locked "$ws" heartbeat "$(date +%s)" || return 71
@@ -315,6 +321,7 @@ _fleet_sync_apply() {
     || { echo "SYNC $ws could not read reports (python3 needed)"; return 0; }
   if [ -z "$lines" ]; then
     echo "SYNC $ws up to date"
+    _fleet_lane_settle_sync "$ws"
     return 0
   fi
 
@@ -355,9 +362,8 @@ _fleet_sync_apply() {
           fi ;;
         claim_request)
           if [ "$safe_ws" = 1 ] && [ -n "$path" ]; then
-            _fleet_claim_req_append "$ws" "$path" "gen $gen, seq $seq"
+            _fleet_claim_autogrant_locked "$ws" "$path" "gen $gen, seq $seq" || exit 71
             accepted=$((accepted + 1))
-            echo "CLAIM-REQ $ws $path"
           fi ;;
         commit)
           accepted=$((accepted + 1))
@@ -378,6 +384,9 @@ _fleet_sync_apply() {
       echo "SYNC $ws dropped $dropped report(s), nothing to apply"
     fi
   ) 9>"$lock" || fleet_die 71 "sync: roster update failed for $ws"
+  # Lock released: deliver grants (this sync's, or ones still pending from an
+  # earlier failed delivery) to the host lane. Never ssh under the roster lock.
+  _fleet_lane_settle_sync "$ws"
   return 0
 }
 

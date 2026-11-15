@@ -233,6 +233,48 @@ fleet_worktree_path(){
   printf '%s/.claude/worktrees/%s\n' "$repo" "$(printf '%s' "$ws" | tr '[:upper:]' '[:lower:]')"
 }
 
+# --- Released statuses (one list; claim checks, auto-grant, watch) ----------
+# A row in one of these states has finished: its claims no longer block other
+# rows and `fleet watch` counts it toward ALL-DONE. Every "is this row still
+# active" check reads this list; never spell a status list out elsewhere.
+# parked is NOT released: a parked lane resumes. landed is special, see
+# _fleet_row_released: a LOCAL `fleet commit` sets landed on a lane's first
+# commit while it keeps working, so only a HOST row's landed (set by the master
+# after merging; MDTWII 2026-11-14) releases.
+FLEET_RELEASED_STATUSES="done merged skip skipped reverted superseded abandoned"
+
+# _fleet_status_released STATUS: 0 when STATUS is in FLEET_RELEASED_STATUSES.
+_fleet_status_released(){
+  case " $FLEET_RELEASED_STATUSES " in *" ${1:-} "*) [ -n "${1:-}" ] ;; *) return 1 ;; esac
+}
+
+# _fleet_row_released STATUS HOST: 0 when the row's claims no longer block:
+# STATUS released, or landed on a host row (a local landed lane may continue).
+_fleet_row_released(){
+  _fleet_status_released "${1:-}" && return 0
+  [ "${1:-}" = landed ] && [ -n "${2:-}" ]
+}
+
+# _fleet_path_canonical PATH: 0 when PATH is one canonical repo-relative
+# spelling: non-empty, no leading /, and no empty, "." or ".." segment.
+# `a//b`, `a/./b`, `a/../b` and `.` are git aliases of other paths that slip
+# past the overlap and hot-file checks (codex review 2026-11-14, finding 1).
+# Callers strip one leading "./" and one trailing "/" first.
+_fleet_path_canonical(){
+  local p="${1:-}" seg
+  [ -n "$p" ] || return 1
+  case "$p" in /*) return 1 ;; esac
+  local IFS=/
+  # shellcheck disable=SC2086  # split on / on purpose; set -f keeps globs literal
+  set -f; set -- $p; set +f
+  [ $# -gt 0 ] || return 1
+  case "$p" in */) return 1 ;; esac
+  for seg in "$@"; do
+    case "$seg" in ''|.|..) return 1 ;; esac
+  done
+  return 0
+}
+
 # --- Claim overlap (cmd-claim.sh + cmd-add.sh) ------------------------------
 # Normalize a claim path/glob to its comparable scope prefix. Globs compare by
 # their containing directory ('docs/*.md' scopes to 'docs').
@@ -275,9 +317,12 @@ _roster_claims_conflict(){
         fi
       done
     done
-  # A done row has finished and released its paths; its claims cell stays as
-  # history (dashboard chips) but no longer blocks. landed rows may continue.
-  done < <(awk -F'\t' 'NR > 1 && $5 != "" && $4 != "done" { print $1 "\t" $5 }' "$(fleet_roster_file)")
+  # A row whose status is released (FLEET_RELEASED_STATUSES) has finished and
+  # released its paths; its claims cell stays as history (dashboard chips) but
+  # no longer blocks.
+  # Same rule as _fleet_row_released, in awk: landed releases a host row only.
+  done < <(awk -F'\t' -v rel=" $FLEET_RELEASED_STATUSES " -v h="$(_roster_field_index host)" '
+    NR > 1 && $5 != "" && !index(rel, " " $4 " ") && !($4 == "landed" && $h != "") { print $1 "\t" $5 }' "$(fleet_roster_file)")
   return 1
 }
 

@@ -234,6 +234,23 @@ test_claim_overlap_rules(){
 }
 
 # ---------------------------------------------------------------------------
+# Finding 1 (codex review 2026-11-14): `a//b`, `a/./b`, `a/../b`, `.` and
+# absolute paths are git aliases that slip past overlap and hot-file checks.
+test_finding1_claim_rejects_non_canonical_paths(){
+  log_step "GIVEN WS01, WHEN fleet claim gets an alias path, THEN 65 and nothing stored"
+  fixture
+  run_fleet "$P" init demo
+  local R="$P/planning/fleet-demo/roster.tsv" bad
+  run_fleet "$P" add WS01 "t1"
+  for bad in "a//b.md" "a/./b.md" "a/../b.md" "/etc/passwd" "." "./" "src/." ".."; do
+    run_fleet "$P" claim WS01 "$bad"
+    [ "$RC" -eq 65 ] && ok "claim '$bad' refused (65)" || no "claim '$bad' rc=$RC"
+  done
+  [ -z "$(tsv_field "$R" WS01 5)" ] && ok "no alias stored" || no "stored: '$(tsv_field "$R" WS01 5)'"
+  run_fleet "$P" claim WS01 ./src/ok.md 'docs/*.md'
+  [ "$RC" -eq 0 ] && ok "leading ./ and globs still accepted" || no "plain claim rc=$RC err=$ERR"
+}
+
 test_heartbeat_updates_ts_and_note(){
   log_step "GIVEN WS01, WHEN heartbeat with/without note"
   fixture
@@ -500,15 +517,53 @@ test_done_rows_release_claims(){
   [ "$RC" -eq 0 ] && ok "add over a done row's claim accepted" || no "add over done rc=$RC err=$ERR"
   run_fleet "$P" claim WS02 src/b.ts
   [ "$RC" -eq 0 ] && ok "claim over a done row's claim accepted" || no "claim over done rc=$RC err=$ERR"
+  # A LOCAL landed row still holds: `fleet commit` sets landed on a lane's first
+  # commit while it keeps working, so its paths must not become claimable.
   run_fleet "$P" add WS03 "t3" --claims lib/x.ts
-  [ "$RC" -eq 65 ] && ok "landed row still holds its claims (65)" || no "add over landed rc=$RC"
+  [ "$RC" -eq 65 ] && ok "local landed row still holds its claims" || no "add over local landed rc=$RC err=$ERR"
+  # Regression 2026-11-14 (MDTWII): merged HOST lanes marked `landed` by the master
+  # still held their claims and blocked WS1242/WS1243 until flipped to done by hand.
+  # Only the master sets landed on a host row (after merging), so it releases.
+  awk -F'\t' -v OFS='\t' '$1=="WS04"{$12="vps_personal"} {print}' "$R" > "$R.tmp" && mv "$R.tmp" "$R"
+  run_fleet "$P" add WS05 "t5" --claims lib/y.ts
+  [ "$RC" -eq 0 ] && ok "host landed row releases its claims" || no "add over host landed rc=$RC err=$ERR"
+}
+
+# Every released status (FLEET_RELEASED_STATUSES in lib/common.sh) frees the row's
+# claims for fleet claim; every live status still blocks. One fresh project per
+# status so an earlier grant never masks a later case.
+test_released_statuses_release_claims(){
+  log_step "GIVEN WS01 claims src at status S, WHEN WS02 claims src/a.ts, THEN released S accepted, live S refused"
+  local st R
+  for st in done merged skip skipped reverted superseded abandoned; do
+    fixture
+    run_fleet "$P" init demo
+    R="$P/planning/fleet-demo/roster.tsv"
+    run_fleet "$P" add WS01 "t1" --claims src
+    run_fleet "$P" add WS02 "t2"
+    awk -F'\t' -v OFS='\t' -v s="$st" '$1=="WS01"{$4=s} {print}' "$R" > "$R.tmp" && mv "$R.tmp" "$R"
+    run_fleet "$P" claim WS02 src/a.ts
+    [ "$RC" -eq 0 ] && ok "status $st releases claims" || no "status $st still blocks (rc=$RC err=$ERR)"
+  done
+  for st in pending spawning started working blocked dead parked; do
+    fixture
+    run_fleet "$P" init demo
+    R="$P/planning/fleet-demo/roster.tsv"
+    run_fleet "$P" add WS01 "t1" --claims src
+    run_fleet "$P" add WS02 "t2"
+    awk -F'\t' -v OFS='\t' -v s="$st" '$1=="WS01"{$4=s} {print}' "$R" > "$R.tmp" && mv "$R.tmp" "$R"
+    run_fleet "$P" claim WS02 src/a.ts
+    [ "$RC" -eq 65 ] && ok "status $st still holds claims" || no "status $st released (rc=$RC)"
+  done
 }
 
 test_init_scaffold_and_duplicate_refusal
 test_done_rows_release_claims
+test_released_statuses_release_claims
 test_add_validation_and_uniqueness
 test_add_refuses_placeholder_overwrite_and_next_id
 test_claim_overlap_rules
+test_finding1_claim_rejects_non_canonical_paths
 test_heartbeat_updates_ts_and_note
 test_status_table_and_tsv
 test_router_unknown_subcommand
