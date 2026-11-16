@@ -425,7 +425,7 @@ dependency), served on `127.0.0.1` so it opens in VS Code's built-in Simple
 Browser instead of Chrome. The page is live: inline JS fetches `roster.tsv`
 and `dashboard-events-tail.jsonl` (the last 30 transitions, rewritten on
 every render pass) from the same server every `data-poll` seconds (default
-5, `--poll S`) and redraws tiles, meter, cards and timeline in place, so
+60, `--poll S`) and redraws tiles, meter, cards and timeline in place, so
 scroll position and the selected filter and sort survive each poll. Only the
 no-JS fallback does a full-page refresh, and only inside `<noscript>`. A
 live dot in the header stays green while polls succeed and turns amber on
@@ -547,7 +547,7 @@ $HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --stop    # tear the server d
   review/gate win, else busy/idle/waiting/shell), last activity, attach command.
   Sessions from other projects sit in a collapsed "Other projects" group; no
   update for 24h shows "stale" and sorts last. `GET /api/sessions`, same gate
-  as the other endpoints, cached 3s; refreshes every 5s while the tab is
+  as the other endpoints, cached 3s; refreshes every 60s while the tab is
   visible. Test seam: `FLEET_DASHBOARD_SESSIONS_DIR`.
 - Archived runs: `fleet archive <run> [--undo]` only writes or removes
   `<run>/.archived`. Run discovery skips archived runs, so a stale fleet stops

@@ -14,11 +14,11 @@
 # Sessions panel above the cards (served pages only, /api/health "sessions")
 # lists every live Claude Code session on this machine from GET
 # /api/sessions (masters and lanes, lane brief, state, last activity, tmux
-# attach command with Copy), refreshing every 5s while the tab is visible;
+# attach command with Copy), refreshing every 60s while the tab is visible;
 # other projects sit in a collapsed group and sessions idle over 24h are
 # labelled stale and sorted last. The Messages panel under it (served pages
 # only, /api/health "mail") lists this project's recent mailbox traffic with
-# bodies from GET /api/mail, refreshing every 10s while the tab is visible.
+# bodies from GET /api/mail, refreshing every 60s while the tab is visible.
 # Deliberately never exits on ALL-DONE (the opposite of `fleet
 # watch`, on purpose: the dashboard is a page you leave open, not a loop that
 # ends the session).
@@ -139,7 +139,7 @@ _fleet_dash_glossary_html() {
 }
 
 main() {
-  local port="" poll=5 stale_min=5 once=0 no_serve=0 do_stop=0 do_open=0
+  local port="" poll=60 stale_min=5 once=0 no_serve=0 do_stop=0 do_open=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --port)      [ $# -ge 2 ] || fleet_die 64 "dashboard: --port needs a number"
@@ -1628,7 +1628,7 @@ _fleet_dash_script() {
 
   /* Sessions panel: every live Claude Code session on this machine via GET
      api/sessions (served pages only, when api/health reports "sessions").
-     Refreshes every 5s, never while the tab is hidden. This project's
+     Refreshes every 60s, never while the tab is hidden. This project's
      sessions fill the main table; other projects sit in a collapsed group
      whose open state survives refreshes. Every string goes through esc();
      the attach command arrives pattern-checked from the server and is
@@ -1637,7 +1637,7 @@ _fleet_dash_script() {
   var sessionsOtherOpen = false;
   var sessionsInflight = false;
   var sessionsMsg = {};  /* pid -> Copy status line */
-  var SESSIONS_MS = 5000;
+  var SESSIONS_MS = 60000;
   var SESSION_STATE_CLASS = {
     "working": "ss-working", "idle": "ss-idle", "running a shell command": "ss-shell",
     "in review": "ss-review", "in gate": "ss-gate", "blocked": "ss-blocked",
@@ -1734,14 +1734,14 @@ _fleet_dash_script() {
 
   /* Messages panel: this project's recent mailbox traffic via GET api/mail
      (served pages only, when api/health reports "mail"). Refreshes every
-     10s, never while the tab is hidden. Bodies are untrusted text: every
+     60s, never while the tab is hidden. Bodies are untrusted text: every
      string goes through esc(), long bodies are clamped with a show-more
      toggle whose state survives refreshes. A failed read keeps the last
      list; an error reply from the server replaces it with the reason. */
   var mailAvailable = false;
   var mailInflight = false;
   var mailOpen = {};  /* message id -> body expanded */
-  var MAIL_MS = 10000;
+  var MAIL_MS = 60000;
   var MAIL_CLAMP_CHARS = 280, MAIL_CLAMP_LINES = 4;
 
   function mailWhen(at) {
@@ -2425,8 +2425,8 @@ _fleet_dash_script() {
     checkOpen();
     tick();
     setInterval(tick, 1000);
-    var pollS = intOr(document.body.getAttribute("data-poll") || "5");
-    if (pollS < 1) pollS = 5;
+    var pollS = intOr(document.body.getAttribute("data-poll") || "60");
+    if (pollS < 1) pollS = 60;
     pollMs = pollS * 1000;
     document.addEventListener("visibilitychange", function () {
       if (!pageHidden()) { tick(); resumePolling(); }

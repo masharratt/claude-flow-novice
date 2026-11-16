@@ -418,7 +418,7 @@ test_self_contained_refresh_and_static_fallback() {
         "no-JS fallback refresh lives only inside noscript"
     assert_equals "1" "$(grep -cF 'http-equiv="refresh"' "$html" || true)" \
         "no bare head-level refresh outside the noscript block"
-    assert_contains "$body" 'data-poll="5"' "poll knob carried on the body tag"
+    assert_contains "$body" 'data-poll="60"' "poll knob carried on the body tag (default 60s)"
     assert_contains "$body" 'data-epoch="' "heartbeat stamp carries data-epoch for the JS ticker"
     assert_contains "$body" 'class="hb-age"' "static heartbeat age fallback present"
     assert_contains "$body" 'never' "rows without a heartbeat read as never"
@@ -1200,7 +1200,7 @@ test_inline_js_live_view_and_sessions_contract() {
         "Live view needs health.pane"
     assert_contains "$js" 'd.sessions === true) startSessions();' "Sessions panel needs health.sessions"
     assert_contains "$js" 'fetch("api/sessions?ts="' "Sessions panel reads api/sessions"
-    assert_contains "$js" 'var SESSIONS_MS = 5000;' "sessions refresh every 5s"
+    assert_contains "$js" 'var SESSIONS_MS = 60000;' "sessions refresh every 60s"
     assert_not_contains "$js" 'api/sessions.key' "page never names a key file"
 }
 
@@ -1611,7 +1611,7 @@ test_mail_panel_static_markup_and_js_contract() {
 
     log_step "WHEN the inline layer ships the Messages code"
     js=$(sed -n '/^<script>$/,/^<\/script>$/p' "$RUN_DIR/dashboard.html")
-    assert_contains "$js" 'var MAIL_MS = 10000;' "messages refresh every 10s"
+    assert_contains "$js" 'var MAIL_MS = 60000;' "messages refresh every 60s"
     assert_contains "$js" 'd.mail === true) startMail();' "Messages panel needs health.mail"
     assert_contains "$js" 'fetch("api/mail?ts="' "Messages panel reads api/mail"
     assert_contains "$js" 'esc(m.body)' "bodies go through esc()"
