@@ -29,8 +29,9 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RESTORE="$REPO_ROOT/.claude/hooks/cfn-restore-from-backup.sh"
 
-SCRATCH=$(mktemp -d /tmp/restore-latest-test-XXXXXX)
-trap 'rm -rf "$SCRATCH"' EXIT
+source "$REPO_ROOT/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
+SCRATCH=$(mktemp -d /tmp/restore-latest-test-XXXXXX) || exit 1
+trap 'cfn_safe_rm_tmp "$SCRATCH"' EXIT
 
 PASS=0
 FAIL=0
