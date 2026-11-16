@@ -277,29 +277,41 @@ cmd_spawn() {
   fi
   tmux -L "$TA_SOCK" send-keys -t "$name" Enter
 
-  # Startup gates before the banner poll. One poll, dispatch on the matched
-  # line; keys are sent only when a prompt actually shows.
+  # Startup gates before the banner poll. Modals can chain (Code Mode, then
+  # bypass-permissions accept, then folder trust), so poll in a loop: one
+  # poll over every known gate AND the banner; dispatch on the matched line,
+  # send the safe key, wait for that screen to clear, poll again. Keys are
+  # sent only when a prompt actually shows. Stops at the banner.
   # - codex-cli update modal ("Update available ... Press enter to
   #   continue"): Enter would pick "1. Update now" (surprise npm -g
   #   install), so send "2" (Skip) then Enter. Measured live on 0.153.4.
-  # - folder-trust prompts: engine trust_keys (claude Down,Enter; codex Enter).
-  local gate_re="Update available|Press enter to continue" gate_timeout="$trust_timeout" gate_line
+  # - Claude Code "Code Mode (experimental)" opt-in (2.1.325, 2026-11-16):
+  #   "No, start without it / Yes, turn on Code Mode ... Esc to start without
+  #   it". Escape always means "start without", whichever row is selected.
+  # - bypass-permissions accept ("Yes, I accept") and folder-trust prompts:
+  #   engine trust_keys (claude Down,Enter; codex Enter).
+  local gate_re="Update available|Press enter to continue|No, start without it"
+  local gate_timeout="$trust_timeout" gate_line gate_i poll_re
   if [ -n "$trust_re" ]; then gate_re+="|$trust_re"; else gate_timeout=5; fi
-  gate_line=$(_ta_pane_wait "$TA_SOCK" "$name" "$gate_re" "$gate_timeout" || true)
-  if [ -n "$gate_line" ]; then
+  [ "$bin_kind" = claude ] && gate_re+="|Yes, I accept"
+  poll_re="$gate_re"
+  [ -z "$banner_re" ] || poll_re="($gate_re)|($banner_re)"
+  for ((gate_i = 0; gate_i < 6; gate_i++)); do
+    gate_line=$(_ta_pane_wait "$TA_SOCK" "$name" "$poll_re" "$gate_timeout" || true)
+    [ -n "$gate_line" ] || break
+    if [ -n "$banner_re" ] && printf '%s\n' "$gate_line" | grep -Eq -- "$banner_re" \
+        && ! printf '%s\n' "$gate_line" | grep -Eq -- "$gate_re"; then
+      break
+    fi
     case "$gate_line" in
       *Update\ available*|*Press\ enter*)
         tmux -L "$TA_SOCK" send-keys -t "$name" -l "2"
         sleep 0.3
         tmux -L "$TA_SOCK" send-keys -t "$name" Enter
-        # a folder-trust prompt may surface next
-        if [ -n "$trust_re" ] && _ta_pane_wait "$TA_SOCK" "$name" "$trust_re" 5 >/dev/null; then
-          if [ -n "$trust_keys" ]; then
-            # shellcheck disable=SC2086  # word-split key list is the point
-            sleep "${TMUX_AGENTS_TRUST_SETTLE:-1.5}"  # TUI draws the prompt before it reads keys
-            tmux -L "$TA_SOCK" send-keys -t "$name" ${trust_keys//,/ }
-          fi
-        fi
+        ;;
+      *No,\ start\ without\ it*)
+        sleep "${TMUX_AGENTS_TRUST_SETTLE:-1.5}"  # TUI draws the modal before it reads keys
+        tmux -L "$TA_SOCK" send-keys -t "$name" Escape
         ;;
       *)
         if [ -n "$trust_keys" ]; then
@@ -312,7 +324,8 @@ cmd_spawn() {
         fi
         ;;
     esac
-  fi
+    _ta_gate_cleared "$TA_SOCK" "$name" "$gate_line"
+  done
 
   local banner_line=""
   if [ -n "$banner_re" ]; then
@@ -355,6 +368,10 @@ cmd_spawn() {
     prompt=$(cat "$prompt_file")
   fi
   if [ -n "$prompt" ]; then
+    # claude kinds: wait for the real input box before typing (a prompt typed
+    # into a still-starting TUI is dropped, and the submit check then passes
+    # vacuously because the input line is empty). Non-fatal on timeout.
+    [ "$bin_kind" != claude ] || _ta_ready_wait "$TA_SOCK" "$name" "$(_ta_env_seconds TMUX_AGENTS_READY_TIMEOUT 12)"
     local send_rc=0
     _ta_send_text "$TA_SOCK" "$name" "$prompt" || send_rc=$?
     if [ "$send_rc" -ne 0 ]; then

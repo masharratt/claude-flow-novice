@@ -331,6 +331,41 @@ _fleet_tmux_server_warn(){
   return 0
 }
 
+# _spawn_gate_cleared SOCK TARGET LINE — after a startup-modal key, wait (up
+# to 4s) until LINE is gone from the pane so the next poll does not re-match
+# the stale screen and send a second key into the next screen.
+_spawn_gate_cleared(){
+  local i
+  for ((i = 0; i < 20; i++)); do
+    _spawn_tmux -L "$1" capture-pane -p -t "$2" 2>/dev/null \
+      | sed -e 's/\r$//' -e 's/[[:space:]]*$//' | grep -Fxq -- "$3" || return 0
+    sleep 0.2
+  done
+  return 0
+}
+
+# _spawn_send_prompt SOCK TARGET TEXT — first prompt with a verified submit.
+# BUG first-prompt-unsubmitted (glm-open, 2026-11-16): text and Enter went out
+# back to back; a fresh TUI takes the text and drops the Enter. Wait for the
+# input box ("❯"), type, settle, Enter, and retry Enter once while the text
+# still sits in the input line (the last "❯" line). Warns, never fails.
+_spawn_send_prompt(){
+  local sock="$1" tgt="$2" text="$3" tail last i
+  _fleet_pane_wait "$sock" "$tgt" '^[[:space:]]*❯' "$(_fleet_env_seconds FLEET_READY_TIMEOUT 12)" >/dev/null || true
+  _spawn_tmux -L "$sock" send-keys -t "$tgt" -l "$text"
+  sleep "${FLEET_SUBMIT_SETTLE:-1}"
+  _spawn_tmux -L "$sock" send-keys -t "$tgt" Enter
+  tail="${text##*$'\n'}"; tail="${tail: -12}"
+  for ((i = 0; i < 2; i++)); do
+    sleep "${FLEET_SUBMIT_VERIFY:-2}"
+    last=$(_spawn_tmux -L "$sock" capture-pane -p -t "$tgt" 2>/dev/null \
+      | sed -e 's/\r$//' -e 's/[[:space:]]*$//' | grep -E '^[[:space:]]*❯' | tail -n 1 || true)
+    [ -n "$tail" ] && [[ "$last" == *"$tail" ]] || return 0
+    _spawn_tmux -L "$sock" send-keys -t "$tgt" Enter
+  done
+  return 0
+}
+
 # _spawn_launch_one SOCK SNAME SESSION_CWD PANE_CMD TRUST_RE TRUST_KEYS
 # TRUST_TIMEOUT BANNER_RE BANNER_TIMEOUT — new-session, a per-session launch
 # script (env from the global _SPAWN_SET_LINES + PANE_CMD) typed into the
@@ -366,32 +401,41 @@ _spawn_launch_one(){
   fi
   _spawn_tmux -L "$sock" send-keys -t "$sname" Enter
 
-  # Startup gates: ONE poll over the folder-trust and startup-modal regexes,
-  # dispatch on the matched line. Keys are sent only when a prompt actually
-  # shows (registry trust_keys is a comma list, "Down,Enter"; send-keys wants
-  # them as separate words).
+  # Startup gates. Modals can chain (Code Mode, bypass-permissions accept,
+  # folder trust), so poll in a loop: one poll over every known gate AND the
+  # banner, dispatch on the matched line, send the safe key, wait for that
+  # screen to clear, poll again; stop at the banner. Keys are sent only when a
+  # prompt actually shows (registry trust_keys is a comma list, "Down,Enter";
+  # send-keys wants them as separate words).
   # - codex-cli update modal ("Update available ... Press enter to
   #   continue"): bare Enter would pick "1. Update now" = a surprise
   #   npm install -g, so send "2" (Skip) then Enter (measured live,
   #   codex-cli 0.153.4, 2026-09-10).
-  # - folder-trust prompts: the engine trust_keys.
-  local gate_re="Update available|Press enter to continue" gate_line
-  if [ -n "$trust_re" ]; then gate_re="$gate_re|$trust_re"; fi
-  gate_line=$(_fleet_pane_wait "$sock" "$sname" "$gate_re" "$trust_timeout" || true)
-  if [ -n "$gate_line" ]; then
+  # - Claude Code "Code Mode (experimental)" opt-in (2.1.325, 2026-11-16):
+  #   "No, start without it / Yes, turn on Code Mode ... Esc to start without
+  #   it". Escape always means "start without", whichever row is selected.
+  # - bypass-permissions accept ("Yes, I accept") and folder-trust prompts:
+  #   the engine trust_keys.
+  local gate_re="Update available|Press enter to continue|No, start without it" gate_line gate_i poll_re
+  if [ -n "$trust_re" ]; then gate_re="$gate_re|$trust_re|Yes, I accept"; fi
+  poll_re="$gate_re"
+  [ -z "$banner_re" ] || poll_re="($gate_re)|($banner_re)"
+  for ((gate_i = 0; gate_i < 6; gate_i++)); do
+    gate_line=$(_fleet_pane_wait "$sock" "$sname" "$poll_re" "$trust_timeout" || true)
+    [ -n "$gate_line" ] || break
+    if [ -n "$banner_re" ] && printf '%s\n' "$gate_line" | grep -Eq -- "$banner_re" \
+        && ! printf '%s\n' "$gate_line" | grep -Eq -- "$gate_re"; then
+      break
+    fi
     case "$gate_line" in
       *Update\ available*|*Press\ enter*)
         _spawn_tmux -L "$sock" send-keys -t "$sname" -l "2"
         sleep 0.3
         _spawn_tmux -L "$sock" send-keys -t "$sname" Enter
-        # a folder-trust prompt may surface once the modal is cleared
-        if [ -n "$trust_re" ] && _fleet_pane_wait "$sock" "$sname" "$trust_re" "$trust_timeout" >/dev/null; then
-          if [ -n "$trust_keys" ]; then
-            # shellcheck disable=SC2086  # word-split key list is the point
-            sleep "${FLEET_TRUST_SETTLE:-1.5}"  # TUI draws the prompt before it reads keys
-            _spawn_tmux -L "$sock" send-keys -t "$sname" ${trust_keys//,/ }
-          fi
-        fi
+        ;;
+      *No,\ start\ without\ it*)
+        sleep "${FLEET_TRUST_SETTLE:-1.5}"  # TUI draws the modal before it reads keys
+        _spawn_tmux -L "$sock" send-keys -t "$sname" Escape
         ;;
       *)
         if [ -n "$trust_keys" ]; then
@@ -404,7 +448,8 @@ _spawn_launch_one(){
         fi
         ;;
     esac
-  fi
+    _spawn_gate_cleared "$sock" "$sname" "$gate_line"
+  done
 
   if [ -n "$banner_re" ]; then
     banner_line=$(_fleet_pane_wait "$sock" "$sname" "$banner_re" "$banner_timeout" || true)
@@ -804,8 +849,7 @@ main() {
   echo "spawned $ws engine=$engine banner=\"$banner_line\""
 
   # 8. Thin prompt only after the banner.
-  tmux -L "$sock" send-keys -t "$name" -l "$prompt_line"
-  tmux -L "$sock" send-keys -t "$name" Enter
+  _spawn_send_prompt "$sock" "$name" "$prompt_line"
 
   # 8b. Auth check after the first request. A relay token that the banner
   # cannot see (the banner renders before any API call) surfaces here as

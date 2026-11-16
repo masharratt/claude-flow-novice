@@ -186,7 +186,15 @@ _ta_pane_cursor_line() {
 # TEXT's last line (works when the text wraps), or a paste placeholder.
 _ta_input_pending() {
   local cl tail k
-  cl=$(_ta_pane_cursor_line "$1" "$2") || return 1
+  cl=$(_ta_pane_cursor_line "$1" "$2") || cl=""
+  # The cursor is not always parked on the input line (a TUI that draws a
+  # status bar after the box leaves it elsewhere, so a stuck prompt read as
+  # "submitted"). Fall back to the LAST "❯" line: submitted prompts echo into
+  # the transcript above, so only the live input box is last.
+  if [ -z "$cl" ]; then
+    cl=$(tmux -L "$1" capture-pane -p -t "$2" 2>/dev/null | sed -e 's/\r$//' -e 's/[[:space:]]*$//' \
+      | grep -E '^[[:space:]]*❯' | tail -n 1 | sed -e 's/^[[:space:]]*❯[[:space:]]*//')
+  fi
   [ -n "$cl" ] || return 1
   case "$cl" in *"[Pasted text"*) return 0 ;; esac
   tail="${3##*$'\n'}"
@@ -235,4 +243,25 @@ _ta_send_followup() {
   tmux -L "$1" send-keys -t "$2" -l "$3" || return 1
   sleep 1
   tmux -L "$1" send-keys -t "$2" Enter
+}
+
+# _ta_gate_cleared SOCK TARGET LINE — after a startup-modal key, wait (up to
+# 4s) until LINE is gone from the pane, so the next poll does not re-match the
+# stale screen and send a second key into the next screen.
+_ta_gate_cleared() {
+  local i
+  for ((i = 0; i < 20; i++)); do
+    tmux -L "$1" capture-pane -p -t "$2" 2>/dev/null \
+      | sed -e 's/\r$//' -e 's/[[:space:]]*$//' | grep -Fxq -- "$3" || return 0
+    sleep 0.2
+  done
+  return 0
+}
+
+# _ta_ready_wait SOCK TARGET TIMEOUT_S — claude-kind pane is ready when the
+# input box prompt line ("❯") is on screen. Always rc 0 (a TUI that never
+# draws it still gets the prompt, as before).
+_ta_ready_wait() {
+  _ta_pane_wait "$1" "$2" '^[[:space:]]*❯' "$3" >/dev/null || true
+  return 0
 }

@@ -395,5 +395,77 @@ else ok "test_allow_15b_args_not_shell"; fi
 "$EXE" kill a15b --socket "$SOCK" >/dev/null 2>&1 || true
 rm -rf "$TD"
 
+# 20. BUG code-mode-modal (Claude Code 2.1.325, reported 2026-11-15/16): a
+# fresh profile shows the "Code Mode (experimental)" opt-in before anything
+# else; spawn never answered it and timed out. Real text captured live
+# (saved/codemode-modal-full.txt). Only Escape ("start without it") is safe:
+# the fake exits 5 on any other answer, and chains the bypass-permissions
+# accept screen that follows it on the same profile.
+TD=$(mktemp -d)
+cat > "$TD/claude" <<'FAKE'
+#!/usr/bin/env bash
+cat <<'MODAL'
+  Code Mode (experimental)
+  In Code Mode, Claude works by writing and running JavaScript that calls its tools, instead of calling them one at a time.
+  A session that you start in Code Mode can be resumed only with Code Mode on.
+  ❯ No, start without it
+    Yes, turn on Code Mode
+  Tell us how it goes with /feedback
+  Enter to confirm · Esc to start without it
+MODAL
+IFS= read -rsn1 k
+[ "$k" = $'\e' ] || { echo "FAKE-WRONG-KEY-CODEMODE"; exit 5; }
+sleep 0.3
+printf '\033[2J\033[H'   # the real TUI redraws the screen between modals
+cat <<'MODAL'
+  WARNING: Claude Code running in Bypass Permissions mode
+  ❯ No, exit
+    Yes, I accept
+  Enter to confirm · Esc to cancel
+MODAL
+IFS= read -r line
+[ "$line" = $'\e[B' ] || { echo "FAKE-WRONG-KEY-BYPASS"; exit 5; }
+printf '\033[2J\033[H'
+printf 'AGENTS-TEST-BANNER codemode-cleared\n'
+exec cat
+FAKE
+chmod +x "$TD/claude"
+OUT=$(TMUX_AGENTS_BANNER_TIMEOUT=10 TMUX_AGENTS_TRUST_SETTLE=0.3 "$EXE" spawn cm1 --socket "$SOCK" --bin "$TD/claude" \
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
+case "$OUT" in *codemode-cleared*) ok "code-mode bug: modal dismissed with Escape, chained bypass accepted, banner reached" ;; *) bad "code-mode bug: spawn stuck on modal: ${OUT:0:300}" ;; esac
+"$EXE" kill cm1 --socket "$SOCK" >/dev/null 2>&1 || true
+
+# 21. BUG first-prompt-unsubmitted (glm-open, 2026-11-16): the banner shows
+# before the input box is live; text typed in that window is discarded, the
+# input line is empty, and the old submit check read that as "submitted".
+# This fake drops everything typed before it draws "❯" (3s after the banner).
+cat > "$TD/claude" <<'FAKE'
+#!/usr/bin/env bash
+stty -icanon -echo -icrnl 2>/dev/null || true
+printf 'AGENTS-TEST-BANNER early\n'
+sleep 2.5
+while IFS= read -rsn1 -t 0.2 _; do :; done   # discard pre-ready input
+printf '\n❯ '
+buf="" recent=0
+while :; do
+  rc=0; IFS= read -rsn1 -d '' -t 0.4 c || rc=$?
+  if [ "$rc" -gt 128 ]; then recent=0; continue; fi
+  [ "$rc" -eq 0 ] || exit 0
+  if [ "$c" = $'\r' ] || [ "$c" = $'\n' ]; then
+    [ "$recent" = 1 ] && continue
+    printf '\nSUBMITTED: %s\n❯ ' "$buf"; buf=""
+  else
+    buf+="$c"; printf '%s' "$c"; recent=1
+  fi
+done
+FAKE
+OUT=$(TMUX_AGENTS_BANNER_TIMEOUT=10 TMUX_AGENTS_TRUST_TIMEOUT=1 TMUX_AGENTS_READY_TIMEOUT=8 "$EXE" spawn fp1 --socket "$SOCK" --bin "$TD/claude" \
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp --prompt "first prompt after ready" 2>&1) || true
+sleep 0.5
+CAP=$(tmux -L "$SOCK" capture-pane -p -t fp1 2>/dev/null || true)
+case "$CAP" in *"SUBMITTED: first prompt after ready"*) ok "first-prompt bug: prompt waits for the input box and is submitted" ;; *) bad "first-prompt bug: prompt lost or unsubmitted: out=${OUT:0:200} pane=${CAP:0:300}" ;; esac
+"$EXE" kill fp1 --socket "$SOCK" >/dev/null 2>&1 || true
+rm -rf "$TD"
+
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]
