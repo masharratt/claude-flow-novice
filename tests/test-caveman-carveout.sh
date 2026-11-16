@@ -40,8 +40,10 @@ skip() { SKIP=$((SKIP+1)); printf 'skip %s\n' "$1"; }
 SAVED_FLAG=""; HAD_FLAG=0
 if [ -f "$FLAG" ] && [ ! -L "$FLAG" ]; then HAD_FLAG=1; SAVED_FLAG="$(cat "$FLAG")"; fi
 restore_flag() {
-  [ "$HAD_FLAG" = 1 ] || return 0
   [ -L "$FLAG" ] && return 0   # never write through a symlink
+  # 2026-11-16: with no flag before the run, a probe left "lite" behind and
+  # switched caveman back on in every live session. Absent before = absent after.
+  if [ "$HAD_FLAG" != 1 ]; then rm -f "$FLAG"; return 0; fi
   printf '%s' "$SAVED_FLAG" > "$FLAG" && chmod 600 "$FLAG"
 }
 trap restore_flag EXIT

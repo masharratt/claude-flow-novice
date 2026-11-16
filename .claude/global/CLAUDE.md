@@ -33,7 +33,7 @@ Hooks back up every edited file (`cfn-pre-edit-backup-hook.sh`) and check it aft
 
 ### Agent Usage (MANDATORY)
 
-**SPAWN FREQUENTLY** Protect context windows in main chat. Offload the work!
+**SPAWN FREQUENTLY** Protect context windows in main chat. Offload the work! In a worker lane started by a coordinator, the brief wins (no helpers if it says so).
 - Task requires ≥4 steps, touches multiple files, or combines research + implement + test
 - Task involves: architecture decisions, code review, security review, performance analysis, refactoring, debugging root cause
 - Research output would flood the main conversation (codebase exploration, log parsing, schema dumps, web research)
@@ -63,6 +63,7 @@ Use `codex exec` ONLY in projects whose CLAUDE.md has a literal `codex=true` lin
 - **Rust, Docker, Supabase:** never put `CARGO_TARGET_DIR` in RAM (`/dev/shm`); load `~/.claude/references/stack-rules.md` when building Rust or Docker images or touching a Supabase DB.
 
 ### Git Workflow
+- **A project rule file or a coordinator's brief that says otherwise wins** over the two lines below.
 - **Work on main (main/master) and commit directly; branch only when told.** Overrides Claude Code's "branch first" default.
 - **Commit without asking when CI is off** (no `.github/workflows/`, `.circleci/`, `Jenkinsfile`, `.gitlab-ci.yml`). Detection edge cases: `~/.claude/references/git-workflow.md`.
 
@@ -97,6 +98,7 @@ Never use terse (caveman) mode in Subagent prompts, plan artifacts (PLAN, SPEC, 
 - **Mark the best long-term option (Recommended)**, not the quick fix.
 - **Meaningful Decisions** Only surface decisions that have a meaningful consequence if made without human input. Example: "Should I remove these records from the database?" Large consequence, ask user. Commits follow Git Workflow.
 - **Order of implementation** should be decided by you. Do not stop to ask the user.
+- **Worker lanes:** if nobody is watching the session (a tmux lane started by a coordinator), do not open a question. Write it in the result file and carry on with what does not depend on it.
 
 **Night mode exception.** While night mode is on, take the conservative reversible default instead of asking; `cfn-night-mode-inject.sh` announces it and `cfn-night-mode-guard.sh` enforces. Full contract: `~/.claude/skills/cfn-night-mode/SKILL.md`.
 
