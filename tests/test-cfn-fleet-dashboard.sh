@@ -896,7 +896,9 @@ STUB
     chmod +x "$TEST_TMP/bin/code"
     : > "$CODE_LOG"
     local out
-    out=$(_fleet_dash_open 'http://127.0.0.1:4880/dashboard.html')
+    # Not-WSL path: WSL hands the URL to the Windows browser instead
+    # (tests/test-cfn-fleet-dashboard-perf.sh covers that).
+    out=$(FLEET_DASH_OPEN_WSL=0 _fleet_dash_open 'http://127.0.0.1:4880/dashboard.html')
     assert_contains "$out" 'http://127.0.0.1:4880/dashboard.html' "open always prints the http URL"
     assert_contains "$out" 'Simple Browser fallback: Ctrl+Shift+P' "open prints the fallback line"
     assert_contains "$(cat "$CODE_LOG")" \
@@ -906,7 +908,7 @@ STUB
     log_step "GIVEN no code on PATH, WHEN _fleet_dash_open"
     local saved_path="$PATH"
     export PATH="$TEST_TMP/bin-notmux"
-    out=$(_fleet_dash_open 'http://127.0.0.1:4880/dashboard.html' 2>"$TEST_TMP/open-err.log")
+    out=$(FLEET_DASH_OPEN_WSL=0 _fleet_dash_open 'http://127.0.0.1:4880/dashboard.html' 2>"$TEST_TMP/open-err.log")
     export PATH="$saved_path"
     assert_contains "$out" 'http://127.0.0.1:4880/dashboard.html' "URL still printed without code"
     assert_contains "$out" 'Simple Browser fallback' "fallback line still printed without code"

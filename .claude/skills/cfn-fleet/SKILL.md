@@ -418,7 +418,14 @@ every render pass) from the same server every `data-poll` seconds (default
 scroll position and the selected filter and sort survive each poll. Only the
 no-JS fallback does a full-page refresh, and only inside `<noscript>`. A
 live dot in the header stays green while polls succeed and turns amber on
-a failed fetch (the last good page stays up; retry on the next tick).
+a failed fetch (the last good page stays up). Cost stays flat on big rosters:
+the cards are redrawn only when the roster, host states or a STALE flag
+changed; now-editing lists are fetched only for lanes still in play, once
+per poll; the 1s age ticker writes only labels that changed. When the
+server is gone the page sends one probe per backoff step (doubling up to
+60s, other panels paused); a hidden tab polls nothing, and focus or showing
+the tab polls at once. The server drops a connection idle for 30s
+(`FLEET_DASHBOARD_REQ_TIMEOUT_S`) and does not log client hang-ups.
 
 Per-worker cards show the status pill (closed vocab), task, engine, claims,
 notes, heartbeat age (ticks client-side), landed sha, and STALE (heartbeat
@@ -476,9 +483,12 @@ $HOME/.claude/skills/cfn-fleet/cli/fleet dashboard --stop    # tear the server d
   and rooted at the run dir (static files, quiet 5xx-only log, pidfile
   `.dashboard.pid`, idempotent double-start, port busy exits 66);
   `--no-serve` renders once without binding (tests).
-- `--open` runs `code --open-url vscode://simpleBrowser.show?url=...`; when
-  the `code` CLI is absent it warns and prints the URL plus the fallback
-  (Ctrl+Shift+P, "Simple Browser: Show").
+- `--open` under WSL hands the full URL to the Windows default browser
+  (`wslview`, else `explorer.exe`); the VS Code deep link landed on the `/`
+  directory listing there. Elsewhere (or with no Windows opener) it runs
+  `code --open-url vscode://simpleBrowser.show?url=...`; when the `code` CLI
+  is absent it warns and prints the URL plus the fallback (Ctrl+Shift+P,
+  "Simple Browser: Show"). `FLEET_DASH_OPEN_WSL=1|0` forces the choice.
 - Attach and Open in terminal: every card with a session (not `pending`)
   shows its attach command, `tmux -L <sock> attach -t <name>`, or
   `ssh -t <host> tmux -L <sock> attach -t <name>` for a remote row, with a

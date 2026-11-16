@@ -1337,6 +1337,18 @@ _fleet_dash_script() {
   var query = "";
   var lastReceivedAt = null;
   var lastRosterText = null;
+  var lastRows = [];         /* rows of the last render: editing refresh + stale check */
+  var lastStaleKey = "";     /* which rows were STALE at the last render */
+  var lastHostText = null;   /* host-states.tsv text of the last re-render */
+  var lastEventsText = null; /* events tail text of the last timeline render */
+  /* Poll loop: one setTimeout chain, never stacked. A failed roster fetch
+     doubles the wait up to POLL_MAX_MS and pauses every other request; a
+     hidden tab schedules nothing; focus, online and becoming visible poll at
+     once. Rendering happens only when the roster, host states or stale flags
+     changed (a 1000-row roster rebuilt every poll burned a CPU core). */
+  var pollTimer = null, pollFails = 0, pollBusy = false, pollMs = 5000;
+  var POLL_MAX_MS = 60000;
+  var healthSeen = false;
   /* ws -> {host, state, flags} from host-states.tsv (remote workers only). */
   var hostStates = {};
 
@@ -1355,8 +1367,10 @@ _fleet_dash_script() {
     els.sort = document.getElementById("sort");
   }
 
+  var lastLive = null;
   function setLive(state) {
-    if (!els.live) return;
+    if (!els.live || state === lastLive) return;
+    lastLive = state;
     els.live.className = "live-dot " + state;
     els.live.setAttribute("data-state", state);
     els.live.setAttribute("title",
@@ -1366,6 +1380,16 @@ _fleet_dash_script() {
   }
 
   function cachebust() { return String(Date.now()); }
+
+  function pageHidden() {
+    return !!(document.visibilityState && document.visibilityState !== "visible");
+  }
+
+  /* Write text only when it differs: an identical write still replaces the
+     text node and forces a style/layout pass over the whole page. */
+  function setText(el, text) {
+    if (el.textContent !== text) el.textContent = text;
+  }
 
   function intOr(v) {
     return /^[0-9]+$/.test(v) ? parseInt(v, 10) : 0;
@@ -1458,7 +1482,7 @@ _fleet_dash_script() {
       pre.scrollTop = st.pinned ? pre.scrollHeight : st.scrollTop;
     }
     if (meta) {
-      meta.textContent = paneMetaText(st);
+      setText(meta, paneMetaText(st));
       meta.classList.toggle("err", !!st.err);
     }
   }
@@ -1497,7 +1521,7 @@ _fleet_dash_script() {
   }
 
   function pollPanes() {
-    if (!paneAvailable) return;
+    if (!paneAvailable || pollFails > 0) return;
     if (document.visibilityState && document.visibilityState !== "visible") return;
     var now = Date.now();
     Object.keys(paneOpen).forEach(function (ws) {
@@ -1683,7 +1707,7 @@ _fleet_dash_script() {
   }
 
   function fetchSessions() {
-    if (!sessionsAvailable || sessionsInflight) return;
+    if (!sessionsAvailable || sessionsInflight || pollFails > 0) return;
     if (document.visibilityState && document.visibilityState !== "visible") return;
     sessionsInflight = true;
     fetch("api/sessions?ts=" + cachebust())
@@ -1765,7 +1789,7 @@ _fleet_dash_script() {
   }
 
   function fetchMail() {
-    if (!mailAvailable || mailInflight) return;
+    if (!mailAvailable || mailInflight || pollFails > 0) return;
     if (document.visibilityState && document.visibilityState !== "visible") return;
     mailInflight = true;
     fetch("api/mail?ts=" + cachebust())
@@ -1832,6 +1856,7 @@ _fleet_dash_script() {
         return resp.json();
       })
       .then(function (d) {
+        healthSeen = true;
         openAvailable = !!(d && d.ok === true && d.open === true);
         paneAvailable = !!(d && d.ok === true && d.pane === true);
         document.querySelectorAll(".open-btn").forEach(function (b) { b.hidden = !openAvailable; });
@@ -1952,6 +1977,8 @@ _fleet_dash_script() {
     var now = Math.floor(Date.now() / 1000);
     var staleMin = intOr(document.body.getAttribute("data-stale-min") || "0");
     var rows = parseTsv(text);
+    lastRows = rows;
+    lastStaleKey = staleKey(rows, now, staleMin);
     var counts = {};
     var hosts = {};
     rows.forEach(function (r) {
@@ -2007,12 +2034,17 @@ _fleet_dash_script() {
     document.getElementById("fleet-total").textContent = rows.length + " workstreams";
     document.getElementById("visible-count").textContent = visible.length + " of " + rows.length + " shown";
     syncControls();
-    if (els.cards) {
-      Array.prototype.forEach.call(
-        els.cards.querySelectorAll('.card[data-ws]'),
-        loadEditing
-      );
-    }
+    paintEditing();
+  }
+
+  /* Same rule as cardHtml's STALE badge, as one string per roster, so a
+     poll with an unchanged roster still re-renders when a badge would flip. */
+  function staleKey(rows, now, staleMin) {
+    return rows.map(function (r) {
+      var st = String(r.status || ""), hb = intOr(r.heartbeat || "");
+      return ((st === "started" || st === "working") && hb > 0 &&
+        Math.floor((now - hb) / 60) > staleMin) ? "1" : "0";
+    }).join("");
   }
 
   function renderTimeline(text) {
@@ -2040,7 +2072,47 @@ _fleet_dash_script() {
   }
 
   /* Per-card "now editing" list: files/<ws>.txt, ws ids are user-typed so
-     the path segment is encodeURIComponent'd. 404 clears the section. */
+     the path segment is encodeURIComponent'd. 404 clears the section.
+     editingHtml caches each block so a re-render repaints without a request;
+     it starts from the blocks bash rendered into the page. Only lanes that
+     can still be editing (not pending, finished or landed) are refetched,
+     once per successful poll, at most EDITING_MAX_INFLIGHT at a time: one
+     fetch per card per render was ~425 requests/s on a 1064-row roster. */
+  var editingHtml = {};
+  var editingQueue = [], editingInflight = 0, EDITING_MAX_INFLIGHT = 4;
+
+  function seedEditing() {
+    document.querySelectorAll('.card[data-ws]').forEach(function (card) {
+      var e = card.querySelector(".editing");
+      if (e) editingHtml[card.getAttribute("data-ws") || ""] = e.outerHTML;
+    });
+  }
+
+  function paintEditing() {
+    if (!els.cards) return;
+    Array.prototype.forEach.call(els.cards.querySelectorAll('.card[data-ws]'), function (card) {
+      var h = editingHtml[card.getAttribute("data-ws") || ""];
+      if (h) applyEditing(card, h);
+    });
+  }
+
+  function editingLive(r) {
+    var st = String(r.status || "");
+    return st !== "pending" && st !== "landed" && !isFinished(r);
+  }
+
+  function refreshEditing() {
+    if (editingQueue.length || editingInflight) return;  /* last round still running */
+    editingQueue = lastRows.filter(editingLive).map(function (r) { return String(r.ws_id || ""); });
+    pumpEditing();
+  }
+
+  function pumpEditing() {
+    while (editingInflight < EDITING_MAX_INFLIGHT && editingQueue.length) {
+      editingInflight += 1;
+      loadEditing(editingQueue.shift());
+    }
+  }
   function applyEditing(card, html) {
     var old = card.querySelector(".editing");
     if (old) old.remove();
@@ -2054,19 +2126,27 @@ _fleet_dash_script() {
     if (old) old.remove();
   }
 
-  function loadEditing(card) {
-    var ws = card.getAttribute("data-ws");
-    if (!ws || !/^[A-Za-z0-9._-]+$/.test(ws)) return;
+  function setEditing(ws, h) {
+    if ((editingHtml[ws] || "") === h) return;
+    editingHtml[ws] = h;
+    var card = els.cards && els.cards.querySelector('.card[data-ws="' + ws + '"]');
+    if (!card) return;
+    if (h) applyEditing(card, h); else clearEditing(card);
+  }
+
+  function loadEditing(ws) {
+    function done() { editingInflight -= 1; pumpEditing(); }
+    if (!ws || !/^[A-Za-z0-9._-]+$/.test(ws)) { done(); return; }
     fetch("files/" + encodeURIComponent(ws) + ".txt?ts=" + cachebust())
       .then(function (resp) {
-        if (!resp.ok) { clearEditing(card); return null; }
+        if (!resp.ok) { setEditing(ws, ""); return null; }
         return resp.text();
       })
       .then(function (text) {
         if (text === null) return;
         var lines = text.split("\n").map(function (l) { return l.trim(); })
           .filter(function (l) { return l.length > 0; });
-        if (!lines.length) { clearEditing(card); return; }
+        if (!lines.length) { setEditing(ws, ""); return; }
         var h = '<div class="editing"><span class="editing-h">now editing</span><ul class="files">';
         lines.slice(0, 8).forEach(function (p) {
           h += '<li>' + esc(p) + '</li>';
@@ -2075,9 +2155,10 @@ _fleet_dash_script() {
           h += '<li class="files-more">+' + (lines.length - 8) + ' more</li>';
         }
         h += '</ul></div>';
-        applyEditing(card, h);
+        setEditing(ws, h);
       })
-      .catch(function () { clearEditing(card); });
+      .catch(function () { /* keep the last list */ })
+      .then(done);
   }
 
   function pollGoal(cb) {
@@ -2107,6 +2188,8 @@ _fleet_dash_script() {
         return resp.text();
       })
       .then(function (text) {
+        if (text === lastHostText) return;  /* unchanged: no re-render */
+        lastHostText = text;
         var map = {};
         text.split("\n").forEach(function (line) {
           var c = line.split("\t");
@@ -2116,34 +2199,83 @@ _fleet_dash_script() {
         hostStates = map;
         rerenderLocal();
       })
-      .catch(function () { hostStates = {}; });
+      .catch(function () {
+        if (lastHostText === null) return;
+        lastHostText = null;
+        hostStates = {};
+        rerenderLocal();
+      });
   }
 
+  function nextPollMs() {
+    if (!pollFails) return pollMs;
+    return Math.min(POLL_MAX_MS, pollMs * Math.pow(2, Math.min(pollFails, 6)));
+  }
+
+  function schedulePoll(ms) {
+    if (pollTimer) clearTimeout(pollTimer);
+    pollTimer = null;
+    if (pageHidden()) return;  /* resumed by visibilitychange */
+    pollTimer = setTimeout(poll, ms);
+  }
+
+  /* Poll now (tab shown, window focused, network back); a poll in flight
+     reschedules itself when it ends. */
+  function resumePolling() {
+    if (pageHidden() || pollBusy) return;
+    schedulePoll(0);
+  }
+
+  /* roster.tsv first: it doubles as the liveness probe. Only when it answers
+     do the other feeds go out, so a stopped server costs one request per
+     backoff step instead of five per poll. */
   function poll() {
+    pollTimer = null;
+    if (pageHidden() || pollBusy) return;
+    pollBusy = true;
     var cb = cachebust();
-    pollHostStates(cb);
     fetch("roster.tsv?ts=" + cb)
       .then(function (resp) {
         if (!resp.ok) throw new Error("roster http " + resp.status);
         return resp.text();
       })
       .then(function (text) {
-        renderRoster(text);
+        pollFails = 0;
+        var now = Math.floor(Date.now() / 1000);
+        var staleMin = intOr(document.body.getAttribute("data-stale-min") || "0");
+        if (text !== lastRosterText || staleKey(lastRows, now, staleMin) !== lastStaleKey) {
+          renderRoster(text);
+        }
         lastReceivedAt = Date.now();
-        if (els.updated) els.updated.textContent = "Received " + new Date(lastReceivedAt).toISOString().slice(11, 19) + " UTC";
+        if (els.updated) setText(els.updated, "Received " + new Date(lastReceivedAt).toISOString().slice(11, 19) + " UTC");
         setLive("ok");
-      })
-      .catch(function () {
-        /* Fetch failed: amber dot, retry on the next tick. The last good
-           page stays on screen, it is never cleared on error. */
+        if (!healthSeen) checkOpen();  /* the server was down at page load */
+        pollHostStates(cb);
+        pollFeeds(cb);
+        refreshEditing();
+      }, function () {
+        /* Fetch failed: amber dot, back off. The last good page stays on
+           screen, it is never cleared on error. */
+        pollFails += 1;
         setLive("err");
+      })
+      .then(function () {
+        pollBusy = false;
+        schedulePoll(nextPollMs());
       });
+  }
+
+  function pollFeeds(cb) {
     fetch("dashboard-events-tail.jsonl?ts=" + cb)
       .then(function (resp) {
         if (!resp.ok) throw new Error("events http " + resp.status);
         return resp.text();
       })
-      .then(renderTimeline)
+      .then(function (text) {
+        if (text === lastEventsText) return;
+        lastEventsText = text;
+        renderTimeline(text);
+      })
       .catch(function () { /* keep the last timeline */ });
     fetch("glossary.tsv?ts=" + cb)
       .then(function (resp) {
@@ -2165,16 +2297,19 @@ _fleet_dash_script() {
     if (lastRosterText !== null) renderRoster(lastRosterText);
   }
 
-  /* 1s heartbeat ticker (kept from the static page). */
+  /* 1s heartbeat ticker (kept from the static page). Idle on a hidden tab;
+     writes only labels whose text changed (rewriting ~1000 identical labels
+     each second re-laid-out the whole page every second). */
   function tick() {
+    if (pageHidden()) return;
     var now = Math.floor(Date.now() / 1000);
     document.querySelectorAll(".hb-age[data-epoch]").forEach(function (el) {
       var d = now - parseInt(el.getAttribute("data-epoch"), 10);
       if (!isFinite(d) || d < 0) d = 0;
-      el.textContent = fmtAge(d);
+      setText(el, fmtAge(d));
     });
     document.querySelectorAll(".sess-age[data-updated]").forEach(function (el) {
-      el.textContent = sessionAge(parseInt(el.getAttribute("data-updated"), 10) || 0, now);
+      setText(el, sessionAge(parseInt(el.getAttribute("data-updated"), 10) || 0, now));
     });
     paintPanes(false);  /* "updated Ns ago" lines */
     pollPanes();
@@ -2285,14 +2420,20 @@ _fleet_dash_script() {
 
   function start() {
     initEls();
+    seedEditing();
     wireControls();
     checkOpen();
     tick();
     setInterval(tick, 1000);
     var pollS = intOr(document.body.getAttribute("data-poll") || "5");
     if (pollS < 1) pollS = 5;
+    pollMs = pollS * 1000;
+    document.addEventListener("visibilitychange", function () {
+      if (!pageHidden()) { tick(); resumePolling(); }
+    });
+    window.addEventListener("focus", resumePolling);
+    window.addEventListener("online", resumePolling);
     poll();
-    setInterval(poll, pollS * 1000);
   }
 
   start();
@@ -2486,11 +2627,42 @@ _fleet_urlencode() {
   printf '%s' "$out"
 }
 
-# _fleet_dash_open URL: raise the URL in the VS Code Simple Browser via the
-# code CLI. Absent or failing code is warn-only. ALWAYS prints the http URL
-# plus the manual fallback line, so the flow works with no code CLI at all.
+# _fleet_dash_is_wsl: 0 under WSL. FLEET_DASH_OPEN_WSL=1/0 overrides (test seam).
+_fleet_dash_is_wsl() {
+  case "${FLEET_DASH_OPEN_WSL:-}" in
+    1) return 0 ;;
+    0) return 1 ;;
+  esac
+  [ -n "${WSL_DISTRO_NAME:-}" ] && return 0
+  case "$(uname -r 2>/dev/null)" in
+    *[Mm]icrosoft*) return 0 ;;
+  esac
+  return 1
+}
+
+# _fleet_dash_open URL: under WSL, hand the full URL to the Windows default
+# browser (wslview, else explorer.exe). The VS Code deep link from WSL landed
+# on the "/" directory listing instead of /dashboard.html, so it is used only
+# outside WSL or when no Windows opener exists. explorer.exe exits 1 even when
+# it opened the page, so its exit code is ignored. Absent or failing openers
+# are warn-only. ALWAYS prints the http URL plus a manual fallback line.
 _fleet_dash_open() {
   local url="$1" enc
+  if _fleet_dash_is_wsl; then
+    if command -v wslview >/dev/null 2>&1; then
+      wslview "$url" >/dev/null 2>&1 \
+        || echo "fleet dashboard: WARN: wslview failed; open the URL manually" >&2
+      echo "$url"
+      echo 'Browser fallback: paste the URL into any browser'
+      return 0
+    fi
+    if command -v explorer.exe >/dev/null 2>&1; then
+      explorer.exe "$url" >/dev/null 2>&1 || true
+      echo "$url"
+      echo 'Browser fallback: paste the URL into any browser'
+      return 0
+    fi
+  fi
   enc=$(_fleet_urlencode "$url")
   if command -v code >/dev/null 2>&1; then
     code --open-url "vscode://simpleBrowser.show?url=$enc" \

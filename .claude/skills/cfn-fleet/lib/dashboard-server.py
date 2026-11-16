@@ -157,6 +157,20 @@ MAIL_NAME_MAX = 64
 MAIL_NOT_SET_UP = 78
 MAIL_STR_FIELDS = ("id", "from", "to", "kind", "fleet", "thread")
 ARCHIVE_MARKER = ".archived"
+# Per-connection socket timeout. Without one, a client that connects and
+# never finishes its request (a half-open tab, a stalled proxy) held a
+# handler thread and an fd for as long as the server ran.
+REQ_TIMEOUT_DEFAULT_S = 30
+
+
+def req_timeout_s():
+    """FLEET_DASHBOARD_REQ_TIMEOUT_S (test seam), else REQ_TIMEOUT_DEFAULT_S."""
+    raw = os.environ.get("FLEET_DASHBOARD_REQ_TIMEOUT_S", "")
+    try:
+        val = float(raw)
+    except ValueError:
+        return REQ_TIMEOUT_DEFAULT_S
+    return val if 0 < val <= 3600 else REQ_TIMEOUT_DEFAULT_S
 # Closed list of keys a session object may carry; nothing else from the
 # session file ever reaches the page.
 SESSION_FIELDS = ("pid", "name", "project", "other", "role", "ws", "brief", "run",
@@ -964,6 +978,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         return self.send_json(hit[0], hit[1])
 
 
+class DashboardServer(http.server.ThreadingHTTPServer):
+    """Daemon handler threads; a client that hangs up or times out mid-request
+    is routine for a polling tab and never writes a traceback to the log."""
+    daemon_threads = True
+
+    def handle_error(self, request, client_address):
+        if isinstance(sys.exc_info()[1], (ConnectionError, TimeoutError)):
+            return
+        http.server.ThreadingHTTPServer.handle_error(self, request, client_address)
+
+
 def main(argv):
     if len(argv) != 4:
         sys.stderr.write("usage: dashboard-server.py PORT RUN_DIR SOCKET\n")
@@ -973,8 +998,9 @@ def main(argv):
     Handler.run_dir = run_dir
     Handler.socket_name = argv[3]
     Handler.port = port
+    Handler.timeout = req_timeout_s()
     handler = functools.partial(Handler, directory=run_dir)
-    http.server.ThreadingHTTPServer(("127.0.0.1", port), handler).serve_forever()
+    DashboardServer(("127.0.0.1", port), handler).serve_forever()
     return 0
 
 
