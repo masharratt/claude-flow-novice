@@ -27,6 +27,12 @@ SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # repo. Scrub them before any git call. Word splitting is intended.
 # shellcheck disable=SC2086
 unset $CFN_GIT_REDIRECT_VARS
+# sandbox-settings.sh: the locked --settings builder shared with cfn-fleet
+# host workers; lib/sandbox.sh picks the paths for a local claude worker.
+# shellcheck source=../../cfn-scripts/sandbox-settings.sh
+. "$(cd "$SKILL_DIR/../../cfn-scripts" && pwd)/sandbox-settings.sh"
+# shellcheck source=lib/sandbox.sh
+. "$SKILL_DIR/lib/sandbox.sh"
 
 TA_SOCK=""
 
@@ -210,11 +216,46 @@ cmd_spawn() {
       || _ta_die 66 "spawn: engine '$engine' needs a valid $od_root/$CFN_OPEN_DIRS_FILE (reason above); use engine glm to stay fenced to the project"
   fi
 
+  # Claude-kind workers (claude-sub, claude-haiku, a --bin named claude) run
+  # bypassPermissions, so they get the locked sandbox settings
+  # (lib/sandbox.sh): no unsandboxed escape, writes fenced to the repo and the
+  # worker outbox. Refuses (66) when this machine cannot build the sandbox,
+  # unless TMUX_AGENTS_UNSANDBOXED=1.
+  # Fenced engines (glm, glm-open: bin is zai-fence.sh) are already inside the
+  # fence's own bwrap, where Claude's sandbox cannot start (its --unshare-net
+  # needs a netlink socket the fence's seccomp refuses; no socat inside;
+  # probed 2026-11-16). They get the sandbox explicitly OFF plus the same
+  # Edit/Write deny rules, no host probe, and no outbox (the fence gives them
+  # a private /tmp).
+  local sbx_settings="" outbox="" sbx_q="" fenced=0 w
+  [ "$(basename "$bin")" = "zai-fence.sh" ] && fenced=1
+  if [ "$bin_kind" = claude ]; then
+    for w in ${words[@]+"${words[@]}"}; do
+      case "$w" in
+        --settings|--settings=*)
+          _ta_die 64 "spawn: --args may not carry --settings for a claude engine (spawn adds the locked sandbox settings itself)" ;;
+      esac
+    done
+    _ta_sandbox_extra_allow
+    if [ "$fenced" = 1 ]; then
+      _TA_SBX_ON=0
+    else
+      _ta_sandbox_gate "$name" "$dry_run"
+      outbox=$(_ta_sandbox_outbox "$TA_SOCK" "$name")
+    fi
+    sbx_settings=$(_ta_sandbox_settings "$cwd" "$outbox" "$_TA_SBX_ON") \
+      || _ta_die 66 "spawn: could not build the sandbox settings for $name"
+    # Single-quoted on purpose: every path in it passed cfn_sandbox_safe_path
+    # (no quote, backslash or space), so the JSON stays readable in dry-run.
+    sbx_q=" --settings '$sbx_settings'"
+  fi
+
   _ta_zai_token_prefill
   # Resolve now so a missing token still exits 66 before any side effect.
   local resolved set_raw
   resolved=$(_ta_engine_resolve_set "$engine") || exit "$?"
   set_raw=$(_ta_engine_field "$engine" 4)
+  [ -z "$outbox" ] || resolved="${resolved:+$resolved$'\n'}TMUX_AGENTS_OUTBOX=$outbox"
 
   # BUG codex-no-banner (11-04): the pane resolved the engine itself; with
   # codex gone from every PATH, `exec codex` killed the pane and spawn showed
@@ -234,9 +275,10 @@ cmd_spawn() {
   fi
 
   # The pane command: one literal line, exec so the pane dies with the engine.
-  local pane_cmd bin_q w uv="" u
+  local pane_cmd bin_q uv="" u
   bin_q=$(printf '%q' "$bin")
   for w in ${words[@]+"${words[@]}"}; do bin_q+=" $(printf '%q' "$w")"; done
+  bin_q+="$sbx_q"
   for u in ${unset_raw//,/ }; do
     [[ "$u" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || _ta_die 65 "spawn: engine '$engine' unset list holds a bad name '$u'"
     uv+=" $u"
@@ -250,8 +292,11 @@ cmd_spawn() {
     # Literal values may ride -e; secret ($SOURCE_VAR) values never print:
     # the pane reads them with a silent prompt.
     cfn_spawn_env_secret_notes "$set_raw"
+    [ -z "$outbox" ] || echo "# claude worker sandbox $([ "$_TA_SBX_ON" = 1 ] && echo on || echo OFF); outbox $outbox (mkdir -m 700 it; the pane needs TMUX_AGENTS_OUTBOX=$outbox)"
+    [ -z "$sbx_q" ] || [ "$fenced" = 0 ] || echo "# claude worker inside zai-fence: Claude's Bash sandbox off (the fence confines it), Edit/Write deny rules on, no outbox"
     echo "tmux -L $TA_SOCK new-session -d -s $name -c $cwd$(cfn_spawn_env_literal_flags "$set_raw")"
-    echo "tmux -L $TA_SOCK send-keys -t $name -l \"$(cfn_spawn_env_secret_prompt "$set_raw")$pane_cmd\""
+    # \" so the double-quoted line stays copy-pasteable with the settings JSON in it
+    echo "tmux -L $TA_SOCK send-keys -t $name -l \"$(cfn_spawn_env_secret_prompt "$set_raw")${pane_cmd//\"/\\\"}\""
     echo "tmux -L $TA_SOCK send-keys -t $name Enter"
     [ -n "$trust_re" ] && echo "# if the trust prompt appears: tmux -L $TA_SOCK send-keys -t $name ${trust_keys//,/ }"
     echo "# after the banner shows (/$banner_re/):"
@@ -263,6 +308,10 @@ cmd_spawn() {
   command -v tmux >/dev/null 2>&1 || _ta_die 3 "spawn: tmux not available (use --dry-run for copy-paste commands)"
   _ta_tmux_server_warn "$TA_SOCK"
 
+  if [ -n "$outbox" ]; then
+    (umask 077 && mkdir -p "$outbox") && chmod 700 "$outbox" \
+      || _ta_die 66 "spawn: could not create the worker outbox $outbox"
+  fi
   cfn_spawn_launch_write "$resolved" "$pane_cmd" || _ta_die 66 "spawn: could not write the private launch script for $name"
   if ! tmux -L "$TA_SOCK" new-session -d -s "$name" -c "$cwd"; then
     [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
@@ -360,7 +409,10 @@ cmd_spawn() {
     exit 68
   fi
   tmux -L "$TA_SOCK" set-option -w -t "$name" remain-on-exit off 2>/dev/null || true
-  echo "spawned $name engine=$engine cwd=$cwd banner=\"$banner_line\""
+  local sbx_note=""
+  [ -z "$outbox" ] || sbx_note=" sandbox=$([ "$_TA_SBX_ON" = 1 ] && echo on || echo OFF) outbox=$outbox"
+  [ -z "$sbx_q" ] || [ "$fenced" = 0 ] || sbx_note=" sandbox=fence"
+  echo "spawned $name engine=$engine cwd=$cwd$sbx_note banner=\"$banner_line\""
 
   if [ -n "$prompt_file" ]; then
     [ -f "$prompt_file" ] || _ta_die 64 "spawn: --prompt-file not found: $prompt_file"

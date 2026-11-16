@@ -29,6 +29,11 @@
 # Server scripts run as `bash -c SCRIPT _ ARGS...`: host.sh %q-quotes each word,
 # so ~ and $HOME only expand inside the script, never in an argument.
 
+# sandbox-settings.sh: the shared --settings builder, safe-path check and fix
+# commands (also used by cfn-tmux-agents for local claude workers).
+# shellcheck source=../../../cfn-scripts/sandbox-settings.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../cfn-scripts" && pwd)/sandbox-settings.sh"
+
 # Preflight, args: clone bare wt base_ref allow_paths (space separated,
 # validated by _spawn_remote_allow_write). Prints facts; the Mac decides.
 _SPAWN_REMOTE_PREFLIGHT='
@@ -349,7 +354,7 @@ _spawn_remote(){
   if [ "$rc" -ne 0 ] || [ -z "$home" ]; then
     fleet_die 66 "spawn: host $host is unreachable over ssh (rc $rc); $ws left pending"
   fi
-  _spawn_remote_safe_path "$home" \
+  cfn_sandbox_safe_path "$home" \
     || fleet_die 66 "spawn: host $host reported an odd home directory '$home' (absolute, letters, digits, . _ - / only); $ws left pending"
   clone="$home/fleet-repos/$project"
   bare="$home/git/$project.git"
@@ -504,10 +509,8 @@ _SPAWN_REMOTE_NAME_CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01
 # No quote, backslash or paren appears literally once the JSON is decoded.
 _SPAWN_REMOTE_NAME_OTHER='[\u0001-,:-@[-^`{-￿]'
 
-# Fix commands printed when a host cannot fence a worker (Ubuntu 24.04 blocks
-# unprivileged user namespaces for bwrap unless an AppArmor profile allows it).
-_SPAWN_FIX_BWRAP="sudo apt install bubblewrap, then allow it user namespaces: printf 'abi <abi/4.0>,\\ninclude <tunables/global>\\nprofile bwrap /usr/bin/bwrap flags=(unconfined) {\\n  userns,\\n}\\n' | sudo tee /etc/apparmor.d/bwrap && sudo apparmor_parser -r /etc/apparmor.d/bwrap (check: bwrap --ro-bind / / true)"
-_SPAWN_FIX_SOCAT="sudo apt install socat (Claude Code's Linux sandbox needs it for its network proxy)"
+# Fix commands printed when a host cannot fence a worker (the bwrap and
+# socat ones live in cfn-scripts/sandbox-settings.sh).
 _SPAWN_FIX_SCOPE="sudo loginctl enable-linger \$USER, then log in again (check: systemd-run --user --scope -p MemoryMax=1G true)"
 
 # _spawn_remote_knob KEY DEFAULT -> environment value, else fleet.env, else DEFAULT.
@@ -529,13 +532,6 @@ _spawn_remote_limits(){
     || fleet_die 64 "spawn: FLEET_REMOTE_MEM '$_SPAWN_REMOTE_MEM' is not a size like 12G (systemd MemoryMax)"
   [[ "$_SPAWN_REMOTE_CPU" =~ ^[0-9]+%$ ]] \
     || fleet_die 64 "spawn: FLEET_REMOTE_CPU '$_SPAWN_REMOTE_CPU' is not a percentage like 400% (systemd CPUQuota)"
-}
-
-# _spawn_remote_safe_path P: 0 when P is absolute and holds only letters,
-# digits, . _ - /. Paths go into JSON strings and a single-quoted shell word
-# unescaped, so a quote, backslash or space must never reach them.
-_spawn_remote_safe_path(){
-  [[ "${1:-}" =~ ^/[A-Za-z0-9._/-]+$ ]]
 }
 
 # _spawn_remote_allow_write: resolve FLEET_REMOTE_ALLOW_WRITE (path:path...)
@@ -646,8 +642,8 @@ _spawn_remote_mdtwii_deny(){
 _spawn_remote_gate(){
   local ws="$1" host="$2" bwrap_ok="$3" socat_ok="$4" scope_ok="$5" override why="" fix=""
   override=$(_spawn_remote_knob FLEET_REMOTE_UNSANDBOXED 0)
-  [ "$bwrap_ok" -eq 1 ] || { why+="bwrap cannot create a sandbox; "; fix+="$_SPAWN_FIX_BWRAP; "; }
-  [ "$socat_ok" -eq 1 ] || { why+="socat is missing; "; fix+="$_SPAWN_FIX_SOCAT; "; }
+  [ "$bwrap_ok" -eq 1 ] || { why+="bwrap cannot create a sandbox; "; fix+="$CFN_SANDBOX_FIX_BWRAP; "; }
+  [ "$socat_ok" -eq 1 ] || { why+="socat is missing; "; fix+="$CFN_SANDBOX_FIX_SOCAT; "; }
   [ "$scope_ok" -eq 1 ] || { why+="systemd-run --user does not work (no CPU/memory caps); "; fix+="$_SPAWN_FIX_SCOPE; "; }
   if [ -n "$why" ] && [ "$override" != 1 ]; then
     fleet_die 66 "spawn: host $host cannot fence workers: ${why%; }. Fix on the server: ${fix%; }. Or set FLEET_REMOTE_UNSANDBOXED=1 to run without the missing fences; $ws left pending"
@@ -663,23 +659,14 @@ _spawn_remote_gate(){
   return 0
 }
 
-# _spawn_json_list ITEM... -> ["a","b"]. Items must be pre-validated (no
-# quote, backslash or control character; the one exception is the deliberate
-# \u escapes of _SPAWN_REMOTE_NAME_OTHER, which are valid JSON).
-_spawn_json_list(){
-  local out="" x
-  for x in "$@"; do out+="${out:+,}\"$x\""; done
-  printf '[%s]' "$out"
-}
-
 # _spawn_remote_settings HOME WT CLONE OB SANDBOX_ON -> the --settings JSON on
 # stdout, one line. Returns 1 when a path is not safe to embed.
 # _SPAWN_REMOTE_ALLOW (validated FLEET_REMOTE_ALLOW_WRITE) joins allowWrite.
 _spawn_remote_settings(){
-  local home="$1" wt="$2" clone="$3" ob="$4" sandbox_on="$5" p sandbox
+  local home="$1" wt="$2" clone="$3" ob="$4" sandbox_on="$5" p
   local -a allow=(${_SPAWN_REMOTE_ALLOW[@]+"${_SPAWN_REMOTE_ALLOW[@]}"}) mdt=() deny_abs=()
   for p in "$home" "$wt" "$clone" "$ob"; do
-    _spawn_remote_safe_path "$p" || { echo "spawn: unsafe server path for settings: $p" >&2; return 1; }
+    cfn_sandbox_safe_path "$p" || { echo "spawn: unsafe server path for settings: $p" >&2; return 1; }
   done
   # The outbox kit is the master's: the worker reads it, never rewrites it.
   # The clone's git config and hooks, and the worktree's .git pointer file
@@ -704,12 +691,8 @@ _spawn_remote_settings(){
   for p in "${deny_abs[@]}"; do rules+=("Edit(/$p)"); done
   for p in "${kit[@]}"; do rules+=("Edit(/$p)"); done
   rules+=("Edit(/$clone/.git/config)" "Edit(/$clone/.git/hooks/**)" "Edit(/$wt/.git)")
-  if [ "$sandbox_on" = 1 ]; then
-    sandbox=$(printf '{"enabled":true,"failIfUnavailable":true,"allowUnsandboxedCommands":false,"filesystem":{"allowWrite":%s,"denyWrite":%s},"network":{"allowAllUnixSockets":false}}' \
-      "$(_spawn_json_list "$wt" "$clone" "$ob" "${allow[@]}")" \
-      "$(_spawn_json_list "${kit[@]}" "$clone/.git/config" "$clone/.git/hooks" "$wt/.git")")
-  else
-    sandbox='{"enabled":false}'
-  fi
-  printf '{"sandbox":%s,"permissions":{"deny":%s}}\n' "$sandbox" "$(_spawn_json_list "${rules[@]}")"
+  cfn_sandbox_settings_json "$sandbox_on" \
+    --allow "$wt" "$clone" "$ob" ${allow[@]+"${allow[@]}"} \
+    --deny-write "${kit[@]}" "$clone/.git/config" "$clone/.git/hooks" "$wt/.git" \
+    --rules "${rules[@]}"
 }

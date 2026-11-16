@@ -5,6 +5,32 @@ feature set. The current status of each feature lives in
 `readme/feature-status.md`; this file holds the history. Finding codes
 (S0xx, Wn, Gnn) refer to the verification-hardening waves documented here.
 
+## 2026-11-16: tmux workers run in fleet's locked sandbox
+
+- Security review of the GG VPS found tmux workers (claude-sub, claude-haiku, glm) ran with
+  `bypassPermissions` and the user's normal settings, so they could ask to run a command outside
+  the sandbox and have it auto-approved, gaining passwordless sudo through a script.
+- Fleet's settings builder moved to `.claude/cfn-scripts/sandbox-settings.sh`; fleet output is
+  byte-identical (cmp over four input sets). `cfn-tmux-agents` now passes `--settings` with the
+  sandbox forced on, `failIfUnavailable`, `allowUnsandboxedCommands: false`, no unix sockets,
+  writes limited to the repo, its git dir and `$TMUX_AGENTS_OUTBOX`. Spawn refuses (66) where
+  bwrap cannot run; `TMUX_AGENTS_UNSANDBOXED=1` opts out loudly; `--args` carrying `--settings`
+  is refused (64).
+- Live probe on the VPS: writes outside the repo and to `~/.claude` blocked, NoNewPrivs=1,
+  `docker info` denied. Known limit, accepted by the owner: `sandbox.excludedCommands` in
+  `~/.claude/settings.json` (`pnpm ship*`, `pnpm stack:up*`, `docker ps*`, ...) still runs
+  unsandboxed in every worker; `--settings` cannot remove list entries. Removing passwordless
+  sudo on the host is the mitigation.
+- Ported onto the zai-fence allow-list and startup-gate work: fenced engines (`glm`, `glm-open`)
+  do not get Claude's Bash sandbox. Probed inside the real fence: a plain nested
+  `bwrap --ro-bind / / true` works, but Claude's network-isolated bwrap fails ("Failed to create
+  NETLINK_ROUTE socket", the fence's seccomp refuses netlink) and socat is absent. They get
+  `--settings` with the sandbox explicitly off plus the same Edit/Write deny rules, skip the host
+  bwrap/socat probe, and have no outbox (private `/tmp` inside the fence).
+- Tests: `test-agents.sh` 103/103 after the port (test 21 new, fenced cases added),
+  `test-spawn-path.sh` 16/16 (one timing flake in the dead-pane status check seen once on the VPS,
+  3/3 clean on rerun).
+
 ## 2026-10-14: fenced glm workers find `fleet` on PATH
 
 - `zai-fence.sh` now prepends `~/.claude/skills/cfn-fleet/cli` to the worker's PATH when the

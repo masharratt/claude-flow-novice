@@ -12,6 +12,8 @@ FAKE="$SKILL_DIR/tests/fake-engine.sh"
 REAL_FENCE="$(cd "$SKILL_DIR/../../cfn-scripts" && pwd -P)/zai-fence.sh"
 GITC=(-c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false)
 APPROVE="$(cd "$SKILL_DIR/../../cfn-scripts" && pwd -P)/glm-open-approve.sh"
+# shellcheck source=../../../cfn-scripts/lib/safe-rm.sh
+. "$(cd "$SKILL_DIR/../../cfn-scripts/lib" && pwd -P)/safe-rm.sh"
 # glm-open approvals (allow-list fence) go to a test store, never the real ~/.config
 CFN_GLM_OPEN_APPROVALS=$(mktemp -d); export CFN_GLM_OPEN_APPROVALS
 # allow-list fence worker homes go to a temp dir, never the real ~/.claude
@@ -22,7 +24,24 @@ export TMUX_AGENTS_BANNER_TIMEOUT=3  # banner-timeout test must fail fast
 
 PASS=0 FAIL=0 TOTAL=0
 
+# Claude-kind spawns probe the host sandbox (bwrap + socat on Linux). Tests
+# run inside other sandboxes where a nested bwrap fails, so a probe-passing
+# stub sits first on PATH; test 21 swaps in a failing one to check the refusal.
+# Worker outboxes go to a per-run dir, never the shared /tmp default.
+GTD=$(mktemp -d) || exit 1
+mkdir -p "$GTD/sbx" "$GTD/out"
+# The stub passes only the probe; every other bwrap call (the real zai-fence
+# in the glm tests) goes to the real bwrap, or fails when there is none.
+REAL_BWRAP=$(command -v bwrap 2>/dev/null || true)
+printf '#!/bin/sh\n[ "$*" = "--ro-bind / / true" ] && exit 0\n[ -n "%s" ] || exit 127\nexec "%s" "$@"\n' "$REAL_BWRAP" "$REAL_BWRAP" > "$GTD/sbx/bwrap"
+printf '#!/bin/sh\nexit 0\n' > "$GTD/sbx/socat"
+chmod +x "$GTD/sbx/bwrap" "$GTD/sbx/socat"
+export PATH="$GTD/sbx:$PATH"
+GLOBAL_OUTBOX_ROOT="$GTD/out"
+export TMUX_AGENTS_OUTBOX_ROOT="$GLOBAL_OUTBOX_ROOT"
+
 cleanup() {
+  cfn_safe_rm_tmp "$GTD" || true
   tmux -L "$SOCK" kill-server 2>/dev/null || true
   tmux -L "$SOCK-k" kill-server 2>/dev/null || true
   tmux -L "$SOCK-L" kill-server 2>/dev/null || true
@@ -466,6 +485,138 @@ CAP=$(tmux -L "$SOCK" capture-pane -p -t fp1 2>/dev/null || true)
 case "$CAP" in *"SUBMITTED: first prompt after ready"*) ok "first-prompt bug: prompt waits for the input box and is submitted" ;; *) bad "first-prompt bug: prompt lost or unsubmitted: out=${OUT:0:200} pane=${CAP:0:300}" ;; esac
 "$EXE" kill fp1 --socket "$SOCK" >/dev/null 2>&1 || true
 rm -rf "$TD"
+
+# 21. Locked sandbox for claude workers (owner-approved 2026-11-16). claude
+# engines ran with --permission-mode bypassPermissions on the user's normal
+# settings, where allowUnsandboxedCommands defaults to true and bypass mode
+# auto-approves an unsandboxed run: a tricked worker could leave the sandbox
+# (and sudo from a script). Claude workers now get the same locked --settings
+# cfn-fleet host workers get (shared builder in cfn-scripts/sandbox-settings.sh);
+# spawn refuses (66) when this host cannot build the sandbox, unless
+# TMUX_AGENTS_UNSANDBOXED=1. Probes are faked with a bwrap stub on PATH.
+TD=$(mktemp -d) || exit 1
+TD=$(cd -P "$TD" && pwd -P)
+mkdir -p "$TD/sbx-ok" "$TD/sbx-bad" "$TD/out" "$TD/repo" "$TD/fakebin"
+printf '#!/bin/sh\nexit 0\n' > "$TD/sbx-ok/bwrap"
+printf '#!/bin/sh\nexit 0\n' > "$TD/sbx-ok/socat"
+printf '#!/bin/sh\necho "bwrap: No permissions to create new namespace" >&2\nexit 1\n' > "$TD/sbx-bad/bwrap"
+printf '#!/bin/sh\nexit 0\n' > "$TD/sbx-bad/socat"
+chmod +x "$TD"/sbx-ok/* "$TD"/sbx-bad/*
+git -C "$TD/repo" init -q 2>/dev/null
+REPO="$TD/repo"
+export TMUX_AGENTS_OUTBOX_ROOT="$TD/out"
+# settings_of TEXT -> the JSON after --settings '...' (empty when absent); the
+# dry-run line escapes its double quotes as \" to stay copy-pasteable
+settings_of() {
+  python3 -c 'import re,sys; m=re.search(r"--settings \x27([^\x27]*)\x27", sys.argv[1]); print(m.group(1).replace(chr(92)+chr(34), chr(34)) if m else "")' "$1"
+}
+# jq_py JSON EXPR -> python expression over d, printed as JSON
+jq_py() { python3 -c 'import json,sys; d=json.loads(sys.argv[1]); print(json.dumps(eval(sys.argv[2])))' "$1" "$2" 2>/dev/null || echo "<bad-json>"; }
+# has_all JSON EXPR ITEM... -> "missing=[...]" listing ITEMs absent from the list EXPR
+has_all() {
+  python3 -c 'import json,sys; d=json.loads(sys.argv[1]); got=set(eval(sys.argv[2])); print("missing="+json.dumps([x for x in sys.argv[3:] if x not in got]))' "$@" 2>/dev/null || echo "missing=<bad-json>"
+}
+check_locked() { # check_locked LABEL JSON SESSION
+  local lbl="$1" js="$2" ob="$TD/out/$SOCK/$3"
+  [ -n "$js" ] && ok "$lbl: spawn passes --settings" || { bad "$lbl: no --settings in the launch"; return 0; }
+  [ "$(jq_py "$js" 'd["sandbox"]["enabled"]')" = true ] && ok "$lbl: sandbox.enabled true" || bad "$lbl: sandbox.enabled not true: ${js:0:200}"
+  [ "$(jq_py "$js" 'd["sandbox"]["failIfUnavailable"]')" = true ] && ok "$lbl: failIfUnavailable true" || bad "$lbl: failIfUnavailable not true"
+  [ "$(jq_py "$js" 'd["sandbox"]["allowUnsandboxedCommands"]')" = false ] && ok "$lbl: allowUnsandboxedCommands false" || bad "$lbl: unsandboxed escape still open"
+  [ "$(jq_py "$js" 'd["sandbox"]["network"]["allowAllUnixSockets"]')" = false ] && ok "$lbl: unix sockets blocked (no docker.sock)" || bad "$lbl: unix sockets not blocked"
+  local aw m
+  aw=$(jq_py "$js" 'sorted(d["sandbox"]["filesystem"]["allowWrite"])')
+  [ "$aw" = "$(python3 -c 'import json,sys; print(json.dumps(sorted(sys.argv[1:])))' "$REPO" "$ob")" ] \
+    && ok "$lbl: allowWrite is exactly the repo and the worker outbox" || bad "$lbl: allowWrite wrong: $aw (want $REPO, $ob)"
+  m=$(has_all "$js" 'd["sandbox"]["filesystem"]["denyWrite"]' \
+    "$REPO/.git/hooks" "$REPO/.git/config" "$REPO/.claude/settings.json" "$REPO/.claude/settings.local.json" "$REPO/.claude/hooks" \
+    "$HOME/.claude" "$HOME/.bashrc" "$HOME/.profile" "$HOME/.zshrc")
+  [ "$m" = "missing=[]" ] && ok "$lbl: denyWrite covers git hooks/config, Claude settings/hooks, shell startup" || bad "$lbl: denyWrite $m"
+  m=$(has_all "$js" 'd["permissions"]["deny"]' \
+    "Edit(/$REPO/.git/hooks/**)" "Edit(/$REPO/.git/config)" "Edit(/$REPO/.claude/settings.json)" "Edit(/$REPO/.claude/hooks/**)" \
+    "Edit(/$HOME/.claude/**)" "Edit(/$HOME/.bashrc)" "Edit(/$HOME/.profile)" "Edit(/$HOME/.ssh/**)")
+  [ "$m" = "missing=[]" ] && ok "$lbl: Edit deny rules fence the same files for Edit/Write" || bad "$lbl: permissions.deny $m"
+}
+for eng in claude-sub claude-haiku; do
+  OUT=$(PATH="$TD/sbx-ok:$PATH" FLEET_ZAI_TOKEN="zai-sentinel-sbx-$$" "$EXE" spawn "s-$eng" --socket "$SOCK" \
+    --engine "$eng" --cwd "$REPO" --dry-run 2>&1) || true
+  check_locked "$eng" "$(settings_of "$OUT")" "s-$eng"
+done
+OUT=$(PATH="$TD/sbx-ok:$PATH" "$EXE" spawn s-model --socket "$SOCK" --engine claude-sub --model opus --cwd "$REPO" --dry-run 2>&1) || true
+check_locked "claude-sub --model" "$(settings_of "$OUT")" "s-model"
+# Fenced engines (glm, glm-open): Claude's sandbox cannot start inside the
+# zai-fence (its --unshare-net bwrap needs a netlink socket the fence's seccomp
+# refuses; probed live 2026-11-16), so they get the sandbox explicitly OFF plus
+# the Edit deny rules, no outbox, and the host bwrap/socat probe never refuses
+# them. sbx-bad on PATH proves the probe is skipped.
+mkdir -p "$REPO/.claude" "$TD/opened"
+printf '%s\n' "$TD/opened" > "$REPO/.claude/glm-open-dirs"
+git -C "$REPO" add -f .claude/glm-open-dirs && git -C "$REPO" "${GITC[@]}" commit -qm list
+"$APPROVE" "$REPO" >/dev/null
+for eng in glm glm-open; do
+  rc=0; OUT=$(PATH="$TD/sbx-bad:$PATH" FLEET_ZAI_TOKEN="zai-sentinel-sbx-$$" "$EXE" spawn "f-$eng" --socket "$SOCK" \
+    --engine "$eng" --cwd "$REPO" --dry-run 2>&1) || rc=$?
+  [ "$rc" -eq 0 ] && ok "fenced $eng: no-sandbox host probe does not refuse it (rc=0)" || bad "fenced $eng: rc=$rc: ${OUT:0:300}"
+  case "$OUT" in *"would refuse"*) bad "fenced $eng: dry-run warns a live spawn would refuse" ;; *) ok "fenced $eng: no refusal warning" ;; esac
+  JS=$(settings_of "$OUT")
+  [ "$(jq_py "$JS" 'd["sandbox"]')" = '{"enabled": false}' ] && ok "fenced $eng: Claude sandbox explicitly off" || bad "fenced $eng: sandbox block wrong: ${JS:0:200}"
+  m=$(has_all "$JS" 'd["permissions"]["deny"]' "Edit(/$REPO/.git/hooks/**)" "Edit(/$REPO/.claude/settings.json)" "Edit(/$HOME/.claude/**)" "Edit(/$HOME/.bashrc)")
+  [ "$m" = "missing=[]" ] && ok "fenced $eng: Edit deny rules kept" || bad "fenced $eng: permissions.deny $m"
+  case "$OUT" in *"zai-fence.sh claude "*"--settings '"*) ok "fenced $eng: --settings rides inside the fence on the claude argv" ;; *) bad "fenced $eng: --settings not on the fenced claude argv: ${OUT:0:400}" ;; esac
+  case "$OUT" in *TMUX_AGENTS_OUTBOX*) bad "fenced $eng: got a host /tmp outbox the fence cannot see" ;; *) ok "fenced $eng: no outbox" ;; esac
+done
+# codex keeps its own sandbox flags and gets no Claude settings
+OUT=$(PATH="$TD/sbx-ok:$PATH" "$EXE" spawn s-cx --socket "$SOCK" --engine codex --cwd "$PROJ_ROOT" --dry-run 2>&1) || true
+case "$OUT" in *"--settings"*) bad "codex got Claude --settings" ;; *"--sandbox workspace-write --ask-for-approval never"*) ok "codex unchanged: own sandbox flags, no --settings" ;; *) bad "codex dry-run unexpected: ${OUT:0:300}" ;; esac
+# a linked worktree commits into the main repo's git dir: it must be writable, its config/hooks not
+git -C "$REPO" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init 2>/dev/null
+git -C "$REPO" worktree add -q "$TD/wt" -b sbx-wt 2>/dev/null
+OUT=$(PATH="$TD/sbx-ok:$PATH" "$EXE" spawn s-wt --socket "$SOCK" --cwd "$TD/wt" --dry-run 2>&1) || true
+JS=$(settings_of "$OUT")
+m=$(has_all "$JS" 'd["sandbox"]["filesystem"]["allowWrite"]' "$TD/wt" "$REPO/.git" "$TD/out/$SOCK/s-wt")
+[ "$m" = "missing=[]" ] && ok "worktree: allowWrite holds the worktree, the shared git dir and the outbox" || bad "worktree: allowWrite $m"
+m=$(has_all "$JS" 'd["sandbox"]["filesystem"]["denyWrite"]' "$REPO/.git/config" "$REPO/.git/hooks" "$TD/wt/.git")
+[ "$m" = "missing=[]" ] && ok "worktree: shared git config/hooks and the .git pointer stay unwritable" || bad "worktree: denyWrite $m"
+# refusal: no sandbox on this host => 66 before any session, message names the opt-out
+rc=0; OUT=$(PATH="$TD/sbx-bad:$PATH" "$EXE" spawn s-ref --socket "$SOCK" --cwd "$REPO" 2>&1) || rc=$?
+[ "$rc" -eq 66 ] && ok "no sandbox: claude spawn refused (rc=66)" || bad "no sandbox: want rc=66, got rc=$rc: ${OUT:0:300}"
+case "$OUT" in *TMUX_AGENTS_UNSANDBOXED=1*) ok "refusal names the TMUX_AGENTS_UNSANDBOXED=1 opt-out" ;; *) bad "refusal lacks the opt-out name: ${OUT:0:300}" ;; esac
+case "$OUT" in *bwrap*) ok "refusal says what is missing (bwrap)" ;; *) bad "refusal lacks the reason: ${OUT:0:300}" ;; esac
+tmux -L "$SOCK" has-session -t s-ref 2>/dev/null && bad "session created despite the refusal" || ok "no session created on refusal"
+# live path: a fake claude receives the locked settings and the outbox env
+cat > "$TD/fakebin/claude" <<'FAKE'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "$TMUX_AGENTS_OUTBOX/args.txt"
+printf 'AGENTS-TEST-BANNER sbx-live\n'
+exec cat
+FAKE
+chmod +x "$TD/fakebin/claude"
+OUT=$(PATH="$TD/sbx-ok:$PATH" "$EXE" spawn s-live --socket "$SOCK" --bin "$TD/fakebin/claude" \
+  --args "--model sonnet --permission-mode bypassPermissions" --banner-regex 'sbx-live' --cwd "$REPO" 2>&1) || true
+sleep 0.3
+if [ -f "$TD/out/$SOCK/s-live/args.txt" ]; then
+  JS=$(sed -n '/^--settings$/{n;p;}' "$TD/out/$SOCK/s-live/args.txt")
+  [ "$(jq_py "$JS" 'd["sandbox"]["allowUnsandboxedCommands"]')" = false ] && ok "live: engine argv carries the locked settings" || bad "live: engine argv lacks locked settings: $(head -c 300 "$TD/out/$SOCK/s-live/args.txt")"
+  [ "$(stat -c %a "$TD/out/$SOCK/s-live" 2>/dev/null || stat -f %Lp "$TD/out/$SOCK/s-live")" = 700 ] && ok "live: outbox dir is 0700" || bad "live: outbox dir mode not 0700"
+else
+  bad "live: fake claude never ran with TMUX_AGENTS_OUTBOX set: ${OUT:0:300}"
+fi
+"$EXE" kill s-live --socket "$SOCK" >/dev/null 2>&1 || true
+# --args may not smuggle a second --settings past the lock
+rc=0; OUT=$(PATH="$TD/sbx-ok:$PATH" "$EXE" spawn s-smug --socket "$SOCK" --engine claude-sub \
+  --args "--model sonnet --settings {}" --cwd "$REPO" --dry-run 2>&1) || rc=$?
+[ "$rc" -eq 64 ] && ok "--args carrying --settings refused (rc=64)" || bad "--args --settings: want rc=64, got rc=$rc: ${OUT:0:200}"
+# opt-out: sandbox off with a loud WARN, Edit deny rules kept
+OUT=$(PATH="$TD/sbx-bad:$PATH" TMUX_AGENTS_UNSANDBOXED=1 "$EXE" spawn s-opt --socket "$SOCK" --bin "$TD/fakebin/claude" \
+  --banner-regex 'sbx-live' --cwd "$REPO" 2>&1) || true
+case "$OUT" in *"WITHOUT the Bash sandbox"*) ok "opt-out warns loudly" ;; *) bad "opt-out lacks WARN: ${OUT:0:300}" ;; esac
+sleep 0.3
+JS=$(sed -n '/^--settings$/{n;p;}' "$TD/out/$SOCK/s-opt/args.txt" 2>/dev/null || true)
+[ "$(jq_py "$JS" 'd["sandbox"]["enabled"]')" = false ] && ok "opt-out: sandbox off" || bad "opt-out: sandbox not off: ${JS:0:200}"
+m=$(has_all "$JS" 'd["permissions"]["deny"]' "Edit(/$HOME/.claude/**)" "Edit(/$REPO/.git/hooks/**)")
+[ "$m" = "missing=[]" ] && ok "opt-out: Edit deny rules kept" || bad "opt-out: deny rules $m"
+"$EXE" kill s-opt --socket "$SOCK" >/dev/null 2>&1 || true
+cfn_safe_rm_tmp "$TD"
+export TMUX_AGENTS_OUTBOX_ROOT="$GLOBAL_OUTBOX_ROOT"
 
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]
