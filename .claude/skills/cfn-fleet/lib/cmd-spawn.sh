@@ -80,6 +80,16 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/heartbeat-ticker.sh"
 # shellcheck source=../../../cfn-scripts/spawn-env.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../cfn-scripts" && pwd)/spawn-env.sh"
 
+# open-dirs.sh: the glm-open per-project folder list (shared with zai-fence.sh
+# and cfn-tmux-agents), so a project that has not opted in is refused here.
+# shellcheck source=../../../cfn-scripts/lib/open-dirs.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../cfn-scripts/lib" && pwd)/open-dirs.sh"
+# Security review round 2: inherited GIT_DIR / GIT_WORK_TREE etc. would pick
+# the repo spawn plans for (and the glm-open policy repo). Scrub them before
+# any git call in this command. Word splitting is intended.
+# shellcheck disable=SC2086
+unset $CFN_GIT_REDIRECT_VARS
+
 # host.sh: ssh transport for `--host` spawns (functions only, safe to re-source).
 if ! command -v _fleet_host_run >/dev/null 2>&1; then
   # shellcheck source=host.sh
@@ -249,6 +259,21 @@ _fleet_pane_wait(){
 # literal codex=true line. However the engine was chosen (--engine flag,
 # roster column, FLEET_DEFAULT_ENGINE), this runs after engine resolution
 # and before any side effect. Dies 66 naming the file when absent.
+# _fleet_exec_words BIN ARGS_STR: print `exec <bin> <word>...` with every word
+# %q-quoted (test_allow_15c). The run-dir engines.env is a repo file, so its
+# args are data: split on whitespace, never pasted into the pane's shell code.
+# A BIN of the plain form $HOME/<safe chars> stays literal so the pane expands
+# it (no other shell syntax can ride along); anything else is %q-quoted.
+_fleet_exec_words() {
+  local b="$1" w line
+  local -a words=()
+  read -r -a words <<< "$2"
+  if [[ "$b" =~ ^\$HOME/[A-Za-z0-9._/+-]+$ ]]; then line="exec $b"
+  else line="exec $(printf '%q' "$b")"; fi
+  for w in ${words[@]+"${words[@]}"}; do line+=" $(printf '%q' "$w")"; done
+  printf '%s\n' "$line"
+}
+
 _fleet_codex_flag_check() {
   local f="$1/CLAUDE.md"
   if [ ! -f "$f" ] || ! grep -Eq '^[[:space:]]*codex=true[[:space:]]*$' "$f"; then
@@ -530,6 +555,20 @@ main() {
   unset_raw=$(fleet_engine_get unset "$engine") || exit "$?"
   trust_keys=$(fleet_engine_get trust_keys "$engine") || exit "$?"
   banner_re=$(fleet_engine_get banner_regex "$engine") || exit "$?"
+  # Review rev 3: the run-dir engines.env is a repo file a fenced worker might
+  # have touched (or a run dir it planted). For an engine the shared registry
+  # also defines, its command (bin + args) must match the registry; the unset
+  # and set lists may be tuned per run.
+  local reg_file reg_row
+  reg_file="$_FLEET_ENGINES_TEMPLATE"
+  if [ "$(fleet_engines_file)" != "$reg_file" ] && [ -f "$reg_file" ] \
+     && reg_row=$(_engines_row "$reg_file" "$engine" 2>/dev/null); then
+    local -a rf=()
+    mapfile -t rf <<< "$reg_row"
+    if [ "${rf[1]}" != "$bin" ] || [ "${rf[2]}" != "$args_str" ]; then
+      fleet_die 65 "spawn: engine '$engine' in $(fleet_engines_file) runs '$bin $args_str', but the shared registry ($reg_file) says '${rf[1]} ${rf[2]}'; refusing (restore the row, or give a custom command its own engine name)"
+    fi
+  fi
   # The prompt text follows the engine, not the launcher: a zai-fence.sh
   # wrapper bin runs the program named by the first word of args.
   local bin_kind
@@ -540,6 +579,16 @@ main() {
     codex)  trust_re="trust this folder|work in this folder" ;;
     *)      trust_re="" ;;
   esac
+
+  # glm-open: extra writable folders only for a project that opted in with a
+  # committed .claude/glm-open-dirs. Refuse before the plan or any side effect
+  # (the fence would refuse too, but only inside a pane that then just dies).
+  if cfn_open_dirs_wanted "$set_raw"; then
+    local od_root
+    od_root=$(cfn_open_dirs_root "$repo") || fleet_die 66 "spawn: cannot resolve the repo root of $repo for glm-open"
+    cfn_open_dirs_list "$od_root" >/dev/null \
+      || fleet_die 66 "spawn: engine '$engine' needs a valid $od_root/$CFN_OPEN_DIRS_FILE (reason above); use engine glm to stay fenced to the project"
+  fi
 
   local session_cwd="$repo" wt_path branch="fleet/$ws"
   wt_path=$(fleet_worktree_path "$repo" "$ws")
@@ -644,9 +693,14 @@ main() {
   # @@MBX@@ becomes each session's own mailbox env (_spawn_mb_exports): the main
   # session and every spare get distinct names, so a spare never reads the
   # worker's mail.
-  local pane_cmd="@@SPAWN_ENV@@export FLEET_RUN_DIR=$run_dir"
-  [ -n "$unset_raw" ] && pane_cmd+="; unset ${unset_raw//,/ }"
-  pane_cmd+="; @@MBX@@exec $bin${args_str:+ $args_str}"
+  local pane_cmd="@@SPAWN_ENV@@export FLEET_RUN_DIR=$(printf '%q' "$run_dir")" exec_line u uv=""
+  for u in ${unset_raw//,/ }; do
+    [[ "$u" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || fleet_die 65 "spawn: engine '$engine' unset list holds a bad name '$u'"
+    uv+=" $u"
+  done
+  [ -n "$uv" ] && pane_cmd+="; unset$uv"
+  exec_line=$(_fleet_exec_words "$bin" "$args_str") || exit "$?"
+  pane_cmd+="; @@MBX@@$exec_line"
   local mb_outq="$run_dir/mail-out/$ws"
   if [ -n "$_SPAWN_MB_NAME" ]; then
     ( umask 077; mkdir -p "$mb_outq" ) && chmod 700 "$mb_outq" \

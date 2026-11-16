@@ -9,6 +9,13 @@ set -euo pipefail
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EXE="$SKILL_DIR/execute.sh"
 FAKE="$SKILL_DIR/tests/fake-engine.sh"
+REAL_FENCE="$(cd "$SKILL_DIR/../../cfn-scripts" && pwd -P)/zai-fence.sh"
+GITC=(-c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false)
+APPROVE="$(cd "$SKILL_DIR/../../cfn-scripts" && pwd -P)/glm-open-approve.sh"
+# glm-open approvals (allow-list fence) go to a test store, never the real ~/.config
+CFN_GLM_OPEN_APPROVALS=$(mktemp -d); export CFN_GLM_OPEN_APPROVALS
+# allow-list fence worker homes go to a temp dir, never the real ~/.claude
+ZAI_FENCE_WORKER_BASE=$(mktemp -d); export ZAI_FENCE_WORKER_BASE
 SOCK="tagents-test-$$"
 export TMUX_AGENTS_AUTH_TIMEOUT=1    # healthy auth probe must not eat 12s per spawn
 export TMUX_AGENTS_BANNER_TIMEOUT=3  # banner-timeout test must fail fast
@@ -20,6 +27,7 @@ cleanup() {
   tmux -L "$SOCK-k" kill-server 2>/dev/null || true
   tmux -L "$SOCK-L" kill-server 2>/dev/null || true
   tmux -L "$SOCK-e" kill-server 2>/dev/null || true
+  rm -rf "$CFN_GLM_OPEN_APPROVALS" "$ZAI_FENCE_WORKER_BASE"
 }
 trap cleanup EXIT
 
@@ -153,17 +161,14 @@ IFS= read -r line
 printf 'AGENTS-TEST-BANNER trust-answered\n'
 exec cat
 FAKE
-cat > "$TD/zai-fence.sh" <<'FAKE'
-#!/usr/bin/env bash
-exec "$@"
-FAKE
-chmod +x "$TD/claude" "$TD/zai-fence.sh"
+chmod +x "$TD/claude"
 OUT=$("$EXE" spawn t1 --socket "$SOCK" --bin "$TD/claude" \
   --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
 case "$OUT" in *trust-answered*) ok "stale trust text bug: 2.1.296 prompt answered (plain claude bin)" ;; *) bad "stale trust text bug: 2.1.296 prompt unanswered: $OUT" ;; esac
 "$EXE" kill t1 --socket "$SOCK" >/dev/null 2>&1 || true
-OUT=$("$EXE" spawn t2 --socket "$SOCK" --bin "$TD/zai-fence.sh" --args "$TD/claude" \
-  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
+# the REAL fence (a look-alike wrapper is refused, test_sec_1)
+OUT=$(TMUX_AGENTS_BANNER_TIMEOUT=15 "$EXE" spawn t2 --socket "$SOCK" --bin "$REAL_FENCE" --args "$TD/claude" \
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd "$TD" 2>&1) || true
 case "$OUT" in *trust-answered*) ok "wrapper bin bug: zai-fence.sh wrapper sees through to claude trust regex" ;; *) bad "wrapper bin bug: trust prompt unanswered via zai-fence.sh: $OUT" ;; esac
 "$EXE" kill t2 --socket "$SOCK" >/dev/null 2>&1 || true
 rm -rf "$TD"
@@ -182,9 +187,10 @@ printf 'AGENTS-TEST-BANNER %s\n' "$t"
 exec cat
 FAKE
 chmod +x "$TD/envdump"
+# glm --bin always runs inside the real zai-fence.sh (fence root = $TD)
 mkdir -p "$TD/tmp"
 OUT=$(TMPDIR="$TD/tmp" FLEET_ZAI_TOKEN="$SENT" "$EXE" spawn k1 --socket "$SOCK-k" --engine glm --bin "$TD/envdump" \
-  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd "$TD" 2>&1) || true
 case "$OUT" in *tok-ok*) ok "key reaches the engine env" ;; *) bad "key missing in engine env: $OUT" ;; esac
 # capture first: `ps | grep -q` under pipefail SIGPIPEs ps and reads as "absent"
 PSOUT=$(ps -axww -o command=)
@@ -245,17 +251,148 @@ rm -rf "$TD"
 TD=$(mktemp -d)
 cat > "$TD/envcheck" <<'FAKE'
 #!/usr/bin/env bash
-n=$(env | grep -E '^(CLAUDECODE|CLAUDE_CODE_|CLAUDE_PID=|CLAUDE_TMPDIR=|CLAUDE_EFFORT=)' | grep -vc '^CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=')
+# CLAUDE_CODE_TMPDIR and CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC are set by
+# the fence itself, not inherited from the launcher
+n=$(env | grep -E '^(CLAUDECODE|CLAUDE_CODE_|CLAUDE_PID=|CLAUDE_TMPDIR=|CLAUDE_EFFORT=)' | grep -vEc '^CLAUDE_CODE_(DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT|TMPDIR|DISABLE_NONESSENTIAL_TRAFFIC)=')
 printf 'AGENTS-TEST-BANNER engine_flag=%s inherited=%s\n' "${CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT:-unset}" "$n"
 exec cat
 FAKE
 chmod +x "$TD/envcheck"
 OUT=$(CLAUDECODE=1 CLAUDE_CODE_CHILD_SESSION=1 CLAUDE_CODE_MESSAGING_TOKEN=tok CLAUDE_PID=1 CLAUDE_EFFORT=high \
   FLEET_ZAI_TOKEN="zai-sentinel-env-abcdefghijklmnop" "$EXE" spawn e1 --socket "$SOCK-e" --engine glm \
-  --bin "$TD/envcheck" --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || true
+  --bin "$TD/envcheck" --banner-regex 'AGENTS-TEST-BANNER' --cwd "$TD" 2>&1) || true
 case "$OUT" in *"inherited=0"*) ok "inherited-env bug: launcher session vars cleared in the worker" ;; *) bad "inherited-env bug: worker still sees launcher vars: ${OUT:0:300}" ;; esac
 case "$OUT" in *"engine_flag=1"*) ok "engine CLAUDE_CODE_ set-var survives the clear" ;; *) bad "engine set-var lost by the clear: ${OUT:0:300}" ;; esac
 tmux -L "$SOCK-e" kill-server 2>/dev/null || true
+rm -rf "$TD"
+
+# 21. BUG --bin doubled program (2026-11-15): `spawn --engine glm --bin claude`
+# exec'd `claude claude --model ...`, because glm's args start with the program
+# the zai-fence.sh wrapper runs. Rule: for a fenced engine --bin replaces only
+# that program word INSIDE the fence (zai-fence.sh <bin> <args>); glm is never
+# launched unfenced. Live run through the real fence: the fake claude lives in
+# the fence root (a temp git repo) and reports its first arg and the fence's
+# per-worker TMPDIR.
+TD=$(mktemp -d)
+TD=$(cd "$TD" && pwd -P)
+git -C "$TD" init -q
+mkdir -p "$TD/opened" "$TD/proj"
+git -C "$TD/proj" init -q
+cat > "$TD/proj/claude" <<FAKE
+#!/usr/bin/env bash
+f=no; [ -d /run/zai-fence ] && f=yes
+w=no; echo x > "$TD/opened/w.txt" 2>/dev/null && w=yes
+# dashes as underscores: the banner poll drops pane lines holding "--model "
+a="\${1:-none}"; printf 'AGENTS-TEST-BANNER first=%s fenced=%s openwrite=%s\n' "\${a//-/_}" "\$f" "\$w"
+exec cat
+FAKE
+chmod +x "$TD/proj/claude"
+OUT=$(TMUX_AGENTS_BANNER_TIMEOUT=15 FLEET_ZAI_TOKEN="zai-sentinel-bin-abcdefghijklmnop" "$EXE" spawn b1 --socket "$SOCK" \
+  --engine glm --bin "$TD/proj/claude" --banner-regex 'AGENTS-TEST-BANNER first' --cwd "$TD/proj" 2>&1) || true
+case "$OUT" in *"first=__model"*"fenced=yes"*) ok "bin-doubled bug: glm --bin claude runs the bin once, inside zai-fence.sh" ;;
+  *) bad "bin-doubled bug: glm --bin not fenced or program doubled: ${OUT:0:300}" ;; esac
+case "$OUT" in *"openwrite=no"*) ok "plain glm --bin cannot write outside its project" ;; *) bad "plain glm --bin wrote outside the project: ${OUT:0:300}" ;; esac
+"$EXE" kill b1 --socket "$SOCK" >/dev/null 2>&1 || true
+OUT=$(FLEET_ZAI_TOKEN="zai-sentinel-bin-abcdefghijklmnop" "$EXE" spawn b2 --socket "$SOCK" --engine glm \
+  --bin "$TD/proj/claude" --cwd "$TD/proj" --dry-run 2>&1) || true
+n=$(grep -o "$TD/proj/claude" <<<"$OUT" | wc -l)
+case "$OUT" in *"zai-fence.sh $TD/proj/claude --model glm-5.3-flash"*) [ "$n" -eq 1 ] \
+    && ok "bin-doubled bug: dry-run is zai-fence.sh <bin> --model ..., bin named once" \
+    || bad "bin-doubled bug: bin named $n times: ${OUT:0:300}" ;;
+  *) bad "bin-doubled bug: dry-run pane command not fenced as zai-fence.sh <bin> <args>: ${OUT:0:400}" ;; esac
+# glm-open with --bin keeps the fence AND its opened folders
+mkdir -p "$TD/proj/.claude"
+printf '%s\n' "$TD/opened" > "$TD/proj/.claude/glm-open-dirs"
+git -C "$TD/proj" add -f .claude/glm-open-dirs && git -C "$TD/proj" "${GITC[@]}" commit -qm list
+"$APPROVE" "$TD/proj" >/dev/null
+rm -f "$TD/opened/w.txt"
+OUT=$(TMUX_AGENTS_BANNER_TIMEOUT=15 FLEET_ZAI_TOKEN="zai-sentinel-bin-abcdefghijklmnop" "$EXE" spawn b3 --socket "$SOCK" \
+  --engine glm-open --bin "$TD/proj/claude" --banner-regex 'AGENTS-TEST-BANNER first' --cwd "$TD/proj" 2>&1) || true
+case "$OUT" in *"first=__model"*"fenced=yes openwrite=yes"*) ok "glm-open --bin keeps the fence and its opened folders" ;;
+  *) bad "glm-open --bin lost the fence or the opened folders: ${OUT:0:300}" ;; esac
+"$EXE" kill b3 --socket "$SOCK" >/dev/null 2>&1 || true
+rm -rf "$TD"
+
+# 22. glm-open: extra writable folders only for a project that opted in with
+# <repo>/.claude/glm-open-dirs. Without it spawn refuses (66) before any side
+# effect and names the file; with a valid list it plans.
+TD=$(mktemp -d)
+git -C "$TD" init -q
+mkdir -p "$TD/opened"
+RC=0; OUT=$(FLEET_ZAI_TOKEN="zai-sentinel-open-abcdefghijklmnop" "$EXE" spawn o1 --socket "$SOCK" --engine glm-open \
+  --cwd "$TD" --dry-run 2>&1) || RC=$?
+[ "$RC" -eq 66 ] && ok "glm-open without the project setting exits 66" || bad "glm-open no-setting rc=$RC: ${OUT:0:300}"
+case "$OUT" in *".claude/glm-open-dirs"*) ok "glm-open refusal names .claude/glm-open-dirs" ;;
+  *) bad "glm-open refusal lacks the setting path: ${OUT:0:300}" ;; esac
+case "$OUT" in *"new-session"*) bad "refused glm-open still printed launch commands" ;; *) ok "no launch commands on refusal" ;; esac
+mkdir -p "$TD/.claude"
+printf '%s\n' "$TD/opened" > "$TD/.claude/glm-open-dirs"
+git -C "$TD" add -f .claude/glm-open-dirs && git -C "$TD" "${GITC[@]}" commit -qm list
+"$APPROVE" "$TD" >/dev/null
+RC=0; OUT=$(FLEET_ZAI_TOKEN="zai-sentinel-open-abcdefghijklmnop" "$EXE" spawn o2 --socket "$SOCK" --engine glm-open \
+  --cwd "$TD" --dry-run 2>&1) || RC=$?
+[ "$RC" -eq 0 ] && ok "glm-open with the project setting plans (dry-run rc 0)" || bad "glm-open with setting rc=$RC: ${OUT:0:300}"
+case "$OUT" in *"ZAI_FENCE_OPEN_DIRS"*) ok "glm-open launch carries ZAI_FENCE_OPEN_DIRS" ;; *) bad "glm-open launch lacks ZAI_FENCE_OPEN_DIRS: ${OUT:0:300}" ;; esac
+rm -rf "$TD"
+
+# test_sec_1 (security review 2026-11-16): --bin must never replace the fence
+# with a look-alike. A --bin named zai-fence.sh is accepted only when it is the
+# real wrapper from this repo (realpath compare); any other is refused (66).
+TD=$(mktemp -d)
+printf '#!/usr/bin/env bash\nexec "$@"\n' > "$TD/zai-fence.sh"; chmod +x "$TD/zai-fence.sh"
+RC=0; OUT=$(FLEET_ZAI_TOKEN="zai-sentinel-sec1-abcdefghijklmnop" "$EXE" spawn s1 --socket "$SOCK" --engine glm \
+  --bin "$TD/zai-fence.sh" --cwd "$TD" --dry-run 2>&1) || RC=$?
+[ "$RC" -eq 66 ] && ok "test_sec_1_lookalike_fence_refused (glm)" || bad "test_sec_1_lookalike_fence_refused (glm): rc=$RC ${OUT:0:200}"
+RC=0; OUT=$("$EXE" spawn s2 --socket "$SOCK" --bin "$TD/zai-fence.sh" --args "$FAKE" --cwd "$TD" --dry-run 2>&1) || RC=$?
+[ "$RC" -eq 66 ] && ok "test_sec_1_lookalike_fence_refused (custom engine)" || bad "test_sec_1_lookalike_fence_refused (custom): rc=$RC ${OUT:0:200}"
+RC=0; OUT=$(FLEET_ZAI_TOKEN="zai-sentinel-sec1-abcdefghijklmnop" "$EXE" spawn s3 --socket "$SOCK" --engine glm \
+  --bin "$REAL_FENCE" --cwd "$TD" --dry-run 2>&1) || RC=$?
+[ "$RC" -eq 0 ] && ok "test_sec_1_real_fence_accepted" || bad "test_sec_1_real_fence_accepted: rc=$RC ${OUT:0:200}"
+rm -rf "$TD"
+
+# test_sec2_1: a relative --bin is refused. It was checked in this shell's cwd
+# but launched in --cwd, where a look-alike wrapper could sit at the same path.
+TD=$(mktemp -d)
+mkdir -p "$TD/.claude/cfn-scripts"
+printf '#!/usr/bin/env bash\nexec "$@"\n' > "$TD/.claude/cfn-scripts/zai-fence.sh"; chmod +x "$TD/.claude/cfn-scripts/zai-fence.sh"
+RC=0; OUT=$(cd "$PROJ_ROOT" && FLEET_ZAI_TOKEN="zai-sentinel-sec21-abcdefghijklmnop" "$EXE" spawn s21 --socket "$SOCK" --engine glm \
+  --bin .claude/cfn-scripts/zai-fence.sh --cwd "$TD" --dry-run 2>&1) || RC=$?
+[ "$RC" -eq 66 ] && ok "test_sec2_1_relative_bin_refused" || bad "test_sec2_1_relative_bin_refused: rc=$RC ${OUT:0:200}"
+rm -rf "$TD"
+
+# test_sec2_2: inherited GIT_DIR/GIT_WORK_TREE must not pick the launch folder
+# (default --cwd is the git toplevel); the launcher scrubs them first.
+TD=$(mktemp -d); TD=$(cd "$TD" && pwd -P)
+mkdir -p "$TD/mine" "$TD/other"; git -C "$TD/mine" init -q; git -C "$TD/other" init -q
+RC=0; OUT=$(cd "$TD/mine" && GIT_DIR="$TD/other/.git" GIT_WORK_TREE="$TD/other" "$EXE" spawn s22 --socket "$SOCK" \
+  --bin "$FAKE" --dry-run 2>&1) || RC=$?
+case "$OUT" in *"-c $TD/mine"*) ok "test_sec2_2_git_env_scrubbed_tmux_agents" ;;
+  *) bad "test_sec2_2_git_env_scrubbed_tmux_agents: rc=$RC ${OUT:0:300}" ;; esac
+rm -rf "$TD"
+
+# test_allow_15a: a relative PATH entry must never pick the engine. With
+# PATH=.:... in the installed wrapper's own folder, `--bin zai-fence.sh` passed
+# the realpath check but the pane exec'd `./zai-fence.sh` in --cwd.
+TD=$(mktemp -d)
+printf '#!/usr/bin/env bash\nexec "$@"\n' > "$TD/zai-fence.sh"; chmod +x "$TD/zai-fence.sh"
+RC=0; OUT=$(cd "$(dirname "$REAL_FENCE")" && PATH=".:/usr/bin:/bin" FLEET_ZAI_TOKEN="zai-sentinel-a15-abcdefghijklmnop" \
+  "$EXE" spawn a15 --socket "$SOCK" --engine glm --bin zai-fence.sh --cwd "$TD" --dry-run 2>&1) || RC=$?
+case "$OUT" in *"exec ./"*|*"exec zai-fence.sh"*) bad "test_allow_15a_bin_absolute_exec: pane execs a relative name: ${OUT:0:300}" ;;
+  *"exec $REAL_FENCE"*) ok "test_allow_15a_bin_absolute_exec" ;;
+  *"not the installed fence"*) [ "$RC" -eq 66 ] && ok "test_allow_15a_bin_absolute_exec (refused: no absolute PATH entry holds it)" \
+      || bad "test_allow_15a_bin_absolute_exec: rc=$RC" ;;
+  *) bad "test_allow_15a_bin_absolute_exec: rc=$RC no absolute fence exec: ${OUT:0:300}" ;; esac
+rm -rf "$TD"
+
+# test_allow_15b: --args and --model are argv words, never shell code. Raw
+# interpolation ran `$(touch M)` in the launcher's pane shell, unfenced.
+TD=$(mktemp -d)
+"$EXE" spawn a15b --socket "$SOCK" --bin "$FAKE" --args "\$(touch $TD/m-args) x" --model "\$(touch $TD/m-model)" \
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp >/dev/null 2>&1 || true
+sleep 1
+if [ -e "$TD/m-args" ] || [ -e "$TD/m-model" ]; then bad "test_allow_15b_args_not_shell: command substitution ran ($(ls "$TD" | tr '\n' ' '))"
+else ok "test_allow_15b_args_not_shell"; fi
+"$EXE" kill a15b --socket "$SOCK" >/dev/null 2>&1 || true
 rm -rf "$TD"
 
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="

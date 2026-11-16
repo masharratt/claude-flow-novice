@@ -3,6 +3,16 @@
 # Seatbelt fence so it can read and write only its own project folder plus what
 # Claude Code needs to run. Plan: planning/PLAN_zai-folder-fence.md.
 #
+# Platforms: Darwin runs the Seatbelt profile below. Linux hands off to
+# lib/zai-fence-linux.sh: an ALLOW-LIST bubblewrap fence (empty root, private
+# per-worker home, network only to the API host through lib/zai-fence-broker.py;
+# planning/PLAN_zai-fence-linux-allowlist.md). ZAI_FENCE_LINUX_BACKEND=legacy
+# selects the old deny-list backend for one release. Any other OS, or a missing
+# bwrap/python3/jq on Linux, exits 70.
+# glm-open lists must be committed AND approved by the user on the host with
+# cfn-scripts/glm-open-approve.sh (sha256 of the HEAD text, kept outside every
+# fence); a changed list refuses until approved again.
+#
 # Usage: zai-fence.sh <cmd> [args...]
 #
 # Policy (later rules win in Seatbelt, so the profile is built in this order):
@@ -19,16 +29,31 @@
 #      outside the fence root.
 #   5. read+write: the fence root = main repo toplevel of cwd (worktrees, fleet run
 #      dirs and .git live under it); cwd when not in a git repo.
+#   5b. glm-open only (ZAI_FENCE_OPEN_DIRS=1, set by the glm-open engine):
+#      read+write the folders listed in <root>/.claude/glm-open-dirs (read-only
+#      for `ro:` lines; a * or ? in the last path segment expands at start to
+#      existing folders, zero matches warn and skip), shallow-first so a nested
+#      entry wins for its subtree, then .env* and settings.local.json inside
+#      them denied again. The fence reads the list
+#      itself from its root, COMMITTED content only (git show HEAD:..., regular
+#      file mode 100644; untracked/uncommitted edits ignored); lib/open-dirs.sh validates it (absolute, existing,
+#      real path, not /, a top-level or system folder, $HOME or its parent, or
+#      overlapping ~/.claude and its link targets). A missing or empty list, or
+#      any bad entry, exits 70. Plain glm (no ZAI_FENCE_OPEN_DIRS) ignores it.
 #   6. inside the fence, writes denied to .git/config, .git/hooks,
 #      .claude/settings*.json, .claude/hooks (they run unfenced later), unless
-#      ZAI_FENCE_ALLOW_CONFIG=1.
+#      ZAI_FENCE_ALLOW_CONFIG=1. <root>/.claude/glm-open-dirs is denied always,
+#      so a worker can never widen its own list.
 #   6b. read-only: paths listed in <root>/.zai-fence-readonly (one per line, relative
 #      to the root or absolute, # comments) and ZAI_FENCE_READONLY (colon-separated)
 #      refuse writes and deletes, also when reached through a worktree symlink.
-#   7. always denied: ~/.ssh ~/.aws ~/.gnupg ~/Library/Keychains ~/.npmrc
-#      ~/.config/gh; connects to tmux / docker / orbstack sockets; Keychain mach
+#   7. always denied: every CFN_CRED_PATHS entry in lib/open-dirs.sh (~/.ssh
+#      ~/.aws ~/.gnupg ~/Library/Keychains ~/.npmrc ~/.config/gh
+#      ~/.config/cfn-mailbox ~/.config/cfn-fleet ...); connects to tmux / docker / orbstack sockets; Keychain mach
 #      services; Apple Events; LaunchServices.
-# Env: SSH_AUTH_SOCK, GH_TOKEN, GITHUB_TOKEN, TMUX, TMUX_PANE unset;
+# Env: SSH_AUTH_SOCK, GH_TOKEN, GITHUB_TOKEN, TMUX, TMUX_PANE unset, plus
+#      CFN_GIT_REDIRECT_VARS (GIT_DIR etc., before the root lookup) and
+#      CFN_FENCE_SCRUB_ENV (OPENAI/AWS/PG/data-system credentials);
 #      DISABLE_AUTOUPDATER=1; TMPDIR + CLAUDE_CODE_TMPDIR = per-worker temp dir;
 #      ~/.claude/skills/cfn-fleet/cli prepended to PATH when present.
 # When the command's basename is `claude`, appends
@@ -54,7 +79,28 @@ RO_LIB="$(dirname "$(realpath "${BASH_SOURCE[0]}" 2>/dev/null)")/lib/readonly-li
 # shellcheck disable=SC1090
 source "$RO_LIB"
 
+OD_LIB="$(dirname "$RO_LIB")/open-dirs.sh"
+[ -f "$OD_LIB" ] || die "missing $OD_LIB; refusing to run without the glm-open list reader"
+# shellcheck disable=SC1090
+source "$OD_LIB"
+# Inherited git env could move the fence root to another repo (and pick its
+# glm-open list); credential env must never reach a z.ai worker. Both
+# backends run after this. Word splitting of the lists is intended.
+# shellcheck disable=SC2086
+unset $CFN_GIT_REDIRECT_VARS $CFN_FENCE_SCRUB_ENV
+
 [ $# -ge 1 ] || die "usage: zai-fence.sh <cmd> [args...]"
+
+case "$(uname -s 2>/dev/null)" in
+  Darwin) ;;
+  Linux)
+    LINUX_LIB="$(dirname "$RO_LIB")/zai-fence-linux.sh"
+    [ -f "$LINUX_LIB" ] || die "missing $LINUX_LIB; refusing to run unfenced"
+    # shellcheck disable=SC1090
+    source "$LINUX_LIB"   # execs bwrap or dies; never returns
+    die "linux fence returned without exec" ;;
+  *) die "unsupported OS '$(uname -s 2>/dev/null)'; refusing to run unfenced" ;;
+esac
 SBX=$(command -v sandbox-exec 2>/dev/null) || die "sandbox-exec not found on PATH; refusing to run unfenced"
 command -v realpath >/dev/null 2>&1 || die "realpath not found; refusing to run unfenced"
 
@@ -76,6 +122,12 @@ esac
 case "$HOME_R/" in
   "$ROOT"/*) die "refusing fence root $ROOT (parent of \$HOME)" ;;
 esac
+
+# --- glm-open folders (read from the root's own list, never from env) -------
+OPEN_DIRS=""
+if [ "${ZAI_FENCE_OPEN_DIRS:-0}" = 1 ]; then
+  OPEN_DIRS=$(cfn_open_dirs_list "$ROOT") || die "glm-open refused: fix $ROOT/$CFN_OPEN_DIRS_FILE (reason above)"
+fi
 
 # --- per-worker temp dir ----------------------------------------------------
 TBASE=$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null) || die "cannot read DARWIN_USER_TEMP_DIR"
@@ -177,6 +229,25 @@ profile(){
   echo ";; 5. fence root"
   echo "(allow $RW $(sub "$ROOT"))"
 
+  if [ -n "$OPEN_DIRS" ]; then
+    local od odm
+    echo ";; 5b. glm-open folders (<root>/.claude/glm-open-dirs), .env and settings.local.json denied again"
+    while IFS=$'\t' read -r odm od; do
+      [ -n "$od" ] || continue
+      if [ "$odm" = ro ]; then
+        echo "(allow $RD $(sub "$od"))"
+        echo "(deny file-write* $(sub "$od"))"
+      else
+        echo "(allow $RW $(sub "$od"))"
+      fi
+      echo "(deny $DN (regex #\"^$(rx "$od")/(.*/)?\\.env(\\.[^/]*)?\$\" #\"^$(rx "$od")/(.*/)?settings\\.local\\.json\$\"))"
+    done <<<"$OPEN_DIRS"
+  fi
+  echo "(deny file-write* (regex #\"^$(rx "$ROOT")(/\\.claude/worktrees/[^/]+)?/\\.claude/glm-open-dirs\$\"))"
+  if [ -L "$ROOT/$CFN_OPEN_DIRS_FILE" ] && t=$(realpath "$ROOT/$CFN_OPEN_DIRS_FILE" 2>/dev/null); then
+    echo "(deny file-write* $(lit "$t"))"   # a working-copy symlink's target stays read-only too
+  fi
+
   if [ "${ZAI_FENCE_ALLOW_CONFIG:-0}" != 1 ]; then
     local r; r=$(rx "$ROOT")
     echo ";; 6. persistence paths inside the fence (ZAI_FENCE_ALLOW_CONFIG=1 lifts)"
@@ -199,7 +270,12 @@ profile(){
   fi
 
   echo ";; 7. always denied"
-  echo "(deny $DN $(sub "$(hp .ssh)") $(sub "$(hp .aws)") $(sub "$(hp .gnupg)") $(sub "$(hp Library/Keychains)") $(lit "$(hp .npmrc)") $(sub "$(hp .config/gh)"))"
+  local cred creds=""
+  for cred in $CFN_CRED_PATHS; do
+    creds+=" $(sub "$(hp "$cred")")"
+    [ "$(hp "$cred")" = "$HOME_R/$cred" ] || creds+=" $(sub "$HOME_R/$cred")"
+  done
+  echo "(deny $DN$creds)"
   echo "(deny network-outbound (regex #\"^/private/tmp/tmux-\" #\"^$(rx "$TBASE")/tmux-\" #\"^/private/var/run/docker\\.sock\$\" #\"^$(rx "$(hp .orbstack)")/run/\" #\"^$(rx "$(hp .docker)")/run/\"))"
   if [ -n "${TMUX:-}" ]; then echo "(deny network-outbound $(lit "${TMUX%%,*}"))"; fi
   echo "(deny file-write* (regex #\"^/private/tmp/tmux-\"))"

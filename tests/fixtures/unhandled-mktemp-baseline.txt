@@ -74,7 +74,7 @@
 .claude/skills/cfn-tech-debt/tests/test-harvest.sh 1
 .claude/skills/cfn-tmux-agents/execute.sh 1
 .claude/skills/cfn-tmux-agents/lib/jev-outcome.sh 2
-.claude/skills/cfn-tmux-agents/tests/test-agents.sh 5
+.claude/skills/cfn-tmux-agents/tests/test-agents.sh 14
 .claude/skills/cfn-token-report/tests/test-token-report.sh 1
 .claude/skills/cfn-vote-implement/jev-triage.sh 2
 .claude/skills/cfn-wiki/portal/build-portal.sh 2
@@ -121,7 +121,7 @@ tests/test-brief-size-guard.sh 1
 tests/test-careful-guard-rm.sh 79
 tests/test-cfn-fleet-autosave.sh 1
 tests/test-cfn-fleet-commit.sh 2
-tests/test-cfn-fleet-engines.sh 1
+tests/test-cfn-fleet-engines.sh 2
 tests/test-cfn-fleet-portability.sh 1
 tests/test-cfn-fleet-spawn-host.sh 1
 tests/test-cfn-fleet-workbench.sh 1
@@ -174,3 +174,5 @@ tests/test-wiki-views.sh 1
 tests/test-zai-fence.sh 1
 tests/wiki-portal-smoke.sh 1
 tests/wiki-scale-bench.sh 2
+.claude/cfn-scripts/lib/zai-fence-linux-legacy.sh 2
+.claude/cfn-scripts/lib/zai-fence-linux.sh 1

@@ -29,6 +29,8 @@ source "$PROJECT_ROOT/tests/test-utils.sh"
 # the ok/no counters instead of aborting the suite at the first failure.
 set +e
 
+# glm-open approvals (allow-list fence) go to a test store, never the real ~/.config
+CFN_GLM_OPEN_APPROVALS=$(mktemp -d); export CFN_GLM_OPEN_APPROVALS
 # Sanitize: the suite must not inherit a caller's run dir or credentials.
 unset FLEET_RUN_DIR FLEET_ZAI_TOKEN FLEET_DEFAULT_ENGINE 2>/dev/null || true
 
@@ -46,7 +48,7 @@ PASS=0
 FAIL=0
 ok(){ echo "PASS: $1"; PASS=$((PASS+1)); }
 no(){ echo "FAIL: $1"; FAIL=$((FAIL+1)); }
-cleanup(){ rm -rf "$TMP"; }
+cleanup(){ rm -rf "$TMP" "$CFN_GLM_OPEN_APPROVALS"; }
 trap cleanup EXIT
 
 FIXNUM=0
@@ -109,8 +111,8 @@ test_registry_seed_and_fields(){
 
   call_fn fleet_engine_list
   [ "$RC" -eq 0 ] && ok "fleet_engine_list exits 0" || no "list rc=$RC err=$ERR"
-  [ "$OUT" = "$(printf 'claude-sub\nglm\ncodex\nclaude-haiku')" ] \
-    && ok "registry seeds exactly claude-sub/glm/codex/claude-haiku" || no "list: '$OUT'"
+  [ "$OUT" = "$(printf 'claude-sub\nglm\nglm-open\ncodex\nclaude-haiku')" ] \
+    && ok "registry seeds exactly claude-sub/glm/glm-open/codex/claude-haiku" || no "list: '$OUT'"
   # claude-haiku (MDTWII request, 2026-10-13): mechanical lanes on Haiku, same
   # subscription scrub and banner as claude-sub, only the model differs.
   local f
@@ -153,7 +155,7 @@ test_registry_seed_and_fields(){
     && ok "glm set list keeps \$FLEET_ZAI_TOKEN reference + z.ai endpoint" \
     || no "glm set: '$set'"
   unset=$(fleet_engine_get unset glm 2>/dev/null) \
-    && [ "$unset" = "ANTHROPIC_API_KEY,ANTHROPIC_DEFAULT_SONNET_MODEL,ANTHROPIC_DEFAULT_OPUS_MODEL,ANTHROPIC_DEFAULT_HAIKU_MODEL,ANTHROPIC_DEFAULT_FABLE_MODEL,AIRTABLE_API_KEY,AIRTABLE_TOKEN,ATTIO_API_KEY,DATABASE_URL,POSTGRES_URL,SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY" ] \
+    && [ "$unset" = "ANTHROPIC_API_KEY,ANTHROPIC_DEFAULT_SONNET_MODEL,ANTHROPIC_DEFAULT_OPUS_MODEL,ANTHROPIC_DEFAULT_HAIKU_MODEL,ANTHROPIC_DEFAULT_FABLE_MODEL,AIRTABLE_API_KEY,AIRTABLE_TOKEN,ATTIO_API_KEY,DATABASE_URL,POSTGRES_URL,SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,OPENAI_API_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN,PGPASSWORD,ZAI_FENCE_OPEN_DIRS" ] \
     && ok "glm unset list (relay vars + data-system creds: gg-projects no-data-access rule)" \
     || no "glm unset: '$unset'"
   # Policy regression (2026-09-09): glm panes must never carry live
@@ -501,7 +503,7 @@ test_engines_install(){
   [ "$RC" -eq 65 ] && ok "re-install refuses to overwrite (65)" || no "rc=$RC"
 
   call_fn fleet_engine_list
-  [ "$OUT" = "$(printf 'claude-sub\nglm\ncodex\nclaude-haiku')" ] \
+  [ "$OUT" = "$(printf 'claude-sub\nglm\nglm-open\ncodex\nclaude-haiku')" ] \
     && ok "list identical via run-dir copy" || no "list via copy: '$OUT'"
 }
 
@@ -545,6 +547,134 @@ test_token_never_lands_on_disk(){
   fi
 }
 
+
+# ---------------------------------------------------------------------------
+# glm-open (2026-11-15): glm with extra writable folders, opted in PER PROJECT
+# by <repo>/.claude/glm-open-dirs. Same bin/args/env scrub as glm; the set list
+# adds ZAI_FENCE_OPEN_DIRS=1 (the fence's switch) and plain glm unsets it, so a
+# master shell exporting it can never open folders for a plain glm worker.
+test_glm_open_engine_fields(){
+  log_step "GIVEN the shipped registry, WHEN reading glm-open"
+  fixture
+  use_demo "$P" || return 0
+  local f gs go
+  for f in bin args trust_keys banner_regex; do
+    [ "$(fleet_engine_get $f glm-open 2>/dev/null)" = "$(fleet_engine_get $f glm 2>/dev/null)" ] \
+      && ok "glm-open $f matches glm" || no "glm-open $f differs from glm: '$(fleet_engine_get $f glm-open 2>/dev/null)'"
+  done
+  gs=$(fleet_engine_get set glm 2>/dev/null); go=$(fleet_engine_get set glm-open 2>/dev/null)
+  [ "$go" = "$gs,ZAI_FENCE_OPEN_DIRS=1" ] && ok "glm-open set = glm set + ZAI_FENCE_OPEN_DIRS=1" \
+    || no "glm-open set: '$go'"
+  gs=$(fleet_engine_get unset glm 2>/dev/null); go=$(fleet_engine_get unset glm-open 2>/dev/null)
+  [ "$go,ZAI_FENCE_OPEN_DIRS" = "$gs" ] \
+    && ok "glm-open unset = glm unset minus ZAI_FENCE_OPEN_DIRS (data creds + relay keys still stripped)" \
+    || no "glm-open unset: '$go' (glm: '$gs')"
+  case ",$gs," in *,ZAI_FENCE_OPEN_DIRS,*) ok "plain glm unsets ZAI_FENCE_OPEN_DIRS" ;;
+    *) no "plain glm does not unset ZAI_FENCE_OPEN_DIRS: '$gs'" ;; esac
+}
+
+_commit_list(){
+  git -C "$1" add -f .claude/glm-open-dirs \
+    && git -C "$1" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false commit -qm list >/dev/null
+  "$PROJECT_ROOT/.claude/cfn-scripts/glm-open-approve.sh" "$1" >/dev/null 2>&1 || true
+}
+
+# test_allow_15c: fleet spawn writes engine args as quoted argv words, so a
+# registry value (the run-dir engines.env is a repo file) can never inject
+# shell into the pane launch line.
+test_allow_15c_fleet_args_quoted(){
+  local m="$TMP/m-fleet-args" line
+  line=$(source "$SKILL/lib/cmd-spawn.sh" >/dev/null 2>&1; _fleet_exec_words "/bin/true" "\$(touch $m) a'b \"c\"") \
+    || { no "test_allow_15c: _fleet_exec_words missing"; return 0; }
+  bash -c "f(){ printf '%s\n' \"\$@\"; }; eval \"f \${1#exec }\"" _ "$line" > "$TMP/words.txt" 2>&1
+  if [ ! -e "$m" ] && grep -qxF "\$(touch" "$TMP/words.txt" && grep -qxF "a'b" "$TMP/words.txt"; then ok "test_allow_15c_fleet_args_quoted"
+  else no "test_allow_15c_fleet_args_quoted: marker=$([ -e "$m" ] && echo ran || echo none) words=$(tr '\n' '|' < "$TMP/words.txt")"; fi
+}
+
+# Security review 2026-11-16 finding 10: glm and glm-open panes never carry
+# OpenAI, AWS or Postgres credentials (the fence scrubs them again).
+test_sec_10_engine_unset_lists(){
+  fixture
+  use_demo "$P" || return 0
+  local e u v missing
+  for e in glm glm-open; do
+    u=$(fleet_engine_get unset "$e" 2>/dev/null); missing=()
+    for v in OPENAI_API_KEY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN PGPASSWORD DATABASE_URL \
+             AIRTABLE_API_KEY ATTIO_API_KEY SUPABASE_SERVICE_ROLE_KEY; do
+      case ",$u," in *",$v,"*) ;; *) missing+=("$v") ;; esac
+    done
+    [ "${#missing[@]}" -eq 0 ] && ok "test_sec_10_engine_unset_lists: $e" \
+      || no "test_sec_10_engine_unset_lists: $e missing=[${missing[*]}]"
+  done
+}
+
+# glm-open in a project that has not opted in must refuse before any side
+# effect, naming the setting file; with the file it plans like any engine.
+test_glm_open_spawn_requires_project_setting(){
+  log_step "GIVEN a repo without .claude/glm-open-dirs, WHEN spawn --engine glm-open"
+  fixture
+  git -C "$P" init -q
+  use_demo "$P" || return 0
+  run_fleet "$P" add WS01 "open lane" --engine glm-open
+  [ "$RC" -eq 0 ] || { no "add glm-open rc=$RC err=$ERR"; return 0; }
+  echo brief > "$FLEET_RUN_DIR/briefs/WS01.md"
+  export FLEET_SPAWN_ALLOW_NO_CLAIMS=1
+
+  run_fleet "$P" spawn WS01 --dry-run
+  [ "$RC" -eq 66 ] && ok "glm-open without the setting refused (66)" || no "glm-open no-setting rc=$RC out=$OUT err=$ERR"
+  case "$ERR" in *".claude/glm-open-dirs"*) ok "refusal names .claude/glm-open-dirs" ;;
+    *) no "refusal lacks the setting path: '$ERR'" ;; esac
+  case "$OUT" in *"PLAN spawn"*) no "refused spawn still printed a plan" ;; *) ok "no plan printed on refusal" ;; esac
+
+  mkdir -p "$P/.claude"
+  # the list is policy only when committed (HEAD), never the working copy
+  printf '%s\n' "$TMP" > "$P/.claude/glm-open-dirs"
+  run_fleet "$P" spawn WS01 --dry-run
+  [ "$RC" -eq 66 ] && ok "glm-open with an untracked list refused (66)" || no "untracked list rc=$RC err=$ERR"
+  printf '/\n' > "$P/.claude/glm-open-dirs"; _commit_list "$P"
+  run_fleet "$P" spawn WS01 --dry-run
+  [ "$RC" -eq 66 ] && ok "glm-open with a bad entry (/) refused (66)" || no "bad entry rc=$RC err=$ERR"
+
+  mkdir -p "$TMP/opened-$FIXNUM"
+  printf '# MDTWII-style opt-in\n%s\n' "$TMP/opened-$FIXNUM" > "$P/.claude/glm-open-dirs"; _commit_list "$P"
+  run_fleet "$P" spawn WS01 --dry-run
+  [ "$RC" -eq 0 ] && ok "glm-open with the setting plans (rc 0)" || no "glm-open with setting rc=$RC err=$ERR"
+  case "$OUT" in *"engine=glm-open"*) ok "plan names engine=glm-open" ;; *) no "plan lacks engine: '$OUT'" ;; esac
+
+  git -C "$P" rm -qf .claude/glm-open-dirs; git -C "$P" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false commit -qm drop
+  run_fleet "$P" spawn WS01 --engine glm --dry-run
+  [ "$RC" -eq 0 ] && ok "plain glm needs no setting (rc 0)" || no "plain glm rc=$RC err=$ERR"
+  unset FLEET_SPAWN_ALLOW_NO_CLAIMS
+}
+# Security review round 2: inherited GIT_DIR/GIT_WORK_TREE must not pick the
+# repo fleet spawn plans for; cmd-spawn scrubs them before any git call.
+test_sec2_2_git_env_scrubbed_fleet(){
+  fixture
+  git -C "$P" init -q
+  use_demo "$P" || return 0
+  run_fleet "$P" add WS01 "lane" --engine claude-sub
+  echo brief > "$FLEET_RUN_DIR/briefs/WS01.md"
+  local O="$TMP/other-$FIXNUM"; mkdir -p "$O"; git -C "$O" init -q
+  OUT=$(cd "$P" && FLEET_SPAWN_ALLOW_NO_CLAIMS=1 GIT_DIR="$O/.git" GIT_WORK_TREE="$O" "$FLEET" spawn WS01 --dry-run 2>"$TMP/stderr.txt"); RC=$?
+  case "$OUT" in *"cwd=$(cd "$P" && pwd -P) "*|*"cwd=$P "*) ok "test_sec2_2_git_env_scrubbed_fleet" ;;
+    *) no "test_sec2_2_git_env_scrubbed_fleet: rc=$RC out=$OUT err=$(cat "$TMP/stderr.txt")" ;; esac
+}
+
+# rev 3 (independent review): a run-dir engines.env whose bin/args for a
+# shared-registry engine differ from the registry is refused by spawn.
+test_allow_rev_3_spawn_registry_mismatch(){
+  fixture
+  git -C "$P" init -q
+  use_demo "$P" || return 0
+  run_fleet "$P" add WS01 "lane" --engine glm
+  echo brief > "$FLEET_RUN_DIR/briefs/WS01.md"
+  sed -i 's#^glm | [^|]*| [^|]*|#glm | /bin/sh | -c evil |#' "$FLEET_RUN_DIR/engines.env"
+  OUT=$(cd "$P" && FLEET_SPAWN_ALLOW_NO_CLAIMS=1 "$FLEET" spawn WS01 --dry-run 2>"$TMP/stderr.txt"); RC=$?
+  ERR=$(cat "$TMP/stderr.txt")
+  if [ "$RC" -eq 65 ] && grep -q 'registry' <<<"$ERR"; then ok "test_allow_rev_3_spawn_registry_mismatch"
+  else no "test_allow_rev_3_spawn_registry_mismatch: rc=$RC out=$OUT err=$ERR"; fi
+}
+
 # ---------------------------------------------------------------------------
 test_registry_seed_and_fields
 test_registry_malformed_line_refused
@@ -557,6 +687,12 @@ test_empty_engine_cell_falls_back
 test_default_engine_fn
 test_engines_install
 test_token_never_lands_on_disk
+test_glm_open_engine_fields
+test_glm_open_spawn_requires_project_setting
+test_sec_10_engine_unset_lists
+test_sec2_2_git_env_scrubbed_fleet
+test_allow_15c_fleet_args_quoted
+test_allow_rev_3_spawn_registry_mismatch
 
 echo
 echo "cfn-fleet-engines: $PASS passed, $FAIL failed"

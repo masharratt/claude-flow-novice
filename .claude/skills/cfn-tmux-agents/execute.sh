@@ -18,6 +18,15 @@ SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # (shared with cfn-fleet; the file explains the leak it closes).
 # shellcheck source=../../cfn-scripts/spawn-env.sh
 . "$(cd "$SKILL_DIR/../../cfn-scripts" && pwd)/spawn-env.sh"
+# open-dirs.sh: glm-open's per-project folder list (shared with zai-fence.sh
+# and cfn-fleet), so a project that has not opted in is refused up front.
+# shellcheck source=../../cfn-scripts/lib/open-dirs.sh
+. "$(cd "$SKILL_DIR/../../cfn-scripts/lib" && pwd)/open-dirs.sh"
+# Security review round 2: inherited GIT_DIR / GIT_WORK_TREE etc. would pick
+# the launch folder (default --cwd = git toplevel) and the glm-open policy
+# repo. Scrub them before any git call. Word splitting is intended.
+# shellcheck disable=SC2086
+unset $CFN_GIT_REDIRECT_VARS
 
 TA_SOCK=""
 
@@ -26,7 +35,7 @@ _ta_usage() {
 Usage: execute.sh <command> [options]
 
 Commands:
-  spawn NAME [--engine claude|claude-sub|glm|codex] [--model M] [--cwd DIR]
+  spawn NAME [--engine claude|claude-sub|glm|glm-open|codex] [--model M] [--cwd DIR]
         [--prompt TEXT | --prompt-file PATH] [--dry-run]
         [--bin PATH] [--args STR] [--banner-regex RE]
         [--trust-timeout S] [--banner-timeout S]
@@ -41,7 +50,10 @@ Engines (default claude-sub):
   claude-sub  claude --model sonnet --permission-mode bypassPermissions
               (unsets ANTHROPIC_* relay vars: subscription billing)
   glm         claude via z.ai (needs TMUX_AGENTS_ZAI_TOKEN, or
-              FLEET_ZAI_TOKEN / ZAI_TOKEN which the skill picks up)
+              FLEET_ZAI_TOKEN / ZAI_TOKEN which the skill picks up);
+              runs inside zai-fence.sh, confined to its project
+  glm-open    glm plus extra read+write folders listed in the project's
+              committed .claude/glm-open-dirs; refused (66) without it
   codex       codex --sandbox workspace-write --ask-for-approval never
               (unsets OPENAI_API_KEY: ChatGPT-plan billing; requires a
               literal codex=true line in the target project's CLAUDE.md)
@@ -103,14 +115,54 @@ cmd_spawn() {
   unset_raw=$(_ta_engine_field "$engine" 5)
   trust_keys=$(_ta_engine_field "$engine" 6)
   banner_re=$(_ta_engine_field "$engine" 7)
+  # BUG bin-doubled (2026-11-15): glm's args start with the program the
+  # zai-fence.sh wrapper runs, so `--engine glm --bin claude` exec'd
+  # `claude claude --model ...`. For a fenced engine, a --bin that is not
+  # itself the wrapper replaces only that program word INSIDE the fence
+  # (zai-fence.sh <bin> <args>): glm never launches unfenced. --args then
+  # replaces the rest of the args. A --bin named zai-fence.sh replaces the
+  # wrapper, and its args (registry or --args) keep the program word.
+  # test_sec_1 (security review 2026-11-16): a --bin named zai-fence.sh would
+  # replace the fence itself. Accept it only when it is the real wrapper from
+  # this repo (realpath compare); a look-alike `exec "$@"` script is refused.
+  # A --bin holding a slash must be absolute: a relative path was checked in
+  # this shell's cwd but launched in --cwd, where a look-alike could sit.
+  case "$bin_ov" in
+    ""|/*) ;;
+    */*) _ta_die 66 "spawn: --bin must be an absolute path or a bare command name (got relative '$bin_ov')" ;;
+  esac
+  if [ -n "$bin_ov" ] && [ "$(basename "$bin_ov")" = "zai-fence.sh" ]; then
+    local real_fence ov_real
+    real_fence=$(realpath "$SKILL_DIR/../../cfn-scripts/zai-fence.sh" 2>/dev/null) \
+      || _ta_die 66 "spawn: cannot resolve the installed zai-fence.sh"
+    # resolved through absolute PATH entries only; no cwd-relative fallback
+    ov_real=$(_ta_resolve_bin "$bin_ov" 2>/dev/null) && ov_real=$(realpath "$ov_real" 2>/dev/null) || ov_real=""
+    [ -n "$ov_real" ] && [ "$ov_real" = "$real_fence" ] \
+      || _ta_die 66 "spawn: --bin $bin_ov is not the installed fence $real_fence (a look-alike zai-fence.sh would run the engine unfenced; refused)"
+  fi
+  # Args are argv WORDS from here on (test_allow_15b): registry args, --args
+  # and --model are split on whitespace and later written with printf %q, so
+  # `$(...)` or quotes in them can never run as shell in the pane.
+  local -a words=()
+  if [ -n "$args_ov" ]; then read -r -a words <<< "$args_ov"; else read -r -a words <<< "$args_str"; fi
+  if [ -n "$bin_ov" ] && [ "$(basename "$bin")" = "zai-fence.sh" ] \
+     && [ "$(basename "$bin_ov")" != "zai-fence.sh" ]; then
+    # --bin names the program INSIDE the fence; resolved to an absolute path
+    # here (the fence would otherwise look it up on its own PATH).
+    local prog
+    prog=$(_ta_resolve_bin "$bin_ov") || { [ "$dry_run" = 1 ] && prog="$bin_ov"; } \
+      || _ta_die 66 "spawn: --bin '$bin_ov' not found or not executable (absolute PATH entries only)"
+    if [ -n "$args_ov" ]; then words=("$prog" ${words[@]+"${words[@]}"})
+    else words=("$prog" ${words[@]+"${words[@]:1}"}); fi
+    bin_ov=""
+  fi
   [ -n "$bin_ov" ] && bin="$bin_ov"
-  [ -n "$args_ov" ] && args_str="$args_ov"
   [ -n "$banner_ov" ] && banner_re="$banner_ov"
   # The prompt text follows the engine, not the launcher: a zai-fence.sh
   # wrapper bin runs the program named by the first word of args.
   local bin_kind
   bin_kind=$(basename "$bin")
-  [ "$bin_kind" = "zai-fence.sh" ] && bin_kind=$(basename "${args_str%% *}")
+  [ "$bin_kind" = "zai-fence.sh" ] && bin_kind=$(basename "${words[0]:-x}")
   case "$bin_kind" in
     claude) trust_re="Do you trust the files in this folder|Yes, I trust this folder" ;;
     codex)  trust_re="trust this folder|work in this folder" ;;
@@ -118,16 +170,14 @@ cmd_spawn() {
   esac
 
   if [ -n "$model" ]; then
-    local -a parts=() keep=() p
-    read -r -a parts <<< "$args_str"
-    local skip=0
-    for p in ${parts[@]+"${parts[@]}"}; do
+    local -a keep=()
+    local p skip=0
+    for p in ${words[@]+"${words[@]}"}; do
       if [ "$skip" = 1 ]; then skip=0; continue; fi
       if [ "$p" = "--model" ]; then skip=1; continue; fi
       keep+=("$p")
     done
-    args_str="${keep[*]:-}"
-    args_str="${args_str:+$args_str }--model $model"
+    words=(${keep[@]+"${keep[@]}"} --model "$model")
   fi
 
   if [ -z "$cwd" ]; then
@@ -150,6 +200,15 @@ cmd_spawn() {
     _ta_codex_auth_warn
   fi
   [ "$engine" = "claude-sub" ] && _ta_claude_repo_settings_warn "$cwd"
+  # glm-open: extra writable folders only for a project that opted in with a
+  # committed .claude/glm-open-dirs; refuse here, before any side effect (the
+  # fence refuses too, but only inside a pane that then just dies).
+  if cfn_open_dirs_wanted "$(_ta_engine_field "$engine" 4)"; then
+    local od_root
+    od_root=$(cfn_open_dirs_root "$cwd") || _ta_die 66 "spawn: cannot resolve the repo root of $cwd for glm-open"
+    cfn_open_dirs_list "$od_root" >/dev/null \
+      || _ta_die 66 "spawn: engine '$engine' needs a valid $od_root/$CFN_OPEN_DIRS_FILE (reason above); use engine glm to stay fenced to the project"
+  fi
 
   _ta_zai_token_prefill
   # Resolve now so a missing token still exits 66 before any side effect.
@@ -175,9 +234,14 @@ cmd_spawn() {
   fi
 
   # The pane command: one literal line, exec so the pane dies with the engine.
-  local pane_cmd bin_q
+  local pane_cmd bin_q w uv="" u
   bin_q=$(printf '%q' "$bin")
-  pane_cmd="unset ${unset_raw//,/ }; exec $bin_q${args_str:+ $args_str}"
+  for w in ${words[@]+"${words[@]}"}; do bin_q+=" $(printf '%q' "$w")"; done
+  for u in ${unset_raw//,/ }; do
+    [[ "$u" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || _ta_die 65 "spawn: engine '$engine' unset list holds a bad name '$u'"
+    uv+=" $u"
+  done
+  pane_cmd="${uv:+unset$uv; }exec $bin_q"
 
   [ -n "$trust_timeout" ] || trust_timeout=$(_ta_env_seconds TMUX_AGENTS_TRUST_TIMEOUT 15)
   [ -n "$banner_timeout" ] || banner_timeout=$(_ta_env_seconds TMUX_AGENTS_BANNER_TIMEOUT 20)

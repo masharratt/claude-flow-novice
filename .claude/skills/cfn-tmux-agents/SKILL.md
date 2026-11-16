@@ -58,7 +58,7 @@ Subcommands and flags:
 
 | Command | Args | Notes |
 |---|---|---|
-| `spawn` | `NAME` | `--engine claude-sub\|glm\|codex`, `--model M`, `--cwd DIR` (default git toplevel), `--prompt TEXT` or `--prompt-file F`, `--socket S`, `--trust-timeout S`, `--banner-timeout S`, `--dry-run`, `--bin`/`--args`/`--banner-regex` (custom engine) |
+| `spawn` | `NAME` | `--engine claude-sub\|glm\|glm-open\|codex`, `--model M`, `--cwd DIR` (default git toplevel), `--prompt TEXT` or `--prompt-file F`, `--socket S`, `--trust-timeout S`, `--banner-timeout S`, `--dry-run`, `--bin`/`--args`/`--banner-regex` (custom engine; for `glm`/`glm-open` a `--bin` other than `zai-fence.sh` replaces only the program inside the fence, so `--engine glm --bin claude` runs `zai-fence.sh claude --model ...`; glm never runs unfenced; a `--bin` named `zai-fence.sh` must be the installed wrapper (realpath match) or spawn refuses with 66) |
 | `send` | `NAME TEXT...` | follow-up: literal text, 1s, separate Enter |
 | `status` | `[NAME]` | alive/DEAD + last lines; all sessions when NAME omitted |
 | `capture` | `NAME` | `--lines N` (default 40) |
@@ -84,8 +84,16 @@ Prompt submit knobs: `TMUX_AGENTS_SUBMIT_SETTLE` (1), `TMUX_AGENTS_SUBMIT_VERIFY
 | Engine | Process | Billing/env posture |
 |---|---|---|
 | `claude-sub` (default; `claude` alias) | `claude --model sonnet --permission-mode bypassPermissions` | unsets all `ANTHROPIC_*` relay vars: subscription billing, never API |
-| `glm` | `zai-fence.sh claude --model glm-5.3-flash --permission-mode bypassPermissions` + z.ai base URL/token; the wrapper confines the worker to its repo root (macOS sandbox, fails closed with exit 70) | needs a token var; unsets `ANTHROPIC_API_KEY` + data-system creds (Airtable/Attio/Postgres/Supabase) as least privilege |
+| `glm` | `zai-fence.sh claude --model glm-5.3-flash --permission-mode bypassPermissions` + z.ai base URL/token; the wrapper confines the worker to its repo root (macOS Seatbelt or Linux bubblewrap, fails closed with exit 70) | needs a token var; unsets `ANTHROPIC_API_KEY` + data-system creds (Airtable/Attio/Postgres/Supabase) as least privilege |
+| `glm-open` | same as `glm`; the fence also binds read+write the folders listed in the target project's committed `.claude/glm-open-dirs` (HEAD version only; regular file, not a symlink) (one absolute folder per line; `ro:/path` read-only; last-segment `*`/`?` globs expand at start; nested entry wins; per project, never global; validated by the fence; credential and `.env` masks still win) | same scrub as `glm`; spawn refuses (exit 66) when the project has no list, an empty one, or a bad entry |
 | `codex` | `codex --sandbox workspace-write --ask-for-approval never` | unsets `OPENAI_API_KEY` (ChatGPT-plan billing); refuses a set key an engine would not unset; Codex delegation gate: refuses (exit 66) unless the target project's CLAUDE.md carries a literal `codex=true` line |
+
+Linux fence for `glm`/`glm-open` is an allow-list (only `/usr`, a small `/etc` set,
+read-only `~/.claude` runtime, private per-worker home; network only to the API
+host). A `glm-open` list needs a one-time approval after each committed change:
+`~/.claude/cfn-scripts/glm-open-approve.sh <repo>`. `--bin` with a slash must be
+absolute; bare names resolve only through absolute PATH entries; `--args` and
+`--model` are passed as argv words, never as shell code.
 
 Registry: the SHARED `~/.claude/cfn-config/engines.env`, the same single
 source of truth cfn-fleet reads (via its `templates/engines.env` symlink), so

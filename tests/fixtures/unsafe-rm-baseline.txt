@@ -86,7 +86,7 @@
 .claude/skills/cfn-tech-debt/tests/test-harvest.sh 1
 .claude/skills/cfn-test-framework/lib/webapp/test-webapp-testing.sh 1
 .claude/skills/cfn-tmux-agents/execute.sh 2
-.claude/skills/cfn-tmux-agents/tests/test-agents.sh 5
+.claude/skills/cfn-tmux-agents/tests/test-agents.sh 13
 .claude/skills/cfn-token-report/tests/test-token-report.sh 1
 .claude/skills/cfn-wiki/lib/sync.sh 2
 .claude/skills/cfn-wiki/portal/build-portal.sh 10
@@ -262,8 +262,9 @@ tests/test-wiki-generate.sh 4
 tests/test-wiki-portal.sh 1
 tests/test-wiki-sync.sh 3
 tests/test-wiki-views.sh 3
-tests/test-zai-fence.sh 2
+tests/test-zai-fence.sh 19
 tests/unit/test-skill-cli.sh 1
 tests/unit/test-skill-loader.sh 2
 tests/wiki-portal-smoke.sh 1
 tests/wiki-scale-bench.sh 4
+tests/test-cfn-fleet-dashboard-perf.sh 1

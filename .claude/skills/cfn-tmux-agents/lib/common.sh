@@ -125,17 +125,28 @@ _ta_claude_repo_settings_warn() {
 # executable. Spawn calls this before any side effect: a missing binary
 # used to surface only as a dead pane and an empty "no banner match" dump.
 _ta_resolve_bin() {
-  local b="$1" p
+  # Prints an ABSOLUTE path (directory part physical, the file itself kept so a
+  # symlinked launcher such as ~/.local/bin/claude stays what it is), or rc 1.
+  # A path with a slash must already be absolute; a bare name is looked up only
+  # in absolute PATH entries ("." or "" would pick a file in the pane's cwd).
+  local b="$1" p d IFS
   # shellcheck disable=SC2016,SC2088  # literal $HOME / ~ from the registry
   case "$b" in '$HOME/'*) b="${HOME}/${b#\$HOME/}" ;; '~/'*) b="${HOME}/${b#\~/}" ;; esac
-  if [[ "$b" == */* ]]; then
-    [ -f "$b" ] && [ -x "$b" ] || return 1
-    printf '%s\n' "$b"
-    return 0
-  fi
-  p=$(type -P -- "$b" 2>/dev/null) || return 1
-  [ -n "$p" ] || return 1
-  printf '%s\n' "$p"
+  case "$b" in
+    /*) p="$b" ;;
+    */*) return 1 ;;
+    *) p=""
+       IFS=:
+       for d in $PATH; do
+         case "$d" in /*) ;; *) continue ;; esac
+         if [ -f "$d/$b" ] && [ -x "$d/$b" ]; then p="$d/$b"; break; fi
+       done
+       unset IFS
+       [ -n "$p" ] || return 1 ;;
+  esac
+  [ -f "$p" ] && [ -x "$p" ] || return 1
+  d=$(cd "$(dirname "$p")" 2>/dev/null && pwd -P) || return 1
+  printf '%s/%s\n' "$d" "$(basename "$p")"
 }
 
 # _ta_shebang_interp FILE — for a script whose #! line names an interpreter
