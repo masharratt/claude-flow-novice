@@ -456,6 +456,50 @@ test_roster_host_column_appended_and_old_rows_padded(){
 }
 
 # ---------------------------------------------------------------------------
+# MDTWII 2026-11-15 watch rewrite: one `fleet watch` session left the committed
+# roster.tsv with 87 changed rows (heartbeat cells of released rows rewritten),
+# which blocked a fast-forward of main. A roster write must change only the row
+# it targets, keep every other row byte-identical (CRLF too), and a no-op write
+# must not touch the file at all.
+test_mdtwii_2026_11_15_watch_rewrite_roster_writes_minimal(){
+  log_step "GIVEN a roster with a CRLF row, WHEN roster_set changes one cell or rewrites the same value, THEN only that row changes and a no-op leaves the file untouched"
+  fixture
+  run_fleet "$P" init demo
+  local RD="$P/planning/fleet-demo" R lib
+  R="$RD/roster.tsv"
+  lib="$PROJECT_ROOT/.claude/skills/cfn-fleet/lib/common.sh"
+  {
+    printf 'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\thost\tlane_sha\n'
+    printf 'WS01\tws01\tone\tdone\t\tabc\t\t\t100\tmerged\tclaude-sub\tvps\t\n'
+    printf 'WS02\tws02\ttwo\tdone\t\t\t\t\t200\tcrlf row\tclaude-sub\tvps\tsha2\r\n'
+    printf 'WS03\tws03\tthree\tstarted\t\t\t\t\t300\t\tclaude-sub\t\t\n'
+  } > "$R"
+  cp "$R" "$TMP/before.tsv"
+
+  # No-op: same value -> same inode, same mtime, same bytes.
+  touch -d '2020-01-01 00:00:00' "$R"
+  local st0 st1
+  st0=$(stat -c '%i %Y' "$R")
+  FLEET_RUN_DIR="$RD" bash -c 'source "$1"; roster_set WS01 heartbeat 100; roster_set WS02 notes "crlf row"' _ "$lib"
+  st1=$(stat -c '%i %Y' "$R")
+  [ "$st0" = "$st1" ] && ok "no-op roster_set leaves the file untouched (inode+mtime)" \
+    || no "no-op roster_set rewrote the file: $st0 -> $st1"
+  cmp -s "$R" "$TMP/before.tsv" && ok "no-op roster_set leaves bytes unchanged" || no "no-op changed bytes"
+
+  # One real change: only WS03's line differs.
+  FLEET_RUN_DIR="$RD" bash -c 'source "$1"; roster_set WS03 heartbeat 999' _ "$lib"
+  local changed
+  changed=$(diff "$TMP/before.tsv" "$R" | grep -c '^[<>]')
+  [ "$changed" = 2 ] && ok "one cell change touches exactly one row" || no "diff lines: $changed ($(diff "$TMP/before.tsv" "$R" | head -5))"
+  [ "$(sed -n 3p "$R")" = "$(sed -n 3p "$TMP/before.tsv")" ] && ok "CRLF row kept byte-identical" || no "CRLF row changed"
+
+  # Changing the last cell of a CRLF row keeps its CRLF ending.
+  FLEET_RUN_DIR="$RD" bash -c 'source "$1"; roster_set WS02 lane_sha sha9' _ "$lib"
+  [ "$(sed -n 3p "$R")" = $'WS02\tws02\ttwo\tdone\t\t\t\t\t200\tcrlf row\tclaude-sub\tvps\tsha9\r' ] \
+    && ok "edited CRLF row keeps its CRLF ending" || no "CRLF row: $(sed -n 3p "$R" | cat -A)"
+}
+
+# ---------------------------------------------------------------------------
 test_worktree_path_helper(){
   log_step "WHEN fleet_worktree_path REPO WS, THEN repo/.claude/worktrees/<ws lowercase>"
   local lib="$PROJECT_ROOT/.claude/skills/cfn-fleet/lib/common.sh" got
@@ -569,6 +613,7 @@ test_status_table_and_tsv
 test_router_unknown_subcommand
 test_run_dir_resolution
 test_roster_host_column_appended_and_old_rows_padded
+test_mdtwii_2026_11_15_watch_rewrite_roster_writes_minimal
 test_worktree_path_helper
 test_concurrent_claims_on_same_path_one_wins
 test_add_refuses_claims_held_by_another_row

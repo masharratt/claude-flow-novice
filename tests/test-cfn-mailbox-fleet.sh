@@ -505,6 +505,23 @@ test_reader_and_seen() {
   mb read --reader Bad_Reader
   assert_rc 10 "reader name validated"
 
+  # MDTWII 2026-11-15 watch replay: fleet watch's reader had no marker, so it read the master
+  # inbox from 0-0 and replayed 119 weeks-old worker messages into the roster and CLAIM_REQ files.
+  # A --reader with no marker starts at the stream tip (like a room subscriber): nothing old.
+  new_case "MDTWII 2026-11-15 watch replay: a new --reader starts at the newest message"
+  rule "XREVRANGE $k + - COUNT 1" '[["1700000000005-0",["from","michael/s/proj-ws1"]]]'
+  rule "XREAD COUNT * STREAMS $k 0-0" "$(msg "$k" 1700000000001-0 michael/s/proj-ws1 ask "old claim-request from October" m-old1)"
+  rule "XREAD COUNT * STREAMS $k 1700000000005-0" "$(msg "$k" 1700000000006-0 michael/s/proj-ws1 ask "new after tip" m-new1)"
+  MENV=(MAILBOX_SESSION=proj-master)
+  mb read --reader fleet-watch
+  assert_rc 0 "first reader read ok"
+  assert_not_contains "$OUT" "old claim-request" "no history replayed to a new reader"
+  assert_eq "1700000000005-0" "$(kv "seen:michael:proj-master--fleet-watch:$hash")" "marker set to the stream tip"
+  mb read --reader fleet-watch
+  assert_contains "$OUT" "new after tip" "next read returns mail after the tip"
+  mb read
+  assert_contains "$OUT" "old claim-request" "plain read with no marker keeps today's behaviour (from the start)"
+
   new_case "who --seen: address and last_seen for every directory entry"
   rule "HGETALL dir:michael" '["michael/s/proj-ws1","{\"host\":\"vps\",\"last_seen\":1799999990}","michael/s/proj-ws2","{\"host\":\"mac\",\"last_seen\":17}"]'
   mb who --seen

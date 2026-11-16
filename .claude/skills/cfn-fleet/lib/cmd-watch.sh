@@ -261,7 +261,11 @@ _fleet_watch_mail() {
     case "$addr" in */s/*) n="${addr##*/s/}" ;; *) continue ;; esac
     ws="${by_name[$n]:-}"
     [ -n "$ws" ] || continue
-    [ -n "$(roster_get "$ws" host 2>/dev/null || true)" ] || continue
+    host=$(roster_get "$ws" host 2>/dev/null || true)
+    [ -n "$host" ] || continue
+    # A released row is finished; its worker's later directory pings must not
+    # rewrite the committed roster (MDTWII 2026-11-15 watch rewrite: 74 rows).
+    ! _fleet_row_released "$(roster_get "$ws" status 2>/dev/null || true)" "$host" || continue
     hb=$(roster_get "$ws" heartbeat 2>/dev/null || echo 0)
     [[ "$hb" =~ ^[0-9]+$ ]] || hb=0
     [ "$seen" -gt "$hb" ] && roster_set "$ws" heartbeat "$seen"

@@ -207,9 +207,22 @@ _fleet_sync_mailq() {
 # _fleet_claim_req_append WS PATH TAG: record a worker's claim request in
 # handoffs/CLAIM_REQ_<WS>.md, with TAG saying how it was decided (auto-grant or
 # left for the master). WS must already be a safe file-name part.
+# Never writes for a released row (_fleet_row_released), and never twice for
+# one request: a line naming the same PATH with the same request source (TAG
+# up to its first ";", e.g. "mail <id>" or "gen G, seq N") is already the
+# record. Replayed mail rewrote 9 finished rows' files (MDTWII 2026-11-15 watch
+# rewrite).
 _fleet_claim_req_append() {
-  local ws="$1" path="$2" tag="$3" cr
+  local ws="$1" path="$2" tag="$3" cr src
+  roster_exists "$ws" \
+    && _fleet_row_released "$(roster_get "$ws" status)" "$(roster_get "$ws" host)" \
+    && return 0
   cr="$(fleet_run_dir)/handoffs/CLAIM_REQ_$ws.md"
+  src="${tag%%;*}"
+  if [ -f "$cr" ] && awk -v a="- $path ($src;" -v b="- $path ($src)" \
+       'index($0, a) == 1 || index($0, b) == 1 { f = 1; exit } END { exit !f }' "$cr"; then
+    return 0
+  fi
   mkdir -p "$(dirname "$cr")"
   [ -f "$cr" ] || printf '# Claim requests from %s\n\nRequests marked "for the master": decide with `fleet claim`. GRANTED ones were auto-granted.\n\n' "$ws" > "$cr"
   printf -- '- %s (%s)\n' "$path" "$tag" >> "$cr"
@@ -228,6 +241,12 @@ _fleet_mail_apply_locked() {
   local ws="$1" type="$2" body="$3" tag="$4" cur new="" note="" st
   body="${body//[$'\t\n\r']/ }"
   cur=$(roster_get "$ws" status)
+  # A released row is finished: late or replayed mail never rewrites it (no
+  # heartbeat, notes, status or CLAIM_REQ change). MDTWII 2026-11-15 watch rewrite.
+  if _fleet_row_released "$cur" "$(roster_get "$ws" host)"; then
+    echo "MAIL-IGNORED $ws $type (row is $cur)"
+    return 0
+  fi
   case "$type" in
     status)
       st="${body%%[: ]*}"

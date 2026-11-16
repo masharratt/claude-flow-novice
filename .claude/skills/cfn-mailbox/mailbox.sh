@@ -949,8 +949,10 @@ read_seen() { # key sender reader kind
   rcmd GET "$marker"
   last="$(printf '%s' "$RC_OUT" | tr -d '\r\n ')"
   if [ -z "$last" ]; then
-    if [ "$kind" = r ]; then
-      # A new room subscriber starts at the newest message.
+    if [ "$kind" = r ] || [ -n "$READER" ]; then
+      # A new room subscriber, or a second reader (`read --reader`, fleet watch) with no marker,
+      # starts at the newest message: a missing or expired marker never replays history
+      # (MDTWII 2026-11-15 watch replay: 119 weeks-old messages re-applied to the fleet roster).
       rcmdj XREVRANGE "$key" + - COUNT 1
       last="$(printf '%s' "$RC_OUT" | jq -r '.[0][0] // empty' 2>/dev/null || true)"
       [ -n "$last" ] || last="0-0"

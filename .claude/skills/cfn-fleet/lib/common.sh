@@ -200,11 +200,24 @@ _roster_set_locked(){
   [ -n "$idx" ] || fleet_die 65 "unknown roster field: $field"
   val="${val//$'\t'/ }"
   val="${val//$'\n'/ }"
+  val="${val//$'\r'/ }"
   tmp="${f}.tmp.$$"
+  # A no-op write (same value, current header) leaves the file untouched: the
+  # roster is committed in target repos, and a rewrite on every watch tick
+  # dirtied it (MDTWII 2026-11-15 watch rewrite).
+  if [ "$(head -n1 "$f")" = "$FLEET_ROSTER_HEADER" ] \
+     && awk -F'\t' -v ws="$ws" -v i="$idx" -v v="$val" '
+          $1 == ws { c = $i; sub(/\r$/, "", c); same = (c == v); found = 1; exit }
+          END { exit !(found && same) }' "$f"; then
+    return 0
+  fi
   _roster_migrate_locked "$f" || return 71
+  # Only the target row is rebuilt; every other line is printed as read, so
+  # order and line endings (CRLF included) stay byte-identical. The target
+  # row keeps its own CR, if it had one.
   awk -F'\t' -v OFS='\t' -v ws="$ws" -v i="$idx" -v v="$val" '
     NR == 1  { print; next }
-    $1 == ws { $i = v; print; next }
+    $1 == ws { cr = sub(/\r$/, ""); $i = v; print $0 (cr ? "\r" : ""); next }
              { print }' "$f" > "$tmp" || { rm -f "$tmp"; return 71; }
   mv -f "$tmp" "$f"
 }

@@ -300,6 +300,10 @@ watch_fixture() {
   printf 'src/a.md\n' > "$T/srv/ob/WS02/claims.txt"
   printf 'FLEET_HOST=vps\nFLEET_GEN=g1\nFLEET_OUTBOX=%s\nFLEET_SOCK=fleet-r1\nFLEET_SESSION=ws02\n' "$T/srv/ob/WS02" > "$RUN/remote/WS02.env"
   FENV=(FLEET_TMUX_SOCKET=fleet-r1)
+  # A running watch already has its reader marker. A brand-new --reader starts at the stream
+  # tip and returns nothing old (MDTWII 2026-11-15 watch replay), so seed the marker here.
+  local mk; mk="seen:michael:proj-a-master--fleet-watch:$(printf '%s' "$MK" | cksum | awk '{print $1}')"
+  printf '0-0' > "$T/kv/$(printf '%s' "$mk" | tr -c 'A-Za-z0-9_.-' '_')"
 }
 
 test_watch_applies_mail() {
@@ -333,6 +337,46 @@ test_watch_applies_mail() {
   # Same reply again: the delivered set drops what was already applied.
   fleet watch --once
   assert_not_contains "$OUT" "MAIL WS02" "nothing applied twice"
+}
+
+# MDTWII 2026-11-15 watch rewrite: a fresh fleet-watch reader (no marker, no
+# delivered set) replayed weeks-old worker mail. Every replay stamped heartbeat
+# and notes on long-done host rows and appended "for the master: row is done"
+# lines to their CLAIM_REQ files; the directory last_seen loop then bumped the
+# heartbeat of every released host row. 87 committed roster rows changed.
+test_mdtwii_2026_11_15_watch_rewrite() {
+  new_case "MDTWII 2026-11-15 watch rewrite: replayed mail and dir heartbeats never touch released rows, claim requests idempotent"
+  watch_fixture
+  printf 'WS05\tws05\ttask WS05\tdone\tsrc/old.md\tabc1234\t\t\t100\tmerged (master)\tclaude-sub\tvps\t\n' >> "$RUN/roster.tsv"
+  printf 'WS06\tws06\ttask WS06\tlanded\t\t\t\t\t150\tlanded\tclaude-sub\tvps\t\n' >> "$RUN/roster.tsv"
+  printf '# Claim requests from WS05\n\n- src/old.md (mail m-0; GRANTED automatically)\n' > "$RUN/handoffs/CLAIM_REQ_WS05.md"
+  local now; now="$(date +%s)"
+  rule "HGETALL dir:michael" "[\"michael/s/proj-a-ws05\",\"{\\\"last_seen\\\":$((now - 10))}\",\"michael/s/proj-a-ws06\",\"{\\\"last_seen\\\":$((now - 20))}\"]"
+  rule "XREAD COUNT * STREAMS $MK *" "$(xmsgs "$MK" \
+    1-0 michael/s/proj-a-ws05 claim-request "src/z.md" m-old1 \
+    2-0 michael/s/proj-a-ws05 status "working: old news" m-old2 \
+    3-0 michael/s/proj-a-ws06 "done" "old done" m-old3 \
+    4-0 michael/s/proj-a-ws02 claim-request "src/c.md" m-new1)"
+  local r5 r6 cr5
+  r5="$(grep '^WS05' "$RUN/roster.tsv")"; r6="$(grep '^WS06' "$RUN/roster.tsv")"
+  cr5="$(cat "$RUN/handoffs/CLAIM_REQ_WS05.md")"
+  fleet watch --once
+  assert_rc 0 "watch ok"
+  assert_eq "$r5" "$(grep '^WS05' "$RUN/roster.tsv")" "done host row byte-identical after replayed mail + dir heartbeat"
+  assert_eq "$r6" "$(grep '^WS06' "$RUN/roster.tsv")" "landed host row byte-identical after replayed mail + dir heartbeat"
+  assert_eq "$cr5" "$(cat "$RUN/handoffs/CLAIM_REQ_WS05.md")" "CLAIM_REQ of a done row not modified"
+  assert_eq "no" "$(yn test -e "$RUN/handoffs/CLAIM_REQ_WS06.md")" "no CLAIM_REQ created for a landed host row"
+  assert_contains "$(cat "$RUN/handoffs/CLAIM_REQ_WS02.md" 2>/dev/null)" "src/c.md" "active row's request still recorded"
+
+  # Same mail replayed by a reader that lost its delivered set (the MDTWII trigger).
+  local cr2 roster_before
+  cr2="$(cat "$RUN/handoffs/CLAIM_REQ_WS02.md")"
+  roster_before="$(grep -v '^WS02' "$RUN/roster.tsv")"
+  rm -f "$T/home/.cache/cfn-mailbox/delivered-"*
+  fleet watch --once
+  assert_rc 0 "second watch ok"
+  assert_eq "$cr2" "$(cat "$RUN/handoffs/CLAIM_REQ_WS02.md")" "same request seen twice: CLAIM_REQ unchanged"
+  assert_eq "$roster_before" "$(grep -v '^WS02' "$RUN/roster.tsv")" "replay leaves every other roster row byte-identical"
 }
 
 # Finding 5 (codex review 2026-11-14): mail to a host lane exited 0 when Redis
@@ -471,6 +515,7 @@ test_spawn_local_env_and_secret
 test_fleet_mail
 test_fleet_report
 test_watch_applies_mail
+test_mdtwii_2026_11_15_watch_rewrite
 test_finding5_host_mail_needs_from_master
 test_watch_dir_heartbeat
 test_watch_mailbox_down
