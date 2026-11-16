@@ -208,7 +208,7 @@ tests/skills/test-pre-edit-backup.sh 2
 tests/task-mode/test-task-mode-safety.sh 1
 tests/test-agent-selection-bundle.sh 1
 tests/test-brief-size-guard.sh 1
-tests/test-careful-guard-rm.sh 99
+tests/test-careful-guard-rm.sh 111
 tests/test-cfn-fleet-autosave.sh 1
 tests/test-cfn-fleet-commit.sh 2
 tests/test-cfn-fleet-dashboard.sh 2
