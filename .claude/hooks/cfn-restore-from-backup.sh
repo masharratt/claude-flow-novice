@@ -34,6 +34,22 @@
 #   2. a proper backup.sh backup under .backups/restore-safety/, taken by
 #      restore.sh itself as part of every restore it performs
 # Both are best-effort; neither blocks the restore if it fails.
+#
+# Which backup wins (fixed 2026-11-16, tests/test-restore-picks-latest-preedit.sh):
+#   - the newest PRE-EDIT original across every agent dir. restore-safety/
+#     copies are skipped: they hold the state a previous restore overwrote,
+#     not a pre-edit original, and used to outrank every real backup.
+#   - stale guard: if that backup is older than the file's last git commit it
+#     cannot be the pre-edit state of the current uncommitted edit (an edit
+#     made with Bash/sed/python never fires the Edit-matched backup hook, so
+#     no fresh backup exists). Refuse with exit 3; --force restores anyway.
+#     On 2026-11-15 this tool silently restored a 2026-09-22 copy instead.
+#   - the chosen backup dir is restored directly (restore.sh <dir>), so the
+#     backups tree is scanned once, not twice. Two jq-per-metadata scans of
+#     ~4k backups took 2+ minutes and looked like a hung prompt.
+#
+# Non-interactive by design: this tool never reads stdin or a tty. Every
+# refusal is a message plus a non-zero exit; --force is the only override.
 
 set -euo pipefail
 
@@ -41,13 +57,24 @@ set -euo pipefail
 # Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 
-if [ $# -lt 1 ]; then
-  echo "Usage: $0 FILE_PATH"
-  echo "Restores FILE_PATH from its most recent backup"
-  exit 1
-fi
+usage() {
+  echo "Usage: $0 FILE_PATH [--force]"
+  echo "Restores FILE_PATH from its most recent pre-edit backup."
+  echo "Refuses (exit 3) when that backup predates the file's last commit;"
+  echo "--force restores it anyway. Never prompts."
+}
 
-FILE_PATH="$1"
+FILE_PATH=""
+FORCE=false
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) usage; exit 0 ;;
+    --force) FORCE=true ;;
+    -*) echo "Unknown flag: $arg" >&2; usage >&2; exit 1 ;;
+    *) [ -z "$FILE_PATH" ] || { usage >&2; exit 1; }; FILE_PATH="$arg" ;;
+  esac
+done
+[ -n "$FILE_PATH" ] || { usage; exit 1; }
 
 HOOK_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 RESTORE_SH="$HOOK_DIR/../skills/cfn-edit-safety/lib/backup/restore.sh"
@@ -97,7 +124,15 @@ if [ "$LIST_RC" -ne 0 ]; then
   exit 1
 fi
 
-TOP_LINE="$(printf '%s\n' "$LIST_OUT" | head -1)"
+# Skip restore-safety copies: they are what a previous restore overwrote,
+# never a pre-edit original (see header).
+TOP_LINE="$(printf '%s\n' "$LIST_OUT" | awk -F'\t' '$3 != "agent_id=restore-safety"' | head -1)"
+if [ -z "$TOP_LINE" ]; then
+  echo "❌ No backup found for $FILE_PATH" >&2
+  echo "   Searched: <project-root>/.backups/<agent-id>/<ts>_<hash>/original (restore-safety/ excluded)" >&2
+  echo "             ${TARGET_ABS}.backup-<ts>" >&2
+  exit 1
+fi
 LATEST_ID="$(printf '%s' "$TOP_LINE" | cut -f1)"
 LATEST_BACKUP="$(printf '%s\n' "$TOP_LINE" | grep -oE 'path=.*' | sed 's/^path=//')"
 
@@ -115,6 +150,19 @@ case "$LATEST_TS" in
   ''|*[!0-9]*) LATEST_TS=0 ;;
 esac
 
+# Stale guard: a backup older than the file's last commit cannot be the
+# pre-edit state of the current uncommitted edit.
+TARGET_DIR="$(dirname -- "$TARGET_ABS")"
+COMMIT_TS="$(git -C "$TARGET_DIR" log -1 --format=%ct -- "$TARGET_ABS" 2>/dev/null || true)"
+case "$COMMIT_TS" in ''|*[!0-9]*) COMMIT_TS=0 ;; esac
+if [ "$COMMIT_TS" -gt 0 ] && [ "$LATEST_TS" -lt "$COMMIT_TS" ] && [ "$FORCE" != true ]; then
+  echo "❌ Refusing: newest backup of $FILE_PATH ($(date -u -d "@$LATEST_TS" +%Y-%m-%dT%H:%MZ 2>/dev/null || echo "ts=$LATEST_TS")) predates its last commit ($(date -u -d "@$COMMIT_TS" +%Y-%m-%dT%H:%MZ 2>/dev/null || echo "ts=$COMMIT_TS"))." >&2
+  echo "   It is not a pre-edit copy of the current changes; restoring it would roll back committed work." >&2
+  echo "   Backup: $LATEST_BACKUP" >&2
+  echo "   Pass --force to restore it anyway." >&2
+  exit 3
+fi
+
 echo "Restoring $FILE_PATH from $LATEST_BACKUP (${LATEST_KIND} convention, ts=${LATEST_TS})"
 
 # Create pre-restore backup of current state so the restore itself is
@@ -130,10 +178,25 @@ fi
 # .backups/restore-safety/ before overwriting the target. Its own progress
 # text goes to stderr and is discarded here in favor of this wrapper's own
 # contract; only a failure is surfaced.
+# Restore exactly the candidate chosen above (no second scan). A current-
+# convention dir is restored by restore.sh from its project root (the parent
+# of its .backups dir) so a relative original_file resolves the way backup.sh
+# recorded it. A legacy sibling has no metadata, so it is copied directly.
 RESTORE_ERR=""
-if ! RESTORE_ERR=$("$RESTORE_SH" --file "$TARGET_ABS" 2>&1 >/dev/null); then
-  echo "❌ Restore failed for $FILE_PATH: $RESTORE_ERR" >&2
-  exit 1
+if [ "$LATEST_KIND" = "legacy" ]; then
+  if ! RESTORE_ERR=$(cp -- "$LATEST_BACKUP" "$TARGET_ABS" 2>&1); then
+    echo "❌ Restore failed for $FILE_PATH: $RESTORE_ERR" >&2
+    exit 1
+  fi
+else
+  BACKUP_DIR="$(dirname -- "$LATEST_BACKUP")"
+  PROJECT_ROOT_OF_BACKUP="$(dirname -- "$(dirname -- "$(dirname -- "$BACKUP_DIR")")")"
+  FORCE_ARG=()
+  [ "$FORCE" = true ] && FORCE_ARG=(--force)
+  if ! RESTORE_ERR=$(cd "$PROJECT_ROOT_OF_BACKUP" && "$RESTORE_SH" "$BACKUP_DIR" "${FORCE_ARG[@]}" 2>&1 >/dev/null); then
+    echo "❌ Restore failed for $FILE_PATH: $RESTORE_ERR" >&2
+    exit 1
+  fi
 fi
 
 RESTORED_LINES=$(wc -l < "$TARGET_ABS")
