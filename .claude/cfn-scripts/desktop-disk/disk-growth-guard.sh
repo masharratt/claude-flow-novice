@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # disk-growth-guard.sh: root-disk growth checks, run by desktop-health.sh each tick. Prints lines, never deletes.
-#   root_used=<GB>                         always (desktop-health copies it into health.log)
-#   WARN root_high <text>                  / used > ROOT_WARN_GB (200)
-#   WARN root_growth <text>                / grew > GROWTH_WARN_GB (15) over GROWTH_DAYS (7)
-#   CARGO <path> <size_gb>G                dirs > CARGO_MIN_BYTES (2 GB) that look like cargo targets
+#   root_used=<GiB>                         always (desktop-health copies it into health.log)
+#   WARN root_high <text>                  / used > ROOT_WARN_GB (200, GiB)
+#   WARN root_growth <text>                / grew > GROWTH_WARN_GB (15) over GROWTH_DAYS (7); skipped while / is under
+#                                          GROWTH_MIN_PCT (60) full; printed only when new, worse by GROWTH_STEP_GB (10)
+#                                          than the last one printed, or GROWTH_REPEAT_S (86400) after it (state: growth-sent)
+#   CARGO <path> <size_gb>G                dirs > CARGO_MIN_BYTES (2e9 bytes) that look like cargo targets
 #                                          (CACHEDIR.TAG, or debug/.fingerprint), outside CHURN_EXCLUDE
 #   REFUSED ...                            a scan root under /mnt (never crawl /mnt/c or other drives)
 # The find over / takes ~3 min, so it runs detached (SCAN_SYNC=1 runs inline) at most every SCAN_EVERY_S (6h);
@@ -14,16 +16,21 @@ NOW="${NOW:-$(date +%s)}"
 ROOT_WARN_GB="${ROOT_WARN_GB:-200}"
 GROWTH_WARN_GB="${GROWTH_WARN_GB:-15}"
 GROWTH_DAYS="${GROWTH_DAYS:-7}"
+GROWTH_MIN_PCT="${GROWTH_MIN_PCT:-60}"
+GROWTH_STEP_GB="${GROWTH_STEP_GB:-10}"
+GROWTH_REPEAT_S="${GROWTH_REPEAT_S:-86400}"
 HIST_EVERY_S="${HIST_EVERY_S:-3600}"
 SCAN_ROOTS="${SCAN_ROOTS:-/}"
 CARGO_MIN_BYTES="${CARGO_MIN_BYTES:-2000000000}"
 CHURN_EXCLUDE="${CHURN_EXCLUDE:-/mnt/wsl/churn}"
 SCAN_EVERY_S="${SCAN_EVERY_S:-21600}"
-GB=1000000000
+GB=1073741824  # GiB: the unit df -h shows, so thresholds match what the user sees
 mkdir -p "$STATE"
 
 used=${ROOT_USED_BYTES:-$(df -B1 --output=used / 2>/dev/null | awk 'NR==2{print $1}')}
 used=${used:-0}
+total=${ROOT_TOTAL_BYTES:-$(df -B1 --output=size / 2>/dev/null | awk 'NR==2{print $1}')}
+total=${total:-0}
 echo "root_used=$(( used / GB ))"
 [ $(( used / GB )) -gt "$ROOT_WARN_GB" ] && echo "WARN root_high / is $(( used / GB )) GB used (warn above ${ROOT_WARN_GB} GB). Main disk growth also grows D: for good; see desktop-disks.md."
 
@@ -33,7 +40,17 @@ base=$(awk -v cut=$(( NOW - GROWTH_DAYS * 86400 )) '$1>=cut{print; exit}' "$H")
 if [ -n "$base" ]; then
     b_t=${base%% *}; b_u=${base##* }
     g=$(( (used - b_u) / GB ))
-    [ "$g" -gt "$GROWTH_WARN_GB" ] && echo "WARN root_growth / grew ${g} GB in $(( (NOW - b_t) / 86400 )) days (warn above ${GROWTH_WARN_GB} GB per ${GROWTH_DAYS} days)."
+    # Silent unless new, worse by a step, or a day old (same stamp idea as d_guard.sh's due()): "growth-sent" = "<time> <GiB>".
+    SENT="$STATE/growth-sent"
+    if [ "$g" -gt "$GROWTH_WARN_GB" ] && { [ "$total" -le 0 ] || [ $(( used * 100 / total )) -ge "$GROWTH_MIN_PCT" ]; }; then
+        read -r s_t s_g < "$SENT" 2>/dev/null || { s_t=""; s_g=""; }
+        if [ -z "$s_t" ] || [ "$g" -ge $(( ${s_g:-0} + GROWTH_STEP_GB )) ] || [ $(( NOW - s_t )) -ge "$GROWTH_REPEAT_S" ]; then
+            echo "$NOW $g" > "$SENT"
+            echo "WARN root_growth / grew ${g} GB in $(( (NOW - b_t) / 86400 )) days (warn above ${GROWTH_WARN_GB} GB per ${GROWTH_DAYS} days)."
+        fi
+    else
+        rm -f "$SENT"  # growth cleared (or / is under the floor): the next one is new again
+    fi
 fi
 last=$(tail -n 1 "$H" | awk '{print $1+0}')
 if [ $(( NOW - ${last:-0} )) -ge "$HIST_EVERY_S" ]; then
@@ -75,5 +92,11 @@ if [ -z "$cache_t" ] || [ $(( NOW - cache_t )) -ge "$SCAN_EVERY_S" ]; then
     else SCAN_WORKER=1 setsid nohup "$0" >/dev/null 2>&1 < /dev/null &  # the find over / takes minutes; never block the health tick
     fi
 fi
-[ -f "$CACHE" ] && tail -n +2 "$CACHE"
+# Drop cached lines whose dir was deleted since the scan (the scan runs every SCAN_EVERY_S).
+if [ -f "$CACHE" ]; then
+    tail -n +2 "$CACHE" | while IFS= read -r line; do
+        case "$line" in "CARGO "*) p=${line#CARGO }; p=${p% *}; [ -d "$p" ] || continue ;; esac
+        printf '%s\n' "$line"
+    done
+fi
 exit 0

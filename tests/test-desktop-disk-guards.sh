@@ -83,9 +83,10 @@ echo "== 3+4. disk-growth-guard"
 G="$D/disk-growth-guard.sh"
 if [ ! -x "$G" ]; then no "guard missing=[$G] unexpected=[]"; else
   ST="$T/state"; mkdir -p "$ST"
-  run() { env STATE="$ST" SCAN_ROOTS="$T/empty" NOW=1000000000 SCAN_SYNC=1 "$@" "$G" 2>&1; }
+  GB=1073741824  # GiB, the unit df -h shows
+  # ROOT_TOTAL_BYTES default 150 GiB so injected "used" values sit above the 60% growth floor; tests override it
+  run() { env STATE="$ST" SCAN_ROOTS="$T/empty" NOW=1000000000 SCAN_SYNC=1 ROOT_TOTAL_BYTES=$((150*GB)) "$@" "$G" 2>&1; }
   mkdir -p "$T/empty"
-  GB=1000000000
   # root_used logged + no warnings under thresholds
   out=$(run ROOT_USED_BYTES=$((100*GB)))
   miss=""; unex=""
@@ -97,6 +98,13 @@ if [ ! -x "$G" ]; then no "guard missing=[$G] unexpected=[]"; else
   case "$out" in *"WARN root_high"*) ok "warns when / used > 200 GB" ;; *) no "warns when / used > 200 GB missing=[WARN root_high] unexpected=[]";; esac
   out=$(run ROOT_USED_BYTES=$((200*GB)) STATE="$T/s2b")
   case "$out" in *"WARN root_high"*) no "no warn at exactly 200 GB missing=[] unexpected=[WARN root_high]";; *) ok "no warn at exactly 200 GB";; esac
+  # Regression (mdtwii-master 2026-11-07): the guard used decimal GB, so 188 GiB on df -h read as
+  # 202 "GB" and root_high fired every scan. Thresholds are in GiB, matching what the user sees.
+  out=$(run ROOT_USED_BYTES=202000000000 STATE="$T/s2c")
+  miss=""; unex=""
+  case "$out" in *root_used=188*) ;; *) miss="root_used=188" ;; esac
+  case "$out" in *"WARN root_high"*) unex="WARN root_high" ;; esac
+  report "202 decimal GB (188 GiB) is under the 200 GiB line" "$miss" "$unex"
   # growth: seed history 6 days ago at 100 GB, now 120 GB
   mkdir -p "$T/s3"; echo "$((1000000000 - 6*86400)) $((100*GB))" > "$T/s3/root-used.tsv"
   out=$(run ROOT_USED_BYTES=$((120*GB)) STATE="$T/s3")
@@ -107,6 +115,37 @@ if [ ! -x "$G" ]; then no "guard missing=[$G] unexpected=[]"; else
   case "$out" in *"WARN root_growth"*) no "ignores >7d baseline missing=[] unexpected=[WARN root_growth]";; *) ok "ignores >7d baseline, 10 GB growth quiet";; esac
   # history file appended with this run
   grep -q "^1000000000 " "$T/s4/root-used.tsv" && ok "history appended" || no "history appended missing=[row 1000000000] unexpected=[]"
+  # growth warning repeat rule: send when new, worse by GROWTH_STEP_GB (10), or once a day; else silent
+  mkdir -p "$T/g1"; echo "$((1000000000 - 3*86400)) $((100*GB))" > "$T/g1/root-used.tsv"
+  grew() { run STATE="$T/g1" "$@" | grep -c "WARN root_growth"; }
+  n=$(grew ROOT_USED_BYTES=$((120*GB)))
+  [ "$n" = 1 ] && ok "growth warning sent when new" || no "growth warning sent when new missing=[1 line] unexpected=[$n lines]"
+  n=$(grew ROOT_USED_BYTES=$((120*GB)) NOW=1000000060)
+  [ "$n" = 0 ] && ok "same growth next tick is silent (repeat suppression)" || no "repeat suppression missing=[0 lines] unexpected=[$n lines]"
+  n=$(grew ROOT_USED_BYTES=$((125*GB)) NOW=1000000120)
+  [ "$n" = 0 ] && ok "worse by 5 GB (under the 10 GB step) is silent" || no "worse by 5 GB silent missing=[0 lines] unexpected=[$n lines]"
+  n=$(grew ROOT_USED_BYTES=$((131*GB)) NOW=1000000180)
+  [ "$n" = 1 ] && ok "worse by a 10 GB step sends again" || no "worse by a step missing=[1 line] unexpected=[$n lines]"
+  n=$(grew ROOT_USED_BYTES=$((131*GB)) NOW=1000000240)
+  [ "$n" = 0 ] && ok "after a step send, same value is silent" || no "silent after step missing=[0 lines] unexpected=[$n lines]"
+  n=$(grew ROOT_USED_BYTES=$((131*GB)) NOW=$((1000000180 + 86400 - 1)))
+  [ "$n" = 0 ] && ok "just under a day later is silent" || no "under a day silent missing=[0 lines] unexpected=[$n lines]"
+  n=$(grew ROOT_USED_BYTES=$((131*GB)) NOW=$((1000000180 + 86400)))
+  [ "$n" = 1 ] && ok "same value repeats once a day" || no "daily repeat missing=[1 line] unexpected=[$n lines]"
+  n=$(grew GROWTH_STEP_GB=3 ROOT_USED_BYTES=$((135*GB)) NOW=$((1000000180 + 86400 + 60)))
+  [ "$n" = 1 ] && ok "GROWTH_STEP_GB env tunes the step" || no "step env missing=[1 line] unexpected=[$n lines]"
+  # growth ends, then returns: counts as new again
+  grew ROOT_USED_BYTES=$((101*GB)) NOW=$((1000000180 + 86400 + 120)) >/dev/null
+  n=$(grew ROOT_USED_BYTES=$((120*GB)) NOW=$((1000000180 + 86400 + 180)))
+  [ "$n" = 1 ] && ok "growth that cleared and returned is new again" || no "returned growth missing=[1 line] unexpected=[$n lines]"
+  # under 60% full: growth warning skipped; root_high unaffected
+  mkdir -p "$T/g2"; echo "$((1000000000 - 6*86400)) $((100*GB))" > "$T/g2/root-used.tsv"
+  out=$(run STATE="$T/g2" ROOT_USED_BYTES=$((120*GB)) ROOT_TOTAL_BYTES=$((1007*GB)))
+  case "$out" in *"WARN root_growth"*) no "growth skipped under 60% full missing=[] unexpected=[WARN root_growth]";; *) ok "growth warning skipped while / is under 60% full";; esac
+  out=$(run STATE="$T/g2" ROOT_USED_BYTES=$((120*GB)) ROOT_TOTAL_BYTES=$((1007*GB)) GROWTH_MIN_PCT=10)
+  case "$out" in *"WARN root_growth"*) ok "GROWTH_MIN_PCT env lowers the floor" ;; *) no "GROWTH_MIN_PCT missing=[WARN root_growth] unexpected=[]";; esac
+  out=$(run STATE="$T/g2b" ROOT_USED_BYTES=$((201*GB)) ROOT_TOTAL_BYTES=$((1007*GB)))
+  case "$out" in *"WARN root_high"*) ok "root_high still fires under 60% full" ;; *) no "root_high under 60% missing=[WARN root_high] unexpected=[]";; esac
   # cargo finder
   CT="$T/scan"; mkdir -p "$CT/big1/debug/.fingerprint" "$CT/big2" "$CT/small" "$CT/plain" "$CT/churn/tgt"
   head -c 5000 /dev/zero > "$CT/big1/debug/.fingerprint/x"
@@ -129,6 +168,35 @@ if [ ! -x "$G" ]; then no "guard missing=[$G] unexpected=[]"; else
   # scan throttle: second run inside SCAN_EVERY_S reuses the cache (no CARGO re-find but still reports)
   out2=$(run SCAN_ROOTS="$CT" ROOT_USED_BYTES=$((1*GB)) CARGO_MIN_BYTES=3000 CHURN_EXCLUDE="$CT/churn" STATE="$T/s5")
   case "$out2" in *"CARGO $CT/big1 "*) ok "throttled scan still reports cached result" ;; *) no "throttled scan reports cache missing=[CARGO big1] unexpected=[]";; esac
+  # Regression (mdtwii-master 2026-11-07): a cached CARGO line kept naming a dir deleted since the
+  # scan. Cached paths that no longer exist must not be reported.
+  cfn_safe_rm_tmp "$CT/big1"
+  out3=$(run SCAN_ROOTS="$CT" ROOT_USED_BYTES=$((1*GB)) CARGO_MIN_BYTES=3000 CHURN_EXCLUDE="$CT/churn" STATE="$T/s5")
+  miss=""; unex=""
+  case "$out3" in *"CARGO $CT/big1 "*) unex="big1(deleted)" ;; esac
+  case "$out3" in *"CARGO $CT/big2 "*) ;; *) miss="big2" ;; esac
+  report "cached report drops dirs deleted since the scan" "$miss" "$unex"
+fi
+
+echo "== 5. desktop-health warn() sends each alert once"
+# Root cause (2026-11-17): warn() looped over two recipients (michael/me and the fleet master), so every
+# alert arrived twice in the same second, each with its own thread. It now sends one mail to WARN_TO.
+HS="${HEALTH_SH:-$HOME/.local/bin/desktop-health.sh}"
+if [ ! -f "$HS" ]; then echo "  skip desktop-health.sh not installed ($HS)"; else
+  fn=$(awk '/^warn\(\) \{/{p=1} p{print} p&&/^}/{exit}' "$HS")
+  if [ -z "$fn" ]; then no "warn() missing=[function in $HS] unexpected=[]"; else
+    W="$T/warn"; mkdir -p "$W"
+    printf '#!/usr/bin/env bash\necho "$1 $2" >> "%s/sent.log"\n' "$W" > "$W/fake-mailbox.sh"; chmod +x "$W/fake-mailbox.sh"
+    # shellcheck disable=SC2034  # variables are read by the extracted warn()
+    (
+      STATE="$W"; LOG="$W/health.log"; WARN_EVERY_S=3600; DRY_RUN=0; MAILBOX="$W/fake-mailbox.sh"; warns=()
+      ts() { date '+%F %T'; }
+      eval "$fn"
+      warn rootgrowth "/ grew 20 GB in 6 days"
+    )
+    n=$(wc -l < "$W/sent.log" 2>/dev/null || echo 0); n=${n// /}
+    [ "$n" = 1 ] && ok "one mail per alert" || no "one mail per alert missing=[1 send] unexpected=[$n sends: $(tr '\n' ';' < "$W/sent.log" 2>/dev/null)]"
+  fi
 fi
 
 echo "RESULT: pass=$PASS fail=$FAIL"
