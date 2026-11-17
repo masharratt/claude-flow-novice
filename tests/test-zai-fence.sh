@@ -1054,6 +1054,45 @@ test_allow_link(){
   link_case test_allow_link_6_exclude_append "$FENCE/.git/info/exclude"
 }
 
+# MDTWII art desk field report (2026-11-16): first real glm-open launch.
+
+# field 1: an opened folder may hold a worktree of the fence root itself; its
+# .git pointer leads into the root's .git, which the fence protects. This
+# refused ("outside its own repo") and killed every MDTWII glm-open launch.
+test_allow_field_1_opening_holds_root_worktree(){
+  linux_only test_allow_field_1_opening_holds_root_worktree || return 0
+  local O="$TMP/opened-field1"
+  mkdir -p "$O"
+  git -C "$FENCE" worktree add -q "$O/wt" -b field1 >/dev/null 2>&1
+  commit_list "$O"
+  PROBE="echo PROBE_RAN; echo ok > $(q "$O/field1.txt")"; fence_run "$FENCE" ZAI_FENCE_OPEN_DIRS=1
+  expect "test_allow_field_1_opening_holds_root_worktree" allowed "$([ -f "$O/field1.txt" ] || echo not-written)"
+  git -C "$FENCE" worktree remove --force "$O/wt" >/dev/null 2>&1; git -C "$FENCE" branch -D field1 >/dev/null 2>&1
+  drop_list
+}
+
+# field 2: the secret scan of big opened folders takes minutes on /mnt/c (138s
+# for 680k files measured); the fence says what it is doing so a waiting pane
+# is not mistaken for a hang.
+test_allow_field_2_scan_progress(){
+  linux_only test_allow_field_2_scan_progress || return 0
+  local O="$TMP/opened-field2"; mkdir -p "$O"
+  commit_list "$O"
+  OUT=$(cd "$FENCE" && env ZAI_FENCE_OPEN_DIRS=1 "$WRAP" /bin/true 2>&1); RC=$?
+  if [ "$RC" -eq 0 ] && grep -q "zai-fence: checking $O" <<<"$OUT"; then ok "test_allow_field_2_scan_progress"
+  else no "test_allow_field_2_scan_progress: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
+  drop_list
+}
+
+# field 3: launching glm-open from an approved folder (not a repo with a list)
+# is refused; the message must say to launch from the repo that lists it.
+test_allow_field_3_refusal_names_pattern(){
+  local D="$TMP/art-folder"; mkdir -p "$D"
+  OUT=$(cd "$D" && env ZAI_FENCE_OPEN_DIRS=1 "$WRAP" /bin/bash -c 'echo PROBE_RAN' 2>&1); RC=$?
+  if [ "$RC" -eq 70 ] && grep -q 'launch from the repo' <<<"$OUT"; then ok "test_allow_field_3_refusal_names_pattern"
+  else no "test_allow_field_3_refusal_names_pattern: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
+}
+
 test_tmux_socket_blocked(){
   if ! command -v tmux >/dev/null 2>&1; then skip "tmux_socket_blocked: tmux not installed"; return; fi
   mkdir -p "$TSOCKDIR" && chmod 700 "$TSOCKDIR"
@@ -1197,6 +1236,9 @@ test_allow_fin_1_git_new_files
 test_allow_fin_2_rw_opening_config
 test_allow_fin_3_root_secret_names
 test_allow_link
+test_allow_field_1_opening_holds_root_worktree
+test_allow_field_2_scan_progress
+test_allow_field_3_refusal_names_pattern
 test_tmux_socket_blocked
 test_env_scrubbed
 test_keychain_blocked

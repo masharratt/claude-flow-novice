@@ -170,7 +170,7 @@ cfn_open_dirs_list() {
     file="$root/$CFN_OPEN_DIRS_FILE"
     tree=$(_cfn_od_git -C "$root" ls-tree HEAD -- "$CFN_OPEN_DIRS_FILE" 2>/dev/null) || tree=""
     case "$tree" in
-        "") echo "glm-open-dirs: $file is not committed at HEAD of $root; this project has not opted in to glm-open (commit one absolute folder per line there, or use the plain glm engine; untracked or uncommitted lists are ignored)" >&2
+        "") echo "glm-open-dirs: $file is not committed at HEAD of $root; this project has not opted in to glm-open. The list is read from the repo you launch in: launch from the repo that lists your folders (e.g. --cwd <that repo>) and work in the approved folders from there; an approved folder itself is not a launch place. Otherwise commit one absolute folder per line in $file, or use the plain glm engine (untracked or uncommitted lists are ignored)" >&2
             return 1 ;;
         "100644 blob "*) ;;
         "120000 "*) echo "glm-open-dirs: $file is a symlink in HEAD (mode 120000); it must be a regular file" >&2; return 1 ;;

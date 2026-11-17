@@ -301,12 +301,15 @@ git_pointer_check(){
   case "$line" in "gitdir: "*) tgt="${line#gitdir: }" ;; *) die "$f is not a git pointer file (no 'gitdir:' line); refusing" ;; esac
   case "$tgt" in /*) ;; *) tgt="$(dirname "$f")/$tgt" ;; esac
   tgt=$(realpath -m "$tgt") || die "cannot resolve the git pointer $f"
-  if under "$f" "$ROOT"; then top="$ROOT/.git"
-  else
+  # Allowed targets: the root's own .git (protected above; also covers a
+  # worktree of the root kept inside an opened folder, MDTWII field report
+  # 2026-11-16), or the opened folder that holds the pointer.
+  if ! under "$f" "$ROOT"; then
     while IFS=$'\t' read -r om d; do [ -n "$d" ] && under "$f" "$d" && top="$d"; done <<<"$OPEN_DIRS"
   fi
-  [ -n "$top" ] && under "$tgt" "$top" \
-    || die "git pointer $f resolves to $tgt, outside its own repo ($top); refusing (the host's git would follow it)"
+  if ! under "$tgt" "$ROOT/.git" && { [ -z "$top" ] || ! under "$tgt" "$top"; }; then
+    die "git pointer $f resolves to $tgt, outside its own repo (${top:-$ROOT}) and outside $ROOT/.git; refusing (the host's git would follow it)"
+  fi
   ro "$f"
 }
 
@@ -466,6 +469,8 @@ build(){
   while IFS=$'\t' read -r om p; do
     [ -n "$p" ] || continue
     pin "$p" fd; ofd[$p]=$fd
+    # progress on stderr: big folders on /mnt/c take minutes (MDTWII field report)
+    echo "zai-fence: checking $p for secret files (big folders on /mnt/c can take minutes)..." >&2
     scan_tree "/proc/$$/fd/$fd" "$p" "${ZAI_FENCE_OPEN_SCAN_SECS:-600}" "${pats[@]}"
   done <<<"$OPEN_DIRS"
 
