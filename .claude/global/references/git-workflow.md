@@ -14,3 +14,7 @@ If the repo has no active CI, commit when necessary and do not ask.
 - Absence of CI config files (`.github/workflows/`, `.circleci/`, `Jenkinsfile`, `.gitlab-ci.yml`, etc.) is a sufficient filesystem signal.
 - If workflow files exist but Actions look disabled at settings level, confirm with `gh api repos/{owner}/{repo}/actions/permissions --jq '.enabled'` (= `false`) before treating as off.
 - Cannot reliably detect for local-only or non-GitHub repos; default to checking for workflow files.
+
+## Shipping a push
+
+- `$HOME/.claude/cfn-scripts/cfn-ship.sh` pushes main, waits for every CI run on that sha, then fast-forwards the servers (`--dry-run`, `--no-hosts`; exit 2 refused, 3 push, 4 CI red, 5 timeout, 6 host).
