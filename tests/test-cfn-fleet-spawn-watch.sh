@@ -662,6 +662,7 @@ test_spawn_real_tmux_engine_env_and_pane_command() {
     assert_equals "700" "$(stat -c %a "$(dirname "$envf")" 2>/dev/null || stat -f %Lp "$(dirname "$envf")" 2>/dev/null)" "launch dir is owner-only (0700)"
     sk=$(pane_text ws01)
     assert_contains "$sk" "ANTHROPIC_AUTH_TOKEN=ztok_secret123" "token resolved from master env into the file"
+    assert_not_contains "$sk" "LANE_PREFLIGHT_REQUIRE_TARGET" "local lanes never get the remote-only target-dir requirement"
     assert_contains "$sk" "ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic" "endpoint in the file"
     assert_contains "$sk" "CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1" "flag set-var in the file"
     assert_contains "$sk" "rm -rf '$(dirname "$envf")'" "launch script deletes its dir before exec"

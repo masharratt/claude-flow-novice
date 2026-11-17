@@ -402,6 +402,7 @@ test_spawn_host_ssh_sequence() {
     assert_contains "$lb" "rm -f '$launch'" "launch script deletes itself on the server"
     assert_contains "$lb" "exec systemd-run --user --scope --quiet -p MemoryMax=12G -p CPUQuota=400% -- claude --model sonnet" "launch script execs the engine inside a capped scope"
     assert_contains "$lb" "--settings '{" "launch script passes the generated settings"
+    assert_contains "$lb" "export LANE_PREFLIGHT_REQUIRE_TARGET=1" "remote lane env requires a CARGO_TARGET_DIR (server root disk filled by worktree ./target, 57 GB)"
     assert_contains "$lb" "unset ANTHROPIC_AUTH_TOKEN" "engine unset list applied"
     assert_not_contains "$lb" "_fleet_tick_loop" "no Mac heartbeat ticker on a host pane"
     assert_not_contains "$lb" "$RUN_DIR" "no Mac run dir in the server pane command"

@@ -198,7 +198,8 @@ name files. Spec: `planning/PLAN_agent-mailbox.md`, "Stage 5 design".
   running spawn (`mailbox.sh claim`; a role name survives a restart).
 - **Pane env** (spawn): `MAILBOX_SESSION`, `MAILBOX_COORD_FILE`, `MAILBOX_COORD_FROM` (the
   master address), `MAILBOX_OUTQ` (`<run>/mail-out/<WS>`; server: `<outbox>/mail-out`; both
-  self-ignored by git), `FLEET_MASTER_MAIL`, `FLEET_WS`.
+  self-ignored by git), `FLEET_MASTER_MAIL`, `FLEET_WS`. Host (`--host`) lanes also get
+  `LANE_PREFLIGHT_REQUIRE_TARGET=1` so a project's lane-preflight can refuse a lane with no `CARGO_TARGET_DIR`; local lanes never do.
 - **Coordinator secret.** One per run, `<run>/.coord/secret` (dir 700 with its own
   `.gitignore`, file 600), and in a host worker's shipped brief. `fleet mail` and
   `nudge` send it (on stdin, never argv); the worker's hook labels mail

@@ -216,6 +216,10 @@ _spawn_remote_ship_launch(){
   # systemd-run --user needs the user manager's runtime dir; a tmux pane
   # started over ssh may not carry it.
   [ -z "$scope" ] || pane_cmd+='export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"; '
+  # Host lanes only: a project's lane-preflight refuses a lane with no
+  # CARGO_TARGET_DIR (lanes built into worktree ./target and filled the server
+  # root disk, 57 GB). Never set on the local spawn path.
+  pane_cmd+="export LANE_PREFLIGHT_REQUIRE_TARGET=1; "
   # Mailbox env for the worker's hook: its name, the brief holding the
   # coordinator secret, and the outbox queue its sandboxed Bash writes mail to
   # (the hook runs outside the sandbox and sends it).
