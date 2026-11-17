@@ -1,0 +1,31 @@
+{
+  "_about": "cfn-careful rm guard zones (skills/cfn-careful/lib/rm-target-check.py). Entries are glob patterns, ~ allowed. allow_zones: anything strictly inside a match is deleted without a prompt (temp, scratch, build output); /tmp and $TMPDIR are built in. trash_zones: anything at or under a match goes to the trash (cfn-trash.sh) instead of being deleted. protected: never deleted, nor anything under it, nor a folder holding it. deny_exact: that folder itself (and its parents) is never deleted; things inside it keep the normal rules. Tests point CFN_CAREFUL_ZONES_FILE at their own copy.",
+  "allow_zones": [
+    "/tmp",
+    "~/.claude-tmp",
+    "/mnt/wsl/churn",
+    "/mnt/wsl/build",
+    "~/.claude/projects/*/tool-results",
+    "/mnt/c/Windows/Temp",
+    "/mnt/c/Users/*/AppData/Local/Temp"
+  ],
+  "trash_zones": [
+    "/mnt/c/Users"
+  ],
+  "protected": [
+    "~/MDTWII-art"
+  ],
+  "deny_exact": [
+    "/mnt/c/Users",
+    "/mnt/c/Users/*",
+    "/mnt/c/Users/*/Documents",
+    "/mnt/c/Users/*/Desktop",
+    "/mnt/c/Users/*/Downloads",
+    "/mnt/c/Users/*/Pictures",
+    "/mnt/c/Users/*/AppData",
+    "/mnt/c/Windows",
+    "/mnt/c/Program Files",
+    "/mnt/c/Program Files (x86)",
+    "/mnt/c/ProgramData"
+  ]
+}

@@ -66,17 +66,21 @@ MATCH_CMD="; $CMD_LOWER"
 
 # --- File destruction ---
 # Every rm is judged by where it points (skills/cfn-careful/lib/rm-target-check.py):
-# temp, rebuildable and git-restorable targets pass; unrecoverable work asks
-# the user; home, system folders, repo roots and .git are blocked. The ask is
-# held until the other rules have run, so a deny elsewhere still wins.
-# Without python3 it falls back to the old flag-and-whitelist rule.
-# Fleet workers never get the ask (nobody answers it; the worker stalls): the
-# check returns worker-deny with guidance instead, and so does the time-out
-# fallback below. Worker = FLEET_RUN_DIR set, or a session under
-# $HOME/fleet-repos/<project>-wt/<ws> (remote --host spawns).
-RM_ASK=""
-RM_ASK_UNFINISHED='ask
-{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"Delete check: could not finish in time"}}'
+# temp, zone, rebuildable and git-restorable targets pass; unrecoverable work
+# goes to the trash (the check returns hook JSON whose updatedInput rewrites
+# the rm to cfn-trash.sh); home, system folders, repo roots, .git, credentials
+# and the protected list are blocked; unresolvable targets are blocked with
+# guidance. Nothing here ever asks (2026-11-17: 173 prompts in 4 days, 168
+# approved by hand). The trash JSON is held until the other rules have run,
+# so a deny elsewhere still wins. Without python3 it falls back to the old
+# flag-and-whitelist rule.
+# Fleet workers never get a trash rewrite: the check returns worker-deny with
+# guidance instead, and so does the time-out fallback below. Worker =
+# FLEET_RUN_DIR set, or a session under $HOME/fleet-repos/<project>-wt/<ws>
+# (remote --host spawns).
+RM_TRASH=""
+RM_UNFINISHED='guide-deny
+Delete check: could not finish in time, so this delete is blocked. Retry it as its own command with literal paths.'
 if [ -n "${FLEET_RUN_DIR:-}" ]; then
     RM_WORKER=1
 else
@@ -85,8 +89,16 @@ else
         *) RM_WORKER="" ;;
     esac
 fi
-[ -z "$RM_WORKER" ] || RM_ASK_UNFINISHED='worker-deny
+[ -z "$RM_WORKER" ] || RM_UNFINISHED='worker-deny
 Delete check: could not finish in time. You are an unattended fleet worker, so this is blocked instead of waiting on a permission prompt nobody will answer. To proceed: rewrite the rm with a literal, fully spelled-out path to exactly what you mean to delete. If that is blocked too, do not delete it: stop and report to the master.'
+# The time-out fallback writes its own audit line (the check never got to).
+careful_audit_timeout() {
+    _a="${CFN_CAREFUL_AUDIT_FILE:-${CFN_DATA_DIR:-$HOME/.claude/cfn-data}/careful-audit.jsonl}"
+    _cwd=$(printf '%s' "$PWD" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    mkdir -p "$(dirname "$_a")" 2>/dev/null &&
+    printf '{"ts":"%s","verdict":"deny","outcome":"deny","rule":"timeout","path":"","cwd":"%s","session":"","command":""}\n' \
+        "$(date +%Y-%m-%dT%H:%M:%S%z)" "$_cwd" >> "$_a" 2>/dev/null || true
+}
 RM_LIB="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/../skills/cfn-careful/lib" 2>/dev/null && pwd)/rm-target-check.py"
 # The rm gate also treats the JSON newline escape (a literal backslash-n in
 # COMMAND) as a separator: an rm at the start of a later line used to skip the
@@ -95,7 +107,7 @@ RM_GATE_CMD=$(printf '%s' "$MATCH_CMD" | sed 's/\\n/; /g')
 if echo "$RM_GATE_CMD" | grep -qE "$ANCHOR"'rm[[:space:]]'; then
     if command -v python3 >/dev/null 2>&1 && [ -f "$RM_LIB" ]; then
         RM_OUT=$(printf '%s' "$INPUT" | timeout 4 python3 -I "$RM_LIB" 2>/dev/null) \
-            || RM_OUT="$RM_ASK_UNFINISHED"
+            || { RM_OUT="$RM_UNFINISHED"; careful_audit_timeout; }
         RM_VERDICT=$(printf '%s\n' "$RM_OUT" | head -1)
         RM_BODY=$(printf '%s\n' "$RM_OUT" | sed '1d')
         case "$RM_VERDICT" in
@@ -103,10 +115,14 @@ if echo "$RM_GATE_CMD" | grep -qE "$ANCHOR"'rm[[:space:]]'; then
                 echo "BLOCKED: Destructive file deletion: $RM_BODY." >&2
                 echo "Nothing should delete this. If it is truly intended, ask the user to run it themselves." >&2
                 DENY_RULE=file-deletion ;;
-            worker-deny)
+            worker-deny|guide-deny)
                 echo "BLOCKED: $RM_BODY" >&2
                 DENY_RULE=file-deletion ;;
-            ask) RM_ASK="$RM_BODY" ;;
+            trash) RM_TRASH="$RM_BODY" ;;
+            none|allow) ;;
+            *)  # fail closed on anything unexpected (an old "ask" included)
+                echo "BLOCKED: Delete check gave no usable answer ($RM_VERDICT). Retry the rm as its own command with literal paths." >&2
+                DENY_RULE=file-deletion ;;
         esac
     elif echo "$MATCH_CMD" | grep -qE "$ANCHOR"'rm[[:space:]]+(-[a-z]*r[a-z]*f|--recursive|-[a-z]*f[a-z]*r)' \
          && ! echo "$CMD_LOWER" | grep -qE '(node_modules|\.next|dist|__pycache__|\.cache|\.turbo|/tmp/)'; then
@@ -179,7 +195,6 @@ fi
 JEV_ALLOW="$HOME/.claude/skills/cfn-careful/lib/jev-allow-check.sh"
 if [ "${CFN_JEV_ALLOW_SHADOW:-on}" != off ] && [ -f "$JEV_ALLOW" ]; then
     JEV_GUARD=allow
-    [ -z "$RM_ASK" ] || JEV_GUARD=ask
     if [ -n "${CFN_JEV_ALLOW_SYNC:-}" ]; then
         bash "$JEV_ALLOW" --cmd "$COMMAND" --guard "$JEV_GUARD" >/dev/null 2>&1 || true
     else
@@ -187,9 +202,9 @@ if [ "${CFN_JEV_ALLOW_SHADOW:-on}" != off ] && [ -f "$JEV_ALLOW" ]; then
     fi
 fi
 
-# A delete that needs the user's say: Claude Code shows a permission prompt.
-if [ -n "$RM_ASK" ]; then
-    printf '%s\n' "$RM_ASK"
+# A delete of unsaved work: allowed, rewritten to move its targets to the trash.
+if [ -n "$RM_TRASH" ]; then
+    printf '%s\n' "$RM_TRASH"
 fi
 
 exit 0

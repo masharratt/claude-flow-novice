@@ -1,6 +1,6 @@
 ---
 name: cfn-careful
-description: "PreToolUse hook. Warns before destructive bash commands (rm -rf, DROP TABLE, git push --force, etc). Judges every rm by its target: temp, rebuildable and git-restorable deletes pass, unsaved work asks, home/system/repo roots are blocked."
+description: "PreToolUse hook. Warns before destructive bash commands (rm -rf, DROP TABLE, git push --force, etc). Judges every rm by its target: temp, zone, rebuildable and git-restorable deletes pass, unsaved work goes to the trash (never a prompt), home/system/repo roots, credentials and unresolvable paths are blocked."
 version: 1.0.0
 tags: [safety, guardrails, hooks, destructive-commands]
 status: production
@@ -35,20 +35,37 @@ status: production
 ## Deletes Are Judged by Target (`lib/rm-target-check.py`)
 Every `rm` (any flags) is resolved to real paths, following `VAR=value` and
 `cd` earlier in the same command, then sorted:
+The guard never asks (2026-11-17: 173 prompts in 4 days, 168 approved by hand).
 - **Allowed silently:** temp areas (`/tmp`, `/private/tmp`, `/var/folders`,
-  `$TMPDIR`), rebuildable folders (node_modules, .next, dist, build, .build,
+  `$TMPDIR`), allow zones from `.claude/cfn-config/careful-zones.json`
+  (`~/.claude-tmp`, `/mnt/wsl/churn`, `/mnt/wsl/build`, tool-results, Windows
+  temp), rebuildable folders (node_modules, .venv, .next, dist, build, .build,
   .turbo, coverage, DerivedData, caches), files git can restore (tracked and
   unchanged), paths that do not exist.
-- **Asks the user** (PreToolUse `permissionDecision: ask`): untracked or
-  modified files, ignored files such as `.env`, anything outside a repo and
-  outside temp, and any target it cannot resolve (unknown variable, `$(...)`).
+- **Moved to the trash:** untracked, modified or ignored files in a project,
+  and user data outside any project. The hook allows the call and rewrites
+  the rm (PreToolUse `updatedInput`) to
+  `bash "$HOME/.claude/cfn-scripts/cfn-trash.sh" <same flags> <same args>`.
+  Trash: `~/.local/share/cfn-trash/<date>/` (or `<mount>/.cfn-trash-<uid>` for
+  a target on another drive, so nothing big is copied), with a
+  `manifest.jsonl` per day; entries older than 7 days are reaped on each run.
+  The rewrite only happens when the command is nothing but rm, cd and
+  `VAR=value`; otherwise (or when rtk-rewrite.sh would also rewrite it) the
+  rm is blocked with "run it as its own command".
 - **Blocked:** `/`, top-level and system folders, `$HOME` and its main
-  folders, a whole repo, `.git`, the working directory or any parent of it.
+  folders, a whole repo, `.git`, a mount point, the working directory or any
+  parent of it, credentials (`.env*`, `*.pem`, `*.key`, `id_rsa*`, `~/.ssh`,
+  `~/.aws`, `~/.config/gh`), the config's `protected` and `deny_exact` lists,
+  and any target it cannot resolve (unknown variable, `$(...)`), with
+  guidance to spell the path out.
 
-An ask is held until the other rules run, so a deny elsewhere in the same
-command still wins. Without python3 the old flag-and-whitelist rule applies.
+A trash rewrite is held until the other rules run, so a deny elsewhere in the
+same command still wins. Fleet workers get a deny with guidance instead of a
+trash rewrite. Without python3 the old flag-and-whitelist rule applies.
 Generic build-output names (`build`, `.build`, `dist`, `target`) count as
-rebuildable only below a repo's top folder; outside a project they ask.
+rebuildable only below a repo's top folder; outside a project they go to the
+trash. Every zone allow, trash and deny is logged to
+`~/.claude/cfn-data/careful-audit.jsonl` (gitignored).
 
 **Extra scratch roots (machine-local).** List glob patterns, one per line, in
 `~/.config/cfn/careful-scratch-roots` (`#` comments allowed), or set
@@ -59,8 +76,9 @@ blocked. A match that is `/`, a top-level or system folder, or `$HOME` or one
 of its main folders is ignored. Example line: `/mnt/wsl/churn/art/trials/*`
 lets art lanes delete anything inside `trials/<trial>/` without asking.
 
-Tests: `tests/test-careful-guard-rm.sh`. `CFN_CAREFUL_TEMP_ROOTS`
-(colon list) overrides the temp roots, for tests only.
+Tests: `tests/test-careful-guard-rm.sh`. For tests only: `CFN_CAREFUL_TEMP_ROOTS`
+(colon list) overrides the temp roots, `CFN_CAREFUL_ZONES_FILE` the zone
+config, `CFN_CAREFUL_AUDIT_FILE` the audit log, `CFN_TRASH_ROOT` the trash.
 
 ## How It Works
 PreToolUse hook on Bash tool. Parses command from stdin JSON, checks against dangerous patterns. Returns exit 2 (block) with warning message if matched, exit 0 (allow) otherwise.
