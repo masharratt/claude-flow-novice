@@ -116,6 +116,31 @@ _spawn_tmux(){
   _fleet_tmux "${_SPAWN_HOST:-}" "$@"
 }
 
+# _spawn_first_prompt SOCK NAME TEXT: the thin first prompt through the shared
+# helper (cfn-scripts/lib/tui-prompt.sh) with fleet's knobs mapped on. Every
+# tmux call goes through _spawn_tmux, so a --host spawn (_SPAWN_HOST set in
+# the caller's dynamic scope) runs the same checks over ssh, one tmux call
+# (one round trip) at a time. rc 0 landed; else the helper's rc, with
+# _SPAWN_PROMPT_WHY set to a plain reason for the caller's fleet_die 69.
+_spawn_first_prompt(){
+  local rc=0
+  _SPAWN_PROMPT_WHY=""
+  TUI_TMUX_CMD=_spawn_tmux \
+  TUI_READY_TIMEOUT=$(_fleet_env_seconds FLEET_READY_TIMEOUT 12) \
+  TUI_MODAL_SETTLE="${FLEET_TRUST_SETTLE:-1.5}" \
+  TUI_SUBMIT_SETTLE="${FLEET_SUBMIT_SETTLE:-1}" \
+  TUI_SUBMIT_VERIFY="${FLEET_SUBMIT_VERIFY:-2}" \
+  TUI_SUBMIT_RETRIES=2 \
+    tui_send_first_prompt "$1" "$2" "$3" || rc=$?
+  case "$rc" in
+    0) return 0 ;;
+    1) _SPAWN_PROMPT_WHY="tmux send-keys failed; session gone?" ;;
+    2) _SPAWN_PROMPT_WHY="typed but never submitted; the text still sits in the input line" ;;
+    *) _SPAWN_PROMPT_WHY="no echo above the input line and no working indicator; a modal or a not-ready TUI swallowed it" ;;
+  esac
+  return "$rc"
+}
+
 # _spawn_socket — dedicated tmux socket for this run; delegates to the shared
 # helper in lib/common.sh (same logic for watch, dashboard, and spawn).
 _fleet_spawn_socket(){
@@ -861,20 +886,8 @@ main() {
   # read started. A prompt that never lands fails the spawn through the normal
   # error path: fleet_die, and the EXIT trap restores the row (still before
   # _spawn_commit). The session is left alive for inspection.
-  local prompt_rc=0
-  TUI_TMUX_CMD=_spawn_tmux \
-  TUI_READY_TIMEOUT=$(_fleet_env_seconds FLEET_READY_TIMEOUT 12) \
-  TUI_MODAL_SETTLE="${FLEET_TRUST_SETTLE:-1.5}" \
-  TUI_SUBMIT_SETTLE="${FLEET_SUBMIT_SETTLE:-1}" \
-  TUI_SUBMIT_VERIFY="${FLEET_SUBMIT_VERIFY:-2}" \
-  TUI_SUBMIT_RETRIES=2 \
-    tui_send_first_prompt "$sock" "$name" "$prompt_line" || prompt_rc=$?
-  if [ "$prompt_rc" -ne 0 ]; then
-    local why="no echo above the input line and no working indicator; a modal or a not-ready TUI swallowed it"
-    [ "$prompt_rc" -ne 2 ] || why="typed but never submitted; the text still sits in the input line"
-    [ "$prompt_rc" -ne 1 ] || why="tmux send-keys failed; session gone?"
-    fleet_die 69 "spawn: $ws ($name) first prompt did not land ($why). Row left $_SPAWN_MARK_PREV_STATUS, session kept for inspection: tmux -L $sock attach -t $name (kill it before respawning)"
-  fi
+  _spawn_first_prompt "$sock" "$name" "$prompt_line" \
+    || fleet_die 69 "spawn: $ws ($name) first prompt did not land ($_SPAWN_PROMPT_WHY). Row left $_SPAWN_MARK_PREV_STATUS, session kept for inspection: tmux -L $sock attach -t $name (kill it before respawning)"
   _spawn_commit
 
   # 8b. Auth check after the first request. A relay token that the banner

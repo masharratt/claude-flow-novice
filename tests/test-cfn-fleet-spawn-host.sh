@@ -77,6 +77,8 @@ cat > "$TMP_DIR/bin/tmux" <<'STUB'
 # test stub for tmux: log argv, replay scripted capture-pane output
 set -u
 printf '%stmux %s\n' "${STUB_VIA_SSH:+[$STUB_VIA_SSH] }" "$*" >> "${FLEET_TMUX_LOG:-/dev/null}"
+tgt="" prev=""
+for a in "$@"; do [ "$prev" = -t ] && tgt="$a"; prev="$a"; done
 cmd=""
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -103,6 +105,8 @@ case "$cmd" in
         fi
         d="${FLEET_CAPTURE_DIR:-}"
         if [[ -n $d && -d $d ]]; then
+            # submitted prompts echo as history above the scripted screen
+            [[ -n $tgt && -f $d/.hist-$tgt ]] && cat "$d/.hist-$tgt"
             n=$(( $(cat "$d/.count" 2>/dev/null || printf 0) + 1 ))
             printf '%s' "$n" > "$d/.count"
             f="$d/$n.txt"
@@ -111,6 +115,23 @@ case "$cmd" in
                 [[ -n $f ]] && f="$d/$f"
             fi
             [[ -n $f && -f $f ]] && cat "$f"
+        fi
+        ;;
+    send-keys)
+        # Pane echo for the first-prompt landing check (same model as the
+        # local spawn stub): text typed with -l, then Enter, shows as "> TEXT"
+        # history above the scripted screen. The typed launch line is not
+        # echoed. STUB_SWALLOW=1 scripts a TUI that eats the prompt.
+        shift; lit=0
+        while [ $# -gt 0 ]; do case "$1" in -t) shift 2 ;; -l) lit=1; shift ;; *) break ;; esac; done
+        d="${FLEET_CAPTURE_DIR:-}"
+        if [[ -n $d && -d $d && -n $tgt ]]; then
+            if [ "$lit" = 1 ]; then
+                case "${1:-}" in *.launch-*) ;; *) printf '%s' "${1:-}" > "$d/.typed-$tgt" ;; esac
+            elif [ "${1:-}" = Enter ] && [ -f "$d/.typed-$tgt" ]; then
+                [ "${STUB_SWALLOW:-0}" = 1 ] || { printf '> '; cat "$d/.typed-$tgt"; echo; } >> "$d/.hist-$tgt"
+                rm -f "$d/.typed-$tgt"
+            fi
         fi
         ;;
 esac
@@ -190,7 +211,7 @@ make_fixture() {
     printf 'ws_id\tname\ttask\tstatus\tclaims\tlanded_sha\tmigration_num\tscratch_db\theartbeat\tnotes\tengine\n' > "$RUN_DIR/roster.tsv"
     printf 'WS01\tws01\tRemote work\tpending\tsrc/a.md,docs/b.md\t\t0042\t\t0\t\t\n' >> "$RUN_DIR/roster.tsv"
     touch "$RUN_DIR/.roster.lock"
-    printf 'FLEET_WORKTREE=off\nFLEET_DB=none\nFLEET_TRUST_TIMEOUT=1\nFLEET_BANNER_TIMEOUT=1\nFLEET_AUTH_TIMEOUT=1\nFLEET_REMOTE_MIN_FREE_GB=0\nFLEET_REMOTE_LINKS=extracted,missingdir\n' > "$RUN_DIR/fleet.env"
+    printf 'FLEET_WORKTREE=off\nFLEET_DB=none\nFLEET_TRUST_TIMEOUT=1\nFLEET_BANNER_TIMEOUT=1\nFLEET_AUTH_TIMEOUT=1\nFLEET_REMOTE_MIN_FREE_GB=0\nFLEET_REMOTE_LINKS=extracted,missingdir\nFLEET_READY_TIMEOUT=1\n' > "$RUN_DIR/fleet.env"
     echo "Do the remote thing in src/a.md." > "$RUN_DIR/briefs/WS01.md"
 
     mkdir -p "$SRV/git" "$SRV/fleet-repos" "$SRV/fleet-runs" "$SRV/Projects/proj/extracted"
@@ -206,7 +227,8 @@ make_fixture() {
     CAPTURE_DIR="$base/capture"
     mkdir -p "$CAPTURE_DIR"
     export FLEET_CAPTURE_DIR="$CAPTURE_DIR"
-    export FLEET_TRUST_SETTLE=0
+    export FLEET_TRUST_SETTLE=0 FLEET_SUBMIT_SETTLE=0 FLEET_SUBMIT_VERIFY=1
+    unset STUB_SWALLOW
     unset STUB_SSH_RC STUB_SCP_RC STUB_BWRAP_RC STUB_SOCAT_RC STUB_SYSTEMD_RC
     unset FLEET_REMOTE_UNSANDBOXED FLEET_REMOTE_MEM FLEET_REMOTE_CPU
 }
@@ -1208,6 +1230,76 @@ test_spawn_host_plain_launch_line_unchanged() {
     assert_equals "$(printf '%s\n' --model sonnet --permission-mode bypassPermissions --settings)" "$(head -n 5 "$out/argv" 2>/dev/null)" "plain engine argv unchanged"
 }
 
+# --- first prompt on a host lane (shared cfn-scripts/lib/tui-prompt.sh) ---
+# BUG remote-first-prompt-unchecked (2026-11-17): host lanes typed the thin
+# prompt right after the banner with no input-box wait and no landing check,
+# so Claude Code's "Flicker-free output" opt-in modal swallowed it and the lane
+# read started while the worker sat idle. Host lanes now use the same helper
+# as local lanes, with every tmux call going over ssh.
+host_tmux_line() { # PATTERN -> first TMUX_LOG line number matching it, or empty
+    grep -anF -- "$1" "$TMUX_LOG" | head -1 | cut -d: -f1 || true
+}
+
+test_spawn_host_first_prompt_modal_then_lands() {
+    log_step "BUG remote-first-prompt-unchecked: GIVEN the flicker-free modal after the banner on a host lane, WHEN spawn"
+    make_fixture fp-modal
+    sed -i.bak 's/^FLEET_READY_TIMEOUT=1$/FLEET_READY_TIMEOUT=3/' "$RUN_DIR/fleet.env" && rm -f "$RUN_DIR/fleet.env.bak"
+    local banner="Sonnet 5 with high effort | Claude Team" modal
+    modal=$(printf '%s\n  Flicker-free output: no more flashing\n  ❯ 1. Yes, try it\n    2. Not now\n  Enter to confirm · Esc to cancel' "$banner")
+    capture_script 1 "$banner"
+    capture_script 2 "$modal"
+    capture_script 3 "$modal"
+    capture_script 4 "$(printf '%s\n❯' "$banner")"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "host spawn through the modal exits 0"
+    local esc_n prompt_n
+    esc_n=$(host_tmux_line "[fakehost] tmux -L fleet-main send-keys -t ws01 Escape")
+    prompt_n=$(host_tmux_line "send-keys -t ws01 -l read ")
+    assert_success "modal dismissed with Escape over ssh (line ${esc_n:-none}) before the prompt is typed (line ${prompt_n:-none})" \
+        test -n "$esc_n" -a -n "$prompt_n" -a "${esc_n:-0}" -lt "${prompt_n:-0}"
+    assert_equals "0" "$(grep -vc '^\[fakehost\]' "$TMUX_LOG" || true)" "every prompt tmux call ran on the host"
+    assert_equals "started" "$(roster_field WS01 status)" "row started once the prompt landed"
+}
+
+test_spawn_host_first_prompt_never_lands_exits_69() {
+    log_step "BUG remote-first-prompt-unchecked: GIVEN a host TUI that swallows the first prompt, WHEN spawn"
+    make_fixture fp-lost
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    capture_script 2 "$(printf 'Sonnet 5 with high effort | Claude Team\n❯')"
+    STUB_SWALLOW=1 run_spawn WS01 --host fakehost
+    assert_equals "69" "$FLEET_RC" "lost first prompt exits 69"
+    assert_contains "$FLEET_OUT" "WS01" "failure names the lane"
+    assert_contains "$FLEET_OUT" "first prompt did not land" "failure says the prompt did not land"
+    assert_contains "$FLEET_OUT" "fakehost" "failure names the host"
+    assert_equals "pending" "$(roster_field WS01 status)" "row back to pending, never started"
+    assert_not_contains "$(cat "$TMUX_LOG")" "kill-session" "remote pane kept up for inspection"
+    assert_dir_exists "$SRV/fleet-repos/proj-wt/ws01" "remote worktree kept (the pane lives in it)"
+    assert_success "no remote/WS01.env published for a lane that never started" test ! -e "$RUN_DIR/remote/WS01.env"
+    assert_success "spawning marker cleared" test ! -e "$RUN_DIR/.spawning/WS01"
+}
+
+test_spawn_host_first_prompt_normal_start() {
+    log_step "BUG remote-first-prompt-unchecked control: GIVEN a plain input box after the banner on a host lane, WHEN spawn"
+    make_fixture fp-normal
+    # whole-second deadline: 1s can expire after one poll; give the box room
+    sed -i.bak 's/^FLEET_READY_TIMEOUT=1$/FLEET_READY_TIMEOUT=3/' "$RUN_DIR/fleet.env" && rm -f "$RUN_DIR/fleet.env.bak"
+    # the input box draws a moment after the banner (captures 1-3 banner only)
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    capture_script 2 "Sonnet 5 with high effort | Claude Team"
+    capture_script 3 "Sonnet 5 with high effort | Claude Team"
+    capture_script 4 "$(printf 'Sonnet 5 with high effort | Claude Team\n❯')"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "normal host start exits 0"
+    assert_not_contains "$(cat "$TMUX_LOG")" "Escape" "no Escape without a modal"
+    local prompt_n caps
+    prompt_n=$(host_tmux_line "send-keys -t ws01 -l read ")
+    caps=$(head -n "$(( ${prompt_n:-1} - 1 ))" "$TMUX_LOG" | grep -c 'capture-pane' || true)
+    assert_success "prompt typed only after the input box drew (capture 4; ${caps} captures before it)" test "${caps:-0}" -ge 4
+    assert_equals "2" "$(grep -ac 'send-keys -t ws01 Enter' "$TMUX_LOG" || true)" "one Enter for the launch line, one for the landed prompt"
+    assert_equals "started" "$(roster_field WS01 status)" "row started"
+    assert_file_exists "$RUN_DIR/remote/WS01.env" "remote/WS01.env published"
+}
+
 run_all_tests() {
     TEST_LOG="${TMPDIR:-/tmp}/cfn-fleet-spawn-host-$(date +%s).log"
     export TEST_LOG
@@ -1253,6 +1345,9 @@ run_all_tests() {
     test_spawn_host_args_reach_engine_as_exact_words
     test_spawn_host_refuses_bad_unset_name
     test_spawn_host_plain_launch_line_unchanged
+    test_spawn_host_first_prompt_modal_then_lands
+    test_spawn_host_first_prompt_never_lands_exits_69
+    test_spawn_host_first_prompt_normal_start
 
     print_test_summary
 }

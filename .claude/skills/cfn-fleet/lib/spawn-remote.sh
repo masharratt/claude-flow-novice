@@ -291,13 +291,6 @@ _spawn_remote_ship_launch(){
     } > "$tmpf" && chmod 600 "$tmpf" && mv -f "$tmpf" "$envf"
   ) || { rm -f "$tmpf"; echo "spawn: could not write $envf" >&2; return 1; }
 
-  roster_set "$ws" status started
-  roster_set "$ws" heartbeat "$(date +%s)"
-  roster_set "$ws" host "$host"
-  _spawn_commit
-  ( roster_get "$ws" engine >/dev/null 2>&1 ) && roster_set "$ws" engine "$engine"
-  echo "spawned $ws engine=$engine host=$host banner=\"$banner_line\""
-
   # claims.txt above is a snapshot from before the banner wait; a grant made
   # since reached only the roster (codex review 2026-11-14, finding 3). Now
   # that remote/<WS>.env is published, union the roster claims into claims.txt
@@ -307,9 +300,28 @@ _spawn_remote_ship_launch(){
   [ "$rrc" -eq 0 ] || echo "WARN spawn: $ws claims.txt/FROM_MASTER.md reconcile on $host failed (rc $rrc); fleet sync $ws retries it" >&2
 
   # Thin prompt only after the banner; the brief on the server owns the rules.
+  # Same ready + landing check as a local lane (_spawn_first_prompt, shared
+  # tui-prompt.sh), each tmux call over ssh through _spawn_tmux.
+  # BUG remote-first-prompt-unchecked (2026-11-17): host lanes typed it blind,
+  # Claude Code's flicker-free opt-in modal swallowed it, and the row read
+  # started while the worker sat idle. A prompt that never lands returns 69:
+  # the row goes back through the EXIT trap (still before _spawn_commit), the
+  # remote pane and worktree stay up for inspection, and remote/<WS>.env is
+  # withdrawn so sync and land never treat the lane as live.
   prompt_line="read $ob/brief.md and start; report to the master only through $ob/remote-worker.sh, as the brief says"
-  _spawn_tmux -L "$sock" send-keys -t "$name" -l "$prompt_line"
-  _spawn_tmux -L "$sock" send-keys -t "$name" Enter
+  if ! _spawn_first_prompt "$sock" "$name" "$prompt_line"; then
+    rm -f "$envf"
+    echo "spawn: $ws ($name) first prompt did not land on $host ($_SPAWN_PROMPT_WHY). Row left ${_SPAWN_MARK_PREV_STATUS:-pending}, remote session kept for inspection: ssh -t $host tmux -L $sock attach -t $name (kill it before respawning)" >&2
+    return 69
+  fi
+
+  roster_set "$ws" status started
+  roster_set "$ws" heartbeat "$(date +%s)"
+  roster_set "$ws" host "$host"
+  _spawn_commit
+  ( roster_get "$ws" engine >/dev/null 2>&1 ) && roster_set "$ws" engine "$engine"
+  echo "spawned $ws engine=$engine host=$host banner=\"$banner_line\""
+
   if _fleet_pane_wait "$sock" "$name" '401 Authentication Failed|Authentication Failed|invalid_api_key|authentication_error' "$auth_timeout" >/dev/null; then
     echo "spawn: WARNING $name: engine reports an authentication failure after the first request on $host (log in to claude there and respawn)." >&2
   fi
@@ -477,6 +489,9 @@ _spawn_remote(){
   [ -z "$kit" ] || rm -rf "$kit"
   [ -z "${CFN_SPAWN_ENV_DIR:-}" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
   [ "$rc" -eq 0 ] && return 0
+  # First prompt never landed (69): the lane is launched, so nothing remote is
+  # undone; the pane stays up and the row goes back to its previous status.
+  [ "$rc" -ne 69 ] || fleet_die 69 "spawn: $ws ($name) left ${_SPAWN_MARK_PREV_STATUS:-pending} on $host: the first prompt did not land"
 
   # Failure after partial setup: row stays pending, remote leftovers go.
   [ "$session_up" -eq 0 ] || _fleet_tmux "$host" -L "$sock" kill-session -t "$name" >/dev/null 2>&1 || true
