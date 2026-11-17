@@ -12,6 +12,7 @@
 .claude/cfn-extras/skills/cfn-operations/lib/file/test.sh 3
 .claude/cfn-extras/skills/cfn-operations/lib/log/test.sh 1
 .claude/cfn-extras/skills/deprecated/cfn-docker-runtime/lib/spawning/spawn-agent.sh 1
+.claude/cfn-scripts/cfn-trash.sh 1
 .claude/cfn-scripts/lib/safe-rm.sh 1
 .claude/cfn-scripts/spawn-env.sh 3
 .claude/hooks/cfn-bash-search-hook.sh 1
@@ -208,9 +209,10 @@ tests/skills/test-pre-edit-backup.sh 2
 tests/task-mode/test-task-mode-safety.sh 1
 tests/test-agent-selection-bundle.sh 1
 tests/test-brief-size-guard.sh 1
-tests/test-careful-guard-rm.sh 111
+tests/test-careful-guard-rm.sh 123
 tests/test-cfn-fleet-autosave.sh 1
 tests/test-cfn-fleet-commit.sh 2
+tests/test-cfn-fleet-dashboard-perf.sh 1
 tests/test-cfn-fleet-dashboard.sh 2
 tests/test-cfn-fleet-engines.sh 2
 tests/test-cfn-fleet-host-setup.sh 1
@@ -267,4 +269,3 @@ tests/unit/test-skill-cli.sh 1
 tests/unit/test-skill-loader.sh 2
 tests/wiki-portal-smoke.sh 1
 tests/wiki-scale-bench.sh 4
-tests/test-cfn-fleet-dashboard-perf.sh 1
