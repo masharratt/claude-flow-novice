@@ -545,6 +545,26 @@ test_sec2_3_unreadable_subdir_refuses(){
   chmod 700 "$O/locked"; drop_list
 }
 
+# BUG zai-fence-tmp-cwd (2026-11-17): a cwd of /tmp was refused because find
+# cannot open root-owned mode-700 dirs (systemd-private-*). A permission-denied
+# entry owned by ANOTHER user is skipped and counted; a missing dir or a find
+# that cannot run still refuses. (find is shimmed: this test cannot chown.)
+test_zai_scan_skips_foreign_unreadable(){
+  [ "$(id -u)" -ne 0 ] || { skip "test_zai_scan_skips_foreign_unreadable: running as root"; return 0; }
+  linux_only test_zai_scan_skips_foreign_unreadable || return 0
+  local SD="$TMP/denyfind" R="$TMP/deny-root" B
+  mkdir -p "$SD" "$R"
+  B=$(command -v find)
+  printf '#!/bin/bash\n%s "$@"; echo "find: '"'"'/root'"'"': Permission denied" >&2; exit 1\n' "$B" > "$SD/find"; chmod +x "$SD/find"
+  OUT=$(cd "$R" && env PATH="$SD:$PATH" ZAI_FENCE_PRINT_PROFILE=1 "$WRAP" /bin/true 2>&1); RC=$?
+  if [ "$RC" -eq 0 ] && grep -q "skipped 1 unreadable" <<<"$OUT"; then ok "test_zai_scan_skips_foreign_unreadable"
+  else no "test_zai_scan_skips_foreign_unreadable: want rc=0 and 'skipped 1 unreadable'; rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
+  printf '#!/bin/bash\necho "find: unknown predicate" >&2; exit 1\n' > "$SD/find"
+  OUT=$(cd "$R" && env PATH="$SD:$PATH" ZAI_FENCE_PRINT_PROFILE=1 "$WRAP" /bin/true 2>&1); RC=$?
+  if [ "$RC" -eq 70 ]; then ok "test_zai_scan_other_find_errors_stay_fatal"
+  else no "test_zai_scan_other_find_errors_stay_fatal: want rc=70; rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
+}
+
 # 4. a credential resolving into ROOT/.claude/data stays masked after the
 # .claude processing re-binds .claude children
 test_sec2_4_cred_in_claude_dir_masked(){
@@ -1243,6 +1263,7 @@ test_sec_8_cred_in_repo_masked
 test_sec_9_ro_inside_root
 test_sec_10_wrapper_scrubs_env
 test_sec2_3_unreadable_subdir_refuses
+test_zai_scan_skips_foreign_unreadable
 test_sec2_4_cred_in_claude_dir_masked
 test_sec2_5_ro_claude_data
 test_sec2_6_replace_ref_ignored

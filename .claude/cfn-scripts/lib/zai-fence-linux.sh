@@ -241,12 +241,34 @@ scan_tree(){
   for n in "$@"; do expr+=(${expr[@]+-o} -name "$n"); done
   out=$(mktemp "${TMPDIR:-/tmp}/zai-fence-scan.XXXXXX") || die "cannot create scan file"
   err="$out.err"
-  local -a cmd=(find "$src/" \( -name .git -type d -printf 'G\t%p\0' -prune \) -o \( -name .git -type f -printf 'P\t%p\0' \) -o \( -name .git -type l -printf 'L\t%p\0' \) -o
+  local -a cmd=(env LC_ALL=C find "$src/" \( -name .git -type d -printf 'G\t%p\0' -prune \) -o \( -name .git -type f -printf 'P\t%p\0' \) -o \( -name .git -type l -printf 'L\t%p\0' \) -o
                 \( -type s -printf 'S\t%p\0' \) -o \( \( "${expr[@]}" \) -printf 'M\t%p\0' -prune \))
   if [ -n "$secs" ]; then timeout "$secs" "${cmd[@]}" >"$out" 2>"$err" || rc=$?
   else "${cmd[@]}" >"$out" 2>"$err" || rc=$?; fi
   if [ "$rc" -eq 124 ]; then rm -f "$out" "$err"; die "secret scan of $dest did not finish within ${secs}s; refusing to start (list a smaller folder, or raise ZAI_FENCE_OPEN_SCAN_SECS)"; fi
   bad=$(cat "$err" 2>/dev/null || true)
+  # BUG zai-fence-tmp-cwd (2026-11-17): /tmp holds root-owned mode-700 dirs
+  # (systemd-private-*) that find cannot open, so a cwd of /tmp was refused.
+  # A permission-denied entry NOT owned by this user is skipped and counted:
+  # the worker is the same user and cannot read it or chmod it open. One owned
+  # by this user stays fatal (the worker could chmod it back and hide an
+  # unscanned .env there; test_sec2_3). Any other find error stays fatal.
+  if [ -n "$bad" ] && [ "$rc" -eq 1 ]; then
+    local eline ep skipped=0 fatal=""
+    while IFS= read -r eline; do
+      [ -n "$eline" ] || continue
+      case "$eline" in
+        "find: '"*"': Permission denied")
+          ep="${eline#"find: '"}"; ep="${ep%"': Permission denied"}"
+          if [ -e "$ep" ] && [ "$(stat -c %u -- "$ep" 2>/dev/null)" != "$(id -u)" ]; then skipped=$((skipped+1)); continue; fi ;;
+      esac
+      fatal="$eline"; break
+    done <<<"$bad"
+    if [ -z "$fatal" ]; then
+      bad=""; rc=0
+      echo "zai-fence: skipped $skipped unreadable entries under $dest (owned by another user, so the worker cannot read them either)" >&2
+    fi
+  fi
   if [ "$rc" -ne 0 ] || [ -n "$bad" ]; then rm -f "$out" "$err"; die "secret scan of $dest failed (find exit $rc), refusing to start: ${bad%%$'\n'*}"; fi
   while IFS=$'\t' read -r -d '' t p; do
     rel="${p#"$src"/}"; [ "$rel" = "$p" ] && rel="${p#"$src"}"
