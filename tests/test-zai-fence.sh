@@ -1093,6 +1093,40 @@ test_allow_field_3_refusal_names_pattern(){
   else no "test_allow_field_3_refusal_names_pattern: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
 }
 
+# noscan: (user decision 2026-11-16, MDTWII captures folder holds no passwords):
+# a per-entry prefix that skips the secret-file scan for that entry only,
+# combinable with ro: in any order. Changing it needs re-approval.
+test_allow_noscan(){
+  linux_only test_allow_noscan || return 0
+  local O1="$TMP/ns-skip" O2="$TMP/ns-ro" O3="$TMP/ns-scan" s
+  mkdir -p "$O1" "$O2" "$O3"
+  for d in "$O1" "$O2" "$O3"; do echo "NS_SECRET_$(basename "$d")_$$" > "$d/.env"; done
+  commit_list "$(printf 'noscan:%s\nro:noscan:%s\n%s' "$O1" "$O2" "$O3")"
+  PROBE="echo PROBE_RAN; cat $(q "$O1/.env") $(q "$O2/.env") $(q "$O3/.env") 2>/dev/null; echo x > $(q "$O2/w.txt") && echo O2_WRITABLE; true"
+  fence_run "$FENCE" ZAI_FENCE_OPEN_DIRS=1
+  s=""
+  grep -q "zai-fence: not checking $O1 for secret files (noscan)" <<<"$OUT" || s="no skip line for $O1"
+  grep -q "zai-fence: not checking $O2 for secret files (noscan)" <<<"$OUT" || s="${s:+$s; }no skip line for $O2 (ro:noscan:)"
+  grep -q "NS_SECRET_ns-scan_$$" <<<"$OUT" && s="${s:+$s; }scanned entry's .env leaked"
+  grep -q O2_WRITABLE <<<"$OUT" && s="${s:+$s; }ro:noscan: entry writable"
+  grep -q "zai-fence: checking $O3" <<<"$OUT" || s="${s:+$s; }plain entry not scanned"
+  if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_noscan_skips_only_marked_entries"
+  else no "test_allow_noscan_skips_only_marked_entries: $s out=$(head -c 300 <<<"$OUT")"; fi
+  # noscan:ro: (other order) parses too
+  commit_list "$(printf 'noscan:ro:%s' "$O2")"
+  PROBE="echo PROBE_RAN; echo x > $(q "$O2/w2.txt") && echo O2_WRITABLE; true"
+  fence_run "$FENCE" ZAI_FENCE_OPEN_DIRS=1
+  if grep -q PROBE_RAN <<<"$OUT" && ! grep -q O2_WRITABLE <<<"$OUT" && grep -q "not checking $O2" <<<"$OUT"; then ok "test_allow_noscan_any_prefix_order"
+  else no "test_allow_noscan_any_prefix_order: out=$(head -c 300 <<<"$OUT")"; fi
+  # toggling noscan without a new approval refuses
+  commit_list "$O3"
+  printf 'noscan:%s\n' "$O3" > "$OPEN_LIST"
+  git -C "$FENCE" add -f .claude/glm-open-dirs && git -C "$FENCE" "${GITC[@]}" commit -qm "noscan toggle" >/dev/null
+  open_refused test_allow_noscan_toggle_needs_reapproval __KEEP__
+  grep -q 'approv' <<<"$OUT" || no "test_allow_noscan_toggle_needs_reapproval: message does not mention approval"
+  drop_list
+}
+
 test_tmux_socket_blocked(){
   if ! command -v tmux >/dev/null 2>&1; then skip "tmux_socket_blocked: tmux not installed"; return; fi
   mkdir -p "$TSOCKDIR" && chmod 700 "$TSOCKDIR"
@@ -1239,6 +1273,7 @@ test_allow_link
 test_allow_field_1_opening_holds_root_worktree
 test_allow_field_2_scan_progress
 test_allow_field_3_refusal_names_pattern
+test_allow_noscan
 test_tmux_socket_blocked
 test_env_scrubbed
 test_keychain_blocked

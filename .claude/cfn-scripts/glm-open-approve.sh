@@ -3,6 +3,10 @@
 # repo holding DIR (default: cwd) for glm-open workers. Run by the user on the
 # host, never inside a fence (the approval store is absent there).
 #
+# List lines: one absolute folder each; prefixes ro: (read-only) and noscan:
+# (skip the secret-file scan for that folder; only for folders you know hold
+# no passwords) in any order. Any change, noscan included, needs a new approval.
+#
 # Prints the validated folders, then records sha256 of the HEAD policy text and
 # the resolved folder list in
 # <store>/<root-id>.sha256 (store: $CFN_GLM_OPEN_APPROVALS, default
@@ -19,7 +23,7 @@ unset $CFN_GIT_REDIRECT_VARS
 
 dir="${1:-$PWD}"
 root=$(cfn_open_dirs_root "$dir") || { echo "glm-open-approve: cannot resolve the repo root of $dir" >&2; exit 65; }
-list=$(cfn_open_dirs_list "$root" --no-approval) || { echo "glm-open-approve: nothing approved" >&2; exit 65; }
+list=$(cfn_open_dirs_list "$root" --no-approval --with-flags) || { echo "glm-open-approve: nothing approved" >&2; exit 65; }
 body=$(_cfn_od_git -C "$root" show "HEAD:$CFN_OPEN_DIRS_FILE")
 
 store=$(cfn_open_dirs_store)

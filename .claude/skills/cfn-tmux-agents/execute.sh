@@ -379,6 +379,16 @@ cmd_spawn() {
   local banner_line=""
   if [ -n "$banner_re" ]; then
     banner_line=$(_ta_pane_wait "$TA_SOCK" "$name" "$banner_re" "$banner_timeout" || true)
+    # zai-fence's secret scan of big opened folders can outlast the banner
+    # timeout (MDTWII 2026-11-16: 190s). While the pane is alive and shows a
+    # "zai-fence: checking" line, keep waiting, up to TMUX_AGENTS_FENCE_TIMEOUT.
+    local fence_deadline
+    fence_deadline=$((SECONDS + $(_ta_env_seconds TMUX_AGENTS_FENCE_TIMEOUT 900)))
+    while [ -z "$banner_line" ] && [ "$SECONDS" -lt "$fence_deadline" ] \
+          && [ "$(tmux -L "$TA_SOCK" display-message -p -t "$name" '#{pane_dead}' 2>/dev/null || echo 1)" != 1 ] \
+          && tmux -L "$TA_SOCK" capture-pane -p -S -200 -t "$name" 2>/dev/null | grep -q 'zai-fence: checking'; do
+      banner_line=$(_ta_pane_wait "$TA_SOCK" "$name" "$banner_re" 10 || true)
+    done
   fi
   if [ -z "$banner_line" ]; then
     # Blank lines stripped: a dead pane's text sits at the top of a mostly

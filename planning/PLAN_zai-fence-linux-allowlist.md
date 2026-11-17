@@ -46,7 +46,13 @@ new `cfn-scripts/glm-open-approve.sh`, `cfn-tmux-agents/execute.sh`,
   protected or placeholder path (and every host-side placeholder write) refuses the
   launch when it, or a directory on the way to it, is a symlink, or when it lies outside
   the root and approved folders; a `.git` symlink anywhere in a scanned tree refuses.
-- [x] Suites: fence 126/0 (4 skipped) after the symlink fix; 119/0 after final fixes; 116/0 after review fixes; 110/0 after escapes A/B; earlier 100/0, fleet engines 118/0, tmux-agents 52/52,
+- [x] Field report follow-ups (MDTWII art desk): root worktrees inside opened folders
+  accepted; "zai-fence: checking <folder>" progress lines; `noscan:` list prefix (skips
+  the secret scan for that entry, any order with `ro:`, re-approval on change);
+  tmux-agents and fleet spawn keep waiting while the pane shows a fence check (up to
+  TMUX_AGENTS_FENCE_TIMEOUT / FLEET_FENCE_TIMEOUT, 900s); fleet keeps a dead pane long
+  enough to print its last lines and exits non-zero.
+- [x] Suites: fence 132/0 (4 skipped) after noscan; 126/0 after the symlink fix; 119/0 after final fixes; 116/0 after review fixes; 110/0 after escapes A/B; earlier 100/0, fleet engines 118/0, tmux-agents 52/52,
   portability (see saved/test-allow-portability.txt); extra: fleet spawn-watch all pass.
 - Commit-time note: `git update-index --chmod=+x .claude/cfn-scripts/glm-open-approve.sh`
   (core.fileMode=false). Codex review of the build still owed before commit.
@@ -63,6 +69,8 @@ the planted-symlink case, which is closed.
 - git rebase / sequencer todo files (`exec` lines) a worker leaves in `.git` run when the
   host continues that rebase.
 - libgit2 / gitoxide are untested with the `.git/commondir` "." placeholder.
+- A `noscan:` folder gets no secret-file scan, and nested repos and sockets inside it are
+  not checked (its top-level `.git` still is).
 
 - Nested `sub/.claude` and `sub/.git` below the root (or an opening) are not protected;
   dangerous only if the host later runs Claude or git from that subfolder.

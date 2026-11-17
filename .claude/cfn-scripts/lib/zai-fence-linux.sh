@@ -81,9 +81,11 @@ case "$HOME_R/" in "$ROOT"/*) die "refusing fence root $ROOT (parent of \$HOME)"
 case "$ROOT" in *$'\n'*|*$'\t'*) die "unsafe character in path: $ROOT" ;; esac
 
 # --- glm-open folders (committed + approved list, never env) -----------------
-OPEN_DIRS=""
+OPEN_DIRS="" NOSCAN_DIRS=""
 if [ "${ZAI_FENCE_OPEN_DIRS:-0}" = 1 ]; then
-  OPEN_DIRS=$(cfn_open_dirs_list "$ROOT") || die "glm-open refused: fix or approve $ROOT/$CFN_OPEN_DIRS_FILE (reason above)"
+  OPEN_FLAGGED=$(cfn_open_dirs_list "$ROOT" --with-flags) || die "glm-open refused: fix or approve $ROOT/$CFN_OPEN_DIRS_FILE (reason above)"
+  OPEN_DIRS=$(printf '%s\n' "$OPEN_FLAGGED" | cut -f1,2)
+  NOSCAN_DIRS=$(printf '%s\n' "$OPEN_FLAGGED" | awk -F'\t' '$3 == "noscan" { print $2 }')
 fi
 
 # --- command -----------------------------------------------------------------
@@ -464,11 +466,21 @@ build(){
   # the root gets the full secret-name list too (final review fin 3)
   local -a pats=()
   set -f; for p in $CFN_OPEN_SECRET_NAMES; do pats+=("$p"); done; set +f
+  echo "zai-fence: checking $ROOT for secret files..." >&2
   scan_tree "/proc/$$/fd/$ROOT_FD" "$ROOT" "" "${pats[@]}"
   local -A ofd=()
   while IFS=$'\t' read -r om p; do
     [ -n "$p" ] || continue
     pin "$p" fd; ofd[$p]=$fd
+    if printf '%s\n' "$NOSCAN_DIRS" | grep -qxF -- "$p"; then
+      # noscan: entry (user-approved): no tree walk. Its top-level .git is
+      # still handled below; nested repos and sockets inside are not checked.
+      echo "zai-fence: not checking $p for secret files (noscan)" >&2
+      if [ -L "$p/.git" ]; then die "refusing: $p/.git is a symlink; remove it and relaunch"
+      elif [ -d "$p/.git" ]; then GIT_REPOS+=("$p")
+      elif [ -f "$p/.git" ]; then GIT_POINTERS+=("$p/.git"); fi
+      continue
+    fi
     # progress on stderr: big folders on /mnt/c take minutes (MDTWII field report)
     echo "zai-fence: checking $p for secret files (big folders on /mnt/c can take minutes)..." >&2
     scan_tree "/proc/$$/fd/$fd" "$p" "${ZAI_FENCE_OPEN_SCAN_SECS:-600}" "${pats[@]}"

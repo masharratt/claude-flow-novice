@@ -9,6 +9,11 @@
 # copy: an untracked list refuses, an uncommitted edit is ignored. The HEAD
 # entry must be a regular file (mode 100644); a symlink (120000) refuses. One absolute folder per line; # comments and blank lines dropped.
 #   ro:/abs/folder      bound read-only instead of read+write
+#   noscan:/abs/folder  skip the launch-time secret-file scan for this entry
+#                       only (a folder known to hold no passwords, e.g. a big
+#                       capture folder on /mnt/c); combinable with ro: in any
+#                       order (ro:noscan:/x, noscan:ro:/x). Changing it changes
+#                       the approved list, so it needs a new approval.
 #   /abs/dir/prefix-*   * or ? in the LAST path segment only: expanded at fence
 #                       start to the existing folders it matches (files are
 #                       skipped); zero matches warn on stderr and skip. A glob
@@ -21,9 +26,10 @@
 #   Prints the main checkout's toplevel for DIR (worktrees resolve to the repo
 #   that owns them), or DIR's real path when it is not in a git repo. Same rule
 #   as the fence root.
-# cfn_open_dirs_list ROOT [--no-approval]
+# cfn_open_dirs_list ROOT [--no-approval] [--with-flags]
 #   Without --no-approval the HEAD policy must also match the approval store
 #   (cfn_open_dirs_approved); only glm-open-approve.sh passes --no-approval.
+#   --with-flags adds a third column "noscan" for entries marked noscan:.
 #   Prints "MODE<TAB>REALPATH" per folder (MODE rw or ro), deduplicated, sorted
 #   shallow-first with ro after rw at equal depth, so a backend that applies
 #   them in order lets the deeper (or ro) entry win for its subtree. Returns 1
@@ -166,7 +172,15 @@ _cfn_od_overlap() {
 }
 
 cfn_open_dirs_list() {
-    local root="$1" approval="${2:-}" file entry r p t home_r seen=$'\n' n=0 tree body
+    local root="$1" approval="" flags_out=0 file entry r p t home_r seen=$'\n' n=0 tree body
+    shift
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --no-approval) approval=--no-approval ;;
+            --with-flags) flags_out=1 ;;
+        esac
+        shift
+    done
     file="$root/$CFN_OPEN_DIRS_FILE"
     tree=$(_cfn_od_git -C "$root" ls-tree HEAD -- "$CFN_OPEN_DIRS_FILE" 2>/dev/null) || tree=""
     case "$tree" in
@@ -204,13 +218,20 @@ cfn_open_dirs_list() {
         protected+=("$t")
     done
 
-    local out="" raw mode dir pat m had_nullglob
+    local out="" raw mode flag dir pat m had_nullglob
     local -a rawpaths=()
     local -a cands
     while IFS= read -r raw; do
         [ -n "$raw" ] || continue
-        mode=rw; entry="$raw"
-        case "$entry" in ro:*) mode=ro; entry="${entry#ro:}" ;; esac
+        mode=rw; flag=""; entry="$raw"
+        # prefixes in any order: ro: (read-only), noscan: (skip the secret scan)
+        while :; do
+            case "$entry" in
+                ro:*) mode=ro; entry="${entry#ro:}" ;;
+                noscan:*) flag=noscan; entry="${entry#noscan:}" ;;
+                *) break ;;
+            esac
+        done
         case "$entry" in
             /*) ;;
             *) echo "glm-open-dirs: '$raw' in $file is not an absolute path" >&2; return 1 ;;
@@ -237,9 +258,11 @@ cfn_open_dirs_list() {
         for entry in "${cands[@]}"; do
             rawpaths+=("$entry")
             r=$(_cfn_od_check "$file" "$raw" "$entry" "$home_r" "${protected[@]}") || return 1
-            case "$seen" in *$'\n'"$mode $r"$'\n'*) continue ;; esac
-            seen+="$mode $r"$'\n'
-            out+="$mode"$'\t'"$r"$'\n'
+            case "$seen" in *$'\n'"$mode $r $flag"$'\n'*) continue ;; esac
+            seen+="$mode $r $flag"$'\n'
+            # a third column only when flagged, so approvals of unflagged lists
+            # made before noscan existed still match
+            out+="$mode"$'\t'"$r${flag:+$'\t'$flag}"$'\n'
             n=$((n + 1))
         done
     done < <(printf '%s\n' "$body" | sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | grep -v '^$')
@@ -252,7 +275,7 @@ cfn_open_dirs_list() {
     # (the root or an rw opening) could be repointed by the worker; refuse.
     local -a trees=("$root")
     local line ln
-    while IFS=$'\t' read -r m line; do [ "$m" = rw ] && trees+=("$line"); done <<<"$out"
+    while IFS=$'\t' read -r m line _; do [ "$m" = rw ] && trees+=("$line"); done <<<"$out"
     for entry in "${rawpaths[@]}"; do
         if ln=$(_cfn_od_symlink_in "$entry" "${trees[@]}"); then
             echo "glm-open-dirs: '$entry' in $file passes through the symlink $ln inside a writable tree (the worker could repoint it); list the real folder instead" >&2
@@ -264,7 +287,8 @@ cfn_open_dirs_list() {
     if [ "$approval" != --no-approval ]; then
         cfn_open_dirs_approved "$root" "$body" "$sorted" || return 1
     fi
-    printf '%s\n' "$sorted"
+    if [ "$flags_out" = 1 ]; then printf '%s\n' "$sorted"
+    else printf '%s\n' "$sorted" | cut -f1,2; fi
 }
 
 # _cfn_od_sort LINES: depth (slash count), ro after rw, then path: shallow

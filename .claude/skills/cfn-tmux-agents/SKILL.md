@@ -154,7 +154,10 @@ read-only `~/.claude` runtime, private per-worker home; network only to the API
 host). A `glm-open` list needs a one-time approval after each committed change:
 `~/.claude/cfn-scripts/glm-open-approve.sh <repo>`. `--bin` with a slash must be
 absolute; bare names resolve only through absolute PATH entries; `--args` and
-`--model` are passed as argv words, never as shell code.
+`--model` are passed as argv words, never as shell code. List prefixes: `ro:` and
+`noscan:` (skip the secret-file scan for that folder; any order). Launch with
+`--cwd` = the repo holding the list. While the pane shows "zai-fence: checking",
+spawn waits up to `TMUX_AGENTS_FENCE_TIMEOUT` (900s) for the banner.
 
 Registry: the SHARED `~/.claude/cfn-config/engines.env`, the same single
 source of truth cfn-fleet reads (via its `templates/engines.env` symlink), so

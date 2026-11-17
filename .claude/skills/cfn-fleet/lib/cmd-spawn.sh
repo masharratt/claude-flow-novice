@@ -394,6 +394,9 @@ _spawn_launch_one(){
     [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
     return 1
   fi
+  # Keep a pane that dies before its banner, so its last lines (a fence
+  # refusal, a missing binary) can be shown; switched off once the banner shows.
+  _spawn_tmux -L "$sock" set-option -w -t "$sname" remain-on-exit on >/dev/null 2>&1 || true
   if ! _spawn_tmux -L "$sock" send-keys -t "$sname" -l "$CFN_SPAWN_LAUNCH_LINE"; then
     echo "fleet: spawn: could not reach pane $sname (session died?)" >&2
     [ -z "$CFN_SPAWN_ENV_DIR" ] || rm -rf "$CFN_SPAWN_ENV_DIR"
@@ -453,12 +456,33 @@ _spawn_launch_one(){
 
   if [ -n "$banner_re" ]; then
     banner_line=$(_fleet_pane_wait "$sock" "$sname" "$banner_re" "$banner_timeout" || true)
+    # zai-fence's secret scan of big opened folders can outlast the banner
+    # timeout (MDTWII 2026-11-16: 190s). While the pane is alive and shows a
+    # "zai-fence: checking" line, keep waiting, up to FLEET_FENCE_TIMEOUT.
+    local fence_deadline
+    fence_deadline=$((SECONDS + $(_fleet_env_seconds FLEET_FENCE_TIMEOUT 900)))
+    while [ -z "$banner_line" ] && [ "$SECONDS" -lt "$fence_deadline" ] \
+          && [ "$(_spawn_tmux -L "$sock" display-message -p -t "$sname" '#{pane_dead}' 2>/dev/null || true)" != 1 ] \
+          && _spawn_tmux -L "$sock" capture-pane -p -t "$sname" 2>/dev/null | grep -q 'zai-fence: checking'; do
+      banner_line=$(_fleet_pane_wait "$sock" "$sname" "$banner_re" 10 || true)
+    done
   fi
   if [ -z "$banner_line" ]; then
-    echo "spawn: $sname: no banner match within ${banner_timeout}s (regex: $banner_re); last pane lines:" >&2
-    _spawn_tmux -L "$sock" capture-pane -p -t "$sname" 2>/dev/null | tail -n 10 >&2
+    local pane_tail
+    pane_tail=$(_spawn_tmux -L "$sock" capture-pane -p -S -200 -t "$sname" 2>/dev/null \
+      | sed -e 's/\r$//' -e 's/[[:space:]]*$//' -e '/^$/d' | grep -v '^Pane is dead' | tail -n 10 || true)
+    if [ "$(_spawn_tmux -L "$sock" display-message -p -t "$sname" '#{pane_dead}' 2>/dev/null || true)" = 1 ]; then
+      echo "spawn: $sname: engine exited before its banner; last pane lines:" >&2
+      printf '%s\n' "${pane_tail:-(pane empty)}" >&2
+      # a dead pane kept only for this dump: remove it so a respawn is not a duplicate
+      _spawn_tmux -L "$sock" kill-session -t "$sname" >/dev/null 2>&1 || true
+    else
+      echo "spawn: $sname: no banner match within ${banner_timeout}s (regex: $banner_re); last pane lines:" >&2
+      printf '%s\n' "${pane_tail:-(pane empty)}" >&2
+    fi
     return 1
   fi
+  _spawn_tmux -L "$sock" set-option -w -t "$sname" remain-on-exit off >/dev/null 2>&1 || true
   printf '%s\n' "$banner_line"
 }
 

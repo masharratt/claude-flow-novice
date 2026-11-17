@@ -242,6 +242,10 @@ case "$cmd" in
             [[ -n $f && -f $f ]] && cat "$f"
         fi
         ;;
+    display-message)
+        # #{pane_dead}: FLEET_TMUX_PANE_DEAD=1 scripts a pane that died
+        printf '%s\n' "${FLEET_TMUX_PANE_DEAD:-0}"
+        ;;
     show-environment)
         f="${FLEET_TMUX_SERVER_ENV_FILE:-}"
         [[ -n $f && -f $f ]] && cat "$f"
@@ -824,6 +828,35 @@ test_spawn_trust_prompt_stale_text_claude_2_1_296() {
     assert_equals "0" "$FLEET_RC" "stale trust text bug: spawn exits 0"
     assert_contains "$(tmux_calls 'send-keys -t ws01 Down Enter')" "Down Enter" \
         "stale trust text bug: 2.1.296 prompt gets trust keys (plain claude bin)"
+}
+
+test_spawn_waits_out_fence_scan() {
+    # MDTWII field report 2026-11-16: zai-fence's secret scan of big opened
+    # folders outlasts the banner timeout; spawn gave up mid-scan.
+    log_step "GIVEN a pane showing 'zai-fence: checking' past the banner timeout, WHEN spawn"
+    make_engine_project eng-fence-wait
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    local i
+    for i in $(seq 1 30); do capture_script "$i" "zai-fence: checking /mnt/c/big for secret files..."; done
+    capture_script 31 "Sonnet 5 with high effort | Claude Team"
+    run_fleet spawn WS01
+    assert_equals "0" "$FLEET_RC" "fence-wait bug: spawn waits while the fence is checking"
+    assert_equals "started" "$(roster_field WS01 status)" "fence-wait bug: row reaches started"
+}
+
+test_spawn_dead_pane_shows_its_last_lines() {
+    # A launch failure (fence refusal) must be visible: the pane's last lines
+    # are printed and spawn exits non-zero.
+    log_step "GIVEN a pane that dies with a zai-fence refusal before its banner, WHEN spawn"
+    make_engine_project eng-dead-pane
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "zai-fence: refusing: /x/.git/hooks is a symlink; remove it and relaunch"
+    FLEET_TMUX_PANE_DEAD=1 run_fleet spawn WS01
+    assert_success "dead pane: spawn exits non-zero" test "$FLEET_RC" -ne 0
+    assert_contains "$FLEET_OUT" "zai-fence: refusing" "dead pane: the fence's refusal is shown"
+    assert_contains "$FLEET_OUT" "exited before its banner" "dead pane: spawn says the engine exited"
 }
 
 test_spawn_trust_prompt_wrapper_bin_zai_fence() {
@@ -1914,6 +1947,8 @@ run_all_tests() {
     test_spawn_trust_prompt_codex
     test_spawn_trust_prompt_stale_text_claude_2_1_296
     test_spawn_trust_prompt_wrapper_bin_zai_fence
+    test_spawn_waits_out_fence_scan
+    test_spawn_dead_pane_shows_its_last_lines
     test_spawn_survives_reader_closing_early
     test_spawn_codex_update_modal
     test_spawn_no_trust_text_sends_no_keys

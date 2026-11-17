@@ -46,6 +46,7 @@ cleanup() {
   tmux -L "$SOCK-k" kill-server 2>/dev/null || true
   tmux -L "$SOCK-L" kill-server 2>/dev/null || true
   tmux -L "$SOCK-e" kill-server 2>/dev/null || true
+  tmux -L "$SOCK-f" kill-server 2>/dev/null || true
   rm -rf "$CFN_GLM_OPEN_APPROVALS" "$ZAI_FENCE_WORKER_BASE"
 }
 trap cleanup EXIT
@@ -617,6 +618,34 @@ m=$(has_all "$JS" 'd["permissions"]["deny"]' "Edit(/$HOME/.claude/**)" "Edit(/$R
 "$EXE" kill s-opt --socket "$SOCK" >/dev/null 2>&1 || true
 cfn_safe_rm_tmp "$TD"
 export TMUX_AGENTS_OUTBOX_ROOT="$GLOBAL_OUTBOX_ROOT"
+
+# test_allow_fence_wait (MDTWII field report 2026-11-16): the fence's secret
+# scan of big opened folders outlasts the banner timeout (190s measured);
+# spawn killed the pane mid-scan and showed only the launch line. While the
+# pane is alive and shows "zai-fence: checking", spawn keeps waiting (up to
+# TMUX_AGENTS_FENCE_TIMEOUT). A slow `find` stands in for /mnt/c.
+TD=$(mktemp -d); TD=$(cd "$TD" && pwd -P)
+mkdir -p "$TD/proj" "$TD/open" "$TD/slow"
+git -C "$TD/proj" init -q
+cp "$FAKE" "$TD/proj/fake-engine.sh"
+mkdir -p "$TD/proj/.claude"; printf '%s\n' "$TD/open" > "$TD/proj/.claude/glm-open-dirs"
+git -C "$TD/proj" add -f .claude/glm-open-dirs && git -C "$TD/proj" "${GITC[@]}" commit -qm list
+"$APPROVE" "$TD/proj" >/dev/null
+printf '#!/bin/bash\nsleep 6\nexec /usr/bin/find "$@"\n' > "$TD/slow/find"; chmod +x "$TD/slow/find"
+RC=0; OUT=$(PATH="$TD/slow:$PATH" TMUX_AGENTS_BANNER_TIMEOUT=3 TMUX_AGENTS_FENCE_TIMEOUT=60 \
+  FLEET_ZAI_TOKEN="zai-sentinel-fw-abcdefghijklmnop" "$EXE" spawn fw1 --socket "$SOCK-f" --engine glm-open \
+  --bin "$TD/proj/fake-engine.sh" --banner-regex 'AGENTS-TEST-BANNER' --cwd "$TD/proj" 2>&1) || RC=$?
+case "$OUT" in *spawned*) ok "test_allow_fence_wait: spawn waits out a slow fence scan" ;;
+  *) bad "test_allow_fence_wait: rc=$RC ${OUT:0:300}" ;; esac
+tmux -L "$SOCK-f" kill-server 2>/dev/null || true
+# a fence refusal is shown and spawn exits non-zero
+mkdir -p "$TD/proj/sub"; printf 'gitdir: /nonexistent/.git\n' > "$TD/proj/sub/.git"
+RC=0; OUT=$(FLEET_ZAI_TOKEN="zai-sentinel-fw-abcdefghijklmnop" "$EXE" spawn fw2 --socket "$SOCK-f" --engine glm \
+  --bin "$TD/proj/fake-engine.sh" --banner-regex 'AGENTS-TEST-BANNER' --cwd "$TD/proj" 2>&1) || RC=$?
+if [ "$RC" -ne 0 ] && case "$OUT" in *"git pointer"*) true ;; *) false ;; esac; then ok "test_allow_fence_refusal_visible (rc=$RC)"
+else bad "test_allow_fence_refusal_visible: rc=$RC ${OUT:0:300}"; fi
+tmux -L "$SOCK-f" kill-server 2>/dev/null || true
+rm -rf "$TD"
 
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]

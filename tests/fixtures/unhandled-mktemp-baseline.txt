@@ -74,7 +74,7 @@
 .claude/skills/cfn-tech-debt/tests/test-harvest.sh 1
 .claude/skills/cfn-tmux-agents/execute.sh 1
 .claude/skills/cfn-tmux-agents/lib/jev-outcome.sh 2
-.claude/skills/cfn-tmux-agents/tests/test-agents.sh 15
+.claude/skills/cfn-tmux-agents/tests/test-agents.sh 16
 .claude/skills/cfn-token-report/tests/test-token-report.sh 1
 .claude/skills/cfn-vote-implement/jev-triage.sh 2
 .claude/skills/cfn-wiki/portal/build-portal.sh 2

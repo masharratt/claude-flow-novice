@@ -127,6 +127,7 @@ esac
 OPEN_DIRS=""
 if [ "${ZAI_FENCE_OPEN_DIRS:-0}" = 1 ]; then
   OPEN_DIRS=$(cfn_open_dirs_list "$ROOT") || die "glm-open refused: fix $ROOT/$CFN_OPEN_DIRS_FILE (reason above)"
+  # noscan: needs no work here: Seatbelt masks secrets by name pattern, no scan
 fi
 
 # --- per-worker temp dir ----------------------------------------------------

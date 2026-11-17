@@ -270,6 +270,14 @@ local relay; no npm, pip, GitHub or MCP servers inside the fence.
 A `glm-open` list must be committed and then approved once by the user:
 `~/.claude/cfn-scripts/glm-open-approve.sh <repo>`; any later change to the
 list needs a new approval, or spawn refuses (66).
+List prefixes: `ro:` (read-only) and `noscan:` (skip the launch-time secret-file
+scan for that folder only; for folders known to hold no passwords, e.g. a big
+capture folder on /mnt/c), in any order (`ro:noscan:/x`). Launch from the repo
+that holds the list, then work in the approved folders; an approved folder is not
+a launch place. The scan of big folders can take minutes: the pane shows
+"zai-fence: checking <folder>" and spawn keeps waiting up to `FLEET_FENCE_TIMEOUT`
+(900s). A pane that dies before its banner has its last lines printed and spawn
+exits non-zero.
 
 Registry: the SHARED `~/.claude/cfn-config/engines.env` (single source of
 truth, also read by cfn-tmux-agents; `templates/engines.env` is a symlink to
