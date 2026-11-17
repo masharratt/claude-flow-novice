@@ -194,7 +194,9 @@ make_fixture() {
     echo "Do the remote thing in src/a.md." > "$RUN_DIR/briefs/WS01.md"
 
     mkdir -p "$SRV/git" "$SRV/fleet-repos" "$SRV/fleet-runs" "$SRV/Projects/proj/extracted"
-    git init -q --bare "$SRV/git/proj.git"
+    # -b main: with no init.defaultBranch the bare HEAD named master, clones
+    # checked out nothing, and host_main_moves_on could not push main.
+    git init -q --bare -b main "$SRV/git/proj.git"
     git -C "$PROJ" remote add fakehost "$SRV/git/proj.git"
     git -C "$PROJ" push -q fakehost main
     git clone -q "$SRV/git/proj.git" "$SRV/fleet-repos/proj"
@@ -966,8 +968,19 @@ test_spawn_host_allow_write_opens_listed_tmp_paths_only() {
     assert_equals "[]" "$(python3 -c 'import json,sys; d=json.loads(sys.argv[1]); print(json.dumps([p for p in d["sandbox"]["filesystem"]["allowWrite"] if p.lower().startswith("/tmp/mdtwii-") and p not in sys.argv[2].split(":")]))' "$js" "$MDTWII_ALLOW")" \
         "allowWrite holds only the exact listed /tmp/mdtwii-* names (no case variant such as /tmp/mdtwii-Slot.queue)"
     assert_not_contains "$(json_q "$js" 'd["permissions"]["deny"]')" '"Edit(//tmp/mdtwii-*)"' "the broad /tmp/mdtwii-* rule is replaced"
-    assert_contains "$FLEET_OUT" "WARN spawn: FLEET_REMOTE_ALLOW_WRITE path /tmp/mdtwii-slot-a.lock does not exist on fakehost" \
-        "a listed path missing on the server is warned about"
+    # BUG missing-path-flake (2026-11-16): the fake ssh runs the preflight on
+    # THIS machine, so its `[ -e ]` sees the real /tmp. A live MDTWII session
+    # here had created /tmp/mdtwii-slot-a.lock, no warning was printed, and
+    # the hardcoded expectation failed. Assert on a listed path that really is
+    # missing here; with none missing the check cannot run, so say so.
+    local missing="" p
+    for p in ${MDTWII_ALLOW//:/ }; do [ -e "$p" ] || { missing="$p"; break; }; done
+    if [ -n "$missing" ]; then
+        assert_contains "$FLEET_OUT" "WARN spawn: FLEET_REMOTE_ALLOW_WRITE path $missing does not exist on fakehost" \
+            "a listed path missing on the server is warned about"
+    else
+        log_warn "SKIP missing-path warning check: every MDTWII allow path exists on this machine ($MDTWII_ALLOW)"
+    fi
 }
 
 test_spawn_host_allow_write_refuses_bad_entries() {
