@@ -1146,6 +1146,68 @@ test_spawn_host_no_host_main_pushes_head_and_says_so() {
     assert_equals "$(git -C "$PROJ" rev-parse HEAD)" "$(git --git-dir="$SRV/git/proj.git" rev-parse refs/heads/fleet-base/WS01)" "base is Mac HEAD on fallback"
 }
 
+# BUG remote-args-injection (2026-11-17): spawn-remote.sh pasted engine bin and
+# args into the server launch script as raw shell (`exec $scope$bin $args`), so
+# a quote, ; , $(...) or backtick in engines.env broke the launch or ran extra
+# commands on the server. Words must reach the engine exactly, one argv each.
+# replay_launch LAUNCH OUTDIR: source the shipped server launch script in a
+# shell whose systemd-run runs the command after `--` and whose claude writes
+# its argv (one per line) to OUTDIR/argv; cwd = OUTDIR (where PWNED would land).
+replay_launch() {
+    local launch="$1" out="$2" rb="$TMP_DIR/replay-bin"
+    mkdir -p "$rb" "$out"
+    printf '%s\n' '#!/usr/bin/env bash' 'while [ $# -gt 0 ] && [ "$1" != -- ]; do shift; done; shift; exec "$@"' > "$rb/systemd-run"
+    printf '%s\n' '#!/usr/bin/env bash' 'printf "%s\n" "$@" > "$REPLAY_OUT/argv"' > "$rb/claude"
+    chmod +x "$rb/systemd-run" "$rb/claude"
+    cp "$launch" "$out/launch.sh"
+    ( cd "$out" && REPLAY_OUT="$out" PATH="$rb:$PATH" bash -c ". ./launch.sh" ) >/dev/null 2>&1 || true
+}
+
+test_spawn_host_args_reach_engine_as_exact_words() {
+    log_step "BUG remote-args-injection: engines.env args with ' \" ; \$(...) and backticks reach the engine as the same words, nothing runs"
+    make_fixture inject
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    local w1="x'y" w2='"q"' w3='a;touch${IFS}PWNED1' w4='$(touch${IFS}PWNED2)' w5='`touch${IFS}PWNED3`' w6='$(touch' w7='PWNED4)'
+    printf 'claude-evil | claude | --model sonnet %s %s %s %s %s %s %s | | ANTHROPIC_AUTH_TOKEN | Down,Enter | Claude Team\n' \
+        "$w1" "$w2" "$w3" "$w4" "$w5" "$w6" "$w7" > "$RUN_DIR/engines.env"
+    run_spawn WS01 --host fakehost --engine claude-evil
+    assert_equals "0" "$FLEET_RC" "spawn with hostile args exits 0"
+    local launch="$SRV/fleet-runs/proj/fleet-main/WS01/.launch-ws01" out="$TMP_DIR/replay-inject"
+    assert_file_exists "$launch" "launch script shipped"
+    replay_launch "$launch" "$out"
+    local argv
+    argv=$(head -n 9 "$out/argv" 2>/dev/null || true)
+    assert_equals "$(printf '%s\n' --model sonnet "$w1" "$w2" "$w3" "$w4" "$w5" "$w6" "$w7")" "$argv" "engine got every args word unchanged, one argv each"
+    assert_equals "--settings" "$(sed -n 10p "$out/argv" 2>/dev/null)" "--settings still follows the args"
+    assert_equals "" "$(ls "$out" "$SRV" "$PROJ" 2>/dev/null | grep PWNED || true)" "no PWNED file created anywhere"
+}
+
+test_spawn_host_refuses_bad_unset_name() {
+    log_step "BUG remote-args-injection: an engines.env unset entry that is not a variable name is refused (65) before ssh"
+    make_fixture inject-unset
+    printf 'claude-evil | claude | --model sonnet | | ANTHROPIC_AUTH_TOKEN;touch${IFS}PWNED5 | Down,Enter | Claude Team\n' > "$RUN_DIR/engines.env"
+    run_spawn WS01 --host fakehost --engine claude-evil
+    assert_equals "65" "$FLEET_RC" "bad unset name refused with 65"
+    assert_contains "$FLEET_OUT" "bad name" "refusal names the bad unset entry"
+    assert_equals "0" "$(ssh_calls)" "no ssh call for a bad unset name"
+    assert_equals "pending" "$(roster_field WS01 status)" "row stays pending"
+}
+
+test_spawn_host_plain_launch_line_unchanged() {
+    log_step "BUG remote-args-injection control: a plain engine still writes the exact same exec line as before the fix"
+    make_fixture plain-line
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    run_spawn WS01 --host fakehost
+    assert_equals "0" "$FLEET_RC" "plain host spawn exits 0"
+    local launch="$SRV/fleet-runs/proj/fleet-main/WS01/.launch-ws01" line
+    line=$(grep '^unset ' "$launch" | grep -E -- '; exec ' || true)
+    assert_contains "$line" "unset ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_BASE_URL ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL ANTHROPIC_DEFAULT_FABLE_MODEL; " "unset list byte-identical"
+    assert_contains "$line" "export LANE_PREFLIGHT_REQUIRE_TARGET=1; exec systemd-run --user --scope --quiet -p MemoryMax=12G -p CPUQuota=400% -- claude --model sonnet --permission-mode bypassPermissions --settings '{" "exec line byte-identical for plain values"
+    local out="$TMP_DIR/replay-plain"
+    replay_launch "$launch" "$out"
+    assert_equals "$(printf '%s\n' --model sonnet --permission-mode bypassPermissions --settings)" "$(head -n 5 "$out/argv" 2>/dev/null)" "plain engine argv unchanged"
+}
+
 run_all_tests() {
     TEST_LOG="${TMPDIR:-/tmp}/cfn-fleet-spawn-host-$(date +%s).log"
     export TEST_LOG
@@ -1188,6 +1250,9 @@ run_all_tests() {
     test_spawn_host_diverged_but_containing_host_main_spawns
     test_spawn_host_base_is_host_main_not_mac_head
     test_spawn_host_no_host_main_pushes_head_and_says_so
+    test_spawn_host_args_reach_engine_as_exact_words
+    test_spawn_host_refuses_bad_unset_name
+    test_spawn_host_plain_launch_line_unchanged
 
     print_test_summary
 }

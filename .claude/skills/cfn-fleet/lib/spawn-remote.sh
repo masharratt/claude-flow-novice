@@ -175,7 +175,7 @@ _spawn_remote_ship_launch(){
   local trust_re="$8" trust_keys="$9" banner_re="${10}" run_dir="${11}" brief="${12}" kit="${13}"
   local project="${14}" run="${15}" wt="${16}" ob="${17}" sock="${18}" gitremote="${19}"
   local clone="${20}" settings="${21}" scope="${22}"
-  local tpl_dir gen claims_sp mig remote_launch pane_cmd line
+  local tpl_dir gen claims_sp mig remote_launch pane_cmd line exec_line
 
   tpl_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../templates" && pwd)"
   gen=$(od -An -tx1 -N8 /dev/urandom | tr -d ' \n')
@@ -224,7 +224,13 @@ _spawn_remote_ship_launch(){
   # coordinator secret, and the outbox queue its sandboxed Bash writes mail to
   # (the hook runs outside the sandbox and sends it).
   [ -z "${_SPAWN_MB_NAME:-}" ] || pane_cmd+="$(_spawn_mb_exports "$_SPAWN_MB_NAME" "$ob/brief.md" "$ob/mail-out")"
-  pane_cmd+="exec $scope$bin${args_str:+ $args_str} --settings '$settings'"
+  # Bin and args are argv WORDS (BUG remote-args-injection, 2026-11-17): the
+  # engines.env row is data, so each word is %q-quoted by the same helper the
+  # local path uses; quotes, ;, $(...) or backticks can never run as server
+  # shell code. The scope prefix is built here from validated knobs only.
+  exec_line=$(_fleet_exec_words "$bin" "$args_str") || return 1
+  case "$settings" in *"'"*) echo "spawn: generated settings for $name hold a quote; refusing" >&2; return 1 ;; esac
+  pane_cmd+="exec $scope${exec_line#exec } --settings '$settings'"
   cfn_spawn_launch_write "${_SPAWN_SET_LINES:-}" "$pane_cmd" \
     || { echo "spawn: could not write the private launch script for $name" >&2; return 1; }
   (
@@ -352,6 +358,11 @@ _spawn_remote(){
     || fleet_die 64 "spawn: FLEET_HOST_REMOTE '$gitremote' is not a safe git remote name"
   _spawn_remote_limits
   _spawn_remote_allow_write
+  # The unset list is pasted into the server launch script: names only.
+  local u
+  for u in ${unset_raw//,/ }; do
+    [[ "$u" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || fleet_die 65 "spawn: engine '$engine' unset list holds a bad name '$u'"
+  done
 
   # 1. Server home, once: later steps use absolute paths, never ~ expansion.
   home=$(_fleet_host_run "$host" bash -c 'printf %s "$HOME"') || rc=$?
