@@ -64,3 +64,9 @@ globs: "**/*"
 - **Watch every new test or check go red** before trusting it, and run a control on any new kind of failure: distinct fixture ids per identity axis, real-DB test for raw SQL, fixture shape checked against the validator.
 - **Scripted edits:** compute content before opening for write; never trust a clean `git apply --unidiff-zero`.
 - Detail and incidents for guards, tests and scripted edits: load `~/.claude/references/verification-traps.md` when writing a guard, a new test, or a scripted edit.
+
+## Tooling Opportunities
+- **Triggers:** the same manual step a 3rd time (2nd if it spans lanes or sessions); a failure caused by a forgotten manual step; redoing by hand what a tool produced wrong (wrong data loaded, captures redone).
+- **Record, don't detour:** `bash $HOME/.claude/cfn-scripts/cfn-tooling-idea.sh add "<idea>" --saves "<est>" --evidence "<what repeated>"`, then finish the task. Build the tool only when asked.
+- **Close the loop:** every task-final report and fleet handoff ends with `Tooling idea: <idea, est. saving> | none`.
+- A `TOOLING NUDGE` from `cfn-tooling-nudge.sh` means a shape repeated; record it or ignore it as normal iteration.
