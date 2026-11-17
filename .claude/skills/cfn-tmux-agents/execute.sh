@@ -22,6 +22,9 @@ SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # and cfn-fleet), so a project that has not opted in is refused up front.
 # shellcheck source=../../cfn-scripts/lib/open-dirs.sh
 . "$(cd "$SKILL_DIR/../../cfn-scripts/lib" && pwd)/open-dirs.sh"
+# First-prompt ready check + send + landing check, shared with cfn-fleet.
+# shellcheck source=../../cfn-scripts/lib/tui-prompt.sh
+. "$(cd "$SKILL_DIR/../../cfn-scripts/lib" && pwd)/tui-prompt.sh"
 # Security review round 2: inherited GIT_DIR / GIT_WORK_TREE etc. would pick
 # the launch folder (default --cwd = git toplevel) and the glm-open policy
 # repo. Scrub them before any git call. Word splitting is intended.
@@ -430,16 +433,31 @@ cmd_spawn() {
     prompt=$(cat "$prompt_file")
   fi
   if [ -n "$prompt" ]; then
-    # claude kinds: wait for the real input box before typing (a prompt typed
-    # into a still-starting TUI is dropped, and the submit check then passes
-    # vacuously because the input line is empty). Non-fatal on timeout.
-    [ "$bin_kind" != claude ] || _ta_ready_wait "$TA_SOCK" "$name" "$(_ta_env_seconds TMUX_AGENTS_READY_TIMEOUT 12)"
-    local send_rc=0
-    _ta_send_text "$TA_SOCK" "$name" "$prompt" || send_rc=$?
-    if [ "$send_rc" -ne 0 ]; then
-      echo "spawn: $name: prompt typed but not submitted (input line never cleared after Enter retries). Session left alive; inspect with: execute.sh capture $name --socket $TA_SOCK, or submit with: tmux -L $TA_SOCK send-keys -t $name Enter" >&2
-      exit 69
-    fi
+    # Shared helper (cfn-scripts/lib/tui-prompt.sh): claude kinds wait for the
+    # real input box (dismissing the flicker-free opt-in modal), then type,
+    # Enter, and require the prompt to LAND (echoed above the input line, or a
+    # working indicator). tmux-agents knobs map onto the helper's.
+    local send_rc=0 ready_wait=0
+    [ "$bin_kind" != claude ] || ready_wait=1
+    TUI_READY_WAIT=$ready_wait \
+    TUI_READY_TIMEOUT=$(_ta_env_seconds TMUX_AGENTS_READY_TIMEOUT 12) \
+    TUI_MODAL_SETTLE="${TMUX_AGENTS_TRUST_SETTLE:-1.5}" \
+    TUI_SUBMIT_SETTLE="${TMUX_AGENTS_SUBMIT_SETTLE:-1}" \
+    TUI_SUBMIT_VERIFY=$(_ta_env_seconds TMUX_AGENTS_SUBMIT_VERIFY 3) \
+    TUI_SUBMIT_RETRIES=$(_ta_env_seconds TMUX_AGENTS_SUBMIT_RETRIES 3) \
+      tui_send_first_prompt "$TA_SOCK" "$name" "$prompt" || send_rc=$?
+    case "$send_rc" in
+      0) ;;
+      2)
+        echo "spawn: $name: prompt typed but not submitted (input line never cleared after Enter retries). Session left alive; inspect with: execute.sh capture $name --socket $TA_SOCK, or submit with: tmux -L $TA_SOCK send-keys -t $name Enter" >&2
+        exit 69 ;;
+      3)
+        echo "spawn: $name: first prompt did not land (no echo above the input line and no working indicator after Enter retries; a modal or a not-ready TUI swallowed it). Session left alive; inspect with: execute.sh capture $name --socket $TA_SOCK, then resend with: execute.sh send $name \"<prompt>\" --socket $TA_SOCK" >&2
+        exit 69 ;;
+      *)
+        echo "spawn: $name: first prompt could not be sent (tmux send-keys failed; session gone?). Inspect with: execute.sh capture $name --socket $TA_SOCK" >&2
+        exit 69 ;;
+    esac
   fi
 
   # Auth probe after the first request: a relay token the banner cannot see

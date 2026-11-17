@@ -170,72 +170,6 @@ _ta_shebang_interp() {
   printf '%s\n' "${words[0]}"
 }
 
-# _ta_pane_cursor_line SOCK TARGET — the visible pane line holding the
-# cursor, trailing space stripped. TUIs (Claude Code 2.1.318, measured
-# 2026-11-05) park the cursor at the end of the input text.
-_ta_pane_cursor_line() {
-  local y
-  y=$(tmux -L "$1" display-message -p -t "$2" '#{cursor_y}' 2>/dev/null) || return 1
-  [[ "$y" =~ ^[0-9]+$ ]] || return 1
-  tmux -L "$1" capture-pane -p -t "$2" 2>/dev/null \
-    | sed -n "$((y + 1))p" | sed -e 's/\r$//' -e 's/[[:space:]]*$//'
-}
-
-# _ta_input_pending SOCK TARGET TEXT — rc 0 when the input line still holds
-# TEXT: the cursor line is non-empty and its last few chars are the tail of
-# TEXT's last line (works when the text wraps), or a paste placeholder.
-_ta_input_pending() {
-  local cl tail k
-  cl=$(_ta_pane_cursor_line "$1" "$2") || cl=""
-  # The cursor is not always parked on the input line (a TUI that draws a
-  # status bar after the box leaves it elsewhere, so a stuck prompt read as
-  # "submitted"). Fall back to the LAST "❯" line: submitted prompts echo into
-  # the transcript above, so only the live input box is last.
-  if [ -z "$cl" ]; then
-    cl=$(tmux -L "$1" capture-pane -p -t "$2" 2>/dev/null | sed -e 's/\r$//' -e 's/[[:space:]]*$//' \
-      | grep -E '^[[:space:]]*❯' | tail -n 1 | sed -e 's/^[[:space:]]*❯[[:space:]]*//')
-  fi
-  [ -n "$cl" ] || return 1
-  case "$cl" in *"[Pasted text"*) return 0 ;; esac
-  tail="${3##*$'\n'}"
-  tail="${tail%"${tail##*[![:space:]]}"}"
-  [ -n "$tail" ] || return 1
-  k=12
-  [ "${#cl}" -lt "$k" ] && k="${#cl}"
-  [ "${#tail}" -lt "$k" ] && k="${#tail}"
-  [ "${tail: -$k}" = "${cl: -$k}" ]
-}
-
-# _ta_send_text SOCK TARGET TEXT — initial prompt with verified submit.
-# BUG prompt-not-submitted (Claude Code 2.1.318, 11-03/11-04): text and
-# Enter sent back to back right after the banner left the text in the input
-# box; the fresh TUI took the text but dropped the Enter. Now: type, wait for
-# the echo, settle, Enter, then verify the input line cleared; retry Enter a
-# bounded number of times. rc 2 when the input never clears.
-# Knobs: TMUX_AGENTS_SUBMIT_SETTLE (s, 1), TMUX_AGENTS_SUBMIT_VERIFY (s per
-# try, 3), TMUX_AGENTS_SUBMIT_RETRIES (extra Enters, 3).
-_ta_send_text() {
-  local sock="$1" tgt="$2" text="$3" i n try retries verify
-  retries=$(_ta_env_seconds TMUX_AGENTS_SUBMIT_RETRIES 3)
-  verify=$(_ta_env_seconds TMUX_AGENTS_SUBMIT_VERIFY 3)
-  tmux -L "$sock" send-keys -t "$tgt" -l "$text" || return 1
-  # echo wait: up to 5s for the text to show on the input line
-  for ((i = 0; i < 25; i++)); do
-    _ta_input_pending "$sock" "$tgt" "$text" && break
-    sleep 0.2
-  done
-  sleep "${TMUX_AGENTS_SUBMIT_SETTLE:-1}"
-  for ((try = 0; try <= retries; try++)); do
-    tmux -L "$sock" send-keys -t "$tgt" Enter || return 1
-    n=$((verify * 5))
-    for ((i = 0; i < n; i++)); do
-      sleep 0.2
-      _ta_input_pending "$sock" "$tgt" "$text" || return 0
-    done
-  done
-  return 2
-}
-
 # _ta_send_followup SOCK TARGET TEXT — mid-turn follow-up. Sending text and
 # Enter in one motion leaves the text unsent while the worker is mid-turn
 # (cfn-fleet trap 6): text, one second, then a separate Enter.
@@ -258,10 +192,5 @@ _ta_gate_cleared() {
   return 0
 }
 
-# _ta_ready_wait SOCK TARGET TIMEOUT_S — claude-kind pane is ready when the
-# input box prompt line ("❯") is on screen. Always rc 0 (a TUI that never
-# draws it still gets the prompt, as before).
-_ta_ready_wait() {
-  _ta_pane_wait "$1" "$2" '^[[:space:]]*❯' "$3" >/dev/null || true
-  return 0
-}
+# First-prompt ready check, send and landing check: shared with cfn-fleet in
+# cfn-scripts/lib/tui-prompt.sh (tui_send_first_prompt), sourced by execute.sh.

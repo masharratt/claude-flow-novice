@@ -122,9 +122,11 @@ assert_rc_ne 0 "duplicate spawn name refused" "$EXE" spawn w1 --socket "$SOCK" -
 assert_rc 68 "banner timeout exits 68" "$EXE" spawn wbad --socket "$SOCK" --bin "$FAKE" --banner-regex 'NEVER-MATCHES' --cwd /tmp
 
 # 7. glm without a token source resolves to exit 66 BEFORE touching tmux
-assert_rc 66 "glm without token exits 66" env -u FLEET_ZAI_TOKEN -u ZAI_TOKEN -u TMUX_AGENTS_ZAI_TOKEN \
+NH=$(mktemp -d) || exit 1; mkdir -p "$NH/.claude"; ln -s "$HOME/.claude/cfn-config" "$NH/.claude/cfn-config"
+assert_rc 66 "glm without token exits 66 (empty fake HOME, no token file)" env -u FLEET_ZAI_TOKEN -u ZAI_TOKEN -u TMUX_AGENTS_ZAI_TOKEN HOME="$NH" \
   "$EXE" spawn g1 --socket "$SOCK" --engine glm --cwd /tmp
 
+cfn_safe_rm_tmp "$NH"
 # 8. unknown engine is refused
 assert_rc 65 "unknown engine exits 65" "$EXE" spawn u1 --socket "$SOCK" --engine nosuch --cwd /tmp
 
@@ -487,6 +489,112 @@ case "$CAP" in *"SUBMITTED: first prompt after ready"*) ok "first-prompt bug: pr
 "$EXE" kill fp1 --socket "$SOCK" >/dev/null 2>&1 || true
 rm -rf "$TD"
 
+# 21b. BUG glm-first-prompt-lost (2026-11-17): Claude Code 2.1.326 shows a
+# "Flicker-free output ... Yes, try it / Not now" opt-in modal AFTER its header
+# (which is what the glm banner regex matches). The modal's "❯ 1. Yes, try it"
+# menu cursor satisfied the ready check, so the prompt was typed into the modal
+# and discarded, Enter picked "Yes, try it", and the empty input line read as
+# "submitted". This fake discards every key except Esc while the modal is up.
+FP=$(mktemp -d) || exit 1
+cat > "$FP/claude" <<'FAKE'
+#!/usr/bin/env bash
+stty -icanon -echo -icrnl 2>/dev/null || true
+printf 'AGENTS-TEST-BANNER glm-5.3-flash\n\n  Flicker-free output: no more flashing\n  ❯ 1. Yes, try it\n    2. Not now\n  Enter to confirm · Esc to cancel\n'
+while :; do
+  rc=0; IFS= read -rsn1 -d '' -t 30 c || rc=$?
+  [ "$rc" -eq 0 ] || exit 0
+  [ "$c" = $'\e' ] && break
+  [ "$c" = $'\r' ] && break   # Enter picks "Yes, try it": modal gone, typed text already lost
+done
+printf '\033[2J\033[H\n❯ '
+buf=""
+while :; do
+  rc=0; IFS= read -rsn1 -d '' -t 30 c || rc=$?
+  [ "$rc" -eq 0 ] || exit 0
+  if [ "$c" = $'\r' ] || [ "$c" = $'\n' ]; then printf '\nSUBMITTED: %s\n❯ ' "$buf"; buf=""
+  else buf+="$c"; printf '%s' "$c"; fi
+done
+FAKE
+chmod +x "$FP/claude"
+RC=0; OUT=$(TMUX_AGENTS_BANNER_TIMEOUT=10 TMUX_AGENTS_READY_TIMEOUT=8 "$EXE" spawn fp2 --socket "$SOCK" --bin "$FP/claude" \
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp --prompt "prompt behind modal" 2>&1) || RC=$?
+[ "$RC" -eq 0 ] && ok "modal then landing: spawn exits 0" || bad "modal then landing: rc=$RC ${OUT:0:300}"
+sleep 0.5
+CAP=$(tmux -L "$SOCK" capture-pane -p -t fp2 2>/dev/null || true)
+case "$CAP" in *"SUBMITTED: prompt behind modal"*) ok "glm first-prompt bug: modal menu cursor is not the input box; prompt submitted" ;; *) bad "glm first-prompt bug: prompt lost behind modal: out=${OUT:0:200} pane=${CAP:0:300}" ;; esac
+"$EXE" kill fp2 --socket "$SOCK" >/dev/null 2>&1 || true
+cfn_safe_rm_tmp "$FP"
+
+# 21c. First-prompt landing check (shared cfn-scripts/lib/tui-prompt.sh). The
+# old submit check passed once the input line was empty; a TUI that swallows
+# the prompt (modal, not-yet-ready box) empties it too, so spawn reported
+# success for a prompt that never reached the agent. Spawn now needs the
+# prompt echoed above the input line, or a working indicator, and fails
+# loudly otherwise, leaving the session alive for inspection.
+FP=$(mktemp -d) || exit 1
+# swallow: echoes typed text in the box; Enter clears it without any history
+cat > "$FP/swallow" <<'FAKE'
+#!/usr/bin/env bash
+stty -icanon -echo -icrnl 2>/dev/null || true
+printf 'AGENTS-TEST-BANNER swallow\n\n❯ '
+buf=""
+while :; do
+  rc=0; IFS= read -rsn1 -d '' -t 30 c || rc=$?
+  [ "$rc" -eq 0 ] || exit 0
+  if [ "$c" = $'\r' ] || [ "$c" = $'\n' ]; then printf '\r\033[K❯ '; buf=""
+  else buf+="$c"; printf '%s' "$c"; fi
+done
+FAKE
+# working: Enter clears the box and shows a spinner line, no history echo
+cat > "$FP/working" <<'FAKE'
+#!/usr/bin/env bash
+stty -icanon -echo -icrnl 2>/dev/null || true
+printf 'AGENTS-TEST-BANNER working\n\n❯ '
+buf=""
+while :; do
+  rc=0; IFS= read -rsn1 -d '' -t 30 c || rc=$?
+  [ "$rc" -eq 0 ] || exit 0
+  if [ "$c" = $'\r' ] || [ "$c" = $'\n' ]; then printf '\r\033[K✻ Thinking… (esc to interrupt)\n❯ '; buf=""
+  else buf+="$c"; printf '%s' "$c"; fi
+done
+FAKE
+# normal: input box at once, Enter echoes the prompt into history
+cat > "$FP/normal" <<'FAKE'
+#!/usr/bin/env bash
+stty -icanon -echo -icrnl 2>/dev/null || true
+printf 'AGENTS-TEST-BANNER normal\n\n❯ '
+buf=""
+while :; do
+  rc=0; IFS= read -rsn1 -d '' -t 30 c || rc=$?
+  [ "$rc" -eq 0 ] || exit 0
+  if [ "$c" = $'\r' ] || [ "$c" = $'\n' ]; then printf '\r\033[K> %s\n\n❯ ' "$buf"; buf=""
+  else buf+="$c"; printf '%s' "$c"; fi
+done
+FAKE
+chmod +x "$FP/swallow" "$FP/working" "$FP/normal"
+RC=0; OUT=$(TMUX_AGENTS_BANNER_TIMEOUT=10 TMUX_AGENTS_READY_TIMEOUT=4 TMUX_AGENTS_SUBMIT_VERIFY=1 TMUX_AGENTS_SUBMIT_RETRIES=1 \
+  "$EXE" spawn fl1 --socket "$SOCK" --bin "$FP/swallow" --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp \
+  --prompt "prompt that never lands" 2>&1) || RC=$?
+[ "$RC" -ne 0 ] && ok "never-lands: spawn fails loudly (rc=$RC)" || bad "never-lands: spawn reported success for a swallowed prompt: ${OUT:0:300}"
+case "$OUT" in *"fl1"*"did not land"*) ok "never-lands: message names the session and says the prompt did not land" ;;
+  *) bad "never-lands: unclear message: ${OUT:0:300}" ;; esac
+tmux -L "$SOCK" has-session -t fl1 2>/dev/null && ok "never-lands: session kept alive for inspection" || bad "never-lands: session was killed"
+"$EXE" kill fl1 --socket "$SOCK" >/dev/null 2>&1 || true
+RC=0; OUT=$(TMUX_AGENTS_BANNER_TIMEOUT=10 TMUX_AGENTS_READY_TIMEOUT=4 TMUX_AGENTS_SUBMIT_VERIFY=1 \
+  "$EXE" spawn fl2 --socket "$SOCK" --bin "$FP/working" --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp \
+  --prompt "prompt the agent starts on" 2>&1) || RC=$?
+[ "$RC" -eq 0 ] && ok "working indicator counts as landed" || bad "working indicator: rc=$RC ${OUT:0:300}"
+"$EXE" kill fl2 --socket "$SOCK" >/dev/null 2>&1 || true
+T0=$SECONDS; RC=0; OUT=$(TMUX_AGENTS_BANNER_TIMEOUT=10 TMUX_AGENTS_READY_TIMEOUT=8 \
+  "$EXE" spawn fl3 --socket "$SOCK" --bin "$FP/normal" --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp \
+  --prompt "plain first prompt" 2>&1) || RC=$?
+CAP=$(tmux -L "$SOCK" capture-pane -p -t fl3 2>/dev/null || true)
+if [ "$RC" -eq 0 ] && case "$CAP" in *"> plain first prompt"*) true ;; *) false ;; esac; then
+  ok "normal start: prompt lands, spawn exits 0 ($((SECONDS - T0))s)"
+else bad "normal start: rc=$RC out=${OUT:0:200} pane=${CAP:0:200}"; fi
+"$EXE" kill fl3 --socket "$SOCK" >/dev/null 2>&1 || true
+cfn_safe_rm_tmp "$FP"
+
 # 21. Locked sandbox for claude workers (owner-approved 2026-11-16). claude
 # engines ran with --permission-mode bypassPermissions on the user's normal
 # settings, where allowUnsandboxedCommands defaults to true and bypass mode
@@ -646,6 +754,35 @@ if [ "$RC" -ne 0 ] && case "$OUT" in *"git pointer"*) true ;; *) false ;; esac; 
 else bad "test_allow_fence_refusal_visible: rc=$RC ${OUT:0:300}"; fi
 tmux -L "$SOCK-f" kill-server 2>/dev/null || true
 rm -rf "$TD"
+
+# 23. z.ai token file fallback (BUG 2026-11-17: tmux-agents ignored
+# ~/.config/cfn-fleet/zai.token, so glm spawn died 66 when no env var was set).
+# Fake HOME only; the real token file and ~/.config are never read.
+ZH=$(mktemp -d) || exit 1; mkdir -p "$ZH/.claude" "$ZH/.config/cfn-fleet"
+ln -s "$HOME/.claude/cfn-config" "$ZH/.claude/cfn-config"
+ZTOK="zai-file-sentinel-0123456789abcdef"
+zspawn() { env -u FLEET_ZAI_TOKEN -u ZAI_TOKEN -u TMUX_AGENTS_ZAI_TOKEN HOME="$ZH" PATH="$PATH" \
+  "$EXE" spawn zt --socket "$SOCK" --engine glm --cwd /tmp --dry-run 2>&1; }
+printf '%s\n' "$ZTOK" > "$ZH/.config/cfn-fleet/zai.token"; chmod 600 "$ZH/.config/cfn-fleet/zai.token"
+RC=0; OUT=$(zspawn) || RC=$?
+[ "$RC" -eq 0 ] && ok "token file (mode 600) alone resolves the glm spawn" || bad "token file spawn rc=$RC: ${OUT:0:200}"
+case "$OUT" in *"$ZTOK"*) bad "token file value printed in spawn output" ;; *) ok "token file value never printed" ;; esac
+chmod 644 "$ZH/.config/cfn-fleet/zai.token"
+RC=0; OUT=$(zspawn) || RC=$?
+[ "$RC" -eq 66 ] && ok "mode-644 token file refused (66)" || bad "644 rc=$RC: ${OUT:0:200}"
+case "$OUT" in *"$ZTOK"*) bad "644 refusal printed the token" ;; *) ok "644 refusal never prints the token" ;; esac
+printf 'null\n' > "$ZH/.config/cfn-fleet/zai.token"; chmod 600 "$ZH/.config/cfn-fleet/zai.token"
+RC=0; OUT=$(zspawn) || RC=$?
+[ "$RC" -eq 66 ] && case "$OUT" in *"at least 20"*) true ;; *) false ;; esac \
+  && ok "short ('null') token file refused naming the minimum" || bad "short file rc=$RC: ${OUT:0:200}"
+rm -f "$ZH/.config/cfn-fleet/zai.token"
+RC=0; OUT=$(zspawn) || RC=$?
+[ "$RC" -eq 66 ] && case "$OUT" in *"zai.token"*) true ;; *) false ;; esac \
+  && ok "missing token error mentions the token file" || bad "no-token rc=$RC: ${OUT:0:200}"
+RC=0; OUT=$(env -u FLEET_ZAI_TOKEN -u ZAI_TOKEN TMUX_AGENTS_ZAI_TOKEN=null HOME="$ZH" PATH="$PATH" \
+  "$EXE" spawn zt --socket "$SOCK" --engine glm --cwd /tmp --dry-run 2>&1) || RC=$?
+[ "$RC" -eq 66 ] && ok "short env token ('null') refused loudly" || bad "short env rc=$RC: ${OUT:0:200}"
+cfn_safe_rm_tmp "$ZH"
 
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]

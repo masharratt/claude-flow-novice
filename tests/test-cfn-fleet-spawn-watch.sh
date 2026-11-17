@@ -214,6 +214,8 @@ cat > "$TMP_DIR/bin/tmux" <<'STUB'
 # test stub for tmux: log argv, script capture-pane / show-environment
 set -u
 printf 'tmux %s\n' "$*" >> "${FLEET_TMUX_LOG:-/dev/null}"
+tgt="" prev=""
+for a in "$@"; do [ "$prev" = -t ] && tgt="$a"; prev="$a"; done
 cmd=""
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -231,6 +233,8 @@ case "$cmd" in
         fi
         d="${FLEET_CAPTURE_DIR:-}"
         if [[ -n $d && -d $d ]]; then
+            # submitted prompts echo as history above the scripted screen
+            [[ -n $tgt && -f $d/.hist-$tgt ]] && cat "$d/.hist-$tgt"
             cf="$d/.count"
             n=$(( $(cat "$cf" 2>/dev/null || printf 0) + 1 ))
             printf '%s' "$n" > "$cf"
@@ -240,6 +244,23 @@ case "$cmd" in
                 [[ -n $f ]] && f="$d/$f"
             fi
             [[ -n $f && -f $f ]] && cat "$f"
+        fi
+        ;;
+    send-keys)
+        # Pane echo for the first-prompt landing check: text typed with -l and
+        # then submitted with Enter shows as "> TEXT" history above the
+        # scripted screen. The typed launch line is not echoed.
+        # FLEET_STUB_SWALLOW=1 scripts a TUI that eats the prompt (no echo).
+        shift; lit=0
+        while [ $# -gt 0 ]; do case "$1" in -t) shift 2 ;; -l) lit=1; shift ;; *) break ;; esac; done
+        d="${FLEET_CAPTURE_DIR:-}"
+        if [[ -n $d && -d $d && -n $tgt ]]; then
+            if [ "$lit" = 1 ]; then
+                case "${1:-}" in *cfn-spawn-launch*) ;; *) printf '%s' "${1:-}" > "$d/.typed-$tgt" ;; esac
+            elif [ "${1:-}" = Enter ] && [ -f "$d/.typed-$tgt" ]; then
+                [ "${FLEET_STUB_SWALLOW:-0}" = 1 ] || { printf '> '; cat "$d/.typed-$tgt"; echo; } >> "$d/.hist-$tgt"
+                rm -f "$d/.typed-$tgt"
+            fi
         fi
         ;;
     display-message)
@@ -936,6 +957,68 @@ test_spawn_codex_update_modal() {
     assert_contains "$(tmux_calls 'send-keys -t ws01 -l 2')" "-l 2" "modal dismissed with literal 2 (Skip)"
     assert_contains "$FLEET_OUT" "Ask Codex" "banner verified past the modal"
     assert_equals "started" "$(roster_field WS01 status)" "row started after modal + banner"
+}
+
+# --- first-prompt landing (shared cfn-scripts/lib/tui-prompt.sh) ----------
+# BUG glm-first-prompt-lost (2026-11-17): Claude Code 2.1.326's "Flicker-free
+# output" opt-in modal draws "❯ 1. Yes, try it" after the banner. Fleet's ready
+# check took that menu cursor for the input box, typed the thin prompt into the
+# modal (lost), and reported the lane started. Now one shared helper dismisses
+# the modal, and spawn fails loudly when the prompt never lands.
+test_spawn_first_prompt_modal_then_lands() {
+    log_step "GIVEN the flicker-free modal after the banner, WHEN spawn"
+    make_engine_project eng-fpmodal
+    printf 'FLEET_READY_TIMEOUT=3\n' >> "$RUN_DIR/fleet.env"
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    # the banner header stays on screen above the modal and the input box
+    local banner="Sonnet 5 with high effort | Claude Team" modal
+    modal=$(printf '%s\n  Flicker-free output: no more flashing\n  ❯ 1. Yes, try it\n    2. Not now\n  Enter to confirm · Esc to cancel' "$banner")
+    capture_script 1 "$banner"
+    capture_script 2 "$modal"
+    capture_script 3 "$modal"
+    capture_script 4 "$(printf '%s\n❯' "$banner")"
+
+    FLEET_SUBMIT_SETTLE=0 FLEET_SUBMIT_VERIFY=1 run_fleet spawn WS01
+    assert_equals "0" "$FLEET_RC" "spawn through the flicker-free modal exits 0"
+    local esc_n prompt_n
+    esc_n=$(grep -an 'send-keys -t ws01 Escape' "$TMUX_LOG" | head -1 | cut -d: -f1 || true)
+    prompt_n=$(grep -an 'send-keys -t ws01 -l' "$TMUX_LOG" | grep -v cfn-spawn-launch | head -1 | cut -d: -f1 || true)
+    assert_success "glm-first-prompt-lost bug: modal dismissed with Escape (line ${esc_n:-none}) before the prompt is typed (line ${prompt_n:-none})" \
+        test -n "$esc_n" -a -n "$prompt_n" -a "${esc_n:-0}" -lt "${prompt_n:-0}"
+    assert_equals "started" "$(roster_field WS01 status)" "row started once the prompt landed"
+}
+
+test_spawn_first_prompt_never_lands_fails_loudly() {
+    log_step "GIVEN a TUI that swallows the first prompt, WHEN spawn"
+    make_engine_project eng-fplost
+    printf 'FLEET_READY_TIMEOUT=1\n' >> "$RUN_DIR/fleet.env"
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    capture_script 2 "$(printf 'Sonnet 5 with high effort | Claude Team\n❯')"
+
+    FLEET_STUB_SWALLOW=1 FLEET_SUBMIT_SETTLE=0 FLEET_SUBMIT_VERIFY=1 run_fleet spawn WS01
+    assert_success "lost first prompt fails the spawn (rc=$FLEET_RC)" test "$FLEET_RC" -ne 0
+    assert_contains "$FLEET_OUT" "WS01" "failure names the lane"
+    assert_contains "$FLEET_OUT" "first prompt did not land" "failure says the prompt did not land"
+    assert_equals "pending" "$(roster_field WS01 status)" "row restored to pending, never started"
+    assert_not_contains "$(tmux_calls 'kill-session')" "ws01" "session kept alive for inspection"
+}
+
+test_spawn_first_prompt_normal_start() {
+    log_step "GIVEN a plain input box after the banner, WHEN spawn"
+    make_engine_project eng-fpnormal
+    echo "b" > "$RUN_DIR/briefs/WS01.md"
+    add_ws WS01 ws01 "Work" pending "src/a.md"
+    capture_script 1 "Sonnet 5 with high effort | Claude Team"
+    capture_script 2 "$(printf 'Sonnet 5 with high effort | Claude Team\n❯')"
+
+    FLEET_SUBMIT_SETTLE=0 FLEET_SUBMIT_VERIFY=1 run_fleet spawn WS01
+    assert_equals "0" "$FLEET_RC" "normal start exits 0"
+    assert_not_contains "$(tmux_calls)" "Escape" "no Escape without a modal"
+    assert_equals "2" "$(grep -ac 'send-keys -t ws01 Enter' "$TMUX_LOG")" "one Enter for the launch, one for the landed prompt"
+    assert_equals "started" "$(roster_field WS01 status)" "row started"
 }
 
 test_spawn_no_trust_text_sends_no_keys() {
@@ -1951,6 +2034,9 @@ run_all_tests() {
     test_spawn_dead_pane_shows_its_last_lines
     test_spawn_survives_reader_closing_early
     test_spawn_codex_update_modal
+    test_spawn_first_prompt_modal_then_lands
+    test_spawn_first_prompt_never_lands_fails_loudly
+    test_spawn_first_prompt_normal_start
     test_spawn_no_trust_text_sends_no_keys
     test_spawn_codex_flag_gate
     test_spawn_codex_billing_guard

@@ -84,6 +84,10 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../cfn-scripts" && pwd)/spawn
 # and cfn-tmux-agents), so a project that has not opted in is refused here.
 # shellcheck source=../../../cfn-scripts/lib/open-dirs.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../cfn-scripts/lib" && pwd)/open-dirs.sh"
+# First-prompt ready check + send + landing check, shared with cfn-tmux-agents
+# (tui_send_first_prompt; functions only, safe to re-source).
+# shellcheck source=../../../cfn-scripts/lib/tui-prompt.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../cfn-scripts/lib" && pwd)/tui-prompt.sh"
 # Security review round 2: inherited GIT_DIR / GIT_WORK_TREE etc. would pick
 # the repo spawn plans for (and the glm-open policy repo). Scrub them before
 # any git call in this command. Word splitting is intended.
@@ -340,28 +344,6 @@ _spawn_gate_cleared(){
     _spawn_tmux -L "$1" capture-pane -p -t "$2" 2>/dev/null \
       | sed -e 's/\r$//' -e 's/[[:space:]]*$//' | grep -Fxq -- "$3" || return 0
     sleep 0.2
-  done
-  return 0
-}
-
-# _spawn_send_prompt SOCK TARGET TEXT — first prompt with a verified submit.
-# BUG first-prompt-unsubmitted (glm-open, 2026-11-16): text and Enter went out
-# back to back; a fresh TUI takes the text and drops the Enter. Wait for the
-# input box ("❯"), type, settle, Enter, and retry Enter once while the text
-# still sits in the input line (the last "❯" line). Warns, never fails.
-_spawn_send_prompt(){
-  local sock="$1" tgt="$2" text="$3" tail last i
-  _fleet_pane_wait "$sock" "$tgt" '^[[:space:]]*❯' "$(_fleet_env_seconds FLEET_READY_TIMEOUT 12)" >/dev/null || true
-  _spawn_tmux -L "$sock" send-keys -t "$tgt" -l "$text"
-  sleep "${FLEET_SUBMIT_SETTLE:-1}"
-  _spawn_tmux -L "$sock" send-keys -t "$tgt" Enter
-  tail="${text##*$'\n'}"; tail="${tail: -12}"
-  for ((i = 0; i < 2; i++)); do
-    sleep "${FLEET_SUBMIT_VERIFY:-2}"
-    last=$(_spawn_tmux -L "$sock" capture-pane -p -t "$tgt" 2>/dev/null \
-      | sed -e 's/\r$//' -e 's/[[:space:]]*$//' | grep -E '^[[:space:]]*❯' | tail -n 1 || true)
-    [ -n "$tail" ] && [[ "$last" == *"$tail" ]] || return 0
-    _spawn_tmux -L "$sock" send-keys -t "$tgt" Enter
   done
   return 0
 }
@@ -867,13 +849,33 @@ main() {
     "$trust_re" "$trust_keys" "$trust_timeout" "$banner_re" "$banner_timeout") \
     || fleet_die 66 "spawn: $name left pending (launch failed or engine '$engine' never showed its banner; a worker on the wrong model must not reach started)"
   roster_set "$ws" status started
-  _spawn_commit
   roster_set "$ws" heartbeat "$(date +%s)"
   ( roster_get "$ws" engine >/dev/null 2>&1 ) && roster_set "$ws" engine "$engine"
   echo "spawned $ws engine=$engine banner=\"$banner_line\""
 
-  # 8. Thin prompt only after the banner.
-  _spawn_send_prompt "$sock" "$name" "$prompt_line"
+  # 8. Thin prompt only after the banner, through the shared helper
+  # (cfn-scripts/lib/tui-prompt.sh): wait for the input box (dismissing the
+  # flicker-free opt-in modal), type, Enter, and require the prompt to LAND.
+  # BUG glm-first-prompt-lost (2026-11-17): the old check took a modal's
+  # "❯ 1." menu cursor for the input box and the prompt was lost while the row
+  # read started. A prompt that never lands fails the spawn through the normal
+  # error path: fleet_die, and the EXIT trap restores the row (still before
+  # _spawn_commit). The session is left alive for inspection.
+  local prompt_rc=0
+  TUI_TMUX_CMD=_spawn_tmux \
+  TUI_READY_TIMEOUT=$(_fleet_env_seconds FLEET_READY_TIMEOUT 12) \
+  TUI_MODAL_SETTLE="${FLEET_TRUST_SETTLE:-1.5}" \
+  TUI_SUBMIT_SETTLE="${FLEET_SUBMIT_SETTLE:-1}" \
+  TUI_SUBMIT_VERIFY="${FLEET_SUBMIT_VERIFY:-2}" \
+  TUI_SUBMIT_RETRIES=2 \
+    tui_send_first_prompt "$sock" "$name" "$prompt_line" || prompt_rc=$?
+  if [ "$prompt_rc" -ne 0 ]; then
+    local why="no echo above the input line and no working indicator; a modal or a not-ready TUI swallowed it"
+    [ "$prompt_rc" -ne 2 ] || why="typed but never submitted; the text still sits in the input line"
+    [ "$prompt_rc" -ne 1 ] || why="tmux send-keys failed; session gone?"
+    fleet_die 69 "spawn: $ws ($name) first prompt did not land ($why). Row left $_SPAWN_MARK_PREV_STATUS, session kept for inspection: tmux -L $sock attach -t $name (kill it before respawning)"
+  fi
+  _spawn_commit
 
   # 8b. Auth check after the first request. A relay token that the banner
   # cannot see (the banner renders before any API call) surfaces here as

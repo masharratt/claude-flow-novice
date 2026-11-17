@@ -63,11 +63,28 @@ MAILBOX_OWNER=michael
 MAILBOX_PUBLIC=me
 EOF
   chmod 600 "$T/env"
-  # Stub tmux: logs argv; capture-pane always shows a claude-sub banner.
+  # Stub tmux: logs argv; capture-pane always shows a claude-sub banner, with
+  # submitted prompts echoed above it (text typed with -l, then Enter), so the
+  # first-prompt landing check (cfn-scripts/lib/tui-prompt.sh) sees them land.
   cat > "$T/bin/tmux" <<'STUB'
 #!/usr/bin/env bash
 printf 'tmux %s\n' "$*" >> "$STUB_TMUX_LOG"
-for a in "$@"; do case "$a" in capture-pane) echo "Claude Max"; exit 0 ;; esac; done
+h="$(dirname "$STUB_TMUX_LOG")/stub-pane" tgt="" prev="" lit=0 cmd=""
+for a in "$@"; do
+  [ "$prev" = -t ] && tgt="$a"
+  case "$a" in capture-pane|send-keys) [ -n "$cmd" ] || cmd="$a" ;; -l) lit=1 ;; esac
+  prev="$a"
+done
+case "$cmd" in
+  capture-pane) [ -f "$h-hist-$tgt" ] && cat "$h-hist-$tgt"; echo "Claude Max" ;;
+  send-keys)
+    last="${!#}"
+    if [ "$lit" = 1 ]; then
+      case "$last" in *cfn-spawn-launch*) ;; *) printf '%s' "$last" > "$h-typed-$tgt" ;; esac
+    elif [ "$last" = Enter ] && [ -f "$h-typed-$tgt" ]; then
+      { printf '> '; cat "$h-typed-$tgt"; echo; } >> "$h-hist-$tgt"; rm -f "$h-typed-$tgt"
+    fi ;;
+esac
 exit 0
 STUB
   # Stub ssh: logs the remote command; list-panes says alive; tar (fleet sync) says no outbox.
