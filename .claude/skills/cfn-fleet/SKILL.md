@@ -297,6 +297,8 @@ z.ai token home. When `FLEET_ZAI_TOKEN` is unset or empty, spawn looks in two
 places, in order: the macOS keychain (generic password, service
 `cfn-fleet-zai`), then `~/.config/cfn-fleet/zai.token` (first line; the file
 must be mode 600 or spawn refuses). A value under 20 characters is refused.
+The lookup is the shared `.claude/cfn-scripts/lib/zai-token.sh`, which
+cfn-tmux-agents sources too.
 The value is never printed. Store it once with:
 
 ```bash

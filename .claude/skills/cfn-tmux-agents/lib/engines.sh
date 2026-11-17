@@ -59,7 +59,7 @@ _ta_engine_resolve_set() {
       local varname="${ref#\$}"
       local val="${!varname:-}"
       if [ -z "$val" ]; then
-        _ta_die 66 "spawn: engine '$engine' needs $varname set in the master env (glm: export FLEET_ZAI_TOKEN, or TMUX_AGENTS_ZAI_TOKEN / ZAI_TOKEN which this skill picks up)"
+        _ta_die 66 "spawn: engine '$engine' needs $varname set in the master env (glm: export FLEET_ZAI_TOKEN, or TMUX_AGENTS_ZAI_TOKEN / ZAI_TOKEN which this skill picks up, or store it in the macOS keychain (service cfn-fleet-zai) or ~/.config/cfn-fleet/zai.token with chmod 600)"
       fi
       printf '%s=%s\n' "$name" "$val"
     else
@@ -69,11 +69,26 @@ _ta_engine_resolve_set() {
 }
 
 # _ta_zai_token_prefill — the shared registry references $FLEET_ZAI_TOKEN
-# (fleet's canonical name). Accept TMUX_AGENTS_ZAI_TOKEN or ZAI_TOKEN as
-# alternate sources; FLEET_ZAI_TOKEN itself wins if already set.
+# (fleet's canonical name). Order: FLEET_ZAI_TOKEN, TMUX_AGENTS_ZAI_TOKEN,
+# ZAI_TOKEN, then the shared lookup (keychain, ~/.config/cfn-fleet/zai.token
+# mode 600; .claude/cfn-scripts/lib/zai-token.sh, same as cfn-fleet). An env
+# value under the minimum length ("null", a placeholder) dies 66 instead of
+# reaching a 401 loop. Nothing found is not an error here: resolve_set dies 66.
+# shellcheck source=../../../cfn-scripts/lib/zai-token.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../cfn-scripts/lib" && pwd -P)/zai-token.sh"
 _ta_zai_token_prefill() {
-  [ -n "${FLEET_ZAI_TOKEN:-}" ] && return 0
-  [ -n "${TMUX_AGENTS_ZAI_TOKEN:-}" ] && export FLEET_ZAI_TOKEN="$TMUX_AGENTS_ZAI_TOKEN" && return 0
-  [ -n "${ZAI_TOKEN:-}" ] && export FLEET_ZAI_TOKEN="$ZAI_TOKEN" && return 0
+  local src v rc=0
+  for src in FLEET_ZAI_TOKEN TMUX_AGENTS_ZAI_TOKEN ZAI_TOKEN; do
+    v="${!src:-}"
+    [ -n "$v" ] || continue
+    zai_token_check_value "env $src" "$v" || _ta_die 66 "spawn: $ZAI_TOKEN_ERR"
+    export FLEET_ZAI_TOKEN="$v"
+    return 0
+  done
+  zai_token_resolve || rc=$?
+  case "$rc" in
+    0) export FLEET_ZAI_TOKEN="$ZAI_TOKEN_VALUE" ;;
+    2) _ta_die 66 "spawn: $ZAI_TOKEN_ERR" ;;
+  esac
   return 0
 }

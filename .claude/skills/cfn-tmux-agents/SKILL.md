@@ -129,7 +129,10 @@ Env knobs: `TMUX_AGENTS_SOCKET` (default `tmux-agents`),
 `TMUX_AGENTS_TRUST_TIMEOUT` (15), `TMUX_AGENTS_BANNER_TIMEOUT` (20),
 `TMUX_AGENTS_AUTH_TIMEOUT` (12). glm token source:
 `TMUX_AGENTS_ZAI_TOKEN`, or existing `FLEET_ZAI_TOKEN` / `ZAI_TOKEN`
-(the skill picks those up).
+(the skill picks those up), else the same keychain (service `cfn-fleet-zai`)
+or `~/.config/cfn-fleet/zai.token` that cfn-fleet reads (first line, mode 600,
+at least 20 chars; env values under 20 chars are refused too). Shared helper:
+`.claude/cfn-scripts/lib/zai-token.sh`. The value is never printed.
 
 Exit codes: 0 ok, 64 usage, 3 tmux missing, 65 unknown engine/session,
 66 env/guard refusal or launch failure (incl. engine binary or its #!
