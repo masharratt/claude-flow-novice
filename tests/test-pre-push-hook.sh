@@ -86,5 +86,18 @@ out=$(CFN_PRE_PUSH_FAST=1 CFN_PRE_PUSH_GATES="only::true" bash "$RUNNER" 2>&1) |
 assert_equals "0" "$rc" "FAST + fake gate exits 0"
 assert_not_contains "$out" "unit-tests" "FAST run did not register the unit-tests gate"
 
+# ---- Case 9: git's hook env never reaches a gate ----------------------------
+# BUG 2026-11-16: pushing from a linked worktree, git exported GIT_DIR to the
+# hook; tests/test-portability-skill-refs.sh ran `git init . && git add -A` in a
+# fixture dir, which re-initialised the worktree's git dir instead: the shared
+# .git/config got core.bare=true and the worktree index was replaced by fixture
+# files. The runner must clear git's repo-locating env before running gates.
+rc=0
+out=$(GIT_DIR="$(git rev-parse --absolute-git-dir)" GIT_INDEX_FILE="$(git rev-parse --absolute-git-dir)/index" GIT_WORK_TREE="$(git rev-parse --show-toplevel)" \
+      CFN_PRE_PUSH_GATES='probe::env | grep -E "^GIT_(DIR|WORK_TREE|INDEX_FILE|COMMON_DIR|OBJECT_DIRECTORY|PREFIX)=" && exit 9 || exit 0' \
+      bash "$RUNNER" 2>&1) || rc=$?
+assert_equals "0" "$rc" "worktree-push bug: no GIT_DIR/GIT_INDEX_FILE/GIT_WORK_TREE leaks into a gate"
+assert_not_contains "$out" "GIT_DIR=" "worktree-push bug: gate env shows no GIT_DIR"
+
 log_success "all pre-push hook cases passed"
 exit 0

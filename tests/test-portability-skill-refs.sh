@@ -26,7 +26,12 @@
 #   * widening scope for check 3 did not widen checks 1 and 2
 set -uo pipefail
 
-cd "$(git rev-parse --show-toplevel)"
+cd "$(git rev-parse --show-toplevel)" || exit 1
+# Fixtures below are their own throwaway repos. A GIT_DIR inherited from a git
+# hook (always set when pushing from a linked worktree) would point their
+# init/add at the caller's repo: 2026-11-16 that set core.bare=true in the
+# shared .git/config and replaced the worktree index with fixture files.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_PREFIX
 GATE="$PWD/tests/test-shell-portability.sh"
 
 PASS=0; FAIL=0

@@ -28,6 +28,12 @@ ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
     exit 1
 }
 cd "$ROOT" || exit 1
+# Git exports these to hooks (always GIT_DIR from a linked worktree). A gate
+# that runs git in a fixture dir (git init . && git add -A) would otherwise
+# act on THIS repo: 2026-11-16 a worktree push set core.bare=true in the
+# shared .git/config and replaced the worktree index with fixture files.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY \
+      GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX GIT_NAMESPACE GIT_QUARANTINE_PATH
 
 if [ "${CFN_PRE_PUSH_SKIP:-0}" = "1" ]; then
     echo "pre-push: skipped (CFN_PRE_PUSH_SKIP=1)"
