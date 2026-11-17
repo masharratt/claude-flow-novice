@@ -196,6 +196,49 @@ mkdir -p "$TMP/newproj" && git -C "$TMP/newproj" init -q
 hook "$(bash_evt s-new "$CMD" "$TMP/newproj")"
 [ ! -d "$CFN_TOOLING_NUDGE_STATE_ROOT/stale-proj" ] && ok "stale project state pruned" || no "stale state left behind"
 
+# 7b. pipeline fragments, loop keywords and wrappers (field report) ---------------------------------------
+fresh; S=s7a; ANY=0
+for c in 'cat a.txt | cut -c1-80' 'cat a.txt | cut -c5-9' 'cat a.txt | tr -d S' "cat a.txt | awk '{print 1}'" \
+         "cat a.txt | sed 's/a/b/'" 'cat a.txt | sort -u' 'cat a.txt | uniq -c' 'cat a.txt | column -t' 'cat a.txt | nl' \
+         'cat a.txt | tee /tmp/o.txt' 'cat a.txt | xargs -n1 echo hi' 'sed -n 5,9p a.txt' 'cat a.txt | less'; do
+    for _ in 1 2 3 4; do hook "$(bash_evt $S "$c")"; nudged && { ANY=1; echo "  nudged on: $c"; }; done
+done
+[ "$ANY" -eq 0 ] && ok "pipeline filter segments never nudge on their own (x4 each)" || no "a pipe filter nudged"
+fresh; S=s7b; ANY=0
+for c in 'for f in a b; do echo "$f"; done' 'while read l; do echo "$l"; done < in.txt' 'for f in a b; do echo hi; done'; do
+    for _ in 1 2 3 4; do hook "$(bash_evt $S "$c")"; nudged && { ANY=1; echo "  nudged on: $c"; }; done
+done
+[ "$ANY" -eq 0 ] && ok "loop keywords stripped: 'do echo S' does not nudge" || no "loop keyword fragment nudged"
+fresh; S=s7c
+hook "$(bash_evt $S 'for f in 1 2; do cp art/1.png game/1.png; done')"
+hook "$(bash_evt $S 'for f in 3 4; do cp art/3.png game/3.png; done')"
+hook "$(bash_evt $S 'for f in 5; do cp art/5.png game/5.png; done')"
+nudged && grep -q "'cp " "$TMP/out.txt" && ok "'do cp a/1 b/1' keys to the cp shape" || no "loop body cp not keyed: $(cat "$TMP/out.txt")"
+fresh; S=s7d; ANY=0
+for _ in 1 2 3 4; do hook "$(bash_evt $S 'ssh -n vps_personal "echo hi"')"; nudged && ANY=1; done
+for _ in 1 2 3 4; do hook "$(bash_evt $S 'ssh -n vps_personal "ls -la /srv"')"; nudged && ANY=1; done
+[ "$ANY" -eq 0 ] && ok "ssh wrapper of an ignorable inner command never nudges" || no "ssh echo/ls nudged"
+fresh; S=s7e
+hook "$(bash_evt $S 'ssh -n vps_personal "cp art/1.png game/1.png"')"
+hook "$(bash_evt $S 'ssh -n vps_personal "cp art/2.png game/2.png"')"
+hook "$(bash_evt $S 'ssh -n vps_personal "cp art/3.png game/3.png"')"
+nudged && grep -q 'ssh:vps_personal' "$TMP/out.txt" && ok "ssh -n host \"cp ...\" x3 still nudges, shape tagged ssh:host" || no "ssh cp x3 silent: $(cat "$TMP/out.txt")"
+fresh; S=s7f
+hook "$(bash_evt $S 'cp art/1.png game/1.png')"
+hook "$(bash_evt $S 'cp art/2.png game/2.png')"
+hook "$(bash_evt $S 'ssh vps_personal "cp art/3.png game/3.png"')"
+nudged && no "local and remote cp pooled" || ok "local and remote shapes differ"
+fresh; S=s7g
+hook "$(bash_evt $S 'sudo cp art/1.png game/1.png')"
+hook "$(bash_evt $S 'sudo -n cp art/2.png game/2.png')"
+hook "$(bash_evt $S 'nohup cp art/3.png game/3.png')"
+nudged && ok "sudo and nohup are unwrapped to the inner shape" || no "sudo/nohup not unwrapped: $(cat "$TMP/out.txt")"
+fresh; S=s7h
+hook "$(bash_evt $S 'ls src | xargs -I{} cp {} dst/')"
+hook "$(bash_evt $S 'ls lib | xargs -I{} cp {} dst/')"
+hook "$(bash_evt $S 'ls bin | xargs -n 1 -I{} cp {} dst/')"
+nudged && ok "xargs prefix is unwrapped to the inner shape" || no "xargs not unwrapped: $(cat "$TMP/out.txt")"
+
 # 8. latency ----------------------------------------------------------------------------------------------
 fresh; MAX=0
 for i in 1 2 3 4 5; do

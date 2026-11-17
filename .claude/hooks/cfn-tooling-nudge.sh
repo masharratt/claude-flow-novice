@@ -40,7 +40,10 @@ MAX_SHAPES_BYTES=262144
 IDEA_CMD='bash $HOME/.claude/cfn-scripts/cfn-tooling-idea.sh'
 
 # Never count: read-only and noise first words.
-RE_NOISE='^(ls|ll|cat|head|tail|less|more|grep|egrep|fgrep|rg|find|wc|echo|printf|cd|pwd|sleep|true|false|test|\[|\[\[|jq|which|type|file|stat|du|df|ps|date|export|source|\.|set|unset|read|tee|sort|uniq|basename|dirname|realpath|readlink|id|whoami|:)( |$)'
+RE_NOISE='^(cut|tr|column|nl|ls|ll|cat|head|tail|less|more|grep|egrep|fgrep|rg|find|wc|echo|printf|cd|pwd|sleep|true|false|test|\[|\[\[|jq|which|type|file|stat|du|df|ps|date|export|source|\.|set|unset|read|tee|sort|uniq|basename|dirname|realpath|readlink|id|whoami|:)( |$)'
+# sed -n or a filter sed is noise; sed -i edits files and still counts.
+RE_SED_FILTER='^sed( |$)'
+RE_SED_INPLACE='^sed( +[^ ]+)* +-[A-Za-z]*i'
 RE_GIT_RO='^git (status|diff|log|show|branch|fetch|rev-parse|remote|ls-files|blame|stash list)( |$)'
 RE_TMUX_RO='^tmux (capture-pane|list-[a-z]+|display-message|has-session)( |$)'
 RE_TOOLS='(mailbox|search|cfn-tooling-idea)\.sh'
@@ -55,17 +58,28 @@ RE_GO='^go +test( |$)'
 RE_NODE='^node +(.* +)?--test([ =]|$)'
 
 # bash_shapes <command>: print the unique counting shapes, one per line.
+# Stages: (1) unquote 'ssh host "cmd"' and collapse quotes to S, split on && || ;
+# and on pipes (a pipe consumer line starts with \x01); (2) strip env, wrappers
+# (sudo, xargs, nohup...), loop keywords (do/then/while...), redirections; an
+# ssh prefix moves to a trailing "@ssh:host" tag that is re-attached as
+# "ssh:host <inner shape>" after the noise checks (so local and remote differ).
 bash_shapes() {
-    local seg
+    local seg tag
     printf '%s' "$1" | sed -Ez \
         -e 's/<<.*$//' \
+        -e 's#(^|[^A-Za-z0-9_./-])ssh( +-[nTtqvxAaCNfgkKMsXY46]+| +-[pioFlJLRDEbcem] +[^ ]+)* +([^ -][^ ]*) +"(([^"\\]|\\.)*)"#\1ssh\2 \3 \4#g' \
+        -e 's#(^|[^A-Za-z0-9_./-])ssh( +-[nTtqvxAaCNfgkKMsXY46]+| +-[pioFlJLRDEbcem] +[^ ]+)* +([^ -][^ ]*) +'"'"'([^'"'"']*)'"'"'#\1ssh\2 \3 \4#g' \
         -e 's/"([^"\\]|\\.)*"/S/g' \
         -e "s/'[^']*'/S/g" \
         -e 's/\n/;/g' \
-        -e 's/(&&|\|\||;|\|&?)/\n/g' | sed -E \
+        -e 's/(&&|\|\||;)/\n/g' -e 's/\|&?/\n\x01/g' | sed -E \
+        -e 's/^\x01[[:space:]]*(awk|sed)( |$)/echo /' -e 's/^\x01//' \
         -e 's/^[[:space:]]+//' \
         -e 's/^rtk[[:space:]]+proxy[[:space:]]+/rtk /' \
-        -e ':l' -e 's/^([A-Za-z_][A-Za-z0-9_]*=(S|[^[:space:]]*)|time|rtk|command|exec|env|nice|nohup|timeout( +-[^ ]+( +[0-9.]+[smh]?)?)* +[0-9.]+[smh]?)[[:space:]]+//' -e 't l' \
+        -e ':l' \
+        -e 's/^ssh( +-[nTtqvxAaCNfgkKMsXY46]+| +-[pioFlJLRDEbcem] +[^ ]+)* +([^ -][^ ]*) +(.+)$/\3 @ssh:\2/' \
+        -e 's/^(do|then|else|while|until|if|elif|sudo( +-[A-Za-z]+)*( +-u +[^ ]+)?|xargs( +-[A-Za-z]+[0-9]*(\{\})?( +([0-9]+|\{\}|S))?)*|[A-Za-z_][A-Za-z0-9_]*=(S|[^[:space:]]*)|time|rtk|command|exec|env|nice|nohup|timeout( +-[^ ]+( +[0-9.]+[smh]?)?)* +[0-9.]+[smh]?)([[:space:]]+|$)//' -e 't l' \
+        -e '/^(for|select|case|done|fi|esac)( |$)/d' \
         -e 's/^git +(-C +[^ ]+ +|--no-pager +)+/git /' \
         -e 's/[[:space:]]*[0-9]*>>?&?[[:space:]]*[^[:space:]]+//g' \
         -e 's/[[:space:]]*<[[:space:]]*[^[:space:]]+//g' \
@@ -75,11 +89,14 @@ bash_shapes() {
         -e 's/[0-9]+/N/g' \
         -e 's#( )([^ ]*/)[^ /]+#\1\2*#g' \
         | while IFS= read -r seg || [ -n "$seg" ]; do
+        tag=""
+        if [[ "$seg" =~ ^(.*)\ @ssh:([^\ ]+)$ ]]; then seg="${BASH_REMATCH[1]}"; tag="ssh:${BASH_REMATCH[2]} "; fi
         [ "${#seg}" -ge "$MIN_SEG" ] || continue
+        [[ "$seg" =~ $RE_SED_FILTER && ! "$seg" =~ $RE_SED_INPLACE ]] && continue
         [[ "$seg" =~ $RE_NOISE || "$seg" =~ $RE_GIT_RO || "$seg" =~ $RE_TMUX_RO || "$seg" =~ $RE_TOOLS ]] && continue
         [[ "$seg" =~ $RE_SHTEST || "$seg" =~ $RE_PKG || "$seg" =~ $RE_JS || "$seg" =~ $RE_PW \
            || "$seg" =~ $RE_PY || "$seg" =~ $RE_RS || "$seg" =~ $RE_GO || "$seg" =~ $RE_NODE ]] && continue
-        printf '%s\n' "$seg"
+        printf '%s\n' "$tag$seg"
     done | sort -u
 }
 
