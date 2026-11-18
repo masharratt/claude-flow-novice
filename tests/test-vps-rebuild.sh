@@ -116,6 +116,10 @@ check_has "check verifies bwrap" "$(cat "$SCRIPT")" "bwrap sandbox works"
 echo "agent mailbox client (2026-10-15: mailbox.sh needs redis-cli on the server)"
 check_has "packages installs redis-tools" "$(cat "$SCRIPT")" "want+=(redis-tools)"
 
+echo "vendored submodules (2026-11-18: the mailbox moved to its own repo, a submodule of CFN)"
+# Without the init, ~/.claude/skills/cfn-mailbox is a dangling link on the rebuilt server.
+check_has "repos phase initialises submodules after checkout" "$(cat "$SCRIPT")" "submodule update --init"
+
 echo "public-repo hygiene"
 body=$(cat "$SCRIPT")
 check_lacks "no IPv4 address literal" "$(echo "$body" | grep -E '([0-9]{1,3}\.){3}[0-9]{1,3}' | grep -vE '127\.0\.0\.1|0\.0\.0\.0' || true)" "."

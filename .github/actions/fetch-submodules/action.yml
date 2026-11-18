@@ -1,0 +1,30 @@
+name: Fetch vendored submodules
+description: >
+  Check out the git submodules under .claude/vendor (cfn-mailbox). The mailbox
+  repo is private, so this uses a read-only deploy key and rewrites only that
+  repo's https URL to ssh, leaving every other fetch in the job untouched.
+  Run it right after actions/checkout.
+inputs:
+  deploy-key:
+    description: ssh private key of the cfn-mailbox deploy key (secrets.CFN_MAILBOX_DEPLOY_KEY)
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: git submodule update --init (deploy key)
+      shell: bash
+      env:
+        DEPLOY_KEY: ${{ inputs.deploy-key }}
+      run: |
+        set -euo pipefail
+        if [ -z "$DEPLOY_KEY" ]; then
+          echo "::error::secret CFN_MAILBOX_DEPLOY_KEY is not set; the cfn-mailbox submodule is private and the mailbox links would dangle"
+          exit 1
+        fi
+        keyfile="$RUNNER_TEMP/cfn-mailbox-deploy-key"
+        trap 'rm -f "$keyfile"' EXIT
+        (umask 077; printf '%s\n' "$DEPLOY_KEY" > "$keyfile")
+        export GIT_SSH_COMMAND="ssh -i $keyfile -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+        git -c url."git@github.com:masharratt/cfn-mailbox".insteadOf=https://github.com/masharratt/cfn-mailbox \
+          submodule update --init --recursive
+        test -f .claude/skills/cfn-mailbox/mailbox.sh || { echo "::error::submodule fetched but .claude/skills/cfn-mailbox/mailbox.sh is missing"; exit 1; }

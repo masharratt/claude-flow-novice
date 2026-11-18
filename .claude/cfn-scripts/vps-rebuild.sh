@@ -233,6 +233,8 @@ if [ ! -d "$HOME/$DEST/.git" ]; then
   git clone -q "https://github.com/$SLUG" "$HOME/$DEST"
 fi
 git -C "$HOME/$DEST" checkout -q "$BR"
+# Vendored repos (CFN's mailbox is a submodule): without this its skill links dangle.
+git -C "$HOME/$DEST" submodule update --init --recursive -q
 echo "repo ok: $DEST ($BR)"
 EOF
     name=$(basename "$dest")

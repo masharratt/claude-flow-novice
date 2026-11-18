@@ -69,6 +69,26 @@ ALREADY=0
 BLOCKED=0
 DID_BACKUP=0
 
+# Vendored submodules. The mailbox lives in its own repo, checked out at
+# .claude/vendor/cfn-mailbox; .claude/skills/cfn-mailbox and friends are links
+# into it. A clone without `git submodule update --init` has every runtime link
+# right and the mailbox still dangling, so a fresh machine fetches it here.
+if [ -f "$REPO/.gitmodules" ] && command -v git >/dev/null 2>&1; then
+  # An uninitialised submodule shows as "-<sha> <path>" in git submodule status.
+  UNINIT="$(git -C "$REPO" submodule status 2>/dev/null | awk '/^-/ {print $2}')"
+  for sub in $UNINIT; do
+    if [ "$CHECK_ONLY" -eq 1 ]; then
+      printf '  MISSING  submodule %s (run: git submodule update --init)\n' "$sub"
+      FAIL=1
+    elif git -C "$REPO" submodule update --init -- "$sub" >/dev/null 2>&1; then
+      printf '  fetched  submodule %s\n' "$sub"
+    else
+      printf '  FAIL     submodule %s could not be fetched (run: git -C %s submodule update --init)\n' "$sub" "$REPO" >&2
+      FAIL=1
+    fi
+  done
+fi
+
 # ln -s needs elevation or Developer Mode on native Windows. Half a link set is
 # worse than none, so the first failure stops the run with something actionable.
 symlink_or_die() {

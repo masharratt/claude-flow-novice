@@ -23,6 +23,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch vendored submodules (cfn-mailbox)
+        uses: ./.github/actions/fetch-submodules
+        with:
+          deploy-key: ${{ secrets.CFN_MAILBOX_DEPLOY_KEY }}
+
       - name: Install cfn-wiki CBM substrate (pinned v0.10.8)
         run: bash .claude/skills/cfn-wiki/lib/wiki.sh doctor --install
 

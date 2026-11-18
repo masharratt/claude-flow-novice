@@ -26,6 +26,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Fetch vendored submodules (cfn-mailbox)
+        uses: ./.github/actions/fetch-submodules
+        with:
+          deploy-key: ${{ secrets.CFN_MAILBOX_DEPLOY_KEY }}
+
       - name: Shell portability gate
         run: bash tests/test-shell-portability.sh
 
@@ -131,6 +136,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Fetch vendored submodules (cfn-mailbox)
+        uses: ./.github/actions/fetch-submodules
+        with:
+          deploy-key: ${{ secrets.CFN_MAILBOX_DEPLOY_KEY }}
+
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
@@ -172,6 +182,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Fetch vendored submodules (cfn-mailbox)
+        uses: ./.github/actions/fetch-submodules
+        with:
+          deploy-key: ${{ secrets.CFN_MAILBOX_DEPLOY_KEY }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -216,6 +231,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Fetch vendored submodules (cfn-mailbox)
+        uses: ./.github/actions/fetch-submodules
+        with:
+          deploy-key: ${{ secrets.CFN_MAILBOX_DEPLOY_KEY }}
 
       # CFN uses associative arrays and mapfile, so bash 4+ is a hard
       # requirement. macOS ships bash 3.2 (2007) at /bin/bash and SIP prevents

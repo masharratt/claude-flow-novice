@@ -1,0 +1,3 @@
+[submodule ".claude/vendor/cfn-mailbox"]
+	path = .claude/vendor/cfn-mailbox
+	url = https://github.com/masharratt/cfn-mailbox.git

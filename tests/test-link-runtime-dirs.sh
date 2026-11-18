@@ -15,6 +15,9 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 # Defines nothing on Linux; see .claude/helpers/cfn-portable.sh.
 . "$REPO/.claude/helpers/cfn-portable.sh" 2>/dev/null || true
 
+# shellcheck source=../.claude/cfn-scripts/lib/safe-rm.sh
+source "$REPO/.claude/cfn-scripts/lib/safe-rm.sh"
+
 LINKER="$REPO/.claude/cfn-scripts/link-runtime-dirs.sh"
 ENTRIES="skills hooks commands agents/cfn-dev-team core helpers cfn-config cfn-data
 cfn-extras cfn-scripts adaptive-context agent-principles prompts tooling"
@@ -129,6 +132,35 @@ HOME="$SB4" "$LINKER" --bogus >/dev/null 2>&1
 check "an unknown flag exits 2" "2" "$?"
 check "an unknown flag mutates nothing" "" "$(ls -A "$SB4/.claude")"
 rm -rf "$SB4"
+
+# --- 13. an uninitialised submodule is reported, then fetched ------------------
+# Regression 2026-11-18: the mailbox moved to its own repo, vendored as a
+# submodule. A clone without `git submodule update --init` leaves
+# .claude/skills/cfn-mailbox a dangling link while every runtime link looks fine.
+# Fixture: a throwaway CFN-shaped repo holding a copy of the linker and one
+# uninitialised submodule whose source is a local repo (never the network).
+SB5="$(sandbox)"
+FR="$SB5/fake-cfn"; SRCREPO="$SB5/sub-src"
+git init -q "$SRCREPO"
+git -C "$SRCREPO" -c user.name=t -c user.email=t@example.test commit -q --allow-empty -m sub
+git init -q "$FR"
+mkdir -p "$FR/.claude/cfn-scripts"
+cp "$LINKER" "$FR/.claude/cfn-scripts/"
+for name in $ENTRIES; do mkdir -p "$FR/.claude/$name"; done
+printf '[submodule "demo"]\n\tpath = .claude/vendor/demo\n\turl = %s\n' "$SRCREPO" > "$FR/.gitmodules"
+git -C "$FR" update-index --add --cacheinfo "160000,$(git -C "$SRCREPO" rev-parse HEAD),.claude/vendor/demo"
+OUT="$(HOME="$SB5" "$FR/.claude/cfn-scripts/link-runtime-dirs.sh" --check 2>&1)"; RC=$?
+check "--check fails on an uninitialised submodule" "1" "$RC"
+case "$OUT" in
+  *"MISSING  submodule .claude/vendor/demo"*) ok "--check names the uninitialised submodule" ;;
+  *) bad "--check names the uninitialised submodule" "$OUT" ;;
+esac
+OUT="$(HOME="$SB5" GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=protocol.file.allow GIT_CONFIG_VALUE_0=always \
+  "$FR/.claude/cfn-scripts/link-runtime-dirs.sh" 2>&1)"; RC=$?
+check "a plain run fetches the submodule" "yes" \
+  "$([ -e "$FR/.claude/vendor/demo/.git" ] && echo yes || echo no)"
+check "a plain run with the submodule fetched succeeds" "0" "$RC"
+cfn_safe_rm_tmp "$SB5"
 
 echo "---"
 echo "link-runtime-dirs: $PASS passed, $FAIL failed"

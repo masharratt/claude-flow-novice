@@ -65,6 +65,9 @@ echo "PASS: all $TOTAL in-scope scripts parse"
 NOEXEC=""
 while read -r f; do
   [ -f "$f" ] || continue
+  # A tracked symlink (mode 120000) has no exec bit of its own; its target's mode
+  # is checked where the target is tracked (e.g. the cfn-mailbox submodule repo).
+  [ -L "$f" ] && continue
   head -1 "$f" 2>/dev/null | grep -q '^#!' || continue
   [ "$(git ls-files -s "$f" | cut -d' ' -f1)" = "100755" ] || NOEXEC="$NOEXEC$f"$'\n'
 done < <(bash "$SCOPE" --list)
