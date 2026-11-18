@@ -578,6 +578,28 @@ test_sec2_4_cred_in_claude_dir_masked(){
   rm -rf "$FENCE/.claude/data"
 }
 
+# BUG glm-settings-mask (2026-11-18, MDTWII GLM lane): settings.local.json
+# was masked with /dev/null, a device. Claude Code then stopped at a "Settings
+# Error ... Not a regular file" menu and the lane sat 900s. A masked JSON
+# settings file must be a regular read-only "{}" file, and the secret in the
+# original must still be unreadable through it.
+test_glm_settings_mask_regular_json(){
+  linux_only test_glm_settings_mask_regular_json || return 0
+  local f="$FENCE/.claude/settings.local.json" s=""
+  printf '{"env":{"API_KEY":"SETTINGS_LOCAL_SECRET_%s"}}\n' "$$" > "$f"
+  PROBE='echo PROBE_RAN; f=.claude/settings.local.json; [ -c "$f" ] && echo MASK:device; [ -f "$f" ] && echo MASK:regular; printf "BODY:%s\n" "$(cat "$f")"; echo x >> "$f" 2>/dev/null && echo MASK:writable; true'
+  fence_run "$FENCE"
+  grep -q "SETTINGS_LOCAL_SECRET_$$" <<<"$OUT" && s="secret readable through the mask"
+  grep -q '^MASK:device' <<<"$OUT" && s="${s:+$s; }masked with a device"
+  grep -q '^MASK:regular' <<<"$OUT" || s="${s:+$s; }mask is not a regular file"
+  grep -qx 'BODY:{}' <<<"$OUT" || s="${s:+$s; }mask body is not {}"
+  grep -q '^MASK:writable' <<<"$OUT" && s="${s:+$s; }mask writable"
+  grep -q "SETTINGS_LOCAL_SECRET_$$" "$f" || s="${s:+$s; }host file changed"
+  if grep -q PROBE_RAN <<<"$OUT" && [ "$RC" -eq 0 ] && [ -z "$s" ]; then ok "test_glm_settings_mask_regular_json"
+  else no "test_glm_settings_mask_regular_json: rc=$RC ${s:-probe never ran} out=$(head -c 300 <<<"$OUT")"; fi
+  rm -f "$f"
+}
+
 # 5. ro:ROOT/.claude/data stays read-only after the .claude processing
 test_sec2_5_ro_claude_data(){
   local s
@@ -1266,6 +1288,7 @@ test_sec2_3_unreadable_subdir_refuses
 test_zai_scan_skips_foreign_unreadable
 test_sec2_4_cred_in_claude_dir_masked
 test_sec2_5_ro_claude_data
+test_glm_settings_mask_regular_json
 test_sec2_6_replace_ref_ignored
 test_allow_1_absent
 test_allow_2_claude_starts

@@ -216,9 +216,24 @@ ro(){
   return 0
 }
 MASKS=()
-mask(){  # dir -> empty tmpfs, anything else -> /dev/null
+# BUG glm-settings-error-stall (2026-11-18, MDTWII GLM lane): a /dev/null mask
+# on settings.local.json is a device; Claude Code refused it with a "Settings
+# Error ... Not a regular file" menu and the lane stalled. A mask on a JSON
+# file Claude reads as config (settings*.json, .mcp.json, .claude.json) is a
+# read-only regular file holding "{}" from the private worker dir instead.
+MASK_JSON="$WBASE/gen/masked.json"
+if [ "$PRINT" != 1 ]; then
+  { echo '{}' > "$MASK_JSON" && chmod 444 "$MASK_JSON"; } || die "cannot create the JSON mask file under $WBASE"
+fi
+mask(){  # dir -> empty tmpfs, Claude config JSON -> read-only "{}", anything else -> /dev/null
   if [ -d "$1" ] && [ ! -L "$1" ]; then MASKS+=(--tmpfs "$1" --remount-ro "$1")
-  elif [ -e "$1" ] || [ -S "$1" ]; then MASKS+=(--ro-bind /dev/null "$1"); fi
+  elif [ -S "$1" ]; then MASKS+=(--ro-bind /dev/null "$1")
+  elif [ -e "$1" ]; then
+    # only the JSON files Claude Code parses as config; other masks stay
+    # /dev/null so reading them still fails (test_sec_8, test_sec2_4)
+    case "${1##*/}" in settings*.json|.mcp.json|.claude.json) MASKS+=(--ro-bind "$MASK_JSON" "$1") ;;
+      *) MASKS+=(--ro-bind /dev/null "$1") ;; esac
+  fi
   return 0
 }
 under(){ case "$1/" in "$2"/*) return 0 ;; esac; return 1; }
