@@ -55,12 +55,12 @@ if [ -n "$FLAG_TS" ]; then
             BODY="$(skill_body)"
             if [ -z "$(printf '%s' "$BODY" | tr -d '[:space:]')" ]; then
                 # cfn: fallback paragraph if SKILL.md moved/renamed; upgrade trigger = skill path change
-                BODY="(night-mode contract file missing; core rules: no AskUserQuestion, no plan stalls, choose the most conservative reversible option, never widen scope, defer destructive ops as blocking proposed decisions, log every decision under slug night-<date>, commit finished work and never push.)"
+                BODY="(night-mode contract file missing; core rules: no AskUserQuestion, no plan stalls, choose the most conservative reversible option, never widen scope, defer destructive ops as blocking proposed decisions, log every decision under slug night-<date>, commit finished work; git push only to the project's night-mode-push-allow list (plain fast-forward), never force, delete or rewrite.)"
             fi
             printf 'NIGHT MODE ACTIVE (since %s). Full contract:\n\n%s\n' "$FLAG_TS" "$BODY"
             ;;
         *)
-            REMINDER=$(printf 'Night mode is ON: no AskUserQuestion, no plan stalls; no user is awake to answer. Decide with the most conservative reversible option; never widen scope. Never execute destructive ops: DB DELETE/DROP/TRUNCATE, deploys, git push, force/reset/clean, credential changes, new Anthropic provider calls. Defer those as blocking proposed decisions instead. Log every choice now with decision-log record.sh (slug night-%s) and continue. Commit finished work; never push. Full contract was injected at session start.' "$(date +%F)")
+            REMINDER=$(printf 'Night mode is ON: no AskUserQuestion, no plan stalls; no user is awake to answer. Decide with the most conservative reversible option; never widen scope. Never execute destructive ops: DB DELETE/DROP/TRUNCATE, deploys, unlisted git push, force/reset/clean, credential changes, new Anthropic provider calls. Defer those as blocking proposed decisions instead. Log every choice now with decision-log record.sh (slug night-%s) and continue. Commit finished work; git push only to the night-mode-push-allow list of the project (plain fast-forward), never force, delete or rewrite. Full contract was injected at session start.' "$(date +%F)")
             emit_ups "$REMINDER"
             ;;
     esac

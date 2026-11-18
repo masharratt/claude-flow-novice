@@ -306,6 +306,112 @@ grep -q "Which ORM for the leads table?" <<<"$OFF_REP" \
 [ -f "$PENDING" ] \
   && ok "e2e: pending review marker written by off" || no "e2e marker missing"
 
+echo "=== group 6: night-mode push allowlist ==="
+# A plain fast-forward push of a listed remote/branch pair passes under night mode;
+# every other push form stays blocked. Hook JSON only: no real push ever runs.
+reset_state
+. "$ROOT/.claude/cfn-scripts/lib/safe-rm.sh"
+PUSH_SB=$(mktemp -d "${TMPDIR:-/tmp}/nm-push-XXXXXX") || exit 1
+PUSH_SB=$(cd -P "$PUSH_SB" && pwd -P) || exit 1
+trap 'cleanup; cfn_safe_rm_tmp "$PUSH_SB"' EXIT
+PROJ="$PUSH_SB/proj"; NOALLOW="$PUSH_SB/noallow"
+mkdir -p "$PROJ/.claude" "$PROJ/sub" "$NOALLOW" || exit 1
+git -C "$PROJ" init -q || exit 1
+git -C "$NOALLOW" init -q || exit 1
+printf '# night pushes allowed for this sandbox\nvps_personal main   # trailing comment\n# origin main\n\n' \
+    > "$PROJ/.claude/night-mode-push-allow"
+
+push_case(){ # push_case <allow|deny> <desc> <cwd> <command>
+    local want=$1 desc=$2 cwd=$3 cmd=$4 payload rc got
+    payload=$(jq -n --arg c "$cmd" --arg d "$cwd" \
+        '{session_id:"s1",hook_event_name:"PreToolUse",tool_name:"Bash",cwd:$d,tool_input:{command:$c}}')
+    bash "$GUARD" <<<"$payload" >"$TMP/push.out" 2>"$TMP/push.err"; rc=$?
+    case "$rc" in 0) got=allow ;; 2) got=deny ;; *) got="rc$rc" ;; esac
+    [ "$got" = "$want" ] && ok "push $want: $desc" \
+        || no "push $desc: want $want got $got :: $cmd :: $(cat "$TMP/push.err")"
+}
+
+# night mode off: unchanged (silent pass-through; force pushes are cfn-careful-guard's job)
+push_case allow "night off, force push untouched by this guard" "$PROJ" 'git push -f origin dev'
+[ ! -s "$TMP/push.err" ] && ok "night off: guard silent on Bash" || no "night off not silent ($(cat "$TMP/push.err"))"
+
+bash "$NM" on >/dev/null 2>&1
+push_case allow "non-push Bash command" "$PROJ" 'git status'
+push_case allow "plain listed push" "$PROJ" 'git push vps_personal main'
+push_case allow "listed push with -u" "$PROJ" 'git push -u vps_personal main'
+push_case allow "same-branch refspec main:main" "$PROJ" 'git push vps_personal main:main'
+push_case allow "listed push from a subdir of the project" "$PROJ/sub" 'git push vps_personal main'
+push_case allow "cd X && git push" "$NOALLOW" "cd $PROJ && git push vps_personal main"
+push_case allow "git -C X push" "$NOALLOW" "git -C $PROJ push vps_personal main"
+push_case allow "commit then push" "$PROJ" 'git add -A && git commit -m "night work" && git push vps_personal main 2>&1 | tail -1'
+push_case allow "wrapper with-main-lock.sh" "$PROJ" 'tools/dev/with-main-lock.sh night-session -- git push vps_personal main'
+push_case allow "wrapper without --" "$PROJ" 'tools/dev/with-main-lock.sh night-session git push vps_personal main'
+
+for f in '-f' '--force' '--force-with-lease' '--force-with-lease=main' '--force-if-includes' '-uf'; do
+    push_case deny "force form $f" "$PROJ" "git push $f vps_personal main"
+done
+push_case deny "force form +refspec" "$PROJ" 'git push vps_personal +main'
+push_case deny "force flag after refspec" "$PROJ" 'git push vps_personal main --force'
+push_case deny "--delete" "$PROJ" 'git push --delete vps_personal main'
+push_case deny "-d" "$PROJ" 'git push -d vps_personal main'
+push_case deny ":branch delete refspec" "$PROJ" 'git push vps_personal :main'
+push_case deny "--mirror" "$PROJ" 'git push --mirror vps_personal'
+push_case deny "--all" "$PROJ" 'git push --all vps_personal'
+push_case deny "--tags" "$PROJ" 'git push --tags vps_personal main'
+push_case deny "unlisted remote" "$PROJ" 'git push origin main'
+push_case deny "listed remote, other branch" "$PROJ" 'git push vps_personal dev'
+push_case deny "refspec writing another branch" "$PROJ" 'git push vps_personal main:dev'
+push_case deny "refspec from another branch" "$PROJ" 'git push vps_personal dev:main'
+push_case deny "bare git push" "$PROJ" 'git push'
+push_case deny "remote only" "$PROJ" 'git push vps_personal'
+push_case deny "no allowlist in project" "$NOALLOW" 'git push vps_personal main'
+push_case deny "cd into project without allowlist" "$PROJ" "cd $NOALLOW && git push vps_personal main"
+push_case deny "git -C into project without allowlist" "$PROJ" "git -C $NOALLOW push vps_personal main"
+push_case deny "git -c config override" "$PROJ" 'git -c remote.vps_personal.push=+refs/heads/main push vps_personal main'
+push_case deny "quoted force flag" "$PROJ" 'git push vps_personal main "--force"'
+push_case deny "unknown wrapper" "$PROJ" 'xargs git push vps_personal main'
+push_case deny "wrapper around force push" "$PROJ" 'tools/dev/with-main-lock.sh night-session -- git push -f vps_personal main'
+push_case deny "second push in chain unlisted" "$PROJ" 'git push vps_personal main && git push origin main'
+grep -q "night-mode-push-allow" "$TMP/push.err" \
+  && ok "push deny text names the allowlist file" || no "push deny text ($(cat "$TMP/push.err"))"
+
+# events log: one line per allowed push, in the shape the report reads
+reset_state
+bash "$NM" on >/dev/null 2>&1
+push_case allow "push for events-log check" "$PROJ" 'git push vps_personal main'
+PUSH_LINES=$(grep -c ' git-push vps_personal main' "$EVENTS" 2>/dev/null)
+[ "$PUSH_LINES" = "1" ] && ok "allowed push appended exactly one events-log line" \
+  || no "events-log push line (count=$PUSH_LINES log=$(cat "$EVENTS" 2>/dev/null))"
+grep -q "git-push vps_personal main .*$PROJ" "$EVENTS" 2>/dev/null \
+  && ok "events-log push line names the project" || no "events-log project ($(cat "$EVENTS" 2>/dev/null))"
+NM_REP=$(bash "$NM" report 2>&1)
+PUSH_SLICE=$(sed -n '/PUSHES/,/Accountability/p' <<<"$NM_REP")
+echo "$PUSH_SLICE" | grep -q "vps_personal main" \
+  && ok "report lists the allowed push in a PUSHES section" || no "report push section (out=$NM_REP)"
+echo "$NM_REP" | grep -q "deny events in window: 0" && ! echo "$NM_REP" | grep -q "RED FLAG" \
+  && ok "allowed push is not counted as a deny" || no "push counted as deny (out=$NM_REP)"
+
+# injected text: push rule now names the allowlist
+bash "$GUARD" <<<"$ASK_PAYLOAD" 2>"$TMP/ask6.err"
+grep -q "night-mode-push-allow" "$TMP/ask6.err" && ! grep -q "NEVER git push" "$TMP/ask6.err" \
+  && ok "guard deny text: push only to night-mode-push-allow list" || no "guard push text ($(cat "$TMP/ask6.err"))"
+SKILL_MD="$ROOT/.claude/skills/cfn-night-mode/SKILL.md"
+grep -q "night-mode-push-allow" "$SKILL_MD" && ! grep -qiE "NEVER (git )?push" "$SKILL_MD" \
+  && ok "SKILL.md: push rule names the allowlist" || no "SKILL.md push rule not updated"
+UP6=$(bash "$INJECT" <<<"$UPS_PAYLOAD" 2>/dev/null)
+echo "$UP6" | grep -q "night-mode-push-allow" && ! echo "$UP6" | grep -qi "never push" \
+  && ok "per-turn reminder: push rule names the allowlist" || no "inject reminder ($UP6)"
+
+# doctor: guard registration must cover Bash; an old matcher is upgraded in place
+printf '%s\n' '{"hooks":{"PreToolUse":[{"matcher":"AskUserQuestion|EnterPlanMode|ExitPlanMode","hooks":[{"type":"command","command":"bash $HOME/.claude/hooks/cfn-night-mode-guard.sh","timeout":5}]}],"SessionStart":[{"hooks":[{"type":"command","command":"bash $HOME/.claude/hooks/cfn-night-mode-inject.sh"}]}],"UserPromptSubmit":[{"matcher":"","hooks":[{"type":"command","command":"bash $HOME/.claude/hooks/cfn-night-mode-inject.sh"}]}]}}' > "$SETTINGS_FILE"
+bash "$NM" doctor >/dev/null 2>&1; DOC6=$?
+[ "$DOC6" = "1" ] && ok "doctor flags a guard registration that misses Bash" || no "doctor old matcher rc=$DOC6"
+bash "$NM" doctor --install >/dev/null 2>&1
+M6=$(jq -r '.hooks.PreToolUse[] | select(any(.hooks[]?; (.command // "") | contains("cfn-night-mode-guard"))) | .matcher' "$SETTINGS_FILE")
+N6=$(jq '[.hooks.PreToolUse[] | select(any(.hooks[]?; (.command // "") | contains("cfn-night-mode-guard")))] | length' "$SETTINGS_FILE")
+{ [ "$N6" = "1" ] && echo "$M6" | grep -qE '(^|\|)Bash(\||$)'; } \
+  && ok "doctor --install upgrades the matcher to include Bash ($M6)" || no "matcher upgrade (n=$N6 m=$M6)"
+
 echo "----"
 echo "PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" = "0" ]

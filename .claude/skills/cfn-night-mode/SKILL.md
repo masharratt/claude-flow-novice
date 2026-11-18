@@ -1,6 +1,6 @@
 ---
 name: cfn-night-mode
-description: "Global autonomy flag with decision log and morning report. While on, sessions never stop on AskUserQuestion or plan approval stalls: they decide with a conservative reversible default, log every choice to decision-log under night-<date> slugs, commit finished work without pushing, and surface the whole batch in a morning report the next day."
+description: "Global autonomy flag with decision log and morning report. While on, sessions never stop on AskUserQuestion or plan approval stalls: they decide with a conservative reversible default, log every choice to decision-log under night-<date> slugs, commit finished work (pushing only plain fast-forwards to the project's night-mode-push-allow list), and surface the whole batch in a morning report the next day."
 version: 1.0.0
 tags: [autonomy, hooks, guard, decisions, morning-report]
 status: production
@@ -18,13 +18,15 @@ Autonomy NEVER covers these. They are never executed and never "decided" to exec
 
 - Database destruction: DB DELETE, DROP, TRUNCATE (any unscoped destructive SQL)
 - Deploys of any kind (Fly, Vercel, Supabase push, production migrations)
-- `git push` in any form, `git force/reset/clean`
+- `git push` outside the project's night-mode-push-allow list (plain fast-forward only; never force, delete or rewrite), `git force/reset/clean`
 - Credential or secret changes, key rotation
 - New Anthropic provider API calls added to project code
 
 ## Git policy
 
-Commit finished work as you go (`git commit`). NEVER push. Push is a morning action for a human.
+Commit finished work as you go (`git commit`). git push only to the project's night-mode-push-allow list (plain fast-forward); never force, delete or rewrite. Any other push is a morning action for a human.
+
+The list is `<project>/.claude/night-mode-push-allow`: one `remote branch` pair per line, `#` comments allowed (example: `vps_personal main`). The guard resolves the project from the push's effective directory (`cd X && git push`, `git -C X push`) and accepts the `tools/dev/with-main-lock.sh <owner> [--] git push ...` wrapper. It blocks `-f`, `--force*`, `+refspec`, `--delete`/`-d`/`:branch`, `--mirror`/`--all`/`--tags`, a refspec writing a different branch, a bare `git push`, and any unlisted pair. A missing or unreadable list blocks every push. Fast-forward-only is enforced by git and the remote: a non-fast-forward push is rejected unless forced. Every allowed push appends a `git-push` line to `.night-mode-events.log` and shows under PUSHES in the morning report.
 
 ## Decision logging
 
@@ -48,7 +50,7 @@ The guard hook emits ready-to-run versions of these when it blocks a question. D
 
 ## Morning report
 
-`report` prints the whole overnight window: NEEDS ACTION (proposed + blocking, full cards), AUTO-DECIDED FYI (accepted, one line each), Accountability (deny count vs decision count, with a printed red flag when there are denies and zero logged decisions), and best-effort `git log --since` as commit evidence. Turning the flag off (`off`) renders the report automatically and writes `.night-mode-pending-review`; a fresh session then reminds about the report until `report --ack` clears the marker and truncates the events log.
+`report` prints the whole overnight window: NEEDS ACTION (proposed + blocking, full cards), AUTO-DECIDED FYI (accepted, one line each), PUSHES (allowed list pushes from the events log), Accountability (deny count vs decision count, with a printed red flag when there are denies and zero logged decisions), and best-effort `git log --since` as commit evidence. Turning the flag off (`off`) renders the report automatically and writes `.night-mode-pending-review`; a fresh session then reminds about the report until `report --ack` clears the marker and truncates the events log.
 
 ## CLI reference
 
@@ -66,7 +68,7 @@ Window precedence for `report`: `--since` > pending marker > flag start timestam
 
 ## Hooks
 
-- `.claude/hooks/cfn-night-mode-guard.sh`: PreToolUse, matcher `AskUserQuestion|EnterPlanMode|ExitPlanMode`. Blocks questions and new plan modes with self-contained instructions (a subagent hitting the guard needs nothing else); answers ExitPlanMode with a JSON allow so a session already mid-plan when the flag flips on is not trapped. Fails open (silent exit 0) when the flag is off or jq is missing.
+- `.claude/hooks/cfn-night-mode-guard.sh`: PreToolUse, matcher `AskUserQuestion|EnterPlanMode|ExitPlanMode|Bash`. Gates `git push` against the night-mode-push-allow list (see Git policy). Blocks questions and new plan modes with self-contained instructions (a subagent hitting the guard needs nothing else); answers ExitPlanMode with a JSON allow so a session already mid-plan when the flag flips on is not trapped. Fails open (silent exit 0) when the flag is off or jq is missing.
 - `.claude/hooks/cfn-night-mode-inject.sh`: registered under SessionStart AND UserPromptSubmit. On, it injects this contract at session start (read live from this file, so no duplicated copy drifts) and a short per-turn reminder. Off with a pending marker, it emits the review reminder in the event-correct shape.
 
 Registrations live in `~/.claude/settings.local.json` (machine-local, never committed). Install or repair with `doctor --install`; verify with plain `doctor`. Exit 1 means something is missing and is named in the output.

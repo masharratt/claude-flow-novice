@@ -81,6 +81,17 @@ reg_present(){ # reg_present <event> <needle> -> 0 when registered
     [ "$hit" = "true" ]
 }
 
+# The guard needs Bash in its matcher (night-mode push allowlist); an empty matcher covers every tool.
+GUARD_HAS_BASH='[.hooks.PreToolUse[]? | select(any(.hooks[]?; (.command // "") | contains("cfn-night-mode-guard")))
+    | (.matcher // "") | (. == "" or test("(^|\\|)Bash(\\||$)"))] | any'
+
+reg_guard_bash(){ # 0 when the guard is registered with a matcher that covers Bash
+    local hit=""
+    [ -f "$SETTINGS_FILE" ] || return 1
+    hit=$(jq -r "$GUARD_HAS_BASH" "$SETTINGS_FILE" 2>/dev/null) || return 1
+    [ "$hit" = "true" ]
+}
+
 doctor_checks(){
     MISSING=""
     command -v jq >/dev/null 2>&1; chk "dependency jq" $?
@@ -90,8 +101,8 @@ doctor_checks(){
     [ -x "$INJECT_SH" ]; chk "inject script executable ($INJECT_SH)" $?
     [ -x "$RECORD_SH" ]; chk "decision-log record.sh reachable ($RECORD_SH)" $?
     if command -v jq >/dev/null 2>&1; then
-        reg_present PreToolUse "cfn-night-mode-guard"
-        chk "registration PreToolUse matcher AskUserQuestion|EnterPlanMode|ExitPlanMode (cfn-night-mode-guard)" $?
+        reg_guard_bash
+        chk "registration PreToolUse matcher AskUserQuestion|EnterPlanMode|ExitPlanMode|Bash (cfn-night-mode-guard)" $?
         reg_present SessionStart "cfn-night-mode-inject"
         chk "registration SessionStart (cfn-night-mode-inject)" $?
         reg_present UserPromptSubmit "cfn-night-mode-inject"
@@ -100,7 +111,7 @@ doctor_checks(){
     [ -z "$MISSING" ]
 }
 
-REG_GUARD='{"matcher":"AskUserQuestion|EnterPlanMode|ExitPlanMode","hooks":[{"type":"command","command":"bash $HOME/.claude/hooks/cfn-night-mode-guard.sh","timeout":5}]}'
+REG_GUARD='{"matcher":"AskUserQuestion|EnterPlanMode|ExitPlanMode|Bash","hooks":[{"type":"command","command":"bash $HOME/.claude/hooks/cfn-night-mode-guard.sh","timeout":5}]}'
 REG_SESSION='{"hooks":[{"type":"command","command":"bash $HOME/.claude/hooks/cfn-night-mode-inject.sh","timeout":5}]}'
 REG_PROMPT='{"matcher":"","hooks":[{"type":"command","command":"bash $HOME/.claude/hooks/cfn-night-mode-inject.sh","timeout":5}]}'
 
@@ -134,6 +145,11 @@ install_registrations(){
     ensure_event PreToolUse "cfn-night-mode-guard" "$REG_GUARD" "$work"
     ensure_event SessionStart "cfn-night-mode-inject" "$REG_SESSION" "$work"
     ensure_event UserPromptSubmit "cfn-night-mode-inject" "$REG_PROMPT" "$work"
+    # upgrade an older guard registration (no Bash in matcher) in place
+    jq '(.hooks.PreToolUse // []) |= map(
+          if any(.hooks[]?; (.command // "") | contains("cfn-night-mode-guard"))
+             and ((.matcher // "") as $m | ($m == "" or ($m | test("(^|\\|)Bash(\\||$)"))) | not)
+          then .matcher = (.matcher + "|Bash") else . end)' "$work" > "$work.new" && mv -f "$work.new" "$work"
 
     mv -f "$work" "$SETTINGS_FILE"
     chmod "$orig_mode" "$SETTINGS_FILE"
@@ -164,8 +180,15 @@ events_in_window(){ # events_in_window <since-date> -> count on stdout
     local lb="${since}T00:00:00Z"
     local n=0
     [ -f "$EVENTS" ] || { echo 0; return; }
-    n=$(awk -v lb="$lb" '$1 >= lb' "$EVENTS" | wc -l)
+    # git-push lines are allowed pushes (night-mode-push-allow), not denies
+    n=$(awk -v lb="$lb" '$1 >= lb && $2 != "git-push"' "$EVENTS" | wc -l)
     echo "$n"
+}
+
+pushes_in_window(){ # pushes_in_window <since-date> -> "<ts> <remote> <branch> <project>" lines
+    local lb="$1T00:00:00Z"
+    [ -f "$EVENTS" ] || return 0
+    awk -v lb="$lb" '$1 >= lb && $2 == "git-push" { $2 = ""; sub(/  /, " "); print }' "$EVENTS"
 }
 
 REP_TXT=""
@@ -173,7 +196,7 @@ HAS_EVENTS=0
 DEC_COUNT=0
 
 render_report(){ # render_report <since-date> [<project-filter>]
-    local since=$1 proj="${2:-}" today end_iso slugs needs fyia did title chosen status blocking project ts den
+    local since=$1 proj="${2:-}" today end_iso slugs needs fyia did title chosen status blocking project ts den pushes
 
     today=$(date +%F)
     end_iso=$(iso_now)
@@ -208,9 +231,11 @@ render_report(){ # render_report <since-date> [<project-filter>]
     fi
 
     den=$(events_in_window "$since")
+    pushes=$(pushes_in_window "$since")
     HAS_EVENTS=$den
+    [ -n "$pushes" ] && HAS_EVENTS=$((den + 1))
 
-    if [ "$DEC_COUNT" = "0" ] && [ "$den" = "0" ]; then
+    if [ "$DEC_COUNT" = "0" ] && [ "$den" = "0" ] && [ -z "$pushes" ]; then
         REP_TXT="No night-mode decisions or deny events in window ($since .. $today). Nothing to review."$'\n'
         return 0
     fi
@@ -229,6 +254,13 @@ render_report(){ # render_report <since-date> [<project-filter>]
     REP_TXT+=$'\n'"-- AUTO-DECIDED FYI --"$'\n'
     if [ -n "${fyia:-}" ]; then
         REP_TXT+="${fyia}"
+    else
+        REP_TXT+="(none)"$'\n'
+    fi
+
+    REP_TXT+=$'\n'"-- PUSHES (allowed by night-mode-push-allow) --"$'\n'
+    if [ -n "$pushes" ]; then
+        REP_TXT+="$pushes"$'\n'
     else
         REP_TXT+="(none)"$'\n'
     fi
@@ -272,9 +304,10 @@ cmd_on(){
     echo ""
     echo "== Night mode ON (since $START)"
     echo "contract: no AskUserQuestion, no plan stalls. Choose the most conservative reversible option;"
-    echo "never widen scope. Log EVERY decision under slug night-\$(date +%F); commit finished work; NEVER push."
+    echo "never widen scope. Log EVERY decision under slug night-\$(date +%F); commit finished work."
+    echo "git push only to the project's night-mode-push-allow list (plain fast-forward); never force, delete or rewrite."
     echo "hard safety floor (defer as blocking proposed decisions, never execute): DB DELETE/DROP/TRUNCATE,"
-    echo "deploys, git push, git force/reset/clean, credential changes, new Anthropic provider calls."
+    echo "deploys, unlisted git push, git force/reset/clean, credential changes, new Anthropic provider calls."
     echo ""
     if quiet_doctor; then
         echo "doctor: all checks green."
