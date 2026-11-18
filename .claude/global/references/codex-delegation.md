@@ -39,11 +39,13 @@ Never delegate: planning, decisions, anything touching credentials.
 
 Two models, split by task shape (user, 2026-09-03: "when using codex, use luna max for
 most requests, sol high for problem solving"). Live slugs per `~/.codex/models_cache.json`
-(checked 2026-09-24): `gpt-6-luna`, `gpt-6-sol`, `gpt-6-astra`.
+(checked 2026-11-17, codex-cli 0.170.0): `gpt-6-luna`, `gpt-6.2-sol`, `gpt-6.2-astra`.
+Older `gpt-6-sol`, `gpt-6.1-sol` and `gpt-6-astra` still resolve; prefer the 6.2 slugs.
+Both 6.2 slugs answered a live `codex exec` on the ChatGPT subscription 2026-11-17.
 
 - **Most requests: `gpt-6-luna` at `model_reasoning_effort: "max"`.** Read-heavy sweeps,
   mechanical implementation of a specified plan, second-opinion review.
-- **Problem solving: `gpt-6-sol` at `model_reasoning_effort: "high"`.** Root-cause hunts,
+- **Problem solving: `gpt-6.2-sol` at `model_reasoning_effort: "high"`.** Root-cause hunts,
   a failure nobody has explained yet, a design fork with no obvious answer.
 
 Set both fields on every call. Both gpt-6 models default to `medium` and support the full
