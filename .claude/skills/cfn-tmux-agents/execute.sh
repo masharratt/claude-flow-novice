@@ -208,6 +208,11 @@ cmd_spawn() {
     _ta_codex_flag_check "$cwd"
     _ta_codex_auth_warn
   fi
+  # Codex workers never ask for approval, whatever --args said.
+  if [ "$bin_kind" = "codex" ]; then
+    mapfile -t words < <(_ta_codex_force_args ${words[@]+"${words[@]}"})
+    [ "$dry_run" != 1 ] || echo "# codex args: ${words[*]}"
+  fi
   [ "$engine" = "claude-sub" ] && _ta_claude_repo_settings_warn "$cwd"
   # glm-open: extra writable folders only for a project that opted in with a
   # committed .claude/glm-open-dirs; refuse here, before any side effect (the

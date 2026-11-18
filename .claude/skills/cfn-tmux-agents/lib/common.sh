@@ -86,6 +86,43 @@ _ta_codex_flag_check() {
   fi
 }
 
+# _ta_codex_force_args WORD... — print the final codex argv, one word per
+# line. BUG codex-approval-lost (2026-11-18): --args replaces the registry
+# args, so a caller's "-s danger-full-access" or "--cd X" dropped
+# --ask-for-approval never and the worker stopped on approval prompts.
+# Policy: codex workers NEVER ask. Drops every -a/--ask-for-approval (space
+# and = forms), every -c/--config approval_policy override and --full-auto
+# (it implies on-request), then appends one "--ask-for-approval never". The
+# caller's sandbox (-s/--sandbox/sandbox_mode override) is kept; without one
+# it adds --sandbox workspace-write. --dangerously-bypass-approvals-and-sandbox
+# is left as is and nothing is added (codex rejects it combined with -a/-s).
+_ta_codex_force_args() {
+  local -a keep=()
+  local w sandbox=0 bypass=0 skip=0 cfg=0
+  for w in "$@"; do
+    if [ "$skip" = 1 ]; then skip=0; continue; fi
+    if [ "$cfg" = 1 ]; then
+      case "$w" in approval_policy*) cfg=0; unset 'keep[-1]'; continue ;; esac
+      cfg=0; keep+=("$w"); continue
+    fi
+    case "$w" in
+      -a|--ask-for-approval) skip=1; continue ;;
+      -a=*|-a?*|--ask-for-approval=*|--full-auto) continue ;;
+      -c|--config) cfg=1; keep+=("$w"); continue ;;
+      --config=approval_policy*|-capproval_policy*) continue ;;
+      -s|--sandbox|-s?*|--sandbox=*|--config=sandbox_mode*) sandbox=1 ;;
+      --dangerously-bypass-approvals-and-sandbox) bypass=1 ;;
+    esac
+    keep+=("$w")
+  done
+  local -a out=(${keep[@]+"${keep[@]}"})
+  if [ "$bypass" = 0 ]; then
+    [ "$sandbox" = 1 ] || out+=(--sandbox workspace-write)
+    out+=(--ask-for-approval never)
+  fi
+  printf '%s\n' "${out[@]}"
+}
+
 # _ta_codex_auth_warn — subscription billing needs auth_mode chatgpt in
 # ~/.codex/auth.json. Warn only; the hard refusal is the unset-list guard.
 _ta_codex_auth_warn() {

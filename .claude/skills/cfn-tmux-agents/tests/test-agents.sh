@@ -170,6 +170,38 @@ case "$OUT" in *codex=true*) ok "refusal names the gate" ;; *) bad "refusal lack
 PROJ_ROOT="$(cd "$SKILL_DIR/../../.." && pwd)"
 assert_rc 0 "codex engine with codex=true passes gate (dry-run)" "$EXE" spawn cx2 --socket "$SOCK" --engine codex --cwd "$PROJ_ROOT" --dry-run
 
+# 17. BUG codex-approval-lost (2026-11-18): --args REPLACED the registry args,
+# so a caller's "-s danger-full-access" or "--cd X" dropped --ask-for-approval
+# never and the worker stopped on approval prompts. Final codex args must hold
+# exactly one approval setting, "never"; the caller's sandbox is kept, default
+# workspace-write. Dry-run prints "# codex args: ..." for the final args.
+cxargs() { # cxargs [--args STR] -> the "# codex args:" line
+  "$EXE" spawn cxa --socket "$SOCK" --engine codex --cwd "$PROJ_ROOT" --dry-run "$@" 2>&1 | grep '^# codex args:' || true
+}
+cx_count() { printf '%s' "$1" | grep -oE -- "$2" | wc -l | tr -d ' '; }
+L=$(cxargs --args "-s danger-full-access")
+case "$L" in *"-s danger-full-access"*"--ask-for-approval never"*|*"--ask-for-approval never"*"-s danger-full-access"*) ok "codex -s danger-full-access keeps full access and gets never" ;; *) bad "codex -s full: $L" ;; esac
+case "$L" in *workspace-write*) bad "codex -s full gained workspace-write: $L" ;; *) ok "codex -s full not given a second sandbox" ;; esac
+L=$(cxargs --args "-a on-request")
+[ "$(cx_count "$L" 'never')" = 1 ] && case "$L" in *on-request*|*"-a "*) false ;; *) true ;; esac \
+  && case "$L" in *"--sandbox workspace-write"*) true ;; *) false ;; esac \
+  && ok "codex -a on-request forced to never, default sandbox added" || bad "codex -a on-request: $L"
+L=$(cxargs --args "--ask-for-approval=untrusted --sandbox=read-only")
+case "$L" in *untrusted*) bad "codex = form approval kept: $L" ;; *"--ask-for-approval never"*"--sandbox=read-only"*|*"--sandbox=read-only"*"--ask-for-approval never"*) ok "codex = forms replaced, sandbox kept" ;; *) bad "codex = forms: $L" ;; esac
+L=$(cxargs --args "-c approval_policy=on-request --config=approval_policy=untrusted -c model=x")
+case "$L" in *approval_policy*|*on-request*|*untrusted*) bad "codex config approval_policy kept: $L" ;; *"-c model=x"*"--ask-for-approval never"*) ok "codex approval_policy overrides stripped, other -c kept" ;; *) bad "codex -c: $L" ;; esac
+L=$(cxargs)
+[ "$L" = "# codex args: --sandbox workspace-write --ask-for-approval never" ] && ok "codex no --args stays registry default" || bad "codex default: $L"
+L=$(cxargs --args "--cd /tmp/x")
+case "$L" in *"--cd /tmp/x"*"--sandbox workspace-write"*"--ask-for-approval never"*) ok "codex --cd keeps never and workspace-write" ;; *) bad "codex --cd: $L" ;; esac
+L=$(cxargs --args "-a never -a on-request --full-auto")
+[ "$(cx_count "$L" 'never')" = 1 ] && case "$L" in *on-request*|*full-auto*) false ;; *) true ;; esac \
+  && ok "codex repeated -a and --full-auto collapse to one never" || bad "codex repeated: $L"
+L=$(cxargs --args "--dangerously-bypass-approvals-and-sandbox")
+[ "$L" = "# codex args: --dangerously-bypass-approvals-and-sandbox" ] && ok "codex bypass flag left as is" || bad "codex bypass: $L"
+OUT=$("$EXE" spawn cxa --socket "$SOCK" --engine codex --cwd "$PROJ_ROOT" --dry-run --args "-s danger-full-access -a on-request" 2>&1)
+case "$OUT" in *"exec "*"-s danger-full-access"*"--ask-for-approval never"*) ok "codex pane command carries the final args" ;; *) bad "codex pane cmd: $OUT" ;; esac
+
 # 16. BUG stale trust text + wrapper bin: claude 2.1.296 prints "Is this a
 # project you created or one you trust?" (old regex missed it), and a wrapper
 # bin named zai-fence.sh hid the engine kind (trust_re empty). Fakes live in a
