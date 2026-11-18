@@ -264,8 +264,10 @@ case "$cmd" in
         fi
         ;;
     display-message)
-        # #{pane_dead}: FLEET_TMUX_PANE_DEAD=1 scripts a pane that died
-        printf '%s\n' "${FLEET_TMUX_PANE_DEAD:-0}"
+        # #{pane_dead}: FLEET_TMUX_PANE_DEAD=1 scripts a pane that died.
+        # #{cursor_y} is unknown to the stub (empty): readers fall back to the
+        # last input-box line of the scripted screen.
+        case "$*" in *cursor_y*) ;; *) printf '%s\n' "${FLEET_TMUX_PANE_DEAD:-0}" ;; esac
         ;;
     show-environment)
         f="${FLEET_TMUX_SERVER_ENV_FILE:-}"

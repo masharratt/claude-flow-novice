@@ -88,12 +88,20 @@ tui_input_pending() {
 # its opening words show ABOVE the live input line (submitted history), or the
 # agent shows it is working (TUI_WORKING_RE). Text still in the input box, or
 # typed into a modal that swallowed it, is not landed.
+# BUG landed-while-pending (2026-11-18, test-spawn-path.sh 13/16): a TUI whose
+# input line is not drawn with "❯"/"›" (a "> " box) had no input line to cut
+# at, so the text still sitting in the box counted as history and "landed":
+# no Enter retry, and a never-clearing input exited 0 instead of 69. Pending
+# input is never landed, and the input line is the cursor line when tmux
+# reports one (the last "❯"/"›" line otherwise).
 tui_prompt_landed() {
-  local scr above head n
+  local scr above head n y
+  tui_input_pending "$1" "$2" "$3" && return 1
   scr=$(_tui_screen "$1" "$2")
   grep -Eq -- "${TUI_WORKING_RE:-$TUI_WORKING_RE_DEFAULT}" <<<"$scr" && return 0
-  # everything above the last input-box line ("❯" claude, "›" codex)
-  n=$(grep -nE '^[[:space:]]*(❯|›)' <<<"$scr" | tail -n 1 | cut -d: -f1)
+  y=$(_tui_tmux -L "$1" display-message -p -t "$2" '#{cursor_y}' 2>/dev/null || true)
+  if [[ "$y" =~ ^[0-9]+$ ]]; then n=$((y + 1))
+  else n=$(grep -nE '^[[:space:]]*(❯|›)' <<<"$scr" | tail -n 1 | cut -d: -f1); fi
   if [ -n "$n" ]; then above=$(head -n $((n - 1)) <<<"$scr"); else above="$scr"; fi
   head="${3%%$'\n'*}"
   head="${head#"${head%%[![:space:]]*}"}"
