@@ -25,6 +25,9 @@ SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # First-prompt ready check + send + landing check, shared with cfn-fleet.
 # shellcheck source=../../cfn-scripts/lib/tui-prompt.sh
 . "$(cd "$SKILL_DIR/../../cfn-scripts/lib" && pwd)/tui-prompt.sh"
+# stat shim for BSD/macOS (defines nothing on Linux); watch reads file mtimes.
+# shellcheck source=../../helpers/cfn-portable.sh
+. "$(cd "$SKILL_DIR/../../helpers" && pwd)/cfn-portable.sh" 2>/dev/null || true
 # Security review round 2: inherited GIT_DIR / GIT_WORK_TREE etc. would pick
 # the launch folder (default --cwd = git toplevel) and the glm-open policy
 # repo. Scrub them before any git call. Word splitting is intended.
@@ -583,7 +586,7 @@ cmd_kill() {
 
 # cmd_watch NAME --result PATH --notify ADDR [--idle-min N] [--interval S]
 # Rosterless completion watch: ONE mailbox alert when the pane has been idle
-# for N minutes and PATH still does not exist. Exits 0 when PATH appears or the
+# for N minutes and PATH has not been (re)written since the watch started. Exits 0 when PATH is written after start or the
 # session ends. Idle = no working line (tui_busy) AND an unchanged screen since
 # the last poll; the codex input placeholder proves nothing. Foreground by
 # default; --detach re-runs it under nohup/setsid and prints the pid and log.
@@ -628,8 +631,18 @@ cmd_watch() {
   unit=$(_ta_env_seconds TMUX_AGENTS_WATCH_UNIT 60)
   limit=$((idle_min * unit))
   idle_since=$SECONDS
+  # A result counts only if rewritten after this moment: a review round reuses
+  # the same file, so one already there at start is ignored. Recorded before the
+  # first poll. Whole seconds; a file from the same second as the start counts.
+  local start_ts res_ts
+  start_ts=$(date +%s)
   while :; do
-    if [ -e "$result" ]; then echo "watch $name: result exists ($result), done"; return 0; fi
+    if [ -e "$result" ]; then
+      res_ts=$(stat -c %Y "$result" 2>/dev/null || echo 0)
+      if [[ "$res_ts" =~ ^[0-9]+$ ]] && [ "$res_ts" -ge "$start_ts" ]; then
+        echo "watch $name: result written ($result), done"; return 0
+      fi
+    fi
     if ! tmux -L "$TA_SOCK" has-session -t "$name" 2>/dev/null || _tui_pane_dead "$TA_SOCK" "$name"; then
       echo "watch $name: session ended"; return 0
     fi

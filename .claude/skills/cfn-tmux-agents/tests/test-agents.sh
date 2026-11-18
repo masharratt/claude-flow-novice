@@ -885,11 +885,20 @@ wpane wc 'i=0; while :; do i=$((i+1)); echo "line $i"; sleep 0.3; done'
 sleep 6
 [ "$(mails)" = 0 ] && ok "watch: no alert while pane content changes" || bad "watch content change: mails=$(mails)"
 
-# result already there: exits at once, no alert
+# old result file present at start (a review round rewrites the same file):
+# ignored until rewritten, then ends the watch with no alert
 wpane wr 'echo ready; exec sleep 60'
-: > "$MAILLOG"; printf 'x\n' > "$WH/res-wr"; wrun wr "$WH/res-wr"
+: > "$MAILLOG"; printf 'old\n' > "$WH/res-wr"; touch -d '1 hour ago' "$WH/res-wr"; wrun wr "$WH/res-wr" 60
 sleep 3
-[ "$(cat "$WH/rc-wr" 2>/dev/null)" = 0 ] && [ "$(mails)" = 0 ] && ok "watch: result exists, exits 0 with no alert" || bad "watch result exists: rc=$(cat "$WH/rc-wr" 2>/dev/null) mails=$(mails)"
+[ ! -e "$WH/rc-wr" ] && ok "watch: old result file present at start does not end the watch" || bad "watch exited on stale result: rc=$(cat "$WH/rc-wr" 2>/dev/null)"
+printf 'new\n' > "$WH/res-wr"; sleep 3
+[ "$(cat "$WH/rc-wr" 2>/dev/null)" = 0 ] && [ "$(mails)" = 0 ] && ok "watch: rewritten result file ends the watch, exit 0, no alert" || bad "watch rewrite: rc=$(cat "$WH/rc-wr" 2>/dev/null) mails=$(mails)"
+
+# old result file left untouched and the pane idle: still alerts once
+wpane wo 'echo ready; exec sleep 60'
+: > "$MAILLOG"; printf 'old\n' > "$WH/res-wo"; touch -d '1 hour ago' "$WH/res-wo"; wrun wo "$WH/res-wo"
+sleep 7
+[ "$(mails)" = 1 ] && [ ! -e "$WH/rc-wo" ] && ok "watch: untouched old result plus idle pane sends the alert" || bad "watch stale+idle: mails=$(mails) rc=$(cat "$WH/rc-wo" 2>/dev/null)"
 
 # session dies: exits 0, no alert
 wpane wd 'echo ready; sleep 2'
