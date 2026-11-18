@@ -115,12 +115,13 @@ Subcommands and flags:
 
 | Command | Args | Notes |
 |---|---|---|
-| `spawn` | `NAME` | `--engine claude-sub\|glm\|glm-open\|codex`, `--model M`, `--cwd DIR` (default git toplevel), `--prompt TEXT` or `--prompt-file F`, `--socket S`, `--trust-timeout S`, `--banner-timeout S`, `--dry-run`, `--bin`/`--args`/`--banner-regex` (custom engine; for `glm`/`glm-open` a `--bin` other than `zai-fence.sh` replaces only the program inside the fence, so `--engine glm --bin claude` runs `zai-fence.sh claude --model ...`; glm never runs unfenced; a `--bin` named `zai-fence.sh` must be the installed wrapper (realpath match) or spawn refuses with 66) |
+| `spawn` | `NAME` | `--engine claude-sub\|glm\|glm-open\|codex\|codex-render`, `--model M`, `--cwd DIR` (default git toplevel), `--prompt TEXT` or `--prompt-file F`, `--socket S`, `--trust-timeout S`, `--banner-timeout S`, `--dry-run`, `--bin`/`--args`/`--banner-regex` (custom engine; for `glm`/`glm-open` a `--bin` other than `zai-fence.sh` replaces only the program inside the fence, so `--engine glm --bin claude` runs `zai-fence.sh claude --model ...`; glm never runs unfenced; a `--bin` named `zai-fence.sh` must be the installed wrapper (realpath match) or spawn refuses with 66) |
 | `send` | `NAME TEXT...` | follow-up: literal text, 1s, separate Enter |
 | `status` | `[NAME]` | alive/DEAD + last lines; all sessions when NAME omitted |
 | `capture` | `NAME` | `--lines N` (default 40) |
 | `list` | | session names on the socket |
 | `kill` | `NAME` or `--all` | `--all` runs `kill-server` on the dedicated socket |
+| `watch` | `NAME` | `--result PATH` and `--notify ADDR` required; `--idle-min N` (default 10), `--interval S` (default 30), `--detach` (nohup/setsid, log in `$TMPDIR/tmux-agents-watch-NAME.log`; otherwise run it with `&` or `nohup`). Sends ONE `$HOME/.claude/skills/cfn-mailbox/mailbox.sh send ADDR` alert when the pane has been idle N minutes and PATH is missing; exits 0 when PATH appears or the session ends. Idle = no working line (`esc to interrupt`, codex `Working (Ns`, spinner) and an unchanged screen; the codex placeholder `Ask Codex to do anything` is not proof of idle. `TMUX_AGENTS_WATCH_UNIT` = seconds per minute (60) |
 
 Env knobs: `TMUX_AGENTS_SOCKET` (default `tmux-agents`),
 `TMUX_AGENTS_UNSANDBOXED` (1 = run claude workers without the sandbox),

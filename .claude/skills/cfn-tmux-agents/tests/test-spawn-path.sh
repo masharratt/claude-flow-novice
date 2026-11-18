@@ -163,5 +163,52 @@ case "$OUT" in *FAKE-ENGINE-FATAL*) ok "dead pane's error output is printed" ;;
 case "$OUT" in *"status 3"*) ok "dead pane's exit status is reported" ;; *) bad "dead pane status missing: ${OUT:0:400}" ;; esac
 tmux -L "$SOCK-p" has-session -t c5 2>/dev/null && bad "dead session left behind" || ok "dead session cleaned up"
 
+# --- BUG glm-settings-error-stall (2026-11-18, MDTWII GLM lane) ------------
+# zai-fence masked .claude/settings.local.json with a device; Claude Code drew
+# its "Settings Error" 3-option menu and waited. The pane still showed the
+# fence's "zai-fence: checking" line, so the banner wait kept going for the
+# whole fence timeout (900s) and the first prompt was never typed. Spawn must
+# fail fast naming the file and never answer the menu; any other unknown
+# blocking menu must not hold the wait for the fence timeout either.
+cat > "$TD/settings-err" <<'FAKE'
+#!/usr/bin/env bash
+stty -icanon -echo 2>/dev/null || true
+printf 'zai-fence: checking /work/proj for secret files...\n'
+printf ' Settings Error\n\n /work/proj/.claude/settings.local.json\n'
+printf '  └ Not a regular file (device, FIFO, or socket)\n\n'
+printf ' ❯ 1. Exit and fix manually\n   2. Continue without these settings\n   3. Disable this settings file\n\n'
+printf ' Enter to confirm · Esc to cancel\n'
+while IFS= read -rsn1 -d '' c; do printf '%q\n' "$c" >> "$1"; done
+FAKE
+cat > "$TD/unknown-menu" <<'FAKE'
+#!/usr/bin/env bash
+stty -icanon -echo 2>/dev/null || true
+printf 'zai-fence: checking /work/proj for secret files...\n'
+printf ' Something new needs a choice\n\n ❯ 1. Do the thing\n   2. Do the other thing\n\n Enter to confirm · Esc to cancel\n'
+while IFS= read -rsn1 -d '' c; do printf '%q\n' "$c" >> "$1"; done
+FAKE
+chmod +x "$TD/settings-err" "$TD/unknown-menu"
+
+t0=$SECONDS; rc=0
+OUT=$(TMUX_AGENTS_FENCE_TIMEOUT=60 "$EXE" spawn s1 --socket "$SOCK" --bin "$TD/settings-err" --args "$TD/keys-s1" \
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp --prompt "settings check" 2>&1) || rc=$?
+el=$((SECONDS - t0))
+[ "$rc" -ne 0 ] && [ "$el" -lt 20 ] && ok "settings-error-stall bug: Settings Error fails fast (rc=$rc, ${el}s)" \
+  || bad "settings-error-stall bug: want fast non-zero exit, got rc=$rc after ${el}s: ${OUT:0:300}"
+case "$OUT" in *"Settings Error"*"/work/proj/.claude/settings.local.json"*) ok "Settings Error message names the file" ;;
+  *) bad "Settings Error message lacks the screen name or file: ${OUT:0:400}" ;; esac
+[ -s "$TD/keys-s1" ] && bad "Settings Error menu was answered: $(tr '\n' ' ' < "$TD/keys-s1")" \
+  || ok "Settings Error menu not auto-answered"
+case "$OUT" in *spawned\ s1*) bad "Settings Error reported as spawned" ;; *) ok "Settings Error not reported as spawned" ;; esac
+
+t0=$SECONDS; rc=0
+OUT=$(TMUX_AGENTS_FENCE_TIMEOUT=60 "$EXE" spawn s2 --socket "$SOCK" --bin "$TD/unknown-menu" --args "$TD/keys-s2" \
+  --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp 2>&1) || rc=$?
+el=$((SECONDS - t0))
+[ "$rc" -eq 68 ] && [ "$el" -lt 30 ] && ok "unknown blocking menu does not hold the fence wait (rc=68, ${el}s)" \
+  || bad "unknown blocking menu: want rc=68 well under the fence timeout, got rc=$rc after ${el}s: ${OUT:0:300}"
+case "$OUT" in *"Something new needs a choice"*) ok "stuck-menu dump shows the screen" ;; *) bad "stuck-menu dump lacks the screen: ${OUT:0:400}" ;; esac
+[ -s "$TD/keys-s2" ] && bad "unknown menu was answered: $(tr '\n' ' ' < "$TD/keys-s2")" || ok "unknown menu not auto-answered"
+
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]

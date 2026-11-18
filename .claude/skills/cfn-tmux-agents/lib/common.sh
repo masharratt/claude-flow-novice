@@ -229,5 +229,19 @@ _ta_gate_cleared() {
   return 0
 }
 
+# _ta_settings_error_exit SOCK TARGET: Claude Code is showing its "Settings
+# Error" menu (a settings file it cannot read). Print the file it names and the
+# screen, kill the session and exit 68. The menu is never answered: picking
+# "continue" would hide the broken config (BUG glm-settings-error-stall).
+_ta_settings_error_exit() {
+  local scr f
+  scr=$(tmux -L "$1" capture-pane -p -t "$2" 2>/dev/null | sed -e 's/\r$//' -e 's/[[:space:]]*$//' -e '/^$/d' || true)
+  f=$(tui_settings_error "$scr" || true)
+  echo "spawn: $2: Claude Code stopped at a Settings Error screen for ${f:-an unnamed settings file} (unreadable settings file; a zai-fence mask that is not a regular file shows this). Not answered; fix the file and respawn. Screen:" >&2
+  printf '%s\n' "${scr:-(pane empty or gone)}" | tail -n 12 >&2
+  tmux -L "$1" kill-session -t "$2" 2>/dev/null || true
+  exit 68
+}
+
 # First-prompt ready check, send and landing check: shared with cfn-fleet in
 # cfn-scripts/lib/tui-prompt.sh (tui_send_first_prompt), sourced by execute.sh.

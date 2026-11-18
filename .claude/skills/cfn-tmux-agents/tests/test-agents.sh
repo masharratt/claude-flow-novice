@@ -47,6 +47,7 @@ cleanup() {
   tmux -L "$SOCK-L" kill-server 2>/dev/null || true
   tmux -L "$SOCK-e" kill-server 2>/dev/null || true
   tmux -L "$SOCK-f" kill-server 2>/dev/null || true
+  tmux -L "$SOCK-w" kill-server 2>/dev/null || true
   rm -rf "$CFN_GLM_OPEN_APPROVALS" "$ZAI_FENCE_WORKER_BASE"
 }
 trap cleanup EXIT
@@ -815,6 +816,97 @@ RC=0; OUT=$(env -u FLEET_ZAI_TOKEN -u ZAI_TOKEN TMUX_AGENTS_ZAI_TOKEN=null HOME=
   "$EXE" spawn zt --socket "$SOCK" --engine glm --cwd /tmp --dry-run 2>&1) || RC=$?
 [ "$RC" -eq 66 ] && ok "short env token ('null') refused loudly" || bad "short env rc=$RC: ${OUT:0:200}"
 cfn_safe_rm_tmp "$ZH"
+
+# 24. codex-render preset (look-lab 2026-11-17): codex with full access for
+# lanes that run a local server plus Chrome (workspace-write gives listen
+# EPERM). Same banner/trust/unset as codex; approval still forced to never.
+CR_ROW=$(bash -c '. "'"$SKILL_DIR"'/lib/engines.sh" >/dev/null 2>&1; _ta_engine_row codex-render' || true)
+[ -n "$CR_ROW" ] && ok "codex-render is in the registry" || bad "codex-render missing from the registry"
+for f in 2 5 6 7; do
+  A=$(bash -c '. "'"$SKILL_DIR"'/lib/engines.sh" >/dev/null 2>&1; _ta_engine_field codex '$f)
+  B=$(bash -c '. "'"$SKILL_DIR"'/lib/engines.sh" >/dev/null 2>&1; _ta_engine_field codex-render '$f 2>/dev/null || true)
+  [ -n "$A" ] && [ "$A" = "$B" ] && ok "codex-render column $f equals codex" || bad "codex-render column $f differs ('$B' vs '$A')"
+done
+CRA=$(bash -c '. "'"$SKILL_DIR"'/lib/engines.sh" >/dev/null 2>&1; _ta_engine_field codex-render 3' 2>/dev/null || true)
+[ "$CRA" = "--sandbox danger-full-access --ask-for-approval never" ] && ok "codex-render args are full access, approval never" || bad "codex-render args: '$CRA'"
+CRP=$(mktemp -d) || exit 1; printf 'codex=true\n' > "$CRP/CLAUDE.md"
+CRN=$(mktemp -d) || exit 1
+CR_OUT=$("$EXE" spawn cr1 --socket "$SOCK" --engine codex-render --cwd "$CRP" --dry-run 2>&1) || true
+case "$CR_OUT" in *"# codex args: --sandbox danger-full-access --ask-for-approval never"*) ok "codex-render goes through the codex arg forcing (full access, one approval never)" ;; *) bad "codex-render dry-run: ${CR_OUT:0:300}" ;; esac
+CR_OUT=$("$EXE" spawn cr1 --socket "$SOCK" --engine codex-render --cwd "$CRP" --args "--sandbox danger-full-access -a on-request" --dry-run 2>&1) || true
+case "$CR_OUT" in *"on-request"*) bad "codex-render --args approval override survived" ;; *"--ask-for-approval never"*) ok "codex-render --args cannot restore approval prompts" ;; *) bad "codex-render override dry-run: ${CR_OUT:0:300}" ;; esac
+printf 'x\n' > "$CRN/CLAUDE.md"
+RC=0; "$EXE" spawn cr2 --socket "$SOCK" --engine codex-render --cwd "$CRN" --dry-run >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 66 ] && ok "codex-render refused (66) without codex=true" || bad "codex-render gate rc=$RC"
+cfn_safe_rm_tmp "$CRP"; cfn_safe_rm_tmp "$CRN"
+
+# 25. watch: one alert when a pane is idle and the result file is missing.
+# Fake panes on a private socket, fake HOME with a fake mailbox.sh, never real mail.
+WS="$SOCK-w"
+WH=$(mktemp -d) || exit 1
+mkdir -p "$WH/.claude/skills/cfn-mailbox"
+ln -s "$HOME/.claude/cfn-config" "$WH/.claude/cfn-config"
+MAILLOG="$WH/mail.log"
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\n' "$MAILLOG" > "$WH/.claude/skills/cfn-mailbox/mailbox.sh"
+chmod +x "$WH/.claude/skills/cfn-mailbox/mailbox.sh"
+wpane() { tmux -L "$WS" new-session -d -s "$1" -x 100 -y 20 "$2"; }
+# wrun NAME RESULT [idle-min]: foreground watch in background, rc to $WH/rc-NAME
+wrun() {
+  ( env HOME="$WH" PATH="$PATH" TMUX_AGENTS_WATCH_UNIT=1 timeout 20 "$EXE" watch "$1" --socket "$WS" \
+      --result "$2" --notify proj/s/lead --idle-min "${3:-2}" --interval 0.5 >"$WH/out-$1" 2>&1; echo $? > "$WH/rc-$1" ) &
+}
+mails() { [ -f "$MAILLOG" ] && wc -l < "$MAILLOG" | tr -d ' ' || echo 0; }
+
+# idle pane, no result: exactly one alert, even after many more polls
+wpane wi 'echo ready; exec sleep 60'
+: > "$MAILLOG"; wrun wi "$WH/res-wi"
+sleep 7
+[ "$(mails)" = 1 ] && ok "watch: alert once after idle with no result" || bad "watch idle: mails=$(mails)"
+case "$(cat "$MAILLOG")" in *"send proj/s/lead"*"wi"*) ok "watch: alert goes through mailbox.sh send ADDR and names the session" ;; *) bad "watch alert text: $(cat "$MAILLOG")" ;; esac
+printf 'done\n' > "$WH/res-wi"; sleep 2
+[ "$(cat "$WH/rc-wi" 2>/dev/null)" = 0 ] && ok "watch: exits 0 when the result appears" || bad "watch did not exit on result (rc=$(cat "$WH/rc-wi" 2>/dev/null))"
+[ "$(mails)" = 1 ] && ok "watch: still one alert after exit" || bad "watch extra mail: $(mails)"
+
+# codex placeholder only (no working line, static): idle, so it alerts
+wpane wph 'printf "Ask Codex to do anything\n"; exec sleep 60'
+: > "$MAILLOG"; wrun wph "$WH/res-wph"
+sleep 6
+[ "$(mails)" = 1 ] && ok "watch: codex placeholder alone does not count as busy" || bad "watch placeholder: mails=$(mails)"
+
+# codex placeholder plus a working line: busy, no alert
+wpane wb 'printf "Ask Codex to do anything\n"; printf "• Working (5s • esc to interrupt)\n"; exec sleep 60'
+: > "$MAILLOG"; wrun wb "$WH/res-wb"
+sleep 6
+[ "$(mails)" = 0 ] && ok "watch: no alert while a codex pane shows the working line" || bad "watch busy: mails=$(mails)"
+
+# pane content keeps changing without any marker: busy by change, no alert
+wpane wc 'i=0; while :; do i=$((i+1)); echo "line $i"; sleep 0.3; done'
+: > "$MAILLOG"; wrun wc "$WH/res-wc"
+sleep 6
+[ "$(mails)" = 0 ] && ok "watch: no alert while pane content changes" || bad "watch content change: mails=$(mails)"
+
+# result already there: exits at once, no alert
+wpane wr 'echo ready; exec sleep 60'
+: > "$MAILLOG"; printf 'x\n' > "$WH/res-wr"; wrun wr "$WH/res-wr"
+sleep 3
+[ "$(cat "$WH/rc-wr" 2>/dev/null)" = 0 ] && [ "$(mails)" = 0 ] && ok "watch: result exists, exits 0 with no alert" || bad "watch result exists: rc=$(cat "$WH/rc-wr" 2>/dev/null) mails=$(mails)"
+
+# session dies: exits 0, no alert
+wpane wd 'echo ready; sleep 2'
+: > "$MAILLOG"; wrun wd "$WH/res-wd" 60
+sleep 6
+[ "$(cat "$WH/rc-wd" 2>/dev/null)" = 0 ] && [ "$(mails)" = 0 ] && ok "watch: exits 0 when the session dies" || bad "watch session death: rc=$(cat "$WH/rc-wd" 2>/dev/null) mails=$(mails)"
+
+# argument checks
+RC=0; env HOME="$WH" PATH="$PATH" "$EXE" watch wi --socket "$WS" --notify a >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 64 ] && ok "watch: --result is required (64)" || bad "watch no --result rc=$RC"
+RC=0; env HOME="$WH" PATH="$PATH" "$EXE" watch nosuch --socket "$WS" --result /x --notify a >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 65 ] && ok "watch: unknown session (65)" || bad "watch unknown session rc=$RC"
+RC=0; env HOME="$WH" PATH="$PATH" "$EXE" watch wi --socket "$WS" --result /x --notify a --idle-min x >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 64 ] && ok "watch: --idle-min must be a number (64)" || bad "watch bad idle-min rc=$RC"
+wait
+tmux -L "$WS" kill-server 2>/dev/null || true
+cfn_safe_rm_tmp "$WH"
 
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]

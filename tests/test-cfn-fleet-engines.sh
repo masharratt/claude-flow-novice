@@ -111,8 +111,8 @@ test_registry_seed_and_fields(){
 
   call_fn fleet_engine_list
   [ "$RC" -eq 0 ] && ok "fleet_engine_list exits 0" || no "list rc=$RC err=$ERR"
-  [ "$OUT" = "$(printf 'claude-sub\nglm\nglm-open\ncodex\nclaude-haiku')" ] \
-    && ok "registry seeds exactly claude-sub/glm/glm-open/codex/claude-haiku" || no "list: '$OUT'"
+  [ "$OUT" = "$(printf 'claude-sub\nglm\nglm-open\ncodex\ncodex-render\nclaude-haiku')" ] \
+    && ok "registry seeds exactly claude-sub/glm/glm-open/codex/codex-render/claude-haiku" || no "list: '$OUT'"
   # claude-haiku (MDTWII request, 2026-10-13): mechanical lanes on Haiku, same
   # subscription scrub and banner as claude-sub, only the model differs.
   local f
@@ -503,7 +503,7 @@ test_engines_install(){
   [ "$RC" -eq 65 ] && ok "re-install refuses to overwrite (65)" || no "rc=$RC"
 
   call_fn fleet_engine_list
-  [ "$OUT" = "$(printf 'claude-sub\nglm\nglm-open\ncodex\nclaude-haiku')" ] \
+  [ "$OUT" = "$(printf 'claude-sub\nglm\nglm-open\ncodex\ncodex-render\nclaude-haiku')" ] \
     && ok "list identical via run-dir copy" || no "list via copy: '$OUT'"
 }
 

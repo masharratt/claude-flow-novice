@@ -54,6 +54,8 @@ Commands:
   capture NAME [--lines N] [--socket SOCK]
   list [--socket SOCK]
   kill NAME | --all [--socket SOCK]
+  watch NAME --result PATH --notify ADDR [--idle-min N] [--interval S]
+        [--detach] [--socket SOCK]
 
 Engines (default claude-sub):
   claude-sub  claude --model sonnet --permission-mode bypassPermissions
@@ -66,6 +68,9 @@ Engines (default claude-sub):
   codex       codex --sandbox workspace-write --ask-for-approval never
               (unsets OPENAI_API_KEY: ChatGPT-plan billing; requires a
               literal codex=true line in the target project's CLAUDE.md)
+  codex-render  codex --sandbox danger-full-access --ask-for-approval never
+              (same gate and billing; for lanes that run a local server plus
+              Chrome; the sandbox is off, pick it on purpose)
 
 Env knobs: TMUX_AGENTS_SOCKET, TMUX_AGENTS_TRUST_TIMEOUT (15),
   TMUX_AGENTS_BANNER_TIMEOUT (20), TMUX_AGENTS_AUTH_TIMEOUT (12)
@@ -347,7 +352,9 @@ cmd_spawn() {
   #   it". Escape always means "start without", whichever row is selected.
   # - bypass-permissions accept ("Yes, I accept") and folder-trust prompts:
   #   engine trust_keys (claude Down,Enter; codex Enter).
-  local gate_re="Update available|Press enter to continue|No, start without it"
+  # - Claude Code "Settings Error" (a settings file it cannot read, e.g. one
+  #   masked with a device): never answered, spawn fails fast naming the file.
+  local gate_re="Update available|Press enter to continue|No, start without it|Settings Error"
   local gate_timeout="$trust_timeout" gate_line gate_i poll_re
   if [ -n "$trust_re" ]; then gate_re+="|$trust_re"; else gate_timeout=5; fi
   [ "$bin_kind" = claude ] && gate_re+="|Yes, I accept"
@@ -361,6 +368,9 @@ cmd_spawn() {
       break
     fi
     case "$gate_line" in
+      *Settings\ Error*)
+        _ta_settings_error_exit "$TA_SOCK" "$name"
+        ;;
       *Update\ available*|*Press\ enter*)
         tmux -L "$TA_SOCK" send-keys -t "$name" -l "2"
         sleep 0.3
@@ -390,11 +400,21 @@ cmd_spawn() {
     # zai-fence's secret scan of big opened folders can outlast the banner
     # timeout (MDTWII 2026-11-16: 190s). While the pane is alive and shows a
     # "zai-fence: checking" line, keep waiting, up to TMUX_AGENTS_FENCE_TIMEOUT.
-    local fence_deadline
+    # BUG glm-settings-error-stall (2026-11-18): that line stays in the
+    # scrollback after the engine starts, so a blocking menu drawn below it
+    # held this wait for the full 900s. Each round checks the visible screen:
+    # a Settings Error fails fast, any other menu ends the wait (dump below).
+    local fence_deadline fence_scr
     fence_deadline=$((SECONDS + $(_ta_env_seconds TMUX_AGENTS_FENCE_TIMEOUT 900)))
     while [ -z "$banner_line" ] && [ "$SECONDS" -lt "$fence_deadline" ] \
           && [ "$(tmux -L "$TA_SOCK" display-message -p -t "$name" '#{pane_dead}' 2>/dev/null || echo 1)" != 1 ] \
           && tmux -L "$TA_SOCK" capture-pane -p -S -200 -t "$name" 2>/dev/null | grep -q 'zai-fence: checking'; do
+      fence_scr=$(tmux -L "$TA_SOCK" capture-pane -p -t "$name" 2>/dev/null | sed -e 's/\r$//' || true)
+      tui_settings_error "$fence_scr" >/dev/null && _ta_settings_error_exit "$TA_SOCK" "$name"
+      if tui_blocking_menu "$fence_scr"; then
+        echo "spawn: $name: the engine shows a menu waiting for a choice (not a known startup gate); not answering it." >&2
+        break
+      fi
       banner_line=$(_ta_pane_wait "$TA_SOCK" "$name" "$banner_re" 10 || true)
     done
   fi
@@ -453,6 +473,8 @@ cmd_spawn() {
       tui_send_first_prompt "$TA_SOCK" "$name" "$prompt" || send_rc=$?
     case "$send_rc" in
       0) ;;
+      4)
+        _ta_settings_error_exit "$TA_SOCK" "$name" ;;
       2)
         echo "spawn: $name: prompt typed but not submitted (input line never cleared after Enter retries). Session left alive; inspect with: execute.sh capture $name --socket $TA_SOCK, or submit with: tmux -L $TA_SOCK send-keys -t $name Enter" >&2
         exit 69 ;;
@@ -559,6 +581,75 @@ cmd_kill() {
   echo "killed $name"
 }
 
+# cmd_watch NAME --result PATH --notify ADDR [--idle-min N] [--interval S]
+# Rosterless completion watch: ONE mailbox alert when the pane has been idle
+# for N minutes and PATH still does not exist. Exits 0 when PATH appears or the
+# session ends. Idle = no working line (tui_busy) AND an unchanged screen since
+# the last poll; the codex input placeholder proves nothing. Foreground by
+# default; --detach re-runs it under nohup/setsid and prints the pid and log.
+# TMUX_AGENTS_WATCH_UNIT is seconds per "minute" (60; tests use 1).
+cmd_watch() {
+  local name="" result="" notify="" idle_min=10 interval=30 detach=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --result)      _ta_next_arg "$1" "${2:-}"; result="$2"; shift 2 ;;
+      --result=*)    result="${1#--result=}"; shift ;;
+      --notify)      _ta_next_arg "$1" "${2:-}"; notify="$2"; shift 2 ;;
+      --notify=*)    notify="${1#--notify=}"; shift ;;
+      --idle-min)    _ta_next_arg "$1" "${2:-}"; idle_min="$2"; shift 2 ;;
+      --idle-min=*)  idle_min="${1#--idle-min=}"; shift ;;
+      --interval)    _ta_next_arg "$1" "${2:-}"; interval="$2"; shift 2 ;;
+      --interval=*)  interval="${1#--interval=}"; shift ;;
+      --detach)      detach=1; shift ;;
+      -*)            _ta_die 64 "watch: unknown option $1" ;;
+      *)             [ -z "$name" ] || _ta_die 64 "watch: unexpected argument $1"
+                     name="$1"; shift ;;
+    esac
+  done
+  [ -n "$name" ] && [ -n "$result" ] && [ -n "$notify" ] \
+    || _ta_die 64 "usage: execute.sh watch NAME --result PATH --notify ADDR [--idle-min N] [--interval S] [--detach]"
+  { [[ "$idle_min" =~ ^[0-9]+$ ]] && [ "$idle_min" -ge 1 ]; } || _ta_die 64 "watch: --idle-min expects a whole number of minutes (>= 1)"
+  [[ "$interval" =~ ^[0-9]+(\.[0-9]+)?$ ]] || _ta_die 64 "watch: --interval expects seconds"
+  local mb="${HOME:-}/.claude/skills/cfn-mailbox/mailbox.sh"
+  [ -x "$mb" ] || _ta_die 66 "watch: mailbox not found or not executable: $mb"
+  tmux -L "$TA_SOCK" has-session -t "$name" 2>/dev/null \
+    || _ta_die 65 "watch: no session '$name' on socket $TA_SOCK"
+
+  if [ "$detach" = 1 ]; then
+    local log
+    log="${TMPDIR:-/tmp}/tmux-agents-watch-${name}.log"
+    nohup setsid "${BASH_SOURCE[0]}" watch "$name" --socket "$TA_SOCK" --result "$result" \
+      --notify "$notify" --idle-min "$idle_min" --interval "$interval" >"$log" 2>&1 </dev/null &
+    echo "watch $name detached (pid $!, log $log)"
+    return 0
+  fi
+
+  local unit limit idle_since scr sum last="" alerted=0
+  unit=$(_ta_env_seconds TMUX_AGENTS_WATCH_UNIT 60)
+  limit=$((idle_min * unit))
+  idle_since=$SECONDS
+  while :; do
+    if [ -e "$result" ]; then echo "watch $name: result exists ($result), done"; return 0; fi
+    if ! tmux -L "$TA_SOCK" has-session -t "$name" 2>/dev/null || _tui_pane_dead "$TA_SOCK" "$name"; then
+      echo "watch $name: session ended"; return 0
+    fi
+    scr=$(_tui_screen "$TA_SOCK" "$name")
+    sum=$(printf '%s' "$scr" | cksum)
+    if tui_busy "$scr" || [ "$sum" != "$last" ]; then
+      idle_since=$SECONDS; last="$sum"
+    elif [ "$alerted" = 0 ] && [ $((SECONDS - idle_since)) -ge "$limit" ]; then
+      if "$mb" send "$notify" --kind fyi \
+          "tmux-agents watch: session '$name' idle for ${idle_min} min and result file missing: $result"; then
+        alerted=1
+        echo "watch $name: alert sent to $notify"
+      else
+        echo "watch $name: alert to $notify failed; will retry" >&2
+      fi
+    fi
+    sleep "$interval"
+  done
+}
+
 main() {
   local -a argv=()
   local sock=""
@@ -586,6 +677,7 @@ main() {
     capture) cmd_capture ${shift_argv[@]+"${shift_argv[@]}"} ;;
     list)    cmd_list ${shift_argv[@]+"${shift_argv[@]}"} ;;
     kill)    cmd_kill ${shift_argv[@]+"${shift_argv[@]}"} ;;
+    watch)   cmd_watch ${shift_argv[@]+"${shift_argv[@]}"} ;;
     help|-h|--help) _ta_usage ;;
     *) _ta_usage >&2; _ta_die 64 "unknown command: $cmd" ;;
   esac

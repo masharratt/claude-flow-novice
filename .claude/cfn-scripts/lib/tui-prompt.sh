@@ -17,7 +17,7 @@
 #   TUI_SUBMIT_RETRIES  extra Enters while the text still sits in the input (3)
 #   TUI_WORKING_RE      ERE for "the agent is working" lines (spinner, esc to interrupt)
 
-TUI_WORKING_RE_DEFAULT='[Ee]sc to interrupt|^[[:space:]]*[✻✽✶✳✢⏺·*][[:space:]]+[A-Z][a-z]+(ing)?…'
+TUI_WORKING_RE_DEFAULT='[Ee]sc to interrupt|[Ww]orking \([0-9]+s|^[[:space:]]*[✻✽✶✳✢⏺·*][[:space:]]+[A-Z][a-z]+(ing)?…'
 
 _tui_tmux() { "${TUI_TMUX_CMD:-tmux}" "$@"; }
 
@@ -30,9 +30,40 @@ _tui_pane_dead() {
   [ "$(_tui_tmux -L "$1" display-message -p -t "$2" '#{pane_dead}' 2>/dev/null || echo 1)" = 1 ]
 }
 
+# BUG glm-settings-error-stall (2026-11-18, MDTWII GLM lane): zai-fence masked
+# settings.local.json with a device, Claude Code drew its "Settings Error"
+# menu and waited, and spawn sat out the 900s fence timeout. These classify a
+# screen so callers can fail fast. Never answered: that would hide the error.
+#
+# tui_settings_error SCREEN: rc 0 when SCREEN is Claude Code's "Settings Error"
+# screen; prints the file it names ("an unnamed settings file" if none shows).
+tui_settings_error() {
+  local f
+  grep -q 'Settings Error' <<<"$1" || return 1
+  f=$(grep -oE '(~|/)[^[:space:]]*\.json' <<<"$1" | head -n 1 || true)
+  printf '%s\n' "${f:-an unnamed settings file}"
+}
+
+# tui_blocking_menu SCREEN: rc 0 when SCREEN shows a menu waiting for a choice
+# (a numbered row under the "❯" cursor, or an Enter-to-confirm footer).
+tui_blocking_menu() {
+  grep -Eq 'Enter to confirm|Esc to cancel|^[[:space:]]*❯[[:space:]]*[0-9]+\.' <<<"$1"
+}
+
+# tui_busy SCREEN: rc 0 when SCREEN shows the agent working (TUI_WORKING_RE:
+# "esc to interrupt", codex "Working (12s", a spinner line). The input
+# placeholder is never evidence either way: codex draws "Ask Codex to do
+# anything" in an empty input box while it is idle AND while it works, so
+# only the working line counts. Callers judging idle also compare pane
+# content between polls (a screen that changes is not idle).
+tui_busy() {
+  grep -Eq -- "${TUI_WORKING_RE:-$TUI_WORKING_RE_DEFAULT}" <<<"$1"
+}
+
 # tui_ready_wait SOCK TARGET TIMEOUT_S: rc 0 once the input box ("❯" line) shows.
-# Always rc 0 (a TUI that never draws it still gets the prompt; the landing
-# check below then decides).
+# rc 0 otherwise too (a TUI that never draws it still gets the prompt; the
+# landing check below then decides), except rc 4 at once on a Settings Error
+# screen (tui_settings_error), so no prompt is typed into that menu.
 # BUG glm-first-prompt-lost (2026-11-17): a modal's menu cursor ("❯ 1. Yes,
 # try it", Claude Code 2.1.326 flicker-free opt-in) also starts with "❯" and
 # counted as the input box, so the prompt was typed into the modal and lost.
@@ -43,6 +74,7 @@ tui_ready_wait() {
   while [ "$SECONDS" -lt "$deadline" ]; do
     _tui_pane_dead "$sock" "$tgt" && return 0
     scr=$(_tui_screen "$sock" "$tgt")
+    tui_settings_error "$scr" >/dev/null && return 4
     if grep -Eq 'Enter to confirm|Esc to cancel' <<<"$scr"; then
       grep -Eq 'Flicker-free output' <<<"$scr" && _tui_tmux -L "$sock" send-keys -t "$tgt" Escape
       # settle: the TUI redraws before it reads keys again (first char lost live otherwise)
@@ -116,12 +148,15 @@ tui_prompt_landed() {
 # while the text still sits in the input line.
 # rc 0 landed; 1 tmux failure; 2 typed but never submitted (text still in the
 # input line); 3 submitted nowhere (no history echo, no working indicator: a
-# modal or a not-yet-ready TUI swallowed it). The pane is never killed.
+# modal or a not-yet-ready TUI swallowed it); 4 nothing typed: a Claude Code
+# Settings Error screen blocks the TUI. The pane is never killed.
 tui_send_first_prompt() {
   local sock="$1" tgt="$2" text="$3" i try verify retries deadline
   verify="${TUI_SUBMIT_VERIFY:-3}"
   retries="${TUI_SUBMIT_RETRIES:-3}"
-  [ "${TUI_READY_WAIT:-1}" = 0 ] || tui_ready_wait "$sock" "$tgt" "${TUI_READY_TIMEOUT:-12}"
+  if [ "${TUI_READY_WAIT:-1}" != 0 ]; then
+    tui_ready_wait "$sock" "$tgt" "${TUI_READY_TIMEOUT:-12}" || return 4
+  fi
   _tui_tmux -L "$sock" send-keys -t "$tgt" -l "$text" || return 1
   # echo wait: up to 5s for the text to show on the input line
   for ((i = 0; i < 25; i++)); do
