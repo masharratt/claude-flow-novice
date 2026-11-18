@@ -37,9 +37,9 @@ Never delegate: planning, decisions, anything touching credentials.
 
 ## Which model, and at what effort
 
-Two models, split by task shape (user, 2026-09-03: "when using codex, use luna max for
+Three models, split by task shape (user, 2026-09-03: "when using codex, use luna max for
 most requests, sol high for problem solving"). Live slugs per `~/.codex/models_cache.json`
-(checked 2026-11-17, codex-cli 0.170.0): `gpt-6-luna`, `gpt-6.2-sol`, `gpt-6.2-astra`.
+(checked 2026-11-17, codex-cli 0.170.0): `gpt-6-luna`, `gpt-6.2-sol`, `gpt-6.2-astra`, `gpt-6.1-terra`.
 Older `gpt-6-sol`, `gpt-6.1-sol` and `gpt-6-astra` still resolve; prefer the 6.2 slugs.
 Both 6.2 slugs answered a live `codex exec` on the ChatGPT subscription 2026-11-17.
 
@@ -47,6 +47,10 @@ Both 6.2 slugs answered a live `codex exec` on the ChatGPT subscription 2026-11-
   mechanical implementation of a specified plan, second-opinion review.
 - **Problem solving: `gpt-6.2-sol` at `model_reasoning_effort: "high"`.** Root-cause hunts,
   a failure nobody has explained yet, a design fork with no obvious answer.
+- **Mid-tier: `gpt-6.1-terra`, roughly Claude Sonnet level (user, 2026-11-18).** Routine
+  coding and checks where Codex is wanted but luna max is more than the job needs; the
+  Codex counterpart of a `sonnet` subagent. Its effort defaults to `low` (ladder low to
+  `ultra`), so always set `model_reasoning_effort`. Live-tested 2026-11-18.
 
 Set both fields on every call. Both gpt-6 models default to `medium` and support the full
 ladder (low, medium, high, xhigh, max per the cache file), so leaving effort unset
