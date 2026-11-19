@@ -164,6 +164,38 @@ check "nudge local spawning rc" "$rc" 0
 out=$(ft peek WS04 10 2>&1); rc=$?
 check "peek host rc" "$rc" 0
 
+# BUG fleet-send-paste (2026-11-19): a long message becomes a "[Pasted Content"
+# block in a Codex pane and the first Enter only arms it. Both fleet typing
+# sites must press Enter again until the input line clears.
+echo "== nudge: long text (paste block) is submitted"
+PASTE_ENGINE="$PROJECT_ROOT/.claude/skills/cfn-tmux-agents/tests/fake-engine-paste.sh"
+export FAKE_PASTE_LOG="$TMP_DIR/paste.log"
+: >"$FAKE_PASTE_LOG"
+export FLEET_NUDGE_DELAY=0
+tmux -L "$SOCK" new-session -d -s wspaste -x 200 -y 50 env "FAKE_PASTE_LOG=$FAKE_PASTE_LOG" bash "$PASTE_ENGINE"
+tmux -L "$SOCK" new-session -d -s wspasteh -x 200 -y 50 env "FAKE_PASTE_LOG=$FAKE_PASTE_LOG" bash "$PASTE_ENGINE"
+row WS08 wspaste started
+row WS09 wspasteh working vps
+mkdir -p "$TMP_DIR/ob/WS09"
+printf 'FLEET_HOST=vps\nFLEET_SOCK=%s\nFLEET_SESSION=wspasteh\nFLEET_OUTBOX=%s\n' "$SOCK" "$TMP_DIR/ob/WS09" >"$RUN/remote/WS09.env"
+sleep 0.5
+long=$(printf 'long message %.0s' 1 2 3 4 5 6 7 8)
+out=$(ft nudge WS08 --tmux "$long" 2>&1); rc=$?
+check "local --tmux long text rc" "$rc" 0
+check "local --tmux long text submitted once" "$(wc -l <"$FAKE_PASTE_LOG" | tr -d ' ')" 1
+: >"$FAKE_PASTE_LOG"
+out=$(ft nudge WS09 "$long" 2>&1); rc=$?
+check "host lane pointer rc" "$rc" 0
+check "host lane pointer submitted once" "$(wc -l <"$FAKE_PASTE_LOG" | tr -d ' ')" 1
+touch "$FAKE_PASTE_LOG.never"
+out=$(FLEET_SUBMIT_VERIFY=1 TUI_SUBMIT_VERIFY=1 TUI_SUBMIT_RETRIES=1 ft nudge WS08 --tmux "$long" 2>&1); rc=$?
+[ "$rc" -ne 0 ] && ok "never-landed local send fails (rc $rc)" || no "never-landed local send reported success"
+contains "never-landed local send says so" "$out" "never submitted"
+out=$(TUI_SUBMIT_VERIFY=1 TUI_SUBMIT_RETRIES=1 ft nudge WS09 "$long" 2>&1); rc=$?
+[ "$rc" -ne 0 ] && ok "never-landed host send fails (rc $rc)" || no "never-landed host send reported success"
+contains "never-landed host send says so" "$out" "never submitted"
+rm -f "$FAKE_PASTE_LOG.never"
+
 echo "== stop"
 out=$(ft stop WS01 2>&1); rc=$?
 check "stop rc" "$rc" 0

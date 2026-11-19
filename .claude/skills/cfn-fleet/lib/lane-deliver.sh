@@ -44,6 +44,8 @@
 
 # shellcheck source=host.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/host.sh"
+# shellcheck source=../../../cfn-scripts/lib/tui-prompt.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../cfn-scripts/lib" && pwd)/tui-prompt.sh"
 
 # Hot shared files are never auto-granted: every lane touches them, so the
 # master decides. Space-separated globs, repo-relative. Override per run with
@@ -150,19 +152,21 @@ _fleet_lane_from_master() {
     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" "$3" >/dev/null 2>&1
 }
 
-# _fleet_lane_nudge WS TEXT: literal text, FLEET_NUDGE_DELAY (default 1) pause,
-# then Enter as its own send-keys: one combined send often leaves the text
-# unsent in a busy pane. Spinner verification is not done here: no shared
-# helper reads "is it working now" for a pane, so the caller only knows the
-# keys arrived.
+# _fleet_lane_tmux ARGS...: tmux on the lane's host, bounded by the delivery
+# timeout; the TUI_TMUX_CMD wrapper for tui_send_followup.
+_fleet_lane_tmux() {
+  _FLEET_HOST_DEADLINE="$(_fleet_deliver_timeout)" _fleet_tmux "$_LD_HOST" "$@"
+}
+
+# _fleet_lane_nudge WS TEXT: the shared tui_send_followup (cfn-scripts/lib/
+# tui-prompt.sh): type, FLEET_NUDGE_DELAY (default 1) pause, Enter, then
+# re-press Enter while the text or a "[Pasted Content" block still sits in the
+# input line (BUG fleet-send-paste, 2026-11-19: one Enter left long text
+# unsent). rc 0 submitted | 1 tmux/ssh failure | 2 never submitted.
 _fleet_lane_nudge() {
-  local rc=0 t
   _fleet_lane_target "$1" || return $?
-  t=$(_fleet_deliver_timeout)
-  _FLEET_HOST_DEADLINE="$t" _fleet_tmux "$_LD_HOST" -L "$_LD_SOCK" send-keys -t "=$_LD_SESSION:" -l -- "$2" >/dev/null 2>&1 || return $?
-  sleep "${FLEET_NUDGE_DELAY:-1}"
-  _FLEET_HOST_DEADLINE="$t" _fleet_tmux "$_LD_HOST" -L "$_LD_SOCK" send-keys -t "=$_LD_SESSION:" Enter >/dev/null 2>&1 || rc=$?
-  return "$rc"
+  TUI_TMUX_CMD=_fleet_lane_tmux TUI_SUBMIT_SETTLE="${FLEET_NUDGE_DELAY:-1}" \
+    tui_send_followup "$_LD_SOCK" "=$_LD_SESSION:" "$2" >/dev/null 2>&1
 }
 
 # _fleet_lane_deliver WS TYPE TEXT: the message into FROM_MASTER.md, then a

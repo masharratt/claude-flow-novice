@@ -24,6 +24,9 @@
 # shellcheck source=cmd-peek.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cmd-peek.sh"
 
+# shellcheck source=../../../cfn-scripts/lib/tui-prompt.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../cfn-scripts/lib" && pwd)/tui-prompt.sh"
+
 _FLEET_NUDGE_KEYS="Enter Escape C-u Up Down Tab BTab 1 2 3 4 5 6 7 8 9 y n"
 
 _fleet_nudge_usage() {
@@ -45,6 +48,9 @@ _fleet_nudge_send() {
       fleet_die 65 "nudge: no pane for $ws (session '$_PT_SESSION' not found)" ;;
   esac
 }
+
+# _fleet_nudge_tmux ARGS...: tmux on the worker's host, for tui_send_followup.
+_fleet_nudge_tmux() { _fleet_tmux "$_PT_HOST" "$@"; }
 
 main() {
   local ws="${1:-}" k force_tmux=0
@@ -79,7 +85,7 @@ main() {
       _fleet_lane_deliver "$ws" answer "$2" || drc=$?
       case "$drc" in
         0) echo "delivered $ws answer to FROM_MASTER.md on $host; lane nudged"; return 0 ;;
-        5) fleet_die 66 "nudge: FROM_MASTER.md on $host has the text, but typing the pointer into the pane failed (fleet peek $ws)" ;;
+        5) fleet_die 66 "nudge: FROM_MASTER.md on $host has the text, but the pointer typed into the pane failed or was never submitted (fleet peek $ws)" ;;
         2) ;;  # no remote env yet: the pane-target path below says so
         "$_FLEET_SSH_FAIL_RC"|"$_FLEET_TIMEOUT_RC") fleet_die 66 "nudge: host $host is unreachable" ;;
         *) fleet_die 66 "nudge: FROM_MASTER.md on $host not written (rc $drc)" ;;
@@ -101,7 +107,14 @@ main() {
     echo "WARN nudge: MAILBOX-DOWN ($(_fleet_mb_down_reason "$rc")); typing into the pane instead" >&2
   fi
   _fleet_pane_target "$ws" nudge
-  _fleet_nudge_send "$ws" -l -- "$2"
-  sleep "${FLEET_NUDGE_DELAY:-1}"
-  _fleet_nudge_send "$ws" Enter
+  # Probe the pane first so a missing session or dead host keeps its 65/66.
+  _fleet_nudge_send "$ws" -l -- ""
+  local frc=0
+  TUI_TMUX_CMD=_fleet_nudge_tmux TUI_SUBMIT_SETTLE="${FLEET_NUDGE_DELAY:-1}" \
+    tui_send_followup "$_PT_SOCK" "=$_PT_SESSION:" "$2" >/dev/null 2>&1 || frc=$?
+  case "$frc" in
+    0) return 0 ;;
+    2) fleet_die 66 "nudge: text typed into $ws but never submitted; it may still sit in the input line (fleet peek $ws)" ;;
+    *) fleet_die 66 "nudge: tmux send-keys to $ws failed (fleet peek $ws)" ;;
+  esac
 }
