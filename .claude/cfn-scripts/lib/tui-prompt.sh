@@ -157,7 +157,7 @@ tui_send_first_prompt() {
   if [ "${TUI_READY_WAIT:-1}" != 0 ]; then
     tui_ready_wait "$sock" "$tgt" "${TUI_READY_TIMEOUT:-12}" || return 4
   fi
-  _tui_tmux -L "$sock" send-keys -t "$tgt" -l "$text" || return 1
+  _tui_tmux -L "$sock" send-keys -t "$tgt" -l -- "$text" || return 1
   # echo wait: up to 5s for the text to show on the input line
   for ((i = 0; i < 25; i++)); do
     tui_input_pending "$sock" "$tgt" "$text" && break

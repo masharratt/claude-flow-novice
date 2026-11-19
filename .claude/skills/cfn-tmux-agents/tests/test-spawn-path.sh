@@ -89,6 +89,14 @@ CAP=$(tmux -L "$SOCK" capture-pane -p -t p2 2>/dev/null || true)
 case "$CAP" in *"SUBMITTED: retry submit-check two"*) ok "prompt-not-submitted bug: lost Enter is retried until the input clears" ;;
   *) bad "prompt-not-submitted bug: no Enter retry: out=${OUT:0:200} pane=${CAP:0:300}" ;; esac
 
+# BUG leading-dash prompt: tmux send-keys -l read "-n leading dash" as flags.
+OUT=$("$EXE" spawn pd --socket "$SOCK" --bin "$TD/tui" --banner-regex 'AGENTS-TEST-BANNER' \
+  --cwd /tmp --prompt "-n leading dash" 2>&1) || true
+sleep 0.5
+CAP=$(tmux -L "$SOCK" capture-pane -p -t pd 2>/dev/null || true)
+case "$CAP" in *"SUBMITTED: -n leading dash"*) ok "leading-dash bug: first prompt starting with '-' lands as text" ;;
+  *) bad "leading-dash bug: prompt '-n leading dash' did not land: out=${OUT:0:200} pane=${CAP:0:300}" ;; esac
+
 rc=0; OUT=$("$EXE" spawn p3 --socket "$SOCK" --bin "$TD/tui" --args "never" --banner-regex 'AGENTS-TEST-BANNER' \
   --cwd /tmp --prompt "stuck submit-check three" 2>&1) || rc=$?
 [ "$rc" -eq 69 ] && ok "prompt-not-submitted bug: never-clearing input fails loudly (rc=69)" \
