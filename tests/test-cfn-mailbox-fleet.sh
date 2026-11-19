@@ -378,6 +378,7 @@ test_send_fleet_coord() {
 
   new_case "send --coord-file: no secret line -> 2"
   printf 'just a brief\n' > "$T/nosecret"
+chmod 600 "$T/nosecret"  # private, so the missing secret line (not the mode check) is what fails
   MENV=(MAILBOX_SESSION=proj-master)
   mb send michael/s/proj-ws1 --coord-file "$T/nosecret" "x"
   assert_rc 2 "no secret"
