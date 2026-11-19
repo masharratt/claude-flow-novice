@@ -940,7 +940,7 @@ cfn_safe_rm_tmp "$WH"
 # "[Pasted Content N chars]" block that needs a second Enter; send pressed Enter
 # once and exited 0, leaving the message unsent for ~25 min. send must re-press
 # Enter until the input line is clear, and fail loudly if it never clears.
-PL=$(mktemp -u "$GTD/paste-log.XXXXXX"); export FAKE_PASTE_LOG="$PL"
+PL="$GTD/paste-log.$$"; export FAKE_PASTE_LOG="$PL"
 LONG=$(printf 'review job %.0s' $(seq 1 40))
 "$EXE" spawn pp1 --socket "$SOCK" --bin "$SKILL_DIR/tests/fake-engine-paste.sh" --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp >/dev/null 2>&1 || bad "paste engine spawn fails"
 RC=0; "$EXE" send pp1 --socket "$SOCK" "$LONG" >/dev/null 2>&1 || RC=$?
