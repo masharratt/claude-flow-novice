@@ -757,6 +757,25 @@ JS=$(sed -n '/^--settings$/{n;p;}' "$TD/out/$SOCK/s-opt/args.txt" 2>/dev/null ||
 m=$(has_all "$JS" 'd["permissions"]["deny"]' "Edit(/$HOME/.claude/**)" "Edit(/$REPO/.git/hooks/**)")
 [ "$m" = "missing=[]" ] && ok "opt-out: Edit deny rules kept" || bad "opt-out: deny rules $m"
 "$EXE" kill s-opt --socket "$SOCK" >/dev/null 2>&1 || true
+# explicit sandbox opt-out (2026-11-19, MDTWII art desk): TMUX_AGENTS_SANDBOX_OFF=1
+# or --no-sandbox turns the sandbox off even when the probe succeeds; the old
+# TMUX_AGENTS_UNSANDBOXED=1 alone must NOT (it only means "run if unbuildable").
+sbx_flag_case() { # sbx_flag_case LABEL WANT_ENABLED ENVVAR=VAL|- [spawn args...]
+  local lbl="$1" want="$2" ev="$3"; shift 3
+  local -a envs=(); [ "$ev" = - ] || envs=("$ev")
+  OUT=$(env PATH="$TD/sbx-ok:$PATH" "${envs[@]}" "$EXE" spawn s-flag --socket "$SOCK" --engine claude-sub --cwd "$REPO" --dry-run "$@" 2>&1) || true
+  JS=$(settings_of "$OUT")
+  [ "$(jq_py "$JS" 'd["sandbox"]["enabled"]')" = "$want" ] && ok "$lbl: sandbox.enabled=$want" || bad "$lbl: want enabled=$want: ${JS:0:200}"
+}
+sbx_flag_case "SANDBOX_OFF=1 env" false TMUX_AGENTS_SANDBOX_OFF=1
+case "$OUT" in *WARN*TMUX_AGENTS_SANDBOX_OFF*) ok "SANDBOX_OFF=1: WARN names the flag" ;; *) bad "SANDBOX_OFF=1: no WARN naming flag: ${OUT:0:300}" ;; esac
+m=$(has_all "$JS" 'd["permissions"]["deny"]' "Edit(/$HOME/.claude/**)" "Edit(/$REPO/.git/hooks/**)")
+[ "$m" = "missing=[]" ] && ok "SANDBOX_OFF=1: Edit deny rules kept" || bad "SANDBOX_OFF=1: deny rules $m"
+sbx_flag_case "--no-sandbox" false - --no-sandbox
+case "$OUT" in *WARN*TMUX_AGENTS_SANDBOX_OFF*) ok "--no-sandbox: WARN names the flag" ;; *) bad "--no-sandbox: no WARN: ${OUT:0:300}" ;; esac
+sbx_flag_case "flag unset" true -
+sbx_flag_case "SANDBOX_OFF=0" true TMUX_AGENTS_SANDBOX_OFF=0
+sbx_flag_case "UNSANDBOXED=1 alone, probe ok" true TMUX_AGENTS_UNSANDBOXED=1
 cfn_safe_rm_tmp "$TD"
 export TMUX_AGENTS_OUTBOX_ROOT="$GLOBAL_OUTBOX_ROOT"
 
@@ -916,6 +935,24 @@ RC=0; env HOME="$WH" PATH="$PATH" "$EXE" watch wi --socket "$WS" --result /x --n
 wait
 tmux -L "$WS" kill-server 2>/dev/null || true
 cfn_safe_rm_tmp "$WH"
+
+# BUG tmux-send-paste (2026-11-19): a long send lands in a Codex pane as a
+# "[Pasted Content N chars]" block that needs a second Enter; send pressed Enter
+# once and exited 0, leaving the message unsent for ~25 min. send must re-press
+# Enter until the input line is clear, and fail loudly if it never clears.
+PL=$(mktemp -u "$GTD/paste-log.XXXXXX"); export FAKE_PASTE_LOG="$PL"
+LONG=$(printf 'review job %.0s' $(seq 1 40))
+"$EXE" spawn pp1 --socket "$SOCK" --bin "$SKILL_DIR/tests/fake-engine-paste.sh" --banner-regex 'AGENTS-TEST-BANNER' --cwd /tmp >/dev/null 2>&1 || bad "paste engine spawn fails"
+RC=0; "$EXE" send pp1 --socket "$SOCK" "$LONG" >/dev/null 2>&1 || RC=$?
+[ "$RC" -eq 0 ] && ok "send of a pasted block exits 0" || bad "send of a pasted block rc=$RC"
+[ "$(cat "$PL" 2>/dev/null | wc -l)" = 1 ] && [ "$(head -n1 "$PL")" = "${#LONG}" ] \
+  && ok "send re-presses Enter so the pasted block is submitted exactly once" \
+  || bad "pasted block not submitted once: log=[$(cat "$PL" 2>/dev/null | tr '\n' ' ')] want ${#LONG}"
+touch "$PL.never"
+RC=0; ERR=$(TUI_SUBMIT_VERIFY=1 TUI_SUBMIT_RETRIES=1 "$EXE" send pp1 --socket "$SOCK" "$LONG" 2>&1 >/dev/null) || RC=$?
+[ "$RC" -ne 0 ] && ok "send exits non-zero when the message never lands" || bad "send hid a message that never landed"
+case "$ERR" in *"not submitted"*) ok "never-landed error says the message was not submitted" ;; *) bad "never-landed error unclear: $ERR" ;; esac
+"$EXE" kill pp1 --socket "$SOCK" >/dev/null 2>&1 || true
 
 echo "== results: $PASS/$TOTAL passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]

@@ -71,7 +71,7 @@ Spawn probes this machine first (Linux: `bwrap` can create a sandbox and
 the fix command when it cannot. `TMUX_AGENTS_UNSANDBOXED=1` is the explicit
 opt-out (same shape as fleet's `FLEET_REMOTE_UNSANDBOXED`): sandbox off with
 a loud WARN, Edit/Write deny rules still applied. `--args` may not carry its
-own `--settings` for a claude engine (exit 64). Codex is unchanged: it keeps
+own `--settings` for a claude engine (exit 64). To turn the sandbox off on a machine that can build it, use the separate `TMUX_AGENTS_SANDBOX_OFF=1` or `spawn --no-sandbox` (per spawn, WARN on stderr, Edit/Write deny rules kept; risk: a tricked worker can run anything your user can, sudo included); `TMUX_AGENTS_UNSANDBOXED=1` alone never does this. Codex is unchanged: it keeps
 `--sandbox workspace-write --ask-for-approval never`.
 
 **Fenced engines (`glm`, `glm-open`) do not get Claude's Bash sandbox.**
@@ -124,7 +124,8 @@ Subcommands and flags:
 | `watch` | `NAME` | `--result PATH` and `--notify ADDR` required; `--idle-min N` (default 10), `--interval S` (default 30), `--detach` (nohup/setsid, log in `$TMPDIR/tmux-agents-watch-NAME.log`; otherwise run it with `&` or `nohup`). Sends ONE `$HOME/.claude/skills/cfn-mailbox/mailbox.sh send ADDR` alert when the pane has been idle N minutes and PATH has not been written since the watch started; exits 0 when PATH's mtime is newer than the watch start (a file already there at start is ignored until rewritten, so a review round reusing one result file works) or the session ends. Idle = no working line (`esc to interrupt`, codex `Working (Ns`, spinner) and an unchanged screen; the codex placeholder `Ask Codex to do anything` is not proof of idle. `TMUX_AGENTS_WATCH_UNIT` = seconds per minute (60) |
 
 Env knobs: `TMUX_AGENTS_SOCKET` (default `tmux-agents`),
-`TMUX_AGENTS_UNSANDBOXED` (1 = run claude workers without the sandbox),
+`TMUX_AGENTS_UNSANDBOXED` (1 = run claude workers when the sandbox cannot be built),
+`TMUX_AGENTS_SANDBOX_OFF` (1 = sandbox off even when buildable; same as `--no-sandbox`),
 `TMUX_AGENTS_ALLOW_WRITE` (extra writable paths), `TMUX_AGENTS_OUTBOX_ROOT`
 (default `/tmp/tmux-agents-<uid>`),
 `TMUX_AGENTS_TRUST_TIMEOUT` (15), `TMUX_AGENTS_BANNER_TIMEOUT` (20),

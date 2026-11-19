@@ -21,6 +21,11 @@
 # Spawn refuses (66) when this machine cannot build the sandbox, unless
 # TMUX_AGENTS_UNSANDBOXED=1 (then the sandbox is off with a WARN and only the
 # Edit/Write deny rules fence the worker), mirroring FLEET_REMOTE_UNSANDBOXED.
+# That flag only means "run when the sandbox cannot be built". To turn the
+# sandbox off on a machine that CAN build it (a worker that needs the tmux
+# socket, network or a render server), use the separate explicit opt-out
+# TMUX_AGENTS_SANDBOX_OFF=1 or spawn --no-sandbox: per-spawn, never default,
+# WARN on stderr, Edit/Write deny rules still applied.
 
 # Under $HOME: directories (whole subtree) and single files.
 _TA_SBX_DENY_HOME_DIRS=(
@@ -35,12 +40,17 @@ _TA_SBX_DENY_HOME_FILES=(
 _TA_SBX_DENY_REPO_DIRS=(.claude/hooks)
 _TA_SBX_DENY_REPO_FILES=(.claude/settings.json .claude/settings.local.json .mcp.json)
 
-# _ta_sandbox_gate NAME DRY_RUN -> sets _TA_SBX_ON (1 sandbox on, 0 off).
+# _ta_sandbox_gate NAME DRY_RUN [SANDBOX_OFF] -> sets _TA_SBX_ON (1 sandbox on, 0 off).
 # Dies 66 when the sandbox cannot be built and TMUX_AGENTS_UNSANDBOXED is not
 # 1. Dry-run only warns that a live spawn would refuse.
 _ta_sandbox_gate() {
-  local name="$1" dry_run="$2"
+  local name="$1" dry_run="$2" off="${3:-0}"
   _TA_SBX_ON=1
+  if [ "$off" = 1 ] || [ "${TMUX_AGENTS_SANDBOX_OFF:-0}" = 1 ]; then
+    echo "WARN spawn: running $name WITHOUT the Bash sandbox (explicit opt-out TMUX_AGENTS_SANDBOX_OFF=1 / --no-sandbox); only the Edit/Write deny list fences it" >&2
+    _TA_SBX_ON=0
+    return 0
+  fi
   cfn_sandbox_local_probe && return 0
   if [ "${TMUX_AGENTS_UNSANDBOXED:-0}" = 1 ]; then
     echo "WARN spawn: running $name WITHOUT the Bash sandbox (TMUX_AGENTS_UNSANDBOXED=1; $CFN_SANDBOX_WHY); only the Edit/Write deny list fences it" >&2

@@ -48,7 +48,7 @@ Usage: execute.sh <command> [options]
 
 Commands:
   spawn NAME [--engine claude|claude-sub|glm|glm-open|codex] [--model M] [--cwd DIR]
-        [--prompt TEXT | --prompt-file PATH] [--dry-run]
+        [--prompt TEXT | --prompt-file PATH] [--dry-run] [--no-sandbox]
         [--bin PATH] [--args STR] [--banner-regex RE]
         [--trust-timeout S] [--banner-timeout S]
         [--socket SOCK]
@@ -88,7 +88,7 @@ _ta_next_arg() { # _ta_next_arg FLAG NAME — die 2 when a flag lacks its value
 }
 
 cmd_spawn() {
-  local name="" engine="" model="" cwd="" prompt="" prompt_file="" dry_run=0
+  local name="" engine="" model="" cwd="" prompt="" prompt_file="" dry_run=0 sandbox_off=0
   local bin_ov="" args_ov="" banner_ov="" trust_timeout="" banner_timeout=""
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -111,6 +111,7 @@ cmd_spawn() {
       --trust-timeout) _ta_next_arg "$1" "${2:-}"; trust_timeout="$2"; shift 2 ;;
       --banner-timeout) _ta_next_arg "$1" "${2:-}"; banner_timeout="$2"; shift 2 ;;
       --dry-run)     dry_run=1; shift ;;
+      --no-sandbox)  sandbox_off=1; shift ;;
       -*)            _ta_die 64 "spawn: unknown option $1" ;;
       *)             [ -z "$name" ] || _ta_die 64 "spawn: unexpected argument $1"
                      name="$1"; shift ;;
@@ -256,7 +257,7 @@ cmd_spawn() {
     if [ "$fenced" = 1 ]; then
       _TA_SBX_ON=0
     else
-      _ta_sandbox_gate "$name" "$dry_run"
+      _ta_sandbox_gate "$name" "$dry_run" "$sandbox_off"
       outbox=$(_ta_sandbox_outbox "$TA_SOCK" "$name")
     fi
     sbx_settings=$(_ta_sandbox_settings "$cwd" "$outbox" "$_TA_SBX_ON") \
@@ -515,7 +516,13 @@ cmd_send() {
   [ -n "$name" ] && [ -n "$text" ] || _ta_die 64 "usage: execute.sh send NAME TEXT..."
   tmux -L "$TA_SOCK" has-session -t "$name" 2>/dev/null \
     || _ta_die 65 "send: no session '$name' on socket $TA_SOCK"
-  _ta_send_followup "$TA_SOCK" "$name" "$text"
+  local src=0
+  _ta_send_followup "$TA_SOCK" "$name" "$text" || src=$?
+  case "$src" in
+    0) ;;
+    1) _ta_die 1 "send: tmux send-keys to '$name' failed; session gone?" ;;
+    *) _ta_die 69 "send: message to '$name' typed but not submitted; the text still sits in its input line after retries" ;;
+  esac
   local tail=""; [ "${#text}" -gt 60 ] && tail="..."
   echo "sent $name: ${text:0:60}${tail}"
 }

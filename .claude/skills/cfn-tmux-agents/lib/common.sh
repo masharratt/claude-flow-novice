@@ -207,13 +207,12 @@ _ta_shebang_interp() {
   printf '%s\n' "${words[0]}"
 }
 
-# _ta_send_followup SOCK TARGET TEXT — mid-turn follow-up. Sending text and
-# Enter in one motion leaves the text unsent while the worker is mid-turn
-# (cfn-fleet trap 6): text, one second, then a separate Enter.
+# _ta_send_followup SOCK TARGET TEXT — mid-turn follow-up through the shared
+# tui_send_followup (cfn-scripts/lib/tui-prompt.sh): text, settle, Enter, then
+# a landing check with bounded Enter retries (long text becomes a paste block
+# that needs a second Enter). rc 0 submitted, 1 tmux failure, 2 never submitted.
 _ta_send_followup() {
-  tmux -L "$1" send-keys -t "$2" -l "$3" || return 1
-  sleep 1
-  tmux -L "$1" send-keys -t "$2" Enter
+  tui_send_followup "$1" "$2" "$3"
 }
 
 # _ta_gate_cleared SOCK TARGET LINE — after a startup-modal key, wait (up to

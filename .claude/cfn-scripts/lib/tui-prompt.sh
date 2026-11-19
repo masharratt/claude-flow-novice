@@ -106,7 +106,7 @@ tui_input_pending() {
     cl=$(_tui_screen "$1" "$2" | grep -E '^[[:space:]]*❯' | tail -n 1 | sed -e 's/^[[:space:]]*❯[[:space:]]*//')
   fi
   [ -n "$cl" ] || return 1
-  case "$cl" in *"[Pasted text"*) return 0 ;; esac
+  case "$cl" in *"[Pasted text"*|*"[Pasted Content"*) return 0 ;; esac
   tail="${3##*$'\n'}"
   tail="${tail%"${tail##*[![:space:]]}"}"
   [ -n "$tail" ] || return 1
@@ -180,4 +180,36 @@ tui_send_first_prompt() {
   done
   tui_input_pending "$sock" "$tgt" "$text" && return 2
   return 3
+}
+
+# tui_send_followup SOCK TARGET TEXT: a message to a pane that may be mid-turn.
+# Type, settle, Enter, then poll until the input line is clear (the agent took
+# it, or queued it behind its current turn). A long text becomes a
+# "[Pasted Content N chars]" block in Codex whose first Enter does not submit
+# (BUG tmux-send-paste, 2026-11-19); Enter is pressed again while the block or
+# the typed text still sits in the input line. No history-echo or working-line
+# check here: a busy worker queues the message and shows neither.
+# rc 0 submitted; 1 tmux failure; 2 never submitted (input line never cleared).
+tui_send_followup() {
+  local sock="$1" tgt="$2" text="$3" i try verify retries deadline
+  verify="${TUI_SUBMIT_VERIFY:-3}"
+  retries="${TUI_SUBMIT_RETRIES:-3}"
+  _tui_tmux -L "$sock" send-keys -t "$tgt" -l -- "$text" || return 1
+  for ((i = 0; i < 25; i++)); do
+    tui_input_pending "$sock" "$tgt" "$text" && break
+    sleep 0.2
+  done
+  sleep "${TUI_SUBMIT_SETTLE:-1}"
+  _tui_tmux -L "$sock" send-keys -t "$tgt" Enter || return 1
+  for ((try = 0; try <= retries; try++)); do
+    deadline=$((SECONDS + verify))
+    while :; do
+      sleep 0.2
+      tui_input_pending "$sock" "$tgt" "$text" || return 0
+      [ "$SECONDS" -lt "$deadline" ] || break
+    done
+    [ "$try" -lt "$retries" ] || break
+    _tui_tmux -L "$sock" send-keys -t "$tgt" Enter || return 1
+  done
+  return 2
 }
