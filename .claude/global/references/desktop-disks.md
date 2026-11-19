@@ -8,8 +8,9 @@ WSL disk (vhdx) is attached, mounted, shrunk or grown. Measured 2026-11-02 (MDTW
 | Mount | Windows file | Kind | Holds |
 |---|---|---|---|
 | `/` | `D:\WSL\Ubuntu\ext4.vhdx` | dynamic, never shrinks by itself | code, installs, sessions, models: things that change slowly |
-| `/mnt/wsl/churn` | `D:\WSL\churn-disk.vhdx` | **fixed 520 GiB** | everything written and deleted often: `CARGO_TARGET_DIR` for ALL projects (`/mnt/wsl/churn/cargo-target`), MDTWII warm builds, art trials + art cache, big `~/.cache` folders and `~/.npm` (symlinks into `churn/home-cache`) |
+| `/mnt/wsl/churn` | `D:\WSL\churn-disk.vhdx` | **fixed 520 GiB** | everything written and deleted often: `CARGO_TARGET_DIR` for ALL projects (`/mnt/wsl/churn/cargo-target`), MDTWII warm builds, big `~/.cache` folders and `~/.npm` (symlinks into `churn/home-cache`) |
 | `/mnt/wsl/build` | `C:\WSL\build-disk.vhdx` | dynamic | stable data: MDTWII game data `extracted/`, permanent art |
+| `/mnt/wsl/art` | `E:\WSL\art-disk.vhdx` | **fixed 600 GiB**, ext4 label `art` | MDTWII art trials + art cache (since 2026-11-16; old churn paths are links). Marker file `/mnt/wsl/art/.art-disk`: never write art here if it is missing |
 | `/mnt/d/wsl-cache` | plain D: folder | | pip, uv, HF, ollama, playwright, go caches (set in `~/.bashrc`) |
 
 Both extra disks are attached at Windows logon by the scheduled task **"WSL build disk"**. After `wsl --shutdown` the
@@ -31,8 +32,8 @@ task does not rerun; a new shell runs it (`~/.bashrc` block "WSL cache relocatio
   - `codex-session-reaper.sh` + user timer `codex-session-reaper.timer` (05:50 daily): deletes `*.jsonl` older than 3 days
     under `~/.codex/sessions` only, then empty dirs. Refuses every other path; never touches
     `/mnt/c/Users/masha/.codex` (Windows desktop app).
-  - `disk-growth-guard.sh`, called by desktop-health: logs `root_used=<GB>`, mails when `/` used > 200 GB or grew
-    > 15 GB in 7 days, and lists dirs > 2 GB that look like cargo targets (`CACHEDIR.TAG` or `debug/.fingerprint`)
+  - `disk-growth-guard.sh`, called by desktop-health: logs `root_used=<GB>`, mails when `/` used > 350 GB or grew
+    > 40 GB in 7 days, and lists dirs > 2 GB that look like cargo targets (`CACHEDIR.TAG` or `debug/.fingerprint`)
     outside `/mnt/wsl/churn` as `cargo_big=[...]`. Report only, never deletes. Scans `/` on one filesystem, never
     `/mnt`; the scan runs detached every 6 h (about 3 min).
 
@@ -67,5 +68,5 @@ task does not rerun; a new shell runs it (`~/.bashrc` block "WSL cache relocatio
 
 ## MDTWII path details
 - In the MDTWII main checkout (`~/projects/MDTWII`), `.git/mdtwii-warm` resolves into the churn disk; the old `/mnt/wsl/build/mdtwii-warm/env.sh` is only a forwarding path. Do not assume another project's or a linked worktree's `.git` has this layout.
-- Workshop trials/cache resolve to churn. Permanent study/archive/cc0/prepared/bodies/approved/refs/references/intake resolve into `/mnt/wsl/build/art-permanent`.
+- Workshop trials/cache resolve to the art disk `/mnt/wsl/art` (via `/mnt/wsl/churn/art/trials` link). Permanent study/archive/cc0/prepared/bodies/approved/refs/references/intake resolve into `/mnt/wsl/build/art-permanent`.
 - Protected out-of-repo data roots are listed in `.zai-fence-readonly-roots`; keep that allowlist aligned with physical extracted-data storage when moving it.

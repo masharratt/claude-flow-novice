@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # disk-growth-guard.sh: root-disk growth checks, run by desktop-health.sh each tick. Prints lines, never deletes.
 #   root_used=<GiB>                         always (desktop-health copies it into health.log)
-#   WARN root_high <text>                  / used > ROOT_WARN_GB (200, GiB)
-#   WARN root_growth <text>                / grew > GROWTH_WARN_GB (15) over GROWTH_DAYS (7); skipped while / is under
+#   WARN root_high <text>                  / used > ROOT_WARN_GB (350, GiB)
+#   WARN root_growth <text>                / grew > GROWTH_WARN_GB (40) over GROWTH_DAYS (7); skipped while / is under
 #                                          GROWTH_MIN_PCT (60) full; printed only when new, worse by GROWTH_STEP_GB (10)
 #                                          than the last one printed, or GROWTH_REPEAT_S (86400) after it (state: growth-sent)
 #   CARGO <path> <size_gb>G                dirs > CARGO_MIN_BYTES (2e9 bytes) that look like cargo targets
@@ -13,8 +13,8 @@
 set -u
 STATE="${STATE:-$HOME/.local/state/desktop-health}"
 NOW="${NOW:-$(date +%s)}"
-ROOT_WARN_GB="${ROOT_WARN_GB:-200}"
-GROWTH_WARN_GB="${GROWTH_WARN_GB:-15}"
+ROOT_WARN_GB="${ROOT_WARN_GB:-350}"
+GROWTH_WARN_GB="${GROWTH_WARN_GB:-40}"
 GROWTH_DAYS="${GROWTH_DAYS:-7}"
 GROWTH_MIN_PCT="${GROWTH_MIN_PCT:-60}"
 GROWTH_STEP_GB="${GROWTH_STEP_GB:-10}"

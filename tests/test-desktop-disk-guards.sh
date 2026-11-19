@@ -94,10 +94,13 @@ if [ ! -x "$G" ]; then no "guard missing=[$G] unexpected=[]"; else
   case "$out" in *WARN*) unex="WARN" ;; esac
   report "root_used printed, quiet below thresholds" "$miss" "$unex"
   # absolute threshold
-  out=$(run ROOT_USED_BYTES=$((201*GB)) STATE="$T/s2")
-  case "$out" in *"WARN root_high"*) ok "warns when / used > 200 GB" ;; *) no "warns when / used > 200 GB missing=[WARN root_high] unexpected=[]";; esac
-  out=$(run ROOT_USED_BYTES=$((200*GB)) STATE="$T/s2b")
-  case "$out" in *"WARN root_high"*) no "no warn at exactly 200 GB missing=[] unexpected=[WARN root_high]";; *) ok "no warn at exactly 200 GB";; esac
+  # Defaults raised 2026-11-18 (user: root_high was noise at 202 of 1007 GB): 350 GiB, growth 40 GiB / 7 days.
+  out=$(run ROOT_USED_BYTES=$((351*GB)) STATE="$T/s2")
+  case "$out" in *"WARN root_high"*) ok "warns when / used > 350 GB" ;; *) no "warns when / used > 350 GB missing=[WARN root_high] unexpected=[]";; esac
+  out=$(run ROOT_USED_BYTES=$((350*GB)) STATE="$T/s2b")
+  case "$out" in *"WARN root_high"*) no "no warn at exactly 350 GB missing=[] unexpected=[WARN root_high]";; *) ok "no warn at exactly 350 GB";; esac
+  out=$(run ROOT_USED_BYTES=$((202*GB)) STATE="$T/s2d")
+  case "$out" in *"WARN root_high"*) no "202 GB quiet under new default missing=[] unexpected=[WARN root_high]";; *) ok "202 GB (the noisy case) is quiet";; esac
   # Regression (mdtwii-master 2026-11-07): the guard used decimal GB, so 188 GiB on df -h read as
   # 202 "GB" and root_high fired every scan. Thresholds are in GiB, matching what the user sees.
   out=$(run ROOT_USED_BYTES=202000000000 STATE="$T/s2c")
@@ -107,8 +110,11 @@ if [ ! -x "$G" ]; then no "guard missing=[$G] unexpected=[]"; else
   report "202 decimal GB (188 GiB) is under the 200 GiB line" "$miss" "$unex"
   # growth: seed history 6 days ago at 100 GB, now 120 GB
   mkdir -p "$T/s3"; echo "$((1000000000 - 6*86400)) $((100*GB))" > "$T/s3/root-used.tsv"
-  out=$(run ROOT_USED_BYTES=$((120*GB)) STATE="$T/s3")
-  case "$out" in *"WARN root_growth"*) ok "warns when growth > 15 GB in 7 days" ;; *) no "warns on growth missing=[WARN root_growth] unexpected=[]";; esac
+  out=$(run ROOT_USED_BYTES=$((145*GB)) STATE="$T/s3")
+  case "$out" in *"WARN root_growth"*) ok "warns when growth > 40 GB in 7 days" ;; *) no "warns on growth missing=[WARN root_growth] unexpected=[]";; esac
+  mkdir -p "$T/s3b"; echo "$((1000000000 - 6*86400)) $((100*GB))" > "$T/s3b/root-used.tsv"
+  out=$(run ROOT_USED_BYTES=$((120*GB)) STATE="$T/s3b")
+  case "$out" in *"WARN root_growth"*) no "20 GB growth quiet under 40 GB default missing=[] unexpected=[WARN root_growth]";; *) ok "20 GB growth is quiet under the 40 GB default";; esac
   # growth under threshold, and baseline older than 7 days ignored
   mkdir -p "$T/s4"; printf '%s\n%s\n' "$((1000000000 - 9*86400)) $((50*GB))" "$((1000000000 - 6*86400)) $((110*GB))" > "$T/s4/root-used.tsv"
   out=$(run ROOT_USED_BYTES=$((120*GB)) STATE="$T/s4")
@@ -117,7 +123,7 @@ if [ ! -x "$G" ]; then no "guard missing=[$G] unexpected=[]"; else
   grep -q "^1000000000 " "$T/s4/root-used.tsv" && ok "history appended" || no "history appended missing=[row 1000000000] unexpected=[]"
   # growth warning repeat rule: send when new, worse by GROWTH_STEP_GB (10), or once a day; else silent
   mkdir -p "$T/g1"; echo "$((1000000000 - 3*86400)) $((100*GB))" > "$T/g1/root-used.tsv"
-  grew() { run STATE="$T/g1" "$@" | grep -c "WARN root_growth"; }
+  grew() { run STATE="$T/g1" GROWTH_WARN_GB=15 "$@" | grep -c "WARN root_growth"; }
   n=$(grew ROOT_USED_BYTES=$((120*GB)))
   [ "$n" = 1 ] && ok "growth warning sent when new" || no "growth warning sent when new missing=[1 line] unexpected=[$n lines]"
   n=$(grew ROOT_USED_BYTES=$((120*GB)) NOW=1000000060)
@@ -140,11 +146,11 @@ if [ ! -x "$G" ]; then no "guard missing=[$G] unexpected=[]"; else
   [ "$n" = 1 ] && ok "growth that cleared and returned is new again" || no "returned growth missing=[1 line] unexpected=[$n lines]"
   # under 60% full: growth warning skipped; root_high unaffected
   mkdir -p "$T/g2"; echo "$((1000000000 - 6*86400)) $((100*GB))" > "$T/g2/root-used.tsv"
-  out=$(run STATE="$T/g2" ROOT_USED_BYTES=$((120*GB)) ROOT_TOTAL_BYTES=$((1007*GB)))
+  out=$(run STATE="$T/g2" GROWTH_WARN_GB=15 ROOT_USED_BYTES=$((120*GB)) ROOT_TOTAL_BYTES=$((1007*GB)))
   case "$out" in *"WARN root_growth"*) no "growth skipped under 60% full missing=[] unexpected=[WARN root_growth]";; *) ok "growth warning skipped while / is under 60% full";; esac
-  out=$(run STATE="$T/g2" ROOT_USED_BYTES=$((120*GB)) ROOT_TOTAL_BYTES=$((1007*GB)) GROWTH_MIN_PCT=10)
+  out=$(run STATE="$T/g2" GROWTH_WARN_GB=15 ROOT_USED_BYTES=$((120*GB)) ROOT_TOTAL_BYTES=$((1007*GB)) GROWTH_MIN_PCT=10)
   case "$out" in *"WARN root_growth"*) ok "GROWTH_MIN_PCT env lowers the floor" ;; *) no "GROWTH_MIN_PCT missing=[WARN root_growth] unexpected=[]";; esac
-  out=$(run STATE="$T/g2b" ROOT_USED_BYTES=$((201*GB)) ROOT_TOTAL_BYTES=$((1007*GB)))
+  out=$(run STATE="$T/g2b" ROOT_USED_BYTES=$((351*GB)) ROOT_TOTAL_BYTES=$((1007*GB)))
   case "$out" in *"WARN root_high"*) ok "root_high still fires under 60% full" ;; *) no "root_high under 60% missing=[WARN root_high] unexpected=[]";; esac
   # cargo finder
   CT="$T/scan"; mkdir -p "$CT/big1/debug/.fingerprint" "$CT/big2" "$CT/small" "$CT/plain" "$CT/churn/tgt"
