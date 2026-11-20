@@ -38,7 +38,9 @@
 #          minus env/apiKeyHelper/aws* keys) and ~/.gitconfig (user.name,
 #          user.email, init.defaultBranch only); GIT_CONFIG_NOSYSTEM=1.
 #   (e)    secret masks: root .env*, settings.local.json; openings: the
-#          CFN_OPEN_SECRET_NAMES list; unix sockets in root/openings; then
+#          CFN_OPEN_SECRET_NAMES list (a *.key / *.pem only when its first
+#          4 KB holds a PRIVATE KEY header; build stamps and certificates stay
+#          readable); unix sockets in root/openings; then
 #          credential masks (CFN_CRED_PATHS, ~/.claude/.credentials.json and
 #          history real paths) wherever exposed, LAST.
 # Namespaces: --unshare-all (user, pid, ipc, uts, cgroup, net) + --new-session.
@@ -292,13 +294,35 @@ exposed(){
 # scan_tree SRC DEST SECS NAMES...: through the pinned SRC (/proc/<pid>/fd/N),
 # mask every match of NAMES and every unix socket at its DEST path, and record
 # .git dirs in GIT_REPOS. Any find error or timeout exits 70.
+# key_shaped_but_not_key SRCPATH OTHERNAMES...: rc 0 when SRCPATH is a regular
+# (non-symlink) readable *.key / *.pem file matching none of OTHERNAMES whose
+# first 4 KB holds no "-----BEGIN ... PRIVATE KEY-----" line (policy
+# 2026-11-20: build stamps and cert-only PEMs stay readable). Anything else
+# (unreadable, not a regular file, another secret name, other extension such
+# as .p12/.pfx, a private key header) returns 1 so the caller masks it.
+# Bounded builtin read, no fork per file; NUL bytes are dropped by read.
+key_shaped_but_not_key(){
+  local f="$1" b o c=""; shift
+  b="${f##*/}"
+  case "$b" in *.key|*.pem) ;; *) return 1 ;; esac
+  # shellcheck disable=SC2053  # glob match on purpose
+  set -f; for o in "$@"; do [[ "$b" == $o ]] && { set +f; return 1; }; done; set +f
+  [ -f "$f" ] && [ ! -L "$f" ] && [ -r "$f" ] || return 1
+  IFS= read -r -d '' -N 4096 c < "$f" 2>/dev/null || true
+  [[ "$c" =~ -----BEGIN\ [A-Z0-9\ ]*PRIVATE\ KEY----- ]] && return 1
+  return 0
+}
+
 GIT_REPOS=()
 GIT_POINTERS=()   # .git FILES (worktree / submodule pointers)
 scan_tree(){
   local src="$1" dest="$2" secs="$3" out err rc=0 bad p rel t n
   local -A hits=()
   shift 3
-  local -a expr=()
+  local -a expr=() others=()
+  # Names other than *.key / *.pem: a file matching one of these is always
+  # masked; *.key / *.pem alone are masked only when they hold a private key.
+  for n in "$@"; do case "$n" in '*.key'|'*.pem') ;; *) others+=("$n") ;; esac; done
   for n in "$@"; do expr+=(${expr[@]+-o} -name "$n"); done
   out=$(mktemp "${TMPDIR:-/tmp}/zai-fence-scan.XXXXXX") || die "cannot create scan file"
   err="$out.err"
@@ -331,7 +355,9 @@ scan_tree(){
     fi
   fi
   if [ "$rc" -ne 0 ] || [ -n "$bad" ]; then rm -f "$out" "$err"; die "secret scan of $dest failed (find exit $rc), refusing to start: ${bad%%$'\n'*}"; fi
+  local sp
   while IFS=$'\t' read -r -d '' t p; do
+    sp="$p"
     rel="${p#"$src"/}"; [ "$rel" = "$p" ] && rel="${p#"$src"}"
     p="$dest/$rel"; p="${p%/}"
     case "$t" in
@@ -342,6 +368,8 @@ scan_tree(){
       M) if [ -L "$p" ]; then
            local r; r=$(realpath -e "$p" 2>/dev/null) || continue
            exposed "$r" && mask "$r"
+         elif key_shaped_but_not_key "$sp" "${others[@]+"${others[@]}"}"; then
+           continue   # build stamp / certificate: readable by policy
          elif [ "$SCAN_COLLAPSE" = 1 ] && [ "${p%/*}" != "$dest" ] && [[ "$p" != *$'\n'* ]]; then
            hits["${p%/*}"]+="$p"$'\n'
          else mask "$p"; fi ;;

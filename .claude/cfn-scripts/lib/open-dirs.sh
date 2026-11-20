@@ -58,7 +58,10 @@ CFN_CRED_PATHS=".ssh .aws .gnupg .config/gh .config/gh-work .config/cfn-mailbox 
 CFN_FENCE_SCRUB_ENV="OPENAI_API_KEY ANTHROPIC_API_KEY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN PGPASSWORD DATABASE_URL POSTGRES_URL AIRTABLE_API_KEY AIRTABLE_TOKEN ATTIO_API_KEY SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY"
 
 # Secret file/dir names masked inside every glm-open folder (Linux allow-list
-# backend: find -name patterns; directories become empty tmpfs).
+# backend: find -name patterns; directories become empty tmpfs). Exception
+# (zai-fence-linux.sh key_shaped_but_not_key): a *.key or *.pem file is masked
+# only when its first 4 KB holds a "-----BEGIN ... PRIVATE KEY-----" line;
+# build stamps and cert-only PEMs stay readable. *.p12 / *.pfx always mask.
 CFN_OPEN_SECRET_NAMES=".env .env.* .envrc .dev.vars *.local.json settings.local.json .npmrc .pypirc .netrc .git-credentials credentials credentials.json credentials.*.json service-account*.json *.pem *.key *.p12 *.pfx id_rsa* id_ed25519* id_ecdsa* .aws .docker .ssh .vercel .supabase secrets.* *.tfstate*"
 
 # Approval store (host only, absent inside every fence): one file per fence root,

@@ -799,7 +799,8 @@ test_allow_12_secret_names(){
   local O="$TMP/opened-a12" f leaked=()
   mkdir -p "$O/.claude" "$O/deep/x"
   for f in .claude/settings.local.json app.local.json .npmrc .netrc .git-credentials credentials.json deep/x/server.pem deep/x/tls.key service-account-prod.json .envrc .dev.vars secrets.yaml; do
-    echo "SECRETNAME_${f//[^a-z]/}_$$" > "$O/$f"
+    case "$f" in *.key|*.pem) printf -- '-----BEGIN PRIVATE KEY-----\n' > "$O/$f" ;; *) : > "$O/$f" ;; esac  # key-shaped names are masked by content
+    echo "SECRETNAME_${f//[^a-z]/}_$$" >> "$O/$f"
   done
   commit_list "ro:$O"; "$APPROVE" "$FENCE" >/dev/null 2>&1
   PROBE="echo PROBE_RAN; cd $(q "$O") && cat .claude/settings.local.json app.local.json .npmrc .netrc .git-credentials credentials.json deep/x/server.pem deep/x/tls.key service-account-prod.json .envrc .dev.vars secrets.yaml 2>/dev/null; true"
@@ -1044,7 +1045,8 @@ test_allow_fin_3_root_secret_names(){
   local f leaked=()
   mkdir -p "$FENCE/fin3/x"
   for f in credentials.json x/server.pem x/tls.key .npmrc .dev.vars .envrc service-account-ci.json x/state.tfstate; do
-    echo "ROOTSECRET_${f//[^a-z]/}_$$" > "$FENCE/fin3/$f"
+    case "$f" in *.key|*.pem) printf -- '-----BEGIN PRIVATE KEY-----\n' > "$FENCE/fin3/$f" ;; *) : > "$FENCE/fin3/$f" ;; esac  # key-shaped names are masked by content
+    echo "ROOTSECRET_${f//[^a-z]/}_$$" >> "$FENCE/fin3/$f"
   done
   PROBE="echo PROBE_RAN; cd fin3 && cat credentials.json x/server.pem x/tls.key .npmrc .dev.vars .envrc service-account-ci.json x/state.tfstate 2>/dev/null; true"
   fence_run "$FENCE"
@@ -1255,9 +1257,9 @@ test_allow_field_11_keymask_collapse(){
   local O="$TMP/opened-field11" i j s
   for i in $(seq 1 700); do
     mkdir -p "$O/b$i/stamps"
-    for j in 1 2 3 4 5 6; do printf 'KEYSECRET_%s\n' "$$" > "$O/b$i/stamps/s$j.key"; done
+    for j in 1 2 3 4 5 6; do printf -- '-----BEGIN PRIVATE KEY-----\nKEYSECRET_%s\n' "$$" > "$O/b$i/stamps/s$j.key"; done
   done
-  mkdir -p "$O/mixed"; printf 'KEYSECRET_%s\n' "$$" > "$O/mixed/a.key"; echo "KEEP_VISIBLE_$$" > "$O/mixed/keep.txt"
+  mkdir -p "$O/mixed"; printf -- '-----BEGIN PRIVATE KEY-----\nKEYSECRET_%s\n' "$$" > "$O/mixed/a.key"; echo "KEEP_VISIBLE_$$" > "$O/mixed/keep.txt"
   commit_list "ro:$O"
   PROBE="echo PROBE_RAN; cat $(q "$O/b1/stamps/s1.key") $(q "$O/b700/stamps/s6.key") $(q "$O/mixed/a.key") 2>/dev/null; cat $(q "$O/mixed/keep.txt"); true"
   fence_run "$FENCE" ZAI_FENCE_OPEN_DIRS=1
@@ -1268,6 +1270,32 @@ test_allow_field_11_keymask_collapse(){
   grep -q "KEEP_VISIBLE_$$" <<<"$OUT" || s="${s:+$s; }a non-secret file beside a mask was hidden"
   if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_11_keymask_collapse"
   else no "test_allow_field_11_keymask_collapse: $s out=$(head -c 400 <<<"$OUT")"; fi
+  drop_list; rm -rf "$O"
+}
+
+# Policy 2026-11-20: *.key / *.pem files are masked only when their first 4 KB
+# holds a PRIVATE KEY header; build stamps and certificates stay readable.
+test_allow_field_13_key_content(){
+  linux_only test_allow_field_13_key_content || return 0
+  local O="$TMP/opened-field13" s f
+  mkdir -p "$O/d"
+  printf 'STAMPOK_%s\n' "$$" > "$O/d/build.key"
+  head -c 24 /dev/zero | tr '\0' 'A' > "$O/d/stamp24.key"
+  printf -- '-----BEGIN CERTIFICATE-----\nCERTOK_%s\n-----END CERTIFICATE-----\n' "$$" > "$O/d/cert.pem"
+  printf -- '-----BEGIN OPENSSH PRIVATE KEY-----\nPRIVKEY_a_%s\n' "$$" > "$O/d/id.key"
+  printf -- 'junk\n-----BEGIN RSA PRIVATE KEY-----\nPRIVKEY_b_%s\n' "$$" > "$O/d/server.pem"
+  printf -- '-----BEGIN ENCRYPTED PRIVATE KEY-----\nPRIVKEY_c_%s\n' "$$" > "$O/d/enc.pem"
+  ln -s id.key "$O/d/link.key"
+  commit_list "ro:$O"
+  PROBE="echo PROBE_RAN; cd $(q "$O/d") && cat build.key cert.pem; echo ---; cat id.key server.pem enc.pem link.key 2>/dev/null; true"
+  fence_run "$FENCE" ZAI_FENCE_OPEN_DIRS=1
+  s=""
+  [ "$RC" -eq 0 ] || s="launch refused rc=$RC"
+  grep -q "STAMPOK_$$" <<<"$OUT" || s="${s:+$s; }build-stamp *.key hidden"
+  grep -q "CERTOK_$$" <<<"$OUT" || s="${s:+$s; }certificate-only *.pem hidden"
+  for f in a b c; do grep -q "PRIVKEY_${f}_$$" <<<"$OUT" && s="${s:+$s; }private key $f readable"; done
+  if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_13_key_content"
+  else no "test_allow_field_13_key_content: $s out=$(head -c 400 <<<"$OUT")"; fi
   drop_list; rm -rf "$O"
 }
 
@@ -1632,6 +1660,7 @@ test_allow_field_8_worktree_top_refusals
 test_allow_field_9_mask_budget
 test_allow_field_10_registry_scale
 test_allow_field_11_keymask_collapse
+test_allow_field_13_key_content
 test_allow_field_12_arg_ceiling_guard
 test_allow_noscan
 test_tmux_socket_blocked
