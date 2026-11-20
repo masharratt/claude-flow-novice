@@ -1173,6 +1173,45 @@ test_allow_field_4_nonpointer_git_masked(){
   rm -rf "$FENCE/f4cache"
 }
 
+# BUG zai-fence-mask-arg-overflow (2026-11-20 13:40, MDTWII glm-open lane):
+# every stray .git (thousands under a uv cache) added its own bwrap mount args
+# plus pinned ancestors, and bwrap refused "Exceeded maximum number of arguments
+# 9000", so glm-open lanes could not start. Masking now has a fixed argument
+# budget (ZAI_FENCE_MASK_BUDGET), applied in a stable order; the rest are
+# skipped with ONE stderr summary line, never a refused launch.
+test_allow_field_9_mask_budget(){
+  linux_only test_allow_field_9_mask_budget || return 0
+  local O="$TMP/opened-field9" s i n m p1 p2 dup
+  mkdir -p "$O/cache"
+  for i in $(seq 1 2500); do
+    mkdir -p "$O/cache/f$i" "$O/cache/d$i/.git"
+    : > "$O/cache/f$i/.git"
+  done
+  commit_list "$O"
+  PROBE="echo PROBE_RAN; true"; fence_run "$FENCE" ZAI_FENCE_OPEN_DIRS=1
+  s=""
+  [ "$RC" -eq 0 ] || s="launch refused rc=$RC"
+  grep -q 'Exceeded maximum number of arguments' <<<"$OUT" && s="${s:+$s; }bwrap argument overflow"
+  n=$(grep -c '^zai-fence: skipped masking' <<<"$OUT")
+  [ "$n" -eq 1 ] || s="${s:+$s; }want one skipped-masking summary line, got $n"
+  grep '^zai-fence: skipped masking' <<<"$OUT" | grep -q "$O/cache/" || s="${s:+$s; }summary names no skipped path"
+  m=$(grep -c '^zai-fence: masked ' <<<"$OUT")
+  [ "$m" -ge 1 ] && [ "$m" -le 100 ] || s="${s:+$s; }masked notes=$m, want 1..100"
+  # stable order: two plans mask the same paths
+  p1=$(cd "$FENCE" && env ZAI_FENCE_OPEN_DIRS=1 ZAI_FENCE_PRINT_PROFILE=1 "$WRAP" /bin/true 2>&1 | grep '^zai-fence: masked ')
+  p2=$(cd "$FENCE" && env ZAI_FENCE_OPEN_DIRS=1 ZAI_FENCE_PRINT_PROFILE=1 "$WRAP" /bin/true 2>&1 | grep '^zai-fence: masked ')
+  [ -n "$p1" ] && [ "$p1" = "$p2" ] || s="${s:+$s; }masked set differs between runs"
+  # an ancestor is pinned once, however many protected paths sit under it
+  # (only the cache: other trees legitimately pin a dir and re-bind it rw later)
+  dup=$(cd "$FENCE" && env ZAI_FENCE_OPEN_DIRS=1 ZAI_FENCE_PRINT_PROFILE=1 "$WRAP" /bin/true 2>/dev/null \
+        | awk 'a=="--bind"{print b"|"$0} {a=b; b=$0}' | awk -F'|' '$1==$2' | grep -F "$O/cache" | sort | uniq -d | head -3)
+  [ -z "$dup" ] || s="${s:+$s; }ancestor pinned twice: $dup"
+  if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_9_mask_budget"
+  else no "test_allow_field_9_mask_budget: $s out=$(grep -v '^zai-fence: masked ' <<<"$OUT" | head -c 400)"; fi
+  drop_list
+  rm -rf "$O"
+}
+
 # BUG zai-fence-outside-worktree (2026-11-19): plain glm launched in a linked
 # worktree kept OUTSIDE the main checkout (~/mdtwii-desk-wt/x) failed
 # "bwrap: Can't chdir to <worktree>": only the main repo was bound. The fence
@@ -1515,6 +1554,7 @@ test_allow_field_5_outside_worktree
 test_allow_field_6_worktree_registry_ro
 test_allow_field_7_pointer_backlink
 test_allow_field_8_worktree_top_refusals
+test_allow_field_9_mask_budget
 test_allow_noscan
 test_tmux_socket_blocked
 test_env_scrubbed

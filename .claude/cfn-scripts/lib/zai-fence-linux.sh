@@ -379,10 +379,12 @@ worktree_registry_ro(){
 git_protect(){
   local r="$1" g="$1/.git" t k v
   [ -d "$g" ] || return 0
-  no_link "$g"
   # no HEAD: not a repository (a cache or a stray dir); hide it rather than
-  # write placeholders into it and leave its missing config creatable
+  # write placeholders into it and leave its missing config creatable.
+  # (git_mask_apply runs no_link on the ones it masks: one fork per stray
+  # .git here cost seconds on a uv cache holding thousands.)
   if [ ! -e "$g/HEAD" ] && [ ! -L "$g/HEAD" ]; then git_mask "$g"; return 0; fi
+  no_link "$g"
   # first: its child re-binds must sit under the file binds below
   worktree_registry_ro "$g"
   no_link "$g/hooks"
@@ -421,13 +423,47 @@ git_protect(){
 # writable ancestors are pinned (a renamed parent cannot carry the mask away),
 # and the mount lands on whatever is at the path at bwrap time, so a host-side
 # swap after this check still ends up masked (a type change fails the preflight).
-git_mask(){
-  local p="$1"
-  no_link "$p"
-  if [ -d "$p" ]; then A+=(--tmpfs "$p" --remount-ro "$p")
-  else A+=(--ro-bind /dev/null "$p"); fi
-  PROT+=("$p")
-  echo "zai-fence: masked $p (a .git that is not a git pointer or repository; hidden read-only inside the fence)" >&2
+#
+# BUG zai-fence-mask-arg-overflow (2026-11-20 13:40, MDTWII): one mask per
+# stray .git, each with its own pinned ancestors, passed bwrap's 9000-argument
+# limit on a uv cache holding thousands, and every glm-open launch was refused.
+# So git_mask only queues the path; git_mask_apply masks the queue in a stable
+# (sorted) order until the args it adds (the mask plus each ancestor it newly
+# pins) would pass ZAI_FENCE_MASK_BUDGET, then skips the rest with ONE stderr
+# summary line. It never refuses the launch for this.
+# cfn: fixed arg budget (default 100), skipped stray .git stay writable and are
+# covered only by the known post-run .git planting risk; upgrade to a host-side
+# post-run check of every skipped path (or one tmpfs over a whole cache dir) if
+# skips show up on a folder a worker is expected to write in.
+ZAI_FENCE_MASK_BUDGET="${ZAI_FENCE_MASK_BUDGET:-100}"
+case "$ZAI_FENCE_MASK_BUDGET" in ''|*[!0-9]*) die "ZAI_FENCE_MASK_BUDGET must be a whole number of bwrap arguments, got '$ZAI_FENCE_MASK_BUDGET'" ;; esac
+MASK_QUEUE=()
+git_mask(){ MASK_QUEUE+=("$1"); }
+git_mask_apply(){
+  local p d cost used=0 n=0 i
+  local -a sorted=() skipped=() new=()
+  local -A pinned=()
+  [ "${#MASK_QUEUE[@]}" -gt 0 ] || return 0
+  mapfile -d '' -t sorted < <(printf '%s\0' "${MASK_QUEUE[@]}" | LC_ALL=C sort -z -u)
+  MASK_QUEUE=()
+  for i in "${!sorted[@]}"; do
+    p="${sorted[$i]}"
+    ancestor_chain "$p"
+    new=()
+    for d in ${ANC_CHAIN[@]+"${ANC_CHAIN[@]}"}; do [ -n "${pinned[$d]:-}" ] || new+=("$d"); done
+    if [ -d "$p" ]; then cost=4; else cost=3; fi
+    cost=$((cost + 3 * ${#new[@]}))   # --bind D D per newly pinned ancestor
+    if [ $((used + cost)) -gt "$ZAI_FENCE_MASK_BUDGET" ]; then skipped=("${sorted[@]:$i}"); break; fi
+    no_link "$p"
+    used=$((used + cost)); n=$((n + 1))
+    for d in ${new[@]+"${new[@]}"}; do pinned[$d]=1; done
+    if [ -d "$p" ]; then A+=(--tmpfs "$p" --remount-ro "$p")
+    else A+=(--ro-bind /dev/null "$p"); fi
+    PROT+=("$p")
+    echo "zai-fence: masked $p (a .git that is not a git pointer or repository; hidden read-only inside the fence)" >&2
+  done
+  [ "${#skipped[@]}" -gt 0 ] || return 0
+  echo "zai-fence: skipped masking ${#skipped[@]} stray .git paths (masked $n; ZAI_FENCE_MASK_BUDGET=$ZAI_FENCE_MASK_BUDGET bwrap args used up), first: ${skipped[*]:0:3}; these stay writable inside the fence, covered only by the known post-run .git planting risk" >&2
 }
 
 # git_pointer_check FILE: a .git pointer must resolve inside the repo tree it
@@ -561,26 +597,35 @@ claude_dir_ro(){
 
 TRUSTED="CLAUDE.md RTK.md model-pricing.md statusline-command.sh rules references agents skills commands hooks helpers core cfn-config cfn-scripts cfn-data cfn-extras prompts adaptive-context agent-principles tooling plugins"
 
-# pin_ancestors: for every PROT path inside a writable tree (the root or an rw
-# opening), self-bind each directory between that tree's top and the path,
-# top-down, deduplicated. The tree tops are mount points already.
-pin_ancestors(){
-  local p t top best d om
-  local -a chain
-  local -A seen=()
+# ancestor_chain P: ANC_CHAIN = the directories between the writable tree P
+# sits in (the root, an outside worktree or an rw opening; the longest top
+# wins) and P, top-down; empty when P is in no writable tree. Shared by
+# pin_ancestors and git_mask_apply's budget, so both count the same pins.
+ANC_CHAIN=()
+ancestor_chain(){
+  local p="$1" top best="" d om
   local -a tops=("$ROOT")
+  ANC_CHAIN=()
   [ -n "$WT_OUT" ] && tops+=("$WT_OUT")
   while IFS=$'\t' read -r om d; do [ -n "$d" ] && [ "$om" = rw ] && tops+=("$d"); done <<<"$OPEN_DIRS"
+  for top in "${tops[@]}"; do
+    under "$p" "$top" && [ "${#top}" -gt "${#best}" ] && best="$top"
+  done
+  [ -n "$best" ] || return 0
+  d="${p%/*}"
+  while [ "$d" != "$best" ] && under "$d" "$best"; do ANC_CHAIN=("$d" ${ANC_CHAIN[@]+"${ANC_CHAIN[@]}"}); d="${d%/*}"; done
+}
+
+# pin_ancestors: for every PROT path inside a writable tree (the root or an rw
+# opening), self-bind each directory between that tree's top and the path,
+# top-down, deduplicated (an ancestor shared by many paths adds its args once).
+# The tree tops are mount points already.
+pin_ancestors(){
+  local p d
+  local -A seen=()
   for p in ${PROT[@]+"${PROT[@]}"}; do
-    best=""
-    for top in "${tops[@]}"; do
-      under "$p" "$top" && [ "${#top}" -gt "${#best}" ] && best="$top"
-    done
-    [ -n "$best" ] || continue
-    chain=()
-    d=$(dirname "$p")
-    while [ "$d" != "$best" ] && under "$d" "$best"; do chain=("$d" ${chain[@]+"${chain[@]}"}); d=$(dirname "$d"); done
-    for d in ${chain[@]+"${chain[@]}"}; do
+    ancestor_chain "$p"
+    for d in ${ANC_CHAIN[@]+"${ANC_CHAIN[@]}"}; do
       [ -n "${seen[$d]:-}" ] && continue
       seen[$d]=1
       [ -d "$d" ] && [ ! -L "$d" ] && A+=(--bind "$d" "$d")
@@ -689,6 +734,7 @@ build(){
     [ -n "$d" ] && [ "$om" = rw ] && protect_tree "$d" opening
   done <<<"$OPEN_DIRS"
   for p in ${GIT_REPOS[@]+"${GIT_REPOS[@]}"}; do [ "$p" = "$ROOT" ] || git_protect "$p"; done
+  git_mask_apply   # every stray .git queued above, within ZAI_FENCE_MASK_BUDGET
   while IFS=$'\t' read -r om p; do
     [ -n "$p" ] && [ "$om" = rw ] && claude_dir_ro "$p/.claude"
   done <<<"$OPEN_DIRS"
