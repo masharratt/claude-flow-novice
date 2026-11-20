@@ -231,11 +231,33 @@ the worker where to write output and that it should stop when done; there
 is no roster heartbeat to signal completion, `status`/`capture` are the
 only readback.
 
+## Per-project Rust build folder (CARGO_TARGET_DIR)
+
+A project can keep its lanes' Rust builds off the root disk. It commits
+`.claude/cargo-target-root`: one absolute folder (first non-blank, non-`#`
+line). Spawn then exports `CARGO_TARGET_DIR=<root>/<lane-name>` into the pane
+(through the 0600 launch script, never argv). No file, no change; nothing in
+CFN names a project.
+
+For MDTWII, commit this one line:
+
+```
+/mnt/wsl/churn/mdtwii-desk-workers
+```
+
+- Explicit override: `TMUX_AGENTS_CARGO_TARGET_DIR=<dir>` at spawn wins and is used verbatim.
+- An ambient `CARGO_TARGET_DIR` in the master shell does not win (it is often exported globally, which would switch the opt-in off).
+- Refused with exit 66, before any side effect: a root that is relative, holds `..`, odd characters, is a symlink file, or sits under `/dev/shm` or `/run/shm` (RAM; stack rule).
+- The pane's own shell rc runs first, so a global export there is overridden only because the launch script exports after it.
+- `--dry-run` prints a `# pane env` line with the value.
+- Code: `lib/cargo-target.sh`. Test: `tests/test-cargo-target.sh` (10 assertions).
+
 ## Tests
 
 ```bash
 $HOME/.claude/skills/cfn-tmux-agents/tests/test-agents.sh
 $HOME/.claude/skills/cfn-tmux-agents/tests/test-spawn-path.sh
+$HOME/.claude/skills/cfn-tmux-agents/tests/test-cargo-target.sh
 ```
 
 97 assertions (81 + 16) against fake engine binaries (`tests/fake-engine.sh`,

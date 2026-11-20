@@ -150,6 +150,28 @@ sw_newest_pid_by_cmd_ps() { # $1 command snippet
   printf '%s' "$pid"
 }
 
+# Mark live, unwatched, kind=task ledger rows of a session whose cmd contains
+# the pattern. Prints each marked pid on its own line; returns 1 when none.
+# Used by cfn-watch-bg.sh (the hand-step helper for the watchdog block).
+sw_mark_unwatched() { # $1 session id, $2 pattern
+  local session="$1" pattern="$2" ledger pid kind cmd marker n=0
+  ledger="$(sw_ledger "$session")"
+  [ -f "$ledger" ] || return 1
+  while IFS=$'\t' read -r pid _ kind cmd; do
+    [ -n "${pid:-}" ] || continue
+    [ "$kind" = "task" ] || continue
+    case "$cmd" in *"$pattern"*) ;; *) continue ;; esac
+    sw_alive "$pid" || continue
+    marker="$(sw_marker "$session" "$pid")"
+    [ -f "$marker" ] && continue
+    mkdir -p "$CFN_SHELL_WATCH_DIR"
+    touch "$marker" || continue
+    printf '%s\n' "$pid"
+    n=$((n + 1))
+  done < "$ledger"
+  [ "$n" -gt 0 ]
+}
+
 # Finite jobs are the default; only clear long-lived-process patterns are
 # services. A misclassified service loses its idle guard, so this list stays
 # deliberately conservative.

@@ -39,6 +39,8 @@ unset $CFN_GIT_REDIRECT_VARS
 . "$(cd "$SKILL_DIR/../../cfn-scripts" && pwd)/sandbox-settings.sh"
 # shellcheck source=lib/sandbox.sh
 . "$SKILL_DIR/lib/sandbox.sh"
+# shellcheck source=lib/cargo-target.sh
+. "$SKILL_DIR/lib/cargo-target.sh"
 
 TA_SOCK=""
 
@@ -273,6 +275,13 @@ cmd_spawn() {
   resolved=$(_ta_engine_resolve_set "$engine") || exit "$?"
   set_raw=$(_ta_engine_field "$engine" 4)
   [ -z "$outbox" ] || resolved="${resolved:+$resolved$'\n'}TMUX_AGENTS_OUTBOX=$outbox"
+  # Per-project opt-in (.claude/cargo-target-root): lane gets its own target
+  # dir off the root disk. Refuses (66) an unsafe root before any side effect.
+  local cargo_line
+  cargo_line=$(_ta_cargo_target_line "$cwd" "$name") \
+    || _ta_die 66 "spawn: cargo target root refused (reason above); fix .claude/cargo-target-root or TMUX_AGENTS_CARGO_TARGET_DIR"
+  [ -z "$cargo_line" ] || resolved="${resolved:+$resolved$'\n'}$cargo_line"
+  [ -z "$cargo_line" ] || [ "$dry_run" != 1 ] || echo "# pane env (launch script): $cargo_line"
 
   # BUG codex-no-banner (11-04): the pane resolved the engine itself; with
   # codex gone from every PATH, `exec codex` killed the pane and spawn showed

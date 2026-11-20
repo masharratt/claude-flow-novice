@@ -52,7 +52,7 @@ done <<< "$ROWS"
 printf '%s' "$KEEP" > "$LEDGER"
 
 if [ -n "$OFFENDERS" ]; then
-  REASON="CFN shell watchdog: background task shell(s) still running without a progress check: $OFFENDERS Per the Shell Watchdog rule, either (1) arm a 15-minute progress check for each via CronCreate, then acknowledge with: mkdir -p $CFN_SHELL_WATCH_DIR && touch $CFN_SHELL_WATCH_DIR/$SESSION.<pid>.watched (one marker per pid above), or (2) stop the shell. Only the marker file or the process exiting clears this block; reading its output does not register. Do not go idle with an unwatched task shell."
+  REASON="CFN shell watchdog: background task shell(s) still running without a progress check: $OFFENDERS Per the Shell Watchdog rule, either (1) arm a 15-minute progress check for each via CronCreate, then acknowledge with: bash \$HOME/.claude/cfn-scripts/cfn-watch-bg.sh <pattern in the command> (marks every matching pid above; manual fallback: touch $CFN_SHELL_WATCH_DIR/$SESSION.<pid>.watched), or (2) stop the shell. Only the marker file or the process exiting clears this block; reading its output does not register. Do not go idle with an unwatched task shell."
   jq -cn --arg r "$REASON" '{decision: "block", reason: $r}'
 fi
 exit 0
