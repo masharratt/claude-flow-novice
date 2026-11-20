@@ -150,7 +150,7 @@ Prompt submit knobs: `TMUX_AGENTS_SUBMIT_SETTLE` (1), `TMUX_AGENTS_SUBMIT_VERIFY
 | Engine | Process | Billing/env posture |
 |---|---|---|
 | `claude-sub` (default; `claude` alias) | `claude --model sonnet --permission-mode bypassPermissions --settings <locked sandbox>` | unsets all `ANTHROPIC_*` relay vars: subscription billing, never API |
-| `glm` | `zai-fence.sh claude --model glm-5.3-flash --permission-mode bypassPermissions --settings <Edit deny rules, Bash sandbox off>` + z.ai base URL/token; the wrapper confines the worker to its repo root (macOS Seatbelt or Linux bubblewrap, fails closed with exit 70) | needs a token var; unsets `ANTHROPIC_API_KEY` + data-system creds (Airtable/Attio/Postgres/Supabase) as least privilege |
+| `glm` | `zai-fence.sh claude --model glm-5.3-flash --permission-mode bypassPermissions --settings <Edit deny rules, Bash sandbox off>` + z.ai base URL/token; the wrapper confines the worker to its repo root, plus (Linux) the worktree itself when `--cwd` is a registered linked worktree kept outside the main checkout (macOS Seatbelt or Linux bubblewrap, fails closed with exit 70) | needs a token var; unsets `ANTHROPIC_API_KEY` + data-system creds (Airtable/Attio/Postgres/Supabase) as least privilege |
 | `glm-open` | same as `glm`; the fence also binds read+write the folders listed in the target project's committed `.claude/glm-open-dirs` (HEAD version only; regular file, not a symlink) (one absolute folder per line; `ro:/path` read-only; last-segment `*`/`?` globs expand at start; nested entry wins; per project, never global; validated by the fence; credential and `.env` masks still win) | same scrub as `glm`; spawn refuses (exit 66) when the project has no list, an empty one, or a bad entry |
 | `codex` | `codex --sandbox workspace-write --ask-for-approval never` | unsets `OPENAI_API_KEY` (ChatGPT-plan billing); refuses a set key an engine would not unset; Codex delegation gate: refuses (exit 66) unless the target project's CLAUDE.md carries a literal `codex=true` line. Codex workers never ask for approval: whatever `--args` says, spawn drops any `-a`/`--ask-for-approval`, `--full-auto` and `approval_policy` override and forces one `--ask-for-approval never`; the caller's `--sandbox`/`-s` is kept (default `--sandbox workspace-write`), and `--dry-run` prints the final `# codex args:` |
 
@@ -162,7 +162,10 @@ absolute; bare names resolve only through absolute PATH entries; `--args` and
 `--model` are passed as argv words, never as shell code. List prefixes: `ro:` and
 `noscan:` (skip the secret-file scan for that folder; any order). Launch with
 `--cwd` = the repo holding the list. While the pane shows "zai-fence: checking",
-spawn waits up to `TMUX_AGENTS_FENCE_TIMEOUT` (900s) for the banner.
+spawn waits up to `TMUX_AGENTS_FENCE_TIMEOUT` (900s) for the banner. A `.git`
+under the root or a listed folder that is neither a git pointer (`gitdir:` line) nor
+a repository (e.g. uv's `.uvcache/sdists-v9/.git`) is hidden read-only inside the
+fence with one "zai-fence: masked" note; it no longer refuses the launch.
 
 Registry: the SHARED `~/.claude/cfn-config/engines.env`, the same single
 source of truth cfn-fleet reads (via its `templates/engines.env` symlink), so

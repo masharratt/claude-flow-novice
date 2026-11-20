@@ -19,7 +19,12 @@
 #          projects) and transcripts live there, shared with no other session.
 #   (a)    rw glm-open folders, then the fence root, each from a PINNED
 #          directory fd (--bind-fd), so a rename/symlink swap after validation
-#          cannot change what is mounted.
+#          cannot change what is mounted. Launched from a linked worktree kept
+#          OUTSIDE the root, that worktree's own top too (rw, pinned, scanned,
+#          protected like a root worktree), only once git and its pointer +
+#          back-link confirm it is a registered worktree of the root.
+#   (b')   a .git that is neither a pointer (gitdir: line) nor a repository
+#          (HEAD) is masked read-only (/dev/null or empty tmpfs) with a note.
 #   (b)    root and every opened repo: .git/config*, .git/hooks, core.hooksPath
 #          and include.path targets ro (a missing target inside a writable tree
 #          refuses); project .claude dirs ro except non-config children; fleet
@@ -80,6 +85,42 @@ case "$ROOT" in /|"$HOME_R") die "refusing fence root $ROOT" ;; esac
 case "$HOME_R/" in "$ROOT"/*) die "refusing fence root $ROOT (parent of \$HOME)" ;; esac
 case "$ROOT" in *$'\n'*|*$'\t'*) die "unsafe character in path: $ROOT" ;; esac
 
+# --- linked worktree outside the root ------------------------------------------
+# BUG zai-fence-outside-worktree (2026-11-19): a linked worktree kept outside
+# the main checkout (~/mdtwii-desk-wt/x) was never bound, so bwrap could not
+# chdir into it. WT_OUT is that worktree's own top, bound read+write like the
+# root, ONLY when git and the files on disk agree it is a registered linked
+# worktree of ROOT: common dir = ROOT/.git, git dir = ROOT/.git/worktrees/<n>,
+# its .git pointer names that git dir, and the git dir's gitdir back-link names
+# its .git. A copied pointer in another folder fails the back-link and refuses.
+# The common dir needs no extra bind: it is ROOT/.git, already bound and
+# protected with the root.
+WT_OUT=""
+if [ -n "${common:-}" ]; then
+  wt_top=$(git rev-parse --show-toplevel 2>/dev/null) && wt_top=$(realpath "$wt_top" 2>/dev/null) || wt_top=""
+  case "$wt_top/" in ""/|"$ROOT"/*) wt_top="" ;; esac
+  if [ -n "$wt_top" ]; then
+    wt_refuse(){ die "$wt_top is not inside the fence root $ROOT and is not a registered linked worktree of it ($1); refusing"; }
+    case "$wt_top" in *$'\n'*|*$'\t'*) die "unsafe character in path: $wt_top" ;; esac
+    case "$wt_top" in /|"$HOME_R") wt_refuse "top is / or \$HOME" ;; esac
+    case "$HOME_R/" in "$wt_top"/*) wt_refuse "parent of \$HOME" ;; esac
+    case "$ROOT/" in "$wt_top"/*) wt_refuse "parent of the root" ;; esac
+    [ "$(realpath "$common" 2>/dev/null)" = "$ROOT/.git" ] || wt_refuse "git common dir is not $ROOT/.git"
+    wt_gd=$(git rev-parse --path-format=absolute --git-dir 2>/dev/null) && wt_gd=$(realpath "$wt_gd" 2>/dev/null) || wt_refuse "no git dir"
+    [ "$(dirname "$wt_gd")" = "$ROOT/.git/worktrees" ] || wt_refuse "git dir $wt_gd is not under $ROOT/.git/worktrees"
+    [ -f "$wt_top/.git" ] && [ ! -L "$wt_top/.git" ] || wt_refuse "$wt_top/.git is not a plain pointer file"
+    IFS= read -r wt_line < "$wt_top/.git" || wt_line=""
+    case "$wt_line" in "gitdir: "*) wt_line="${wt_line#gitdir: }" ;; *) wt_refuse "no gitdir: line in $wt_top/.git" ;; esac
+    case "$wt_line" in /*) ;; *) wt_line="$wt_top/$wt_line" ;; esac
+    [ "$(realpath -m "$wt_line")" = "$wt_gd" ] || wt_refuse "$wt_top/.git does not name $wt_gd"
+    IFS= read -r wt_back < "$wt_gd/gitdir" 2>/dev/null || wt_back=""
+    case "$wt_back" in /*) ;; *) wt_back="$wt_gd/$wt_back" ;; esac
+    [ "$(realpath -m "$wt_back")" = "$wt_top/.git" ] || wt_refuse "$wt_gd/gitdir does not point back to $wt_top/.git"
+    WT_OUT="$wt_top"
+    unset -f wt_refuse
+  fi
+fi
+
 # --- glm-open folders (committed + approved list, never env) -----------------
 OPEN_DIRS="" NOSCAN_DIRS=""
 if [ "${ZAI_FENCE_OPEN_DIRS:-0}" = 1 ]; then
@@ -139,6 +180,7 @@ else NETDIR=$(umask 077 && mktemp -d /tmp/zai-fence-net.XXXXXX) || die "cannot c
 PHOME="$WBASE/home"
 under_x(){ case "$1/" in "$2"/*) return 0 ;; esac; return 1; }
 under_x "$WBASE" "$ROOT" && die "worker home $WBASE would sit inside the fence root; refusing"
+[ -n "$WT_OUT" ] && under_x "$WBASE" "$WT_OUT" && die "worker home $WBASE would sit inside the worktree $WT_OUT; refusing"
 while IFS=$'\t' read -r _m _d; do
   [ -n "$_d" ] && under_x "$WBASE" "$_d" && die "worker home $WBASE would sit inside the opened folder $_d; refusing"
 done <<<"$OPEN_DIRS"
@@ -240,6 +282,7 @@ under(){ case "$1/" in "$2"/*) return 0 ;; esac; return 1; }
 exposed(){
   local _m d
   under "$1" "$ROOT" && return 0
+  [ -n "$WT_OUT" ] && under "$1" "$WT_OUT" && return 0
   while IFS=$'\t' read -r _m d; do [ -n "$d" ] && under "$1" "$d" && return 0; done <<<"$OPEN_DIRS"
   return 1
 }
@@ -306,7 +349,11 @@ scan_tree(){
 git_protect(){
   local r="$1" g="$1/.git" t k v
   [ -d "$g" ] || return 0
-  no_link "$g"; no_link "$g/hooks"
+  no_link "$g"
+  # no HEAD: not a repository (a cache or a stray dir); hide it rather than
+  # write placeholders into it and leave its missing config creatable
+  if [ ! -e "$g/HEAD" ] && [ ! -L "$g/HEAD" ]; then git_mask "$g"; return 0; fi
+  no_link "$g/hooks"
   [ -d "$g/hooks" ] || mkdir -p "$g/hooks" 2>/dev/null
   ro "$g/config"; ro "$g/hooks"
   git_placeholder "$g/commondir" "."
@@ -331,13 +378,34 @@ git_protect(){
   done < <(git config -f "$g/config" --get-regexp '^(core\.hookspath|include\.path|includeif\..*\.path)$' 2>/dev/null)
 }
 
+# git_mask PATH: a .git that is neither a pointer nor a repository (BUG
+# zai-fence-nonpointer-git, 2026-11-19: uv writes a plain .uvcache/sdists-v9/.git
+# file, which used to refuse every glm-open launch). Why .git is checked at all:
+# a .git the worker could write becomes, on the host's next unfenced git run in
+# that folder, a pointer to a worker-made gitdir whose config (core.fsmonitor,
+# hooks) runs code outside the fence. So the path is hidden read-only: a file
+# under /dev/null, a directory under an empty read-only tmpfs. Never a widening:
+# the mask only hides; it binds nothing from the host. It goes in PROT so its
+# writable ancestors are pinned (a renamed parent cannot carry the mask away),
+# and the mount lands on whatever is at the path at bwrap time, so a host-side
+# swap after this check still ends up masked (a type change fails the preflight).
+git_mask(){
+  local p="$1"
+  no_link "$p"
+  if [ -d "$p" ]; then A+=(--tmpfs "$p" --remount-ro "$p")
+  else A+=(--ro-bind /dev/null "$p"); fi
+  PROT+=("$p")
+  echo "zai-fence: masked $p (a .git that is not a git pointer or repository; hidden read-only inside the fence)" >&2
+}
+
 # git_pointer_check FILE: a .git pointer must resolve inside the repo tree it
 # sits in (the root's own .git, or the opening holding it); it is then bound
 # read-only (review rev 2: a rewritten pointer redirects the host's git).
 git_pointer_check(){
   local f="$1" line tgt top="" d om
+  [ -L "$f" ] && die "refusing: $f is a symlink (a .git link redirects the host's git); remove it and relaunch"
   IFS= read -r line < "$f" || line=""
-  case "$line" in "gitdir: "*) tgt="${line#gitdir: }" ;; *) die "$f is not a git pointer file (no 'gitdir:' line); refusing" ;; esac
+  case "$line" in "gitdir: "*) tgt="${line#gitdir: }" ;; *) git_mask "$f"; return 0 ;; esac
   case "$tgt" in /*) ;; *) tgt="$(dirname "$f")/$tgt" ;; esac
   tgt=$(realpath -m "$tgt") || die "cannot resolve the git pointer $f"
   # Allowed targets: the root's own .git (protected above; also covers a
@@ -442,6 +510,7 @@ pin_ancestors(){
   local -a chain
   local -A seen=()
   local -a tops=("$ROOT")
+  [ -n "$WT_OUT" ] && tops+=("$WT_OUT")
   while IFS=$'\t' read -r om d; do [ -n "$d" ] && [ "$om" = rw ] && tops+=("$d"); done <<<"$OPEN_DIRS"
   for p in ${PROT[@]+"${PROT[@]}"}; do
     best=""
@@ -498,6 +567,7 @@ build(){
   done <<<"$OPEN_DIRS"
   pin "$ROOT" ROOT_FD
   A+=(--bind-fd "$ROOT_FD" "$ROOT")
+  if [ -n "$WT_OUT" ]; then pin "$WT_OUT" WT_FD; A+=(--bind-fd "$WT_FD" "$WT_OUT"); fi
 
   # secret scans now (pinned objects), masks applied in (e)
   # the root gets the full secret-name list too (final review fin 3)
@@ -505,6 +575,10 @@ build(){
   set -f; for p in $CFN_OPEN_SECRET_NAMES; do pats+=("$p"); done; set +f
   echo "zai-fence: checking $ROOT for secret files..." >&2
   scan_tree "/proc/$$/fd/$ROOT_FD" "$ROOT" "" "${pats[@]}"
+  if [ -n "$WT_OUT" ]; then
+    echo "zai-fence: checking the linked worktree $WT_OUT for secret files..." >&2
+    scan_tree "/proc/$$/fd/$WT_FD" "$WT_OUT" "" "${pats[@]}"
+  fi
   local -A ofd=()
   while IFS=$'\t' read -r om p; do
     [ -n "$p" ] || continue
@@ -546,6 +620,10 @@ build(){
   # other worker still running on the same tree.
   protect_tree "$ROOT" root
   for d in "$ROOT"/.claude/worktrees/*; do protect_tree "$d" worktree; done
+  if [ -n "$WT_OUT" ]; then
+    protect_tree "$WT_OUT" worktree
+    [ "${ZAI_FENCE_ALLOW_CONFIG:-0}" = 1 ] || claude_dir_ro "$WT_OUT/.claude"
+  fi
   while IFS=$'\t' read -r om d; do
     [ -n "$d" ] && [ "$om" = rw ] && protect_tree "$d" opening
   done <<<"$OPEN_DIRS"

@@ -1135,6 +1135,75 @@ test_allow_field_3_refusal_names_pattern(){
   else no "test_allow_field_3_refusal_names_pattern: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
 }
 
+# BUG zai-fence-nonpointer-git (2026-11-19, user + mdtwii-look-lab): a uv cache
+# under an approved folder holds .uvcache/sdists-v9/.git, a plain file with no
+# gitdir: line. The fence refused ("is not a git pointer file") and every
+# glm-open launch died. A .git that is neither a pointer nor a repository is
+# now masked read-only inside the fence (content hidden, no worker write can
+# turn it into a pointer the host's git would follow), with one stderr note.
+test_allow_field_4_nonpointer_git_masked(){
+  linux_only test_allow_field_4_nonpointer_git_masked || return 0
+  local O="$TMP/opened-field4" f g s
+  f="$O/.uvcache/sdists-v9/.git"; g="$O/junk/.git"
+  mkdir -p "$(dirname "$f")" "$g"
+  echo "NONPTR_SECRET_$$" > "$f"           # not a pointer: no gitdir: line
+  echo "x" > "$g/stray"                    # a .git dir that is not a repository (no HEAD)
+  commit_list "$O"
+  PROBE="echo PROBE_RAN; cat $(q "$f") 2>/dev/null; printf 'gitdir: $TMP/evilgit/.git\n' > $(q "$f") 2>/dev/null && echo F_WRITABLE; echo HEAD > $(q "$g/HEAD") 2>/dev/null && echo G_WRITABLE; echo ok > $(q "$O/field4.txt"); true"
+  fence_run "$FENCE" ZAI_FENCE_OPEN_DIRS=1
+  s=""
+  [ "$RC" -eq 0 ] || s="launch refused rc=$RC"
+  grep -q "NONPTR_SECRET_$$" <<<"$OUT" && s="${s:+$s; }content visible inside the fence"
+  grep -q F_WRITABLE <<<"$OUT" && s="${s:+$s; }non-pointer .git file writable"
+  grep -q G_WRITABLE <<<"$OUT" && s="${s:+$s; }non-repo .git dir writable"
+  grep -q evilgit "$f" && s="${s:+$s; }host file rewritten"
+  [ -e "$g/HEAD" ] && s="${s:+$s; }host .git dir gained HEAD"
+  [ "$(grep -c "zai-fence: masked $f" <<<"$OUT")" -eq 1 ] || s="${s:+$s; }no single stderr note naming $f"
+  [ -f "$O/field4.txt" ] || s="${s:+$s; }opening not writable"
+  if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_4_nonpointer_git_masked"
+  else no "test_allow_field_4_nonpointer_git_masked: $s out=$(head -c 400 <<<"$OUT")"; fi
+  drop_list
+  # the same .git file inside the fence root itself
+  mkdir -p "$FENCE/f4cache"; : > "$FENCE/f4cache/.git"
+  PROBE="echo PROBE_RAN; echo 'gitdir: /tmp' > f4cache/.git 2>/dev/null && echo F_WRITABLE; true"
+  fence_run "$FENCE"
+  s=""; grep -q F_WRITABLE <<<"$OUT" && s="writable"; [ -s "$FENCE/f4cache/.git" ] && s="${s:+$s; }host file changed"
+  if [ "$RC" -eq 0 ] && grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_4_nonpointer_git_in_root_masked"
+  else no "test_allow_field_4_nonpointer_git_in_root_masked: rc=$RC $s out=$(head -c 300 <<<"$OUT")"; fi
+  rm -rf "$FENCE/f4cache"
+}
+
+# BUG zai-fence-outside-worktree (2026-11-19): plain glm launched in a linked
+# worktree kept OUTSIDE the main checkout (~/mdtwii-desk-wt/x) failed
+# "bwrap: Can't chdir to <worktree>": only the main repo was bound. The fence
+# now binds that worktree's own root read+write (secret-scanned, .claude and
+# .mcp.json protected, its .git pointer read-only) when git confirms it is a
+# registered linked worktree of the root; a copied pointer in some other folder
+# is not enough.
+test_allow_field_5_outside_worktree(){
+  linux_only test_allow_field_5_outside_worktree || return 0
+  local OW="$TMP/outside-wt" FK="$TMP/fake-wt" s
+  git -C "$FENCE" worktree add -q "$OW" -b field5 >/dev/null 2>&1
+  echo "OWT_SECRET_$$" > "$OW/.env"
+  PROBE="echo PROBE_RAN; pwd; cat .env 2>/dev/null; echo ok > f5.txt; printf 'gitdir: $TMP/evilgit/.git\n' > .git 2>/dev/null && echo PTR_WRITABLE; git add f5.txt && git $(printf '%q ' "${GITC[@]}") commit -qm f5 && echo GIT_OK; true"
+  fence_run "$OW"
+  s=""
+  [ "$RC" -eq 0 ] || s="rc=$RC"
+  [ -f "$OW/f5.txt" ] || s="${s:+$s; }worktree not writable"
+  grep -q "OWT_SECRET_$$" <<<"$OUT" && s="${s:+$s; }worktree .env visible"
+  grep -q PTR_WRITABLE <<<"$OUT" && s="${s:+$s; }worktree .git pointer writable"
+  grep -q GIT_OK <<<"$OUT" || s="${s:+$s; }git commit in the worktree broke"
+  if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_5_outside_worktree_bound"
+  else no "test_allow_field_5_outside_worktree_bound: $s out=$(head -c 400 <<<"$OUT")"; fi
+  # a folder holding a copy of that worktree's pointer is not a worktree of the root
+  mkdir -p "$FK"; cp "$OW/.git" "$FK/.git"
+  OUT=$(cd "$FK" && "$WRAP" /bin/bash -c 'echo PROBE_RAN' 2>&1); RC=$?
+  if [ "$RC" -eq 70 ] && ! grep -q PROBE_RAN <<<"$OUT" && grep -qF "$FK" <<<"$OUT"; then ok "test_allow_field_5_copied_pointer_refused"
+  else no "test_allow_field_5_copied_pointer_refused: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
+  rm -rf "$FK"
+  git -C "$FENCE" worktree remove --force "$OW" >/dev/null 2>&1; git -C "$FENCE" branch -D field5 >/dev/null 2>&1
+}
+
 # noscan: (user decision 2026-11-16, MDTWII captures folder holds no passwords):
 # a per-entry prefix that skips the secret-file scan for that entry only,
 # combinable with ro: in any order. Changing it needs re-approval.
@@ -1317,6 +1386,8 @@ test_allow_link
 test_allow_field_1_opening_holds_root_worktree
 test_allow_field_2_scan_progress
 test_allow_field_3_refusal_names_pattern
+test_allow_field_4_nonpointer_git_masked
+test_allow_field_5_outside_worktree
 test_allow_noscan
 test_tmux_socket_blocked
 test_env_scrubbed
