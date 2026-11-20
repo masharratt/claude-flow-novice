@@ -452,6 +452,9 @@ cmd_spawn() {
     pane_tail=$(printf '%s\n' "$pane_raw" | grep -v '^Pane is dead' | tail -n 10 || true)
     if [ "$(tmux -L "$TA_SOCK" display-message -p -t "$name" '#{pane_dead}' 2>/dev/null || true)" = 1 ]; then
       dead_status=$(printf '%s\n' "$pane_raw" | sed -n 's/^Pane is dead (status \([0-9]*\).*/\1/p' | tail -n 1)
+      # tmux can lose the status (child never reaped, no marker line): read it
+      # from the zombie pane process instead. See _ta_zombie_exit_status.
+      [ -n "$dead_status" ] || dead_status=$(_ta_zombie_exit_status "$(tmux -L "$TA_SOCK" display-message -p -t "$name" '#{pane_pid}' 2>/dev/null || true)" || true)
       echo "spawn: $name: engine exited with status ${dead_status:-unknown} before its banner; last pane lines:" >&2
     else
       echo "spawn: $name: no banner match within ${banner_timeout}s (regex: $banner_re); last pane lines:" >&2

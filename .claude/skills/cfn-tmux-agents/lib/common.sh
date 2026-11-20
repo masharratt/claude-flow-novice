@@ -105,6 +105,23 @@ _ta_env_seconds() {
   printf '%s\n' "$2"
 }
 
+# _ta_zombie_exit_status PID — exit status of a child that exited but was never
+# reaped, read from /proc/PID/stat (field 52, exit_code, Linux 3.5+). Echoes
+# digits, rc 1 when PID is not a zombie or /proc is absent (macOS).
+# BUG dead-pane-status-unknown (2026-11-20): tmux 3.4 sometimes sees the pty
+# EOF before SIGCHLD and then never reaps the child: #{pane_dead} is 1 but
+# #{pane_dead_status} stays empty and no "Pane is dead (status N)" line is
+# drawn, so the status is lost for good (~1 spawn in 6 of a fast-dying engine).
+_ta_zombie_exit_status() {
+  local pid="$1" rest code
+  [[ "$pid" =~ ^[0-9]+$ ]] && [ -r "/proc/$pid/stat" ] || return 1
+  rest=$(sed -e 's/^.*) //' "/proc/$pid/stat" 2>/dev/null) || return 1
+  [ "$(printf '%s\n' "$rest" | awk '{print $1}')" = Z ] || return 1
+  code=$(printf '%s\n' "$rest" | awk '{print $50}')
+  [[ "$code" =~ ^[0-9]+$ ]] || return 1
+  if [ $((code & 127)) -eq 0 ]; then printf '%s\n' $((code >> 8)); else printf '%s\n' $((128 + (code & 127))); fi
+}
+
 # _ta_pane_wait SOCK TARGET REGEX TIMEOUT_S — poll capture-pane until a line
 # matches REGEX; echo the (first) matching line, rc 1 on timeout. The noise
 # filter is load-bearing: without it the poll can match its own echo of the
