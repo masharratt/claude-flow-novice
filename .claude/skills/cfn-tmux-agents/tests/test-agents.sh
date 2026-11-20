@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # cfn-tmux-agents test suite. Uses a fake engine binary (--bin) so no real
 # claude/codex/glm process is spawned. Every test runs on a per-run socket
-# that the cleanup trap tears down with kill-server.
+# inside a private TMUX_TMPDIR (lib-sockets.sh); the cleanup trap kills every
+# server and deletes the folder, so no socket file is left in /tmp/tmux-$UID.
 # Run: .claude/skills/cfn-tmux-agents/tests/test-agents.sh
 
 set -euo pipefail
@@ -14,6 +15,9 @@ GITC=(-c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false)
 APPROVE="$(cd "$SKILL_DIR/../../cfn-scripts" && pwd -P)/glm-open-approve.sh"
 # shellcheck source=../../../cfn-scripts/lib/safe-rm.sh
 . "$(cd "$SKILL_DIR/../../cfn-scripts/lib" && pwd -P)/safe-rm.sh"
+# shellcheck source=lib-sockets.sh
+. "$SKILL_DIR/tests/lib-sockets.sh"
+tt_sock_init || exit 1   # private TMUX_TMPDIR: no socket file outlives the run
 # glm-open approvals (allow-list fence) go to a test store, never the real ~/.config
 CFN_GLM_OPEN_APPROVALS=$(mktemp -d); export CFN_GLM_OPEN_APPROVALS
 # allow-list fence worker homes go to a temp dir, never the real ~/.claude
@@ -49,6 +53,7 @@ cleanup() {
   tmux -L "$SOCK-f" kill-server 2>/dev/null || true
   tmux -L "$SOCK-w" kill-server 2>/dev/null || true
   rm -rf "$CFN_GLM_OPEN_APPROVALS" "$ZAI_FENCE_WORKER_BASE"
+  tt_sock_cleanup
 }
 trap cleanup EXIT
 
