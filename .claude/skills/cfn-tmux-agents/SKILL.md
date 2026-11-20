@@ -18,9 +18,9 @@ triggers: [parallel-sessions-without-fleet, tmux-worker, background-subagent]
 ## Overview
 
 Standalone tmux worker launcher: the spawn/send/monitor mechanics of
-cfn-fleet with the coordination machinery stripped. One dedicated tmux
-socket (default `tmux-agents`), one session per agent, prompts delivered
-literally via `send-keys -l`.
+cfn-fleet with the coordination machinery stripped. One tmux server per
+lane (socket `tmux-agents-<name>`, see "Sockets" below), one session per
+agent, prompts delivered literally via `send-keys -l`.
 
 Use when you need N parallel subagent CLI sessions (each a full `claude`,
 `claude`-via-z.ai, or `codex` process) but do NOT need fleet's roster,
@@ -106,9 +106,9 @@ $A spawn review-auth --engine claude-sub --cwd ~/projects/myapp \
 $A status review-auth          # alive + last 3 pane lines
 $A capture review-auth         # last 40 lines (--lines N)
 $A send review-auth "also check the middleware"
-$A list                        # sessions on the socket
-$A kill review-auth            # one session
-$A kill --all                  # whole socket (agent sessions only)
+$A list                        # sessions on every lane socket + legacy
+$A kill review-auth            # one session (its lane server goes with it)
+$A kill --all                  # every lane server + legacy (agent sessions only)
 ```
 
 Subcommands and flags:
@@ -119,11 +119,11 @@ Subcommands and flags:
 | `send` | `NAME TEXT...` | follow-up: literal text, 1s, separate Enter |
 | `status` | `[NAME]` | alive/DEAD + last lines; all sessions when NAME omitted |
 | `capture` | `NAME` | `--lines N` (default 40) |
-| `list` | | session names on the socket |
-| `kill` | `NAME` or `--all` | `--all` runs `kill-server` on the dedicated socket |
+| `list` | | session names on every live `tmux-agents-*` socket plus legacy `tmux-agents` (only the forced socket when one is forced) |
+| `kill` | `NAME` or `--all` | `NAME` on its own lane server also stops that server and removes its socket file; `--all` runs `kill-server` on every lane socket plus legacy (only the forced socket when one is forced) |
 | `watch` | `NAME` | `--result PATH` and `--notify ADDR` required; `--idle-min N` (default 10), `--interval S` (default 30), `--detach` (nohup/setsid, log in `$TMPDIR/tmux-agents-watch-NAME.log`; otherwise run it with `&` or `nohup`). Sends ONE `$HOME/.claude/skills/cfn-mailbox/mailbox.sh send ADDR` alert when the pane has been idle N minutes and PATH has not been written since the watch started; exits 0 when PATH's mtime is newer than the watch start (a file already there at start is ignored until rewritten, so a review round reusing one result file works) or the session ends. Idle = no working line (`esc to interrupt`, codex `Working (Ns`, spinner) and an unchanged screen; the codex placeholder `Ask Codex to do anything` is not proof of idle. `TMUX_AGENTS_WATCH_UNIT` = seconds per minute (60) |
 
-Env knobs: `TMUX_AGENTS_SOCKET` (default `tmux-agents`),
+Env knobs: `TMUX_AGENTS_SOCKET` (unset = per-lane servers; set = force that one socket),
 `TMUX_AGENTS_UNSANDBOXED` (1 = run claude workers when the sandbox cannot be built),
 `TMUX_AGENTS_SANDBOX_OFF` (1 = sandbox off even when buildable; same as `--no-sandbox`),
 `TMUX_AGENTS_ALLOW_WRITE` (extra writable paths), `TMUX_AGENTS_OUTBOX_ROOT`
@@ -222,8 +222,32 @@ $A spawn impl-x --engine codex --prompt-file /tmp/brief-x.md
   ("Update available ... Press enter to continue") is dismissed with
   `2` then Enter (plain Enter would pick "1. Update now" = surprise
   `npm install -g`); folder-trust prompts get the engine trust_keys.
-- Sessions live on a dedicated socket, never the user's default tmux
+- Sessions live on dedicated sockets, never the user's default tmux
   server, so `kill --all` cannot touch unrelated sessions.
+
+## Sockets (one tmux server per lane)
+
+Since 2026-11-19 each new lane gets its own tmux server. One shared server
+holding every lane meant one `kill-server` or one server crash lost all of
+them (it happened twice that day).
+
+- `spawn NAME` runs on `tmux -L tmux-agents-NAME` (socket file
+  `${TMUX_TMPDIR:-/tmp}/tmux-$UID/tmux-agents-NAME`). Attach with
+  `tmux -L tmux-agents-NAME attach -t NAME`.
+- `send`, `capture`, `status NAME`, `kill NAME` and `watch` look for NAME on
+  its per-lane socket first, then on the legacy shared socket `tmux-agents`,
+  so lanes spawned before the change keep working where they are.
+- `list`, `status` (no NAME) and `kill --all` cover every live
+  `tmux-agents-*` socket plus legacy. Stale socket files (tmux 3.4 leaves
+  one behind when a server exits) are skipped.
+- `spawn NAME` refuses (66) while a session NAME is alive on the legacy
+  socket: the new lane would shadow it.
+- Killing the last session on a lane server (`kill NAME`, or a spawn that
+  dies before its banner) stops that server and deletes its socket file.
+- `--socket S` or a set `TMUX_AGENTS_SOCKET` forces ONE socket for every
+  command, exactly as before (tests use this, plus `TMUX_TMPDIR` isolation).
+- Code: `lib/common.sh` (`_ta_lane_sock`, `_ta_find_sock`, `_ta_all_socks`,
+  `_ta_reap_lane_sock`). Test: `tests/test-lane-sockets.sh` (38 assertions).
 
 Prompt conventions (same rule as fleet): thin prompt, fat file. Keep the
 in-pane prompt short; put the task body in a file the prompt names. Tell
@@ -258,6 +282,7 @@ For MDTWII, commit this one line:
 $HOME/.claude/skills/cfn-tmux-agents/tests/test-agents.sh
 $HOME/.claude/skills/cfn-tmux-agents/tests/test-spawn-path.sh
 $HOME/.claude/skills/cfn-tmux-agents/tests/test-cargo-target.sh
+$HOME/.claude/skills/cfn-tmux-agents/tests/test-lane-sockets.sh
 ```
 
 97 assertions (81 + 16) against fake engine binaries (`tests/fake-engine.sh`,

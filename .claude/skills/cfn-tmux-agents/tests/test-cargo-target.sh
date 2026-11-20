@@ -55,6 +55,7 @@ spawn() { # NAME CWD [env...]: spawn lane, print pane capture
 }
 
 ROOT="$TD/churn"
+mkdir -p "$ROOT"
 R1=$(mkrepo r1 "$ROOT")
 CAP=$(spawn laneA "$R1" X=1)
 case "$CAP" in *"target=$ROOT/laneA"*) ok "opt-in root: pane gets CARGO_TARGET_DIR=<root>/<lane-name>" ;;
@@ -88,6 +89,17 @@ rc=0; "$EXE" spawn laneE --socket "$SOCK" --bin "$TD/eng" --banner-regex 'CT-BAN
 R5=$(mkrepo r5 "/mnt/wsl/churn/../../dev/shm/x")
 rc=0; "$EXE" spawn laneF --socket "$SOCK" --bin "$TD/eng" --banner-regex 'CT-BANNER' --cwd "$R5" >/dev/null 2>&1 || rc=$?
 [ "$rc" -eq 66 ] && ok "root with .. refused with exit 66 (no /dev/shm bypass)" || bad "dotdot root: want rc 66, got $rc"
+
+# Request (mdtwii-master review, 2026-11-19): a root folder missing on this host
+# (e.g. a VPS checkout of the same repo) is ignored with a warning, so cargo
+# does not create it on the wrong disk; spawn still succeeds.
+R7=$(mkrepo r7 "$TD/not-on-this-host")
+rc=0; OUT=$("$EXE" spawn laneM --socket "$SOCK" --bin "$TD/eng" --banner-regex 'CT-BANNER' --cwd "$R7" 2>&1) || rc=$?
+[ "$rc" -eq 0 ] && ok "missing root folder: spawn still succeeds" || bad "missing root: want rc 0, got $rc: ${OUT:0:200}"
+case "$OUT" in *"does not exist"*) ok "missing root folder: warns" ;; *) bad "missing root: no warning: ${OUT:0:200}" ;; esac
+sleep 0.3; CAP=$(tmux -L "$SOCK" capture-pane -p -t laneM 2>/dev/null || true)
+case "$CAP" in *"/laneM"*) bad "missing root: pane still got a lane target: ${CAP:0:200}" ;; *"CT-BANNER"*) ok "missing root folder: no lane CARGO_TARGET_DIR set" ;; *) bad "missing root: pane=${CAP:0:200}" ;; esac
+[ -e "$TD/not-on-this-host" ] && bad "missing root got created" || ok "missing root folder not created"
 
 R6=$(mkrepo r6 "$ROOT")
 OUT=$("$EXE" spawn laneG --socket "$SOCK" --bin "$TD/eng" --cwd "$R6" --dry-run 2>&1 || true)

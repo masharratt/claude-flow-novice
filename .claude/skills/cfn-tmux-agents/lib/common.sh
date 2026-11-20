@@ -18,6 +18,86 @@ _ta_socket() {
   printf '%s\n' "$sock"
 }
 
+# Per-lane servers (2026-11-19): one shared server meant one kill-server or
+# one crash lost every lane (happened twice that day). Without an explicit
+# --socket / TMUX_AGENTS_SOCKET, spawn of lane NAME uses its own server,
+# socket tmux-agents-NAME; every other command looks there first, then on the
+# legacy shared socket tmux-agents, so lanes spawned before keep working.
+# TA_FORCED=1 (set by execute.sh main) means one socket for everything.
+TA_LEGACY_SOCK="tmux-agents"
+TA_FORCED=0
+
+# _ta_lane_sock NAME -> the per-lane socket name for NAME.
+_ta_lane_sock() {
+  local s="tmux-agents-$1"
+  printf '%s\n' "${s//[^A-Za-z0-9_.-]/-}"
+}
+
+# _ta_sock_dir -> the directory tmux -L puts its sockets in.
+_ta_sock_dir() {
+  printf '%s/tmux-%s\n' "${TMUX_TMPDIR:-/tmp}" "$(id -u)"
+}
+
+# _ta_has SOCK NAME — exact-name session test (=NAME: no prefix matching).
+_ta_has() {
+  tmux -L "$1" has-session -t "=$2" 2>/dev/null
+}
+
+# _ta_find_sock NAME — echo the socket NAME lives on: the forced socket, else
+# its per-lane socket, else the legacy one. rc 1 when it is on neither.
+_ta_find_sock() {
+  if [ "$TA_FORCED" = 1 ]; then printf '%s\n' "$TA_SOCK"; return 0; fi
+  local lane; lane=$(_ta_lane_sock "$1")
+  if _ta_has "$lane" "$1"; then printf '%s\n' "$lane"; return 0; fi
+  if _ta_has "$TA_LEGACY_SOCK" "$1"; then printf '%s\n' "$TA_LEGACY_SOCK"; return 0; fi
+  return 1
+}
+
+# _ta_use_lane NAME — set TA_SOCK to where NAME lives. When it lives nowhere,
+# TA_SOCK becomes the per-lane socket and TA_WHERE (for messages) names both
+# places looked at; rc 1. A forced socket is left as is.
+# shellcheck disable=SC2034  # TA_WHERE is read by execute.sh
+_ta_use_lane() {
+  local s
+  if s=$(_ta_find_sock "$1"); then
+    TA_SOCK="$s"; TA_WHERE="socket $s"; return 0
+  fi
+  TA_SOCK=$(_ta_lane_sock "$1")
+  TA_WHERE="socket $TA_SOCK or legacy socket $TA_LEGACY_SOCK"
+  return 1
+}
+
+# _ta_all_socks — every socket that may hold lanes: the forced one alone, else
+# each live tmux-agents-* socket in the socket dir plus the legacy socket.
+# Stale socket files (tmux 3.4 leaves them when a server exits) are skipped.
+_ta_all_socks() {
+  if [ "$TA_FORCED" = 1 ]; then printf '%s\n' "$TA_SOCK"; return 0; fi
+  local f
+  for f in "$(_ta_sock_dir)"/tmux-agents-*; do
+    [ -S "$f" ] || continue
+    tmux -L "${f##*/}" ls >/dev/null 2>&1 && printf '%s\n' "${f##*/}"
+  done
+  tmux -L "$TA_LEGACY_SOCK" ls >/dev/null 2>&1 && printf '%s\n' "$TA_LEGACY_SOCK"
+  return 0
+}
+
+# _ta_reap_lane_sock SOCK NAME — after a session on NAME's own per-lane
+# server is killed: when no session is left, stop the server and remove the
+# socket file tmux leaves behind. Never touches a forced or legacy socket.
+_ta_reap_lane_sock() {
+  [ "$TA_FORCED" = 1 ] && return 0
+  [ "$1" = "$(_ta_lane_sock "$2")" ] || return 0
+  local left
+  left=$(tmux -L "$1" ls -F '#S' 2>/dev/null || true)
+  [ -z "$left" ] || return 0
+  tmux -L "$1" kill-server 2>/dev/null || true
+  local f; f="$(_ta_sock_dir)/$1"
+  if [ -S "$f" ] && ! tmux -L "$1" ls >/dev/null 2>&1; then
+    rm -f -- "$f"
+  fi
+  return 0
+}
+
 # _ta_env_seconds VAR DEFAULT — numeric env knob or the default.
 _ta_env_seconds() {
   local v="${!1:-}"

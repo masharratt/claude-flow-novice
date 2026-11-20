@@ -54,5 +54,11 @@ _ta_cargo_target_line() {
   [ -n "$root" ] || { echo "$file has no root line" >&2; return 1; }
   root="${root%/}"
   _ta_cargo_root_check "$root" "$file root" || return 1
+  # A root missing on this host (e.g. a VPS checkout of the same repo) is
+  # ignored, not created: cargo would make it on whatever disk holds that path.
+  if [ ! -d "$root" ]; then
+    echo "cfn-tmux-agents: $file root '$root' does not exist on this host; lane $lane keeps the default CARGO_TARGET_DIR" >&2
+    return 0
+  fi
   printf 'CARGO_TARGET_DIR=%s/%s\n' "$root" "$lane"
 }

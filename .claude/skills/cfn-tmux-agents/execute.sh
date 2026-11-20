@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # cfn-tmux-agents: launch and drive subagent sessions in tmux without the
-# fleet roster. One dedicated tmux socket, one session per agent, prompts
+# fleet roster. One tmux server per lane (tmux-agents-NAME; legacy shared
+# socket tmux-agents still read), one session per agent, prompts
 # delivered literally via send-keys. Ported from cfn-fleet spawn mechanics.
 #
 # Exit codes: 0 ok | 64 usage | 3 tmux missing | 65 unknown engine/session
@@ -43,6 +44,7 @@ unset $CFN_GIT_REDIRECT_VARS
 . "$SKILL_DIR/lib/cargo-target.sh"
 
 TA_SOCK=""
+TA_WHERE=""
 
 _ta_usage() {
   cat <<'EOF'
@@ -123,6 +125,8 @@ cmd_spawn() {
   [ -n "$name" ] || _ta_die 64 "usage: execute.sh spawn NAME [options]"
   [[ "$name" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] \
     || _ta_die 64 "spawn: bad session name '$name' (allowed: letters, digits, dot, dash, underscore)"
+  # Per-lane server unless a socket was forced (lib/common.sh explains why).
+  [ "$TA_FORCED" = 1 ] || TA_SOCK=$(_ta_lane_sock "$name")
 
   [ "$engine" = "claude" ] && engine="claude-sub"
   [ -n "$engine" ] || engine="claude-sub"
@@ -332,6 +336,11 @@ cmd_spawn() {
   fi
 
   command -v tmux >/dev/null 2>&1 || _ta_die 3 "spawn: tmux not available (use --dry-run for copy-paste commands)"
+  # A lane of this name still alive on the legacy shared socket would be
+  # shadowed by the new per-lane one (lookups try per-lane first): refuse.
+  if [ "$TA_FORCED" != 1 ] && _ta_has "$TA_LEGACY_SOCK" "$name"; then
+    _ta_die 66 "spawn: a session '$name' is still alive on the legacy socket $TA_LEGACY_SOCK; kill it or pick another name"
+  fi
   _ta_tmux_server_warn "$TA_SOCK"
 
   if [ -n "$outbox" ]; then
@@ -457,6 +466,7 @@ cmd_spawn() {
       rm -f "$tail_file"
     fi
     tmux -L "$TA_SOCK" kill-session -t "$name" 2>/dev/null || true
+    _ta_reap_lane_sock "$TA_SOCK" "$name"
     exit 68
   fi
   tmux -L "$TA_SOCK" set-option -w -t "$name" remain-on-exit off 2>/dev/null || true
@@ -523,8 +533,8 @@ cmd_send() {
     esac
   done
   [ -n "$name" ] && [ -n "$text" ] || _ta_die 64 "usage: execute.sh send NAME TEXT..."
-  tmux -L "$TA_SOCK" has-session -t "$name" 2>/dev/null \
-    || _ta_die 65 "send: no session '$name' on socket $TA_SOCK"
+  _ta_use_lane "$name" && tmux -L "$TA_SOCK" has-session -t "$name" 2>/dev/null \
+    || _ta_die 65 "send: no session '$name' on ${TA_WHERE:-socket $TA_SOCK}"
   local src=0
   _ta_send_followup "$TA_SOCK" "$name" "$text" || src=$?
   case "$src" in
@@ -539,22 +549,28 @@ cmd_send() {
 cmd_status() {
   local name="${1:-}"
   if [ -n "$name" ]; then
-    local err rc=0
+    local err rc=0 saved="$TA_SOCK"
+    # Not found anywhere: classify against the legacy server when it runs
+    # (an old lane's dead pane), else report the per-lane socket.
+    if ! _ta_use_lane "$name" && tmux -L "$TA_LEGACY_SOCK" ls >/dev/null 2>&1; then
+      TA_SOCK="$TA_LEGACY_SOCK"
+    fi
     err=$(tmux -L "$TA_SOCK" has-session -t "$name" 2>&1) || rc=$?
+    local here="$TA_SOCK"; TA_SOCK="$saved"
     if [ "$rc" -eq 0 ]; then
-      echo "$name: alive (socket $TA_SOCK)"
-      _ta_pane_raw "$TA_SOCK" "$name" 3 | sed 's/^/  last: /'
+      echo "$name: alive (socket $here)"
+      _ta_pane_raw "$here" "$name" 3 | sed 's/^/  last: /'
       return 0
     fi
     case "$err" in
-      *"no server running"*|*"error connecting"*) echo "$name: no server on socket $TA_SOCK" >&2 ;;
+      *"no server running"*|*"error connecting"*) echo "$name: no server on socket $here" >&2 ;;
       *) echo "$name: DEAD (pane exited)" >&2 ;;
     esac
     return 1
   fi
   local sessions
-  sessions=$(tmux -L "$TA_SOCK" ls -F '#S' 2>/dev/null) \
-    || _ta_die 65 "status: no server on socket $TA_SOCK (nothing spawned)"
+  sessions=$(_ta_list_sessions) \
+    || _ta_die 65 "status: no server on ${TA_WHERE} (nothing spawned)"
   local s any_dead=0
   while IFS= read -r s; do
     [ -n "$s" ] || continue
@@ -576,27 +592,57 @@ cmd_capture() {
   done
   [ -n "$name" ] || _ta_die 64 "usage: execute.sh capture NAME [--lines N]"
   [[ "$lines" =~ ^[0-9]+$ ]] || _ta_die 64 "capture: --lines expects a number"
-  tmux -L "$TA_SOCK" has-session -t "$name" 2>/dev/null \
-    || _ta_die 65 "capture: no session '$name' on socket $TA_SOCK"
+  _ta_use_lane "$name" && tmux -L "$TA_SOCK" has-session -t "$name" 2>/dev/null \
+    || _ta_die 65 "capture: no session '$name' on ${TA_WHERE:-socket $TA_SOCK}"
   _ta_pane_raw "$TA_SOCK" "$name" "$lines"
 }
 
+# _ta_list_sessions — session names on every lane socket (_ta_all_socks),
+# one per line, deduplicated; rc 1 when no server answers. Sets TA_WHERE for
+# the caller's error message.
+_ta_list_sessions() {
+  local socks s out="" any=1 got
+  if [ "$TA_FORCED" = 1 ]; then
+    TA_WHERE="socket $TA_SOCK"
+  else
+    TA_WHERE="any tmux-agents-* socket or legacy socket $TA_LEGACY_SOCK"
+  fi
+  socks=$(_ta_all_socks)
+  while IFS= read -r s; do
+    [ -n "$s" ] || continue
+    got=$(tmux -L "$s" ls -F '#S' 2>/dev/null) || continue
+    any=0
+    out+="$got"$'\n'
+  done <<< "$socks"
+  [ "$any" = 0 ] || return 1
+  printf '%s' "$out" | awk 'NF && !seen[$0]++'
+}
+
 cmd_list() {
-  tmux -L "$TA_SOCK" ls -F '#S' 2>/dev/null \
-    || _ta_die 65 "list: no server on socket $TA_SOCK (nothing spawned)"
+  _ta_list_sessions || _ta_die 65 "list: no server on ${TA_WHERE} (nothing spawned)"
 }
 
 cmd_kill() {
   if [ "${1:-}" = "--all" ]; then
-    tmux -L "$TA_SOCK" kill-server 2>/dev/null \
-      || _ta_die 65 "kill: no server on socket $TA_SOCK"
-    echo "killed all sessions on socket $TA_SOCK"
+    local socks s n=0
+    socks=$(_ta_all_socks)
+    while IFS= read -r s; do
+      [ -n "$s" ] || continue
+      tmux -L "$s" kill-server 2>/dev/null || continue
+      n=$((n + 1))
+      echo "killed all sessions on socket $s"
+      if [ "$TA_FORCED" != 1 ] && [ "$s" != "$TA_LEGACY_SOCK" ]; then
+        rm -f -- "$(_ta_sock_dir)/$s"
+      fi
+    done <<< "$socks"
+    [ "$n" -gt 0 ] || _ta_die 65 "kill: no server on ${TA_WHERE:-socket $TA_SOCK}"
     return 0
   fi
   local name="${1:-}"
   [ -n "$name" ] || _ta_die 64 "usage: execute.sh kill NAME | kill --all"
-  tmux -L "$TA_SOCK" kill-session -t "$name" 2>/dev/null \
-    || _ta_die 65 "kill: no session '$name' on socket $TA_SOCK"
+  _ta_use_lane "$name" && tmux -L "$TA_SOCK" kill-session -t "$name" 2>/dev/null \
+    || _ta_die 65 "kill: no session '$name' on ${TA_WHERE:-socket $TA_SOCK}"
+  _ta_reap_lane_sock "$TA_SOCK" "$name"
   echo "killed $name"
 }
 
@@ -631,8 +677,8 @@ cmd_watch() {
   [[ "$interval" =~ ^[0-9]+(\.[0-9]+)?$ ]] || _ta_die 64 "watch: --interval expects seconds"
   local mb="${HOME:-}/.claude/skills/cfn-mailbox/mailbox.sh"
   [ -x "$mb" ] || _ta_die 66 "watch: mailbox not found or not executable: $mb"
-  tmux -L "$TA_SOCK" has-session -t "$name" 2>/dev/null \
-    || _ta_die 65 "watch: no session '$name' on socket $TA_SOCK"
+  _ta_use_lane "$name" && tmux -L "$TA_SOCK" has-session -t "$name" 2>/dev/null \
+    || _ta_die 65 "watch: no session '$name' on ${TA_WHERE:-socket $TA_SOCK}"
 
   if [ "$detach" = 1 ]; then
     local log
@@ -693,9 +739,14 @@ main() {
 
   if [ -n "$sock" ]; then
     TA_SOCK="${sock//[^A-Za-z0-9_.-]/-}"
+    TA_FORCED=1
   else
     TA_SOCK=$(_ta_socket)
+    # An explicit TMUX_AGENTS_SOCKET forces one socket, as --socket does.
+    [ -z "${TMUX_AGENTS_SOCKET:-}" ] || TA_FORCED=1
   fi
+  TA_WHERE="socket $TA_SOCK"
+  [ "$TA_FORCED" = 1 ] || TA_WHERE="any tmux-agents-* socket or legacy socket $TA_LEGACY_SOCK"
 
   local cmd="${argv[0]}"
   shift_argv=("${argv[@]:1}")
