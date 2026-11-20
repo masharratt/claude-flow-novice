@@ -1212,6 +1212,81 @@ test_allow_field_9_mask_budget(){
   rm -rf "$O"
 }
 
+# BUG zai-fence-registry-arg-overflow (2026-11-20, MDTWII look-lab lane): a root
+# with 376 registered worktrees put 24 bwrap args per entry in the plan (a rw
+# re-bind, an ancestor pin, and gitdir/commondir/config.worktree each bound
+# read-only twice), 9024 args on their own, so bwrap refused "Exceeded maximum
+# number of arguments 9000". An entry whose checkout is outside every tree the
+# worker can see now stays under the read-only registry (no per-entry args, and
+# the worker cannot write it); entries of visible checkouts keep rw + ro files.
+test_allow_field_10_registry_scale(){
+  linux_only test_allow_field_10_registry_scale || return 0
+  local i e s n=450 w1
+  w1=$(basename "$WT")
+  for i in $(seq 1 "$n"); do
+    e="$FENCE/.git/worktrees/far$i"; mkdir -p "$e"
+    git -C "$FENCE" rev-parse HEAD > "$e/HEAD"
+    printf '../..\n' > "$e/commondir"
+    printf '%s\n' "$TMP/far-checkouts/far$i/.git" > "$e/gitdir"
+  done
+  PROBE="echo PROBE_RAN; echo x > .git/worktrees/far1/HEAD 2>/dev/null && echo FAR_RW; echo x > .git/worktrees/far1/config.worktree 2>/dev/null && echo FAR_CFG; echo y > .git/worktrees/$w1/f10probe 2>/dev/null && echo NEAR_RW; echo z > .git/worktrees/$w1/gitdir 2>/dev/null && echo NEAR_GITDIR; true"
+  fence_run "$FENCE"
+  s=""
+  [ "$RC" -eq 0 ] || s="launch refused rc=$RC"
+  grep -q 'Exceeded maximum number of arguments' <<<"$OUT" && s="${s:+$s; }bwrap argument overflow"
+  grep -q FAR_RW <<<"$OUT" && s="${s:+$s; }entry of an unseen checkout writable"
+  grep -q FAR_CFG <<<"$OUT" && s="${s:+$s; }config.worktree creatable in an unseen entry"
+  [ -s "$FENCE/.git/worktrees/far1/config.worktree" ] && s="${s:+$s; }host config.worktree written"
+  grep -q NEAR_RW <<<"$OUT" || s="${s:+$s; }entry of the visible worktree no longer writable"
+  grep -q NEAR_GITDIR <<<"$OUT" && s="${s:+$s; }visible entry gitdir back-link writable"
+  if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_10_registry_scale"
+  else no "test_allow_field_10_registry_scale: $s out=$(head -c 400 <<<"$OUT")"; fi
+  rm -rf "$FENCE"/.git/worktrees/far* "$FENCE/.git/worktrees/$w1/f10probe"
+}
+
+# BUG zai-fence-keymask-arg-overflow (2026-11-20, MDTWII look-lab lane): a
+# read-only opening (build/art-permanent) held 3425 build-stamp files named
+# *.key, each masked with its own 3-arg /dev/null bind (10275 args). In a
+# read-only opening a directory whose every entry is a secret-name match is now
+# masked once as a whole (nothing else in it is hidden, nothing is writable
+# there anyway); a directory that also holds other files keeps per-file masks.
+test_allow_field_11_keymask_collapse(){
+  linux_only test_allow_field_11_keymask_collapse || return 0
+  local O="$TMP/opened-field11" i j s
+  for i in $(seq 1 700); do
+    mkdir -p "$O/b$i/stamps"
+    for j in 1 2 3 4 5 6; do printf 'KEYSECRET_%s\n' "$$" > "$O/b$i/stamps/s$j.key"; done
+  done
+  mkdir -p "$O/mixed"; printf 'KEYSECRET_%s\n' "$$" > "$O/mixed/a.key"; echo "KEEP_VISIBLE_$$" > "$O/mixed/keep.txt"
+  commit_list "ro:$O"
+  PROBE="echo PROBE_RAN; cat $(q "$O/b1/stamps/s1.key") $(q "$O/b700/stamps/s6.key") $(q "$O/mixed/a.key") 2>/dev/null; cat $(q "$O/mixed/keep.txt"); true"
+  fence_run "$FENCE" ZAI_FENCE_OPEN_DIRS=1
+  s=""
+  [ "$RC" -eq 0 ] || s="launch refused rc=$RC"
+  grep -q 'Exceeded maximum number of arguments' <<<"$OUT" && s="${s:+$s; }bwrap argument overflow"
+  grep -q "KEYSECRET_$$" <<<"$OUT" && s="${s:+$s; }a *.key file is readable inside the fence"
+  grep -q "KEEP_VISIBLE_$$" <<<"$OUT" || s="${s:+$s; }a non-secret file beside a mask was hidden"
+  if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_11_keymask_collapse"
+  else no "test_allow_field_11_keymask_collapse: $s out=$(head -c 400 <<<"$OUT")"; fi
+  drop_list; rm -rf "$O"
+}
+
+# Guard (same bugs): a plan past the bwrap argument ceiling refuses with a
+# message naming its largest contributors, never bwrap's bare error.
+test_allow_field_12_arg_ceiling_guard(){
+  linux_only test_allow_field_12_arg_ceiling_guard || return 0
+  local s
+  OUT=$(cd "$FENCE" && env ZAI_FENCE_ARG_CEILING=60 "$WRAP" /bin/bash -c 'echo PROBE_RAN' 2>&1); RC=$?
+  s=""
+  [ "$RC" -eq 70 ] || s="rc=$RC, want 70"
+  grep -q PROBE_RAN <<<"$OUT" && s="${s:+$s; }probe ran"
+  grep -q 'over the ceiling 60' <<<"$OUT" || s="${s:+$s; }no ceiling message"
+  grep -Eq 'largest: [0-9]+ args' <<<"$OUT" || s="${s:+$s; }no contributor breakdown"
+  grep -q 'Exceeded maximum number of arguments' <<<"$OUT" && s="${s:+$s; }raw bwrap error instead of the guard"
+  if [ -z "$s" ]; then ok "test_allow_field_12_arg_ceiling_guard"
+  else no "test_allow_field_12_arg_ceiling_guard: $s out=$(head -c 400 <<<"$OUT")"; fi
+}
+
 # BUG zai-fence-outside-worktree (2026-11-19): plain glm launched in a linked
 # worktree kept OUTSIDE the main checkout (~/mdtwii-desk-wt/x) failed
 # "bwrap: Can't chdir to <worktree>": only the main repo was bound. The fence
@@ -1555,6 +1630,9 @@ test_allow_field_6_worktree_registry_ro
 test_allow_field_7_pointer_backlink
 test_allow_field_8_worktree_top_refusals
 test_allow_field_9_mask_budget
+test_allow_field_10_registry_scale
+test_allow_field_11_keymask_collapse
+test_allow_field_12_arg_ceiling_guard
 test_allow_noscan
 test_tmux_socket_blocked
 test_env_scrubbed

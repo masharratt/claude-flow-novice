@@ -296,6 +296,7 @@ GIT_REPOS=()
 GIT_POINTERS=()   # .git FILES (worktree / submodule pointers)
 scan_tree(){
   local src="$1" dest="$2" secs="$3" out err rc=0 bad p rel t n
+  local -A hits=()
   shift 3
   local -a expr=()
   for n in "$@"; do expr+=(${expr[@]+-o} -name "$n"); done
@@ -341,11 +342,30 @@ scan_tree(){
       M) if [ -L "$p" ]; then
            local r; r=$(realpath -e "$p" 2>/dev/null) || continue
            exposed "$r" && mask "$r"
+         elif [ "$SCAN_COLLAPSE" = 1 ] && [ "${p%/*}" != "$dest" ] && [[ "$p" != *$'\n'* ]]; then
+           hits["${p%/*}"]+="$p"$'\n'
          else mask "$p"; fi ;;
     esac
   done <"$out"
   rm -f "$out" "$err"
+  # BUG zai-fence-keymask-arg-overflow (2026-11-20, MDTWII: 3425 build-stamp
+  # *.key files in a read-only opening, 3 bwrap args each): in a read-only
+  # opening (SCAN_COLLAPSE=1) a directory whose EVERY entry is a match is
+  # masked once as a whole. Nothing that is not a match is hidden, and the
+  # worker can write nothing there anyway. Any other directory keeps per-file
+  # masks. A file added after the scan lands under the whole-dir mask (hidden).
+  local d f kids k
+  for d in "${!hits[@]}"; do
+    kids=0
+    for k in "$d"/* "$d"/.[!.]* "$d"/..?*; do [ -e "$k" ] || [ -L "$k" ] && kids=$((kids + 1)); done
+    if [ "$kids" -eq "$(printf '%s' "${hits[$d]}" | grep -c '')" ] && [ -d "$d" ] && [ ! -L "$d" ]; then
+      mask "$d"
+    else
+      while IFS= read -r f; do [ -n "$f" ] && mask "$f"; done <<<"${hits[$d]}"
+    fi
+  done
 }
+SCAN_COLLAPSE=0
 
 # worktree_registry_ro GITDIR: GITDIR/worktrees read-only at its top level,
 # each existing entry re-bound read+write (git writes HEAD, index, logs there)
@@ -368,12 +388,33 @@ worktree_registry_ro(){
   fi
   [ -d "$w" ] || [ "$PRINT" = 1 ] || die "$w is not a directory; refusing"
   A+=(--ro-bind "$w" "$w"); PROT+=("$w")
+  # BUG zai-fence-registry-arg-overflow (2026-11-20, MDTWII: 376 entries, 24
+  # bwrap args each, 9024 in all, past bwrap's 9000 limit): only an entry
+  # whose checkout (its gitdir back-link's folder) is visible inside the fence
+  # is re-bound read+write. Every other entry stays under the read-only
+  # registry: no args, and the worker cannot write it at all. Cost: git gc
+  # inside the fence cannot expire those worktrees' reflogs.
+  local back i
+  local -a ents=() backs=() reals=()
+  WT_RW_ENTRIES=()
   for c in "$w"/* "$w"/.[!.]* "$w"/..?*; do
     [ -d "$c" ] && [ ! -L "$c" ] || continue
-    A+=(--bind "$c" "$c")
+    back=""; { IFS= read -r back < "$c/gitdir"; } 2>/dev/null || back=""
+    [ -n "$back" ] || continue          # no back-link: nothing to serve, stays read-only
+    case "$back" in /*) ;; *) back="$c/$back" ;; esac
+    ents+=("$c"); backs+=("$back")
   done
-  for c in "$w"/*/gitdir "$w"/*/commondir; do ro "$c"; done
+  [ "${#ents[@]}" -gt 0 ] || return 0
+  mapfile -d '' -t reals < <(realpath -m -z -- "${backs[@]}" 2>/dev/null)
+  [ "${#reals[@]}" -eq "${#ents[@]}" ] || die "cannot resolve the worktree back-links under $w"
+  for i in "${!ents[@]}"; do
+    exposed "${reals[$i]%/*}" || continue
+    c="${ents[$i]}"
+    A+=(--bind "$c" "$c"); WT_RW_ENTRIES+=("$c")
+  done
+  for c in ${WT_RW_ENTRIES[@]+"${WT_RW_ENTRIES[@]}"}; do ro "$c/gitdir"; ro "$c/commondir"; done
 }
+WT_RW_ENTRIES=()
 
 # git_protect REPO: config, hooks and their redirect targets read-only.
 git_protect(){
@@ -392,11 +433,12 @@ git_protect(){
   ro "$g/config"; ro "$g/hooks"
   git_placeholder "$g/commondir" "."
   git_placeholder "$g/config.worktree" ""
-  for t in "$g"/worktrees/*/; do [ -d "$t" ] && git_placeholder "${t%/}/config.worktree" ""; done
-  # metadata the host's next git command trusts (review rev 2): worktree
-  # pointers back, commondir, per-worktree config, submodule configs and hooks
-  for t in "$g"/worktrees/*/config "$g"/worktrees/*/config.worktree "$g"/worktrees/*/commondir \
-           "$g"/worktrees/*/gitdir; do ro "$t"; done
+  # metadata the host's next git command trusts (review rev 2): per-worktree
+  # config of the entries worktree_registry_ro re-bound read+write (it already
+  # bound their gitdir + commondir; the rest sit under the read-only registry)
+  for t in ${WT_RW_ENTRIES[@]+"${WT_RW_ENTRIES[@]}"}; do
+    git_placeholder "$t/config.worktree" ""; ro "$t/config"
+  done
   if [ -d "$g/modules" ]; then
     while IFS= read -r -d '' t; do ro "$t"; done < <(find "$g/modules" \( -name config -o -name config.worktree -o -name commondir -o -name gitdir \) -type f -print0 -o -name hooks -type d -prune -print0 2>/dev/null)
   fi
@@ -698,7 +740,9 @@ build(){
     fi
     # progress on stderr: big folders on /mnt/c take minutes (MDTWII field report)
     echo "zai-fence: checking $p for secret files (big folders on /mnt/c can take minutes)..." >&2
+    SCAN_COLLAPSE=0; [ "$om" = ro ] && SCAN_COLLAPSE=1
     scan_tree "/proc/$$/fd/$fd" "$p" "${ZAI_FENCE_OPEN_SCAN_SECS:-600}" "${pats[@]}"
+    SCAN_COLLAPSE=0
   done <<<"$OPEN_DIRS"
 
   # Escape B (final codex review): a read-only bind moves with its parent when
@@ -802,6 +846,55 @@ KEEP_FDS+="${KEEP_FDS:+,}$SECCOMP_FD"
 
 build || die "mount plan generation failed"
 [ "${#A[@]}" -gt 0 ] || die "empty mount plan"
+
+# Argument ceiling (BUG zai-fence-registry-arg-overflow / keymask-arg-overflow,
+# 2026-11-20): bwrap refuses more than 9000 arguments with a bare "Exceeded
+# maximum number of arguments". Count the plan plus the command and the
+# wrapper's own extras (broker relay, --settings) and refuse first, naming the
+# largest contributors. Nothing is dropped to make the plan fit.
+ZAI_FENCE_ARG_CEILING="${ZAI_FENCE_ARG_CEILING:-8900}"
+case "$ZAI_FENCE_ARG_CEILING" in ''|*[!0-9]*) die "ZAI_FENCE_ARG_CEILING must be a whole number, got '$ZAI_FENCE_ARG_CEILING'" ;; esac
+[ "$ZAI_FENCE_ARG_CEILING" -le 9000 ] || ZAI_FENCE_ARG_CEILING=9000
+# arg_report: "N args: KIND under TREE" for the 4 largest groups of A.
+arg_report(){
+  local i=0 n o src dst kind tree top om d
+  local -a tops=("$ROOT")
+  local -A sum=()
+  [ -n "$WT_OUT" ] && tops+=("$WT_OUT")
+  while IFS=$'\t' read -r om d; do [ -n "$d" ] && tops+=("$d"); done <<<"$OPEN_DIRS"
+  while [ "$i" -lt "${#A[@]}" ]; do
+    o="${A[$i]}"
+    case "$o" in
+      --ro-bind|--bind|--bind-fd|--ro-bind-fd|--symlink|--dev-bind|--ro-bind-try|--bind-try) n=2 ;;
+      --tmpfs|--remount-ro|--dir|--dev|--proc|--chdir|--seccomp|--perms|--file) n=1 ;;
+      *) n=0 ;;
+    esac
+    src="${A[$((i + 1))]:-}"; dst="${A[$((i + n))]:-}"
+    [ "$n" -eq 0 ] && dst=""
+    case "$o:$src" in
+      --tmpfs:*|--remount-ro:*|--ro-bind:/dev/null|"--ro-bind:$MASK_JSON") kind="masks" ;;
+      *) case "$dst" in
+           */.git/worktrees/*) kind="worktree registry entries" ;;
+           */.git|*/.git/*) kind="git metadata binds" ;;
+           *) if [ "$o" = --bind ] && [ "$src" = "$dst" ]; then kind="rw re-binds and ancestor pins"; else kind="${o#--} mounts"; fi ;;
+         esac ;;
+    esac
+    tree="system"
+    for top in "${tops[@]}"; do
+      case "$dst/" in "$top"/*) [ "${#top}" -gt "${#tree}" ] || [ "$tree" = system ] && tree="$top" ;; esac
+    done
+    sum["$kind under $tree"]=$(( ${sum["$kind under $tree"]:-0} + n + 1 ))
+    i=$((i + n + 1))
+  done
+  for d in "${!sum[@]}"; do printf '%s\t%s\n' "${sum[$d]}" "$d"; done | sort -t$'\t' -k1,1nr | head -4 \
+    | awk -F'\t' '{ printf "%s%s args: %s", (NR > 1 ? "; " : ""), $1, $2 }'
+}
+ARGC_NEED=$(( ${#A[@]} + 1 + $# + 16 ))
+if [ "$ARGC_NEED" -gt "$ZAI_FENCE_ARG_CEILING" ]; then
+  ARG_MSG="the mount plan needs $ARGC_NEED bwrap arguments, over the ceiling $ZAI_FENCE_ARG_CEILING (bwrap refuses past 9000); largest: $(arg_report)"
+  [ "$PRINT" = 1 ] && echo "zai-fence: WARN $ARG_MSG" >&2
+  [ "$PRINT" = 1 ] || die "$ARG_MSG; refusing to run (nothing was unprotected to make it fit)"
+fi
 
 if [ "$PRINT" = 1 ]; then
   printf '%s\n' "$BWRAP" "${A[@]}"
