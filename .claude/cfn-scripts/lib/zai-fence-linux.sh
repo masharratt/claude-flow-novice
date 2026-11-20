@@ -27,7 +27,9 @@
 #          (HEAD) is masked read-only (/dev/null or empty tmpfs) with a note.
 #   (b)    root and every opened repo: .git/config*, .git/hooks, core.hooksPath
 #          and include.path targets ro (a missing target inside a writable tree
-#          refuses); project .claude dirs ro except non-config children; fleet
+#          refuses); .git/worktrees ro at its top (no new worktree entries, even
+#          with ZAI_FENCE_ALLOW_CONFIG=1); a .git pointer into <root>/.git
+#          needs its target's back-link; project .claude dirs ro except non-config children; fleet
 #          run-dir engines.env/fleet.env ro; the glm-open list ro.
 #   (c)    ro: glm-open folders (--ro-bind-fd), .zai-fence-readonly entries.
 #   (d)    TRUSTED RUNTIME ro: ~/.claude subset (rules, skills, hooks,
@@ -345,6 +347,34 @@ scan_tree(){
   rm -f "$out" "$err"
 }
 
+# worktree_registry_ro GITDIR: GITDIR/worktrees read-only at its top level,
+# each existing entry re-bound read+write (git writes HEAD, index, logs there)
+# with its gitdir/commondir back-links read-only. BUG zai-fence-forged-worktree
+# (2026-11-19 review of 3a798d32b, finding 2): with only existing entries
+# protected, a worker could add worktrees/<new> whose gitdir names a folder it
+# writes, plant a pointer there, and a later plain-glm launch from that folder
+# passed the four-way worktree check and was bound read+write. An absent
+# registry is created empty on the host first (git treats an empty one as
+# none), so it cannot be created inside the fence either. Cost: git worktree
+# add/prune fail inside the fence. Applied even with ZAI_FENCE_ALLOW_CONFIG=1:
+# that lifts config protection, never the registry the fence itself trusts.
+worktree_registry_ro(){
+  local g="$1" w="$1/worktrees" c
+  [ -d "$g" ] && [ ! -L "$g" ] || return 0
+  [ -e "$g/HEAD" ] || [ -L "$g/HEAD" ] || return 0   # not a repository (git_protect masks it)
+  no_link "$w"
+  if [ ! -e "$w" ] && [ "$PRINT" != 1 ]; then
+    mkdir "$w" || die "cannot create the empty worktree registry $w"
+  fi
+  [ -d "$w" ] || [ "$PRINT" = 1 ] || die "$w is not a directory; refusing"
+  A+=(--ro-bind "$w" "$w"); PROT+=("$w")
+  for c in "$w"/* "$w"/.[!.]* "$w"/..?*; do
+    [ -d "$c" ] && [ ! -L "$c" ] || continue
+    A+=(--bind "$c" "$c")
+  done
+  for c in "$w"/*/gitdir "$w"/*/commondir; do ro "$c"; done
+}
+
 # git_protect REPO: config, hooks and their redirect targets read-only.
 git_protect(){
   local r="$1" g="$1/.git" t k v
@@ -353,6 +383,8 @@ git_protect(){
   # no HEAD: not a repository (a cache or a stray dir); hide it rather than
   # write placeholders into it and leave its missing config creatable
   if [ ! -e "$g/HEAD" ] && [ ! -L "$g/HEAD" ]; then git_mask "$g"; return 0; fi
+  # first: its child re-binds must sit under the file binds below
+  worktree_registry_ro "$g"
   no_link "$g/hooks"
   [ -d "$g/hooks" ] || mkdir -p "$g/hooks" 2>/dev/null
   ro "$g/config"; ro "$g/hooks"
@@ -417,7 +449,34 @@ git_pointer_check(){
   if ! under "$tgt" "$ROOT/.git" && { [ -z "$top" ] || ! under "$tgt" "$top"; }; then
     die "git pointer $f resolves to $tgt, outside its own repo (${top:-$ROOT}) and outside $ROOT/.git; refusing (the host's git would follow it)"
   fi
+  under "$tgt" "$ROOT/.git" && pointer_backlinked "$f" "$tgt"
   ro "$f"
+}
+
+# pointer_backlinked FILE TARGET: a pointer into ROOT/.git must be backed by
+# its target (BUG zai-fence-pointer-backlink, 2026-11-19 review of 3a798d32b,
+# finding 3: any pointer leading into ROOT/.git was accepted). A worktree
+# entry ROOT/.git/worktrees/<n> needs its gitdir file to name FILE; a
+# submodule dir ROOT/.git/modules/... needs core.worktree to name FILE's
+# folder. Anything else (ROOT/.git itself, a path deeper in it) refuses.
+pointer_backlinked(){
+  local f="$1" tgt="$2" back="" n
+  case "$tgt" in
+    "$ROOT/.git/worktrees/"*)
+      n="${tgt#"$ROOT/.git/worktrees/"}"
+      case "$n" in ""|*/*) die "git pointer $f resolves to $tgt, not a worktree entry of $ROOT/.git; refusing" ;; esac
+      { IFS= read -r back < "$tgt/gitdir"; } 2>/dev/null || back=""
+      case "$back" in "") ;; /*) ;; *) back="$tgt/$back" ;; esac
+      [ -n "$back" ] && [ "$(realpath -m "$back")" = "$f" ] \
+        || die "git pointer $f resolves to $tgt, whose gitdir does not point back to $f; refusing (not a registered worktree)" ;;
+    "$ROOT/.git/modules/"*)
+      back=$(git config -f "$tgt/config" --get core.worktree 2>/dev/null) || back=""
+      case "$back" in "") ;; /*) ;; *) back="$tgt/$back" ;; esac
+      [ -n "$back" ] && [ "$(realpath -m "$back")" = "$(dirname "$f")" ] \
+        || die "git pointer $f resolves to $tgt, whose core.worktree does not point back to $(dirname "$f"); refusing (not a registered submodule)" ;;
+    *) die "git pointer $f resolves to $tgt, which is neither a worktree nor a submodule entry of $ROOT/.git; refusing" ;;
+  esac
+  return 0
 }
 
 # planning_dir_ro: the root's planning/ is read-only at its top level (existing
@@ -610,6 +669,8 @@ build(){
     git_protect "$ROOT"
     claude_dir_ro "$ROOT/.claude"
     for p in "$ROOT"/.claude/worktrees/*/.claude; do [ -L "$p" ] || claude_dir_ro "$p"; done
+  else
+    worktree_registry_ro "$ROOT/.git"
   fi
   planning_dir_ro
   for p in "$ROOT"/planning/fleet-*/engines.env "$ROOT"/planning/fleet-*/fleet.env; do ro "$p"; done

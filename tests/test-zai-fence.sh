@@ -1204,6 +1204,130 @@ test_allow_field_5_outside_worktree(){
   git -C "$FENCE" worktree remove --force "$OW" >/dev/null 2>&1; git -C "$FENCE" branch -D field5 >/dev/null 2>&1
 }
 
+# BUG zai-fence-forged-worktree (2026-11-19 security review of 3a798d32b,
+# finding 2): only EXISTING .git/worktrees/<n> entries were read-only, so a
+# worker could create .git/worktrees/evil whose gitdir back-link names a
+# folder the worker writes (an rw opening) plus a pointer there; a later plain
+# glm launched from that folder passed the four-way check and was bound rw.
+# The registry .git/worktrees is now read-only at its top level (existing
+# entries stay writable for git), and is created empty first when absent.
+# Holds with ZAI_FENCE_ALLOW_CONFIG=1 too: that opt-in lifts config/hook
+# protection, never the worktree registry the fence itself trusts.
+f6_forge_probe(){  # $1 = folder the worker writes, $2 = entry name
+  printf '%s' "echo PROBE_RAN; h=\$(git rev-parse HEAD); mkdir -p .git/worktrees/$2 && echo D_MADE; printf '%s\n' $(q "$1/.git") > .git/worktrees/$2/gitdir; echo ../.. > .git/worktrees/$2/commondir; echo \"\$h\" > .git/worktrees/$2/HEAD; mkdir -p $(q "$1") && printf 'gitdir: %s\n' \"\$PWD/.git/worktrees/$2\" > $(q "$1/.git"); git worktree add -q f6wt-$2 -b f6-$2 >/dev/null 2>&1 && echo WTADD_OK; echo x > .git/worktrees/w1/f6probe && echo CHILD_RW; true"
+}
+test_allow_field_6_worktree_registry_ro(){
+  linux_only test_allow_field_6_worktree_registry_ro || return 0
+  local O="$TMP/opened-field6" s v
+  local -a evars
+  mkdir -p "$O"
+  commit_list "$O"
+  for v in plain allowcfg; do
+    evars=(ZAI_FENCE_OPEN_DIRS=1); [ "$v" = allowcfg ] && evars+=(ZAI_FENCE_ALLOW_CONFIG=1)
+    PROBE=$(f6_forge_probe "$O/evil-$v" "evil-$v")
+    fence_run "$FENCE" "${evars[@]}"
+    s=""
+    [ "$RC" -eq 0 ] || s="rc=$RC"
+    grep -q D_MADE <<<"$OUT" && s="${s:+$s; }worker created a .git/worktrees entry"
+    [ -e "$FENCE/.git/worktrees/evil-$v" ] && s="${s:+$s; }host registry holds the forged entry"
+    grep -q WTADD_OK <<<"$OUT" && s="${s:+$s; }git worktree add worked inside the fence"
+    grep -q CHILD_RW <<<"$OUT" || s="${s:+$s; }existing worktree entry no longer writable"
+    if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_6_worktree_registry_ro:$v"
+    else no "test_allow_field_6_worktree_registry_ro:$v: $s out=$(head -c 400 <<<"$OUT")"; fi
+    # the forged pair must not be accepted by a later plain launch
+    if [ -f "$O/evil-$v/.git" ]; then
+      OUT=$(cd "$O/evil-$v" && "$WRAP" /bin/bash -c 'echo PROBE_RAN' 2>&1); RC=$?
+      if [ "$RC" -eq 70 ] && ! grep -q PROBE_RAN <<<"$OUT"; then ok "test_allow_field_6_forged_worktree_not_accepted:$v"
+      else no "test_allow_field_6_forged_worktree_not_accepted:$v: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
+    fi
+    rm -rf "$FENCE/.git/worktrees/evil-$v" "$FENCE/f6wt-evil-$v" "$O/evil-$v"; git -C "$FENCE" branch -D "f6-evil-$v" >/dev/null 2>&1
+  done
+  rm -f "$FENCE/.git/worktrees/w1/f6probe"
+  drop_list; rm -rf "$O"
+  # a repo with NO .git/worktrees at launch: none can be created either, and
+  # normal add / commit still work
+  local P="$TMP/proj-nowt"
+  mkdir -p "$P"; git -C "$P" init -q; echo s > "$P/f"; git -C "$P" add f; git -C "$P" "${GITC[@]}" commit -qm s
+  PROBE="echo PROBE_RAN; mkdir -p .git/worktrees/evil && echo D_MADE; git worktree add -q wtx -b wtx >/dev/null 2>&1 && echo WTADD_OK; echo n > g.txt; git add g.txt && git $(printf '%q ' "${GITC[@]}") commit -qm g && echo GIT_OK; true"
+  fence_run "$P"
+  s=""
+  [ "$RC" -eq 0 ] || s="rc=$RC"
+  grep -q D_MADE <<<"$OUT" && s="${s:+$s; }worker created .git/worktrees/evil"
+  grep -q WTADD_OK <<<"$OUT" && s="${s:+$s; }git worktree add worked"
+  { [ -e "$P/.git/worktrees/evil" ] || [ -e "$P/.git/worktrees/wtx" ]; } && s="${s:+$s; }host registry gained an entry"
+  grep -q GIT_OK <<<"$OUT" || s="${s:+$s; }git commit broke"
+  if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_6_no_registry_cannot_be_created"
+  else no "test_allow_field_6_no_registry_cannot_be_created: $s out=$(head -c 400 <<<"$OUT")"; fi
+  rm -rf "$P"
+}
+
+# BUG zai-fence-pointer-backlink (2026-11-19 security review of 3a798d32b,
+# finding 3): any .git pointer leading into <root>/.git was accepted. A pointer
+# into <root>/.git must now be backed by its target: .git/worktrees/<n>/gitdir
+# naming the pointer (worktree) or .git/modules/<m> core.worktree naming the
+# pointer's folder (submodule). Anything else refuses.
+test_allow_field_7_pointer_backlink(){
+  linux_only test_allow_field_7_pointer_backlink || return 0
+  local wtn tgt
+  wtn=$(basename "$WT")
+  for tgt in "$FENCE/.git/worktrees/$wtn" "$FENCE/.git" "../.git/worktrees/$wtn"; do
+    mkdir -p "$FENCE/f7"; printf 'gitdir: %s\n' "$tgt" > "$FENCE/f7/.git"
+    OUT=$(cd "$FENCE" && "$WRAP" /bin/bash -c 'echo PROBE_RAN' 2>&1); RC=$?
+    if [ "$RC" -eq 70 ] && ! grep -q PROBE_RAN <<<"$OUT" && grep -qF "$FENCE/f7/.git" <<<"$OUT"; then ok "test_allow_field_7_pointer_without_backlink_refused:$tgt"
+    else no "test_allow_field_7_pointer_without_backlink_refused:$tgt: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
+    rm -rf "$FENCE/f7"
+  done
+  # a real submodule (back-link = core.worktree) still launches
+  local P="$TMP/proj-sub" S="$TMP/sub-src"
+  mkdir -p "$P" "$S"
+  git -C "$S" init -q; echo s > "$S/s"; git -C "$S" add s; git -C "$S" "${GITC[@]}" commit -qm s
+  git -C "$P" init -q; echo p > "$P/p"; git -C "$P" add p; git -C "$P" "${GITC[@]}" commit -qm p
+  git -C "$P" -c protocol.file.allow=always submodule add -q "$S" sub >/dev/null 2>&1
+  if [ -f "$P/sub/.git" ]; then
+    PROBE="echo PROBE_RAN; git -C sub status --porcelain >/dev/null && echo SUB_OK"
+    fence_run "$P"
+    if [ "$RC" -eq 0 ] && grep -q SUB_OK <<<"$OUT"; then ok "test_allow_field_7_submodule_pointer_accepted"
+    else no "test_allow_field_7_submodule_pointer_accepted: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
+  else skip "test_allow_field_7_submodule_pointer_accepted: git submodule add failed"; fi
+  rm -rf "$P" "$S"
+}
+
+# Review of 3a798d32b, missing tests: worktree tops the four-way check refuses.
+test_allow_field_8_worktree_top_refusals(){
+  linux_only test_allow_field_8_worktree_top_refusals || return 0
+  local OW="$TMP/outside-wt8" W="$TMP/wtparent" R0="$TMP/r0"
+  # a symlinked .git at the worktree top
+  git -C "$FENCE" worktree add -q "$OW" -b field8 >/dev/null 2>&1
+  mv "$OW/.git" "$OW/gitptr"; ln -s gitptr "$OW/.git"
+  OUT=$(cd "$OW" && "$WRAP" /bin/bash -c 'echo PROBE_RAN' 2>&1); RC=$?
+  if [ "$RC" -eq 70 ] && ! grep -q PROBE_RAN <<<"$OUT" && grep -q "not a plain pointer file" <<<"$OUT"; then ok "test_allow_field_8_symlinked_worktree_git_refused"
+  else no "test_allow_field_8_symlinked_worktree_git_refused: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
+  rm -f "$OW/.git"; mv "$OW/gitptr" "$OW/.git"
+  git -C "$FENCE" worktree remove --force "$OW" >/dev/null 2>&1; git -C "$FENCE" branch -D field8 >/dev/null 2>&1
+  # a worktree top that is a parent of the root
+  mkdir -p "$R0"; git -C "$R0" init -q; echo s > "$R0/f"; git -C "$R0" add f; git -C "$R0" "${GITC[@]}" commit -qm s
+  git -C "$R0" worktree add -q "$W" -b par >/dev/null 2>&1
+  mv "$R0" "$W/r0"; git -C "$W/r0" worktree repair "$W" >/dev/null 2>&1
+  OUT=$(cd "$W" && "$WRAP" /bin/bash -c 'echo PROBE_RAN' 2>&1); RC=$?
+  if [ "$RC" -eq 70 ] && ! grep -q PROBE_RAN <<<"$OUT" && grep -q "parent of the root" <<<"$OUT"; then ok "test_allow_field_8_worktree_parent_of_root_refused"
+  else no "test_allow_field_8_worktree_parent_of_root_refused: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
+  rm -rf "$W"
+  # ZAI_FENCE_ALLOW_CONFIG=1 with an outside worktree: still bound and usable,
+  # and its registry entry (gitdir back-link) stays read-only
+  git -C "$FENCE" worktree add -q "$OW" -b field8b >/dev/null 2>&1
+  local gd s
+  gd="$FENCE/.git/worktrees/$(basename "$OW")"
+  PROBE="echo PROBE_RAN; echo ok > f8.txt; echo x > $(q "$gd/gitdir") 2>/dev/null && echo GITDIR_WRITABLE; true"
+  fence_run "$OW" ZAI_FENCE_ALLOW_CONFIG=1
+  s=""
+  [ "$RC" -eq 0 ] || s="rc=$RC"
+  [ -f "$OW/f8.txt" ] || s="${s:+$s; }worktree not writable"
+  grep -q GITDIR_WRITABLE <<<"$OUT" && s="${s:+$s; }gitdir back-link writable"
+  if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_8_allow_config_worktree"
+  else no "test_allow_field_8_allow_config_worktree: $s out=$(head -c 300 <<<"$OUT")"; fi
+  git -C "$FENCE" worktree remove --force "$OW" >/dev/null 2>&1; git -C "$FENCE" branch -D field8b >/dev/null 2>&1
+}
+
 # noscan: (user decision 2026-11-16, MDTWII captures folder holds no passwords):
 # a per-entry prefix that skips the secret-file scan for that entry only,
 # combinable with ro: in any order. Changing it needs re-approval.
@@ -1388,6 +1512,9 @@ test_allow_field_2_scan_progress
 test_allow_field_3_refusal_names_pattern
 test_allow_field_4_nonpointer_git_masked
 test_allow_field_5_outside_worktree
+test_allow_field_6_worktree_registry_ro
+test_allow_field_7_pointer_backlink
+test_allow_field_8_worktree_top_refusals
 test_allow_noscan
 test_tmux_socket_blocked
 test_env_scrubbed
