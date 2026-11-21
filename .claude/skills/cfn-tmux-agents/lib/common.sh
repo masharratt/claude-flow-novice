@@ -341,3 +341,31 @@ _ta_settings_error_exit() {
 
 # First-prompt ready check, send and landing check: shared with cfn-fleet in
 # cfn-scripts/lib/tui-prompt.sh (tui_send_first_prompt), sourced by execute.sh.
+
+# _ta_trust_re KIND: the folder-trust prompt pattern for an engine kind (ERE).
+# Bracketed first letters: Codex 0.171 prints "Trust this folder?" (capital T);
+# the old lowercase-only pattern missed it (mdtwii-tooling, 2026-11-21).
+_ta_trust_re() {
+  case "$1" in
+    claude) printf '%s' "Do you trust the files in this folder|Yes, I trust this folder" ;;
+    codex)  printf '%s' "[Tt]rust this folder|[Ww]ork in this folder" ;;
+    *)      printf '' ;;
+  esac
+}
+
+# _ta_mailbox_session_line LANE: prints MAILBOX_SESSION=<name> for the pane env.
+# Name: TMUX_AGENTS_MAILBOX_SESSION, else the lane name. Workers must sign mail
+# as themselves, never with the master's inherited name (mdtwii-tooling,
+# 2026-11-21: misrouted art-desk replies). An invalid override returns 1 (the
+# caller refuses); a lane name that is not a valid mailbox name prints nothing
+# and warns, so the caller unsets any inherited value instead.
+_ta_mailbox_session_line() {
+  local lane="$1" ov="${TMUX_AGENTS_MAILBOX_SESSION:-}"
+  if [ -n "$ov" ]; then
+    [[ "$ov" =~ ^[a-z0-9-]+$ ]] || { echo "ERROR spawn: TMUX_AGENTS_MAILBOX_SESSION='$ov' must be [a-z0-9-] only" >&2; return 1; }
+    printf 'MAILBOX_SESSION=%s' "$ov"; return 0
+  fi
+  if [[ "$lane" =~ ^[a-z0-9-]+$ ]]; then printf 'MAILBOX_SESSION=%s' "$lane"; return 0; fi
+  echo "WARN spawn: lane name '$lane' is not a valid mailbox name ([a-z0-9-]); MAILBOX_SESSION left unset (set TMUX_AGENTS_MAILBOX_SESSION)" >&2
+  return 0
+}

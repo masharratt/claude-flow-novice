@@ -187,11 +187,7 @@ cmd_spawn() {
   local bin_kind
   bin_kind=$(basename "$bin")
   [ "$bin_kind" = "zai-fence.sh" ] && bin_kind=$(basename "${words[0]:-x}")
-  case "$bin_kind" in
-    claude) trust_re="Do you trust the files in this folder|Yes, I trust this folder" ;;
-    codex)  trust_re="trust this folder|work in this folder" ;;
-    *)      trust_re="" ;;
-  esac
+  trust_re=$(_ta_trust_re "$bin_kind")
 
   if [ -n "$model" ]; then
     local -a keep=()
@@ -286,6 +282,16 @@ cmd_spawn() {
     || _ta_die 66 "spawn: cargo target root refused (reason above); fix .claude/cargo-target-root or TMUX_AGENTS_CARGO_TARGET_DIR"
   [ -z "$cargo_line" ] || resolved="${resolved:+$resolved$'\n'}$cargo_line"
   [ -z "$cargo_line" ] || [ "$dry_run" != 1 ] || echo "# pane env (launch script): $cargo_line"
+  # Workers sign mail as themselves: MAILBOX_SESSION=<lane> (mdtwii-tooling 2026-11-21).
+  local mbx_line
+  mbx_line=$(_ta_mailbox_session_line "$name") \
+    || _ta_die 66 "spawn: bad TMUX_AGENTS_MAILBOX_SESSION (reason above)"
+  if [ -n "$mbx_line" ]; then
+    resolved="${resolved:+$resolved$'\n'}$mbx_line"
+    [ "$dry_run" != 1 ] || echo "# pane env (launch script): $mbx_line"
+  else
+    unset_raw="${unset_raw:+$unset_raw,}MAILBOX_SESSION"  # never inherit the master's name
+  fi
 
   # BUG codex-no-banner (11-04): the pane resolved the engine itself; with
   # codex gone from every PATH, `exec codex` killed the pane and spawn showed

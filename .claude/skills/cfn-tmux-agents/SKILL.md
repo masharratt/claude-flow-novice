@@ -279,6 +279,16 @@ For MDTWII, commit this one line:
 - `--dry-run` prints a `# pane env` line with the value.
 - Code: `lib/cargo-target.sh`. Test: `tests/test-cargo-target.sh` (10 assertions).
 
+### Worker mailbox name
+
+Every worker (claude, codex, glm) gets `MAILBOX_SESSION=<lane name>`, so its mail is signed as itself, never as the master.
+
+- Override: `TMUX_AGENTS_MAILBOX_SESSION=<name>` at spawn. Must be `[a-z0-9-]`; anything else is refused with exit 66.
+- A lane name that is not a valid mailbox name: spawn warns and unsets `MAILBOX_SESSION` in the pane, so the master's name is never inherited.
+- `--dry-run` prints a `# pane env` line with the value.
+- Folder-trust prompts match in any case (Codex 0.171 prints `Trust this folder?`).
+- Code: `lib/common.sh` (`_ta_mailbox_session_line`, `_ta_trust_re`). Test: `tests/test-mailbox-session.sh`.
+
 ## Tests
 
 ```bash
