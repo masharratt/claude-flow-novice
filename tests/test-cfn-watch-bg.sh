@@ -8,12 +8,13 @@ set -u
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HELPER="$HERE/.claude/cfn-scripts/cfn-watch-bg.sh"
 HOOKS="$HERE/.claude/hooks"
-WORK="$(mktemp -d /tmp/cfn-watch-bg-test.XXXXXX)"
+WORK="$(mktemp -d /tmp/cfn-watch-bg-test.XXXXXX)" || exit 1
+source "$HERE/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
 export CFN_SHELL_WATCH_DIR="$WORK/watch"
 SID="wbgsess$$"
 export CLAUDE_CODE_SESSION_ID="$SID"
 PASS=0; FAIL=0; PIDS=""
-cleanup() { for p in $PIDS; do kill "$p" 2>/dev/null; done; rm -rf "$WORK"; }
+cleanup() { for p in $PIDS; do kill "$p" 2>/dev/null; done; cfn_safe_rm_tmp "$WORK"; }
 trap cleanup EXIT
 ok() { PASS=$((PASS + 1)); echo "  ok: $1"; }
 fail() { FAIL=$((FAIL + 1)); echo "FAIL: $1"; }

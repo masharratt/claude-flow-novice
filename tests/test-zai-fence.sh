@@ -21,7 +21,8 @@ set +e   # test-utils turns on -e; one failed check must not abort the suite
 WRAP="$PROJECT_ROOT/.claude/cfn-scripts/zai-fence.sh"
 GITC=(-c user.name=zai-fence-test -c user.email=zai-fence-test@example.invalid -c commit.gpgsign=false)
 
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/zai-fence-test-XXXXXX")
+source "$PROJECT_ROOT/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/zai-fence-test-XXXXXX") || exit 1
 TMP=$(cd "$TMP" && pwd -P)          # Seatbelt matches real paths (/private/var/...)
 FENCE="$TMP/proj"                    # fence root: a real git repo
 OTHER="$TMP/other-proj"              # sibling project the worker must not see
@@ -46,9 +47,9 @@ skip(){ echo "SKIP: $1"; SKIP=$((SKIP+1)); SKIPPED+=("$1"); }
 
 cleanup(){
   if command -v tmux >/dev/null 2>&1; then tmux -S "$TSOCK" kill-server >/dev/null 2>&1; fi
-  rm -rf "$TSOCKDIR"
+  cfn_safe_rm_tmp "$TSOCKDIR"
   git -C "$FENCE" worktree remove --force "$WT" >/dev/null 2>&1
-  rm -rf "$TMP"
+  cfn_safe_rm_tmp "$TMP"
 }
 trap cleanup EXIT
 
@@ -517,7 +518,7 @@ test_sec_9_ro_inside_root(){
   PROBE="echo PROBE_RAN; cat data/keep.txt"; fence_run "$FENCE" ZAI_FENCE_OPEN_DIRS=1
   s=""; grep -q keep9 <<<"$OUT" || s="content not read"
   expect "test_sec_9_ro_root_data_read_allowed" allowed "$s"
-  drop_list; rm -rf "$FENCE/data"
+  drop_list; cfn_safe_rm_tmp "$FENCE/data"
 }
 
 # 10. the wrapper itself scrubs credential env (defence in depth)
@@ -575,7 +576,7 @@ test_sec2_4_cred_in_claude_dir_masked(){
   PROBE="echo PROBE_RAN; cat .claude/data/token.json"; fence_run "$FENCE" HOME="$FH"
   s=""; grep -q "TOKEN_SECRET_$$" <<<"$OUT" && s="credential re-exposed by the .claude re-bind"
   expect "test_sec2_4_cred_in_claude_dir_masked" blocked "$s"
-  rm -rf "$FENCE/.claude/data"
+  cfn_safe_rm_tmp "$FENCE/.claude/data"
 }
 
 # BUG glm-settings-mask (2026-11-18, MDTWII GLM lane): settings.local.json
@@ -608,7 +609,7 @@ test_sec2_5_ro_claude_data(){
   PROBE="echo PROBE_RAN; echo x > .claude/data/new.txt"; fence_run "$FENCE" ZAI_FENCE_OPEN_DIRS=1
   s=""; [ -e "$FENCE/.claude/data/new.txt" ] && s="ro:ROOT/.claude/data was writable"
   expect "test_sec2_5_ro_claude_data_write_blocked" blocked "$s"
-  drop_list; rm -rf "$FENCE/.claude/data"
+  drop_list; cfn_safe_rm_tmp "$FENCE/.claude/data"
 }
 
 # 6. a git replacement object must not substitute the committed policy
@@ -667,7 +668,7 @@ test_allow_5_runtime_ro_inside_root(){
   PROBE="echo PROBE_RAN; echo ok > rt-other.txt"; fence_run "$FENCE" HOME="$FH"
   s=""; [ -f "$FENCE/rt-other.txt" ] || s="root no longer writable"
   expect "test_allow_5_root_still_writable" allowed "$s"
-  rm -rf "$FENCE/rt" "$FENCE/rt-other.txt"
+  cfn_safe_rm_tmp "$FENCE/rt" "$FENCE/rt-other.txt"
 }
 
 # 6. private worker state: host Claude state invisible, host ~/.claude.json untouched,
@@ -838,7 +839,7 @@ test_allow_16_fleet_config_ro(){
   PROBE="echo PROBE_RAN; echo evil >> planning/fleet-t/engines.env; echo evil >> planning/fleet-t/fleet.env"; fence_run "$FENCE"
   s=""; grep -q evil "$FENCE/planning/fleet-t/engines.env" "$FENCE/planning/fleet-t/fleet.env" && s="fleet config rewritten"
   expect "test_allow_16_fleet_config_ro" blocked "$s"
-  rm -rf "$FENCE/planning/fleet-t"
+  cfn_safe_rm_tmp "$FENCE/planning/fleet-t"
 }
 
 # Final codex build review (2026-11-16), escape A: approval must pin RESOLVED
@@ -895,7 +896,7 @@ test_allow_sec_b(){
     [ -e "$FENCE/.claude/worktrees/w1x" ] && { rm -rf "$FENCE/.claude/worktrees/w1"; mv "$FENCE/.claude/worktrees/w1x" "$FENCE/.claude/worktrees/w1"; }
     [ -e "$FENCE/planning/fleet-bx" ] && { rm -rf "$FENCE/planning/fleet-b"; mv "$FENCE/planning/fleet-bx" "$FENCE/planning/fleet-b"; }
   done
-  drop_list; rm -rf "$FENCE/planning/fleet-b"
+  drop_list; cfn_safe_rm_tmp "$FENCE/planning/fleet-b"
 }
 
 # Independent security review (2026-11-16): one red test per finding.
@@ -1211,7 +1212,7 @@ test_allow_field_9_mask_budget(){
   if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_9_mask_budget"
   else no "test_allow_field_9_mask_budget: $s out=$(grep -v '^zai-fence: masked ' <<<"$OUT" | head -c 400)"; fi
   drop_list
-  rm -rf "$O"
+  cfn_safe_rm_tmp "$O"
 }
 
 # BUG zai-fence-registry-arg-overflow (2026-11-20, MDTWII look-lab lane): a root
@@ -1270,7 +1271,7 @@ test_allow_field_11_keymask_collapse(){
   grep -q "KEEP_VISIBLE_$$" <<<"$OUT" || s="${s:+$s; }a non-secret file beside a mask was hidden"
   if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_11_keymask_collapse"
   else no "test_allow_field_11_keymask_collapse: $s out=$(head -c 400 <<<"$OUT")"; fi
-  drop_list; rm -rf "$O"
+  drop_list; cfn_safe_rm_tmp "$O"
 }
 
 # Policy 2026-11-20: *.key / *.pem files are masked only when their first 4 KB
@@ -1296,7 +1297,7 @@ test_allow_field_13_key_content(){
   for f in a b c; do grep -q "PRIVKEY_${f}_$$" <<<"$OUT" && s="${s:+$s; }private key $f readable"; done
   if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_13_key_content"
   else no "test_allow_field_13_key_content: $s out=$(head -c 400 <<<"$OUT")"; fi
-  drop_list; rm -rf "$O"
+  drop_list; cfn_safe_rm_tmp "$O"
 }
 
 # Guard (same bugs): a plan past the bwrap argument ceiling refuses with a
@@ -1342,7 +1343,7 @@ test_allow_field_5_outside_worktree(){
   OUT=$(cd "$FK" && "$WRAP" /bin/bash -c 'echo PROBE_RAN' 2>&1); RC=$?
   if [ "$RC" -eq 70 ] && ! grep -q PROBE_RAN <<<"$OUT" && grep -qF "$FK" <<<"$OUT"; then ok "test_allow_field_5_copied_pointer_refused"
   else no "test_allow_field_5_copied_pointer_refused: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
-  rm -rf "$FK"
+  cfn_safe_rm_tmp "$FK"
   git -C "$FENCE" worktree remove --force "$OW" >/dev/null 2>&1; git -C "$FENCE" branch -D field5 >/dev/null 2>&1
 }
 
@@ -1385,7 +1386,7 @@ test_allow_field_6_worktree_registry_ro(){
     rm -rf "$FENCE/.git/worktrees/evil-$v" "$FENCE/f6wt-evil-$v" "$O/evil-$v"; git -C "$FENCE" branch -D "f6-evil-$v" >/dev/null 2>&1
   done
   rm -f "$FENCE/.git/worktrees/w1/f6probe"
-  drop_list; rm -rf "$O"
+  drop_list; cfn_safe_rm_tmp "$O"
   # a repo with NO .git/worktrees at launch: none can be created either, and
   # normal add / commit still work
   local P="$TMP/proj-nowt"
@@ -1400,7 +1401,7 @@ test_allow_field_6_worktree_registry_ro(){
   grep -q GIT_OK <<<"$OUT" || s="${s:+$s; }git commit broke"
   if grep -q PROBE_RAN <<<"$OUT" && [ -z "$s" ]; then ok "test_allow_field_6_no_registry_cannot_be_created"
   else no "test_allow_field_6_no_registry_cannot_be_created: $s out=$(head -c 400 <<<"$OUT")"; fi
-  rm -rf "$P"
+  cfn_safe_rm_tmp "$P"
 }
 
 # BUG zai-fence-pointer-backlink (2026-11-19 security review of 3a798d32b,
@@ -1431,7 +1432,7 @@ test_allow_field_7_pointer_backlink(){
     if [ "$RC" -eq 0 ] && grep -q SUB_OK <<<"$OUT"; then ok "test_allow_field_7_submodule_pointer_accepted"
     else no "test_allow_field_7_submodule_pointer_accepted: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
   else skip "test_allow_field_7_submodule_pointer_accepted: git submodule add failed"; fi
-  rm -rf "$P" "$S"
+  cfn_safe_rm_tmp "$P" "$S"
 }
 
 # Review of 3a798d32b, missing tests: worktree tops the four-way check refuses.
@@ -1453,7 +1454,7 @@ test_allow_field_8_worktree_top_refusals(){
   OUT=$(cd "$W" && "$WRAP" /bin/bash -c 'echo PROBE_RAN' 2>&1); RC=$?
   if [ "$RC" -eq 70 ] && ! grep -q PROBE_RAN <<<"$OUT" && grep -q "parent of the root" <<<"$OUT"; then ok "test_allow_field_8_worktree_parent_of_root_refused"
   else no "test_allow_field_8_worktree_parent_of_root_refused: rc=$RC out=$(head -c 300 <<<"$OUT")"; fi
-  rm -rf "$W"
+  cfn_safe_rm_tmp "$W"
   # ZAI_FENCE_ALLOW_CONFIG=1 with an outside worktree: still bound and usable,
   # and its registry entry (gitdir back-link) stays read-only
   git -C "$FENCE" worktree add -q "$OW" -b field8b >/dev/null 2>&1

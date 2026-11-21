@@ -14,7 +14,7 @@ bad()  { FAIL=$((FAIL+1)); echo "FAIL: $1"; }
 
 # shellcheck disable=SC1090
 source "$SCRIPT"
-LOG=$(mktemp)
+LOG=$(mktemp) || exit 1
 trap 'rm -f "$LOG"' EXIT
 
 expect_protected() {

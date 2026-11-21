@@ -13,7 +13,7 @@ bad() { FAIL=$((FAIL+1)); echo "  FAIL: $1"; }
 
 # zombie PARENT_CMD: start a parent that never reaps its child; print the child pid
 zombie() {
-  local out; out=$(mktemp)
+  local out; out=$(mktemp) || return 1
   bash -c "$1 & echo \$! > '$out'; exec sleep 5" >/dev/null 2>&1 &  # own stdout: $(zombie) must not wait for it
   local parent=$! i=0 pid=""
   while [ $i -lt 50 ]; do pid=$(cat "$out" 2>/dev/null || true)
