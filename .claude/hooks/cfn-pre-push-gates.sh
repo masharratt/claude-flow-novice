@@ -63,6 +63,7 @@ add_gate "env-handling"            "bash tests/security/test-env-handling.sh"
 add_gate "sourced-library-safety"  "bash tests/security/test-sourced-library-safety.sh"
 add_gate "typecheck"               "npm run typecheck"
 add_gate "build"                   "npm run build"
+add_gate "unsafe-rm-lint"           "UNSAFE_RM_TRACKED_ONLY=1 bash tests/test-unsafe-rm-patterns.sh"
 add_gate "agent-selection-bundle"  "bash tests/test-agent-selection-bundle.sh"
 # Exact CI invocation (ci.yml unit-tests job): NODE_ENV=test, --forceExit,
 # maxWorkers=2. npm script already wraps jest in run-with-memory-limit.sh 2G.

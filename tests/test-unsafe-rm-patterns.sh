@@ -52,10 +52,14 @@ MK_BASELINE_DEFAULT="$REPO/tests/fixtures/unhandled-mktemp-baseline.txt"
 # list_files ROOT -> relative *.sh paths in scope, one per line
 list_files() {
     local root="$1"
-    if [ "$root" = "$REPO" ] && git -C "$REPO" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        git -C "$REPO" ls-files -co --exclude-standard -- 'tests/*.sh' '.claude/*.sh' \
+    # UNSAFE_RM_TRACKED_ONLY=1: tracked files only (pre-push gate: untracked files never ship).
+    # Default scans tracked plus untracked, as CI does.
+    local lsflags=-co
+    [ "${UNSAFE_RM_TRACKED_ONLY:-0}" = 1 ] && lsflags=-c
+    if [ "$(git -C "$root" rev-parse --show-toplevel 2>/dev/null)" = "$root" ]; then
+        git -C "$root" ls-files "$lsflags" --exclude-standard -- 'tests/*.sh' '.claude/*.sh' \
             | grep -v '^tests/fixtures/unsafe-rm/' | grep -v '/\.trash/' \
-            | while IFS= read -r f; do [ -f "$REPO/$f" ] && printf '%s\n' "$f"; done
+            | while IFS= read -r f; do [ -f "$root/$f" ] && printf '%s\n' "$f"; done
     else
         (cd "$root" && find . -name '*.sh' -type f | sed 's|^\./||' | sort)
     fi
@@ -226,6 +230,25 @@ self_test() {
     expect "recursive-delete count at/below baseline ok" "$FIXTURES/rm-var-at-baseline" 0 'ratchet rm-var: ok'
     expect "safe patterns pass"                      "$FIXTURES/clean"              0 'scanned 1 files.*clean'
     expect "zero files scanned exits 2"              "$FIXTURES/empty"              2 'scanned 0 files'
+    # Tracked-only mode: an untracked bad file is caught by default and ignored
+    # when UNSAFE_RM_TRACKED_ONLY=1 (pre-push gate; untracked files never ship).
+    local gp gr; gp=$(mktemp -d "${TMPDIR:-/tmp}/unsafe-rm-selftest.XXXXXX") || return 1
+    gp=$(cd -P "$gp" && pwd -P) || return 1
+    gr="$gp/repo"   # nested: cfn_safe_rm_tmp refuses a dir that is itself a git toplevel
+    mkdir -p "$gr/.claude"
+    printf '#!/usr/bin/env bash\necho ok\n' >"$gr/.claude/good.sh"
+    git -C "$gr" init -q && git -C "$gr" add .claude/good.sh \
+        && git -C "$gr" -c user.name=t -c user.email=t@t commit -q -m t \
+        && printf '#!/usr/bin/env bash\nrm -rf "$X"\n' >"$gr/.claude/bad.sh"
+    # env -u: the gate runs this script with UNSAFE_RM_TRACKED_ONLY=1 set
+    UNSAFE_RM_TRACKED_ONLY=0 expect "untracked bad file is caught by default" "$gr" 1 'bad\.sh has 1, baseline 0'
+    out=$(UNSAFE_RM_TRACKED_ONLY=1 run_scan "$gr" "$gr/rm-baseline.txt" "$gr/mktemp-baseline.txt" 2>&1); rc=$?
+    if [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q 'scanned 1 files'; then
+        pass=$((pass + 1)); echo "  ok   untracked bad file is ignored in tracked-only mode"
+    else
+        fail=$((fail + 1)); echo "  FAIL untracked bad file ignored in tracked-only mode (rc=$rc)"; printf '%s\n' "$out" | sed 's/^/       /'
+    fi
+    cfn_safe_rm_tmp "$gp"
     echo "self-test: $pass passed, $fail failed"
     [ "$fail" -eq 0 ]
 }
