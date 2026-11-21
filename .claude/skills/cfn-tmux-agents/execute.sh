@@ -310,9 +310,32 @@ cmd_spawn() {
     echo "WARN spawn: engine binary '$bin' not found on this shell's PATH" >&2
   fi
 
+  # Codex lanes run through the mailbox's codex-mail.sh launcher (Codex has no
+  # hooks; mdtwii-master 2026-11-21: lanes sat idle 1-2 h with answers in
+  # their inbox). It registers the pane in the mailbox directory, keeps the
+  # heartbeat, writes client-<name>=codex and idle/busy state through Codex's
+  # notify hook, and cleans up when codex exits, so mailbox-watch.sh can type
+  # NUDGE_TEXT_CODEX into the idle pane. Its -c flags (notify, network access
+  # and the mailbox cache as a writable root for workspace-write) do not touch
+  # approval, so _ta_codex_force_args' "never" stands. Needs a valid mailbox
+  # name; fenced launches are left alone. Off: TMUX_AGENTS_CODEX_MAIL=0.
+  local cmail=""
+  if [ "$bin_kind" = codex ] && [ "$fenced" = 0 ] && [ -n "$mbx_line" ] \
+     && [ "${TMUX_AGENTS_CODEX_MAIL:-1}" != 0 ]; then
+    cmail="${HOME:-}/.claude/skills/cfn-mailbox/codex-mail.sh"
+    if [ -x "$cmail" ]; then
+      resolved="${resolved:+$resolved$'\n'}CODEX_BIN=$bin"
+      [ "$dry_run" != 1 ] || echo "# codex lane via codex-mail.sh (mail wake-ups): CODEX_BIN=$bin"
+    else
+      echo "WARN spawn: $name: $cmail not found; codex runs without mail wake-ups" >&2
+      cmail=""
+    fi
+  fi
+
   # The pane command: one literal line, exec so the pane dies with the engine.
   local pane_cmd bin_q uv="" u
   bin_q=$(printf '%q' "$bin")
+  [ -z "$cmail" ] || bin_q="$(printf '%q' "$cmail") --name $(printf '%q' "${mbx_line#MAILBOX_SESSION=}") --"
   for w in ${words[@]+"${words[@]}"}; do bin_q+=" $(printf '%q' "$w")"; done
   bin_q+="$sbx_q"
   for u in ${unset_raw//,/ }; do

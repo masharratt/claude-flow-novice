@@ -289,6 +289,17 @@ Every worker (claude, codex, glm) gets `MAILBOX_SESSION=<lane name>`, so its mai
 - Folder-trust prompts match in any case (Codex 0.171 prints `Trust this folder?`).
 - Code: `lib/common.sh` (`_ta_mailbox_session_line`, `_ta_trust_re`). Test: `tests/test-mailbox-session.sh`.
 
+### Codex lanes: mail wake-ups
+
+Codex has no hooks, so on its own a codex lane never learns that mail arrived. Spawn therefore starts every codex lane through the mailbox's own launcher: `codex-mail.sh --name <mailbox name> -- <codex args>`.
+
+- **The launcher registers the lane with the mailbox; the existing mail watcher (`mailbox-watch.sh`) then types the codex nudge into the lane when it is idle.** At most once a minute per lane.
+- The launcher registers the pane, keeps a heartbeat, marks the lane as a codex client, and tracks idle or busy through Codex's after-turn hook. It cleans up when the lane ends.
+- Codex also gets network access and the mailbox cache as a writable folder, so `mailbox.sh read` works inside the workspace-write sandbox. Approval stays forced to never.
+- Applies only to codex lanes with a valid mailbox name (see above) that are not inside zai-fence. A missing `~/.claude/skills/cfn-mailbox/codex-mail.sh` warns and runs codex directly.
+- Turn off: `TMUX_AGENTS_CODEX_MAIL=0`. `--dry-run` shows the wrapped command.
+- Code: `execute.sh` (`cmd_spawn`, the `cmail` block). Test: `tests/test-codex-mail-nudge.sh`.
+
 ## Tests
 
 ```bash
