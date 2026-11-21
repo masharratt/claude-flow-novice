@@ -21,7 +21,7 @@ set +e   # test-utils turns on -e; one failed check must not abort the suite
 WRAP="$PROJECT_ROOT/.claude/cfn-scripts/zai-fence.sh"
 GITC=(-c user.name=zai-fence-test -c user.email=zai-fence-test@example.invalid -c commit.gpgsign=false)
 
-source "$PROJECT_ROOT/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.claude/cfn-scripts/lib/safe-rm.sh" || exit 1  # cfn_safe_rm_tmp
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/zai-fence-test-XXXXXX") || exit 1
 TMP=$(cd "$TMP" && pwd -P)          # Seatbelt matches real paths (/private/var/...)
 FENCE="$TMP/proj"                    # fence root: a real git repo
