@@ -300,6 +300,10 @@ Codex has no hooks, so on its own a codex lane never learns that mail arrived. S
 - Turn off: `TMUX_AGENTS_CODEX_MAIL=0`. `--dry-run` shows the wrapped command.
 - Code: `execute.sh` (`cmd_spawn`, the `cmail` block). Test: `tests/test-codex-mail-nudge.sh`.
 
+## Running tests safely
+
+Builders should run test suites through `$HOME/.claude/cfn-scripts/cfn-test-box.sh -- <test command>` from inside the repo or worktree under test. The box (bubblewrap) makes the whole disk read-only except that git worktree (plus its shared `.git` for a linked worktree) and gives the command a private, empty `/tmp`, so a test with an empty temp variable cannot wipe your home, other repos or `/tmp` even through `/bin/rm`, `find -delete`, `shutil.rmtree` or `git clean` (the `safe-bin/rm` wrapper only catches plain `rm`). Add `--rw DIR` for an extra writable folder (home, its direct children, `/` and top-level dirs are refused) and `--ro PATH` to show a host `/tmp` path read-only. The network stays on; the exit code is the command's own; without bwrap it refuses with exit 69 rather than run unboxed. Tests: `tests/test-cfn-test-box.sh`.
+
 ## Tests
 
 ```bash

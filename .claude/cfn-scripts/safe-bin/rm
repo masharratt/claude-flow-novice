@@ -35,7 +35,10 @@
 # it). A human who really means it types /bin/rm by hand.
 # Installed by: hooks/cfn-safe-rm-path.sh (Claude Code Bash tool, via
 # CLAUDE_ENV_FILE) and cfn-tmux-agents spawn (pane PATH).
-# cfn: absolute /bin/rm, find -delete, git clean and other deleters bypass it, add a mount/namespace sandbox if one of those bites
+# The rules themselves live in ../lib/path-guard.sh (shared with cfn-test-box.sh).
+# Absolute /bin/rm, find -delete, git clean, shutil.rmtree and other deleters
+# bypass this wrapper; run builder tests inside cfn-test-box.sh (read-only
+# home, private /tmp) to stop those too.
 set -u
 
 SELF="${BASH_SOURCE[0]}"
@@ -56,19 +59,16 @@ for a in "$@"; do
     esac
 done
 
+# The refusal rules live in lib/path-guard.sh (shared with cfn-test-box.sh).
+# Missing lib: refuse every delete rather than run unguarded.
+# shellcheck source=/dev/null
+if [ -z "$SELF_DIR" ] || ! source "$SELF_DIR/../lib/path-guard.sh" 2>/dev/null; then
+    echo "cfn-safe-rm: cannot load $SELF_DIR/../lib/path-guard.sh; refusing to delete anything. (A person can run /bin/rm by hand.)" >&2
+    exit 1
+fi
+
 refuse=0
 if [ "${#ops[@]}" -gt 0 ]; then
-    # Homes: the account's real home (getent) and $HOME when set.
-    real_home=$(getent passwd "$(id -u)" 2>/dev/null | cut -d: -f6)
-    homes_raw=()
-    [ -n "$real_home" ] && homes_raw+=("$real_home")
-    [ -n "${HOME:-}" ] && [ "${HOME:-}" != "$real_home" ] && homes_raw+=("$HOME")
-    homes=()
-    for h in "${homes_raw[@]+"${homes_raw[@]}"}"; do
-        hr=$(realpath -m -- "$h" 2>/dev/null) || continue
-        [ "$hr" = / ] || homes+=("$hr")
-    done
-
     # Absolute path of each operand: parent resolved (realpath -m), last
     # component kept, except ., .., and a trailing slash, which follow.
     abs=() parents=() idx=()
@@ -100,54 +100,10 @@ if [ "${#ops[@]}" -gt 0 ]; then
         done
     fi
 
-    # Protected list: user file + committed default, ~ expanded, normalized.
-    plist=()
-    lists=()
-    for h in "${homes_raw[@]+"${homes_raw[@]}"}"; do lists+=("$h/.config/cfn-rm-protect.conf"); done
-    [ -n "$SELF_DIR" ] && lists+=("$SELF_DIR/../../cfn-config/rm-protect.default")
-    for f in "${lists[@]+"${lists[@]}"}"; do
-        [ -f "$f" ] || continue
-        # ~ in a list means the home that list lives in (the default: real home).
-        case "$f" in */.config/cfn-rm-protect.conf) home_raw="${f%/.config/cfn-rm-protect.conf}" ;; *) home_raw="$real_home" ;; esac
-        while IFS= read -r line || [ -n "$line" ]; do
-            line="${line%%#*}"; line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
-            [ -n "$line" ] || continue
-            # shellcheck disable=SC2088  # matching a literal ~ in the list file, expanded by hand
-            case "$line" in "~") line="$home_raw" ;; "~/"*) line="$home_raw/${line#\~/}" ;; esac
-            case "$line" in /*) plist+=("$line") ;; esac
-        done <"$f"
-    done
-    if [ "${#plist[@]}" -gt 0 ]; then
-        mapfile -d '' -t plist < <(realpath -m -z -- "${plist[@]}" 2>/dev/null)
-    fi
-
     for i in "${!ops[@]}"; do
         a="${abs[$i]}"
         [ -n "$a" ] || continue   # empty: already refused
-        why=""
-        if [ "$a" = / ]; then why="the filesystem root"
-        elif [[ "$a" =~ ^/[^/]+$ ]]; then why="a top-level system directory"
-        elif [[ "$a" =~ ^/mnt/[^/]+$ ]]; then why="a mounted drive"
-        elif [[ "$a" =~ ^/mnt/[^/]+/Users(/[^/]+)?$ ]]; then why="a Windows home folder"
-        elif [ -d "$a/.git" ] && [ ! -L "$a/.git" ]; then why="a git repository root (a linked worktree, with a .git file, is fine)"
-        fi
-        if [ -z "$why" ]; then
-            for hr in "${homes[@]+"${homes[@]}"}"; do
-                if [ "$a" = "$hr" ]; then why="a home directory"
-                elif [[ "$hr" == "$a"/* ]]; then why="a parent of a home directory"
-                elif [ "${a%/*}" = "$hr" ]; then why="a top-level item in a home directory"
-                elif [[ "$a" == "$hr"/projects/*/.git ]] && [ "${a%/*/.git}" = "$hr/projects" ]; then why="a project repository's .git"
-                fi
-                [ -z "$why" ] || break
-            done
-        fi
-        if [ -z "$why" ]; then
-            for pp in "${plist[@]+"${plist[@]}"}"; do
-                if [ "$a" = "$pp" ]; then why="listed as protected"; break; fi
-                if [[ "$pp" == "$a"/* ]]; then why="holds the protected path $pp"; break; fi
-            done
-        fi
-        if [ -n "$why" ]; then die_refuse "${ops[$i]}" "$why"; refuse=1; fi
+        cfn_path_guard_check "$a" || { die_refuse "${ops[$i]}" "$CFN_PG_WHY"; refuse=1; }
     done
 fi
 [ "$refuse" = 0 ] || exit 1

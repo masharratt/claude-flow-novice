@@ -127,11 +127,19 @@ else
     [ "$(logged)" = "$(printf '%s\n' -f file.txt)" ] && ok "wrapper listed twice on PATH: still reaches the next rm" \
         || bad "wrapper listed twice on PATH (log=[$(logged)])"
     # Two copies of the wrapper on PATH must not hand off to each other forever.
-    mkdir -p "$T/wrap2"; cp "$WRAP" "$T/wrap2/rm"; chmod +x "$T/wrap2/rm"
+    # The copy keeps its rules lib beside it (safe-bin/ + lib/), as a real install does.
+    mkdir -p "$T/cs/wrap2" "$T/cs/lib"; cp "$WRAP" "$T/cs/wrap2/rm"; chmod +x "$T/cs/wrap2/rm"
+    cp "$REPO/.claude/cfn-scripts/lib/path-guard.sh" "$T/cs/lib/"
     : >"$FH/work/two.txt"
-    ( cd "$FH/work" && HOME="$FH" PATH="$WRAP_DIR:$T/wrap2:/usr/bin:/bin" timeout 10 "$WRAP" -f two.txt ) >/dev/null 2>&1; rc=$?
+    ( cd "$FH/work" && HOME="$FH" PATH="$WRAP_DIR:$T/cs/wrap2:/usr/bin:/bin" timeout 10 "$WRAP" -f two.txt ) >/dev/null 2>&1; rc=$?
     [ "$rc" -eq 0 ] && [ ! -e "$FH/work/two.txt" ] && ok "two wrapper copies on PATH: no loop, real rm runs" \
         || bad "two wrapper copies on PATH (rc=$rc, 124 = timed out looping)"
+    # A copy whose rules lib is missing refuses every delete (fails closed).
+    mkdir -p "$T/lone"; cp "$WRAP" "$T/lone/rm"; chmod +x "$T/lone/rm"
+    : >"$FH/work/lone.txt"; rm_log_reset
+    ( cd "$FH/work" && HOME="$FH" PATH="$T/lone:$T/fakebin:/usr/bin:/bin" "$T/lone/rm" -f lone.txt ) >/dev/null 2>&1; rc=$?
+    [ "$rc" -ne 0 ] && [ ! -s "$RM_LOG" ] && [ -e "$FH/work/lone.txt" ] && ok "wrapper without its rules lib refuses (fails closed)" \
+        || bad "wrapper without lib: rc=$rc log=$(logged)"
     # PATH lookup: a bare 'rm' resolves to the wrapper.
     got=$(HOME="$FH" PATH="$WRAP_DIR:$T/fakebin:/usr/bin:/bin" bash -c 'command -v rm')
     [ "$got" = "$WRAP" ] && ok "bare rm on PATH resolves to the wrapper" || bad "bare rm resolves to [$got]"
