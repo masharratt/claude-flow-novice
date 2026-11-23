@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # disk-growth-guard.sh: root-disk growth checks, run by desktop-health.sh each tick. Prints lines, never deletes.
 #   root_used=<GiB>                         always (desktop-health copies it into health.log)
-#   WARN root_high <text>                  / used > ROOT_WARN_GB (350, GiB)
+#   WARN root_high <text>                  / used > ROOT_WARN_GB (350, GiB); printed once per new ROOT_STEP_GB (10)
+#                                          level (350, 360, ...), never twice for one level; dropping under a
+#                                          level re-arms it; under ROOT_WARN_GB clears it (state: high-sent)
 #   WARN root_growth <text>                / grew > GROWTH_WARN_GB (40) over GROWTH_DAYS (7); skipped while / is under
 #                                          GROWTH_MIN_PCT (60) full; printed only when new, worse by GROWTH_STEP_GB (10)
 #                                          than the last one printed, or GROWTH_REPEAT_S (86400) after it (state: growth-sent)
@@ -14,6 +16,7 @@ set -u
 STATE="${STATE:-$HOME/.local/state/desktop-health}"
 NOW="${NOW:-$(date +%s)}"
 ROOT_WARN_GB="${ROOT_WARN_GB:-350}"
+ROOT_STEP_GB="${ROOT_STEP_GB:-10}"
 GROWTH_WARN_GB="${GROWTH_WARN_GB:-40}"
 GROWTH_DAYS="${GROWTH_DAYS:-7}"
 GROWTH_MIN_PCT="${GROWTH_MIN_PCT:-60}"
@@ -32,7 +35,20 @@ used=${used:-0}
 total=${ROOT_TOTAL_BYTES:-$(df -B1 --output=size / 2>/dev/null | awk 'NR==2{print $1}')}
 total=${total:-0}
 echo "root_used=$(( used / GB ))"
-[ $(( used / GB )) -gt "$ROOT_WARN_GB" ] && echo "WARN root_high / is $(( used / GB )) GB used (warn above ${ROOT_WARN_GB} GB). Main disk growth also grows D: for good; see desktop-disks.md."
+# root_high: one line per new level. "high-sent" = the highest level already printed; a level is
+# ROOT_WARN_GB plus whole ROOT_STEP_GB steps (noise round 3, 2026-11-23: 412 GB mailed 4x identical).
+HIGH_SENT="$STATE/high-sent"
+used_gb=$(( used / GB ))
+if [ "$used_gb" -gt "$ROOT_WARN_GB" ]; then
+    level=$(( ROOT_WARN_GB + (used_gb - ROOT_WARN_GB) / ROOT_STEP_GB * ROOT_STEP_GB ))
+    read -r sent_level < "$HIGH_SENT" 2>/dev/null || sent_level=""
+    if [ -z "$sent_level" ] || [ "$level" -gt "$sent_level" ]; then
+        echo "WARN root_high / is ${used_gb} GB used (warn above ${ROOT_WARN_GB} GB; next warning at $(( level + ROOT_STEP_GB )) GB). Main disk growth also grows D: for good; see desktop-disks.md."
+    fi
+    echo "$level" > "$HIGH_SENT"  # also lowers it after a drop, so re-crossing a level warns again
+else
+    rm -f "$HIGH_SENT"
+fi
 
 # growth over GROWTH_DAYS against the oldest history row inside the window
 H="$STATE/root-used.tsv"; touch "$H"

@@ -152,6 +152,21 @@ if [ ! -x "$G" ]; then no "guard missing=[$G] unexpected=[]"; else
   case "$out" in *"WARN root_growth"*) ok "GROWTH_MIN_PCT env lowers the floor" ;; *) no "GROWTH_MIN_PCT missing=[WARN root_growth] unexpected=[]";; esac
   out=$(run STATE="$T/g2b" ROOT_USED_BYTES=$((351*GB)) ROOT_TOTAL_BYTES=$((1007*GB)))
   case "$out" in *"WARN root_high"*) ok "root_high still fires under 60% full" ;; *) no "root_high under 60% missing=[WARN root_high] unexpected=[]";; esac
+  # Regression (mdtwii-master 2026-11-23, noise round 3): "/ is 412 GB used" mailed 4x identical, plus
+  # one mail per earlier step. root_high now prints once per new ROOT_STEP_GB (10) level above
+  # ROOT_WARN_GB; the same level never repeats; falling under a level re-arms it.
+  hi() { run STATE="$T/h1" "$@" | grep -c "WARN root_high"; }
+  n=$(hi ROOT_USED_BYTES=$((412*GB)));                [ "$n" = 1 ] && ok "root_high: first crossing sends" || no "root_high first missing=[1 line] unexpected=[$n lines]"
+  n=$(hi ROOT_USED_BYTES=$((412*GB)) NOW=1000003600); [ "$n" = 0 ] && ok "root_high: same 412 GB an hour later is silent" || no "root_high same level missing=[0 lines] unexpected=[$n lines]"
+  n=$(hi ROOT_USED_BYTES=$((419*GB)) NOW=1000007200); [ "$n" = 0 ] && ok "root_high: 419 GB (same 410 level) is silent" || no "root_high same step missing=[0 lines] unexpected=[$n lines]"
+  n=$(hi ROOT_USED_BYTES=$((420*GB)) NOW=1000010800); [ "$n" = 1 ] && ok "root_high: next 10 GB level sends" || no "root_high next level missing=[1 line] unexpected=[$n lines]"
+  n=$(hi ROOT_USED_BYTES=$((420*GB)) NOW=$((1000010800 + 3*86400))); [ "$n" = 0 ] && ok "root_high: same level days later is silent" || no "root_high never repeats missing=[0 lines] unexpected=[$n lines]"
+  n=$(hi ROOT_USED_BYTES=$((405*GB)) NOW=1000300000); [ "$n" = 0 ] && ok "root_high: dropping a level is silent" || no "root_high drop missing=[0 lines] unexpected=[$n lines]"
+  n=$(hi ROOT_USED_BYTES=$((411*GB)) NOW=1000303600); [ "$n" = 1 ] && ok "root_high: re-crossing a level after a drop sends" || no "root_high re-arm missing=[1 line] unexpected=[$n lines]"
+  hi ROOT_USED_BYTES=$((300*GB)) NOW=1000400000 >/dev/null
+  n=$(hi ROOT_USED_BYTES=$((351*GB)) NOW=1000403600); [ "$n" = 1 ] && ok "root_high: cleared then over the line again sends" || no "root_high cleared missing=[1 line] unexpected=[$n lines]"
+  n=$(run STATE="$T/h2" ROOT_STEP_GB=50 ROOT_USED_BYTES=$((412*GB)) >/dev/null; run STATE="$T/h2" ROOT_STEP_GB=50 ROOT_USED_BYTES=$((440*GB)) NOW=1000003600 | grep -c "WARN root_high")
+  [ "$n" = 0 ] && ok "root_high: ROOT_STEP_GB env tunes the step" || no "root_high step env missing=[0 lines] unexpected=[$n lines]"
   # cargo finder
   CT="$T/scan"; mkdir -p "$CT/big1/debug/.fingerprint" "$CT/big2" "$CT/small" "$CT/plain" "$CT/churn/tgt"
   head -c 5000 /dev/zero > "$CT/big1/debug/.fingerprint/x"
