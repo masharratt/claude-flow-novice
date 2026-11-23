@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash  # fixture only: no shebang, never run it
 # Exact incident shape (MDTWII 2026-11-23): mktemp unchecked, then
 # rm -rf "$T/..." in a reset helper. T empty made this rm -rf /home /tmp.
 T="$(mktemp -d "${TMPDIR:-/tmp}/em-shard.XXXXXX")"

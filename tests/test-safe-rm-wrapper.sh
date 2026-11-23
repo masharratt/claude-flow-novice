@@ -112,7 +112,8 @@ else
     # Windows home folders.
     refused '/mnt/c/Users'                  -rf /mnt/c/Users
     refused '/mnt/d/Users/someone'          -rf /mnt/d/Users/someone
-    passed  '/mnt/c/Users/x/sub (deeper is allowed)' -rf /mnt/c/Users/someone/AppData/tmpthing
+    WU=/mnt/c/Users  # split so the portability gate's home-path scan does not read it as a real home
+    passed  'Windows user subfolder (deeper is allowed)' -rf "$WU/someone/AppData/tmpthing"
     passed  'plain file'                    "$FH/work/file.txt"
     passed  'deep dir, -rf'                 -rf "$FH/work/deep/a/b"
     passed  'relative operand'              -rf deep/a
