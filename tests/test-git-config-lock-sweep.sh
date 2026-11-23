@@ -83,6 +83,20 @@ for c in "git worktree remove x" "git worktree prune" "git config --global foo.b
   gone "$A" && ok || bad "should sweep for: $c"
 done
 
+# 8b. gg-desk 2026-11-23 (VPS): the lock also blocked 'git push -u' (writes upstream config)
+# and a wrapper script (wt:done) that runs git worktree remove inside; the hook never saw a
+# git subcommand there. Push with -u counts as a config write; a non-git program in a repo
+# (it may run git itself) sweeps its working folder.
+for c in "git push -u origin feat" "git push --set-upstream origin feat" "npm run wt:done" "bash scripts/wt-done.sh feat" "cd $A && make land"; do
+  mklock "$A"; run "$A" "$c"
+  gone "$A" && ok || bad "should sweep for: $c"
+done
+for c in "git push origin feat" "ls -la" "cat README" "grep -r x ." "printf x"; do
+  mklock "$A"; run "$A" "$c"
+  [ -e "$A/.git/config.lock" ] && ok || bad "must not sweep for: $c"
+done
+rm -f "$A/.git/config.lock"
+
 # 9. not a repo / missing cwd: exit 0, silent
 run "$T" "git config a.b c"; [ "$RC" = 0 ] && [ -z "$ERR" ] && ok || bad "non-repo cwd must be silent rc0"
 run "$T/nope" "git config a.b c"; [ "$RC" = 0 ] && ok || bad "missing cwd must rc0"

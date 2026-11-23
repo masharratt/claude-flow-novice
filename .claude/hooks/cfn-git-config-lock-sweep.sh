@@ -39,7 +39,6 @@ CMD=$(printf '%s' "$RAW" | jq -r '.tool_input.command // empty' 2>/dev/null)
 CWD=$(printf '%s' "$RAW" | jq -r '.cwd // empty' 2>/dev/null)
 [ -n "$CMD" ] || exit 0
 [ -n "$CWD" ] || CWD=$PWD
-case "$CMD" in *git*) ;; *) exit 0 ;; esac
 
 resolve() { # base path -> absolute path ("" when not a dir)
   local base=$1 p=$2
@@ -66,6 +65,7 @@ is_config_write() { # args after "git [global opts]"
         case "$a" in --set-upstream*|-u|--unset-upstream|-m|-M|-c|-C) return 0 ;; esac
       done ;;
     submodule) return 0 ;;
+    push) for a in "$@"; do case "$a" in -u|--set-upstream) return 0 ;; esac; done ;;
   esac
   return 1
 }
@@ -99,7 +99,16 @@ while IFS= read -r seg; do
     [ $((i+1)) -lt $n ] && { nd=$(resolve "$eff" "${tok[$((i+1))]}") && [ -n "$nd" ] && eff=$nd; }
     continue
   fi
-  [ "${tok[$i]}" = git ] || continue
+  if [ "${tok[$i]}" != git ]; then
+    # A program other than git (npm run, a script, make) may run git inside, e.g. gg-desk's
+    # wt:done ran 'git worktree remove' unseen (2026-11-23). The lock this removes is never a
+    # real git lock (0 bytes, no write bit), so sweeping the working folder is safe.
+    case "${tok[$i]}" in
+      echo|printf|cat|ls|grep|rg|egrep|head|tail|sed|awk|jq|wc|true|false|test|\[|sort|uniq|cut|tr|stat|file|which|type|command|pwd|date|sleep|env) ;;
+      *) sweep "$eff" ;;
+    esac
+    continue
+  fi
   i=$((i+1)); dir=$eff
   while [ $i -lt $n ]; do
     case "${tok[$i]}" in
