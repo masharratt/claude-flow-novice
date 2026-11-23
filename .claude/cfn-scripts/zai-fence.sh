@@ -55,7 +55,8 @@
 #      CFN_GIT_REDIRECT_VARS (GIT_DIR etc., before the root lookup) and
 #      CFN_FENCE_SCRUB_ENV (OPENAI/AWS/PG/data-system credentials);
 #      DISABLE_AUTOUPDATER=1; TMPDIR + CLAUDE_CODE_TMPDIR = per-worker temp dir;
-#      ~/.claude/skills/cfn-fleet/cli prepended to PATH when present.
+#      ~/.claude/skills/cfn-fleet/cli and ~/.claude/cfn-scripts/safe-bin (rm
+#      guard) prepended to PATH when present.
 # When the command's basename is `claude`, appends
 #   --settings '{"sandbox":{"enabled":false}}'  (nested sandbox-exec is refused).
 #
@@ -301,6 +302,12 @@ export DISABLE_AUTOUPDATER=1 TMPDIR="$WTMP/" CLAUDE_CODE_TMPDIR="$WTMP"
 # fleet workers heartbeat/claim/commit by bare name; the cli dir is already readable via step 2
 FLEET_CLI="$HOME/.claude/skills/cfn-fleet/cli"
 [ -x "$FLEET_CLI/fleet" ] && export PATH="$FLEET_CLI:$PATH"
+# Child-process delete guard (incident 2026-11-23: an empty temp var ran
+# rm -rf /home /tmp): the fenced command finds safe-bin/rm first on PATH.
+SAFE_BIN="$HOME/.claude/cfn-scripts/safe-bin"
+if [ -x "$SAFE_BIN/rm" ]; then
+  case ":$PATH:" in *":$SAFE_BIN:"*) ;; *) export PATH="$SAFE_BIN:$PATH" ;; esac
+fi
 
 shift
 set -- "$CMD_PATH" "$@"

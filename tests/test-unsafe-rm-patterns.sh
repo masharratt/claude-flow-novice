@@ -39,6 +39,9 @@
 # Usage
 #   tests/test-unsafe-rm-patterns.sh              self-test on fixtures, then scan repo
 #   tests/test-unsafe-rm-patterns.sh --scan-only  [--root DIR] [--rm-baseline F] [--mktemp-baseline F]
+#       --root DIR (or UNSAFE_RM_ROOT=DIR): lint another repo, e.g. MDTWII. A
+#       root other than this repo scans every *.sh (tracked + untracked) and
+#       starts from empty baselines unless --rm-baseline/--mktemp-baseline given.
 #   tests/test-unsafe-rm-patterns.sh --write-baseline   regenerate both baselines (only
 #                                                        after fixing sites; review the diff)
 set -u
@@ -56,8 +59,12 @@ list_files() {
     # Default scans tracked plus untracked, as CI does.
     local lsflags=-co
     [ "${UNSAFE_RM_TRACKED_ONLY:-0}" = 1 ] && lsflags=-c
+    # This repo: tests/ and .claude/ only. Any other repo (--root, e.g. MDTWII):
+    # every *.sh, since its tests can live anywhere.
+    local -a specs=('tests/*.sh' '.claude/*.sh')
+    [ "$root" = "$REPO" ] || specs=('*.sh')
     if [ "$(git -C "$root" rev-parse --show-toplevel 2>/dev/null)" = "$root" ]; then
-        git -C "$root" ls-files "$lsflags" --exclude-standard -- 'tests/*.sh' '.claude/*.sh' \
+        git -C "$root" ls-files "$lsflags" --exclude-standard -- "${specs[@]}" \
             | grep -v '^tests/fixtures/unsafe-rm/' | grep -v '/\.trash/' \
             | while IFS= read -r f; do [ -f "$root/$f" ] && printf '%s\n' "$f"; done
     else
@@ -209,7 +216,7 @@ write_baseline() {
 
 # Self-test: the lint must go red on every banned pattern and green on safe code.
 self_test() {
-    local pass=0 fail=0 out rc case_dir
+    local pass=0 fail=0 out rc
     expect() { # NAME DIR WANT_RC [GREP_PATTERN]
         local name="$1" dir="$2" want="$3" pat="${4:-}"
         out=$(run_scan "$dir" "$dir/rm-baseline.txt" "$dir/mktemp-baseline.txt" 2>&1); rc=$?
@@ -230,6 +237,9 @@ self_test() {
     expect "recursive-delete count at/below baseline ok" "$FIXTURES/rm-var-at-baseline" 0 'ratchet rm-var: ok'
     expect "safe patterns pass"                      "$FIXTURES/clean"              0 'scanned 1 files.*clean'
     expect "zero files scanned exits 2"              "$FIXTURES/empty"              2 'scanned 0 files'
+    # Incident 2026-11-23 (MDTWII): T="$(mktemp ...)" unchecked, then rm -rf "$T/home".
+    expect "incident shape: unchecked mktemp flagged" "$FIXTURES/incident-2026-11-23" 1 'bad\.sh:4: T="\$\(mktemp'
+    expect "incident shape: recursive delete of T/home flagged" "$FIXTURES/incident-2026-11-23" 1 'bad\.sh:5: .*rm.-rf "\$T/res" "\$T/home"'
     # Tracked-only mode: an untracked bad file is caught by default and ignored
     # when UNSAFE_RM_TRACKED_ONLY=1 (pre-push gate; untracked files never ship).
     local gp gr; gp=$(mktemp -d "${TMPDIR:-/tmp}/unsafe-rm-selftest.XXXXXX") || return 1
@@ -248,6 +258,23 @@ self_test() {
     else
         fail=$((fail + 1)); echo "  FAIL untracked bad file ignored in tracked-only mode (rc=$rc)"; printf '%s\n' "$out" | sed 's/^/       /'
     fi
+    # Foreign root (another project, e.g. MDTWII): every *.sh is in scope, not
+    # just tests/ and .claude/, and CFN's own baselines do not apply.
+    local fr="$gp/other"
+    mkdir -p "$fr/scripts" && git -C "$fr" init -q
+    cp "$FIXTURES/incident-2026-11-23/bad.sh" "$fr/scripts/reset.sh"
+    out=$("$SELF" --scan-only --root "$fr" 2>&1); rc=$?
+    if [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q 'scripts/reset\.sh has 1, baseline 0'; then
+        pass=$((pass + 1)); echo "  ok   --root on another repo scans every *.sh with empty baselines"
+    else
+        fail=$((fail + 1)); echo "  FAIL --root on another repo (rc=$rc)"; printf '%s\n' "$out" | sed 's/^/       /'
+    fi
+    out=$(UNSAFE_RM_ROOT="$fr" "$SELF" --scan-only 2>&1); rc=$?
+    if [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "under $fr"; then
+        pass=$((pass + 1)); echo "  ok   UNSAFE_RM_ROOT picks the scan root"
+    else
+        fail=$((fail + 1)); echo "  FAIL UNSAFE_RM_ROOT (rc=$rc)"; printf '%s\n' "$out" | sed 's/^/       /'
+    fi
     cfn_safe_rm_tmp "$gp"
     echo "self-test: $pass passed, $fail failed"
     [ "$fail" -eq 0 ]
@@ -257,7 +284,9 @@ case "${1:-}" in
     --write-baseline) write_baseline; exit $? ;;
     --scan-only)
         shift
-        root="$REPO"; rmb="$RM_BASELINE_DEFAULT"; mkb="$MK_BASELINE_DEFAULT"
+        # UNSAFE_RM_ROOT=DIR is the same as --root DIR. CFN's baselines apply
+        # only to this repo; another root starts from empty baselines.
+        root="${UNSAFE_RM_ROOT:-$REPO}"; rmb=""; mkb=""
         while [ "$#" -gt 0 ]; do
             case "$1" in
                 --root) root=$(cd "$2" && pwd -P) || exit 2; shift 2 ;;
@@ -266,7 +295,11 @@ case "${1:-}" in
                 *) echo "unknown arg: $1" >&2; exit 2 ;;
             esac
         done
-        run_scan "$root" "$rmb" "$mkb"; exit $? ;;
+        root=$(cd "$root" && pwd -P) || exit 2
+        if [ "$root" = "$REPO" ]; then
+            rmb="${rmb:-$RM_BASELINE_DEFAULT}"; mkb="${mkb:-$MK_BASELINE_DEFAULT}"
+        fi
+        run_scan "$root" "${rmb:-/nonexistent/empty-baseline}" "${mkb:-/nonexistent/empty-baseline}"; exit $? ;;
     "") ;;
     *) echo "usage: $0 [--scan-only [--root DIR] [--rm-baseline F] [--mktemp-baseline F] | --write-baseline]" >&2; exit 2 ;;
 esac

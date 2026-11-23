@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+# safe-bin/rm: GNU rm wrapper that refuses catastrophic targets, for EVERY
+# process that finds rm on PATH (scripts, tests, child processes), not just the
+# command text the AI types (that is cfn-careful-guard.sh's job).
+#
+# Incident 2026-11-23 ~14:42Z (MDTWII): a test's mktemp failed, T was empty,
+# cleanup ran rm -rf "$T/home" "$T/tmp" = rm -rf /home /tmp (~98 GB lost).
+#
+# Refuses (exit 1, one stderr line per bad operand, NOTHING deleted for any
+# operand) when an operand, made absolute without following its last
+# component (a symlink operand removes only the link; a trailing slash follows
+# it), is:
+#   - empty, /, any top-level dir (/home, /tmp, /usr, /mnt...), or /mnt/<x>
+#   - a Windows home folder: /mnt/<x>/Users or /mnt/<x>/Users/<name>
+#   - a home, an ancestor of one, or a direct child of one (~/.cache ...).
+#     "Home" is BOTH the account's real home (getent passwd, so unsetting or
+#     changing HOME does not switch the guard off) and $HOME when set.
+#   - any git repo root (a dir holding a .git DIRECTORY), anywhere; a linked
+#     worktree (.git FILE) stays deletable, cleanup tools remove those.
+#     Also the .git of a repo directly under ~/projects.
+#   - a path listed in <home>/.config/cfn-rm-protect.conf or the committed default
+#     .claude/cfn-config/rm-protect.default (one absolute or ~/ path per line,
+#     # comments), or an ancestor of one
+# Otherwise execs the next rm on PATH after this wrapper's own dir (fallback
+# /bin/rm) with the arguments unchanged. CFN_SAFE_RM_HOP is set before that
+# exec; a wrapper that starts with it already set (a second copy of the
+# wrapper further down PATH) still runs every check, then execs /bin/rm or
+# /usr/bin/rm directly, so two copies cannot hand off to each other forever.
+# The marker only picks which real rm runs; it never skips a check.
+# Not handled: POSIXLY_CORRECT (GNU rm then stops option parsing at the first
+# operand, so a later "-x" is an operand); this wrapper always treats a later
+# "-x" as an option, which can only skip checking an odd file named like one.
+#
+# There is deliberately NO environment-variable escape hatch (an AI would set
+# it). A human who really means it types /bin/rm by hand.
+# Installed by: hooks/cfn-safe-rm-path.sh (Claude Code Bash tool, via
+# CLAUDE_ENV_FILE) and cfn-tmux-agents spawn (pane PATH).
+# cfn: absolute /bin/rm, find -delete, git clean and other deleters bypass it, add a mount/namespace sandbox if one of those bites
+set -u
+
+SELF="${BASH_SOURCE[0]}"
+SELF_DIR=$(cd -P "$(dirname "$SELF")" 2>/dev/null && pwd -P) || SELF_DIR=""
+
+die_refuse() { # args: path reason
+    printf 'cfn-safe-rm: refused %q: %s. Nothing was deleted. (A person can run /bin/rm by hand.)\n' "$1" "$2" >&2
+}
+
+# --- collect operands (GNU rm permutes options; -- ends them) ---
+ops=() dashdash=0
+for a in "$@"; do
+    if [ "$dashdash" = 1 ]; then ops+=("$a"); continue; fi
+    case "$a" in
+        --) dashdash=1 ;;
+        -?*) ;;
+        *) ops+=("$a") ;;
+    esac
+done
+
+refuse=0
+if [ "${#ops[@]}" -gt 0 ]; then
+    # Homes: the account's real home (getent) and $HOME when set.
+    real_home=$(getent passwd "$(id -u)" 2>/dev/null | cut -d: -f6)
+    homes_raw=()
+    [ -n "$real_home" ] && homes_raw+=("$real_home")
+    [ -n "${HOME:-}" ] && [ "${HOME:-}" != "$real_home" ] && homes_raw+=("$HOME")
+    homes=()
+    for h in "${homes_raw[@]+"${homes_raw[@]}"}"; do
+        hr=$(realpath -m -- "$h" 2>/dev/null) || continue
+        [ "$hr" = / ] || homes+=("$hr")
+    done
+
+    # Absolute path of each operand: parent resolved (realpath -m), last
+    # component kept, except ., .., and a trailing slash, which follow.
+    abs=() parents=() idx=()
+    for i in "${!ops[@]}"; do
+        p="${ops[$i]}"
+        if [ -z "$p" ]; then die_refuse "$p" "empty path (an unset variable?)"; refuse=1; abs+=(""); continue; fi
+        case "$p" in /*) ;; *) p="$PWD/$p" ;; esac
+        base="${p##*/}"
+        case "$p" in
+            */|*/.|*/..) abs+=("FOLLOW"); parents+=("$p"); idx+=("$i") ;;
+            *) abs+=("BASE:$base"); parents+=("${p%/*}"); idx+=("$i") ;;
+        esac
+    done
+    if [ "${#parents[@]}" -gt 0 ]; then
+        mapfile -d '' -t resolved < <(realpath -m -z -- "${parents[@]}" 2>/dev/null)
+        # realpath -m of "" (parent of /x) is an error: map empty parent to /
+        if [ "${#resolved[@]}" -ne "${#parents[@]}" ]; then
+            resolved=()
+            for q in "${parents[@]}"; do
+                if [ -z "$q" ]; then resolved+=("/"); else resolved+=("$(realpath -m -- "$q")"); fi
+            done
+        fi
+        for k in "${!idx[@]}"; do
+            i="${idx[$k]}"; r="${resolved[$k]}"
+            case "${abs[$i]}" in
+                FOLLOW) abs[i]="$r" ;;
+                BASE:*) b="${abs[$i]#BASE:}"; if [ "$r" = / ]; then abs[i]="/$b"; else abs[i]="$r/$b"; fi ;;
+            esac
+        done
+    fi
+
+    # Protected list: user file + committed default, ~ expanded, normalized.
+    plist=()
+    lists=()
+    for h in "${homes_raw[@]+"${homes_raw[@]}"}"; do lists+=("$h/.config/cfn-rm-protect.conf"); done
+    [ -n "$SELF_DIR" ] && lists+=("$SELF_DIR/../../cfn-config/rm-protect.default")
+    for f in "${lists[@]+"${lists[@]}"}"; do
+        [ -f "$f" ] || continue
+        # ~ in a list means the home that list lives in (the default: real home).
+        case "$f" in */.config/cfn-rm-protect.conf) home_raw="${f%/.config/cfn-rm-protect.conf}" ;; *) home_raw="$real_home" ;; esac
+        while IFS= read -r line || [ -n "$line" ]; do
+            line="${line%%#*}"; line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
+            [ -n "$line" ] || continue
+            # shellcheck disable=SC2088  # matching a literal ~ in the list file, expanded by hand
+            case "$line" in "~") line="$home_raw" ;; "~/"*) line="$home_raw/${line#\~/}" ;; esac
+            case "$line" in /*) plist+=("$line") ;; esac
+        done <"$f"
+    done
+    if [ "${#plist[@]}" -gt 0 ]; then
+        mapfile -d '' -t plist < <(realpath -m -z -- "${plist[@]}" 2>/dev/null)
+    fi
+
+    for i in "${!ops[@]}"; do
+        a="${abs[$i]}"
+        [ -n "$a" ] || continue   # empty: already refused
+        why=""
+        if [ "$a" = / ]; then why="the filesystem root"
+        elif [[ "$a" =~ ^/[^/]+$ ]]; then why="a top-level system directory"
+        elif [[ "$a" =~ ^/mnt/[^/]+$ ]]; then why="a mounted drive"
+        elif [[ "$a" =~ ^/mnt/[^/]+/Users(/[^/]+)?$ ]]; then why="a Windows home folder"
+        elif [ -d "$a/.git" ] && [ ! -L "$a/.git" ]; then why="a git repository root (a linked worktree, with a .git file, is fine)"
+        fi
+        if [ -z "$why" ]; then
+            for hr in "${homes[@]+"${homes[@]}"}"; do
+                if [ "$a" = "$hr" ]; then why="a home directory"
+                elif [[ "$hr" == "$a"/* ]]; then why="a parent of a home directory"
+                elif [ "${a%/*}" = "$hr" ]; then why="a top-level item in a home directory"
+                elif [[ "$a" == "$hr"/projects/*/.git ]] && [ "${a%/*/.git}" = "$hr/projects" ]; then why="a project repository's .git"
+                fi
+                [ -z "$why" ] || break
+            done
+        fi
+        if [ -z "$why" ]; then
+            for pp in "${plist[@]+"${plist[@]}"}"; do
+                if [ "$a" = "$pp" ]; then why="listed as protected"; break; fi
+                if [[ "$pp" == "$a"/* ]]; then why="holds the protected path $pp"; break; fi
+            done
+        fi
+        if [ -n "$why" ]; then die_refuse "${ops[$i]}" "$why"; refuse=1; fi
+    done
+fi
+[ "$refuse" = 0 ] || exit 1
+
+# --- find the real rm: first 'rm' on PATH outside this wrapper's dir ---
+if [ -n "${CFN_SAFE_RM_HOP:-}" ]; then
+    # A wrapper already ran the checks and handed off to us: go straight to
+    # the system rm so two wrapper copies on PATH cannot loop.
+    for real in /bin/rm /usr/bin/rm; do [ -x "$real" ] && exec "$real" "$@"; done
+    echo "cfn-safe-rm: no /bin/rm or /usr/bin/rm" >&2; exit 1
+fi
+export CFN_SAFE_RM_HOP=1
+real=""
+IFS=: read -r -a pdirs <<<"${PATH:-}"
+for d in "${pdirs[@]}"; do
+    [ -n "$d" ] || continue
+    [ -x "$d/rm" ] && [ -f "$d/rm" ] || continue
+    dr=$(cd -P "$d" 2>/dev/null && pwd -P) || continue
+    [ "$dr" = "$SELF_DIR" ] && continue
+    cand=$(realpath -- "$d/rm" 2>/dev/null) || continue
+    [ "$cand" = "$SELF_DIR/rm" ] && continue
+    real="$d/rm"; break
+done
+[ -n "$real" ] || real=/bin/rm
+exec "$real" "$@"

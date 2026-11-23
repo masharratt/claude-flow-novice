@@ -935,6 +935,12 @@ export HOME="$HOME_R" DISABLE_AUTOUPDATER=1 TMPDIR=/tmp/ CLAUDE_CODE_TMPDIR=/tmp
        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 FLEET_CLI="$HOME/.claude/skills/cfn-fleet/cli"
 [ -x "$FLEET_CLI/fleet" ] && export PATH="$FLEET_CLI:$PATH"
+# Child-process delete guard (incident 2026-11-23: an empty temp var ran
+# rm -rf /home /tmp): the fenced command finds safe-bin/rm first on PATH.
+SAFE_BIN="$HOME/.claude/cfn-scripts/safe-bin"
+if [ -x "$SAFE_BIN/rm" ]; then
+  case ":$PATH:" in *":$SAFE_BIN:"*) ;; *) export PATH="$SAFE_BIN:$PATH" ;; esac
+fi
 
 # CLOSER KEEP_FDS ARGS...: run ARGS with every fd above 2 closed except
 # KEEP_FDS. When ZAI_FENCE_ENV_ALLOW is set (a regex), the environment is

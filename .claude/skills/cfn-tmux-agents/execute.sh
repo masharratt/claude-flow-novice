@@ -342,7 +342,17 @@ cmd_spawn() {
     [[ "$u" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || _ta_die 65 "spawn: engine '$engine' unset list holds a bad name '$u'"
     uv+=" $u"
   done
-  pane_cmd="${uv:+unset$uv; }exec $bin_q"
+  # Child-process delete guard (incident 2026-11-23: a test's empty temp var
+  # ran rm -rf /home /tmp): the lane's shells find safe-bin/rm first on PATH.
+  local safe_bin="$SKILL_DIR/../../cfn-scripts/safe-bin" path_pre=""
+  if [ -x "$safe_bin/rm" ]; then
+    safe_bin=$(cd "$safe_bin" && pwd)
+    path_pre="export PATH=$(printf '%q' "$safe_bin"):\"\$PATH\"; "
+    [ "$dry_run" != 1 ] || echo "# pane env (launch script): PATH=$safe_bin:\$PATH (rm guard)"
+  else
+    echo "WARN spawn: $safe_bin/rm not found; lane runs without the rm guard" >&2
+  fi
+  pane_cmd="${uv:+unset$uv; }${path_pre}exec $bin_q"
 
   [ -n "$trust_timeout" ] || trust_timeout=$(_ta_env_seconds TMUX_AGENTS_TRUST_TIMEOUT 15)
   [ -n "$banner_timeout" ] || banner_timeout=$(_ta_env_seconds TMUX_AGENTS_BANNER_TIMEOUT 20)

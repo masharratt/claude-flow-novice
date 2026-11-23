@@ -1,0 +1,5 @@
+# Paths the safe-bin/rm wrapper (.claude/cfn-scripts/safe-bin/rm) refuses to delete,
+# on top of its built-in rules (/, top-level dirs, /mnt/<x>, $HOME and its direct
+# children, git repo roots directly under ~/projects).
+# One absolute or ~/ path per line; # starts a comment. Deleting a listed path or
+# any parent of one is refused. Personal additions: ~/.config/cfn-rm-protect.conf
