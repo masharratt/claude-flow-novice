@@ -263,13 +263,14 @@ self_test() {
     local fr="$gp/other"
     mkdir -p "$fr/scripts" && git -C "$fr" init -q
     cp "$FIXTURES/incident-2026-11-23/bad.sh" "$fr/scripts/reset.sh"
-    out=$("$SELF" --scan-only --root "$fr" 2>&1); rc=$?
+    # =0: the pre-push gate runs the self-test with UNSAFE_RM_TRACKED_ONLY=1; the temp repo is untracked
+    out=$(UNSAFE_RM_TRACKED_ONLY=0 "$SELF" --scan-only --root "$fr" 2>&1); rc=$?
     if [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q 'scripts/reset\.sh has 1, baseline 0'; then
         pass=$((pass + 1)); echo "  ok   --root on another repo scans every *.sh with empty baselines"
     else
         fail=$((fail + 1)); echo "  FAIL --root on another repo (rc=$rc)"; printf '%s\n' "$out" | sed 's/^/       /'
     fi
-    out=$(UNSAFE_RM_ROOT="$fr" "$SELF" --scan-only 2>&1); rc=$?
+    out=$(UNSAFE_RM_TRACKED_ONLY=0 UNSAFE_RM_ROOT="$fr" "$SELF" --scan-only 2>&1); rc=$?
     if [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "under $fr"; then
         pass=$((pass + 1)); echo "  ok   UNSAFE_RM_ROOT picks the scan root"
     else
