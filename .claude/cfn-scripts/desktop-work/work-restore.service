@@ -1,0 +1,14 @@
+[Unit]
+Description=Reopen the tmux chat layout after boot (work restore)
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# The tmux server it may start must outlive this unit.
+KillMode=process
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/.local/bin/work restore
+TimeoutStartSec=20min
+
+[Install]
+WantedBy=default.target
